@@ -1,0 +1,30 @@
+{
+  "name": "@tokenmanager/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "tokenmanager": "./dist/bin/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch bin/cli.ts",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.0",
+    "@tokenmanager/core": "workspace:*",
+    "chokidar": "^4.0.0",
+    "fastify": "^5.2.0",
+    "simple-git": "^3.27.0",
+    "style-dictionary": "^4.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "vitest": "^3.0.0"
+  }
+}

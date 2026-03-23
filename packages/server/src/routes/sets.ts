@@ -1,0 +1,62 @@
+import type { FastifyPluginAsync } from 'fastify';
+
+export const setRoutes: FastifyPluginAsync = async (fastify) => {
+  // GET /api/sets — list all sets
+  fastify.get('/sets', async () => {
+    const sets = await fastify.tokenStore.getSets();
+    return { sets };
+  });
+
+  // GET /api/sets/:name — get a set
+  fastify.get<{ Params: { name: string } }>('/sets/:name', async (request, reply) => {
+    const { name } = request.params;
+    try {
+      const set = await fastify.tokenStore.getSet(name);
+      if (!set) {
+        return reply.status(404).send({ error: `Token set "${name}" not found` });
+      }
+      return { name: set.name, tokens: set.tokens };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to get set', detail: String(err) });
+    }
+  });
+
+  // POST /api/sets — create a set
+  fastify.post<{ Body: { name: string; tokens?: Record<string, unknown> } }>('/sets', async (request, reply) => {
+    const { name, tokens } = request.body || {};
+    if (!name) {
+      return reply.status(400).send({ error: 'Set name is required' });
+    }
+
+    // Validate name (alphanumeric, dashes, underscores)
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+      return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, and underscores' });
+    }
+
+    try {
+      const existing = await fastify.tokenStore.getSet(name);
+      if (existing) {
+        return reply.status(409).send({ error: `Token set "${name}" already exists` });
+      }
+
+      const set = await fastify.tokenStore.createSet(name, tokens as any);
+      reply.status(201).send({ name: set.name, tokens: set.tokens });
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to create set', detail: String(err) });
+    }
+  });
+
+  // DELETE /api/sets/:name — delete a set
+  fastify.delete<{ Params: { name: string } }>('/sets/:name', async (request, reply) => {
+    const { name } = request.params;
+    try {
+      const deleted = await fastify.tokenStore.deleteSet(name);
+      if (!deleted) {
+        return reply.status(404).send({ error: `Token set "${name}" not found` });
+      }
+      return { deleted: true, name };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to delete set', detail: String(err) });
+    }
+  });
+};

@@ -1,0 +1,14 @@
+{
+  "name": "TokenManager",
+  "id": "tokenmanager-local",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "networkAccess": {
+    "allowedDomains": ["http://localhost", "http://localhost:9400"],
+    "reasoning": "Connects to local TokenManager server for token management"
+  },
+  "capabilities": [],
+  "permissions": ["currentuser"]
+}

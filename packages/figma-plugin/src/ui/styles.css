@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --color-figma-bg: #2c2c2c;
+  --color-figma-bg-secondary: #383838;
+  --color-figma-bg-hover: #444444;
+  --color-figma-text: #ffffff;
+  --color-figma-text-secondary: #b3b3b3;
+  --color-figma-border: #4d4d4d;
+  --color-figma-accent: #0d99ff;
+  --color-figma-accent-hover: #0b87e0;
+  --color-figma-success: #14ae5c;
+  --color-figma-warning: #f2a20d;
+  --color-figma-error: #f24822;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 11px;
+  background: var(--color-figma-bg);
+  color: var(--color-figma-text);
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-figma-border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #666; }
+
+/* Token type color badges */
+.token-type-color { background: #e74c3c33; color: #e74c3c; }
+.token-type-dimension { background: #3498db33; color: #3498db; }
+.token-type-typography { background: #9b59b633; color: #9b59b6; }
+.token-type-shadow { background: #2c3e5033; color: #95a5a6; }
+.token-type-border { background: #e67e2233; color: #e67e22; }
+.token-type-number { background: #1abc9c33; color: #1abc9c; }
+.token-type-string { background: #f39c1233; color: #f39c12; }
+.token-type-boolean { background: #2ecc7133; color: #2ecc71; }

@@ -1,0 +1,147 @@
+import type { FastifyPluginAsync } from 'fastify';
+
+export const syncRoutes: FastifyPluginAsync = async (fastify) => {
+  // GET /api/sync/status — git status + isRepo + current branch
+  fastify.get('/sync/status', async (_request, reply) => {
+    try {
+      const isRepo = await fastify.gitSync.isRepo();
+      if (!isRepo) {
+        return { isRepo: false, branch: null, status: null, remote: null };
+      }
+
+      const [status, branch, remote] = await Promise.all([
+        fastify.gitSync.status(),
+        fastify.gitSync.getCurrentBranch(),
+        fastify.gitSync.getRemote(),
+      ]);
+
+      return {
+        isRepo: true,
+        branch,
+        remote,
+        status: {
+          modified: status.modified,
+          created: status.created,
+          deleted: status.deleted,
+          not_added: status.not_added,
+          staged: status.staged,
+          isClean: status.isClean(),
+        },
+      };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to get sync status', detail: String(err) });
+    }
+  });
+
+  // POST /api/sync/init — initialize git repo
+  fastify.post('/sync/init', async (_request, reply) => {
+    try {
+      const isRepo = await fastify.gitSync.isRepo();
+      if (isRepo) {
+        return reply.status(409).send({ error: 'Git repository already initialized' });
+      }
+      await fastify.gitSync.init();
+      return { initialized: true };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to initialize git repo', detail: String(err) });
+    }
+  });
+
+  // POST /api/sync/commit — commit with message
+  fastify.post<{ Body: { message: string } }>('/sync/commit', async (request, reply) => {
+    const { message } = request.body || {};
+    if (!message) {
+      return reply.status(400).send({ error: 'Commit message is required' });
+    }
+
+    try {
+      const commitHash = await fastify.gitSync.commit(message);
+      return { commit: commitHash, message };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to commit', detail: String(err) });
+    }
+  });
+
+  // POST /api/sync/push — push to remote
+  fastify.post('/sync/push', async (_request, reply) => {
+    try {
+      await fastify.gitSync.push();
+      return { pushed: true };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to push', detail: String(err) });
+    }
+  });
+
+  // POST /api/sync/pull — pull from remote
+  fastify.post('/sync/pull', async (_request, reply) => {
+    try {
+      await fastify.gitSync.pull();
+      return { pulled: true };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to pull', detail: String(err) });
+    }
+  });
+
+  // GET /api/sync/log — recent commits
+  fastify.get<{ Querystring: { limit?: string } }>('/sync/log', async (request, reply) => {
+    try {
+      const limit = request.query.limit ? parseInt(request.query.limit, 10) : 20;
+      const log = await fastify.gitSync.log(limit);
+      return {
+        commits: log.all.map(entry => ({
+          hash: entry.hash,
+          date: entry.date,
+          message: entry.message,
+          author: entry.author_name,
+        })),
+      };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to get log', detail: String(err) });
+    }
+  });
+
+  // POST /api/sync/remote — set remote URL
+  fastify.post<{ Body: { url: string } }>('/sync/remote', async (request, reply) => {
+    const { url } = request.body || {};
+    if (!url) {
+      return reply.status(400).send({ error: 'Remote URL is required' });
+    }
+
+    try {
+      await fastify.gitSync.setRemote(url);
+      return { remote: url };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to set remote', detail: String(err) });
+    }
+  });
+
+  // GET /api/sync/branches — list branches
+  fastify.get('/sync/branches', async (_request, reply) => {
+    try {
+      const branches = await fastify.gitSync.getBranches();
+      const current = await fastify.gitSync.getCurrentBranch();
+      return { branches, current };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to list branches', detail: String(err) });
+    }
+  });
+
+  // POST /api/sync/checkout — checkout branch
+  fastify.post<{ Body: { branch: string; create?: boolean } }>('/sync/checkout', async (request, reply) => {
+    const { branch, create } = request.body || {};
+    if (!branch) {
+      return reply.status(400).send({ error: 'Branch name is required' });
+    }
+
+    try {
+      if (create) {
+        await fastify.gitSync.createBranch(branch);
+      } else {
+        await fastify.gitSync.checkout(branch);
+      }
+      return { branch, created: !!create };
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to checkout branch', detail: String(err) });
+    }
+  });
+};
