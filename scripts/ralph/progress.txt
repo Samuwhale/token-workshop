@@ -359,3 +359,16 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `figma.viewport.scrollAndZoomIntoView(nodes)` zooms canvas to the highlighted layers
   - No browser testing tool available — manual browser verification needed
 ---
+
+## 2026-03-25 - US-018
+- Selection Inspector was already docked at bottom of plugin viewport (outside scroll area) — no repositioning needed
+- Added `useEffect([hasSelection])` to auto-expand when a layer is selected and auto-collapse when deselected
+- Changed header label from 'No selection' to 'Select a layer to inspect' for no-selection state
+- Added `useEffect` import (was missing)
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx`
+- **Learnings for future iterations:**
+  - SelectionInspector is rendered outside the `overflow-y-auto` scroll div in App.tsx — it's already a docked bottom panel
+  - `useEffect([hasSelection])` pattern: fire when boolean derived from prop changes; `setCollapsed(!hasSelection)` covers both expand and collapse automatically
+  - When `hasSelection = false`, body is already guarded by `!collapsed && hasSelection` — so auto-collapsing is mainly about making the chevron direction consistent
+  - No browser testing tool available — manual browser verification needed
+---
