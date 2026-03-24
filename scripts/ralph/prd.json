@@ -105,7 +105,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": ""
     },
     {
@@ -431,16 +431,18 @@
       "title": "Bulk Rename by Name Pattern (Find & Replace for Token Names)",
       "description": "As a design system maintainer, I want to find and replace token path segments by pattern so that I can rename a namespace across hundreds of tokens at once.",
       "acceptanceCriteria": [
-        "The Find & Replace panel accepts a find pattern (plain text or regex) and a replacement string targeting token paths, not values",
-        "Preview shows all tokens whose paths will change, with before/after path displayed",
-        "On confirm, all matched token paths are renamed and all alias references are updated to the new paths",
-        "Operation uses the existing bulk-rename API endpoint",
-        "If any rename would produce a duplicate path, it is flagged in the preview and blocked",
+        "A new POST /api/tokens/:set/bulk-rename endpoint is added to the server accepting: find (string or regex pattern), replace (string), and returning: renamed count, skipped (duplicate) paths, and updated alias references",
+        "The endpoint renames all matching token paths within the set and updates any alias $value strings that reference the old paths (scan all sets for references, not just the current one)",
+        "If any rename would produce a path that already exists, those tokens are excluded from the rename and returned in the skipped list",
+        "The Find & Replace panel in the plugin UI accepts a find pattern (plain text or regex) and a replacement string targeting token paths, not values",
+        "Preview shows all tokens whose paths will change, with before/after path displayed — computed client-side before the request is sent",
+        "If any rename would produce a duplicate path, it is flagged in the preview and blocked before sending",
+        "On confirm, the panel calls the new bulk-rename endpoint and refreshes the token list",
         "Typecheck passes"
       ],
       "priority": 27,
       "passes": false,
-      "notes": ""
+      "notes": "No bulk-rename endpoint currently exists on the server — it must be built as part of this story. Cross-set alias reference updates require scanning all sets via tokenStore.getSets() + getFlatTokensForSet()."
     },
     {
       "id": "US-026",

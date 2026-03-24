@@ -34,6 +34,20 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-24 - US-002
+- Created `EmptyState.tsx` — shown when tokens.length === 0 and user hasn't clicked "Create first token"
+- EmptyState has 3 CTAs: "Create first token" (enabled when connected), "Generate color scale" (disabled stub), "Paste tokens from JSON" (opens import panel)
+- Added `createFromEmpty` state to App.tsx — set to true when "Create first token" is clicked; resets on active set change using a ref comparison pattern
+- Added `defaultCreateOpen` prop to TokenList — initializes `showCreateForm` state when coming from empty state
+- TokenList renders even when tokens.length === 0 if `createFromEmpty` is true (so create form shows)
+- Files changed: `components/EmptyState.tsx` (new), `components/TokenList.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - Render condition: `tokens.length === 0 && !createFromEmpty` → show EmptyState; `tokens.length > 0 || createFromEmpty` → show TokenList
+  - Ref comparison pattern for detecting prop/state changes without useEffect: `if (prevRef.current !== newVal) { prevRef.current = newVal; doSideEffect(); }`
+  - "Paste from JSON" reuses `openOverflowPanel('import')` — same as overflow menu Import action
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## Codebase Patterns
 - Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
 - `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
