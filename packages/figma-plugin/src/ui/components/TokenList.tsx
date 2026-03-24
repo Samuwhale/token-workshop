@@ -711,6 +711,7 @@ function TokenTreeNode({
   const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
   const [aliasError, setAliasError] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [chainExpanded, setChainExpanded] = useState(false);
   const nodeRef = useRef<HTMLDivElement>(null);
 
   // Close context menu on outside click
@@ -728,9 +729,13 @@ function TokenTreeNode({
     }
   }, [isHighlighted]);
 
-  const displayValue = isAlias(node.$value)
-    ? resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat).value ?? node.$value
-    : node.$value;
+  const resolveResult = isAlias(node.$value)
+    ? resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat)
+    : null;
+  const displayValue = resolveResult ? (resolveResult.value ?? node.$value) : node.$value;
+  // chain.length is the number of alias hops (e.g. chain=['B','C'] = A→B→C→value = 3 hops)
+  const aliasChain = resolveResult?.chain ?? [];
+  const showChainBadge = aliasChain.length >= 2;
 
   const handleCopyPath = () => {
     const cssVar = '--' + node.path.replace(/\./g, '-');
@@ -859,8 +864,8 @@ function TokenTreeNode({
   };
 
   return (
+    <div ref={nodeRef}>
     <div
-      ref={nodeRef}
       className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       onMouseEnter={() => setHovered(true)}
@@ -925,6 +930,17 @@ function TokenTreeNode({
           </span>
         ) : null;
       })()}
+
+      {/* Alias chain badge — shown when token resolves through 3+ hops */}
+      {showChainBadge && (
+        <button
+          onClick={e => { e.stopPropagation(); setChainExpanded(v => !v); }}
+          title={chainExpanded ? 'Collapse alias chain' : `Resolves through ${aliasChain.length} aliases`}
+          className={`text-[8px] px-1 py-0.5 rounded border shrink-0 transition-colors ${chainExpanded ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
+        >
+          via {aliasChain.length}
+        </button>
+      )}
 
       {/* Actions (on hover, not in select mode) */}
       {!selectMode && hovered && (
@@ -1023,6 +1039,42 @@ function TokenTreeNode({
           </button>
         </div>
       )}
+    </div>
+
+    {/* Inline alias chain expansion */}
+    {showChainBadge && chainExpanded && (
+      <div
+        className="flex items-center flex-wrap gap-1 px-2 py-1 bg-[var(--color-figma-bg-hover)] border-t border-[var(--color-figma-border)]"
+        style={{ paddingLeft: `${depth * 16 + 20}px` }}
+      >
+        <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium shrink-0">Chain:</span>
+        <span className="text-[9px] text-[var(--color-figma-accent)] font-mono shrink-0">{node.path}</span>
+        {aliasChain.map((hop, i) => (
+          <React.Fragment key={hop}>
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-secondary)] shrink-0">
+              <path d="M1 4h6M4 1l3 3-3 3"/>
+            </svg>
+            <button
+              className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] shrink-0 transition-colors"
+              onClick={() => onNavigateToAlias?.(hop)}
+              title={`Navigate to ${hop}`}
+            >
+              {hop}
+            </button>
+            {i === aliasChain.length - 1 && (
+              <>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-secondary)] shrink-0">
+                  <path d="M1 4h6M4 1l3 3-3 3"/>
+                </svg>
+                <span className="text-[9px] text-[var(--color-figma-text)] font-mono shrink-0">
+                  {formatValue(node.$type, displayValue)}
+                </span>
+              </>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    )}
     </div>
   );
 }
