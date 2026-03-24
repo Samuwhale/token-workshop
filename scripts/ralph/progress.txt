@@ -17,6 +17,23 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-24 - US-007
+- Added `renameSet(oldName, newName)` to `TokenStore` — writes new `.tokens.json`, updates `$themes.json` set keys, deletes old file, updates in-memory maps
+- Added `POST /api/sets/:name/rename` route with validation (409 if name taken, 404 if not found, 400 if invalid name)
+- Updated `App.tsx` set selector: each tab now has a separate `...` button (opacity-0 → group-hover visible, always visible on active tab), right-click also opens context menu
+- Context menu (fixed position at cursor) shows "Rename" option; clicking opens inline input replacing the tab label
+- Rename input: Enter confirms, Escape/blur cancels; inline error shown for invalid characters
+- Active set is updated to new name immediately after successful rename
+- Files changed: `packages/server/src/services/token-store.ts`, `packages/server/src/routes/sets.ts`, `packages/figma-plugin/src/ui/App.tsx`
+- **Learnings for future iterations:**
+  - Alias format `{path.to.token}` has NO set name — cross-set alias references don't need updating on set rename
+  - Theme set references ARE in `$themes.json` as `{ [setName]: 'enabled'|'disabled'|'source' }` — must update on rename
+  - Named state variable `setMenuOpen` conflicts with React setter `setMenuOpen` from `useState` — always check for name collisions with useState destructuring
+  - `useLayoutEffect` is needed (not `useEffect`) to focus a just-rendered input before paint
+  - The `...` button must use `onMouseDown={e => e.preventDefault()}` on the context menu items to prevent blur firing before click
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## Codebase Patterns
 - Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
 - `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
