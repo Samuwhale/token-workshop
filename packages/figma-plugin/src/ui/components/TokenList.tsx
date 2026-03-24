@@ -5,6 +5,7 @@ import { ConfirmModal } from './ConfirmModal';
 import { TOKEN_PROPERTY_MAP } from '../../shared/types';
 import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
+import type { UndoSlot } from '../hooks/useUndo';
 
 interface TokenListProps {
   tokens: TokenNode[];
@@ -15,6 +16,7 @@ interface TokenListProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   onEdit: (path: string) => void;
   onRefresh: () => void;
+  onPushUndo?: (slot: UndoSlot) => void;
 }
 
 type DeleteConfirm =
@@ -22,7 +24,7 @@ type DeleteConfirm =
   | { type: 'group'; path: string; name: string; tokenCount: number }
   | { type: 'bulk'; paths: string[]; orphanCount: number };
 
-export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh }: TokenListProps) {
+export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenType] = useState('color');
@@ -86,6 +88,30 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
 
   const executeDelete = async () => {
     if (!deleteConfirm) return;
+
+    // Capture snapshot before deletion for undo
+    type TokenSnapshot = { path: string; data: { $type?: string; $value?: any; $description?: string } };
+    let undoTokens: TokenSnapshot[] = [];
+    let undoDescription = '';
+
+    if (deleteConfirm.type === 'token') {
+      const found = findLeafByPath(tokens, deleteConfirm.path);
+      if (found) {
+        undoTokens = [{ path: deleteConfirm.path, data: { $type: found.$type, $value: found.$value, $description: found.$description } }];
+      }
+      const name = deleteConfirm.path.split('.').pop() ?? deleteConfirm.path;
+      undoDescription = `Deleted "${name}"`;
+    } else if (deleteConfirm.type === 'group') {
+      undoTokens = collectGroupLeaves(tokens, deleteConfirm.path);
+      undoDescription = `Deleted group "${deleteConfirm.name}" (${undoTokens.length} token${undoTokens.length !== 1 ? 's' : ''})`;
+    } else {
+      undoTokens = deleteConfirm.paths.map(p => {
+        const found = findLeafByPath(tokens, p);
+        return { path: p, data: found ? { $type: found.$type, $value: found.$value, $description: found.$description } : {} };
+      });
+      undoDescription = `Deleted ${deleteConfirm.paths.length} token${deleteConfirm.paths.length !== 1 ? 's' : ''}`;
+    }
+
     setDeleteConfirm(null);
     try {
       if (deleteConfirm.type === 'token' || deleteConfirm.type === 'group') {
@@ -99,6 +125,29 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
         setSelectedPaths(new Set());
         setSelectMode(false);
       }
+
+      // Push undo slot after successful delete
+      if (onPushUndo && undoTokens.length > 0) {
+        const captured = undoTokens;
+        const capturedSet = setName;
+        const capturedUrl = serverUrl;
+        onPushUndo({
+          description: undoDescription,
+          restore: async () => {
+            await Promise.all(
+              captured.map(({ path, data }) =>
+                fetch(`${capturedUrl}/api/tokens/${capturedSet}/${path}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(data),
+                })
+              )
+            );
+            onRefresh();
+          },
+        });
+      }
+
       onRefresh();
     } catch (err) {
       console.error('Failed to delete:', err);
@@ -589,6 +638,31 @@ function formatValue(type?: string, value?: any): string {
 function countLeaves(node: TokenNode): number {
   if (!node.isGroup || !node.children) return node.isGroup ? 0 : 1;
   return node.children.reduce((sum, child) => sum + countLeaves(child), 0);
+}
+
+function findLeafByPath(nodes: TokenNode[], path: string): TokenNode | null {
+  for (const node of nodes) {
+    if (!node.isGroup && node.path === path) return node;
+    if (node.children) {
+      const found = findLeafByPath(node.children, path);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function collectGroupLeaves(nodes: TokenNode[], groupPath: string): Array<{ path: string; data: { $type?: string; $value?: any; $description?: string } }> {
+  const result: Array<{ path: string; data: { $type?: string; $value?: any; $description?: string } }> = [];
+  const walk = (list: TokenNode[]) => {
+    for (const node of list) {
+      if (!node.isGroup && (node.path === groupPath || node.path.startsWith(`${groupPath}.`))) {
+        result.push({ path: node.path, data: { $type: node.$type, $value: node.$value, $description: node.$description } });
+      }
+      if (node.children) walk(node.children);
+    }
+  };
+  walk(nodes);
+  return result;
 }
 
 function getDefaultValue(type: string): any {

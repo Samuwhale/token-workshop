@@ -7,9 +7,11 @@ import { ExportPanel } from './components/ExportPanel';
 import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { SelectionInspector } from './components/SelectionInspector';
+import { UndoToast } from './components/UndoToast';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
+import { useUndo } from './hooks/useUndo';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
 
@@ -78,6 +80,7 @@ export function App() {
   const { syncing, syncProgress, syncResult, sync } = useSyncBindings(serverUrl, connected);
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
+  const { toastVisible, slot: undoSlot, pushUndo, executeUndo, dismissToast } = useUndo();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -256,6 +259,7 @@ export function App() {
               allTokensFlat={allTokensFlat}
               onEdit={(path) => setEditingToken({ path, set: activeSet })}
               onRefresh={refreshTokens}
+              onPushUndo={pushUndo}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && editingToken && (
@@ -288,6 +292,15 @@ export function App() {
           />
         )}
       </div>
+
+      {/* Undo toast */}
+      {toastVisible && undoSlot && (
+        <UndoToast
+          description={undoSlot.description}
+          onUndo={executeUndo}
+          onDismiss={dismissToast}
+        />
+      )}
     </div>
   );
 }
