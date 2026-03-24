@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { TokenNode } from '../hooks/useTokens';
 import { PropertyPicker } from './PropertyPicker';
 import { ConfirmModal } from './ConfirmModal';
@@ -6,6 +6,8 @@ import { TOKEN_PROPERTY_MAP } from '../../shared/types';
 import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
+
+type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage';
 
 interface TokenListProps {
   tokens: TokenNode[];
@@ -79,6 +81,24 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
   const handleCollapseAll = useCallback(() => {
     setExpandedPaths(new Set());
   }, []);
+
+  // Sort order — persisted in sessionStorage (shared across sets)
+  const [sortOrder, setSortOrderState] = useState<SortOrder>(() => {
+    try {
+      return (sessionStorage.getItem('token-sort') as SortOrder) || 'default';
+    } catch {
+      return 'default';
+    }
+  });
+
+  const setSortOrder = useCallback((order: SortOrder) => {
+    setSortOrderState(order);
+    try {
+      sessionStorage.setItem('token-sort', order);
+    } catch {}
+  }, []);
+
+  const sortedTokens = useMemo(() => sortTokenNodes(tokens, sortOrder), [tokens, sortOrder]);
 
   // Merge capabilities from all selected nodes for the property picker
   const selectionCapabilities: NodeCapabilities | null = selectedNodes.length > 0
@@ -300,21 +320,39 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
           </div>
         )}
 
-        {/* Expand / Collapse toolbar */}
-        {tokens.some(n => n.isGroup) && !selectMode && (
+        {/* Toolbar: expand/collapse + sort */}
+        {tokens.length > 0 && !selectMode && (
           <div className="flex items-center gap-0.5 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <button
-              onClick={handleExpandAll}
-              className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-            >
-              Expand all
-            </button>
-            <button
-              onClick={handleCollapseAll}
-              className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
-            >
-              Collapse all
-            </button>
+            {tokens.some(n => n.isGroup) && (
+              <>
+                <button
+                  onClick={handleExpandAll}
+                  className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                >
+                  Expand all
+                </button>
+                <button
+                  onClick={handleCollapseAll}
+                  className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                >
+                  Collapse all
+                </button>
+              </>
+            )}
+            <div className="ml-auto">
+              <select
+                value={sortOrder}
+                onChange={e => setSortOrder(e.target.value as SortOrder)}
+                className="text-[10px] bg-transparent text-[var(--color-figma-text-secondary)] border-none outline-none cursor-pointer hover:text-[var(--color-figma-text)] pr-1"
+              >
+                <option value="default">Default order</option>
+                <option value="alpha-asc">A → Z</option>
+                <option value="alpha-desc">Z → A</option>
+                <option value="by-type">By type</option>
+                <option value="by-value">By value</option>
+                <option value="by-usage" disabled>By usage (run scan first)</option>
+              </select>
+            </div>
           </div>
         )}
 
@@ -329,7 +367,7 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
           </div>
         ) : (
           <div className="py-1">
-            {tokens.map(node => (
+            {sortedTokens.map(node => (
               <TokenTreeNode
                 key={node.path}
                 node={node}
@@ -706,6 +744,30 @@ function formatValue(type?: string, value?: any): string {
     return JSON.stringify(value).slice(0, 30);
   }
   return String(value);
+}
+
+function sortTokenNodes(nodes: TokenNode[], order: SortOrder): TokenNode[] {
+  if (order === 'default' || order === 'by-usage') return nodes;
+  const sorted = [...nodes].sort((a, b) => {
+    switch (order) {
+      case 'alpha-asc': return a.name.localeCompare(b.name);
+      case 'alpha-desc': return b.name.localeCompare(a.name);
+      case 'by-type': {
+        const tc = (a.$type || '').localeCompare(b.$type || '');
+        return tc !== 0 ? tc : a.name.localeCompare(b.name);
+      }
+      case 'by-value': {
+        const av = typeof a.$value === 'string' ? a.$value : JSON.stringify(a.$value ?? '');
+        const bv = typeof b.$value === 'string' ? b.$value : JSON.stringify(b.$value ?? '');
+        return av.localeCompare(bv);
+      }
+      default: return 0;
+    }
+  });
+  return sorted.map(node => ({
+    ...node,
+    children: node.children ? sortTokenNodes(node.children, order) : undefined,
+  }));
 }
 
 function collectGroupPathsByDepth(nodes: TokenNode[], maxExpandDepth: number, depth = 0): string[] {
