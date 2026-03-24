@@ -2,6 +2,21 @@
 Started: Tue Mar 24 23:02:19 CET 2026
 ---
 
+## 2026-03-24 - US-006
+- Created `useUndo` hook in `hooks/useUndo.ts` — manages single undo slot, 8-second toast timer, Cmd+Z/Ctrl+Z listener
+- Created `UndoToast` component in `components/UndoToast.tsx` — fixed-position snackbar with Undo + dismiss buttons
+- Modified `TokenList.tsx` to capture token snapshots before deletion and call `onPushUndo` after success
+- Modified `App.tsx` to use `useUndo` hook, pass `pushUndo` to `TokenList`, and render `UndoToast` overlay
+- Files changed: `hooks/useUndo.ts` (new), `components/UndoToast.tsx` (new), `components/TokenList.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - Undo snapshot captured from the `tokens: TokenNode[]` tree (not allTokensFlat) to get full data incl. $description
+  - Restore uses POST `/api/tokens/:set/:path` with `{ $type, $value, $description }` — same endpoint as create
+  - `useUndo` hook is in `hooks/useUndo.ts` and exports `UndoSlot` type — import from there for future undo integrations
+  - Undo slot is session-only (in-memory React state) — cleared automatically on plugin close
+  - `UndoToast` uses `fixed bottom-4` positioning — works inside the Figma plugin iframe
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## Codebase Patterns
 - Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
 - `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
@@ -14,6 +29,7 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - `DELETE /api/tokens/:set/:path` deletes the key at that path — works for both leaf tokens AND group paths (deletes entire subtree)
 - Alias format is `{path.to.token}` (curly braces, dot-separated path), detected via `isAlias()` in resolveAlias.ts
 - `ConfirmModal` component at `components/ConfirmModal.tsx` — reusable for all destructive confirmations (danger prop, Escape/outside-click cancel)
+- `useUndo` hook at `hooks/useUndo.ts` — single undo slot with 8s toast; use `pushUndo(UndoSlot)` after any destructive op; exports `UndoSlot` type
 
 ---
 
