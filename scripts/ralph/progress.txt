@@ -142,3 +142,21 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - **Learnings for future iterations:**
   - US-004 criteria were satisfied as a side-effect of US-001 — check prior stories before implementing to avoid duplication
 ---
+
+## 2026-03-25 - US-011
+- Lifted `expanded` state out of `TokenTreeNode` into `TokenList` as `expandedPaths: Set<string>`
+- `expandedPaths` persisted in sessionStorage with key `token-expand:<setName>`
+- Initialization: loads from sessionStorage if set was previously visited; otherwise defaults to depth < 2 expanded (matches prior behavior)
+- Load effect fires on `[setName, tokens]` deps; uses `initializedForSet` ref to avoid re-initializing on unrelated re-renders
+- Save effect fires on `[expandedPaths]` only; uses `setNameRef` ref to avoid saving under wrong set name during transitions
+- Added "Expand all" / "Collapse all" buttons in toolbar above token list (shown when groups exist, hidden in select mode)
+- `TokenTreeNode` now accepts `expandedPaths: Set<string>` and `onToggleExpand: (path: string) => void` props
+- Added helpers: `collectGroupPathsByDepth(nodes, maxDepth)` and `collectAllGroupPaths(nodes)`
+- Files changed: `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - sessionStorage key pattern: `token-expand:<setName>` — use same pattern for other per-set UI state
+  - Use `initializedForSet` ref (not state) to track initialization to avoid circular effects
+  - Use `setNameRef` ref in save effect so setName changes don't cause saves under wrong key
+  - Expand/collapse state is lifted to TokenList level — TokenTreeNode gets `expandedPaths` Set prop
+  - No browser testing tool available — manual browser verification needed
+---
