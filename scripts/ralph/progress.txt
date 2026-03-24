@@ -101,6 +101,22 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-25 - US-016
+- Added `chainExpanded` state to `TokenTreeNode` leaf renderer
+- Computed full `resolveResult` (instead of just the value) to get the alias `chain` array
+- `showChainBadge` = `chain.length >= 2` (3+ hops: source → intermediate(s) → final value)
+- "via N" badge shown inline after duplicate annotation; clicking toggles `chainExpanded`
+- When expanded: renders a row below the main token row showing each hop with clickable intermediate paths (calls `onNavigateToAlias`) and final resolved value
+- Wrapped leaf node `return` in an outer `<div ref={nodeRef}>` wrapper to allow appending the chain row below the main row
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - `resolveTokenValue` returns a `chain: string[]` — each element is an alias path traversed in order
+  - `chain.length >= 2` = 3 or more total hops (source alias + N intermediates + final value)
+  - To add content below a token row: wrap the `return` in an outer div, put main row as inner div, append extra content after
+  - `nodeRef` must go on the outer wrapper (not inner row) so `scrollIntoView` scrolls to the visible parent
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## Codebase Patterns
 - Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
 - `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
