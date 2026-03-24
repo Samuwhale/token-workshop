@@ -258,3 +258,17 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all'`
   - No browser testing tool available — manual browser verification needed
 ---
+
+## 2026-03-24 - US-022
+- Added `StepperInput` component in `TokenEditor.tsx` — wraps number input with custom ▲▼ buttons, arrow key (±1/Shift±10) and mouse wheel support
+- Added `UNIT_CONVERSIONS` lookup table for px↔rem↔em conversions (rounds to 3 decimal places)
+- Updated `DimensionEditor` to use `StepperInput` and convert value on unit change via `UNIT_CONVERSIONS`
+- Updated `NumberEditor` to use `StepperInput`
+- Hid native browser number spinners via Tailwind `[appearance:textfield]` and webkit classes
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx`
+- **Learnings for future iterations:**
+  - Use `onMouseDown` + `e.preventDefault()` on stepper buttons so blur doesn't fire before the step action
+  - `onWheel` on input elements needs `e.preventDefault()` to prevent page scroll — works in Figma iframe context
+  - Unit conversion for % requires canvas context (viewport size) — skip converting % to/from other units, pass value as-is
+  - `Math.round(v * 1000) / 1000` pattern avoids floating point artifacts in unit conversions
+---
