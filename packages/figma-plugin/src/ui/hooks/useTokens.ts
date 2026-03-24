@@ -78,6 +78,45 @@ export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<stri
   return map;
 }
 
+export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
+  flat: Record<string, TokenMapEntry>;
+  pathToSet: Record<string, string>;
+}> {
+  const setsRes = await fetch(`${serverUrl}/api/sets`);
+  const setsData = await setsRes.json();
+  const setNames: string[] = setsData.sets || [];
+
+  const flat: Record<string, TokenMapEntry> = {};
+  const pathToSet: Record<string, string> = {};
+
+  for (const setName of setNames) {
+    const res = await fetch(`${serverUrl}/api/tokens/${setName}`);
+    const data = await res.json();
+    flattenTokensWithSet(data.tokens || {}, '', setName, flat, pathToSet);
+  }
+
+  return { flat, pathToSet };
+}
+
+function flattenTokensWithSet(
+  group: Record<string, any>,
+  prefix: string,
+  setName: string,
+  flat: Record<string, TokenMapEntry>,
+  pathToSet: Record<string, string>,
+) {
+  for (const [key, value] of Object.entries(group)) {
+    if (key.startsWith('$')) continue;
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && '$value' in value) {
+      flat[path] = { $value: value.$value, $type: value.$type || 'unknown' };
+      if (!(path in pathToSet)) pathToSet[path] = setName; // first set wins
+    } else if (value && typeof value === 'object') {
+      flattenTokensWithSet(value, path, setName, flat, pathToSet);
+    }
+  }
+}
+
 function countLeafNodes(group: Record<string, any>): number {
   let count = 0;
   for (const [key, value] of Object.entries(group)) {

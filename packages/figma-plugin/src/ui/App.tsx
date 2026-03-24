@@ -11,7 +11,7 @@ import { UndoToast } from './components/UndoToast';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmptyState } from './components/EmptyState';
 import { useServerConnection } from './hooks/useServerConnection';
-import { useTokens, fetchAllTokensFlat } from './hooks/useTokens';
+import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
 import { useUndo } from './hooks/useUndo';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
@@ -81,6 +81,9 @@ export function App() {
   const { selectedNodes } = useSelection();
   const { syncing, syncProgress, syncResult, sync } = useSyncBindings(serverUrl, connected);
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
+  const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
+  const [highlightedToken, setHighlightedToken] = useState<string | null>(null);
+  const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const { toastVisible, slot: undoSlot, pushUndo, executeUndo, dismissToast } = useUndo();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -115,9 +118,32 @@ export function App() {
 
   useEffect(() => {
     if (connected) {
-      fetchAllTokensFlat(serverUrl).then(raw => setAllTokensFlat(resolveAllAliases(raw)));
+      fetchAllTokensFlatWithSets(serverUrl).then(({ flat, pathToSet: pts }) => {
+        setAllTokensFlat(resolveAllAliases(flat));
+        setPathToSet(pts);
+      });
     }
   }, [connected, serverUrl, tokens]);
+
+  // Apply pending highlight after switching sets
+  useEffect(() => {
+    if (pendingHighlight && pathToSet[pendingHighlight] === activeSet) {
+      setHighlightedToken(pendingHighlight);
+      setPendingHighlight(null);
+    }
+  }, [tokens, pendingHighlight, activeSet, pathToSet]);
+
+  const handleNavigateToAlias = useCallback((aliasPath: string) => {
+    if (pathToSet[aliasPath]) {
+      const targetSet = pathToSet[aliasPath];
+      if (targetSet === activeSet) {
+        setHighlightedToken(aliasPath);
+      } else {
+        setPendingHighlight(aliasPath);
+        setActiveSet(targetSet);
+      }
+    }
+  }, [pathToSet, activeSet, setActiveSet]);
 
   // Close overflow menu on outside click
   useEffect(() => {
@@ -520,6 +546,9 @@ export function App() {
               onRefresh={refreshTokens}
               onPushUndo={pushUndo}
               defaultCreateOpen={createFromEmpty}
+              highlightedToken={highlightedToken}
+              onNavigateToAlias={handleNavigateToAlias}
+              onClearHighlight={() => setHighlightedToken(null)}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && editingToken && (

@@ -20,6 +20,9 @@ interface TokenListProps {
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   defaultCreateOpen?: boolean;
+  highlightedToken?: string | null;
+  onNavigateToAlias?: (path: string) => void;
+  onClearHighlight?: () => void;
 }
 
 type DeleteConfirm =
@@ -27,7 +30,7 @@ type DeleteConfirm =
   | { type: 'group'; path: string; name: string; tokenCount: number }
   | { type: 'bulk'; paths: string[]; orphanCount: number };
 
-export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen }: TokenListProps) {
+export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenType] = useState('color');
@@ -81,6 +84,25 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
   const handleCollapseAll = useCallback(() => {
     setExpandedPaths(new Set());
   }, []);
+
+  // Expand ancestor groups when navigating to a highlighted token
+  useEffect(() => {
+    if (!highlightedToken) return;
+    const parts = highlightedToken.split('.');
+    const ancestors: string[] = [];
+    for (let i = 1; i < parts.length; i++) {
+      ancestors.push(parts.slice(0, i).join('.'));
+    }
+    if (ancestors.length > 0) {
+      setExpandedPaths(prev => {
+        const next = new Set(prev);
+        ancestors.forEach(a => next.add(a));
+        return next;
+      });
+    }
+    const timer = setTimeout(() => onClearHighlight?.(), 3000);
+    return () => clearTimeout(timer);
+  }, [highlightedToken, onClearHighlight]);
 
   // Sort order — persisted in sessionStorage (shared across sets)
   const [sortOrder, setSortOrderState] = useState<SortOrder>(() => {
@@ -520,6 +542,8 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
                 expandedPaths={expandedPaths}
                 onToggleExpand={handleToggleExpand}
                 duplicateCounts={duplicateCounts}
+                highlightedToken={highlightedToken ?? null}
+                onNavigateToAlias={onNavigateToAlias}
               />
             ))}
           </div>
@@ -642,6 +666,8 @@ function TokenTreeNode({
   expandedPaths,
   onToggleExpand,
   duplicateCounts,
+  highlightedToken,
+  onNavigateToAlias,
 }: {
   node: TokenNode;
   depth: number;
@@ -657,12 +683,24 @@ function TokenTreeNode({
   expandedPaths: Set<string>;
   onToggleExpand: (path: string) => void;
   duplicateCounts: Map<string, number>;
+  highlightedToken: string | null;
+  onNavigateToAlias?: (path: string) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
+  const isHighlighted = highlightedToken === node.path;
   const [hovered, setHovered] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState<{ top: number; left: number } | undefined>();
   const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
+  const [aliasError, setAliasError] = useState(false);
+  const nodeRef = useRef<HTMLDivElement>(null);
+
+  // Scroll highlighted token into view
+  useEffect(() => {
+    if (isHighlighted && nodeRef.current) {
+      nodeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [isHighlighted]);
 
   const displayValue = isAlias(node.$value)
     ? resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat).value ?? node.$value
@@ -680,6 +718,18 @@ function TokenTreeNode({
     navigator.clipboard.writeText(val).catch(() => {});
     setCopiedWhat('value');
     setTimeout(() => setCopiedWhat(null), 1500);
+  };
+
+  const handleAliasClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAlias(node.$value)) return;
+    const aliasPath = (node.$value as string).slice(1, -1);
+    if (!allTokensFlat[aliasPath]) {
+      setAliasError(true);
+      setTimeout(() => setAliasError(false), 2000);
+      return;
+    }
+    onNavigateToAlias?.(aliasPath);
   };
 
   const applyWithProperty = (property: BindableProperty) => {
@@ -767,6 +817,8 @@ function TokenTreeNode({
             expandedPaths={expandedPaths}
             onToggleExpand={onToggleExpand}
             duplicateCounts={duplicateCounts}
+            highlightedToken={highlightedToken}
+            onNavigateToAlias={onNavigateToAlias}
           />
         ))}
       </div>
@@ -775,7 +827,8 @@ function TokenTreeNode({
 
   return (
     <div
-      className="relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+      ref={nodeRef}
+      className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setShowPicker(false); }}
@@ -808,9 +861,16 @@ function TokenTreeNode({
             </span>
           )}
           {isAlias(node.$value) && (
-            <span className="text-[8px] text-[var(--color-figma-text-secondary)]" title={`Alias: ${node.$value}`}>
-              &rarr;
-            </span>
+            <button
+              onClick={handleAliasClick}
+              className={`flex items-center gap-0.5 px-1 py-0.5 rounded border text-[8px] transition-colors ${aliasError ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
+              title={aliasError ? 'Token not found — broken alias' : `Navigate to ${node.$value}`}
+            >
+              <span>{(node.$value as string).slice(1, -1)}</span>
+              <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M1 3h4M3 1l2 2-2 2"/>
+              </svg>
+            </button>
           )}
         </div>
         {node.$description && (
