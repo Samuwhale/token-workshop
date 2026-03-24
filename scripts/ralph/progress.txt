@@ -194,6 +194,21 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-25 - US-019
+- Added `copiedWhat: 'path' | 'value' | null` state in `TokenTreeNode` leaf renderer
+- Two copy buttons inserted in hover action area between "Apply" and "Edit" buttons
+- `handleCopyPath`: writes `'--' + node.path.replace(/\./g, '-')` to clipboard
+- `handleCopyValue`: writes `displayValue` (alias-resolved) as string or JSON
+- Icon swaps to checkmark (✓) for 1.5s after copy; title shows "Copied!" during that period
+- No layout shift: both buttons are always part of the same `hovered` action group
+- Files changed: `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - CSS var formula: `'--' + node.path.replace(/\./g, '-')`
+  - Use `navigator.clipboard.writeText(...).catch(() => {})` — no try/catch needed
+  - Inline icon swap pattern: `copiedWhat === 'path' ? <checkmark/> : <copy/>` for zero-reflow confirmation
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## 2026-03-25 - US-013
 - Added filter bar (search input + type select + ref select) above token list in TokenList
 - Filters persist in sessionStorage: `'token-search'`, `'token-type-filter'`, `'token-ref-filter'` (shared across sets)
