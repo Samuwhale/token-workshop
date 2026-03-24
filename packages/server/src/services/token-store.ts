@@ -130,6 +130,28 @@ export class TokenStore {
     return Array.from(this.sets.keys());
   }
 
+  getSetDescriptions(): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const [name, set] of this.sets) {
+      const desc = (set.tokens as any).$description;
+      if (typeof desc === 'string' && desc) {
+        result[name] = desc;
+      }
+    }
+    return result;
+  }
+
+  async updateSetDescription(name: string, description: string): Promise<void> {
+    const set = this.sets.get(name);
+    if (!set) throw new Error(`Set "${name}" not found`);
+    if (description) {
+      (set.tokens as any).$description = description;
+    } else {
+      delete (set.tokens as any).$description;
+    }
+    await this.saveSet(name);
+  }
+
   async getSet(name: string): Promise<TokenSet | undefined> {
     return this.sets.get(name);
   }

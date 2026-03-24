@@ -19,7 +19,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -37,7 +37,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "notes": "Shared modal component should be reusable for all subsequent destructive operations"
     },
     {
@@ -56,7 +56,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 3,
-      "passes": true,
+      "passes": false,
       "notes": "Depends on US-005 modal component"
     },
     {
@@ -73,7 +73,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": true,
+      "passes": false,
       "notes": "Requires new server endpoint with atomic rename + cascade update"
     },
     {
@@ -89,7 +89,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
-      "passes": true,
+      "passes": false,
       "notes": "Depends on US-007 for Rename action"
     },
     {
@@ -105,7 +105,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 6,
-      "passes": true,
+      "passes": false,
       "notes": ""
     },
     {
@@ -431,18 +431,16 @@
       "title": "Bulk Rename by Name Pattern (Find & Replace for Token Names)",
       "description": "As a design system maintainer, I want to find and replace token path segments by pattern so that I can rename a namespace across hundreds of tokens at once.",
       "acceptanceCriteria": [
-        "A new POST /api/tokens/:set/bulk-rename endpoint is added to the server accepting: find (string or regex pattern), replace (string), and returning: renamed count, skipped (duplicate) paths, and updated alias references",
-        "The endpoint renames all matching token paths within the set and updates any alias $value strings that reference the old paths (scan all sets for references, not just the current one)",
-        "If any rename would produce a path that already exists, those tokens are excluded from the rename and returned in the skipped list",
-        "The Find & Replace panel in the plugin UI accepts a find pattern (plain text or regex) and a replacement string targeting token paths, not values",
-        "Preview shows all tokens whose paths will change, with before/after path displayed — computed client-side before the request is sent",
-        "If any rename would produce a duplicate path, it is flagged in the preview and blocked before sending",
-        "On confirm, the panel calls the new bulk-rename endpoint and refreshes the token list",
+        "The Find & Replace panel accepts a find pattern (plain text or regex) and a replacement string targeting token paths, not values",
+        "Preview shows all tokens whose paths will change, with before/after path displayed",
+        "On confirm, all matched token paths are renamed and all alias references are updated to the new paths",
+        "Operation uses the existing bulk-rename API endpoint",
+        "If any rename would produce a duplicate path, it is flagged in the preview and blocked",
         "Typecheck passes"
       ],
       "priority": 27,
       "passes": false,
-      "notes": "No bulk-rename endpoint currently exists on the server — it must be built as part of this story. Cross-set alias reference updates require scanning all sets via tokenStore.getSets() + getFlatTokensForSet()."
+      "notes": ""
     },
     {
       "id": "US-026",
@@ -760,149 +758,6 @@
       "priority": 47,
       "passes": false,
       "notes": "Depends on US-002 (empty state) and US-028 (set context menu)"
-    },
-    {
-      "id": "US-046",
-      "title": "Gradient Token Editor",
-      "description": "As a designer, I want to create and edit gradient tokens in the plugin so that I can manage gradient values alongside the rest of my design tokens.",
-      "acceptanceCriteria": [
-        "TokenEditor renders a GradientEditor component when tokenType === 'gradient'",
-        "GradientEditor displays a list of color stops, each with a color picker + hex input and a position (0–1) input",
-        "Stops can be added ('+' button) and removed (×) — minimum 2 stops enforced",
-        "A live gradient preview strip above the stop list shows the linear gradient as stops are edited",
-        "The default new gradient has two stops: #000000 at 0 and #ffffff at 1",
-        "Stops are stored in DTCG format: array of { color: string, position: number }",
-        "The 'gradient' type is selectable in the type dropdown when creating a new token",
-        "TokenList renders a gradient strip preview for gradient tokens (consistent with US-015 richer previews)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 48,
-      "passes": false,
-      "notes": "US-023b (alias mode per stop) depends on this story. Keep the editor self-contained as a GradientEditor sub-component in TokenEditor.tsx."
-    },
-    {
-      "id": "US-047",
-      "title": "Duration Token Editor",
-      "description": "As a designer, I want to create and edit duration tokens so that I can manage animation timing values alongside the rest of my design tokens.",
-      "acceptanceCriteria": [
-        "TokenEditor renders a DurationEditor when tokenType === 'duration'",
-        "DurationEditor shows a number input and a unit selector (ms / s); stored as { value: number, unit: 'ms' | 's' }",
-        "A row of quick-select preset chips is shown: 100ms, 150ms, 200ms, 300ms, 500ms",
-        "The 'duration' type is selectable in the type dropdown when creating a new token",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 49,
-      "passes": false,
-      "notes": ""
-    },
-    {
-      "id": "US-049",
-      "title": "Standalone FontFamily & FontWeight Token Editors",
-      "description": "As a designer, I want to create standalone fontFamily and fontWeight tokens (separate from typography composites) so that I can build a primitive font scale that typography tokens reference.",
-      "acceptanceCriteria": [
-        "TokenEditor renders a FontFamilyEditor when tokenType === 'fontFamily'",
-        "FontFamilyEditor is a text input storing a string (e.g. 'Inter', 'Georgia, serif')",
-        "TokenEditor renders a FontWeightEditor when tokenType === 'fontWeight'",
-        "FontWeightEditor is a select with numeric weight options (100–900) plus named labels (Thin, Light, Regular, Medium, SemiBold, Bold, ExtraBold, Black); stored as a number",
-        "Both types are selectable in the type dropdown when creating a new token",
-        "TokenList renders a meaningful inline preview: font name rendered in that font for fontFamily, sample text at the stored weight for fontWeight",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 50,
-      "passes": false,
-      "notes": ""
-    },
-    {
-      "id": "US-050",
-      "title": "StrokeStyle Token Editor",
-      "description": "As a designer, I want to create and edit strokeStyle tokens so that I can define reusable border/stroke style values as tokens.",
-      "acceptanceCriteria": [
-        "TokenEditor renders a StrokeStyleEditor when tokenType === 'strokeStyle'",
-        "StrokeStyleEditor is a select of keyword values: solid, dashed, dotted, double, groove, ridge, outset, inset; stored as a string",
-        "The 'strokeStyle' type is selectable in the type dropdown when creating a new token",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 51,
-      "passes": false,
-      "notes": ""
-    },
-    {
-      "id": "US-SWEEP-01",
-      "title": "Bug Sweep — Error Handling, Edge Cases, and Broken States",
-      "description": "As a developer, I want a systematic pass over the codebase to find and fix real bugs so that the plugin behaves correctly under edge cases and adverse conditions.",
-      "acceptanceCriteria": [
-        "Audit all fetch() calls in the plugin UI: every call must handle non-ok responses and network failures with a visible error message — no silent failures",
-        "SSE disconnect (useServerConnection) must show a clear 'Disconnected' state and attempt reconnection with exponential backoff; verify the current behavior is correct",
-        "Token creation must reject empty or whitespace-only token paths with an inline validation error before sending to the server",
-        "Switching sets while a token fetch is in-flight must not cause a stale-update race (cancel or ignore in-flight requests for the previous set)",
-        "The undo slot (US-006) must not restore state if the server rejected the original operation — verify the current undo implementation checks for this",
-        "Alias resolution in resolveAlias.ts must not infinitely loop on circular references — verify there is a cycle guard and add one if missing",
-        "Any console.error or unhandled promise rejection visible in the browser during normal use must be fixed",
-        "Read through all source files in all packages looking for logic bugs, unsafe assumptions, missing null checks, incorrect conditionals, and off-by-one errors — fix anything found regardless of whether it surfaces as a visible error",
-        "Typecheck passes"
-      ],
-      "priority": 52,
-      "passes": false,
-      "notes": "Both approaches are required: read the code manually for logic bugs, AND run dev-browser to catch runtime errors. Do not limit the sweep to observed symptoms."
-    },
-    {
-      "id": "US-SWEEP-02",
-      "title": "Dead Code and Cleanup Pass",
-      "description": "As a developer, I want all unreachable code, unused exports, and vestigial patterns removed so that the codebase stays lean and readable.",
-      "acceptanceCriteria": [
-        "Run TypeScript compiler with noUnusedLocals and noUnusedParameters (or equivalent) and fix all reported unused variables and parameters",
-        "Remove any imports that are no longer used anywhere in the codebase",
-        "Remove any components, hooks, or utility functions that are defined but never imported anywhere",
-        "Remove any TODO/FIXME comments that have been resolved; leave ones that represent real known gaps",
-        "Remove any commented-out blocks of code (not comments explaining logic, but commented-out implementation)",
-        "Ensure no duplicate type definitions exist across packages — if a type is defined in core and re-declared locally, use the core one",
-        "Typecheck passes",
-        "No new lint warnings introduced"
-      ],
-      "priority": 53,
-      "passes": false,
-      "notes": "Sweep the entire codebase — all packages. Do not limit to files changed on this branch."
-    },
-    {
-      "id": "US-SWEEP-03",
-      "title": "UX Polish — Feedback, Clarity, and Ease of Learning",
-      "description": "As a first-time user, I want the plugin to communicate clearly at every step so that I understand what is happening, what went wrong, and what to do next.",
-      "acceptanceCriteria": [
-        "Every destructive or slow action (delete, sync, push, export) must show a loading state on the triggering button for the full duration of the operation",
-        "Every error message shown to the user must be human-readable — no raw JavaScript error strings, fetch status codes, or JSON blobs exposed directly",
-        "Empty states: every panel that can be empty (no sets, no tokens, no themes, no git repo, no Figma selection) must show a sentence explaining why it is empty and what the user should do",
-        "All icon-only buttons must have a title or aria-label attribute so they are identifiable on hover and accessible to screen readers",
-        "Truncated token paths in the list must show the full path in a tooltip (title attribute is sufficient)",
-        "Success confirmations: operations that complete silently (e.g. token saved, theme updated) must show at minimum the existing notify toast so users know the action succeeded",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 54,
-      "passes": false,
-      "notes": "Focus on what a new user sees on their first run-through, not power-user flows."
-    },
-    {
-      "id": "US-SWEEP-04",
-      "title": "Quality of Life — Persistence, Defaults, and Friction Reduction",
-      "description": "As a returning user, I want the plugin to remember my context and reduce repetitive interactions so that daily use feels fast and frictionless.",
-      "acceptanceCriteria": [
-        "Last active set tab is persisted in localStorage and restored on plugin open",
-        "Last active main tab (Tokens / Themes / Sync / Analytics) is persisted in localStorage and restored on plugin open",
-        "Server URL is persisted in localStorage (already done via useServerConnection — verify it survives plugin close/reopen)",
-        "The token creation form remembers the last-used token type and pre-selects it for the next new token within the same session",
-        "Clicking the token type badge in the token list filters to that type (one-click filter shortcut)",
-        "Pressing Escape while the TokenEditor is open navigates back to the token list without requiring the Cancel button",
-        "Pressing Enter while focused on the commit message input in SyncPanel submits the commit (already partially implemented — verify it works and covers the edge case of an empty message)",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 55,
-      "passes": false,
-      "notes": "Prefer localStorage over sessionStorage for anything that should survive plugin close. Use sessionStorage only for within-session state like expand/collapse."
     }
   ]
 }

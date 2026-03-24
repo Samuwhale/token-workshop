@@ -1,0 +1,717 @@
+{
+  "project": "TokenManager V4",
+  "branchName": "ralph/design-system-platform",
+  "description": "Best-in-class design token platform — inline editing, rich previews, token engine enhancements, multi-dimensional theming, deep Figma integration, platform export, and developer handoff tools.",
+  "userStories": [
+    {
+      "id": "US-100",
+      "title": "Inline Token Value Editing — Infrastructure",
+      "description": "As a designer, I want to click directly on a token value in the token list to edit it inline, so that I don't have to navigate to a separate editor screen for simple value changes.",
+      "acceptanceCriteria": [
+        "InlineEditor.tsx component exists at packages/figma-plugin/src/ui/components/InlineEditor.tsx",
+        "Single-clicking a token's value cell in the list activates inline editing for that token",
+        "The inline input is pre-populated with the current $value (stringified)",
+        "Pressing Enter saves via PATCH API and refreshes the list",
+        "Pressing Escape cancels editing and restores the original value",
+        "Clicking outside the input cancels editing (blur handler)",
+        "Only one token can be inline-edited at a time (activating a new one cancels the previous)",
+        "Double-click on the token row (non-value area) still opens the full TokenEditor",
+        "Toast shows 'Token updated' on successful save",
+        "Toast shows error message on failed save",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-101",
+      "title": "Inline Editor — Color Picker Variant",
+      "description": "As a designer, I want to see a mini color picker popover when I inline-edit a color token, so that I can visually pick colors without leaving the token list.",
+      "acceptanceCriteria": [
+        "Color tokens show a HexColorPicker popover when inline editing is activated",
+        "The hex input field is editable alongside the visual picker",
+        "The list swatch updates in real-time as the picker changes",
+        "Saving is debounced (300ms) during drag, immediate on blur/Enter/Escape",
+        "Popover positions itself to avoid clipping at window edges",
+        "Popover closes on Escape, Enter, or click-outside",
+        "Non-color tokens still use the base text input",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-102",
+      "title": "Inline Editor — Dimension & Number Variants",
+      "description": "As a designer, I want inline editing of dimension tokens to show a number input with a unit dropdown, and number tokens to show a plain number input.",
+      "acceptanceCriteria": [
+        "Dimension tokens show number input + unit dropdown inline",
+        "Unit dropdown contains all units from DIMENSION_UNITS in packages/core/src/constants.ts",
+        "Number tokens show a plain number input",
+        "Arrow Up/Down increments/decrements by 1",
+        "Shift+Arrow changes by 10, Alt+Arrow by 0.1",
+        "Enter saves, Escape cancels",
+        "Value is saved in DTCG format: { value: number, unit: string } for dimension, number for number",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-103",
+      "title": "Reference/Alias Autocomplete Dropdown",
+      "description": "As a designer, I want a fuzzy-search autocomplete dropdown when I type { in any token value field, so that I can quickly find and select token references without memorizing paths.",
+      "acceptanceCriteria": [
+        "TokenAutocomplete.tsx exists at packages/figma-plugin/src/ui/components/TokenAutocomplete.tsx",
+        "Typing { in the inline editor activates the autocomplete dropdown",
+        "Typing { in the full TokenEditor's value/reference field activates it",
+        "Fuzzy search matches on token path segments (e.g., pri.5 matches color.primary.500)",
+        "Results are filtered by compatible $type when a filter type is provided",
+        "Each suggestion shows: preview swatch/icon, token path, set name, resolved value",
+        "Arrow Up/Down navigates suggestions, Enter selects, Escape dismisses",
+        "Selecting a suggestion inserts {path.to.token} into the input field",
+        "Dropdown shows max 8 items with scroll for more",
+        "Dropdown positions below (or above if near bottom edge) the input",
+        "Works in both InlineEditor and TokenEditor contexts",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-104",
+      "title": "Rich Token Preview — Typography",
+      "description": "As a designer, I want typography tokens in the token list to show a live text preview rendered with the actual font family, size, weight, and line-height.",
+      "acceptanceCriteria": [
+        "TokenPreview.tsx exists at packages/figma-plugin/src/ui/components/TokenPreview.tsx",
+        "Typography tokens in the list show a rendered 'Aa' text sample",
+        "The sample uses the correct font-family, font-weight, letter-spacing from the token value",
+        "Font size in the preview is capped at 16px to fit the list row",
+        "A summary label shows fontFamily fontSize/lineHeight fontWeight (e.g., 'Inter 14/20 500')",
+        "Alias typography tokens resolve to the final value before rendering",
+        "Non-typography tokens are not affected",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-105",
+      "title": "Rich Token Preview — Shadow",
+      "description": "As a designer, I want shadow tokens in the token list to show a small card element with the actual shadow applied.",
+      "acceptanceCriteria": [
+        "Shadow tokens show a small card with the actual shadow applied",
+        "Drop shadows and inner shadows render correctly",
+        "The CSS box-shadow is derived from the DTCG shadow value fields",
+        "Alias shadow tokens resolve before rendering",
+        "A text label shows the offset/blur values",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-106",
+      "title": "Rich Token Preview — Gradient",
+      "description": "As a designer, I want gradient tokens to show a gradient swatch bar in the token list.",
+      "acceptanceCriteria": [
+        "Gradient tokens show a horizontal gradient swatch in the list",
+        "The gradient uses the token's color stops and positions",
+        "Alias gradient tokens resolve before rendering",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-107",
+      "title": "Rich Token Preview — Dimension, Border, Duration, Boolean",
+      "description": "As a designer, I want visual previews for dimension, border, duration, and boolean tokens in the list.",
+      "acceptanceCriteria": [
+        "Dimension tokens show a proportional bar + value label",
+        "Border tokens show a styled rectangle with the border applied",
+        "Number tokens in 0-1 range show a fill bar",
+        "Boolean tokens show a toggle icon reflecting true/false",
+        "Duration tokens show the value with unit suffix",
+        "All previews resolve aliases before rendering",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-108",
+      "title": "Rich Token Preview — Integration into TokenList",
+      "description": "As a designer, I want all rich token previews to replace the current generic value display in the token list, unified under a single TokenPreview component.",
+      "acceptanceCriteria": [
+        "TokenList.tsx uses <TokenPreview> for all token value displays",
+        "Existing color swatch rendering is consolidated into TokenPreview",
+        "All token types (color, typography, shadow, gradient, dimension, border, number, boolean, duration, composition, string) have a preview or fallback",
+        "Previews fit within the existing row height",
+        "No visual regression for color tokens (swatches look the same)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-200",
+      "title": "Safe Token Rename — Server API",
+      "description": "As a designer, I want to rename a token path and have all alias references across all sets automatically update.",
+      "acceptanceCriteria": [
+        "POST /api/tokens/rename endpoint exists",
+        "Without confirm: true, returns dry-run preview with all affected tokens listed",
+        "With confirm: true, renames the token and updates all references across all sets",
+        "References in expressions (e.g., {old.path} * 2) are also updated",
+        "Group renames update all children and their references",
+        "Returns 400 if toPath already exists (no silent overwrite)",
+        "Returns 404 if fromPath doesn't exist",
+        "On failure, no partial changes are persisted",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-201",
+      "title": "Safe Token Rename — Plugin UI",
+      "description": "As a designer, I want a rename modal that shows me which tokens will be affected before I confirm a rename.",
+      "acceptanceCriteria": [
+        "Rename action opens a modal with new path input",
+        "Modal shows a dry-run list of all affected references",
+        "Each affected reference shows: set name, token path, old value → new value",
+        "Confirm button executes the rename",
+        "Token list refreshes after successful rename",
+        "Toast shows 'Renamed [old] → [new], updated X references'",
+        "Cancel button dismisses without changes",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-202",
+      "title": "Gradient Token Type — Visual Editor",
+      "description": "As a designer, I want to create and edit gradient tokens with a visual editor that shows angle, color stops, and positions.",
+      "acceptanceCriteria": [
+        "GradientEditor component exists",
+        "Gradient preview bar renders the current gradient",
+        "Color stops are draggable to change position",
+        "Clicking a stop opens a color picker",
+        "Clicking empty space adds a new stop at that position",
+        "Dragging a stop off the bar removes it (if more than 2 stops remain)",
+        "Angle input stored in $extensions.angle (default: 180deg)",
+        "The value saves as DTCG GradientValue format",
+        "New gradient tokens can be created with type gradient",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-203",
+      "title": "Cubic Bezier Token Type — Easing Curve Editor",
+      "description": "As a designer, I want to create and edit cubic-bezier tokens with a visual curve editor showing control point handles.",
+      "acceptanceCriteria": [
+        "CubicBezierEditor component exists",
+        "Canvas shows the bezier curve with two draggable control points",
+        "Dragging control points updates the curve in real time",
+        "Numeric inputs for x1, y1, x2, y2 are shown and editable",
+        "Preset buttons (ease, ease-in, ease-out, ease-in-out, linear) set known values",
+        "A small animation preview dot shows the easing behavior",
+        "Value saves as [x1, y1, x2, y2] array",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-204",
+      "title": "Duration Token Type — Editor & Preview",
+      "description": "As a designer, I want to create and edit duration tokens with a value + unit (ms/s) input.",
+      "acceptanceCriteria": [
+        "Duration tokens in TokenEditor show number input + ms/s dropdown",
+        "Value saves as DTCG DurationValue: { value: number, unit: 'ms' | 's' }",
+        "Inline editing also works for duration tokens",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-205",
+      "title": "Composition Token Visual Editor",
+      "description": "As a designer, I want a visual editor for composition tokens that lets me assemble multiple property values into named slots.",
+      "acceptanceCriteria": [
+        "Composition tokens show a multi-slot editor with property name + value rows",
+        "Each value input supports the TokenAutocomplete dropdown",
+        "Users can add and remove property slots",
+        "A live preview div shows the composed styles applied",
+        "Predefined slot group buttons add common property sets",
+        "Value saves as Record<string, string | number> in DTCG format",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-300",
+      "title": "Multi-Dimensional Theming — Data Model",
+      "description": "As a design system maintainer, I want to organize themes into dimensions (e.g., Brand, Mode, Density) so that I can create combinable theme axes.",
+      "acceptanceCriteria": [
+        "ThemeDimension and ThemeDimensionValue types exist in types.ts",
+        "GET /api/themes/dimensions returns dimension data",
+        "POST /api/themes/dimensions creates/updates a dimension with values and set configs",
+        "POST /api/themes/dimensions returns 400 if creating would exceed 4 dimensions or 10 values per dimension",
+        "DELETE /api/themes/dimensions/:name removes a dimension",
+        "GET /api/themes/resolve accepts dimension value selections and returns merged set config",
+        "Existing flat $themes data still works (backward compatible)",
+        "Dimensions are persisted in $themes.json",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-301",
+      "title": "Multi-Dimensional Theming — Plugin UI",
+      "description": "As a designer, I want to create and manage theme dimensions in the Themes tab, and preview any combination.",
+      "acceptanceCriteria": [
+        "ThemeManager shows a 'Dimensions' section when dimensions exist",
+        "Users can create a dimension with a name",
+        "Users can add values to a dimension and configure set statuses per value",
+        "UI warns when total combinations exceed 50",
+        "UI prevents adding more than 4 dimensions or 10 values per dimension",
+        "A 'Preview' section has one dropdown per dimension",
+        "Selecting values shows the resolved set configuration",
+        "Legacy flat themes still display and function",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-302",
+      "title": "Set Ordering — Drag-to-Reorder in Theme Editor",
+      "description": "As a designer, I want to drag sets in the theme editor to change their override priority.",
+      "acceptanceCriteria": [
+        "Each set row in the theme editor has a drag handle",
+        "Dragging a set reorders it in the visual list",
+        "The ordering is persisted to the server when changed",
+        "A label or tooltip explains that higher sets override lower sets",
+        "The token resolver respects the persisted order (last enabled set with a matching path wins)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-400",
+      "title": "Resizable Plugin Window",
+      "description": "As a designer, I want to resize the Figma plugin window so that I can see more tokens at once on larger screens.",
+      "acceptanceCriteria": [
+        "A resize handle is visible in the bottom-right corner of the plugin",
+        "Dragging the handle resizes the plugin window",
+        "Minimum size: 320x400",
+        "Maximum size: 800x900",
+        "The last used size is saved to figma.clientStorage",
+        "On plugin open, the window restores to the last used size",
+        "The layout adapts without breaking at all supported sizes",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-401",
+      "title": "Used in Figma — Layer Count Badges",
+      "description": "As a designer, I want to see how many Figma layers reference each token to identify unused tokens and understand token adoption.",
+      "acceptanceCriteria": [
+        "Controller handles 'scan-token-usage' message with optional scope param",
+        "Default: scans current page. With scope: 'all-pages': scans all pages with progress reporting",
+        "Controller returns token path → count map",
+        "Token list shows a usage count badge next to each token",
+        "Tokens with 0 references show a distinct visual (muted/dim badge)",
+        "An 'Unused' filter toggle shows only tokens with 0 references",
+        "A refresh button re-triggers the scan",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-402",
+      "title": "Used in Figma — Layer Detail Popover",
+      "description": "As a designer, I want to click the usage badge to see which specific layers use a token and click a layer name to select it on the canvas.",
+      "acceptanceCriteria": [
+        "Clicking the usage badge opens a popover with layer names",
+        "Each layer name is clickable",
+        "Clicking a layer name selects it on the Figma canvas and scrolls to it",
+        "The popover shows up to 20 layers, with a '+N more' indicator if truncated",
+        "Popover closes on click-outside or Escape",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-403",
+      "title": "Variable Scope Management — Editor UI",
+      "description": "As a designer, I want to set Figma variable scopes when editing a token so that variables are only suggested for appropriate properties.",
+      "acceptanceCriteria": [
+        "TokenEditor shows a 'Figma Scopes' section for applicable token types (color, number, dimension, boolean)",
+        "Checkboxes are shown for all Figma variable scope categories",
+        "Selected scopes are saved to $extensions.figmaScopes on the token",
+        "Scope overrides are persisted in the server config",
+        "When syncing to Figma, the controller applies scopes to created/updated variables",
+        "Import from Figma preserves existing variable scopes",
+        "Typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-404",
+      "title": "Diff-from-Figma Badges",
+      "description": "As a designer, I want to see which tokens have diverged between my local token files and the current Figma variables.",
+      "acceptanceCriteria": [
+        "Controller handles 'compute-figma-diff' and returns per-token diff status",
+        "Diverged tokens show a colored dot indicator in the list",
+        "Hovering/clicking the dot shows local vs Figma values",
+        "'Show diverged only' filter toggle works",
+        "'Accept all Figma values' bulk action updates local tokens via server API",
+        "'Push all local values' bulk action triggers sync-to-figma for diverged tokens",
+        "Diff computation runs in background after connection (non-blocking)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-500",
+      "title": "Live CSS/Code Output Preview Panel",
+      "description": "As a designer, I want a side panel showing the generated CSS/SCSS/JSON output in real-time as I edit tokens.",
+      "acceptanceCriteria": [
+        "CodePreview.tsx exists at packages/figma-plugin/src/ui/components/CodePreview.tsx",
+        "A toggle or tab activates the code preview panel within the Tokens view",
+        "CSS, SCSS, JSON, and TypeScript formats are selectable",
+        "Output updates in real-time when tokens change",
+        "Copy-to-clipboard button copies the entire output",
+        "'Show resolved' vs 'Show aliases' toggle works",
+        "Output is syntax-highlighted with colored tokens",
+        "The panel is scrollable for large token sets",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-501",
+      "title": "Platform-Specific Export — Configuration UI",
+      "description": "As a developer, I want to configure export targets (Web CSS, iOS Swift, Android XML, React Native, Flutter Dart) with naming conventions and value transforms.",
+      "acceptanceCriteria": [
+        "Each platform in ExportPanel has an expandable configuration section",
+        "Naming convention dropdown with kebab-case, camelCase, SCREAMING_SNAKE_CASE, lowerCamelCase",
+        "Color format options: hex, rgba, UIColor (iOS), Color() (Compose), Color (Flutter)",
+        "Dimension format options: px, dp, pt, rem, sp",
+        "Output preview shows a sample of 10 lines in the configured format",
+        "Configurations are saved to server config for persistence",
+        "'Quick Export' re-runs the last used configuration",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-502",
+      "title": "Platform-Specific Export — Server Transforms",
+      "description": "As a developer, I want the server to generate correctly-formatted output files for each platform target.",
+      "acceptanceCriteria": [
+        "Transform functions exist for CSS, SCSS, iOS Swift, Android XML, Compose, React Native, Flutter, JSON",
+        "POST /api/export/:platform endpoint returns formatted output (content only)",
+        "POST /api/export/:platform/write endpoint writes files to the configured output directory",
+        "Output directory defaults to {tokenDir}/../build/ and is configurable in server config (exportOutputDir)",
+        "Color values are correctly converted per platform format",
+        "Dimension values are correctly converted per platform format",
+        "Token paths are renamed per naming convention config",
+        "All aliases are resolved in exported output",
+        "Typography tokens export as structured objects (or platform-appropriate constructs)",
+        "Typecheck passes"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-503",
+      "title": "Custom Export Templates",
+      "description": "As a developer, I want to define custom export templates using Handlebars syntax to generate output formats specific to my project.",
+      "acceptanceCriteria": [
+        "handlebars is a dependency in packages/server/package.json",
+        "POST /api/export/custom renders a Handlebars template with token data",
+        "Built-in helpers: kebabCase, camelCase, hexToRgba, pxToRem",
+        "Templates can be saved to and loaded from server config",
+        "The Export panel has a 'Custom' tab with a template editor and live preview",
+        "Invalid templates return a clear error message",
+        "Typecheck passes"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-504",
+      "title": "Developer Documentation Portal — Server",
+      "description": "As a developer, I want to browse the design token documentation at localhost:9400/docs in my browser without needing Figma.",
+      "acceptanceCriteria": [
+        "packages/server/src/routes/docs.ts exists",
+        "Visiting localhost:9400/docs in a browser shows the documentation portal",
+        "When server is started with --auth, the docs route requires basic auth",
+        "Sidebar shows all token sets, expandable to groups",
+        "Tokens display with visual previews (color swatches, typography samples)",
+        "Search bar filters tokens by path, value, or description",
+        "Filter by token type works",
+        "Token detail view shows: resolved value, raw alias, description, deprecation status",
+        "Dark/light mode toggle",
+        "No Figma plugin or build step required",
+        "Responsive layout (works on mobile screens)",
+        "Typecheck passes"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-600",
+      "title": "Token Changelog — Git History in Plugin",
+      "description": "As a designer, I want to see recent token changes inside the plugin so I can track what changed and when without switching to a terminal.",
+      "acceptanceCriteria": [
+        "GET /api/sync/changelog?limit=50 endpoint exists and returns structured changelog data",
+        "The endpoint parses git history and diffs token files",
+        "The Sync tab shows a 'History' section with recent changes",
+        "Each commit is expandable to show individual token changes",
+        "Token changes show path, action (created/updated/deleted), and value diff",
+        "Color changes show side-by-side swatches",
+        "Default limit is 50 commits, configurable via ?limit=N query param",
+        "UI shows a 'Load more' button that fetches the next 50 commits",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-601",
+      "title": "Changed Since Last Sync Badges",
+      "description": "As a designer, I want tokens that have changed since the last Figma sync to show a badge so I know what needs to be re-synced.",
+      "acceptanceCriteria": [
+        "Last sync timestamp is saved to figma.clientStorage after each sync",
+        "Server endpoint GET /api/sync/changed-since?timestamp=ISO returns tokens modified after the given time",
+        "Changed tokens show an orange dot badge in the list",
+        "'Changed since sync' filter toggle works",
+        "Sync panel header shows 'X tokens changed' count",
+        "Typecheck passes"
+      ],
+      "priority": 30,
+      "passes": true,
+      "notes": "Implemented in commit 873a0c1"
+    },
+    {
+      "id": "US-603",
+      "title": "Find & Replace — Server Batch API",
+      "description": "As a backend component, the server needs a batch update endpoint for find & replace operations.",
+      "acceptanceCriteria": [
+        "POST /api/tokens/batch-update endpoint exists",
+        "Accepts an array of updates with setName, path, and new $value",
+        "All updates are applied atomically",
+        "Returns count of updated tokens and any errors",
+        "Invalid paths return errors without blocking other updates",
+        "Typecheck passes"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-602",
+      "title": "Find & Replace — Search UI",
+      "description": "As a designer, I want to search tokens by value or reference pattern and replace them in bulk.",
+      "acceptanceCriteria": [
+        "FindReplace.tsx component exists at packages/figma-plugin/src/ui/components/FindReplace.tsx",
+        "Search by literal value finds all tokens with matching $value",
+        "Search by reference finds all tokens whose value contains {searchPath}",
+        "Search by name pattern matches token paths via regex",
+        "Results show set name, token path, current value with preview",
+        "'Preview' shows before/after without applying",
+        "'Replace All' applies changes to all matches",
+        "Individual 'Replace' applies to a single match",
+        "Toast confirms 'Replaced X tokens'",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-604",
+      "title": "Keyboard Navigation — Token List",
+      "description": "As a power user, I want to navigate the token list and open editors entirely via keyboard.",
+      "acceptanceCriteria": [
+        "Arrow Up/Down moves focus between token rows",
+        "The focused row has a visible focus indicator (ring or background highlight)",
+        "The focused row scrolls into view when navigating",
+        "Enter activates inline editing",
+        "Cmd+E opens the full editor",
+        "Escape closes the inline editor or deselects",
+        "Delete/Backspace triggers delete confirmation for selected tokens",
+        "Space toggles multi-selection",
+        "Cmd+A selects all visible tokens",
+        "Keyboard navigation works when the token list has focus",
+        "Typecheck passes"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-605",
+      "title": "Keyboard Shortcuts — Global",
+      "description": "As a power user, I want global keyboard shortcuts for common actions.",
+      "acceptanceCriteria": [
+        "Cmd+F focuses the search bar",
+        "Cmd+Shift+F opens Find & Replace",
+        "Cmd+S saves the current edit",
+        "Cmd+N opens new token form",
+        "Default browser behavior is prevented for captured shortcuts",
+        "Tooltips on buttons show the keyboard shortcut",
+        "A 'Keyboard Shortcuts' help panel lists all shortcuts",
+        "Typecheck passes"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-606",
+      "title": "Copy-to-Clipboard Enhancements",
+      "description": "As a designer/developer, I want to quickly copy token paths, CSS variable names, or values to my clipboard in various formats.",
+      "acceptanceCriteria": [
+        "A copy icon appears on token row hover",
+        "Clicking it shows a menu with format options",
+        "'Copy path' copies the dot-delimited path",
+        "'Copy as CSS' copies var(--kebab-path)",
+        "'Copy as SCSS' copies $kebab-path",
+        "'Copy as JS' copies a valid JS property access expression",
+        "'Copy as reference' copies {dot.path}",
+        "'Copy value' copies the resolved value",
+        "Toast confirms copy",
+        "Multi-select: 'Copy as JSON' copies all selected tokens",
+        "Typecheck passes"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-607",
+      "title": "Configurable Server URL",
+      "description": "As a designer, I want to change the server URL from within the plugin so I can connect to a different port or a remote server.",
+      "acceptanceCriteria": [
+        "A settings UI is accessible from the plugin (gear icon or settings section)",
+        "Server URL input field defaults to http://localhost:9400",
+        "Entering just a number uses http://localhost:{number}",
+        "'Test Connection' button calls the health endpoint and shows result",
+        "Connection status (green/red) updates based on test result",
+        "The URL is persisted in figma.clientStorage",
+        "On plugin open, the saved URL is loaded before connecting",
+        "Invalid URLs show a validation error",
+        "Typecheck passes"
+      ],
+      "priority": 36,
+      "passes": true,
+      "notes": "Implemented in commit 43a738e"
+    },
+    {
+      "id": "US-608",
+      "title": "Token Usage Analytics — Dashboard",
+      "description": "As a design system maintainer, I want a dashboard showing token health metrics: unused tokens, orphan references, alias chain depth, and most-used tokens.",
+      "acceptanceCriteria": [
+        "GET /api/tokens/analytics endpoint exists and returns the analytics data",
+        "unusedTokens correctly identifies tokens with no incoming references",
+        "orphanReferences correctly identifies broken alias references",
+        "aliasChainDepth computes max and average depth",
+        "tokenCountByType and tokenCountBySet are accurate",
+        "mostReferenced returns top 10 tokens sorted by reference count",
+        "healthScore is computed (0-100) based on orphans, deprecation, and description coverage",
+        "AnalyticsPanel.tsx displays all metrics as stat cards",
+        "Orphan references are listed with their broken target paths",
+        "Unused tokens are listed with their set and type",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 37,
+      "passes": true,
+      "notes": "Implemented in commit 5d10003"
+    },
+    {
+      "id": "US-609",
+      "title": "Reset Plugin — Clear All Data",
+      "description": "As a designer, I want a way to reset the plugin completely and remove all stored data, so I can start fresh or troubleshoot issues without reinstalling.",
+      "acceptanceCriteria": [
+        "A 'Reset Plugin' option is accessible from the settings panel",
+        "Clicking it shows a confirmation dialog listing what will be cleared: clientStorage (server URL, last sync timestamp, window size, all cached state)",
+        "Confirming clears all figma.clientStorage keys set by the plugin",
+        "After reset, the plugin reloads to its initial state (as if opened for the first time)",
+        "The confirmation dialog requires a deliberate action (e.g., typing 'RESET' or clicking a second confirm button) to prevent accidental data loss",
+        "Toast or inline message confirms 'Plugin data cleared'",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
