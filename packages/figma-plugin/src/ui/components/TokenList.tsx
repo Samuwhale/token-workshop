@@ -124,7 +124,40 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
     try { sessionStorage.setItem('token-ref-filter', v); } catch {}
   }, []);
 
-  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all';
+  const [showDuplicates, setShowDuplicatesState] = useState(() => {
+    try { return sessionStorage.getItem('token-duplicates') === '1'; } catch { return false; }
+  });
+  const setShowDuplicates = useCallback((v: boolean) => {
+    setShowDuplicatesState(v);
+    try { sessionStorage.setItem('token-duplicates', v ? '1' : '0'); } catch {}
+  }, []);
+
+  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates;
+
+  // Compute duplicate value info from all tokens in the current set
+  const { duplicateValuePaths, duplicateCounts } = useMemo(() => {
+    const valueMap = new Map<string, string[]>(); // serialized value → paths
+    const collectLeaves = (nodes: TokenNode[]) => {
+      for (const n of nodes) {
+        if (!n.isGroup) {
+          const key = JSON.stringify(n.$value);
+          if (!valueMap.has(key)) valueMap.set(key, []);
+          valueMap.get(key)!.push(n.path);
+        }
+        if (n.children) collectLeaves(n.children);
+      }
+    };
+    collectLeaves(tokens);
+    const paths = new Set<string>();
+    const counts = new Map<string, number>(); // serialized value → count
+    for (const [key, ps] of valueMap) {
+      if (ps.length > 1) {
+        ps.forEach(p => paths.add(p));
+        counts.set(key, ps.length);
+      }
+    }
+    return { duplicateValuePaths: paths, duplicateCounts: counts };
+  }, [tokens]);
 
   const availableTypes = useMemo(() => {
     const types = new Set<string>();
@@ -138,16 +171,18 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
     return [...types].sort();
   }, [tokens]);
 
-  const displayedTokens = useMemo(
-    () => filtersActive ? filterTokenNodes(sortedTokens, searchQuery, typeFilter, refFilter) : sortedTokens,
-    [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive]
-  );
+  const displayedTokens = useMemo(() => {
+    let result = filtersActive ? filterTokenNodes(sortedTokens, searchQuery, typeFilter, refFilter) : sortedTokens;
+    if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
+    return result;
+  }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths]);
 
   const clearFilters = useCallback(() => {
     setSearchQuery('');
     setTypeFilter('');
     setRefFilter('all');
-  }, [setSearchQuery, setTypeFilter, setRefFilter]);
+    setShowDuplicates(false);
+  }, [setSearchQuery, setTypeFilter, setRefFilter, setShowDuplicates]);
 
   // Merge capabilities from all selected nodes for the property picker
   const selectionCapabilities: NodeCapabilities | null = selectedNodes.length > 0
@@ -436,6 +471,13 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
               <option value="aliases">Aliases only</option>
               <option value="direct">Direct only</option>
             </select>
+            <button
+              onClick={() => setShowDuplicates(!showDuplicates)}
+              title="Show only tokens with duplicate raw values"
+              className={`px-1.5 py-1 rounded border text-[10px] whitespace-nowrap transition-colors ${showDuplicates ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+            >
+              Dup. values
+            </button>
             {filtersActive && (
               <button
                 onClick={clearFilters}
@@ -477,6 +519,7 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
                 onToggleSelect={toggleSelect}
                 expandedPaths={expandedPaths}
                 onToggleExpand={handleToggleExpand}
+                duplicateCounts={duplicateCounts}
               />
             ))}
           </div>
@@ -598,6 +641,7 @@ function TokenTreeNode({
   onToggleSelect,
   expandedPaths,
   onToggleExpand,
+  duplicateCounts,
 }: {
   node: TokenNode;
   depth: number;
@@ -612,6 +656,7 @@ function TokenTreeNode({
   onToggleSelect: (path: string) => void;
   expandedPaths: Set<string>;
   onToggleExpand: (path: string) => void;
+  duplicateCounts: Map<string, number>;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const [hovered, setHovered] = useState(false);
@@ -706,6 +751,7 @@ function TokenTreeNode({
             onToggleSelect={onToggleSelect}
             expandedPaths={expandedPaths}
             onToggleExpand={onToggleExpand}
+            duplicateCounts={duplicateCounts}
           />
         ))}
       </div>
@@ -761,6 +807,15 @@ function TokenTreeNode({
       <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[80px] truncate">
         {formatValue(node.$type, displayValue)}
       </span>
+      {/* Duplicate annotation */}
+      {(() => {
+        const count = duplicateCounts.get(JSON.stringify(node.$value));
+        return count ? (
+          <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] shrink-0" title={`${count} tokens share this value`}>
+            ×{count}
+          </span>
+        ) : null;
+      })()}
 
       {/* Actions (on hover, not in select mode) */}
       {!selectMode && hovered && (
@@ -838,6 +893,19 @@ function formatValue(type?: string, value?: any): string {
     return JSON.stringify(value).slice(0, 30);
   }
   return String(value);
+}
+
+function filterByDuplicatePaths(nodes: TokenNode[], paths: Set<string>): TokenNode[] {
+  const result: TokenNode[] = [];
+  for (const node of nodes) {
+    if (node.isGroup) {
+      const filtered = filterByDuplicatePaths(node.children ?? [], paths);
+      if (filtered.length > 0) result.push({ ...node, children: filtered });
+    } else if (paths.has(node.path)) {
+      result.push(node);
+    }
+  }
+  return result;
 }
 
 function filterTokenNodes(
