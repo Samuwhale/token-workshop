@@ -34,6 +34,7 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenType] = useState('color');
+  const [siblingPrefix, setSiblingPrefix] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -217,6 +218,13 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
       }
     : null;
 
+  const handleOpenCreateSibling = useCallback((groupPath: string, tokenType: string) => {
+    setSiblingPrefix(groupPath);
+    setNewTokenPath(groupPath ? groupPath + '.' : '');
+    setNewTokenType(tokenType || 'color');
+    setShowCreateForm(true);
+  }, []);
+
   const handleCreate = async () => {
     if (!newTokenPath || !connected) return;
     try {
@@ -230,6 +238,7 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
       });
       setShowCreateForm(false);
       setNewTokenPath('');
+      setSiblingPrefix(null);
       onRefresh();
     } catch (err) {
       console.error('Failed to create token:', err);
@@ -544,6 +553,7 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
                 duplicateCounts={duplicateCounts}
                 highlightedToken={highlightedToken ?? null}
                 onNavigateToAlias={onNavigateToAlias}
+                onCreateSibling={handleOpenCreateSibling}
               />
             ))}
           </div>
@@ -554,9 +564,14 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
       {showCreateForm && (
         <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex flex-col gap-2">
+            {siblingPrefix !== null && (
+              <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                Creating sibling in <span className="font-medium text-[var(--color-figma-text)]">{siblingPrefix || 'root'}</span>
+              </div>
+            )}
             <input
               type="text"
-              placeholder="Token path (e.g. color.primary.500)"
+              placeholder={siblingPrefix ? `${siblingPrefix}.name` : 'Token path (e.g. color.primary.500)'}
               value={newTokenPath}
               onChange={e => setNewTokenPath(e.target.value)}
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
@@ -586,7 +601,7 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
                 Create
               </button>
               <button
-                onClick={() => { setShowCreateForm(false); setNewTokenPath(''); }}
+                onClick={() => { setShowCreateForm(false); setNewTokenPath(''); setSiblingPrefix(null); }}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel
@@ -668,6 +683,7 @@ function TokenTreeNode({
   duplicateCounts,
   highlightedToken,
   onNavigateToAlias,
+  onCreateSibling,
 }: {
   node: TokenNode;
   depth: number;
@@ -685,6 +701,7 @@ function TokenTreeNode({
   duplicateCounts: Map<string, number>;
   highlightedToken: string | null;
   onNavigateToAlias?: (path: string) => void;
+  onCreateSibling?: (groupPath: string, tokenType: string) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -693,7 +710,16 @@ function TokenTreeNode({
   const [pickerAnchor, setPickerAnchor] = useState<{ top: number; left: number } | undefined>();
   const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
   const [aliasError, setAliasError] = useState(false);
+  const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    if (!contextMenuPos) return;
+    const close = () => setContextMenuPos(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [contextMenuPos]);
 
   // Scroll highlighted token into view
   useEffect(() => {
@@ -819,11 +845,18 @@ function TokenTreeNode({
             duplicateCounts={duplicateCounts}
             highlightedToken={highlightedToken}
             onNavigateToAlias={onNavigateToAlias}
+            onCreateSibling={onCreateSibling}
           />
         ))}
       </div>
     );
   }
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (node.isGroup || selectMode) return;
+    e.preventDefault();
+    setContextMenuPos({ x: e.clientX, y: e.clientY });
+  };
 
   return (
     <div
@@ -832,6 +865,7 @@ function TokenTreeNode({
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setShowPicker(false); }}
+      onContextMenu={handleContextMenu}
     >
       {/* Checkbox for select mode */}
       {selectMode && (
@@ -965,6 +999,29 @@ function TokenTreeNode({
           onClose={() => setShowPicker(false)}
           anchorRect={pickerAnchor}
         />
+      )}
+
+      {/* Right-click context menu */}
+      {contextMenuPos && (
+        <div
+          className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[140px]"
+          style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
+          onClick={e => e.stopPropagation()}
+        >
+          <button
+            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setContextMenuPos(null);
+              const parentPath = node.path.includes('.')
+                ? node.path.substring(0, node.path.lastIndexOf('.'))
+                : '';
+              onCreateSibling?.(parentPath, node.$type || 'color');
+            }}
+          >
+            Create sibling
+          </button>
+        </div>
       )}
     </div>
   );
