@@ -9,6 +9,7 @@ import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { SelectionInspector } from './components/SelectionInspector';
 import { UndoToast } from './components/UndoToast';
 import { ConfirmModal } from './components/ConfirmModal';
+import { EmptyState } from './components/EmptyState';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
@@ -88,6 +89,16 @@ export function App() {
   const [tabMenuOpen, setTabMenuOpen] = useState<string | null>(null);
   const [tabMenuPos, setTabMenuPos] = useState({ x: 0, y: 0 });
   const tabMenuRef = useRef<HTMLDivElement>(null);
+
+  // Empty state create flow
+  const [createFromEmpty, setCreateFromEmpty] = useState(false);
+
+  // Reset createFromEmpty when switching sets
+  const prevActiveSet = useRef(activeSet);
+  if (prevActiveSet.current !== activeSet) {
+    prevActiveSet.current = activeSet;
+    if (createFromEmpty) setCreateFromEmpty(false);
+  }
 
   // Delete state
   const [deletingSet, setDeletingSet] = useState<string | null>(null);
@@ -468,7 +479,14 @@ export function App() {
           )}
 
           {/* Main tab panels */}
-          {overflowPanel === null && activeTab === 'tokens' && !editingToken && (
+          {overflowPanel === null && activeTab === 'tokens' && !editingToken && tokens.length === 0 && !createFromEmpty && (
+            <EmptyState
+              connected={connected}
+              onCreateToken={() => setCreateFromEmpty(true)}
+              onPasteJSON={() => openOverflowPanel('import')}
+            />
+          )}
+          {overflowPanel === null && activeTab === 'tokens' && !editingToken && (tokens.length > 0 || createFromEmpty) && (
             <TokenList
               tokens={tokens}
               setName={activeSet}
@@ -479,6 +497,7 @@ export function App() {
               onEdit={(path) => setEditingToken({ path, set: activeSet })}
               onRefresh={refreshTokens}
               onPushUndo={pushUndo}
+              defaultCreateOpen={createFromEmpty}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && editingToken && (

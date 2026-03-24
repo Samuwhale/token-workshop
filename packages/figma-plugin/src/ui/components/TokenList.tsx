@@ -17,6 +17,7 @@ interface TokenListProps {
   onEdit: (path: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
+  defaultCreateOpen?: boolean;
 }
 
 type DeleteConfirm =
@@ -24,8 +25,8 @@ type DeleteConfirm =
   | { type: 'group'; path: string; name: string; tokenCount: number }
   | { type: 'bulk'; paths: string[]; orphanCount: number };
 
-export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo }: TokenListProps) {
-  const [showCreateForm, setShowCreateForm] = useState(false);
+export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen }: TokenListProps) {
+  const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenType] = useState('color');
   const [applying, setApplying] = useState(false);
