@@ -662,10 +662,25 @@ function TokenTreeNode({
   const [hovered, setHovered] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState<{ top: number; left: number } | undefined>();
+  const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
 
   const displayValue = isAlias(node.$value)
     ? resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat).value ?? node.$value
     : node.$value;
+
+  const handleCopyPath = () => {
+    const cssVar = '--' + node.path.replace(/\./g, '-');
+    navigator.clipboard.writeText(cssVar).catch(() => {});
+    setCopiedWhat('path');
+    setTimeout(() => setCopiedWhat(null), 1500);
+  };
+
+  const handleCopyValue = () => {
+    const val = typeof displayValue === 'string' ? displayValue : JSON.stringify(displayValue);
+    navigator.clipboard.writeText(val).catch(() => {});
+    setCopiedWhat('value');
+    setTimeout(() => setCopiedWhat(null), 1500);
+  };
 
   const applyWithProperty = (property: BindableProperty) => {
     const resolved = resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat);
@@ -828,6 +843,36 @@ function TokenTreeNode({
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 5l7 7-7 7M5 12h14" />
             </svg>
+          </button>
+          <button
+            onClick={handleCopyPath}
+            title={copiedWhat === 'path' ? 'Copied!' : `Copy CSS var (--${node.path.replace(/\./g, '-')})`}
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+          >
+            {copiedWhat === 'path' ? (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={handleCopyValue}
+            title={copiedWhat === 'value' ? 'Copied!' : 'Copy resolved value'}
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+          >
+            {copiedWhat === 'value' ? (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M4 7h16M4 12h10M4 17h7"/>
+              </svg>
+            )}
           </button>
           <button
             onClick={() => onEdit(node.path)}
