@@ -51,6 +51,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'sync-bindings':
       await syncBindings(msg.tokenMap, msg.scope);
       break;
+    case 'highlight-layer-by-token':
+      await highlightLayersByToken(msg.tokenPath);
+      break;
     case 'notify':
       figma.notify(msg.message);
       break;
@@ -739,6 +742,23 @@ function weightToFontStyle(weight: number | string): string {
 async function findVariable(collectionId: string, name: string): Promise<Variable | null> {
   const variables = await figma.variables.getLocalVariablesAsync();
   return variables.find(v => v.variableCollectionId === collectionId && v.name === name) || null;
+}
+
+// Select canvas layers that are bound to a specific token path
+async function highlightLayersByToken(tokenPath: string) {
+  const nodes = figma.currentPage.findAll(node => {
+    for (const prop of ALL_BINDABLE_PROPERTIES) {
+      if (node.getSharedPluginData('tokenmanager', prop) === tokenPath) return true;
+    }
+    for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
+      if (node.getSharedPluginData('tokenmanager', legacyKey) === tokenPath) return true;
+    }
+    return false;
+  });
+  if (nodes.length > 0) {
+    figma.currentPage.selection = nodes as SceneNode[];
+    figma.viewport.scrollAndZoomIntoView(nodes as SceneNode[]);
+  }
 }
 
 // Sync all bindings on the page or selection with latest token values

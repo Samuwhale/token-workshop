@@ -194,11 +194,29 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
     return [...types].sort();
   }, [tokens]);
 
+  // Inspect mode — show only tokens bound to selected layers
+  const [inspectMode, setInspectMode] = useState(false);
+
+  const boundTokenPaths = useMemo(() => {
+    const paths = new Set<string>();
+    for (const node of selectedNodes) {
+      for (const tokenPath of Object.values(node.bindings)) {
+        if (tokenPath) paths.add(tokenPath);
+      }
+    }
+    return paths;
+  }, [selectedNodes]);
+
+  const handleHoverToken = useCallback((tokenPath: string) => {
+    parent.postMessage({ pluginMessage: { type: 'highlight-layer-by-token', tokenPath } }, '*');
+  }, []);
+
   const displayedTokens = useMemo(() => {
     let result = filtersActive ? filterTokenNodes(sortedTokens, searchQuery, typeFilter, refFilter) : sortedTokens;
     if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
+    if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
     return result;
-  }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths]);
+  }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, inspectMode, selectedNodes.length, boundTokenPaths]);
 
   const clearFilters = useCallback(() => {
     setSearchQuery('');
@@ -435,7 +453,7 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
           </div>
         )}
 
-        {/* Toolbar: expand/collapse + sort */}
+        {/* Toolbar: expand/collapse + sort + inspect mode */}
         {tokens.length > 0 && !selectMode && (
           <div className="flex items-center gap-0.5 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             {tokens.some(n => n.isGroup) && (
@@ -454,6 +472,13 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
                 </button>
               </>
             )}
+            <button
+              onClick={() => setInspectMode(v => !v)}
+              title={inspectMode ? 'Disable inspect mode' : 'Show tokens bound to selected layer'}
+              className={`px-2 py-0.5 rounded text-[10px] transition-colors ${inspectMode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+            >
+              Bound tokens
+            </button>
             <div className="ml-auto">
               <select
                 value={sortOrder}
@@ -523,7 +548,15 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
           </div>
         )}
 
-        {tokens.length === 0 ? (
+        {inspectMode && selectedNodes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M13 12H3"/>
+            </svg>
+            <p className="mt-2 text-[11px] font-medium">Select a layer to inspect</p>
+            <p className="text-[10px] mt-0.5">Tokens bound to the selected layer will appear here</p>
+          </div>
+        ) : tokens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="12" cy="12" r="10" />
@@ -554,6 +587,8 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
                 highlightedToken={highlightedToken ?? null}
                 onNavigateToAlias={onNavigateToAlias}
                 onCreateSibling={handleOpenCreateSibling}
+                inspectMode={inspectMode}
+                onHoverToken={handleHoverToken}
               />
             ))}
           </div>
@@ -684,6 +719,8 @@ function TokenTreeNode({
   highlightedToken,
   onNavigateToAlias,
   onCreateSibling,
+  inspectMode,
+  onHoverToken,
 }: {
   node: TokenNode;
   depth: number;
@@ -702,6 +739,8 @@ function TokenTreeNode({
   highlightedToken: string | null;
   onNavigateToAlias?: (path: string) => void;
   onCreateSibling?: (groupPath: string, tokenType: string) => void;
+  inspectMode?: boolean;
+  onHoverToken?: (path: string) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -851,6 +890,8 @@ function TokenTreeNode({
             highlightedToken={highlightedToken}
             onNavigateToAlias={onNavigateToAlias}
             onCreateSibling={onCreateSibling}
+            inspectMode={inspectMode}
+            onHoverToken={onHoverToken}
           />
         ))}
       </div>
@@ -868,7 +909,7 @@ function TokenTreeNode({
     <div
       className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
-      onMouseEnter={() => setHovered(true)}
+      onMouseEnter={() => { setHovered(true); if (inspectMode) onHoverToken?.(node.path); }}
       onMouseLeave={() => { setHovered(false); setShowPicker(false); }}
       onContextMenu={handleContextMenu}
     >
