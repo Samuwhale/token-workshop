@@ -341,3 +341,21 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `apply-to-selection` message is sent with `tokenPath`, `tokenType`, `targetProperty`, `resolvedValue` — binds the newly created token immediately
   - No browser testing tool available — manual browser verification needed
 ---
+
+## 2026-03-25 - US-017
+- Added `inspectMode` boolean state and `boundTokenPaths: Set<string>` in `TokenList`
+- `boundTokenPaths` computed via useMemo from `selectedNodes[].bindings` values
+- "Bound tokens" toggle button added to the toolbar row (alongside Expand all / Collapse all)
+- When `inspectMode && selectedNodes.length === 0`: renders a "Select a layer to inspect" empty state prompt
+- When `inspectMode && selectedNodes.length > 0`: filters `displayedTokens` to only show tokens in `boundTokenPaths`
+- On hover in inspect mode, `onHoverToken` callback sends `highlight-layer-by-token` message to controller
+- Controller: added `highlight-layer-by-token` handler that calls `highlightLayersByToken(tokenPath)` — finds all page nodes with that token binding and selects + zooms to them in Figma
+- `inspectMode` and `onHoverToken` props added to `TokenTreeNode`, passed through recursive calls
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts`, `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - `boundTokenPaths` must be declared before `displayedTokens` useMemo — TypeScript reports "used before declaration" if order is wrong
+  - `filterByDuplicatePaths(result, boundTokenPaths)` reuses the existing path-set filter helper for inspect mode filtering
+  - Controller `highlight-layer-by-token` uses `figma.currentPage.findAll` + `getSharedPluginData` — must check ALL_BINDABLE_PROPERTIES and LEGACY_KEY_MAP like syncBindings does
+  - `figma.viewport.scrollAndZoomIntoView(nodes)` zooms canvas to the highlighted layers
+  - No browser testing tool available — manual browser verification needed
+---
