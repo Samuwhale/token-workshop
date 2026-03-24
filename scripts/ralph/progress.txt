@@ -160,3 +160,19 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Expand/collapse state is lifted to TokenList level — TokenTreeNode gets `expandedPaths` Set prop
   - No browser testing tool available — manual browser verification needed
 ---
+
+## 2026-03-25 - US-012
+- Added `SortOrder` type: `'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage'`
+- `sortOrder` state loaded from/saved to `sessionStorage('token-sort')` (shared across sets)
+- `sortedTokens` computed via `useMemo(() => sortTokenNodes(tokens, sortOrder), [tokens, sortOrder])`
+- Sort applies recursively to tree nodes without mutating original `tokens` prop
+- "By usage" option disabled via HTML `disabled` attribute; label text explains why
+- Toolbar row now always shown when tokens exist (consolidates expand all + sort controls)
+- `sortedTokens` used for tree rendering; `tokens` still used for expand/collapse helpers
+- Files changed: `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - sessionStorage key `'token-sort'` is set-agnostic (same sort applies to all sets)
+  - `useMemo` used for sortedTokens to avoid re-sorting on every render
+  - Disabled `<option>` prevents selection; use label text to explain reason
+  - No browser testing tool available — manual browser verification needed
+---
