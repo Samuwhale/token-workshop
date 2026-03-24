@@ -89,7 +89,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-007 for Rename action"
     },
     {
@@ -781,38 +781,19 @@
     },
     {
       "id": "US-047",
-      "title": "Duration & Cubic Bezier Token Editors",
-      "description": "As a designer, I want to create and edit animation timing tokens (duration and easing curves) in the plugin so that I can manage motion design tokens alongside the rest of my system.",
+      "title": "Duration Token Editor",
+      "description": "As a designer, I want to create and edit duration tokens so that I can manage animation timing values alongside the rest of my design tokens.",
       "acceptanceCriteria": [
         "TokenEditor renders a DurationEditor when tokenType === 'duration'",
         "DurationEditor shows a number input and a unit selector (ms / s); stored as { value: number, unit: 'ms' | 's' }",
-        "TokenEditor renders a CubicBezierEditor when tokenType === 'cubicBezier'",
-        "CubicBezierEditor shows four number inputs labeled x1, y1, x2, y2 (0–1 range); stored as [x1, y1, x2, y2]",
-        "CubicBezierEditor includes a small visual curve preview (SVG) that updates live as values change",
-        "Common easing presets are available as a dropdown: ease, ease-in, ease-out, ease-in-out, linear",
-        "Both types are selectable in the type dropdown when creating a new token",
+        "A row of quick-select preset chips is shown: 100ms, 150ms, 200ms, 300ms, 500ms",
+        "The 'duration' type is selectable in the type dropdown when creating a new token",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
       "priority": 49,
       "passes": false,
-      "notes": "US-048 (transition editor) depends on these two types being editable."
-    },
-    {
-      "id": "US-048",
-      "title": "Transition Token Editor",
-      "description": "As a designer, I want to create and edit transition tokens as composite values so that I can define reusable CSS transition shorthands as first-class tokens.",
-      "acceptanceCriteria": [
-        "TokenEditor renders a TransitionEditor when tokenType === 'transition'",
-        "TransitionEditor has fields for: duration (number + ms/s unit), delay (number + ms/s unit), timingFunction (cubicBezier [x1,y1,x2,y2] or keyword preset), and property (text input, e.g. 'all', 'opacity')",
-        "Each field supports alias mode (type '{' to reference a duration or cubicBezier token)",
-        "The 'transition' type is selectable in the type dropdown when creating a new token",
-        "Typecheck passes",
-        "Verify in browser using dev-browser skill"
-      ],
-      "priority": 50,
-      "passes": false,
-      "notes": "Depends on US-047. Alias mode in fields can be simplified version of US-021 — just detect '{' prefix and switch input to text."
+      "notes": ""
     },
     {
       "id": "US-049",
@@ -822,13 +803,13 @@
         "TokenEditor renders a FontFamilyEditor when tokenType === 'fontFamily'",
         "FontFamilyEditor is a text input storing a string (e.g. 'Inter', 'Georgia, serif')",
         "TokenEditor renders a FontWeightEditor when tokenType === 'fontWeight'",
-        "FontWeightEditor is a select with numeric weight options (100–900) plus named aliases (thin, light, regular, medium, semibold, bold, extrabold, black); stored as a number",
+        "FontWeightEditor is a select with numeric weight options (100–900) plus named labels (Thin, Light, Regular, Medium, SemiBold, Bold, ExtraBold, Black); stored as a number",
         "Both types are selectable in the type dropdown when creating a new token",
-        "TokenList renders a meaningful inline preview: font name for fontFamily, weight label + sample text at that weight for fontWeight",
+        "TokenList renders a meaningful inline preview: font name rendered in that font for fontFamily, sample text at the stored weight for fontWeight",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
-      "priority": 51,
+      "priority": 50,
       "passes": false,
       "notes": ""
     },
@@ -838,13 +819,12 @@
       "description": "As a designer, I want to create and edit strokeStyle tokens so that I can define reusable border/stroke style values as tokens.",
       "acceptanceCriteria": [
         "TokenEditor renders a StrokeStyleEditor when tokenType === 'strokeStyle'",
-        "StrokeStyleEditor supports two modes: keyword mode (select from solid, dashed, dotted, double, groove, ridge, outset, inset) and object mode (dashArray: number[], lineCap: 'round'|'butt'|'square')",
-        "A toggle switches between keyword and object mode; the stored value format changes accordingly",
+        "StrokeStyleEditor is a select of keyword values: solid, dashed, dotted, double, groove, ridge, outset, inset; stored as a string",
         "The 'strokeStyle' type is selectable in the type dropdown when creating a new token",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
-      "priority": 52,
+      "priority": 51,
       "passes": false,
       "notes": ""
     }

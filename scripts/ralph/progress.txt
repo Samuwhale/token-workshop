@@ -50,6 +50,22 @@ Started: Tue Mar 24 23:02:19 CET 2026
 
 ---
 
+## 2026-03-24 - US-028
+- Expanded set context menu from single "Rename" item to full action list
+- Added disabled stubs: Generate Semantic Tokens, Generate Dark Theme, Adopt Figma File, Set Metadata (with dividers)
+- Added Duplicate action: fetches current set tokens, creates copy with `-copy` suffix (increments if name taken)
+- Added Delete action: opens ConfirmModal ("Delete set" danger button), calls DELETE /api/sets/:name, switches active set if needed
+- Imported ConfirmModal into App.tsx
+- Added `deletingSet` state, `handleDeleteSet` and `handleDuplicateSet` handlers
+- Files changed: `packages/figma-plugin/src/ui/App.tsx`
+- **Learnings for future iterations:**
+  - `...` button and right-click context menu were already implemented in US-007 — US-028 only needed menu content expansion
+  - Disabled menu items use `opacity-40 cursor-not-allowed` pattern — consistent with rest of plugin UI
+  - Duplicate uses GET `/api/sets/:name` then POST `/api/sets` with tokens — no dedicated duplicate endpoint needed
+  - Delete uses ConfirmModal (danger=true) then DELETE `/api/sets/:name`
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## 2026-03-24 - US-001
 - Implemented Tab Bar Reorganization
 - Changed Tab type from 5 tabs (tokens/themes/sync/export/import) to 4 tabs (tokens/themes/sync/analytics)
