@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import type { TokenNode } from '../hooks/useTokens';
 import { PropertyPicker } from './PropertyPicker';
+import { ConfirmModal } from './ConfirmModal';
 import { TOKEN_PROPERTY_MAP } from '../../shared/types';
 import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
@@ -16,11 +17,19 @@ interface TokenListProps {
   onRefresh: () => void;
 }
 
+type DeleteConfirm =
+  | { type: 'token'; path: string }
+  | { type: 'group'; path: string; name: string; tokenCount: number }
+  | { type: 'bulk'; paths: string[]; orphanCount: number };
+
 export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenType] = useState('color');
   const [applying, setApplying] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
 
   // Merge capabilities from all selected nodes for the property picker
   const selectionCapabilities: NodeCapabilities | null = selectedNodes.length > 0
@@ -52,15 +61,57 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
     }
   };
 
-  const handleDelete = async (path: string) => {
+  const requestDeleteToken = useCallback((path: string) => {
     if (!connected) return;
-    if (!confirm(`Delete token "${path}"?`)) return;
+    setDeleteConfirm({ type: 'token', path });
+  }, [connected]);
+
+  const requestDeleteGroup = useCallback((path: string, name: string, tokenCount: number) => {
+    if (!connected) return;
+    setDeleteConfirm({ type: 'group', path, name, tokenCount });
+  }, [connected]);
+
+  const requestBulkDelete = useCallback(() => {
+    if (!connected || selectedPaths.size === 0) return;
+    const paths = [...selectedPaths];
+    const orphanCount = Object.entries(allTokensFlat).filter(([tokenPath, token]) => {
+      if (selectedPaths.has(tokenPath)) return false;
+      const val = token.$value;
+      if (typeof val !== 'string' || !val.startsWith('{')) return false;
+      const aliasPath = val.slice(1, -1);
+      return selectedPaths.has(aliasPath);
+    }).length;
+    setDeleteConfirm({ type: 'bulk', paths, orphanCount });
+  }, [connected, selectedPaths, allTokensFlat]);
+
+  const executeDelete = async () => {
+    if (!deleteConfirm) return;
+    setDeleteConfirm(null);
     try {
-      await fetch(`${serverUrl}/api/tokens/${setName}/${path}`, { method: 'DELETE' });
+      if (deleteConfirm.type === 'token' || deleteConfirm.type === 'group') {
+        await fetch(`${serverUrl}/api/tokens/${setName}/${deleteConfirm.path}`, { method: 'DELETE' });
+      } else {
+        await Promise.all(
+          deleteConfirm.paths.map(path =>
+            fetch(`${serverUrl}/api/tokens/${setName}/${path}`, { method: 'DELETE' })
+          )
+        );
+        setSelectedPaths(new Set());
+        setSelectMode(false);
+      }
       onRefresh();
     } catch (err) {
-      console.error('Failed to delete token:', err);
+      console.error('Failed to delete:', err);
     }
+  };
+
+  const toggleSelect = (path: string) => {
+    setSelectedPaths(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
   };
 
   const flattenTokens = (nodes: TokenNode[]): any[] => {
@@ -97,10 +148,62 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
     setTimeout(() => setApplying(false), 1500);
   };
 
+  const getDeleteModalProps = (): { title: string; description?: string; confirmLabel: string } | null => {
+    if (!deleteConfirm) return null;
+    if (deleteConfirm.type === 'token') {
+      const name = deleteConfirm.path.split('.').pop() ?? deleteConfirm.path;
+      return {
+        title: `Delete "${name}"?`,
+        description: `Token path: ${deleteConfirm.path}`,
+        confirmLabel: 'Delete',
+      };
+    }
+    if (deleteConfirm.type === 'group') {
+      return {
+        title: `Delete group "${deleteConfirm.name}"?`,
+        description: `This will delete ${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? 's' : ''} in this group.`,
+        confirmLabel: `Delete group (${deleteConfirm.tokenCount} token${deleteConfirm.tokenCount !== 1 ? 's' : ''})`,
+      };
+    }
+    const { paths, orphanCount } = deleteConfirm;
+    return {
+      title: `Delete ${paths.length} token${paths.length !== 1 ? 's' : ''}?`,
+      description: orphanCount > 0
+        ? `${orphanCount} other token${orphanCount !== 1 ? 's' : ''} alias these and will become broken references.`
+        : undefined,
+      confirmLabel: `Delete ${paths.length} token${paths.length !== 1 ? 's' : ''}`,
+    };
+  };
+
+  const modalProps = getDeleteModalProps();
+
   return (
     <div className="flex flex-col h-full">
       {/* Token tree */}
       <div className="flex-1 overflow-y-auto">
+        {/* Select mode toolbar */}
+        {selectMode && (
+          <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">
+              {selectedPaths.size} selected
+            </span>
+            {selectedPaths.size > 0 && (
+              <button
+                onClick={requestBulkDelete}
+                className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity"
+              >
+                Delete {selectedPaths.size}
+              </button>
+            )}
+            <button
+              onClick={() => { setSelectMode(false); setSelectedPaths(new Set()); }}
+              className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
+
         {tokens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -118,10 +221,14 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
                 node={node}
                 depth={0}
                 onEdit={onEdit}
-                onDelete={handleDelete}
+                onDelete={requestDeleteToken}
+                onDeleteGroup={requestDeleteGroup}
                 setName={setName}
                 selectionCapabilities={selectionCapabilities}
                 allTokensFlat={allTokensFlat}
+                selectMode={selectMode}
+                isSelected={selectedPaths.has(node.path)}
+                onToggleSelect={toggleSelect}
               />
             ))}
           </div>
@@ -177,13 +284,24 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
       {/* Bottom actions */}
       <div className="p-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
         {!showCreateForm && (
-          <button
-            onClick={() => setShowCreateForm(true)}
-            disabled={!connected}
-            className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-          >
-            + New Token
-          </button>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setShowCreateForm(true)}
+              disabled={!connected}
+              className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+            >
+              + New Token
+            </button>
+            {!selectMode && tokens.length > 0 && (
+              <button
+                onClick={() => setSelectMode(true)}
+                className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)]"
+                title="Select tokens for bulk actions"
+              >
+                Select
+              </button>
+            )}
+          </div>
         )}
         <div className="flex gap-1.5">
           <button
@@ -202,6 +320,18 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
           </button>
         </div>
       </div>
+
+      {/* Delete confirmation modal */}
+      {deleteConfirm && modalProps && (
+        <ConfirmModal
+          title={modalProps.title}
+          description={modalProps.description}
+          confirmLabel={modalProps.confirmLabel}
+          danger
+          onConfirm={executeDelete}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
     </div>
   );
 }
@@ -211,17 +341,25 @@ function TokenTreeNode({
   depth,
   onEdit,
   onDelete,
+  onDeleteGroup,
   setName,
   selectionCapabilities,
   allTokensFlat,
+  selectMode,
+  isSelected,
+  onToggleSelect,
 }: {
   node: TokenNode;
   depth: number;
   onEdit: (path: string) => void;
   onDelete: (path: string) => void;
+  onDeleteGroup: (path: string, name: string, tokenCount: number) => void;
   setName: string;
   selectionCapabilities: NodeCapabilities | null;
   allTokensFlat: Record<string, TokenMapEntry>;
+  selectMode: boolean;
+  isSelected: boolean;
+  onToggleSelect: (path: string) => void;
 }) {
   const [expanded, setExpanded] = useState(depth < 2);
   const [hovered, setHovered] = useState(false);
@@ -265,10 +403,11 @@ function TokenTreeNode({
   };
 
   if (node.isGroup) {
+    const leafCount = countLeaves(node);
     return (
       <div>
         <div
-          className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group"
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => setExpanded(!expanded)}
         >
@@ -281,11 +420,22 @@ function TokenTreeNode({
           >
             <path d="M2 1l4 3-4 3V1z" />
           </svg>
-          <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{node.name}</span>
+          <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{node.name}</span>
           {node.children && (
             <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-1">
-              ({countLeaves(node)} tokens)
+              ({leafCount} tokens)
             </span>
+          )}
+          {!selectMode && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDeleteGroup(node.path, node.name, leafCount); }}
+              title="Delete group"
+              className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] transition-opacity"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              </svg>
+            </button>
           )}
         </div>
         {expanded && node.children?.map(child => (
@@ -295,9 +445,13 @@ function TokenTreeNode({
             depth={depth + 1}
             onEdit={onEdit}
             onDelete={onDelete}
+            onDeleteGroup={onDeleteGroup}
             setName={setName}
             selectionCapabilities={selectionCapabilities}
             allTokensFlat={allTokensFlat}
+            selectMode={selectMode}
+            isSelected={false}
+            onToggleSelect={onToggleSelect}
           />
         ))}
       </div>
@@ -311,11 +465,26 @@ function TokenTreeNode({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => { setHovered(false); setShowPicker(false); }}
     >
+      {/* Checkbox for select mode */}
+      {selectMode && (
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={() => onToggleSelect(node.path)}
+          onClick={(e) => e.stopPropagation()}
+          className="shrink-0 cursor-pointer"
+        />
+      )}
+
       {/* Value preview (resolve aliases for display) */}
       <ValuePreview type={node.$type} value={displayValue} />
 
       {/* Name and info */}
-      <div className="flex-1 min-w-0">
+      <div
+        className="flex-1 min-w-0"
+        onClick={selectMode ? () => onToggleSelect(node.path) : undefined}
+        style={selectMode ? { cursor: 'pointer' } : undefined}
+      >
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] text-[var(--color-figma-text)] truncate">{node.name}</span>
           {node.$type && (
@@ -339,8 +508,8 @@ function TokenTreeNode({
         {formatValue(node.$type, displayValue)}
       </span>
 
-      {/* Actions (on hover) */}
-      {hovered && (
+      {/* Actions (on hover, not in select mode) */}
+      {!selectMode && hovered && (
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             onClick={handleApplyToSelection}

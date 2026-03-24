@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { ConfirmModal } from './ConfirmModal';
 
 interface Theme {
   name: string;
@@ -17,6 +18,7 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
   const [error, setError] = useState<string | null>(null);
   const [newThemeName, setNewThemeName] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const fetchThemes = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
@@ -58,8 +60,14 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
     }
   };
 
-  const handleDelete = async (name: string) => {
-    if (!confirm(`Delete theme "${name}"?`)) return;
+  const handleDelete = (name: string) => {
+    setDeleteConfirm(name);
+  };
+
+  const executeDelete = async () => {
+    if (!deleteConfirm) return;
+    const name = deleteConfirm;
+    setDeleteConfirm(null);
     try {
       await fetch(`${serverUrl}/api/themes/${encodeURIComponent(name)}`, { method: 'DELETE' });
       fetchThemes();
@@ -205,6 +213,17 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
           </button>
         )}
       </div>
+
+      {deleteConfirm && (
+        <ConfirmModal
+          title={`Delete theme "${deleteConfirm}"?`}
+          description="This will permanently remove the theme configuration."
+          confirmLabel="Delete"
+          danger
+          onConfirm={executeDelete}
+          onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
     </div>
   );
 }
