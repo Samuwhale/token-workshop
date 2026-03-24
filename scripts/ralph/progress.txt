@@ -227,6 +227,22 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-25 - US-021
+- Created `AliasAutocomplete.tsx` — dropdown with keyboard nav (↑↓ Enter Esc), color swatch, type badge, set name, max 24 results
+- `TokenEditor.tsx`: added `aliasMode` boolean state + "Alias mode" toggle button (accent-styled when active)
+- Clicking "Alias mode" toggle: activates alias input, pre-fills `{`, focuses input, shows autocomplete
+- `{` detection in reference input: `showAutocomplete = v.includes('{') && !v.endsWith('}')`
+- Autocomplete query: `reference.slice(lastIndexOf('{') + 1).replace(/\}.*$/, '')`
+- Autocomplete filters by `tokenType` (current token's type) — shows only matching type suggestions
+- `allTokensFlat` and `pathToSet` passed from App.tsx to TokenEditor as optional props
+- Files changed: `components/AliasAutocomplete.tsx` (new), `components/TokenEditor.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - `AliasAutocomplete` uses `onMouseDown` (not onClick) on items to prevent blur-before-click race
+  - `setTimeout(() => refInputRef.current?.focus(), 0)` needed after state update to focus input
+  - Alias mode toggle clears reference when deactivating (setReference(''))
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## 2026-03-25 - US-013
 - Added filter bar (search input + type select + ref select) above token list in TokenList
 - Filters persist in sessionStorage: `'token-search'`, `'token-type-filter'`, `'token-ref-filter'` (shared across sets)
