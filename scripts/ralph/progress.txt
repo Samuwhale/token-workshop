@@ -48,6 +48,24 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-24 - US-003
+- Added `$description` field support to token sets stored at root of `.tokens.json`
+- Added `getSetDescriptions()` to `TokenStore` — reads `$description` from each set's root
+- Added `updateSetDescription(name, description)` to `TokenStore` — writes/deletes `$description` at root of token file
+- Updated `GET /api/sets` to return `{ sets, descriptions }` — backward-compatible extension
+- Added `PATCH /api/sets/:name/metadata` endpoint accepting `{ description }` body
+- Updated `useTokens` hook to return `setDescriptions: Record<string, string>` alongside sets
+- Set tab button has `title={setDescriptions[set]}` — native browser tooltip on hover
+- "Set Metadata" in context menu now opens an inline modal with textarea for description editing
+- `AnalyticsPanel` "By Set" section shows description text below set name when present
+- Files changed: `packages/server/src/services/token-store.ts`, `packages/server/src/routes/sets.ts`, `packages/figma-plugin/src/ui/hooks/useTokens.ts`, `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx`
+- **Learnings for future iterations:**
+  - `$description` at root of `.tokens.json` is a valid DTCG pattern — `flattenTokens` already skips `$`-prefixed keys
+  - `GET /api/sets` was extended with `descriptions` field — all clients that only destructure `sets` remain unaffected
+  - `saveSet` is private in TokenStore but accessible within the class for `updateSetDescription`
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## Codebase Patterns
 - Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
 - `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
