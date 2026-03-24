@@ -272,3 +272,21 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Unit conversion for % requires canvas context (viewport size) — skip converting % to/from other units, pass value as-is
   - `Math.round(v * 1000) / 1000` pattern avoids floating point artifacts in unit conversions
 ---
+
+## 2026-03-25 - US-008
+- Added `activeSet`, `serverUrl`, `onTokenCreated` props to `SelectionInspector`
+- Added helper functions: `getTokenTypeForProperty`, `getTokenValueFromProp`, `formatTokenValuePreview`, `SUGGESTED_NAMES` map
+- For each unbound property row with a current value, a "+" button appears on hover (only when connected and activeSet is set)
+- Clicking "+" opens an inline creation form at the bottom of the inspector with: value preview, editable token path input (pre-filled with suggested name), Create & bind / Cancel buttons
+- On save: POSTs to `/api/tokens/:set/:path`, then sends `apply-to-selection` plugin message to bind the new token to the layer
+- Uses `useLayoutEffect` + `nameInputRef` to auto-focus the name input when form opens
+- Updated `App.tsx` to pass `activeSet`, `serverUrl`, `onTokenCreated={refreshTokens}` to `SelectionInspector`
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx`, `packages/figma-plugin/src/ui/App.tsx`
+- **Learnings for future iterations:**
+  - `SelectionInspector` now accepts `activeSet`, `serverUrl`, `onTokenCreated` — required props, not optional
+  - Token type inference by property: fill/stroke→color, width/height/padding*/cornerRadius/strokeWeight/itemSpacing→dimension, opacity→number, typography→typography, shadow→shadow, visible→boolean
+  - Dimension value format for API: `{ value: number, unit: 'px' }` — matches what DimensionEditor uses
+  - "+" button uses `opacity-0 group-hover:opacity-100` same pattern as other action buttons in the inspector
+  - `apply-to-selection` message is sent with `tokenPath`, `tokenType`, `targetProperty`, `resolvedValue` — binds the newly created token immediately
+  - No browser testing tool available — manual browser verification needed
+---
