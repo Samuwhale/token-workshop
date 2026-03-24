@@ -1,4 +1,4 @@
-import React, { useState, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   PROPERTY_GROUPS,
   PROPERTY_LABELS,
@@ -138,6 +138,11 @@ export function SelectionInspector({
   const hasSelection = selectedNodes.length > 0;
   const caps = getMergedCapabilities(selectedNodes);
 
+  // Auto-expand when a layer is selected; auto-collapse when deselected
+  useEffect(() => {
+    setCollapsed(!hasSelection);
+  }, [hasSelection]);
+
   const totalBindings = hasSelection
     ? ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
         const b = getBindingForProperty(selectedNodes, prop);
@@ -199,7 +204,7 @@ export function SelectionInspector({
   };
 
   const headerLabel = !hasSelection
-    ? 'No selection'
+    ? 'Select a layer to inspect'
     : selectedNodes.length === 1
     ? `${selectedNodes[0].name} (${selectedNodes[0].type})`
     : `${selectedNodes.length} layers selected`;
