@@ -11,6 +11,9 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - State management: local React state (no Redux/Zustand), hooks in `ui/hooks/`
 - Server API: REST at `serverUrl` (default `http://localhost:9400`), endpoints: `/api/sets`, `/api/tokens/:set`, `/api/sync/*`, `/api/health`
 - Token tree structure: leaf nodes have `$value`, group nodes are plain objects; keys starting with `$` are metadata
+- `DELETE /api/tokens/:set/:path` deletes the key at that path — works for both leaf tokens AND group paths (deletes entire subtree)
+- Alias format is `{path.to.token}` (curly braces, dot-separated path), detected via `isAlias()` in resolveAlias.ts
+- `ConfirmModal` component at `components/ConfirmModal.tsx` — reusable for all destructive confirmations (danger prop, Escape/outside-click cancel)
 
 ---
 
@@ -30,5 +33,20 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `useTokens` re-runs `refreshTokens` whenever `activeSet` changes (it's in the callback deps) — be careful about infinite loops when adding effects
   - `prompt()` is still used for "Add Set" name input — US-005 (modal replacement) will address this pattern
   - `overflowPanel` state in App.tsx controls which non-tab panel is shown (import/export/settings)
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-24 - US-005
+- Created `ConfirmModal.tsx` — reusable modal with title, description, confirm/cancel buttons, Escape key + outside-click cancel, `danger` prop for red confirm button
+- Replaced `confirm()` in `TokenList.tsx` for single-token delete with modal showing token name
+- Added group delete button (hover-visible trash icon on group rows) with modal showing group name and token count
+- Added bulk select mode: "Select" button activates checkboxes on leaf tokens; toolbar shows "Delete N" button; modal shows count + orphan count (tokens that alias selected ones)
+- Replaced `confirm()` in `ThemeManager.tsx` for theme delete with modal
+- Files changed: `ConfirmModal.tsx` (new), `TokenList.tsx`, `ThemeManager.tsx`
+- **Learnings for future iterations:**
+  - `DELETE /api/tokens/:set/:path` works for group paths too — deletes the whole subtree
+  - `ConfirmModal` is now the standard pattern for all destructive ops — use it for US-006 undo, US-007 rename confirmation, etc.
+  - Bulk orphan count: scan `allTokensFlat` for tokens whose `$value` matches `{selectedPath}` pattern
+  - `group/group` Tailwind variant syntax used for nested hover states on group rows
   - No browser testing tool available — manual browser verification needed
 ---
