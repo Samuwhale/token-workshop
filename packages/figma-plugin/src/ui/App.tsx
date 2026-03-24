@@ -77,7 +77,7 @@ export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; set: string } | null>(null);
   const { connected, serverUrl, updateServerUrl } = useServerConnection();
-  const { sets, activeSet, setActiveSet, tokens, setTokenCounts, refreshTokens } = useTokens(serverUrl, connected);
+  const { sets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, refreshTokens } = useTokens(serverUrl, connected);
   const { selectedNodes } = useSelection();
   const { syncing, syncProgress, syncResult, sync } = useSyncBindings(serverUrl, connected);
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
@@ -99,6 +99,10 @@ export function App() {
     prevActiveSet.current = activeSet;
     if (createFromEmpty) setCreateFromEmpty(false);
   }
+
+  // Set metadata editing state
+  const [editingMetadataSet, setEditingMetadataSet] = useState<string | null>(null);
+  const [metadataDescription, setMetadataDescription] = useState('');
 
   // Delete state
   const [deletingSet, setDeletingSet] = useState<string | null>(null);
@@ -223,6 +227,23 @@ export function App() {
     refreshTokens();
   };
 
+  const openSetMetadata = (setName: string) => {
+    setTabMenuOpen(null);
+    setEditingMetadataSet(setName);
+    setMetadataDescription(setDescriptions[setName] || '');
+  };
+
+  const handleSaveMetadata = async () => {
+    if (!editingMetadataSet || !connected) { setEditingMetadataSet(null); return; }
+    await fetch(`${serverUrl}/api/sets/${editingMetadataSet}/metadata`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: metadataDescription }),
+    });
+    setEditingMetadataSet(null);
+    refreshTokens();
+  };
+
   const openOverflowPanel = (panel: OverflowPanel) => {
     setMenuOpen(false);
     setOverflowPanel(panel);
@@ -325,6 +346,7 @@ export function App() {
                     <button
                       onClick={() => setActiveSet(set)}
                       onContextMenu={e => openSetMenu(set, e)}
+                      title={setDescriptions[set] || undefined}
                       className={`flex items-center pl-2 pr-1 py-1 rounded-l text-[10px] whitespace-nowrap transition-colors ${
                         isActive
                           ? 'bg-[var(--color-figma-accent)] text-white'
@@ -391,8 +413,8 @@ export function App() {
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
                 onMouseDown={e => e.preventDefault()}
-                disabled
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
+                onClick={() => openSetMetadata(tabMenuOpen)}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Set Metadata
               </button>
@@ -530,6 +552,43 @@ export function App() {
           />
         )}
       </div>
+
+      {/* Set metadata editor */}
+      {editingMetadataSet && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">
+              Set Metadata — {editingMetadataSet}
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Description</label>
+              <textarea
+                autoFocus
+                value={metadataDescription}
+                onChange={e => setMetadataDescription(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') setEditingMetadataSet(null); }}
+                rows={3}
+                placeholder="What is this token set for?"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] resize-none"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setEditingMetadataSet(null)}
+                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveMetadata}
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete set confirmation */}
       {deletingSet && (

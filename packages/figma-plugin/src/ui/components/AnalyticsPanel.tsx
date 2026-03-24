@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 interface SetStats {
   name: string;
+  description?: string;
   total: number;
   byType: Record<string, number>;
 }
@@ -43,13 +44,14 @@ export function AnalyticsPanel({ serverUrl, connected }: AnalyticsPanelProps) {
       const setsRes = await fetch(`${serverUrl}/api/sets`);
       const setsData = await setsRes.json();
       const sets: string[] = setsData.sets || [];
+      const descriptions: Record<string, string> = setsData.descriptions || {};
 
       const results = await Promise.all(
         sets.map(async (name) => {
           const res = await fetch(`${serverUrl}/api/tokens/${name}`);
           const data = await res.json();
           const { total, byType } = countLeafNodes(data.tokens || {});
-          return { name, total, byType };
+          return { name, description: descriptions[name], total, byType };
         })
       );
       setStats(results);
@@ -141,16 +143,21 @@ export function AnalyticsPanel({ serverUrl, connected }: AnalyticsPanelProps) {
           <div className="divide-y divide-[var(--color-figma-border)]">
             {stats.map((s) => (
               <div key={s.name} className="flex items-center gap-3 px-3 py-2">
-                <div
-                  className="flex-1 h-1.5 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden"
-                >
-                  <div
-                    className="h-full rounded-full bg-[var(--color-figma-accent)]"
-                    style={{ width: totalTokens > 0 ? `${Math.round((s.total / totalTokens) * 100)}%` : '0%' }}
-                  />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{s.name}</span>
+                  </div>
+                  {s.description && (
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate mb-1">{s.description}</div>
+                  )}
+                  <div className="h-1.5 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-[var(--color-figma-accent)]"
+                      style={{ width: totalTokens > 0 ? `${Math.round((s.total / totalTokens) * 100)}%` : '0%' }}
+                    />
+                  </div>
                 </div>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-20 text-right truncate">{s.name}</span>
-                <span className="text-[11px] font-medium text-[var(--color-figma-text)] w-8 text-right">{s.total}</span>
+                <span className="text-[11px] font-medium text-[var(--color-figma-text)] w-8 text-right flex-shrink-0">{s.total}</span>
               </div>
             ))}
           </div>
