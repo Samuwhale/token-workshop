@@ -100,6 +100,55 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
 
   const sortedTokens = useMemo(() => sortTokenNodes(tokens, sortOrder), [tokens, sortOrder]);
 
+  // Filters — persisted in sessionStorage (shared across sets)
+  const [searchQuery, setSearchQueryState] = useState(() => {
+    try { return sessionStorage.getItem('token-search') || ''; } catch { return ''; }
+  });
+  const [typeFilter, setTypeFilterState] = useState(() => {
+    try { return sessionStorage.getItem('token-type-filter') || ''; } catch { return ''; }
+  });
+  const [refFilter, setRefFilterState] = useState<'all' | 'aliases' | 'direct'>(() => {
+    try { return (sessionStorage.getItem('token-ref-filter') as 'all' | 'aliases' | 'direct') || 'all'; } catch { return 'all'; }
+  });
+
+  const setSearchQuery = useCallback((v: string) => {
+    setSearchQueryState(v);
+    try { sessionStorage.setItem('token-search', v); } catch {}
+  }, []);
+  const setTypeFilter = useCallback((v: string) => {
+    setTypeFilterState(v);
+    try { sessionStorage.setItem('token-type-filter', v); } catch {}
+  }, []);
+  const setRefFilter = useCallback((v: 'all' | 'aliases' | 'direct') => {
+    setRefFilterState(v);
+    try { sessionStorage.setItem('token-ref-filter', v); } catch {}
+  }, []);
+
+  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all';
+
+  const availableTypes = useMemo(() => {
+    const types = new Set<string>();
+    const collect = (nodes: TokenNode[]) => {
+      for (const n of nodes) {
+        if (!n.isGroup && n.$type) types.add(n.$type);
+        if (n.children) collect(n.children);
+      }
+    };
+    collect(tokens);
+    return [...types].sort();
+  }, [tokens]);
+
+  const displayedTokens = useMemo(
+    () => filtersActive ? filterTokenNodes(sortedTokens, searchQuery, typeFilter, refFilter) : sortedTokens,
+    [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive]
+  );
+
+  const clearFilters = useCallback(() => {
+    setSearchQuery('');
+    setTypeFilter('');
+    setRefFilter('all');
+  }, [setSearchQuery, setTypeFilter, setRefFilter]);
+
   // Merge capabilities from all selected nodes for the property picker
   const selectionCapabilities: NodeCapabilities | null = selectedNodes.length > 0
     ? {
@@ -356,6 +405,51 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
           </div>
         )}
 
+        {/* Filter bar */}
+        {tokens.length > 0 && !selectMode && (
+          <div className={`flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] ${filtersActive ? 'bg-[var(--color-figma-accent)]/8' : 'bg-[var(--color-figma-bg)]'}`}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search tokens…"
+              className="flex-1 min-w-0 px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+            />
+            <select
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value)}
+              title="Filter by type"
+              className={`px-1 py-1 rounded border text-[10px] outline-none cursor-pointer ${typeFilter ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]'}`}
+            >
+              <option value="">All types</option>
+              {availableTypes.map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+            <select
+              value={refFilter}
+              onChange={e => setRefFilter(e.target.value as 'all' | 'aliases' | 'direct')}
+              title="Filter by reference"
+              className={`px-1 py-1 rounded border text-[10px] outline-none cursor-pointer ${refFilter !== 'all' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]'}`}
+            >
+              <option value="all">All refs</option>
+              <option value="aliases">Aliases only</option>
+              <option value="direct">Direct only</option>
+            </select>
+            {filtersActive && (
+              <button
+                onClick={clearFilters}
+                title="Clear all filters"
+                className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] shrink-0"
+              >
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                  <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
         {tokens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -367,7 +461,7 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
           </div>
         ) : (
           <div className="py-1">
-            {sortedTokens.map(node => (
+            {displayedTokens.map(node => (
               <TokenTreeNode
                 key={node.path}
                 node={node}
@@ -744,6 +838,32 @@ function formatValue(type?: string, value?: any): string {
     return JSON.stringify(value).slice(0, 30);
   }
   return String(value);
+}
+
+function filterTokenNodes(
+  nodes: TokenNode[],
+  searchQuery: string,
+  typeFilter: string,
+  refFilter: 'all' | 'aliases' | 'direct',
+): TokenNode[] {
+  const q = searchQuery.toLowerCase();
+  const result: TokenNode[] = [];
+  for (const node of nodes) {
+    if (node.isGroup) {
+      const filteredChildren = filterTokenNodes(node.children ?? [], searchQuery, typeFilter, refFilter);
+      if (filteredChildren.length > 0) {
+        result.push({ ...node, children: filteredChildren });
+      }
+    } else {
+      const matchesSearch = !q || node.path.toLowerCase().includes(q) || node.name.toLowerCase().includes(q);
+      const matchesType = !typeFilter || node.$type === typeFilter;
+      const matchesRef = refFilter === 'all'
+        || (refFilter === 'aliases' && isAlias(node.$value))
+        || (refFilter === 'direct' && !isAlias(node.$value));
+      if (matchesSearch && matchesType && matchesRef) result.push(node);
+    }
+  }
+  return result;
 }
 
 function sortTokenNodes(nodes: TokenNode[], order: SortOrder): TokenNode[] {
