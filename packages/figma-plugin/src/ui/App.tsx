@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { TokenList } from './components/TokenList';
 import { TokenEditor } from './components/TokenEditor';
 import { ThemeManager } from './components/ThemeManager';
@@ -83,6 +83,17 @@ export function App() {
   const { toastVisible, slot: undoSlot, pushUndo, executeUndo, dismissToast } = useUndo();
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Set context menu state
+  const [tabMenuOpen, setTabMenuOpen] = useState<string | null>(null);
+  const [tabMenuPos, setTabMenuPos] = useState({ x: 0, y: 0 });
+  const tabMenuRef = useRef<HTMLDivElement>(null);
+
+  // Rename state
+  const [renamingSet, setRenamingSet] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameError, setRenameError] = useState('');
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     if (connected) {
       fetchAllTokensFlat(serverUrl).then(raw => setAllTokensFlat(resolveAllAliases(raw)));
@@ -100,6 +111,73 @@ export function App() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [menuOpen]);
+
+  // Close set context menu on outside click
+  useEffect(() => {
+    if (!tabMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (tabMenuRef.current && !tabMenuRef.current.contains(e.target as Node)) {
+        setTabMenuOpen(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [tabMenuOpen]);
+
+  // Focus rename input when it appears
+  useLayoutEffect(() => {
+    if (renamingSet && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renamingSet]);
+
+  const openSetMenu = (setName: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTabMenuOpen(setName);
+    setTabMenuPos({ x: e.clientX, y: e.clientY });
+  };
+
+  const startRename = (setName: string) => {
+    setTabMenuOpen(null);
+    setRenamingSet(setName);
+    setRenameValue(setName);
+    setRenameError('');
+  };
+
+  const cancelRename = () => {
+    setRenamingSet(null);
+    setRenameError('');
+  };
+
+  const handleRenameConfirm = async () => {
+    if (!renamingSet) return;
+    const newName = renameValue.trim();
+    if (!newName || newName === renamingSet) { cancelRename(); return; }
+    if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
+      setRenameError('Only letters, numbers, - and _');
+      return;
+    }
+    if (!connected) { cancelRename(); return; }
+    try {
+      const res = await fetch(`${serverUrl}/api/sets/${renamingSet}/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newName }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setRenameError(data.error || 'Rename failed');
+        return;
+      }
+      if (activeSet === renamingSet) setActiveSet(newName);
+      cancelRename();
+      refreshTokens();
+    } catch {
+      setRenameError('Rename failed');
+    }
+  };
 
   const openOverflowPanel = (panel: OverflowPanel) => {
     setMenuOpen(false);
@@ -173,24 +251,88 @@ export function App() {
       {/* Set selector (for tokens tab) */}
       {activeTab === 'tokens' && overflowPanel === null && sets.length > 0 && (
         <div className="flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto">
-          {sets.map(set => (
-            <button
-              key={set}
-              onClick={() => setActiveSet(set)}
-              className={`px-2 py-1 rounded text-[10px] whitespace-nowrap transition-colors ${
-                activeSet === set
-                  ? 'bg-[var(--color-figma-accent)] text-white'
-                  : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-              }`}
+          {sets.map(set => {
+            const isActive = activeSet === set;
+            const isRenaming = renamingSet === set;
+            return (
+              <div key={set} className="relative flex group/settab">
+                {isRenaming ? (
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <input
+                        ref={renameInputRef}
+                        value={renameValue}
+                        onChange={e => { setRenameValue(e.target.value); setRenameError(''); }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') handleRenameConfirm();
+                          if (e.key === 'Escape') cancelRename();
+                        }}
+                        onBlur={cancelRename}
+                        className="px-2 py-1 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none w-28"
+                        placeholder={set}
+                      />
+                    </div>
+                    {renameError && (
+                      <span className="text-[9px] text-red-500 mt-0.5 px-1">{renameError}</span>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setActiveSet(set)}
+                      onContextMenu={e => openSetMenu(set, e)}
+                      className={`flex items-center pl-2 pr-1 py-1 rounded-l text-[10px] whitespace-nowrap transition-colors ${
+                        isActive
+                          ? 'bg-[var(--color-figma-accent)] text-white'
+                          : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                      }`}
+                    >
+                      {set}
+                      {setTokenCounts[set] !== undefined && (
+                        <span className={`ml-1.5 ${isActive ? 'text-white/70' : 'text-[var(--color-figma-text-tertiary)]'}`}>
+                          {setTokenCounts[set]}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={e => openSetMenu(set, e)}
+                      onContextMenu={e => openSetMenu(set, e)}
+                      title="Set options"
+                      className={`flex items-center justify-center px-1 py-1 rounded-r text-[10px] transition-colors opacity-0 group-hover/settab:opacity-100 ${
+                        isActive
+                          ? 'opacity-100 bg-[var(--color-figma-accent)] text-white/80 hover:text-white hover:bg-[var(--color-figma-accent-hover)]'
+                          : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                      }`}
+                    >
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                        <circle cx="4" cy="1" r="0.9" />
+                        <circle cx="4" cy="4" r="0.9" />
+                        <circle cx="4" cy="7" r="0.9" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Set context menu */}
+          {tabMenuOpen && (
+            <div
+              ref={tabMenuRef}
+              className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50"
+              style={{ top: tabMenuPos.y, left: tabMenuPos.x }}
             >
-              {set}
-              {setTokenCounts[set] !== undefined && (
-                <span className={`ml-1.5 ${activeSet === set ? 'text-white/70' : 'text-[var(--color-figma-text-tertiary)]'}`}>
-                  {setTokenCounts[set]}
-                </span>
-              )}
-            </button>
-          ))}
+              <button
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => startRename(tabMenuOpen)}
+                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Rename
+              </button>
+            </div>
+          )}
+
           <button
             onClick={() => {
               const name = prompt('New set name:');

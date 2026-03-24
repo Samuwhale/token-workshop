@@ -155,6 +155,51 @@ export class TokenStore {
     return true;
   }
 
+  async renameSet(oldName: string, newName: string): Promise<void> {
+    if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
+      throw new Error('Set name must contain only alphanumeric characters, dashes, and underscores');
+    }
+    const set = this.sets.get(oldName);
+    if (!set) throw new Error(`Set "${oldName}" not found`);
+    if (this.sets.has(newName)) throw new Error(`Set "${newName}" already exists`);
+
+    const oldFilePath = path.join(this.dir, `${oldName}.tokens.json`);
+    const newFilePath = path.join(this.dir, `${newName}.tokens.json`);
+
+    // Write new file first (safe: new name doesn't exist yet)
+    await fs.writeFile(newFilePath, JSON.stringify(set.tokens, null, 2));
+
+    // Update $themes.json: replace all references to oldName with newName
+    const themesPath = path.join(this.dir, '$themes.json');
+    try {
+      const content = await fs.readFile(themesPath, 'utf-8');
+      const data = JSON.parse(content) as { $themes: Array<{ sets: Record<string, unknown> }> };
+      if (Array.isArray(data.$themes)) {
+        for (const theme of data.$themes) {
+          if (theme.sets && oldName in theme.sets) {
+            theme.sets[newName] = theme.sets[oldName];
+            delete theme.sets[oldName];
+          }
+        }
+        await fs.writeFile(themesPath, JSON.stringify(data, null, 2));
+      }
+    } catch {
+      // No themes file or parse error — that's fine, nothing to update
+    }
+
+    // Update in-memory state
+    const newSet: TokenSet = { name: newName, tokens: set.tokens, filePath: newFilePath };
+    this.sets.set(newName, newSet);
+    this.sets.delete(oldName);
+
+    // Delete old file
+    await fs.unlink(oldFilePath);
+
+    this.rebuildFlatTokens();
+    this.emit({ type: 'set-removed', setName: oldName });
+    this.emit({ type: 'set-added', setName: newName });
+  }
+
   async getToken(setName: string, tokenPath: string): Promise<Token | undefined> {
     const set = this.sets.get(setName);
     if (!set) return undefined;

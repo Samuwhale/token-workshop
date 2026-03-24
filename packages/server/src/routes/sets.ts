@@ -46,6 +46,29 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // POST /api/sets/:name/rename — rename a set (atomic: file + themes + in-memory)
+  fastify.post<{ Params: { name: string }; Body: { newName: string } }>('/sets/:name/rename', async (request, reply) => {
+    const { name } = request.params;
+    const { newName } = request.body || {};
+
+    if (!newName) {
+      return reply.status(400).send({ error: 'newName is required' });
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
+      return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, and underscores' });
+    }
+
+    try {
+      await fastify.tokenStore.renameSet(name, newName);
+      return { renamed: true, oldName: name, newName };
+    } catch (err: any) {
+      const msg: string = err?.message ?? String(err);
+      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+      if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
+      reply.status(500).send({ error: 'Failed to rename set', detail: msg });
+    }
+  });
+
   // DELETE /api/sets/:name — delete a set
   fastify.delete<{ Params: { name: string } }>('/sets/:name', async (request, reply) => {
     const { name } = request.params;
