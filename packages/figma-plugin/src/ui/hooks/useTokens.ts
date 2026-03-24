@@ -15,23 +15,38 @@ export function useTokens(serverUrl: string, connected: boolean) {
   const [sets, setSets] = useState<string[]>([]);
   const [activeSet, setActiveSet] = useState<string>('');
   const [tokens, setTokens] = useState<TokenNode[]>([]);
+  const [setTokenCounts, setSetTokenCounts] = useState<Record<string, number>>({});
 
   const refreshTokens = useCallback(async () => {
     if (!connected) return;
     try {
-      // Fetch sets
       const setsRes = await fetch(`${serverUrl}/api/sets`);
       const setsData = await setsRes.json();
-      setSets(setsData.sets || []);
+      const allSets: string[] = setsData.sets || [];
+      setSets(allSets);
 
-      if (setsData.sets?.length > 0) {
-        const current = activeSet || setsData.sets[0];
+      if (allSets.length > 0) {
+        const current = activeSet || allSets[0];
         if (!activeSet) setActiveSet(current);
 
-        // Fetch tokens for active set
         const tokensRes = await fetch(`${serverUrl}/api/tokens/${current}`);
         const tokensData = await tokensRes.json();
         setTokens(buildTree(tokensData.tokens || {}));
+
+        // Fetch counts for all sets in parallel
+        const counts: Record<string, number> = {};
+        await Promise.all(
+          allSets.map(async (setName) => {
+            if (setName === current) {
+              counts[setName] = countLeafNodes(tokensData.tokens || {});
+            } else {
+              const res = await fetch(`${serverUrl}/api/tokens/${setName}`);
+              const data = await res.json();
+              counts[setName] = countLeafNodes(data.tokens || {});
+            }
+          })
+        );
+        setSetTokenCounts(counts);
       }
     } catch (err) {
       console.error('Failed to fetch tokens:', err);
@@ -42,7 +57,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
     refreshTokens();
   }, [refreshTokens]);
 
-  return { sets, activeSet, setActiveSet, tokens, refreshTokens };
+  return { sets, activeSet, setActiveSet, tokens, setTokenCounts, refreshTokens };
 }
 
 export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {
@@ -59,6 +74,19 @@ export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<stri
   }
 
   return map;
+}
+
+function countLeafNodes(group: Record<string, any>): number {
+  let count = 0;
+  for (const [key, value] of Object.entries(group)) {
+    if (key.startsWith('$')) continue;
+    if (value && typeof value === 'object' && '$value' in value) {
+      count++;
+    } else if (value && typeof value === 'object') {
+      count += countLeafNodes(value);
+    }
+  }
+  return count;
 }
 
 function flattenTokens(group: Record<string, any>, prefix: string, out: Record<string, TokenMapEntry>) {
