@@ -557,6 +557,8 @@ export function App() {
               setName={editingToken.set}
               serverUrl={serverUrl}
               onBack={() => { setEditingToken(null); refreshTokens(); }}
+              allTokensFlat={allTokensFlat}
+              pathToSet={pathToSet}
             />
           )}
           {overflowPanel === null && activeTab === 'themes' && (

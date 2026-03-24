@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { AliasAutocomplete } from './AliasAutocomplete';
+import type { TokenMapEntry } from '../../shared/types';
 
 interface TokenEditorProps {
   tokenPath: string;
   setName: string;
   serverUrl: string;
   onBack: () => void;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToSet?: Record<string, string>;
 }
 
-export function TokenEditor({ tokenPath, setName, serverUrl, onBack }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {} }: TokenEditorProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,6 +19,9 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack }: TokenEdit
   const [value, setValue] = useState<any>('');
   const [description, setDescription] = useState('');
   const [reference, setReference] = useState('');
+  const [aliasMode, setAliasMode] = useState(false);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const refInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchToken = async () => {
@@ -37,6 +44,11 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack }: TokenEdit
     };
     fetchToken();
   }, [serverUrl, setName, tokenPath]);
+
+  // Sync alias mode with loaded reference
+  useEffect(() => {
+    if (reference) setAliasMode(true);
+  }, [reference]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -99,21 +111,74 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack }: TokenEdit
           </div>
         )}
 
-        {/* Reference input */}
+        {/* Alias mode toggle + reference input */}
         <div>
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
-            Reference (optional)
-          </label>
-          <input
-            type="text"
-            value={reference}
-            onChange={e => setReference(e.target.value)}
-            placeholder="Type { to reference another token, e.g. {color.primary.500}"
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
-          />
-          {reference && (
-            <p className="mt-1 text-[9px] text-[var(--color-figma-warning)]">
-              Using reference. Direct value below will be ignored.
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              Reference
+            </label>
+            <button
+              onClick={() => {
+                const next = !aliasMode;
+                setAliasMode(next);
+                if (next) {
+                  if (!reference) setReference('{');
+                  setTimeout(() => { refInputRef.current?.focus(); }, 0);
+                } else {
+                  setReference('');
+                  setShowAutocomplete(false);
+                }
+              }}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] border transition-colors ${aliasMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M1 4h2.5M4.5 4H7M5.5 2L7 4L5.5 6M2.5 2L1 4L2.5 6"/>
+              </svg>
+              Alias mode
+            </button>
+          </div>
+          {aliasMode && (
+            <div className="relative">
+              <input
+                ref={refInputRef}
+                type="text"
+                value={reference}
+                onChange={e => {
+                  const v = e.target.value;
+                  setReference(v);
+                  const hasOpen = v.includes('{') && !v.endsWith('}');
+                  setShowAutocomplete(hasOpen);
+                }}
+                onFocus={() => {
+                  if (reference.includes('{') && !reference.endsWith('}')) {
+                    setShowAutocomplete(true);
+                  }
+                }}
+                onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
+                onKeyDown={e => {
+                  if (e.key === '{') setShowAutocomplete(true);
+                }}
+                placeholder="{color.primary.500}"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] outline-none placeholder:text-[var(--color-figma-text-secondary)]/50"
+              />
+              {showAutocomplete && (
+                <AliasAutocomplete
+                  query={reference.includes('{') ? reference.slice(reference.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
+                  allTokensFlat={allTokensFlat}
+                  pathToSet={pathToSet}
+                  filterType={tokenType}
+                  onSelect={path => {
+                    setReference(`{${path}}`);
+                    setShowAutocomplete(false);
+                  }}
+                  onClose={() => setShowAutocomplete(false)}
+                />
+              )}
+            </div>
+          )}
+          {!aliasMode && reference && (
+            <p className="mt-1 text-[9px] text-[var(--color-figma-text-secondary)]">
+              Has reference: {reference}
             </p>
           )}
         </div>
