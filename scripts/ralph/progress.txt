@@ -176,3 +176,19 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Disabled `<option>` prevents selection; use label text to explain reason
   - No browser testing tool available — manual browser verification needed
 ---
+
+## 2026-03-25 - US-013
+- Added filter bar (search input + type select + ref select) above token list in TokenList
+- Filters persist in sessionStorage: `'token-search'`, `'token-type-filter'`, `'token-ref-filter'` (shared across sets)
+- `displayedTokens = filterTokenNodes(sortedTokens, ...)` — filters applied after sort, non-destructive
+- `filterTokenNodes`: recursively filters tree; groups survive if any descendant matches; leaves matched by search/type/ref
+- Active filter indicator: filter bar tints accent when any filter active; type/ref selects show accent when non-default
+- `availableTypes` extracted from current set tokens via useMemo for type dropdown options
+- Clear button (×) shown when any filter active — clears all three at once
+- Files changed: `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - sessionStorage keys `'token-search'`, `'token-type-filter'`, `'token-ref-filter'` store filter state
+  - Filter pipeline: tokens → sortTokenNodes → filterTokenNodes → displayedTokens
+  - `filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all'`
+  - No browser testing tool available — manual browser verification needed
+---
