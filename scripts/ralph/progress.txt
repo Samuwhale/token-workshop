@@ -85,6 +85,22 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-25 - US-015
+- Enhanced `ValuePreview` component in `TokenList.tsx` to handle typography, shadow, and gradient token types
+- Typography: shows "Aa" text with the token's fontFamily and fontWeight applied (font size capped at 9px for display)
+- Shadow: renders a 16×16 box with `boxShadow` CSS property derived from the shadow token's offsetX/Y, blur, spread, color fields
+- Gradient: supports both CSS gradient string values and object form with `stops` array; renders a `w-6 h-4` gradient strip
+- Unresolved aliases (strings starting with `{`) degrade gracefully — fall through to the empty `w-4 h-4` placeholder
+- Also corrected PRD entries: US-008 and US-009 were implemented in prior commits but `passes` was never updated in prd.json
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx`, `scripts/ralph/prd.json`
+- **Learnings for future iterations:**
+  - Shadow value structure: `{ color, offsetX, offsetY, blur, spread, type }` where dimension fields are `{ value, unit }` objects
+  - Gradient value structure: object with `stops: Array<{ color, position }>` where position is 0–1 float
+  - `displayValue` is already alias-resolved — check `value.startsWith('{')` to detect still-unresolved/broken aliases before rendering
+  - Typography preview uses the actual fontFamily/fontWeight but caps fontSize at 9px so it fits in the row
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## Codebase Patterns
 - Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
 - `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
