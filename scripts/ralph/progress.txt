@@ -209,6 +209,24 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-25 - US-020
+- Added `fetchAllTokensFlatWithSets` to `useTokens.ts` — one fetch pass returns both `flat` token map AND `pathToSet: Record<path, setName>`
+- App.tsx: added `pathToSet`, `highlightedToken`, `pendingHighlight` states
+- App.tsx: `handleNavigateToAlias(aliasPath)` — same set → setHighlightedToken; cross-set → setActiveSet + setPendingHighlight
+- Pending highlight applied in `useEffect([tokens, pendingHighlight, activeSet, pathToSet])` when activeSet === pathToSet[pendingHighlight]
+- TokenList: `highlightedToken` prop triggers ancestor expansion (split path → add each prefix to expandedPaths) and auto-clears via `onClearHighlight` after 3s
+- TokenTreeNode: `nodeRef` + `useEffect([isHighlighted])` → `scrollIntoView({ behavior: 'smooth', block: 'center' })`
+- Alias chip replaces `&rarr;` span — now a clickable button showing the alias path with `→` icon
+- Broken alias (not in allTokensFlat): chip turns red with error tooltip for 2s
+- Files changed: `hooks/useTokens.ts`, `App.tsx`, `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - `fetchAllTokensFlatWithSets` is in `useTokens.ts` — use it whenever both flat map and path-to-set mapping are needed
+  - pendingHighlight pattern: set pending state → switch set → apply in effect when tokens load for new set
+  - Alias path extraction: `(node.$value as string).slice(1, -1)` removes `{` and `}`
+  - `scrollIntoView({ behavior: 'smooth', block: 'center' })` works with nearest scrollable ancestor
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## 2026-03-25 - US-013
 - Added filter bar (search input + type select + ref select) above token list in TokenList
 - Filters persist in sessionStorage: `'token-search'`, `'token-type-filter'`, `'token-ref-filter'` (shared across sets)
