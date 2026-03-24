@@ -147,10 +147,10 @@ Each story is tagged with its implementation layer:
 **Description:** As a designer, I want to create a new token in the same group as an existing token so that I don't have to type the full path every time.
 
 **Acceptance Criteria:**
-- [ ] Right-clicking a token row shows a "Create sibling" action
-- [ ] "Create sibling" opens the token creation form with the group path pre-filled (everything up to the last `.` segment)
-- [ ] Focus is placed on the name field so the designer only needs to type the last path segment
-- [ ] The new token is created in the same set and group as the source token
+- [x] Right-clicking a token row shows a "Create sibling" action
+- [x] "Create sibling" opens the token creation form with the group path pre-filled (everything up to the last `.` segment)
+- [x] Focus is placed on the name field so the designer only needs to type the last path segment
+- [x] The new token is created in the same set and group as the source token
 - [ ] Verify in browser using dev-browser skill
 
 ---

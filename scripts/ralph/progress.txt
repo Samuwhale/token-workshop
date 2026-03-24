@@ -66,6 +66,25 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-25 - US-009
+- Added `onCreateSibling?: (groupPath: string, tokenType: string) => void` prop to `TokenTreeNode`
+- Added `contextMenuPos` state and close-on-outside-click `useEffect` in `TokenTreeNode`
+- Added `onContextMenu` handler on leaf node rows (skipped for groups and select mode)
+- Context menu renders a fixed-position dropdown with "Create sibling" item
+- `handleOpenCreateSibling` in `TokenList` sets `siblingPrefix` state, pre-fills `newTokenPath` with `groupPath.`, and sets type to match sibling's type
+- Added `siblingPrefix` state to `TokenList` — `null` = normal create, string = sibling mode
+- Create form shows a hint label when in sibling mode ("Creating sibling in <group>")
+- Cancel button clears `siblingPrefix` back to null
+- Passed `onCreateSibling` down through recursive `TokenTreeNode` calls
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - Context menu close-on-outside-click: `useEffect` adds `document.addEventListener('click', close)` when menu is open, removes on cleanup
+  - Use `onMouseDown={e => e.preventDefault()}` on context menu items to prevent blur-before-click race
+  - `onContextMenu` on the row div, call `e.preventDefault()` to suppress native menu, set position from `e.clientX/e.clientY`
+  - Parent group path from leaf: `node.path.includes('.') ? node.path.substring(0, node.path.lastIndexOf('.')) : ''`
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## Codebase Patterns
 - Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
 - `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
