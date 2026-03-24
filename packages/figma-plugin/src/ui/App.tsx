@@ -8,6 +8,7 @@ import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { SelectionInspector } from './components/SelectionInspector';
 import { UndoToast } from './components/UndoToast';
+import { ConfirmModal } from './components/ConfirmModal';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
@@ -87,6 +88,9 @@ export function App() {
   const [tabMenuOpen, setTabMenuOpen] = useState<string | null>(null);
   const [tabMenuPos, setTabMenuPos] = useState({ x: 0, y: 0 });
   const tabMenuRef = useRef<HTMLDivElement>(null);
+
+  // Delete state
+  const [deletingSet, setDeletingSet] = useState<string | null>(null);
 
   // Rename state
   const [renamingSet, setRenamingSet] = useState<string | null>(null);
@@ -177,6 +181,35 @@ export function App() {
     } catch {
       setRenameError('Rename failed');
     }
+  };
+
+  const handleDeleteSet = async () => {
+    if (!deletingSet || !connected) return;
+    await fetch(`${serverUrl}/api/sets/${deletingSet}`, { method: 'DELETE' });
+    if (activeSet === deletingSet) {
+      const remaining = sets.filter(s => s !== deletingSet);
+      setActiveSet(remaining[0] ?? '');
+    }
+    setDeletingSet(null);
+    refreshTokens();
+  };
+
+  const handleDuplicateSet = async (setName: string) => {
+    setTabMenuOpen(null);
+    if (!connected) return;
+    let newName = `${setName}-copy`;
+    let i = 2;
+    while (sets.includes(newName)) {
+      newName = `${setName}-copy-${i++}`;
+    }
+    const res = await fetch(`${serverUrl}/api/sets/${setName}`);
+    const data = await res.json();
+    await fetch(`${serverUrl}/api/sets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName, tokens: data.tokens }),
+    });
+    refreshTokens();
   };
 
   const openOverflowPanel = (panel: OverflowPanel) => {
@@ -320,15 +353,59 @@ export function App() {
           {tabMenuOpen && (
             <div
               ref={tabMenuRef}
-              className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50"
+              className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[168px]"
               style={{ top: tabMenuPos.y, left: tabMenuPos.x }}
             >
               <button
                 onMouseDown={e => e.preventDefault()}
+                disabled
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
+              >
+                Generate Semantic Tokens
+              </button>
+              <button
+                onMouseDown={e => e.preventDefault()}
+                disabled
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
+              >
+                Generate Dark Theme
+              </button>
+              <button
+                onMouseDown={e => e.preventDefault()}
+                disabled
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
+              >
+                Adopt Figma File
+              </button>
+              <div className="border-t border-[var(--color-figma-border)] my-1" />
+              <button
+                onMouseDown={e => e.preventDefault()}
+                disabled
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
+              >
+                Set Metadata
+              </button>
+              <div className="border-t border-[var(--color-figma-border)] my-1" />
+              <button
+                onMouseDown={e => e.preventDefault()}
                 onClick={() => startRename(tabMenuOpen)}
-                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Rename
+              </button>
+              <button
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleDuplicateSet(tabMenuOpen)}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Duplicate
+              </button>
+              <button
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => { setDeletingSet(tabMenuOpen); setTabMenuOpen(null); }}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Delete
               </button>
             </div>
           )}
@@ -434,6 +511,18 @@ export function App() {
           />
         )}
       </div>
+
+      {/* Delete set confirmation */}
+      {deletingSet && (
+        <ConfirmModal
+          title={`Delete "${deletingSet}"?`}
+          description="All tokens in this set will be permanently deleted."
+          confirmLabel="Delete set"
+          danger
+          onConfirm={handleDeleteSet}
+          onCancel={() => setDeletingSet(null)}
+        />
+      )}
 
       {/* Undo toast */}
       {toastVisible && undoSlot && (
