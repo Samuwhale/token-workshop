@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { TokenNode } from '../hooks/useTokens';
 import { PropertyPicker } from './PropertyPicker';
 import { ConfirmModal } from './ConfirmModal';
@@ -33,6 +33,52 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+
+  // Expand/collapse state — persisted in sessionStorage per set
+  const setNameRef = useRef(setName);
+  setNameRef.current = setName;
+  const initializedForSet = useRef<string | null>(null);
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (tokens.length === 0) return;
+    if (initializedForSet.current === setName) return;
+    initializedForSet.current = setName;
+    try {
+      const stored = sessionStorage.getItem(`token-expand:${setName}`);
+      if (stored !== null) {
+        setExpandedPaths(new Set(JSON.parse(stored) as string[]));
+      } else {
+        setExpandedPaths(new Set(collectGroupPathsByDepth(tokens, 2)));
+      }
+    } catch {
+      setExpandedPaths(new Set(collectGroupPathsByDepth(tokens, 2)));
+    }
+  }, [setName, tokens]);
+
+  useEffect(() => {
+    if (initializedForSet.current !== setNameRef.current) return;
+    try {
+      sessionStorage.setItem(`token-expand:${setNameRef.current}`, JSON.stringify([...expandedPaths]));
+    } catch {}
+  }, [expandedPaths]);
+
+  const handleToggleExpand = useCallback((path: string) => {
+    setExpandedPaths(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  }, []);
+
+  const handleExpandAll = useCallback(() => {
+    setExpandedPaths(new Set(collectAllGroupPaths(tokens)));
+  }, [tokens]);
+
+  const handleCollapseAll = useCallback(() => {
+    setExpandedPaths(new Set());
+  }, []);
 
   // Merge capabilities from all selected nodes for the property picker
   const selectionCapabilities: NodeCapabilities | null = selectedNodes.length > 0
@@ -254,6 +300,24 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
           </div>
         )}
 
+        {/* Expand / Collapse toolbar */}
+        {tokens.some(n => n.isGroup) && !selectMode && (
+          <div className="flex items-center gap-0.5 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <button
+              onClick={handleExpandAll}
+              className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+            >
+              Expand all
+            </button>
+            <button
+              onClick={handleCollapseAll}
+              className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+            >
+              Collapse all
+            </button>
+          </div>
+        )}
+
         {tokens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -279,6 +343,8 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
                 selectMode={selectMode}
                 isSelected={selectedPaths.has(node.path)}
                 onToggleSelect={toggleSelect}
+                expandedPaths={expandedPaths}
+                onToggleExpand={handleToggleExpand}
               />
             ))}
           </div>
@@ -398,6 +464,8 @@ function TokenTreeNode({
   selectMode,
   isSelected,
   onToggleSelect,
+  expandedPaths,
+  onToggleExpand,
 }: {
   node: TokenNode;
   depth: number;
@@ -410,8 +478,10 @@ function TokenTreeNode({
   selectMode: boolean;
   isSelected: boolean;
   onToggleSelect: (path: string) => void;
+  expandedPaths: Set<string>;
+  onToggleExpand: (path: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(depth < 2);
+  const isExpanded = expandedPaths.has(node.path);
   const [hovered, setHovered] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState<{ top: number; left: number } | undefined>();
@@ -459,13 +529,13 @@ function TokenTreeNode({
         <div
           className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group"
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => onToggleExpand(node.path)}
         >
           <svg
             width="8"
             height="8"
             viewBox="0 0 8 8"
-            className={`transition-transform ${expanded ? 'rotate-90' : ''}`}
+            className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
             fill="currentColor"
           >
             <path d="M2 1l4 3-4 3V1z" />
@@ -488,7 +558,7 @@ function TokenTreeNode({
             </button>
           )}
         </div>
-        {expanded && node.children?.map(child => (
+        {isExpanded && node.children?.map(child => (
           <TokenTreeNode
             key={child.path}
             node={child}
@@ -502,6 +572,8 @@ function TokenTreeNode({
             selectMode={selectMode}
             isSelected={false}
             onToggleSelect={onToggleSelect}
+            expandedPaths={expandedPaths}
+            onToggleExpand={onToggleExpand}
           />
         ))}
       </div>
@@ -634,6 +706,30 @@ function formatValue(type?: string, value?: any): string {
     return JSON.stringify(value).slice(0, 30);
   }
   return String(value);
+}
+
+function collectGroupPathsByDepth(nodes: TokenNode[], maxExpandDepth: number, depth = 0): string[] {
+  const paths: string[] = [];
+  for (const node of nodes) {
+    if (node.isGroup && depth < maxExpandDepth) {
+      paths.push(node.path);
+      if (node.children) {
+        paths.push(...collectGroupPathsByDepth(node.children, maxExpandDepth, depth + 1));
+      }
+    }
+  }
+  return paths;
+}
+
+function collectAllGroupPaths(nodes: TokenNode[]): string[] {
+  const paths: string[] = [];
+  for (const node of nodes) {
+    if (node.isGroup) {
+      paths.push(node.path);
+      if (node.children) paths.push(...collectAllGroupPaths(node.children));
+    }
+  }
+  return paths;
 }
 
 function countLeaves(node: TokenNode): number {
