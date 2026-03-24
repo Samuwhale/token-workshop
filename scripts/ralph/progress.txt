@@ -1,3 +1,34 @@
 # Ralph Progress Log
 Started: Tue Mar 24 23:02:19 CET 2026
 ---
+
+## Codebase Patterns
+- Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
+- `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
+- Build command: `cd packages/figma-plugin && npm run build` (uses vite via build.mjs)
+- Typecheck: `npx tsc --noEmit -p packages/figma-plugin/tsconfig.json` — ignore controller.ts errors
+- Tailwind CSS variable pattern: `var(--color-figma-*)` for all colors (accent, text, bg, border, etc.)
+- State management: local React state (no Redux/Zustand), hooks in `ui/hooks/`
+- Server API: REST at `serverUrl` (default `http://localhost:9400`), endpoints: `/api/sets`, `/api/tokens/:set`, `/api/sync/*`, `/api/health`
+- Token tree structure: leaf nodes have `$value`, group nodes are plain objects; keys starting with `$` are metadata
+
+---
+
+## 2026-03-24 - US-001
+- Implemented Tab Bar Reorganization
+- Changed Tab type from 5 tabs (tokens/themes/sync/export/import) to 4 tabs (tokens/themes/sync/analytics)
+- Active tab now uses `bg-[var(--color-figma-accent)] text-white` background fill instead of underline
+- Added `...` overflow menu (vertical 3-dot button) with Import, Export, Server Settings items
+- Server Settings opens an inline panel for configuring/saving server URL via localStorage
+- Created `AnalyticsPanel.tsx` — shows total tokens, count by type (with bar), count by set (with bar)
+- Added `setTokenCounts: Record<string, number>` to `useTokens` hook — counts all sets in parallel during refresh
+- Set tab badges show token count with muted color that inverts on active set
+- Updated `useServerConnection.ts` to load/save URL from localStorage with `updateServerUrl` callback
+- Files changed: `App.tsx`, `AnalyticsPanel.tsx` (new), `useTokens.ts`, `useServerConnection.ts`
+- **Learnings for future iterations:**
+  - Build succeeds with `cd packages/figma-plugin && npm run build` — always verify build passes
+  - `useTokens` re-runs `refreshTokens` whenever `activeSet` changes (it's in the callback deps) — be careful about infinite loops when adding effects
+  - `prompt()` is still used for "Add Set" name input — US-005 (modal replacement) will address this pattern
+  - `overflowPanel` state in App.tsx controls which non-tab panel is shown (import/export/settings)
+  - No browser testing tool available — manual browser verification needed
+---
