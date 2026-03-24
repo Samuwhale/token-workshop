@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import {
   PROPERTY_GROUPS,
   PROPERTY_LABELS,
@@ -15,6 +15,9 @@ interface SelectionInspectorProps {
   syncProgress: { processed: number; total: number } | null;
   syncResult: SyncCompleteMessage | null;
   connected: boolean;
+  activeSet: string;
+  serverUrl: string;
+  onTokenCreated: () => void;
 }
 
 function shouldShowGroup(condition: string | undefined, caps: NodeCapabilities): boolean {
@@ -41,7 +44,6 @@ function getMergedCapabilities(nodes: SelectionNodeInfo[]): NodeCapabilities {
   if (nodes.length === 0) {
     return { hasFills: false, hasStrokes: false, hasAutoLayout: false, isText: false, hasEffects: false };
   }
-  // Show a property group if ANY selected node has the capability
   return {
     hasFills: nodes.some(n => n.capabilities.hasFills),
     hasStrokes: nodes.some(n => n.capabilities.hasStrokes),
@@ -62,13 +64,80 @@ function formatCurrentValue(prop: BindableProperty, value: any): string {
   return '';
 }
 
-export function SelectionInspector({ selectedNodes, tokenMap, onSync, syncing, syncProgress, syncResult, connected }: SelectionInspectorProps) {
+function getTokenTypeForProperty(prop: BindableProperty): string {
+  if (prop === 'fill' || prop === 'stroke') return 'color';
+  if (['width', 'height', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+       'itemSpacing', 'cornerRadius', 'strokeWeight'].includes(prop)) return 'dimension';
+  if (prop === 'opacity') return 'number';
+  if (prop === 'typography') return 'typography';
+  if (prop === 'shadow') return 'shadow';
+  if (prop === 'visible') return 'boolean';
+  return 'string';
+}
+
+function getTokenValueFromProp(prop: BindableProperty, currentValue: any): any {
+  const type = getTokenTypeForProperty(prop);
+  if (type === 'color') return typeof currentValue === 'string' ? currentValue : '#000000';
+  if (type === 'dimension') {
+    const num = typeof currentValue === 'number' ? currentValue : 0;
+    return { value: Math.round(num * 100) / 100, unit: 'px' };
+  }
+  if (type === 'number') return typeof currentValue === 'number' ? currentValue : 0;
+  if (type === 'boolean') return typeof currentValue === 'boolean' ? currentValue : true;
+  return currentValue ?? '';
+}
+
+function formatTokenValuePreview(prop: BindableProperty, currentValue: any): string {
+  const type = getTokenTypeForProperty(prop);
+  if (type === 'color') return typeof currentValue === 'string' ? currentValue : '#000000';
+  if (type === 'dimension') {
+    const num = typeof currentValue === 'number' ? currentValue : 0;
+    return `${Math.round(num * 100) / 100}px`;
+  }
+  if (type === 'number') return String(typeof currentValue === 'number' ? currentValue : 0);
+  if (type === 'boolean') return String(currentValue);
+  return formatCurrentValue(prop, currentValue);
+}
+
+const SUGGESTED_NAMES: Record<BindableProperty, string> = {
+  fill: 'color.fill-color',
+  stroke: 'color.stroke-color',
+  width: 'size.width',
+  height: 'size.height',
+  paddingTop: 'spacing.padding-top',
+  paddingRight: 'spacing.padding-right',
+  paddingBottom: 'spacing.padding-bottom',
+  paddingLeft: 'spacing.padding-left',
+  itemSpacing: 'spacing.item-spacing',
+  cornerRadius: 'radius.corner-radius',
+  strokeWeight: 'border.stroke-weight',
+  opacity: 'opacity.opacity',
+  typography: 'typography.text-style',
+  shadow: 'shadow.box-shadow',
+  visible: 'other.visibility',
+};
+
+export function SelectionInspector({
+  selectedNodes,
+  tokenMap,
+  onSync,
+  syncing,
+  syncProgress,
+  syncResult,
+  connected,
+  activeSet,
+  serverUrl,
+  onTokenCreated,
+}: SelectionInspectorProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [creatingFromProp, setCreatingFromProp] = useState<BindableProperty | null>(null);
+  const [newTokenName, setNewTokenName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const hasSelection = selectedNodes.length > 0;
   const caps = getMergedCapabilities(selectedNodes);
 
-  // Count total bindings
   const totalBindings = hasSelection
     ? ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
         const b = getBindingForProperty(selectedNodes, prop);
@@ -76,8 +145,57 @@ export function SelectionInspector({ selectedNodes, tokenMap, onSync, syncing, s
       }, 0)
     : 0;
 
+  useLayoutEffect(() => {
+    if (creatingFromProp && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
+    }
+  }, [creatingFromProp]);
+
   const handleRemoveBinding = (prop: BindableProperty) => {
     parent.postMessage({ pluginMessage: { type: 'remove-binding', property: prop } }, '*');
+  };
+
+  const openCreateFromProp = (prop: BindableProperty) => {
+    setCreatingFromProp(prop);
+    setNewTokenName(SUGGESTED_NAMES[prop] || 'token.new-token');
+  };
+
+  const cancelCreate = () => {
+    setCreatingFromProp(null);
+    setNewTokenName('');
+  };
+
+  const handleCreateToken = async () => {
+    if (!creatingFromProp || !newTokenName.trim() || !connected || !activeSet) return;
+    const currentValue = getCurrentValue(selectedNodes, creatingFromProp);
+    const tokenType = getTokenTypeForProperty(creatingFromProp);
+    const tokenValue = getTokenValueFromProp(creatingFromProp, currentValue);
+    const tokenPath = newTokenName.trim();
+
+    setCreating(true);
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}/${tokenPath}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ $type: tokenType, $value: tokenValue }),
+      });
+      if (res.ok) {
+        parent.postMessage({
+          pluginMessage: {
+            type: 'apply-to-selection',
+            tokenPath,
+            tokenType,
+            targetProperty: creatingFromProp,
+            resolvedValue: tokenValue,
+          },
+        }, '*');
+        cancelCreate();
+        onTokenCreated();
+      }
+    } finally {
+      setCreating(false);
+    }
   };
 
   const headerLabel = !hasSelection
@@ -170,7 +288,6 @@ export function SelectionInspector({ selectedNodes, tokenMap, onSync, syncing, s
                   const binding = getBindingForProperty(selectedNodes, prop);
                   const value = getCurrentValue(selectedNodes, prop);
 
-                  // Resolve bound token value for display
                   let resolvedDisplay: string | null = null;
                   let resolvedColor: string | null = null;
                   if (binding && binding !== 'mixed' && tokenMap[binding]) {
@@ -187,6 +304,8 @@ export function SelectionInspector({ selectedNodes, tokenMap, onSync, syncing, s
                   }
 
                   const swatchColor = resolvedColor ?? ((prop === 'fill' || prop === 'stroke') && typeof value === 'string' && value.startsWith('#') ? value : null);
+                  const isUnbound = !binding || binding === 'mixed';
+                  const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && activeSet;
 
                   return (
                     <div
@@ -233,12 +352,76 @@ export function SelectionInspector({ selectedNodes, tokenMap, onSync, syncing, s
                           </svg>
                         </button>
                       )}
+
+                      {hasExtractableValue && (
+                        <button
+                          onClick={() => openCreateFromProp(prop)}
+                          title="Create token from this value"
+                          className="p-0.5 rounded text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-[var(--color-figma-accent)]/10"
+                        >
+                          <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor">
+                            <path d="M5 1v8M1 5h8" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round"/>
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   );
                 })}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Create token form */}
+      {creatingFromProp && (
+        <div className="border-t border-[var(--color-figma-border)] px-3 py-2 flex flex-col gap-2 bg-[var(--color-figma-bg)]">
+          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
+            Create token from {PROPERTY_LABELS[creatingFromProp]}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Value:</span>
+            {(creatingFromProp === 'fill' || creatingFromProp === 'stroke') &&
+             typeof getCurrentValue(selectedNodes, creatingFromProp) === 'string' &&
+             getCurrentValue(selectedNodes, creatingFromProp).startsWith('#') && (
+              <div
+                className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                style={{ backgroundColor: getCurrentValue(selectedNodes, creatingFromProp) }}
+              />
+            )}
+            <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate">
+              {formatTokenValuePreview(creatingFromProp, getCurrentValue(selectedNodes, creatingFromProp))}
+            </span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[9px] text-[var(--color-figma-text-secondary)]">Token path (in set: {activeSet})</label>
+            <input
+              ref={nameInputRef}
+              value={newTokenName}
+              onChange={e => setNewTokenName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleCreateToken();
+                if (e.key === 'Escape') cancelCreate();
+              }}
+              placeholder="group.token-name"
+              className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+            />
+          </div>
+          <div className="flex gap-1.5 justify-end">
+            <button
+              onClick={cancelCreate}
+              className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateToken}
+              disabled={!newTokenName.trim() || creating}
+              className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+            >
+              {creating ? 'Creating…' : 'Create & bind'}
+            </button>
+          </div>
         </div>
       )}
     </div>

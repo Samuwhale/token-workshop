@@ -580,6 +580,9 @@ export function App() {
             syncProgress={syncProgress}
             syncResult={syncResult}
             connected={connected}
+            activeSet={activeSet}
+            serverUrl={serverUrl}
+            onTokenCreated={refreshTokens}
           />
         )}
       </div>
