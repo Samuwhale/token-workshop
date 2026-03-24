@@ -257,19 +257,84 @@ function ColorEditor({ value, onChange }: { value: any; onChange: (v: any) => vo
   );
 }
 
-function DimensionEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
-  const val = typeof value === 'object' ? value : { value: value ?? 0, unit: 'px' };
+function StepperInput({
+  value,
+  onChange,
+  className = '',
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  className?: string;
+}) {
+  const step = (delta: number) => onChange(Math.round((value + delta) * 1000) / 1000);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowUp') { e.preventDefault(); step(e.shiftKey ? 10 : 1); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); step(e.shiftKey ? -10 : -1); }
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    step(e.deltaY < 0 ? 1 : -1);
+  };
+
   return (
-    <div className="flex gap-2">
+    <div className={`relative flex items-center ${className}`}>
       <input
         type="number"
-        value={val.value}
-        onChange={e => onChange({ ...val, value: parseFloat(e.target.value) || 0 })}
-        className={inputClass + ' flex-1'}
+        value={value}
+        onChange={e => onChange(parseFloat(e.target.value) || 0)}
+        onKeyDown={handleKeyDown}
+        onWheel={handleWheel}
+        className={inputClass + ' w-full pr-5 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'}
+      />
+      <div className="absolute right-0 top-0 bottom-0 flex flex-col border-l border-[var(--color-figma-border)]">
+        <button
+          type="button"
+          tabIndex={-1}
+          onMouseDown={e => { e.preventDefault(); step(1); }}
+          className="flex-1 px-0.5 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] leading-none"
+          style={{ fontSize: 6 }}
+        >▲</button>
+        <button
+          type="button"
+          tabIndex={-1}
+          onMouseDown={e => { e.preventDefault(); step(-1); }}
+          className="flex-1 px-0.5 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-t border-[var(--color-figma-border)] leading-none"
+          style={{ fontSize: 6 }}
+        >▼</button>
+      </div>
+    </div>
+  );
+}
+
+const UNIT_CONVERSIONS: Record<string, Record<string, (v: number) => number>> = {
+  px: { rem: v => Math.round((v / 16) * 1000) / 1000, em: v => Math.round((v / 16) * 1000) / 1000, '%': v => v },
+  rem: { px: v => Math.round(v * 16 * 1000) / 1000, em: v => v, '%': v => v },
+  em: { px: v => Math.round(v * 16 * 1000) / 1000, rem: v => v, '%': v => v },
+  '%': { px: v => v, rem: v => v, em: v => v },
+};
+
+function DimensionEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const val = typeof value === 'object' ? value : { value: value ?? 0, unit: 'px' };
+  const numVal = parseFloat(val.value) || 0;
+
+  const handleUnitChange = (newUnit: string) => {
+    const convert = UNIT_CONVERSIONS[val.unit]?.[newUnit];
+    const newValue = convert ? convert(numVal) : numVal;
+    onChange({ value: newValue, unit: newUnit });
+  };
+
+  return (
+    <div className="flex gap-2">
+      <StepperInput
+        value={numVal}
+        onChange={v => onChange({ ...val, value: v })}
+        className="flex-1"
       />
       <select
         value={val.unit}
-        onChange={e => onChange({ ...val, unit: e.target.value })}
+        onChange={e => handleUnitChange(e.target.value)}
         className={inputClass + ' w-16'}
       >
         <option value="px">px</option>
@@ -485,11 +550,9 @@ function BorderEditor({ value, onChange }: { value: any; onChange: (v: any) => v
 
 function NumberEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   return (
-    <input
-      type="number"
-      value={value ?? 0}
-      onChange={e => onChange(parseFloat(e.target.value) || 0)}
-      className={inputClass}
+    <StepperInput
+      value={parseFloat(value) || 0}
+      onChange={onChange}
     />
   );
 }
