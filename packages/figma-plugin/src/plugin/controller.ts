@@ -60,6 +60,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'resize':
       figma.ui.resize(msg.width, msg.height);
       break;
+    case 'delete-orphan-variables':
+      await deleteOrphanVariables(msg.knownPaths);
+      break;
   }
 };
 
@@ -229,6 +232,32 @@ async function applyEffectStyle(token: any) {
   style.setPluginData('tokenPath', token.path);
 }
 
+// Delete Figma variables in TokenManager collection that are not in the known paths list
+async function deleteOrphanVariables(knownPaths: string[]) {
+  try {
+    const knownSet = new Set(knownPaths);
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    const tmCollection = collections.find(c => c.name === 'TokenManager');
+    if (!tmCollection) {
+      figma.ui.postMessage({ type: 'orphans-deleted', count: 0 });
+      return;
+    }
+    let deleted = 0;
+    for (const varId of tmCollection.variableIds) {
+      const variable = await figma.variables.getVariableByIdAsync(varId);
+      if (!variable) continue;
+      const path = variable.name.replace(/\//g, '.');
+      if (!knownSet.has(path)) {
+        variable.remove();
+        deleted++;
+      }
+    }
+    figma.ui.postMessage({ type: 'orphans-deleted', count: deleted });
+  } catch (error) {
+    figma.ui.postMessage({ type: 'error', message: String(error) });
+  }
+}
+
 // Read existing Figma variables as tokens
 async function readFigmaVariables() {
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
@@ -247,6 +276,8 @@ async function readFigmaVariables() {
         $type: mapVariableTypeToTokenType(variable.resolvedType),
         $value: convertFromFigmaValue(value, variable.resolvedType),
         collection: collection.name,
+        $description: variable.description || '',
+        $scopes: variable.scopes,
       });
     }
   }

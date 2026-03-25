@@ -29,6 +29,16 @@ interface VarDiffRow {
   figmaType?: string;
 }
 
+interface ReadinessCheck {
+  id: string;
+  label: string;
+  status: 'pass' | 'fail' | 'pending';
+  count?: number;
+  detail?: string;
+  fixLabel?: string;
+  onFix?: () => void;
+}
+
 function flattenForVarDiff(
   group: Record<string, any>,
   prefix = ''
@@ -67,6 +77,13 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
   const [varError, setVarError] = useState<string | null>(null);
   const varReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
 
+  // Publish readiness state
+  const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
+  const [readinessLoading, setReadinessLoading] = useState(false);
+  const [readinessError, setReadinessError] = useState<string | null>(null);
+  const [orphansDeleting, setOrphansDeleting] = useState(false);
+  const orphansResolveRef = useRef<((count: number) => void) | null>(null);
+
   const fetchStatus = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
     try {
@@ -95,13 +112,17 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
     fetchStatus();
   }, [fetchStatus]);
 
-  // Listen for variables-read response from controller
+  // Listen for variables-read and orphans-deleted responses from controller
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
       if (msg?.type === 'variables-read' && varReadResolveRef.current) {
         varReadResolveRef.current(msg.tokens ?? []);
         varReadResolveRef.current = null;
+      }
+      if (msg?.type === 'orphans-deleted' && orphansResolveRef.current) {
+        orphansResolveRef.current(msg.count ?? 0);
+        orphansResolveRef.current = null;
       }
     };
     window.addEventListener('message', handler);
@@ -200,6 +221,97 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       setVarSyncing(false);
     }
   }, [serverUrl, activeSet, varRows, varDirs]);
+
+  const runReadinessChecks = useCallback(async () => {
+    if (!activeSet) return;
+    setReadinessLoading(true);
+    setReadinessError(null);
+    try {
+      const figmaTokens: any[] = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          varReadResolveRef.current = null;
+          reject(new Error('Figma read timed out'));
+        }, 10000);
+        varReadResolveRef.current = (tokens) => { clearTimeout(timeout); resolve(tokens); };
+        parent.postMessage({ pluginMessage: { type: 'read-variables' } }, '*');
+      });
+
+      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      if (!res.ok) throw new Error('Could not fetch local tokens');
+      const data = await res.json();
+      const localFlat = flattenForVarDiff(data.tokens || {});
+
+      const figmaMap = new Map<string, any>(figmaTokens.map(t => [t.path, t]));
+      const localPaths = new Set(localFlat.map(t => t.path));
+
+      // Check 1: all local tokens have Figma variables
+      const missingInFigma = localFlat.filter(t => !figmaMap.has(t.path));
+
+      // Check 2: scopes set (non-ALL_SCOPES and non-empty)
+      const missingScopes = figmaTokens.filter(t =>
+        !t.$scopes || t.$scopes.length === 0 || (t.$scopes.length === 1 && t.$scopes[0] === 'ALL_SCOPES')
+      );
+
+      // Check 3: descriptions populated
+      const missingDescriptions = figmaTokens.filter(t => !t.$description);
+
+      // Check 4: no orphan Figma variables (in Figma but not in local)
+      const orphans = figmaTokens.filter(t => !localPaths.has(t.path));
+
+      const checks: ReadinessCheck[] = [
+        {
+          id: 'all-vars',
+          label: 'All tokens have Figma variables',
+          status: missingInFigma.length === 0 ? 'pass' : 'fail',
+          count: missingInFigma.length || undefined,
+          fixLabel: missingInFigma.length > 0 ? `Push ${missingInFigma.length} missing` : undefined,
+          onFix: missingInFigma.length > 0 ? () => {
+            const tokens = missingInFigma.map(t => ({ path: t.path, $type: t.type, $value: t.value }));
+            parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens } }, '*');
+          } : undefined,
+        },
+        {
+          id: 'scopes',
+          label: 'Scopes set for every variable',
+          status: missingScopes.length === 0 ? 'pass' : 'fail',
+          count: missingScopes.length || undefined,
+        },
+        {
+          id: 'descriptions',
+          label: 'Descriptions populated',
+          status: missingDescriptions.length === 0 ? 'pass' : 'fail',
+          count: missingDescriptions.length || undefined,
+        },
+        {
+          id: 'orphans',
+          label: 'No orphan Figma variables',
+          status: orphans.length === 0 ? 'pass' : 'fail',
+          count: orphans.length || undefined,
+          fixLabel: orphans.length > 0 ? `Delete ${orphans.length} orphan${orphans.length !== 1 ? 's' : ''}` : undefined,
+          onFix: orphans.length > 0 ? async () => {
+            setOrphansDeleting(true);
+            try {
+              await new Promise<number>((resolve, reject) => {
+                const timeout = setTimeout(() => { orphansResolveRef.current = null; reject(new Error('Timeout')); }, 10000);
+                orphansResolveRef.current = (count) => { clearTimeout(timeout); resolve(count); };
+                parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths] } }, '*');
+              });
+              runReadinessChecks();
+            } catch (e) {
+              setReadinessError(String(e));
+            } finally {
+              setOrphansDeleting(false);
+            }
+          } : undefined,
+        },
+      ];
+      setReadinessChecks(checks);
+    } catch (err) {
+      setReadinessError(String(err));
+    } finally {
+      setReadinessLoading(false);
+    }
+  }, [serverUrl, activeSet]);
 
   const doAction = async (action: string, body?: any) => {
     setActionLoading(action);
@@ -424,6 +536,54 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
           {!varLoading && varRows.length === 0 && !varError && (
             <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
               Click "Compute Diff" to compare local tokens with Figma variables.
+            </div>
+          )}
+        </div>
+
+        {/* Publish Readiness Checklist */}
+        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Publish Readiness</span>
+            <button
+              onClick={runReadinessChecks}
+              disabled={readinessLoading || !activeSet}
+              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+            >
+              {readinessLoading ? 'Checking…' : 'Run Checks'}
+            </button>
+          </div>
+          {readinessError && (
+            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{readinessError}</div>
+          )}
+          {readinessChecks.length > 0 && (
+            <div className="divide-y divide-[var(--color-figma-border)]">
+              {readinessChecks.map(check => (
+                <div key={check.id} className="flex items-center gap-2 px-3 py-2">
+                  <span className={`text-[10px] shrink-0 ${check.status === 'pass' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
+                    {check.status === 'pass' ? '✓' : '✗'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] text-[var(--color-figma-text)]">{check.label}</div>
+                    {check.count !== undefined && check.status === 'fail' && (
+                      <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{check.count} affected</div>
+                    )}
+                  </div>
+                  {check.fixLabel && check.onFix && (
+                    <button
+                      onClick={check.onFix}
+                      disabled={orphansDeleting}
+                      className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0 disabled:opacity-40"
+                    >
+                      {orphansDeleting && check.id === 'orphans' ? 'Deleting…' : check.fixLabel}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {!readinessLoading && readinessChecks.length === 0 && !readinessError && (
+            <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+              Click "Run Checks" to validate Figma variable state before publishing.
             </div>
           )}
         </div>
