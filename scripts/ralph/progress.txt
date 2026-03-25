@@ -775,3 +775,17 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Scopes check: "ALL_SCOPES" or empty array = no specific scope set
   - `variable.remove()` deletes a Figma variable (no special async needed)
   - `runReadinessChecks` references itself recursively (after orphan delete) — works because it's a useCallback
+
+## 2026-03-25 - US-041
+- Publish Readiness Checklist panel added to SyncPanel.tsx in the Sync tab
+- ReadinessCheck interface with id/label/status/count/fixLabel/onFix fields
+- runReadinessChecks() sends read-variables to controller, fetches local tokens, runs 4 checks: all tokens have Figma variables, scopes set, descriptions populated, no orphan variables
+- Fix actions: push missing tokens via apply-variables, delete orphans via delete-orphan-variables
+- controller.ts: delete-orphan-variables case walks all collections, deletes variables not in knownPaths, sends orphans-deleted count
+- SyncPanel: orphansResolveRef pattern for promise-based controller response
+- Files changed: packages/figma-plugin/src/ui/components/SyncPanel.tsx, packages/figma-plugin/src/plugin/controller.ts
+- **Learnings for future iterations:**
+  - Use varReadResolveRef pattern for promise-based Figma plugin messages (timeout + resolve ref)
+  - ReadinessCheck interface allows flexible fix actions as callbacks
+  - export-all-variables returns full variable info including scopes/descriptions; read-variables only returns basic path/$type/$value
+---
