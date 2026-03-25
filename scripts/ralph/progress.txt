@@ -603,3 +603,19 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - UI: expandable list of uncovered token paths below set matrix (yellow bg, scrollable, mono font)
 - Files changed: `ThemeManager.tsx`
 - **Learning**: `Object.keys(data.tokens)` only returns top-level keys; must use recursive walk for flat paths
+
+---
+
+## 2026-03-25 — US-035: Duplicate Color Value Detection
+
+**Implemented**:
+- AnalyticsPanel: `allColorTokens` state collects all color tokens from all sets with full alias resolution
+  - `resolveHex` follows alias chains up to 10 hops; normalizes hex to lowercase for consistent comparison
+- `duplicateGroups`: computed from allColorTokens, grouped by hex, filtered to groups >1 token
+- UI: "Duplicate Colors" collapsible section (only shown if groups exist):
+  - Color swatch + hex + count per group
+  - Radio buttons to pick canonical token; others become aliases
+  - "Deduplicate (N → alias)" button: PATCHes non-canonical tokens, then triggers `reloadKey` reload
+- `canonicalPick` state tracks which token is canonical per hex group
+- `reloadKey` state triggers re-fetch of analytics data after deduplication
+- Files changed: `AnalyticsPanel.tsx`
