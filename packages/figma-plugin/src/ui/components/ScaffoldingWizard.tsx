@@ -104,6 +104,8 @@ interface ScaffoldingWizardProps {
   activeSet: string;
   onClose: () => void;
   onConfirm: () => void;
+  onGenerateSemanticTokens?: () => void;
+  onGenerateDarkTheme?: () => void;
 }
 
 function formatPresetValue(v: unknown): string {
@@ -114,8 +116,9 @@ function formatPresetValue(v: unknown): string {
   return JSON.stringify(v);
 }
 
-export function ScaffoldingWizard({ serverUrl, activeSet, onClose, onConfirm }: ScaffoldingWizardProps) {
-  const [step, setStep] = useState<'pick' | 'configure'>('pick');
+export function ScaffoldingWizard({ serverUrl, activeSet, onClose, onConfirm, onGenerateSemanticTokens, onGenerateDarkTheme }: ScaffoldingWizardProps) {
+  const [step, setStep] = useState<'pick' | 'configure' | 'complete'>('pick');
+  const [createdCount, setCreatedCount] = useState(0);
   const [selectedPreset, setSelectedPreset] = useState<Preset | null>(null);
   const [prefix, setPrefix] = useState('');
   const [busy, setBusy] = useState(false);
@@ -154,6 +157,8 @@ export function ScaffoldingWizard({ serverUrl, activeSet, onClose, onConfirm }: 
           throw new Error(data.error ?? res.statusText);
         }
       }
+      setCreatedCount(tokensToCreate.length);
+      setStep('complete');
       onConfirm();
     } catch (err) {
       setError(String(err));
@@ -170,7 +175,7 @@ export function ScaffoldingWizard({ serverUrl, activeSet, onClose, onConfirm }: 
       >
         <div className="p-4 border-b border-[var(--color-figma-border)]">
           <div className="text-[12px] font-medium text-[var(--color-figma-text)]">
-            {step === 'pick' ? 'Use a preset' : `Configure: ${selectedPreset?.label}`}
+            {step === 'pick' ? 'Use a preset' : step === 'configure' ? `Configure: ${selectedPreset?.label}` : 'Tokens added!'}
           </div>
           <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
             Tokens will be added to <span className="font-mono text-[var(--color-figma-text)]">{activeSet}</span>
@@ -191,6 +196,50 @@ export function ScaffoldingWizard({ serverUrl, activeSet, onClose, onConfirm }: 
                 </div>
               </button>
             ))}
+          </div>
+        )}
+
+        {step === 'complete' && (
+          <div className="flex flex-col items-center gap-4 p-6 text-center">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 10l4.5 4.5L16 6" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-[12px] font-medium text-[var(--color-figma-text)]">
+                {createdCount} tokens added to <span className="font-mono">{activeSet}</span>
+              </p>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
+                Now that you have primitives, you can generate a semantic layer or a dark theme automatically.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 w-full">
+              <button
+                onClick={() => { onGenerateSemanticTokens?.(); onClose(); }}
+                className="flex items-center gap-2 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 10V7l4-6 4 6v3H8V8H4v2H2z" />
+                </svg>
+                <span className="flex-1 text-left">Generate Semantic Tokens</span>
+              </button>
+              <button
+                onClick={() => { onGenerateDarkTheme?.(); onClose(); }}
+                className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 6.5A4.5 4.5 0 0 1 4.5 1a4.5 4.5 0 1 0 5.5 5.5z" />
+                </svg>
+                <span className="flex-1 text-left">Generate Dark Theme</span>
+              </button>
+              <button
+                onClick={onClose}
+                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Done
+              </button>
+            </div>
           </div>
         )}
 
@@ -226,7 +275,7 @@ export function ScaffoldingWizard({ serverUrl, activeSet, onClose, onConfirm }: 
           </>
         )}
 
-        <div className="flex gap-2 justify-between p-4 border-t border-[var(--color-figma-border)]">
+        {step !== 'complete' && <div className="flex gap-2 justify-between p-4 border-t border-[var(--color-figma-border)]">
           {step === 'configure' ? (
             <button
               onClick={() => setStep('pick')}
@@ -254,7 +303,7 @@ export function ScaffoldingWizard({ serverUrl, activeSet, onClose, onConfirm }: 
               </button>
             )}
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );

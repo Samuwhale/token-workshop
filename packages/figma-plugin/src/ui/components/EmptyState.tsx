@@ -6,9 +6,11 @@ interface EmptyStateProps {
   onPasteJSON: () => void;
   onUsePreset?: () => void;
   onGenerateColorScale?: () => void;
+  onGenerateSemanticTokens?: () => void;
+  onGenerateDarkTheme?: () => void;
 }
 
-export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset, onGenerateColorScale }: EmptyStateProps) {
+export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset, onGenerateColorScale, onGenerateSemanticTokens, onGenerateDarkTheme }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 py-10 text-center gap-5">
       <div className="flex flex-col gap-1.5">
@@ -73,6 +75,39 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset,
             </svg>
             <span className="flex-1 text-left">Use a preset</span>
           </button>
+        )}
+
+        {(onGenerateSemanticTokens || onGenerateDarkTheme) && (
+          <>
+            <div className="w-full border-t border-[var(--color-figma-border)] my-1" />
+            <p className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium self-start">From primitives</p>
+            {onGenerateSemanticTokens && (
+              <button
+                onClick={onGenerateSemanticTokens}
+                disabled={!connected}
+                title={connected ? undefined : 'Server offline'}
+                className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 10V7l4-6 4 6v3H8V8H4v2H2z" />
+                </svg>
+                <span className="flex-1 text-left">Generate Semantic Tokens</span>
+              </button>
+            )}
+            {onGenerateDarkTheme && (
+              <button
+                onClick={onGenerateDarkTheme}
+                disabled={!connected}
+                title={connected ? undefined : 'Server offline'}
+                className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 6.5A4.5 4.5 0 0 1 4.5 1a4.5 4.5 0 1 0 5.5 5.5z" />
+                </svg>
+                <span className="flex-1 text-left">Generate Dark Theme</span>
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

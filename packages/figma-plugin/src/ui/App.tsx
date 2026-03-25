@@ -94,6 +94,9 @@ export function App() {
   const { toastVisible, slot: undoSlot, pushUndo, executeUndo, dismissToast } = useUndo();
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
+  const hasPrimitivesSet = sets.some(s => /prim/i.test(s));
+  const handleGenerateSemanticTokens = hasPrimitivesSet ? () => alert('Generate Semantic Tokens: coming soon — right-click a token set tab for early access.') : undefined;
+  const handleGenerateDarkTheme = hasPrimitivesSet ? () => alert('Generate Dark Theme: coming soon — right-click a token set tab for early access.') : undefined;
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [lintKey, setLintKey] = useState(0);
@@ -722,6 +725,8 @@ export function App() {
               onPasteJSON={() => setShowPasteModal(true)}
               onUsePreset={() => setShowScaffoldWizard(true)}
               onGenerateColorScale={() => setShowColorScaleGen(true)}
+              onGenerateSemanticTokens={handleGenerateSemanticTokens}
+              onGenerateDarkTheme={handleGenerateDarkTheme}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && !editingToken && (tokens.length > 0 || createFromEmpty) && (
@@ -919,7 +924,9 @@ export function App() {
           serverUrl={serverUrl}
           activeSet={activeSet}
           onClose={() => setShowScaffoldWizard(false)}
-          onConfirm={() => { setShowScaffoldWizard(false); refreshAll(); }}
+          onConfirm={() => { refreshAll(); }}
+          onGenerateSemanticTokens={handleGenerateSemanticTokens}
+          onGenerateDarkTheme={handleGenerateDarkTheme}
         />
       )}
 
