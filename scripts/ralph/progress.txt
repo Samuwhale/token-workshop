@@ -813,3 +813,27 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `figma.getNodeByIdAsync(id)` is async — needed for `select-node`
   - `node.boundVariables` is a Record where keys = property names, values = variable bindings
   - A variable binding has `{ id: string }` — checking `'id' in v` detects it
+
+---
+
+## 2026-03-25 — US-043: Token Documentation / Style Guide Generation
+
+**Implemented**:
+- Created `packages/server/src/routes/docs.ts` with two routes:
+  - `GET /docs` — index page listing all sets with token counts
+  - `GET /docs/:set` — style guide for a specific set
+- HTML generated with CSS custom properties (var(--accent) etc.) for readability
+- Color tokens: palette swatches (80px height) with automatic text color selection based on contrast
+  - Shows WCAG AA/AAA compliance labels for on-white contrast
+- Typography tokens: "The quick brown fox" specimen styled with actual CSS from token value
+- Spacing/dimension/number tokens: visual boxes scaled to token value (capped at 200px)
+- Other tokens: simple table with path/value/description columns
+- No authentication (publicly accessible via direct URL)
+- Registered with `await fastify.register(docsRoutes)` (no prefix — /docs is not under /api)
+- Files changed: `routes/docs.ts` (new), `index.ts`
+- **Learnings for future iterations:**
+  - `tokenStore.getSets()` is async (returns Promise<string[]>), not sync
+  - `tokenStore.getFlatTokensForSet(name)` returns `Record<string, Token>` — already flat
+  - `docsRoutes` registered without prefix (unlike API routes which use `/api`)
+  - Fastify returns strings directly from handlers — just set Content-Type header and return HTML string
+  - Token $description on getFlatTokensForSet result needs `(t as any).$description` cast
