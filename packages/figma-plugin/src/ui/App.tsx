@@ -124,6 +124,9 @@ export function App() {
   // Delete state
   const [deletingSet, setDeletingSet] = useState<string | null>(null);
 
+  // Group sync state
+  const [syncGroupPending, setSyncGroupPending] = useState<{ groupPath: string; tokenCount: number } | null>(null);
+
   // Rename state
   const [renamingSet, setRenamingSet] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -264,6 +267,26 @@ export function App() {
     setDeletingSet(null);
     refreshTokens();
   };
+
+  const handleSyncGroup = useCallback(async () => {
+    if (!syncGroupPending || !connected) return;
+    const { groupPath } = syncGroupPending;
+    setSyncGroupPending(null);
+    try {
+      const rawMap = await fetchAllTokensFlat(serverUrl);
+      const resolved = resolveAllAliases(rawMap);
+      const prefix = groupPath + '/';
+      const filtered: Record<string, (typeof resolved)[string]> = {};
+      for (const [path, entry] of Object.entries(resolved)) {
+        if (path === groupPath || path.startsWith(prefix)) {
+          filtered[path] = entry;
+        }
+      }
+      parent.postMessage({ pluginMessage: { type: 'sync-bindings', tokenMap: filtered, scope: 'page' } }, '*');
+    } catch (err) {
+      console.error('Failed to sync group to Figma:', err);
+    }
+  }, [syncGroupPending, connected, serverUrl]);
 
   const handleDuplicateSet = async (setName: string) => {
     setTabMenuOpen(null);
@@ -659,6 +682,7 @@ export function App() {
               highlightedToken={highlightedToken}
               onNavigateToAlias={handleNavigateToAlias}
               onClearHighlight={() => setHighlightedToken(null)}
+              onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && editingToken && (
@@ -752,6 +776,17 @@ export function App() {
           danger
           onConfirm={handleDeleteSet}
           onCancel={() => setDeletingSet(null)}
+        />
+      )}
+
+      {/* Sync group to Figma confirmation */}
+      {syncGroupPending && (
+        <ConfirmModal
+          title={`Sync "${syncGroupPending.groupPath}" to Figma?`}
+          description={`This will apply ${syncGroupPending.tokenCount} token${syncGroupPending.tokenCount !== 1 ? 's' : ''} from this group to all matching Figma nodes on the page.`}
+          confirmLabel="Sync group"
+          onConfirm={handleSyncGroup}
+          onCancel={() => setSyncGroupPending(null)}
         />
       )}
 

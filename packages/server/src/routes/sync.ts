@@ -144,4 +144,31 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       reply.status(500).send({ error: 'Failed to checkout branch', detail: String(err) });
     }
   });
+
+  // GET /api/sync/diff — compute two-way diff between local HEAD and remote
+  fastify.get('/sync/diff', async (_request, reply) => {
+    try {
+      const isRepo = await fastify.gitSync.isRepo();
+      if (!isRepo) return reply.status(400).send({ error: 'Not a git repository' });
+      const diff = await fastify.gitSync.computeUnifiedDiff();
+      return diff;
+    } catch (err) {
+      reply.status(500).send({ error: 'Failed to compute diff', detail: String(err) });
+    }
+  });
+
+  // POST /api/sync/apply-diff — apply direction choices from unified diff
+  fastify.post<{ Body: { choices: Record<string, 'push' | 'pull' | 'skip'> } }>(
+    '/sync/apply-diff',
+    async (request, reply) => {
+      try {
+        const { choices } = request.body ?? {};
+        if (!choices) return reply.status(400).send({ error: 'choices is required' });
+        await fastify.gitSync.applyDiffChoices(choices);
+        return { applied: true };
+      } catch (err) {
+        reply.status(500).send({ error: 'Failed to apply diff', detail: String(err) });
+      }
+    },
+  );
 };

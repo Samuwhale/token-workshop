@@ -9,6 +9,11 @@ import type { UndoSlot } from '../hooks/useUndo';
 import { ScaffoldingWizard } from './ScaffoldingWizard';
 import type { LintViolation } from '../hooks/useLint';
 
+function countTokensInGroup(node: TokenNode): number {
+  if (!node.isGroup) return 1;
+  return (node.children ?? []).reduce((sum, c) => sum + countTokensInGroup(c), 0);
+}
+
 type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage';
 
 interface TokenListProps {
@@ -27,6 +32,7 @@ interface TokenListProps {
   onNavigateToAlias?: (path: string) => void;
   onClearHighlight?: () => void;
   lintViolations?: LintViolation[];
+  onSyncGroup?: (groupPath: string, tokenCount: number) => void;
 }
 
 type DeleteConfirm =
@@ -88,7 +94,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [] }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenType] = useState('color');
@@ -885,6 +891,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onHoverToken={handleHoverToken}
                 lintViolations={lintViolations.filter(v => v.path === node.path)}
                 onExtractToAliasForLint={(path, $type, $value) => handleOpenExtractToAlias(path, $type, $value)}
+                onSyncGroup={onSyncGroup}
               />
             ))}
           </div>
@@ -1341,6 +1348,7 @@ function TokenTreeNode({
   onHoverToken,
   lintViolations = [],
   onExtractToAliasForLint,
+  onSyncGroup,
 }: {
   node: TokenNode;
   depth: number;
@@ -1367,6 +1375,7 @@ function TokenTreeNode({
   onHoverToken?: (path: string) => void;
   lintViolations?: LintViolation[];
   onExtractToAliasForLint?: (path: string, $type?: string, $value?: any) => void;
+  onSyncGroup?: (groupPath: string, tokenCount: number) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -1585,6 +1594,19 @@ function TokenTreeNode({
             >
               Duplicate group
             </button>
+            {onSyncGroup && (
+              <button
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  setGroupMenuPos(null);
+                  const count = node.children ? countTokensInGroup(node) : 0;
+                  onSyncGroup(node.path, count);
+                }}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
+              >
+                Sync this group to Figma
+              </button>
+            )}
           </div>
         )}
 
@@ -1616,6 +1638,7 @@ function TokenTreeNode({
             onHoverToken={onHoverToken}
             lintViolations={lintViolations.filter(v => v.path === child.path)}
             onExtractToAliasForLint={onExtractToAliasForLint}
+            onSyncGroup={onSyncGroup}
           />
         ))}
       </div>
