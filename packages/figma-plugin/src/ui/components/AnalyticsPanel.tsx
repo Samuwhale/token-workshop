@@ -71,6 +71,11 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [severityFilter, setSeverityFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
   const [colorTokens, setColorTokens] = useState<{ path: string; hex: string }[]>([]);
   const [showContrastMatrix, setShowContrastMatrix] = useState(false);
+  const [allColorTokens, setAllColorTokens] = useState<{ path: string; set: string; hex: string }[]>([]);
+  const [showDuplicates, setShowDuplicates] = useState(false);
+  const [deduplicating, setDeduplicating] = useState<string | null>(null); // hex key being deduplicated
+  const [canonicalPick, setCanonicalPick] = useState<Record<string, string>>({}); // hex → chosen canonical path
+  const [reloadKey, setReloadKey] = useState(0);
 
   const runValidate = useCallback(async () => {
     if (!connected) return;
@@ -102,12 +107,15 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       const sets: string[] = setsData.sets || [];
       const descriptions: Record<string, string> = setsData.descriptions || {};
 
+      // Fetch all sets' flat tokens and collect color tokens
+      const allFlatBySet: Record<string, Record<string, { $value: unknown; $type: string }>> = {};
       const allColors: { path: string; hex: string }[] = [];
       const results = await Promise.all(
         sets.map(async (name) => {
           const res = await fetch(`${serverUrl}/api/tokens/${name}`);
           const data = await res.json();
           const flat = data.tokens as Record<string, { $value: unknown; $type: string }> || {};
+          allFlatBySet[name] = flat;
           const { total, byType } = countLeafNodes(data.tokens || {});
           for (const [p, t] of Object.entries(flat)) {
             if (t.$type === 'color' && typeof t.$value === 'string' && !t.$value.startsWith('{') && /^#[0-9a-fA-F]{3,8}$/.test(t.$value)) {
@@ -120,11 +128,38 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       setStats(results);
       setColorTokens(allColors.slice(0, 16)); // cap for matrix performance
 
+      // Build a unified flat map for alias resolution
+      const unifiedFlat: Record<string, { $value: unknown; $type: string; set: string }> = {};
+      for (const [s, flat] of Object.entries(allFlatBySet)) {
+        for (const [p, t] of Object.entries(flat)) {
+          unifiedFlat[p] = { ...t, set: s };
+        }
+      }
+      // Resolve color tokens (follow alias chains up to 10 hops)
+      const resolveHex = (path: string, depth = 0): string | null => {
+        if (depth > 10) return null;
+        const entry = unifiedFlat[path];
+        if (!entry || entry.$type !== 'color') return null;
+        const v = entry.$value;
+        if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
+          return resolveHex(v.slice(1, -1), depth + 1);
+        }
+        return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v) ? v : null;
+      };
+      const resolvedColors: { path: string; set: string; hex: string }[] = [];
+      for (const [p, e] of Object.entries(unifiedFlat)) {
+        if (e.$type === 'color') {
+          const hex = resolveHex(p);
+          if (hex) resolvedColors.push({ path: p, set: e.set, hex: hex.toLowerCase() });
+        }
+      }
+      setAllColorTokens(resolvedColors);
+
       setLoading(false);
     };
 
     load().catch(() => setLoading(false));
-  }, [serverUrl, connected]);
+  }, [serverUrl, connected, reloadKey]);
 
   if (!connected) {
     return (
@@ -154,6 +189,37 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const filteredIssues = validateResults
     ? (severityFilter === 'all' ? validateResults : validateResults.filter(i => i.severity === severityFilter))
     : null;
+
+  // Compute duplicate color groups
+  const duplicateGroups = (() => {
+    const byHex = new Map<string, { path: string; set: string }[]>();
+    for (const t of allColorTokens) {
+      const list = byHex.get(t.hex) ?? [];
+      list.push({ path: t.path, set: t.set });
+      byHex.set(t.hex, list);
+    }
+    return [...byHex.entries()]
+      .filter(([, paths]) => paths.length > 1)
+      .sort((a, b) => b[1].length - a[1].length);
+  })();
+
+  const handleDeduplicate = async (hex: string, canonical: { path: string; set: string }, others: { path: string; set: string }[]) => {
+    setDeduplicating(hex);
+    try {
+      await Promise.all(others.map(({ path, set }) =>
+        fetch(`${serverUrl}/api/tokens/${set}/${path}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ $value: `{${canonical.path}}` }),
+        })
+      ));
+      // Refresh data
+      setDeduplicating(null);
+      setReloadKey(k => k + 1);
+    } catch {
+      setDeduplicating(null);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-3 p-3">
@@ -359,6 +425,67 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-yellow-50 border border-yellow-200" />AA (≥4.5:1)</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30" />Fail</span>
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Duplicate Colors */}
+      {duplicateGroups.length > 0 && (
+        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+          <button
+            onClick={() => setShowDuplicates(v => !v)}
+            className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
+          >
+            <span className="flex items-center gap-1.5">
+              <span className="text-yellow-600">⚠</span>
+              Duplicate Colors ({duplicateGroups.length} group{duplicateGroups.length !== 1 ? 's' : ''})
+            </span>
+            <span>{showDuplicates ? '▲' : '▼'}</span>
+          </button>
+          {showDuplicates && (
+            <div className="divide-y divide-[var(--color-figma-border)]">
+              {duplicateGroups.map(([hex, tokens]) => {
+                const canonical = canonicalPick[hex] ?? tokens[0].path;
+                const canonicalToken = tokens.find(t => t.path === canonical) ?? tokens[0];
+                const others = tokens.filter(t => t.path !== canonical);
+                const isDeduplying = deduplicating === hex;
+                return (
+                  <div key={hex} className="p-3 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: hex }} />
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text)]">{hex}</span>
+                      <span className="text-[9px] text-[var(--color-figma-text-secondary)]">— {tokens.length} tokens</span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      {tokens.map(t => (
+                        <label key={t.path} className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="radio"
+                            name={`canonical-${hex}`}
+                            value={t.path}
+                            checked={canonical === t.path}
+                            onChange={() => setCanonicalPick(prev => ({ ...prev, [hex]: t.path }))}
+                            className="w-3 h-3"
+                          />
+                          <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{t.path}</span>
+                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{t.set}</span>
+                          {canonical === t.path && (
+                            <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                    <button
+                      disabled={isDeduplying}
+                      onClick={() => handleDeduplicate(hex, canonicalToken, others)}
+                      className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+                    >
+                      {isDeduplying ? 'Deduplicating…' : `Deduplicate (${others.length} → alias)`}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
