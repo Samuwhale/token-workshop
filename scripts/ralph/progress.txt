@@ -872,3 +872,22 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - StrokeStyleEditor: select with 8 CSS stroke style keywords, stored as string
 - Added to dropdown and getDefaultValue
 
+
+## 2026-03-25 - US-SWEEP-01
+- Bug sweep: error handling, edge cases, and broken states
+- Files changed: `TokenList.tsx`, `App.tsx`, `useTokens.ts`, `TokenEditor.tsx` (linter added Escape key handler)
+- **Fixes applied:**
+  - Token create form: whitespace-only path validation with inline error display; error shown in red with border change; `res.ok` checked before closing form
+  - `useTokens.refreshTokens`: generation counter (`fetchGenRef`) prevents stale-state race when user switches sets mid-fetch; `res.ok` checks before `.json()` calls
+  - `handleDeleteSet`: wrapped in try/catch; dismisses modal even on network error
+  - `handleDuplicateSet`: checks `res.ok` before proceeding; wrapped in try/catch
+  - `handleSaveMetadata`: wrapped in try/catch; closes modal regardless
+  - `handleApplyGroupScopes`: added `res.ok` check before parsing JSON
+- **Verified OK (no changes needed):**
+  - `resolveAlias.ts`: already has cycle guard (`visited` Set) and `maxDepth=10` limit
+  - `useServerConnection`: uses polling (not SSE); already reflects disconnected state when health check fails
+  - undo slot: `pushUndo` is only called after successful delete operations (correct)
+- **Learnings for future iterations:**
+  - The `useTokens` hook uses a generation counter pattern (not AbortController) for race prevention
+  - Token create form error state: use `createError` state + border color class change
+  - Server fetch responses: always check `res.ok` before calling `.json()`

@@ -846,7 +846,7 @@
         "Typecheck passes"
       ],
       "priority": 52,
-      "passes": false,
+      "passes": true,
       "notes": "Both approaches are required: read the code manually for logic bugs, AND run dev-browser to catch runtime errors. Do not limit the sweep to observed symptoms."
     },
     {
