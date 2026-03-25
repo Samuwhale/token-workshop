@@ -860,3 +860,15 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - Stored as {value, unit} DTCG object
 - 'duration' added to type dropdown and getDefaultValue in TokenList
 
+## US-049 — Standalone FontFamily & FontWeight Token Editors
+- Completed: 2026-03-25
+- FontFamilyEditor: text input storing string
+- FontWeightEditor: select 100-900 with named labels
+- TokenList previews: font name rendered in own font, 'Aa' at stored weight
+- Both types added to dropdown and getDefaultValue
+
+## US-050 — StrokeStyle Token Editor
+- Completed: 2026-03-25
+- StrokeStyleEditor: select with 8 CSS stroke style keywords, stored as string
+- Added to dropdown and getDefaultValue
+
