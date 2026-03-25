@@ -7,6 +7,7 @@ import { syncRoutes } from './routes/sync.js';
 import { exportRoutes } from './routes/export.js';
 import { healthRoutes } from './routes/health.js';
 import { sseRoutes } from './routes/sse.js';
+import { lintRoutes } from './routes/lint.js';
 import { TokenStore } from './services/token-store.js';
 import { GitSync } from './services/git-sync.js';
 
@@ -42,6 +43,7 @@ export async function startServer(config: ServerConfig) {
   await fastify.register(syncRoutes, { prefix: '/api' });
   await fastify.register(exportRoutes, { prefix: '/api' });
   await fastify.register(sseRoutes, { prefix: '/api' });
+  await fastify.register(lintRoutes, { prefix: '/api', tokenDir: config.tokenDir });
 
   try {
     await fastify.listen({ port: config.port, host: config.host });
