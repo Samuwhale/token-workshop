@@ -1028,6 +1028,9 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               <option value="border">Border</option>
               <option value="gradient">Gradient</option>
               <option value="duration">Duration</option>
+              <option value="fontFamily">Font Family</option>
+              <option value="fontWeight">Font Weight</option>
+              <option value="strokeStyle">Stroke Style</option>
               <option value="number">Number</option>
               <option value="string">String</option>
               <option value="boolean">Boolean</option>
@@ -2090,6 +2093,30 @@ function ValuePreview({ type, value }: { type?: string; value?: any }) {
     }
   }
 
+  if (type === 'fontFamily' && typeof value === 'string' && value) {
+    return (
+      <div
+        className="w-8 h-4 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
+        title={value}
+        style={{ fontFamily: value, fontSize: '9px', lineHeight: 1 }}
+      >
+        Aa
+      </div>
+    );
+  }
+
+  if (type === 'fontWeight' && typeof value === 'number') {
+    return (
+      <div
+        className="w-8 h-4 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
+        title={String(value)}
+        style={{ fontWeight: value, fontSize: '9px', lineHeight: 1 }}
+      >
+        Aa
+      </div>
+    );
+  }
+
   if (type === 'gradient') {
     let gradientCss: string | null = null;
     if (typeof value === 'string' && value.includes('gradient')) {
@@ -2108,6 +2135,31 @@ function ValuePreview({ type, value }: { type?: string; value?: any }) {
         />
       );
     }
+  }
+
+  if (type === 'fontFamily' && typeof value === 'string' && value) {
+    const family = value.split(',')[0].trim();
+    return (
+      <span
+        className="text-[11px] text-[var(--color-figma-text)] shrink-0 truncate max-w-[80px]"
+        style={{ fontFamily: value }}
+        title={value}
+      >
+        {family}
+      </span>
+    );
+  }
+
+  if (type === 'fontWeight' && typeof value === 'number') {
+    return (
+      <span
+        className="text-[11px] text-[var(--color-figma-text)] shrink-0"
+        style={{ fontWeight: value }}
+        title={String(value)}
+      >
+        Aa
+      </span>
+    );
   }
 
   return <div className="w-4 h-4 shrink-0" />;
@@ -2269,6 +2321,9 @@ function getDefaultValue(type: string): any {
     case 'border': return { color: '#000000', width: { value: 1, unit: 'px' }, style: 'solid' };
     case 'gradient': return { type: 'linear', stops: [{ color: '#000000', position: 0 }, { color: '#ffffff', position: 1 }] };
     case 'duration': return { value: 200, unit: 'ms' };
+    case 'fontFamily': return 'Inter';
+    case 'fontWeight': return 400;
+    case 'strokeStyle': return 'solid';
     case 'number': return 0;
     case 'string': return '';
     case 'boolean': return false;

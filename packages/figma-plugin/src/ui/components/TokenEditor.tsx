@@ -271,6 +271,9 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'number' && <NumberEditor value={value} onChange={setValue} />}
             {tokenType === 'duration' && <DurationEditor value={value} onChange={setValue} />}
+            {tokenType === 'fontFamily' && <FontFamilyEditor value={value} onChange={setValue} />}
+            {tokenType === 'fontWeight' && <FontWeightEditor value={value} onChange={setValue} />}
+            {tokenType === 'strokeStyle' && <StrokeStyleEditor value={value} onChange={setValue} />}
             {tokenType === 'string' && <StringEditor value={value} onChange={setValue} />}
             {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
           </div>
@@ -758,6 +761,61 @@ function BooleanEditor({ value, onChange }: { value: any; onChange: (v: any) => 
       </button>
       <span className="text-[11px] text-[var(--color-figma-text)]">{value ? 'true' : 'false'}</span>
     </div>
+  );
+}
+
+function FontFamilyEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  return (
+    <input
+      type="text"
+      value={typeof value === 'string' ? value : ''}
+      onChange={e => onChange(e.target.value)}
+      placeholder="Inter, system-ui, sans-serif"
+      className={inputClass}
+    />
+  );
+}
+
+const FONT_WEIGHTS = [
+  { value: 100, label: '100 Thin' },
+  { value: 200, label: '200 ExtraLight' },
+  { value: 300, label: '300 Light' },
+  { value: 400, label: '400 Regular' },
+  { value: 500, label: '500 Medium' },
+  { value: 600, label: '600 SemiBold' },
+  { value: 700, label: '700 Bold' },
+  { value: 800, label: '800 ExtraBold' },
+  { value: 900, label: '900 Black' },
+];
+
+function FontWeightEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const w = typeof value === 'number' ? value : 400;
+  return (
+    <select
+      value={w}
+      onChange={e => onChange(parseInt(e.target.value))}
+      className={inputClass}
+    >
+      {FONT_WEIGHTS.map(fw => (
+        <option key={fw.value} value={fw.value}>{fw.label}</option>
+      ))}
+    </select>
+  );
+}
+
+const STROKE_STYLES = ['solid', 'dashed', 'dotted', 'double', 'groove', 'ridge', 'outset', 'inset'];
+
+function StrokeStyleEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  return (
+    <select
+      value={typeof value === 'string' ? value : 'solid'}
+      onChange={e => onChange(e.target.value)}
+      className={inputClass}
+    >
+      {STROKE_STYLES.map(s => (
+        <option key={s} value={s}>{s}</option>
+      ))}
+    </select>
   );
 }
 
