@@ -12,6 +12,14 @@ function hexToLuminance(hex: string): number | null {
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 }
 
+// CIE L* (perceptual lightness) from hex (0–100 scale)
+function hexToLstar(hex: string): number | null {
+  const Y = hexToLuminance(hex);
+  if (Y === null) return null;
+  const f = (t: number) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  return 116 * f(Y) - 16;
+}
+
 function contrastRatio(hex1: string, hex2: string): number | null {
   const l1 = hexToLuminance(hex1);
   const l2 = hexToLuminance(hex2);
@@ -76,6 +84,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [deduplicating, setDeduplicating] = useState<string | null>(null); // hex key being deduplicated
   const [canonicalPick, setCanonicalPick] = useState<Record<string, string>>({}); // hex → chosen canonical path
   const [reloadKey, setReloadKey] = useState(0);
+  const [showScaleInspector, setShowScaleInspector] = useState(false);
 
   const runValidate = useCallback(async () => {
     if (!connected) return;
@@ -189,6 +198,26 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const filteredIssues = validateResults
     ? (severityFilter === 'all' ? validateResults : validateResults.filter(i => i.severity === severityFilter))
     : null;
+
+  // Detect color scales: groups of color tokens with numeric suffix under same parent
+  const colorScales = (() => {
+    const parentGroups = new Map<string, { path: string; label: string; hex: string }[]>();
+    for (const t of allColorTokens) {
+      const parts = t.path.split('.');
+      const last = parts[parts.length - 1];
+      if (!/^\d+$/.test(last)) continue; // only numeric last segment
+      const parent = parts.slice(0, -1).join('.');
+      const list = parentGroups.get(parent) ?? [];
+      list.push({ path: t.path, label: last, hex: t.hex });
+      parentGroups.set(parent, list);
+    }
+    return [...parentGroups.entries()]
+      .filter(([, steps]) => steps.length >= 3)
+      .map(([parent, steps]) => ({
+        parent,
+        steps: steps.sort((a, b) => Number(a.label) - Number(b.label)),
+      }));
+  })();
 
   // Compute duplicate color groups
   const duplicateGroups = (() => {
@@ -483,6 +512,60 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                     >
                       {isDeduplying ? 'Deduplicating…' : `Deduplicate (${others.length} → alias)`}
                     </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Color Scale Lightness Inspector */}
+      {colorScales.length > 0 && (
+        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+          <button
+            onClick={() => setShowScaleInspector(v => !v)}
+            className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
+          >
+            <span>Color Scale Lightness ({colorScales.length} scale{colorScales.length !== 1 ? 's' : ''})</span>
+            <span>{showScaleInspector ? '▲' : '▼'}</span>
+          </button>
+          {showScaleInspector && (
+            <div className="divide-y divide-[var(--color-figma-border)] p-3 flex flex-col gap-4">
+              {colorScales.map(({ parent, steps }) => {
+                const lValues = steps.map(s => ({ label: s.label, hex: s.hex, l: hexToLstar(s.hex) ?? 0 }));
+                const lMin = Math.min(...lValues.map(v => v.l));
+                const lMax = Math.max(...lValues.map(v => v.l));
+                const range = lMax - lMin || 1;
+                const gaps = lValues.slice(1).map((v, i) => Math.abs(v.l - lValues[i].l));
+                const avgGap = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+                const W = 200, H = 40;
+                const pts = lValues.map((v, i) => {
+                  const x = (i / (lValues.length - 1)) * W;
+                  const y = H - ((v.l - lMin) / range) * H;
+                  return { x, y, l: v.l, label: v.label, hex: v.hex, isAnom: i > 0 && Math.abs(v.l - lValues[i - 1].l) > avgGap * 2 };
+                });
+                const polyline = pts.map(p => `${p.x},${p.y}`).join(' ');
+                return (
+                  <div key={parent}>
+                    <div className="text-[10px] font-medium text-[var(--color-figma-text)] mb-2">{parent}</div>
+                    <svg width={W} height={H + 16} className="overflow-visible">
+                      <polyline points={polyline} fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.5" />
+                      {pts.map((p, i) => (
+                        <g key={i}>
+                          <circle
+                            cx={p.x} cy={p.y} r={p.isAnom ? 4 : 3}
+                            fill={p.isAnom ? '#ef4444' : p.hex}
+                            stroke={p.isAnom ? '#ef4444' : 'var(--color-figma-border)'}
+                            strokeWidth="1"
+                          />
+                          <text x={p.x} y={H + 12} textAnchor="middle" fontSize="7" fill="var(--color-figma-text-secondary)">{p.label}</text>
+                        </g>
+                      ))}
+                    </svg>
+                    {pts.some(p => p.isAnom) && (
+                      <div className="text-[9px] text-red-500 mt-1">⚠ Uneven lightness steps detected</div>
+                    )}
                   </div>
                 );
               })}

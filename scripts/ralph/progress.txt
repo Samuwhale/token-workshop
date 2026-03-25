@@ -629,3 +629,13 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - Radio buttons let user pick the canonical primitive per group
 - "Deduplicate" button patches all non-canonical tokens to use `{canonical.path}` alias via PATCH /api/tokens/:set/:path
 - After deduplication, triggers reload via reloadKey increment
+
+## 2026-03-25 — US-036: Color Scale Lightness Curve Inspector
+
+**Implemented**:
+- Added hexToLstar() (CIE L*) utility to AnalyticsPanel
+- Detects color scales: color tokens with numeric last segment under same parent (≥3 steps)
+- "Color Scale Lightness" collapsible section shows SVG sparkline per detected scale
+- Each step rendered as circle with actual hex fill; anomalous steps (gap > 2× average) shown in red
+- Warning label shown when uneven lightness steps are detected
+- Non-interactive (display only) per acceptance criteria
