@@ -758,7 +758,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 47,
-      "passes": false,
+      "passes": true,
       "notes": "Depends on US-002 (empty state) and US-028 (set context menu)"
     },
     {
