@@ -244,6 +244,61 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     setShowCreateForm(true);
   }, []);
 
+  // Extract to alias state
+  const [extractToken, setExtractToken] = useState<{ path: string; $type?: string; $value: any } | null>(null);
+  const [extractMode, setExtractMode] = useState<'new' | 'existing'>('new');
+  const [newPrimitivePath, setNewPrimitivePath] = useState('');
+  const [newPrimitiveSet, setNewPrimitiveSet] = useState('');
+  const [existingAlias, setExistingAlias] = useState('');
+  const [existingAliasSearch, setExistingAliasSearch] = useState('');
+  const [extractError, setExtractError] = useState('');
+
+  const handleOpenExtractToAlias = useCallback((path: string, $type?: string, $value?: any) => {
+    const lastSegment = path.split('.').pop() ?? 'token';
+    const suggested = `primitives.${$type || 'color'}.${lastSegment}`;
+    setNewPrimitivePath(suggested);
+    setNewPrimitiveSet(setName);
+    setExistingAlias('');
+    setExistingAliasSearch('');
+    setExtractMode('new');
+    setExtractError('');
+    setExtractToken({ path, $type, $value });
+  }, [setName]);
+
+  const handleConfirmExtractToAlias = useCallback(async () => {
+    if (!extractToken || !connected) return;
+    setExtractError('');
+
+    if (extractMode === 'new') {
+      if (!newPrimitivePath.trim()) { setExtractError('Enter a path for the new primitive token.'); return; }
+      const createRes = await fetch(`${serverUrl}/api/tokens/${newPrimitiveSet}/${newPrimitivePath.trim()}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ $type: extractToken.$type, $value: extractToken.$value }),
+      });
+      if (!createRes.ok) {
+        const err = await createRes.json().catch(() => ({})) as { error?: string };
+        setExtractError(err.error ?? 'Failed to create primitive token.');
+        return;
+      }
+      await fetch(`${serverUrl}/api/tokens/${setName}/${extractToken.path}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ $value: `{${newPrimitivePath.trim()}}` }),
+      });
+    } else {
+      if (!existingAlias) { setExtractError('Select an existing token to alias.'); return; }
+      await fetch(`${serverUrl}/api/tokens/${setName}/${extractToken.path}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ $value: `{${existingAlias}}` }),
+      });
+    }
+
+    setExtractToken(null);
+    onRefresh();
+  }, [extractToken, extractMode, newPrimitivePath, newPrimitiveSet, existingAlias, connected, serverUrl, setName, onRefresh]);
+
   // Group management
   const [movingGroup, setMovingGroup] = useState<string | null>(null);
   const [moveTargetSet, setMoveTargetSet] = useState('');
@@ -632,6 +687,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onRenameGroup={handleRenameGroup}
                 onRequestMoveGroup={handleRequestMoveGroup}
                 onDuplicateGroup={handleDuplicateGroup}
+                onExtractToAlias={handleOpenExtractToAlias}
                 inspectMode={inspectMode}
                 onHoverToken={handleHoverToken}
               />
@@ -743,6 +799,118 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         />
       )}
 
+      {/* Extract to alias modal */}
+      {extractToken && (() => {
+        const candidateTokens = Object.entries(allTokensFlat)
+          .filter(([path, t]) => path !== extractToken.path && t.$type === extractToken.$type && !isAlias(t.$value))
+          .filter(([path]) => !existingAliasSearch || path.toLowerCase().includes(existingAliasSearch.toLowerCase()))
+          .slice(0, 40);
+        return (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col" style={{ maxHeight: '80vh' }}>
+              <div className="p-4 border-b border-[var(--color-figma-border)]">
+                <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Extract to alias</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 truncate">
+                  <span className="font-mono text-[var(--color-figma-text)]">{extractToken.path}</span>
+                </div>
+              </div>
+
+              {/* Mode tabs */}
+              <div className="flex border-b border-[var(--color-figma-border)]">
+                <button
+                  onClick={() => setExtractMode('new')}
+                  className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${extractMode === 'new' ? 'text-[var(--color-figma-accent)] border-b-2 border-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                >
+                  Create new primitive
+                </button>
+                <button
+                  onClick={() => setExtractMode('existing')}
+                  className={`flex-1 py-1.5 text-[10px] font-medium transition-colors ${extractMode === 'existing' ? 'text-[var(--color-figma-accent)] border-b-2 border-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                >
+                  Use existing token
+                </button>
+              </div>
+
+              <div className="p-4 flex flex-col gap-3 overflow-y-auto flex-1">
+                {extractMode === 'new' ? (
+                  <>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-[var(--color-figma-text-secondary)]">New primitive path</label>
+                      <input
+                        type="text"
+                        value={newPrimitivePath}
+                        onChange={e => { setNewPrimitivePath(e.target.value); setExtractError(''); }}
+                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
+                        autoFocus
+                        placeholder="e.g. primitives.color.blue-500"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Create in set</label>
+                      <select
+                        value={newPrimitiveSet}
+                        onChange={e => setNewPrimitiveSet(e.target.value)}
+                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                      >
+                        {sets.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      value={existingAliasSearch}
+                      onChange={e => setExistingAliasSearch(e.target.value)}
+                      placeholder="Search tokens…"
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+                      autoFocus
+                    />
+                    <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: '160px' }}>
+                      {candidateTokens.length === 0 ? (
+                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-2 text-center">
+                          No matching {extractToken.$type} tokens found
+                        </div>
+                      ) : candidateTokens.map(([path, t]) => (
+                        <button
+                          key={path}
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => { setExistingAlias(path); setExtractError(''); }}
+                          className={`flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${existingAlias === path ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'}`}
+                        >
+                          <ValuePreview type={t.$type} value={t.$value} />
+                          <span className="text-[10px] font-mono flex-1 truncate">{path}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {extractError && (
+                  <div className="text-[10px] text-[var(--color-figma-error)]">{extractError}</div>
+                )}
+              </div>
+
+              <div className="flex gap-2 justify-end p-4 border-t border-[var(--color-figma-border)]">
+                <button
+                  onClick={() => setExtractToken(null)}
+                  className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmExtractToAlias}
+                  className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+                  disabled={extractMode === 'existing' && !existingAlias}
+                >
+                  Extract
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Move group to set modal */}
       {movingGroup && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -806,6 +974,7 @@ function TokenTreeNode({
   onRenameGroup,
   onRequestMoveGroup,
   onDuplicateGroup,
+  onExtractToAlias,
   inspectMode,
   onHoverToken,
 }: {
@@ -829,6 +998,7 @@ function TokenTreeNode({
   onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;
   onRequestMoveGroup?: (groupPath: string) => void;
   onDuplicateGroup?: (groupPath: string) => void;
+  onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
   inspectMode?: boolean;
   onHoverToken?: (path: string) => void;
 }) {
@@ -1075,6 +1245,7 @@ function TokenTreeNode({
             onRenameGroup={onRenameGroup}
             onRequestMoveGroup={onRequestMoveGroup}
             onDuplicateGroup={onDuplicateGroup}
+            onExtractToAlias={onExtractToAlias}
             inspectMode={inspectMode}
             onHoverToken={onHoverToken}
           />
@@ -1246,7 +1417,7 @@ function TokenTreeNode({
       {/* Right-click context menu */}
       {contextMenuPos && (
         <div
-          className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[140px]"
+          className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[160px]"
           style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
           onClick={e => e.stopPropagation()}
         >
@@ -1263,6 +1434,18 @@ function TokenTreeNode({
           >
             Create sibling
           </button>
+          {!isAlias(node.$value) && (
+            <button
+              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setContextMenuPos(null);
+                onExtractToAlias?.(node.path, node.$type, node.$value);
+              }}
+            >
+              Extract to alias
+            </button>
+          )}
         </div>
       )}
     </div>
