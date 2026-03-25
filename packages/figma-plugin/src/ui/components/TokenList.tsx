@@ -99,7 +99,14 @@ interface PromoteRow {
 export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
-  const [newTokenType, setNewTokenType] = useState('color');
+  const [newTokenType, setNewTokenTypeState] = useState(() => {
+    try { return sessionStorage.getItem('tm_last_token_type') || 'color'; } catch { return 'color'; }
+  });
+  const setNewTokenType = (t: string) => {
+    setNewTokenTypeState(t);
+    try { sessionStorage.setItem('tm_last_token_type', t); } catch {}
+  };
+  const [createError, setCreateError] = useState('');
   const [siblingPrefix, setSiblingPrefix] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
@@ -417,9 +424,12 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   }, [connected, serverUrl, setName, onRefresh]);
 
   const handleCreate = async () => {
-    if (!newTokenPath || !connected) return;
+    const trimmedPath = newTokenPath.trim();
+    if (!trimmedPath) { setCreateError('Token path cannot be empty'); return; }
+    if (!connected) return;
+    setCreateError('');
     try {
-      await fetch(`${serverUrl}/api/tokens/${setName}/${newTokenPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${setName}/${trimmedPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -427,12 +437,17 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           $value: getDefaultValue(newTokenType),
         }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setCreateError((data as any).error || `Failed to create token (${res.status})`);
+        return;
+      }
       setShowCreateForm(false);
       setNewTokenPath('');
       setSiblingPrefix(null);
       onRefresh();
     } catch (err) {
-      console.error('Failed to create token:', err);
+      setCreateError('Network error — could not create token');
     }
   };
 
@@ -992,6 +1007,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onSyncGroup={onSyncGroup}
                 onSetGroupScopes={onSetGroupScopes}
                 syncSnapshot={syncSnapshot}
+                onFilterByType={setTypeFilter}
               />
             ))}
           </div>
@@ -1011,11 +1027,12 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               type="text"
               placeholder={siblingPrefix ? `${siblingPrefix}.name` : 'Token path (e.g. color.primary.500)'}
               value={newTokenPath}
-              onChange={e => setNewTokenPath(e.target.value)}
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              onChange={e => { setNewTokenPath(e.target.value); setCreateError(''); }}
+              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               onKeyDown={e => e.key === 'Enter' && handleCreate()}
               autoFocus
             />
+            {createError && <p className="text-[10px] text-[var(--color-figma-error)]">{createError}</p>}
             <select
               value={newTokenType}
               onChange={e => setNewTokenType(e.target.value)}
@@ -1038,13 +1055,13 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             <div className="flex gap-2">
               <button
                 onClick={handleCreate}
-                disabled={!newTokenPath}
+                disabled={!newTokenPath.trim()}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
                 Create
               </button>
               <button
-                onClick={() => { setShowCreateForm(false); setNewTokenPath(''); setSiblingPrefix(null); }}
+                onClick={() => { setShowCreateForm(false); setNewTokenPath(''); setSiblingPrefix(null); setCreateError(''); }}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel
@@ -1456,6 +1473,7 @@ function TokenTreeNode({
   onSyncGroup,
   onSetGroupScopes,
   syncSnapshot,
+  onFilterByType,
 }: {
   node: TokenNode;
   depth: number;
@@ -1485,6 +1503,7 @@ function TokenTreeNode({
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   syncSnapshot?: Record<string, string>;
+  onFilterByType?: (type: string) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -1766,6 +1785,7 @@ function TokenTreeNode({
             onSyncGroup={onSyncGroup}
             onSetGroupScopes={onSetGroupScopes}
             syncSnapshot={syncSnapshot}
+            onFilterByType={onFilterByType}
           />
         ))}
       </div>
@@ -1814,11 +1834,15 @@ function TokenTreeNode({
               className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0 cursor-default"
             />
           )}
-          <span className="text-[11px] text-[var(--color-figma-text)] truncate">{node.name}</span>
+          <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={node.path}>{node.name}</span>
           {node.$type && (
-            <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase token-type-${node.$type}`}>
+            <button
+              onClick={e => { e.stopPropagation(); onFilterByType?.(node.$type!); }}
+              title={`Filter by type: ${node.$type}`}
+              className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase token-type-${node.$type} cursor-pointer hover:opacity-80`}
+            >
               {node.$type}
-            </span>
+            </button>
           )}
           {isAlias(node.$value) && (
             <button

@@ -78,7 +78,13 @@ const TABS: { id: Tab; label: string }[] = [
 type OverflowPanel = 'import' | 'export' | 'settings' | null;
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('tokens');
+  const [activeTab, setActiveTabState] = useState<Tab>(() => {
+    try { return (localStorage.getItem('tm_active_tab') as Tab) || 'tokens'; } catch { return 'tokens'; }
+  });
+  const setActiveTab = (tab: Tab) => {
+    try { localStorage.setItem('tm_active_tab', tab); } catch {}
+    setActiveTabState(tab);
+  };
   const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; set: string } | null>(null);
@@ -285,7 +291,12 @@ export function App() {
 
   const handleDeleteSet = async () => {
     if (!deletingSet || !connected) return;
-    await fetch(`${serverUrl}/api/sets/${deletingSet}`, { method: 'DELETE' });
+    try {
+      await fetch(`${serverUrl}/api/sets/${deletingSet}`, { method: 'DELETE' });
+    } catch {
+      setDeletingSet(null);
+      return;
+    }
     if (activeSet === deletingSet) {
       const remaining = sets.filter(s => s !== deletingSet);
       setActiveSet(remaining[0] ?? '');
@@ -319,6 +330,7 @@ export function App() {
     setGroupScopesApplying(true);
     try {
       const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      if (!res.ok) throw new Error('Failed to fetch tokens');
       const data = await res.json();
       const prefix = groupScopesPath + '.';
       const patchPromises: Promise<any>[] = [];
@@ -358,13 +370,19 @@ export function App() {
     while (sets.includes(newName)) {
       newName = `${setName}-copy-${i++}`;
     }
-    const res = await fetch(`${serverUrl}/api/sets/${setName}`);
-    const data = await res.json();
-    await fetch(`${serverUrl}/api/sets`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName, tokens: data.tokens }),
-    });
+    try {
+      const res = await fetch(`${serverUrl}/api/sets/${setName}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const createRes = await fetch(`${serverUrl}/api/sets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName, tokens: data.tokens }),
+      });
+      if (!createRes.ok) return;
+    } catch {
+      return;
+    }
     refreshTokens();
   };
 
@@ -376,11 +394,15 @@ export function App() {
 
   const handleSaveMetadata = async () => {
     if (!editingMetadataSet || !connected) { setEditingMetadataSet(null); return; }
-    await fetch(`${serverUrl}/api/sets/${editingMetadataSet}/metadata`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: metadataDescription }),
-    });
+    try {
+      await fetch(`${serverUrl}/api/sets/${editingMetadataSet}/metadata`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: metadataDescription }),
+      });
+    } catch {
+      // best-effort; close modal regardless
+    }
     setEditingMetadataSet(null);
     refreshTokens();
   };

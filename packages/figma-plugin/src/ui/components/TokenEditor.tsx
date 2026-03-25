@@ -125,6 +125,14 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
     if (reference) setAliasMode(true);
   }, [reference]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); onBack(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onBack]);
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);

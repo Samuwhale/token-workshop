@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 
 export interface TokenNode {
@@ -14,17 +14,27 @@ export interface TokenNode {
 
 export function useTokens(serverUrl: string, connected: boolean) {
   const [sets, setSets] = useState<string[]>([]);
-  const [activeSet, setActiveSet] = useState<string>('');
+  const [activeSet, setActiveSetState] = useState<string>(() => {
+    try { return localStorage.getItem('tm_active_set') || ''; } catch { return ''; }
+  });
+  const setActiveSet = (s: string) => {
+    try { localStorage.setItem('tm_active_set', s); } catch {}
+    setActiveSetState(s);
+  };
   const [tokens, setTokens] = useState<TokenNode[]>([]);
   const [setTokenCounts, setSetTokenCounts] = useState<Record<string, number>>({});
   const [setDescriptions, setSetDescriptions] = useState<Record<string, string>>({});
+  const fetchGenRef = useRef(0);
 
   const refreshTokens = useCallback(async () => {
     if (!connected) return;
+    const gen = ++fetchGenRef.current;
     try {
       const setsRes = await fetch(`${serverUrl}/api/sets`);
+      if (!setsRes.ok) return;
       const setsData = await setsRes.json();
       const allSets: string[] = setsData.sets || [];
+      if (gen !== fetchGenRef.current) return;
       setSets(allSets);
       setSetDescriptions(setsData.descriptions || {});
 
@@ -33,7 +43,9 @@ export function useTokens(serverUrl: string, connected: boolean) {
         if (!activeSet) setActiveSet(current);
 
         const tokensRes = await fetch(`${serverUrl}/api/tokens/${current}`);
+        if (!tokensRes.ok) return;
         const tokensData = await tokensRes.json();
+        if (gen !== fetchGenRef.current) return;
         setTokens(buildTree(tokensData.tokens || {}));
 
         // Fetch counts for all sets in parallel
@@ -44,11 +56,13 @@ export function useTokens(serverUrl: string, connected: boolean) {
               counts[setName] = countLeafNodes(tokensData.tokens || {});
             } else {
               const res = await fetch(`${serverUrl}/api/tokens/${setName}`);
+              if (!res.ok) return;
               const data = await res.json();
               counts[setName] = countLeafNodes(data.tokens || {});
             }
           })
         );
+        if (gen !== fetchGenRef.current) return;
         setSetTokenCounts(counts);
       }
     } catch (err) {
