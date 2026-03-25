@@ -678,3 +678,14 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `apply-variables` payload: `{ type: 'apply-variables', tokens: [{ path, $type, $value }] }`
   - Token path in controller uses `.` separators (Figma variable names use `/` separators, converted by controller)
   - Promise-based message listener requires useRef to store resolve callback (avoids stale closure)
+
+## 2026-03-25 - US-037 + US-038
+- US-037 (Two-Way Git Variable Sync): Added computeUnifiedDiff() and applyDiffChoices() methods to GitSync service. Exposed GET /api/sync/diff and POST /api/sync/apply-diff routes. SyncPanel now has a "Two-Way Sync" section with Compute Diff button, per-file push/pull/skip radio selectors, and Apply Choices button. Diff is computed by fetching remote (git fetch) then comparing `origin/{branch}..HEAD` vs `HEAD..origin/{branch}` name lists and categorizing into localOnly/remoteOnly/conflicts.
+- US-038 (Partial Sync by Group): Added countTokensInGroup() recursive helper to TokenList.tsx. onSyncGroup prop flows through TokenTreeNode interface and recursive calls. Group context menu shows "Sync this group to Figma" action. In App.tsx, handleSyncGroup fetches all tokens, resolves aliases, filters by group path prefix, and sends sync-bindings message. ConfirmModal shows token count before sync.
+- Files changed: packages/server/src/services/git-sync.ts, packages/server/src/routes/sync.ts, packages/figma-plugin/src/ui/components/SyncPanel.tsx, packages/figma-plugin/src/ui/components/TokenList.tsx, packages/figma-plugin/src/ui/App.tsx
+- **Learnings for future iterations:**
+  - Git diff between local and remote: use `git diff --name-only origin/{branch}..HEAD` and `HEAD..origin/{branch}`; intersection of both = conflicts
+  - Partial sync: filter allTokensFlat by `path === groupPath || path.startsWith(groupPath + '/')` then send sync-bindings with that subset
+  - Prop propagation through recursive components: always check BOTH the top-level caller AND the recursive child call when adding new props
+  - SyncPanel already committed (from previous session) before typecheck/build; only remaining files needed staging
+---
