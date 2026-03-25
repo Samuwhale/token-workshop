@@ -325,4 +325,85 @@ describe('TokenResolver', () => {
       expect(result.setName).toBe('my-set');
     });
   });
+
+  describe('gradient stop alias resolution', () => {
+    it('resolves alias references in gradient stop colors', () => {
+      const tokens: Record<string, Token> = {
+        'colors.blue': makeToken('#0000ff', 'color'),
+        'colors.white': makeToken('#ffffff', 'color'),
+        'gradient.primary': makeToken(
+          [
+            { color: '{colors.blue}', position: 0 },
+            { color: '{colors.white}', position: 1 },
+          ],
+          'gradient',
+        ),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      const result = resolver.resolve('gradient.primary');
+
+      const stops = result.$value as Array<{ color: string; position: number }>;
+      expect(stops[0].color).toBe('#0000ff');
+      expect(stops[1].color).toBe('#ffffff');
+      expect(stops[0].position).toBe(0);
+      expect(stops[1].position).toBe(1);
+    });
+
+    it('resolves chained alias in gradient stop color', () => {
+      const tokens: Record<string, Token> = {
+        'primitives.blue': makeToken('#0000ff', 'color'),
+        'semantic.primary': makeToken('{primitives.blue}', 'color'),
+        'gradient.brand': makeToken(
+          [{ color: '{semantic.primary}', position: 0 }],
+          'gradient',
+        ),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      const result = resolver.resolve('gradient.brand');
+
+      const stops = result.$value as Array<{ color: string; position: number }>;
+      expect(stops[0].color).toBe('#0000ff');
+    });
+
+    it('correctly tracks gradient stop aliases in dependency graph', () => {
+      const tokens: Record<string, Token> = {
+        'colors.base': makeToken('#ff0000', 'color'),
+        'gradient.test': makeToken(
+          [{ color: '{colors.base}', position: 0 }],
+          'gradient',
+        ),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      resolver.resolveAll();
+
+      // Update the base color and verify gradient re-resolves
+      resolver.updateToken('colors.base', makeToken('#00ff00', 'color'));
+      const result = resolver.resolve('gradient.test');
+
+      const stops = result.$value as Array<{ color: string; position: number }>;
+      expect(stops[0].color).toBe('#00ff00');
+    });
+
+    it('leaves non-alias gradient stop colors unchanged', () => {
+      const tokens: Record<string, Token> = {
+        'gradient.static': makeToken(
+          [
+            { color: '#ff0000', position: 0 },
+            { color: '#0000ff', position: 1 },
+          ],
+          'gradient',
+        ),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      const result = resolver.resolve('gradient.static');
+
+      const stops = result.$value as Array<{ color: string; position: number }>;
+      expect(stops[0].color).toBe('#ff0000');
+      expect(stops[1].color).toBe('#0000ff');
+    });
+  });
 });
