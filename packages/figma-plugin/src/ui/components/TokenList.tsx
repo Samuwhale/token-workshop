@@ -1026,6 +1026,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               <option value="typography">Typography</option>
               <option value="shadow">Shadow</option>
               <option value="border">Border</option>
+              <option value="gradient">Gradient</option>
               <option value="number">Number</option>
               <option value="string">String</option>
               <option value="boolean">Boolean</option>
@@ -2265,6 +2266,7 @@ function getDefaultValue(type: string): any {
     case 'typography': return { fontFamily: 'Inter', fontSize: { value: 16, unit: 'px' }, fontWeight: 400, lineHeight: 1.5, letterSpacing: { value: 0, unit: 'px' } };
     case 'shadow': return { color: '#00000040', offsetX: { value: 0, unit: 'px' }, offsetY: { value: 4, unit: 'px' }, blur: { value: 8, unit: 'px' }, spread: { value: 0, unit: 'px' }, type: 'dropShadow' };
     case 'border': return { color: '#000000', width: { value: 1, unit: 'px' }, style: 'solid' };
+    case 'gradient': return { type: 'linear', stops: [{ color: '#000000', position: 0 }, { color: '#ffffff', position: 1 }] };
     case 'number': return 0;
     case 'string': return '';
     case 'boolean': return false;
