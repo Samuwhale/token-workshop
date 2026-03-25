@@ -440,3 +440,15 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `resolveGradientStopAliases` in style-dict.ts uses a flat map approach with one-hop reference following before the main SD build; this handles the most common case (stop → color token)
   - No browser testing tool available — manual browser verification needed
 ---
+
+## 2026-03-25 - US-023b
+- Added `GradientEditor` component to `TokenEditor.tsx` — renders gradient preview strip, per-stop raw/alias toggle, color picker or AliasAutocomplete, position % input, and "+ Add stop" button
+- Updated `resolveFlat` in `TokenList.tsx` — gradient tokens now have each stop's `{alias}` color resolved to a concrete hex value before posting to the plugin worker
+- Added `applyGradientPaintStyle` to `controller.ts` — creates/updates a Figma paint style of type `GRADIENT_LINEAR` with resolved ColorStop[] from the token value
+- Wired gradient into `applyStyles` dispatcher alongside color, typography, shadow
+- Files changed: `TokenEditor.tsx`, `TokenList.tsx`, `controller.ts`
+- **Learnings for future iterations:**
+  - Gradient stop color aliases must be resolved both in the UI (for preview) and before sending to the plugin worker (for Figma sync)
+  - `GradientPaint` in Figma requires `gradientTransform: [[1,0,0],[0,1,0]]` (identity matrix) as a default horizontal transform
+  - `AliasAutocomplete` with `filterType="color"` correctly filters alias suggestions to color tokens
+---
