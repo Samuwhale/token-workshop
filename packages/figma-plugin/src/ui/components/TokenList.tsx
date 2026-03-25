@@ -643,7 +643,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
       setFrIsRegex(false);
       onRefresh();
     } catch (err) {
-      setFrError(String(err));
+      setFrError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setFrBusy(false);
     }

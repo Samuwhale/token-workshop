@@ -129,7 +129,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
       setTokens([]);
       setSource(null);
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setImporting(false);
     }

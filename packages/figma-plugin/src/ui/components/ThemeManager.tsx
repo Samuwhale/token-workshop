@@ -83,7 +83,7 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
       }
       setCoverage(cov);
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -107,7 +107,7 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
       setShowCreate(false);
       fetchThemes();
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     }
   };
 
@@ -123,7 +123,7 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
       await fetch(`${serverUrl}/api/themes/${encodeURIComponent(name)}`, { method: 'DELETE' });
       fetchThemes();
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     }
   };
 
@@ -144,7 +144,7 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
       });
       fetchThemes();
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     }
   };
 

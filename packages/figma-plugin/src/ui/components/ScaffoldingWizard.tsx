@@ -161,7 +161,7 @@ export function ScaffoldingWizard({ serverUrl, activeSet, onClose, onConfirm, on
       setStep('complete');
       onConfirm();
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setBusy(false);
     }

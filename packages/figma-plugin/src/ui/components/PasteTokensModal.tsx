@@ -167,7 +167,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
       }
       onConfirm();
     } catch (err) {
-      setSubmitError(String(err));
+      setSubmitError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setBusy(false);
     }

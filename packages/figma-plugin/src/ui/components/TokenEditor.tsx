@@ -112,7 +112,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           setReference(token.$value);
         }
       } catch (err) {
-        setError(String(err));
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       } finally {
         setLoading(false);
       }
@@ -156,7 +156,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${tokenPath}" saved` } }, '*');
       onBack();
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setSaving(false);
     }

@@ -102,7 +102,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
         setBranches(branchData.branches || []);
       }
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -180,7 +180,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       }
       setVarDirs(dirs);
     } catch (err) {
-      setVarError(String(err));
+      setVarError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setVarLoading(false);
     }
@@ -216,7 +216,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       setVarDirs({});
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Variable sync applied' } }, '*');
     } catch (err) {
-      setVarError(String(err));
+      setVarError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setVarSyncing(false);
     }
@@ -307,7 +307,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       ];
       setReadinessChecks(checks);
     } catch (err) {
-      setReadinessError(String(err));
+      setReadinessError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setReadinessLoading(false);
     }
@@ -329,7 +329,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Git ${action} completed` } }, '*');
       fetchStatus();
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setActionLoading(null);
     }
@@ -350,7 +350,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       for (const f of data.conflicts) choices[f] = 'skip';
       setDiffChoices(choices);
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setDiffLoading(false);
     }
@@ -369,7 +369,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       setDiffView(null);
       fetchStatus();
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setApplyingDiff(false);
     }

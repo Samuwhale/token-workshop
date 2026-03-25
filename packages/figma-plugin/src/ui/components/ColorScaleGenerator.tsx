@@ -180,7 +180,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
       ));
       onConfirm();
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setCreating(false);
     }
   };
