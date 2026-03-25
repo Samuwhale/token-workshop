@@ -212,7 +212,7 @@
         "First icon copies the CSS variable name (e.g. --color-blue-500) to clipboard",
         "Second icon copies the resolved value (e.g. #2563eb) to clipboard",
         "A brief toast/tooltip confirms which value was copied",
-        "Copy icons do not shift layout \u2014 they appear in the existing action area space",
+        "Copy icons do not shift layout — they appear in the existing action area space",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
@@ -225,7 +225,7 @@
       "title": "Jump to Referenced Token from Alias",
       "description": "As a designer, I want to click an alias value to navigate directly to the source token so that I can inspect or edit it without searching manually.",
       "acceptanceCriteria": [
-        "Alias value chips in the token list and token editor show a subtle '\u2192' icon",
+        "Alias value chips in the token list and token editor show a subtle '→' icon",
         "Clicking the chip navigates the token list to the source token (scrolls to and highlights it)",
         "If the source token is in a different set, the plugin switches to that set first, then focuses the token",
         "If the source token cannot be found (broken alias), clicking shows an error tooltip instead of navigating",
@@ -238,7 +238,7 @@
     },
     {
       "id": "US-021",
-      "title": "Easier Token Referencing \u2014 Alias Ergonomics",
+      "title": "Easier Token Referencing — Alias Ergonomics",
       "description": "As a designer, I want alias autocomplete to be available everywhere I type a value so that I can reference tokens without switching to the full editor.",
       "acceptanceCriteria": [
         "Typing '{' in any value field (inline edit, quick-edit popover, full TokenEditor) opens the alias autocomplete dropdown",
@@ -292,7 +292,7 @@
       "description": "As a designer, I want to see when a token is a multi-hop alias so that I can understand how deeply nested my references are.",
       "acceptanceCriteria": [
         "When a token resolves through 3 or more alias hops, the token row shows a 'via N aliases' badge next to the resolved value swatch",
-        "Clicking the badge expands an inline chain view showing each hop: token-A \u2192 token-B \u2192 token-C \u2192 #hex",
+        "Clicking the badge expands an inline chain view showing each hop: token-A → token-B → token-C → #hex",
         "Collapsing the chain restores the normal row layout",
         "Chains with fewer than 3 hops are not badged (to avoid noise)",
         "Typecheck passes",
@@ -304,7 +304,7 @@
     },
     {
       "id": "US-017",
-      "title": "Inspect Mode \u2014 Canvas-Aware Token Highlighting",
+      "title": "Inspect Mode — Canvas-Aware Token Highlighting",
       "description": "As a designer, I want the token list to highlight tokens bound to my selected Figma layer so that I can see the relationship between canvas and token system.",
       "acceptanceCriteria": [
         "When a layer is selected on the Figma canvas, the token list highlights or filters to the tokens bound to that layer",
@@ -368,7 +368,7 @@
     },
     {
       "id": "US-010",
-      "title": "Group Management \u2014 Rename, Move, Duplicate",
+      "title": "Group Management — Rename, Move, Duplicate",
       "description": "As a design system maintainer, I want to rename, move, and duplicate entire token groups so that I can restructure my token hierarchy without tedious one-by-one edits.",
       "acceptanceCriteria": [
         "Right-clicking a group header shows actions: 'Rename group', 'Move group to set...', 'Duplicate group'",
@@ -385,7 +385,7 @@
     {
       "id": "US-024",
       "title": "Extract to Alias Action",
-      "description": "As a design system maintainer, I want to convert a token with a raw value into an alias referencing a new or existing primitive so that I can refactor hardcoded values into the primitive \u2192 semantic hierarchy.",
+      "description": "As a design system maintainer, I want to convert a token with a raw value into an alias referencing a new or existing primitive so that I can refactor hardcoded values into the primitive → semantic hierarchy.",
       "acceptanceCriteria": [
         "Right-clicking a token with a raw (non-alias) value shows an 'Extract to alias' option",
         "The dialog prompts for: a name for the new primitive token (pre-suggested based on value type and existing naming patterns), or an option to pick an existing token to alias instead",
@@ -400,7 +400,7 @@
     },
     {
       "id": "US-023",
-      "title": "Token References in Gradient Values \u2014 Server Resolver",
+      "title": "Token References in Gradient Values — Server Resolver",
       "description": "As a designer, I want to use token aliases as color stops in gradient tokens so that semantic color tokens are respected inside gradients across themes.",
       "acceptanceCriteria": [
         "The server-side resolver (resolver.ts) expands alias references within gradient stop values before output",
@@ -413,7 +413,7 @@
     },
     {
       "id": "US-023b",
-      "title": "Token References in Gradient Values \u2014 Editor UI",
+      "title": "Token References in Gradient Values — Editor UI",
       "description": "As a designer, I want each color stop in the gradient editor to support alias mode so that I can reference semantic tokens in gradients.",
       "acceptanceCriteria": [
         "The gradient editor in TokenEditor allows each color stop to be toggled between raw color and alias mode",
@@ -435,18 +435,18 @@
         "The endpoint renames all matching token paths within the set and updates any alias $value strings that reference the old paths (scan all sets for references, not just the current one)",
         "If any rename would produce a path that already exists, those tokens are excluded from the rename and returned in the skipped list",
         "The Find & Replace panel in the plugin UI accepts a find pattern (plain text or regex) and a replacement string targeting token paths, not values",
-        "Preview shows all tokens whose paths will change, with before/after path displayed \u2014 computed client-side before the request is sent",
+        "Preview shows all tokens whose paths will change, with before/after path displayed — computed client-side before the request is sent",
         "If any rename would produce a duplicate path, it is flagged in the preview and blocked before sending",
         "On confirm, the panel calls the new bulk-rename endpoint and refreshes the token list",
         "Typecheck passes"
       ],
       "priority": 27,
       "passes": true,
-      "notes": "No bulk-rename endpoint currently exists on the server \u2014 it must be built as part of this story. Cross-set alias reference updates require scanning all sets via tokenStore.getSets() + getFlatTokensForSet()."
+      "notes": "No bulk-rename endpoint currently exists on the server — it must be built as part of this story. Cross-set alias reference updates require scanning all sets via tokenStore.getSets() + getFlatTokensForSet()."
     },
     {
       "id": "US-026",
-      "title": "Bulk Alias Creation \u2014 Promote to Semantic",
+      "title": "Bulk Alias Creation — Promote to Semantic",
       "description": "As a design system maintainer, I want to convert multiple tokens with raw values to aliases in one operation so that I can stop doing tedious one-by-one refactoring.",
       "acceptanceCriteria": [
         "Selecting multiple tokens and right-clicking shows 'Convert to aliases'",
@@ -495,7 +495,7 @@
       ],
       "priority": 30,
       "passes": false,
-      "notes": "Use a simple action registry pattern (map of command id \u2192 { label, handler })"
+      "notes": "Use a simple action registry pattern (map of command id → { label, handler })"
     },
     {
       "id": "US-030",
@@ -515,7 +515,7 @@
     },
     {
       "id": "US-031-server",
-      "title": "Token Linting \u2014 Server Config & Rules Engine",
+      "title": "Token Linting — Server Config & Rules Engine",
       "description": "As a design system maintainer, I want configurable lint rules stored in server config so that violations can be evaluated server-side.",
       "acceptanceCriteria": [
         "Lint configuration is stored in the server config alongside collectionMapping under a lintRules key",
@@ -529,7 +529,7 @@
     },
     {
       "id": "US-031-plugin",
-      "title": "Token Linting \u2014 Inline Violation Indicators",
+      "title": "Token Linting — Inline Violation Indicators",
       "description": "As a design system maintainer, I want lint violations to appear inline in the token list so that I catch problems without running a manual validation pass.",
       "acceptanceCriteria": [
         "Violations appear inline in the token list as a warning indicator on the affected token row",
@@ -675,7 +675,7 @@
       "acceptanceCriteria": [
         "Each token row shows a subtle indicator dot (orange for 'changed since last sync', red for 'diverged') when the token's sync state is non-clean",
         "The indicator is always-on for tokens with non-clean sync state (no filter required)",
-        "Hovering the indicator shows a tooltip: 'Changed locally since last sync' or 'Diverged \u2014 both local and Figma have changes'",
+        "Hovering the indicator shows a tooltip: 'Changed locally since last sync' or 'Diverged — both local and Figma have changes'",
         "Tokens with clean sync state show no indicator",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
@@ -767,8 +767,8 @@
       "description": "As a designer, I want to create and edit gradient tokens in the plugin so that I can manage gradient values alongside the rest of my design tokens.",
       "acceptanceCriteria": [
         "TokenEditor renders a GradientEditor component when tokenType === 'gradient'",
-        "GradientEditor displays a list of color stops, each with a color picker + hex input and a position (0\u20131) input",
-        "Stops can be added ('+' button) and removed (\u00d7) \u2014 minimum 2 stops enforced",
+        "GradientEditor displays a list of color stops, each with a color picker + hex input and a position (0–1) input",
+        "Stops can be added ('+' button) and removed (×) — minimum 2 stops enforced",
         "A live gradient preview strip above the stop list shows the linear gradient as stops are edited",
         "The default new gradient has two stops: #000000 at 0 and #ffffff at 1",
         "Stops are stored in DTCG format: array of { color: string, position: number }",
@@ -805,7 +805,7 @@
         "TokenEditor renders a FontFamilyEditor when tokenType === 'fontFamily'",
         "FontFamilyEditor is a text input storing a string (e.g. 'Inter', 'Georgia, serif')",
         "TokenEditor renders a FontWeightEditor when tokenType === 'fontWeight'",
-        "FontWeightEditor is a select with numeric weight options (100\u2013900) plus named labels (Thin, Light, Regular, Medium, SemiBold, Bold, ExtraBold, Black); stored as a number",
+        "FontWeightEditor is a select with numeric weight options (100–900) plus named labels (Thin, Light, Regular, Medium, SemiBold, Bold, ExtraBold, Black); stored as a number",
         "Both types are selectable in the type dropdown when creating a new token",
         "TokenList renders a meaningful inline preview: font name rendered in that font for fontFamily, sample text at the stored weight for fontWeight",
         "Typecheck passes",
@@ -832,17 +832,17 @@
     },
     {
       "id": "US-SWEEP-01",
-      "title": "Bug Sweep \u2014 Error Handling, Edge Cases, and Broken States",
+      "title": "Bug Sweep — Error Handling, Edge Cases, and Broken States",
       "description": "As a developer, I want a systematic pass over the codebase to find and fix real bugs so that the plugin behaves correctly under edge cases and adverse conditions.",
       "acceptanceCriteria": [
-        "Audit all fetch() calls in the plugin UI: every call must handle non-ok responses and network failures with a visible error message \u2014 no silent failures",
+        "Audit all fetch() calls in the plugin UI: every call must handle non-ok responses and network failures with a visible error message — no silent failures",
         "SSE disconnect (useServerConnection) must show a clear 'Disconnected' state and attempt reconnection with exponential backoff; verify the current behavior is correct",
         "Token creation must reject empty or whitespace-only token paths with an inline validation error before sending to the server",
         "Switching sets while a token fetch is in-flight must not cause a stale-update race (cancel or ignore in-flight requests for the previous set)",
-        "The undo slot (US-006) must not restore state if the server rejected the original operation \u2014 verify the current undo implementation checks for this",
-        "Alias resolution in resolveAlias.ts must not infinitely loop on circular references \u2014 verify there is a cycle guard and add one if missing",
+        "The undo slot (US-006) must not restore state if the server rejected the original operation — verify the current undo implementation checks for this",
+        "Alias resolution in resolveAlias.ts must not infinitely loop on circular references — verify there is a cycle guard and add one if missing",
         "Any console.error or unhandled promise rejection visible in the browser during normal use must be fixed",
-        "Read through all source files in all packages looking for logic bugs, unsafe assumptions, missing null checks, incorrect conditionals, and off-by-one errors \u2014 fix anything found regardless of whether it surfaces as a visible error",
+        "Read through all source files in all packages looking for logic bugs, unsafe assumptions, missing null checks, incorrect conditionals, and off-by-one errors — fix anything found regardless of whether it surfaces as a visible error",
         "Typecheck passes"
       ],
       "priority": 52,
@@ -859,21 +859,21 @@
         "Remove any components, hooks, or utility functions that are defined but never imported anywhere",
         "Remove any TODO/FIXME comments that have been resolved; leave ones that represent real known gaps",
         "Remove any commented-out blocks of code (not comments explaining logic, but commented-out implementation)",
-        "Ensure no duplicate type definitions exist across packages \u2014 if a type is defined in core and re-declared locally, use the core one",
+        "Ensure no duplicate type definitions exist across packages — if a type is defined in core and re-declared locally, use the core one",
         "Typecheck passes",
         "No new lint warnings introduced"
       ],
       "priority": 53,
       "passes": false,
-      "notes": "Sweep the entire codebase \u2014 all packages. Do not limit to files changed on this branch."
+      "notes": "Sweep the entire codebase — all packages. Do not limit to files changed on this branch."
     },
     {
       "id": "US-SWEEP-03",
-      "title": "UX Polish \u2014 Feedback, Clarity, and Ease of Learning",
+      "title": "UX Polish — Feedback, Clarity, and Ease of Learning",
       "description": "As a first-time user, I want the plugin to communicate clearly at every step so that I understand what is happening, what went wrong, and what to do next.",
       "acceptanceCriteria": [
         "Every destructive or slow action (delete, sync, push, export) must show a loading state on the triggering button for the full duration of the operation",
-        "Every error message shown to the user must be human-readable \u2014 no raw JavaScript error strings, fetch status codes, or JSON blobs exposed directly",
+        "Every error message shown to the user must be human-readable — no raw JavaScript error strings, fetch status codes, or JSON blobs exposed directly",
         "Empty states: every panel that can be empty (no sets, no tokens, no themes, no git repo, no Figma selection) must show a sentence explaining why it is empty and what the user should do",
         "All icon-only buttons must have a title or aria-label attribute so they are identifiable on hover and accessible to screen readers",
         "Truncated token paths in the list must show the full path in a tooltip (title attribute is sufficient)",
@@ -887,16 +887,16 @@
     },
     {
       "id": "US-SWEEP-04",
-      "title": "Quality of Life \u2014 Persistence, Defaults, and Friction Reduction",
+      "title": "Quality of Life — Persistence, Defaults, and Friction Reduction",
       "description": "As a returning user, I want the plugin to remember my context and reduce repetitive interactions so that daily use feels fast and frictionless.",
       "acceptanceCriteria": [
         "Last active set tab is persisted in localStorage and restored on plugin open",
         "Last active main tab (Tokens / Themes / Sync / Analytics) is persisted in localStorage and restored on plugin open",
-        "Server URL is persisted in localStorage (already done via useServerConnection \u2014 verify it survives plugin close/reopen)",
+        "Server URL is persisted in localStorage (already done via useServerConnection — verify it survives plugin close/reopen)",
         "The token creation form remembers the last-used token type and pre-selects it for the next new token within the same session",
         "Clicking the token type badge in the token list filters to that type (one-click filter shortcut)",
         "Pressing Escape while the TokenEditor is open navigates back to the token list without requiring the Cancel button",
-        "Pressing Enter while focused on the commit message input in SyncPanel submits the commit (already partially implemented \u2014 verify it works and covers the edge case of an empty message)",
+        "Pressing Enter while focused on the commit message input in SyncPanel submits the commit (already partially implemented — verify it works and covers the edge case of an empty message)",
         "Typecheck passes",
         "Verify in browser using dev-browser skill"
       ],
