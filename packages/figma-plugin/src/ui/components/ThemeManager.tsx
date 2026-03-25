@@ -11,6 +11,22 @@ interface ThemeManagerProps {
   connected: boolean;
 }
 
+type CoverageMap = Record<string, { uncovered: string[] }>;
+
+function flattenTokenPaths(group: Record<string, any>, prefix = ''): string[] {
+  const paths: string[] = [];
+  for (const [key, value] of Object.entries(group)) {
+    if (key.startsWith('$')) continue;
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (value && typeof value === 'object' && '$value' in value) {
+      paths.push(path);
+    } else if (value && typeof value === 'object') {
+      paths.push(...flattenTokenPaths(value, path));
+    }
+  }
+  return paths;
+}
+
 export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [sets, setSets] = useState<string[]>([]);
@@ -19,6 +35,8 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
   const [newThemeName, setNewThemeName] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [coverage, setCoverage] = useState<CoverageMap>({});
+  const [expandedCoverage, setExpandedCoverage] = useState<string | null>(null);
 
   const fetchThemes = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
@@ -29,8 +47,41 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
       ]);
       const themesData = await themesRes.json();
       const setsData = await setsRes.json();
-      setThemes(themesData.themes || []);
-      setSets(setsData.sets || []);
+      const allThemes: Theme[] = themesData.themes || [];
+      const allSets: string[] = setsData.sets || [];
+      setThemes(allThemes);
+      setSets(allSets);
+
+      // Compute coverage: fetch flat tokens per set
+      const setTokenPaths: Record<string, Set<string>> = {};
+      await Promise.all(allSets.map(async (s) => {
+        try {
+          const res = await fetch(`${serverUrl}/api/tokens/${s}`);
+          if (res.ok) {
+            const data = await res.json();
+            setTokenPaths[s] = new Set(Object.keys(data.tokens || {}));
+          }
+        } catch { /* ignore */ }
+      }));
+
+      // For each theme, compute uncovered paths
+      const cov: CoverageMap = {};
+      for (const theme of allThemes) {
+        // All paths across any set referenced by this theme
+        const allPaths = new Set<string>();
+        const coveredPaths = new Set<string>();
+        for (const [setName, state] of Object.entries(theme.sets)) {
+          const paths = setTokenPaths[setName];
+          if (!paths) continue;
+          for (const p of paths) allPaths.add(p);
+          if (state === 'enabled' || state === 'source') {
+            for (const p of paths) coveredPaths.add(p);
+          }
+        }
+        const uncovered = [...allPaths].filter(p => !coveredPaths.has(p));
+        cov[theme.name] = { uncovered };
+      }
+      setCoverage(cov);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -133,7 +184,18 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
               <div key={theme.name} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                 {/* Theme header */}
                 <div className="flex items-center justify-between px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
-                  <span className="text-[11px] font-medium">{theme.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-medium">{theme.name}</span>
+                    {coverage[theme.name]?.uncovered.length > 0 && (
+                      <button
+                        onClick={() => setExpandedCoverage(expandedCoverage === theme.name ? null : theme.name)}
+                        className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-yellow-100 text-yellow-800 border border-yellow-300 hover:bg-yellow-200 transition-colors"
+                        title={`${coverage[theme.name].uncovered.length} tokens have no value in active sets`}
+                      >
+                        ⚠ {coverage[theme.name].uncovered.length} uncovered
+                      </button>
+                    )}
+                  </div>
                   <button
                     onClick={() => handleDelete(theme.name)}
                     className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px]"
@@ -169,6 +231,20 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
                     );
                   })}
                 </div>
+
+                {/* Uncovered tokens list */}
+                {expandedCoverage === theme.name && coverage[theme.name]?.uncovered.length > 0 && (
+                  <div className="border-t border-yellow-200 bg-yellow-50 px-3 py-2">
+                    <div className="text-[10px] font-medium text-yellow-800 mb-1.5">
+                      Tokens with no value in active sets ({coverage[theme.name].uncovered.length})
+                    </div>
+                    <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
+                      {coverage[theme.name].uncovered.map(p => (
+                        <div key={p} className="text-[9px] text-yellow-700 font-mono truncate">{p}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
