@@ -13,15 +13,6 @@ import type {
   TokenType,
   TokenValue,
   ResolvedToken,
-  TypographyValue,
-  ShadowValue,
-  BorderValue,
-  TransitionValue,
-  GradientValue,
-  GradientStop,
-  DimensionValue,
-  DurationValue,
-  CubicBezierValue,
 } from './types.js';
 
 // ---------------------------------------------------------------------------

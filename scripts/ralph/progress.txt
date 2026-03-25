@@ -1,0 +1,927 @@
+# Ralph Progress Log
+Started: Tue Mar 24 23:02:19 CET 2026
+---
+
+## 2026-03-24 - US-006
+- Created `useUndo` hook in `hooks/useUndo.ts` — manages single undo slot, 8-second toast timer, Cmd+Z/Ctrl+Z listener
+- Created `UndoToast` component in `components/UndoToast.tsx` — fixed-position snackbar with Undo + dismiss buttons
+- Modified `TokenList.tsx` to capture token snapshots before deletion and call `onPushUndo` after success
+- Modified `App.tsx` to use `useUndo` hook, pass `pushUndo` to `TokenList`, and render `UndoToast` overlay
+- Files changed: `hooks/useUndo.ts` (new), `components/UndoToast.tsx` (new), `components/TokenList.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - Undo snapshot captured from the `tokens: TokenNode[]` tree (not allTokensFlat) to get full data incl. $description
+  - Restore uses POST `/api/tokens/:set/:path` with `{ $type, $value, $description }` — same endpoint as create
+  - `useUndo` hook is in `hooks/useUndo.ts` and exports `UndoSlot` type — import from there for future undo integrations
+  - Undo slot is session-only (in-memory React state) — cleared automatically on plugin close
+  - `UndoToast` uses `fixed bottom-4` positioning — works inside the Figma plugin iframe
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-24 - US-007
+- Added `renameSet(oldName, newName)` to `TokenStore` — writes new `.tokens.json`, updates `$themes.json` set keys, deletes old file, updates in-memory maps
+- Added `POST /api/sets/:name/rename` route with validation (409 if name taken, 404 if not found, 400 if invalid name)
+- Updated `App.tsx` set selector: each tab now has a separate `...` button (opacity-0 → group-hover visible, always visible on active tab), right-click also opens context menu
+- Context menu (fixed position at cursor) shows "Rename" option; clicking opens inline input replacing the tab label
+- Rename input: Enter confirms, Escape/blur cancels; inline error shown for invalid characters
+- Active set is updated to new name immediately after successful rename
+- Files changed: `packages/server/src/services/token-store.ts`, `packages/server/src/routes/sets.ts`, `packages/figma-plugin/src/ui/App.tsx`
+- **Learnings for future iterations:**
+  - Alias format `{path.to.token}` has NO set name — cross-set alias references don't need updating on set rename
+  - Theme set references ARE in `$themes.json` as `{ [setName]: 'enabled'|'disabled'|'source' }` — must update on rename
+  - Named state variable `setMenuOpen` conflicts with React setter `setMenuOpen` from `useState` — always check for name collisions with useState destructuring
+  - `useLayoutEffect` is needed (not `useEffect`) to focus a just-rendered input before paint
+  - The `...` button must use `onMouseDown={e => e.preventDefault()}` on the context menu items to prevent blur firing before click
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-24 - US-002
+- Created `EmptyState.tsx` — shown when tokens.length === 0 and user hasn't clicked "Create first token"
+- EmptyState has 3 CTAs: "Create first token" (enabled when connected), "Generate color scale" (disabled stub), "Paste tokens from JSON" (opens import panel)
+- Added `createFromEmpty` state to App.tsx — set to true when "Create first token" is clicked; resets on active set change using a ref comparison pattern
+- Added `defaultCreateOpen` prop to TokenList — initializes `showCreateForm` state when coming from empty state
+- TokenList renders even when tokens.length === 0 if `createFromEmpty` is true (so create form shows)
+- Files changed: `components/EmptyState.tsx` (new), `components/TokenList.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - Render condition: `tokens.length === 0 && !createFromEmpty` → show EmptyState; `tokens.length > 0 || createFromEmpty` → show TokenList
+  - Ref comparison pattern for detecting prop/state changes without useEffect: `if (prevRef.current !== newVal) { prevRef.current = newVal; doSideEffect(); }`
+  - "Paste from JSON" reuses `openOverflowPanel('import')` — same as overflow menu Import action
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-24 - US-003
+- Added `$description` field support to token sets stored at root of `.tokens.json`
+- Added `getSetDescriptions()` to `TokenStore` — reads `$description` from each set's root
+- Added `updateSetDescription(name, description)` to `TokenStore` — writes/deletes `$description` at root of token file
+- Updated `GET /api/sets` to return `{ sets, descriptions }` — backward-compatible extension
+- Added `PATCH /api/sets/:name/metadata` endpoint accepting `{ description }` body
+- Updated `useTokens` hook to return `setDescriptions: Record<string, string>` alongside sets
+- Set tab button has `title={setDescriptions[set]}` — native browser tooltip on hover
+- "Set Metadata" in context menu now opens an inline modal with textarea for description editing
+- `AnalyticsPanel` "By Set" section shows description text below set name when present
+- Files changed: `packages/server/src/services/token-store.ts`, `packages/server/src/routes/sets.ts`, `packages/figma-plugin/src/ui/hooks/useTokens.ts`, `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx`
+- **Learnings for future iterations:**
+  - `$description` at root of `.tokens.json` is a valid DTCG pattern — `flattenTokens` already skips `$`-prefixed keys
+  - `GET /api/sets` was extended with `descriptions` field — all clients that only destructure `sets` remain unaffected
+  - `saveSet` is private in TokenStore but accessible within the class for `updateSetDescription`
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-009
+- Added `onCreateSibling?: (groupPath: string, tokenType: string) => void` prop to `TokenTreeNode`
+- Added `contextMenuPos` state and close-on-outside-click `useEffect` in `TokenTreeNode`
+- Added `onContextMenu` handler on leaf node rows (skipped for groups and select mode)
+- Context menu renders a fixed-position dropdown with "Create sibling" item
+- `handleOpenCreateSibling` in `TokenList` sets `siblingPrefix` state, pre-fills `newTokenPath` with `groupPath.`, and sets type to match sibling's type
+- Added `siblingPrefix` state to `TokenList` — `null` = normal create, string = sibling mode
+- Create form shows a hint label when in sibling mode ("Creating sibling in <group>")
+- Cancel button clears `siblingPrefix` back to null
+- Passed `onCreateSibling` down through recursive `TokenTreeNode` calls
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - Context menu close-on-outside-click: `useEffect` adds `document.addEventListener('click', close)` when menu is open, removes on cleanup
+  - Use `onMouseDown={e => e.preventDefault()}` on context menu items to prevent blur-before-click race
+  - `onContextMenu` on the row div, call `e.preventDefault()` to suppress native menu, set position from `e.clientX/e.clientY`
+  - Parent group path from leaf: `node.path.includes('.') ? node.path.substring(0, node.path.lastIndexOf('.')) : ''`
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-015
+- Enhanced `ValuePreview` component in `TokenList.tsx` to handle typography, shadow, and gradient token types
+- Typography: shows "Aa" text with the token's fontFamily and fontWeight applied (font size capped at 9px for display)
+- Shadow: renders a 16×16 box with `boxShadow` CSS property derived from the shadow token's offsetX/Y, blur, spread, color fields
+- Gradient: supports both CSS gradient string values and object form with `stops` array; renders a `w-6 h-4` gradient strip
+- Unresolved aliases (strings starting with `{`) degrade gracefully — fall through to the empty `w-4 h-4` placeholder
+- Also corrected PRD entries: US-008 and US-009 were implemented in prior commits but `passes` was never updated in prd.json
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx`, `scripts/ralph/prd.json`
+- **Learnings for future iterations:**
+  - Shadow value structure: `{ color, offsetX, offsetY, blur, spread, type }` where dimension fields are `{ value, unit }` objects
+  - Gradient value structure: object with `stops: Array<{ color, position }>` where position is 0–1 float
+  - `displayValue` is already alias-resolved — check `value.startsWith('{')` to detect still-unresolved/broken aliases before rendering
+  - Typography preview uses the actual fontFamily/fontWeight but caps fontSize at 9px so it fits in the row
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-016
+- Added `chainExpanded` state to `TokenTreeNode` leaf renderer
+- Computed full `resolveResult` (instead of just the value) to get the alias `chain` array
+- `showChainBadge` = `chain.length >= 2` (3+ hops: source → intermediate(s) → final value)
+- "via N" badge shown inline after duplicate annotation; clicking toggles `chainExpanded`
+- When expanded: renders a row below the main token row showing each hop with clickable intermediate paths (calls `onNavigateToAlias`) and final resolved value
+- Wrapped leaf node `return` in an outer `<div ref={nodeRef}>` wrapper to allow appending the chain row below the main row
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - `resolveTokenValue` returns a `chain: string[]` — each element is an alias path traversed in order
+  - `chain.length >= 2` = 3 or more total hops (source alias + N intermediates + final value)
+  - To add content below a token row: wrap the `return` in an outer div, put main row as inner div, append extra content after
+  - `nodeRef` must go on the outer wrapper (not inner row) so `scrollIntoView` scrolls to the visible parent
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-010
+- Added 3 methods to `TokenStore`: `renameGroup`, `moveGroup`, `duplicateGroup`
+- `renameGroup`: collects leaf tokens under group path, recreates at new path, deletes old, updates alias `$value` strings across ALL sets, saves affected files
+- `moveGroup`: moves leaf tokens to target set (aliases don't need updating — alias format is path-only, not set-qualified)
+- `duplicateGroup`: copies group with `-copy` suffix (increments to `-copy-2` etc. if taken)
+- Added 3 POST routes: `/api/tokens/:set/groups/rename`, `/api/tokens/:set/groups/move`, `/api/tokens/:set/groups/duplicate`
+- Added `sets: string[]` prop to `TokenList` and `sets={sets}` in App.tsx TokenList call
+- Added `groupMenuPos`, `renamingGroup`, `renameGroupVal` state to `TokenTreeNode` (used in group branch)
+- Group header now responds to `onContextMenu` → shows 3-item context menu
+- Inline rename input replaces group name text when renaming (focus via `useLayoutEffect`)
+- "Move group to set…" triggers `handleRequestMoveGroup` in TokenList → shows set picker modal
+- New props threaded through recursive `TokenTreeNode` calls: `onRenameGroup`, `onRequestMoveGroup`, `onDuplicateGroup`
+- Files changed: `packages/server/src/services/token-store.ts`, `packages/server/src/routes/tokens.ts`, `packages/figma-plugin/src/ui/components/TokenList.tsx`, `packages/figma-plugin/src/ui/App.tsx`
+- **Learnings for future iterations:**
+  - Group routes use `/api/tokens/:set/groups/rename` — registered BEFORE wildcards so Fastify's find-my-way prefers them
+  - `collectGroupLeafTokens` navigates to group node, then walks recursively with relative paths — relative path is used for duplication/move/rename token reconstruction
+  - Alias update: only need `{oldGroup.` prefix match — exact match to group path as alias is unusual and skipped
+  - Moving a group between sets does NOT require alias updates — aliases use `{path}` (not `{setName.path}`)
+  - `useLayoutEffect` for focus in group rename input: declared at top of `TokenTreeNode` (before `if (node.isGroup)` branch) since React requires unconditional hooks
+  - `onBlur` on the rename input calls `confirmGroupRename` which only renames if value changed — blur-cancel is NOT used here unlike set rename
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-023
+- Added a test in `packages/core/src/__tests__/resolver.test.ts` to verify that the `TokenResolver` already correctly resolves alias references inside gradient stop `color` fields (array of `{color, position}` objects)
+- Added `buildFlatValueMap`, `resolveRef`, and `resolveGradientStopAliases` helpers to `packages/server/src/services/style-dict.ts`
+- `resolveGradientStopAliases` pre-processes the merged DTCG token object before writing to Style Dictionary: walks all `$value` fields that are gradient stop arrays and replaces `{path.to.token}` references in `color` fields with their resolved string values
+- The core `TokenResolver.resolveValue` already handled gradient stop aliases generically (arrays + nested objects recursion) — the new test confirms this
+- Files changed: `packages/core/src/__tests__/resolver.test.ts`, `packages/server/src/services/style-dict.ts`
+- **Learnings for future iterations:**
+  - `TokenResolver.resolveValue` already handles nested alias refs generically (arrays + objects) — no resolver changes needed for gradient stops
+  - `buildFlatValueMap` in style-dict.ts uses `'$value' in val` guard to distinguish token nodes from group nodes
+  - Gradient stop arrays detected by checking `first element has 'color' and 'position' keys`
+  - `resolveRef` follows one extra hop to handle alias-of-alias cases in gradient stop colors
+  - Style Dictionary pre-processing is done by replacing `{path}` refs in stop colors before writing merged JSON — avoids custom SD transforms
+  - No browser testing needed for server-side only story
+---
+
+## 2026-03-25 - US-023b
+- Replaced buggy pre-existing `GradientEditor` (that treated value as a plain array) with new `GradientEditor` + `GradientStopRow` components in `TokenEditor.tsx`
+- `GradientEditor` renders type selector (linear/radial), gradient preview strip, per-stop rows, and Add stop button
+- `GradientStopRow` is a sub-component with own state: alias mode toggle, `AliasAutocomplete` in alias mode, color picker + hex input in raw mode, position stepper (0–100%)
+- Each stop's alias mode is initialized from whether `stop.color` starts with `{`
+- `AliasAutocomplete` is filtered to `filterType="color"` for stop color alias selection
+- Extended `resolveAllAliases` in `resolveAlias.ts` to also resolve `{path}` references inside gradient stop `color` fields — ensures alias-based stop colors are resolved before Figma sync
+- Removed duplicate gradient type case in the type-specific editor section (was already present from prior session)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/shared/resolveAlias.ts`
+- **Learnings for future iterations:**
+  - A partial `GradientEditor` was already present from a prior session — always check if a component already exists before adding a new one
+  - Gradient token `$value` format is `{ stops: [{color, position}], type: 'linear'|'radial' }` — NOT a plain array; old implementation was treating it as array
+  - `GradientStopRow` uses `useState(colorIsAlias)` to init alias mode — this correctly captures initial server-loaded state
+  - `resolveAllAliases` only resolves top-level string aliases by default; gradient stop colors need explicit extra handling since they are nested object fields
+  - No browser testing tool available — manual browser verification needed
+---
+
+## Codebase Patterns
+- Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
+- `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
+- Build command: `cd packages/figma-plugin && npm run build` (uses vite via build.mjs)
+- Typecheck: `npx tsc --noEmit -p packages/figma-plugin/tsconfig.json` — ignore controller.ts errors
+- Tailwind CSS variable pattern: `var(--color-figma-*)` for all colors (accent, text, bg, border, etc.)
+- State management: local React state (no Redux/Zustand), hooks in `ui/hooks/`
+- Server API: REST at `serverUrl` (default `http://localhost:9400`), endpoints: `/api/sets`, `/api/tokens/:set`, `/api/sync/*`, `/api/health`
+- Token tree structure: leaf nodes have `$value`, group nodes are plain objects; keys starting with `$` are metadata
+- `DELETE /api/tokens/:set/:path` deletes the key at that path — works for both leaf tokens AND group paths (deletes entire subtree)
+- Alias format is `{path.to.token}` (curly braces, dot-separated path), detected via `isAlias()` in resolveAlias.ts
+- `ConfirmModal` component at `components/ConfirmModal.tsx` — reusable for all destructive confirmations (danger prop, Escape/outside-click cancel)
+- `useUndo` hook at `hooks/useUndo.ts` — single undo slot with 8s toast; use `pushUndo(UndoSlot)` after any destructive op; exports `UndoSlot` type
+
+---
+
+## 2026-03-24 - US-028
+- Expanded set context menu from single "Rename" item to full action list
+- Added disabled stubs: Generate Semantic Tokens, Generate Dark Theme, Adopt Figma File, Set Metadata (with dividers)
+- Added Duplicate action: fetches current set tokens, creates copy with `-copy` suffix (increments if name taken)
+- Added Delete action: opens ConfirmModal ("Delete set" danger button), calls DELETE /api/sets/:name, switches active set if needed
+- Imported ConfirmModal into App.tsx
+- Added `deletingSet` state, `handleDeleteSet` and `handleDuplicateSet` handlers
+- Files changed: `packages/figma-plugin/src/ui/App.tsx`
+- **Learnings for future iterations:**
+  - `...` button and right-click context menu were already implemented in US-007 — US-028 only needed menu content expansion
+  - Disabled menu items use `opacity-40 cursor-not-allowed` pattern — consistent with rest of plugin UI
+  - Duplicate uses GET `/api/sets/:name` then POST `/api/sets` with tokens — no dedicated duplicate endpoint needed
+  - Delete uses ConfirmModal (danger=true) then DELETE `/api/sets/:name`
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-24 - US-001
+- Implemented Tab Bar Reorganization
+- Changed Tab type from 5 tabs (tokens/themes/sync/export/import) to 4 tabs (tokens/themes/sync/analytics)
+- Active tab now uses `bg-[var(--color-figma-accent)] text-white` background fill instead of underline
+- Added `...` overflow menu (vertical 3-dot button) with Import, Export, Server Settings items
+- Server Settings opens an inline panel for configuring/saving server URL via localStorage
+- Created `AnalyticsPanel.tsx` — shows total tokens, count by type (with bar), count by set (with bar)
+- Added `setTokenCounts: Record<string, number>` to `useTokens` hook — counts all sets in parallel during refresh
+- Set tab badges show token count with muted color that inverts on active set
+- Updated `useServerConnection.ts` to load/save URL from localStorage with `updateServerUrl` callback
+- Files changed: `App.tsx`, `AnalyticsPanel.tsx` (new), `useTokens.ts`, `useServerConnection.ts`
+- **Learnings for future iterations:**
+  - Build succeeds with `cd packages/figma-plugin && npm run build` — always verify build passes
+  - `useTokens` re-runs `refreshTokens` whenever `activeSet` changes (it's in the callback deps) — be careful about infinite loops when adding effects
+  - `prompt()` is still used for "Add Set" name input — US-005 (modal replacement) will address this pattern
+  - `overflowPanel` state in App.tsx controls which non-tab panel is shown (import/export/settings)
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-24 - US-005
+- Created `ConfirmModal.tsx` — reusable modal with title, description, confirm/cancel buttons, Escape key + outside-click cancel, `danger` prop for red confirm button
+- Replaced `confirm()` in `TokenList.tsx` for single-token delete with modal showing token name
+- Added group delete button (hover-visible trash icon on group rows) with modal showing group name and token count
+- Added bulk select mode: "Select" button activates checkboxes on leaf tokens; toolbar shows "Delete N" button; modal shows count + orphan count (tokens that alias selected ones)
+- Replaced `confirm()` in `ThemeManager.tsx` for theme delete with modal
+- Files changed: `ConfirmModal.tsx` (new), `TokenList.tsx`, `ThemeManager.tsx`
+- **Learnings for future iterations:**
+  - `DELETE /api/tokens/:set/:path` works for group paths too — deletes the whole subtree
+  - `ConfirmModal` is now the standard pattern for all destructive ops — use it for US-006 undo, US-007 rename confirmation, etc.
+  - Bulk orphan count: scan `allTokensFlat` for tokens whose `$value` matches `{selectedPath}` pattern
+  - `group/group` Tailwind variant syntax used for nested hover states on group rows
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-24 - US-004
+- No code changes required — fully implemented as part of US-001
+- Active set tab uses `bg-[var(--color-figma-accent)] text-white` filled background
+- `setTokenCounts: Record<string, number>` in `useTokens` hook provides per-set token counts
+- Counts shown as parenthetical span in set tab button; update via `refreshTokens()` after any mutation
+- Typecheck passes (no changes)
+- Files changed: none (existing implementation verified)
+- **Learnings for future iterations:**
+  - US-004 criteria were satisfied as a side-effect of US-001 — check prior stories before implementing to avoid duplication
+---
+
+## 2026-03-25 - US-011
+- Lifted `expanded` state out of `TokenTreeNode` into `TokenList` as `expandedPaths: Set<string>`
+- `expandedPaths` persisted in sessionStorage with key `token-expand:<setName>`
+- Initialization: loads from sessionStorage if set was previously visited; otherwise defaults to depth < 2 expanded (matches prior behavior)
+- Load effect fires on `[setName, tokens]` deps; uses `initializedForSet` ref to avoid re-initializing on unrelated re-renders
+- Save effect fires on `[expandedPaths]` only; uses `setNameRef` ref to avoid saving under wrong set name during transitions
+- Added "Expand all" / "Collapse all" buttons in toolbar above token list (shown when groups exist, hidden in select mode)
+- `TokenTreeNode` now accepts `expandedPaths: Set<string>` and `onToggleExpand: (path: string) => void` props
+- Added helpers: `collectGroupPathsByDepth(nodes, maxDepth)` and `collectAllGroupPaths(nodes)`
+- Files changed: `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - sessionStorage key pattern: `token-expand:<setName>` — use same pattern for other per-set UI state
+  - Use `initializedForSet` ref (not state) to track initialization to avoid circular effects
+  - Use `setNameRef` ref in save effect so setName changes don't cause saves under wrong key
+  - Expand/collapse state is lifted to TokenList level — TokenTreeNode gets `expandedPaths` Set prop
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-012
+- Added `SortOrder` type: `'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage'`
+- `sortOrder` state loaded from/saved to `sessionStorage('token-sort')` (shared across sets)
+- `sortedTokens` computed via `useMemo(() => sortTokenNodes(tokens, sortOrder), [tokens, sortOrder])`
+- Sort applies recursively to tree nodes without mutating original `tokens` prop
+- "By usage" option disabled via HTML `disabled` attribute; label text explains why
+- Toolbar row now always shown when tokens exist (consolidates expand all + sort controls)
+- `sortedTokens` used for tree rendering; `tokens` still used for expand/collapse helpers
+- Files changed: `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - sessionStorage key `'token-sort'` is set-agnostic (same sort applies to all sets)
+  - `useMemo` used for sortedTokens to avoid re-sorting on every render
+  - Disabled `<option>` prevents selection; use label text to explain reason
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-014
+- Added `showDuplicates` state persisted in `sessionStorage('token-duplicates')`
+- `duplicateValuePaths: Set<string>` and `duplicateCounts: Map<string, number>` computed via useMemo from current set's tokens
+  - Key: `JSON.stringify(n.$value)` — works for both string and object values
+  - Only paths with count > 1 are included in `duplicateValuePaths`
+- `filterByDuplicatePaths` helper recursively filters tree nodes by path set
+- "Dup. values" toggle chip in filter bar — accent-styled when active, consistent with type/ref chips
+- `×N` annotation badge on leaf nodes when `duplicateCounts` has entry for their value
+- `duplicateCounts` Map threaded as prop through `TokenTreeNode` to leaf renderer
+- Files changed: `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - Duplicate detection key: `JSON.stringify(n.$value)` — handles both string and object token values
+  - `duplicateCounts` map is always passed (even when filter inactive) so annotations show on duplicates generally
+  - sessionStorage key: `'token-duplicates'` → `'1'` or `'0'`
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-019
+- Added `copiedWhat: 'path' | 'value' | null` state in `TokenTreeNode` leaf renderer
+- Two copy buttons inserted in hover action area between "Apply" and "Edit" buttons
+- `handleCopyPath`: writes `'--' + node.path.replace(/\./g, '-')` to clipboard
+- `handleCopyValue`: writes `displayValue` (alias-resolved) as string or JSON
+- Icon swaps to checkmark (✓) for 1.5s after copy; title shows "Copied!" during that period
+- No layout shift: both buttons are always part of the same `hovered` action group
+- Files changed: `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - CSS var formula: `'--' + node.path.replace(/\./g, '-')`
+  - Use `navigator.clipboard.writeText(...).catch(() => {})` — no try/catch needed
+  - Inline icon swap pattern: `copiedWhat === 'path' ? <checkmark/> : <copy/>` for zero-reflow confirmation
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-020
+- Added `fetchAllTokensFlatWithSets` to `useTokens.ts` — one fetch pass returns both `flat` token map AND `pathToSet: Record<path, setName>`
+- App.tsx: added `pathToSet`, `highlightedToken`, `pendingHighlight` states
+- App.tsx: `handleNavigateToAlias(aliasPath)` — same set → setHighlightedToken; cross-set → setActiveSet + setPendingHighlight
+- Pending highlight applied in `useEffect([tokens, pendingHighlight, activeSet, pathToSet])` when activeSet === pathToSet[pendingHighlight]
+- TokenList: `highlightedToken` prop triggers ancestor expansion (split path → add each prefix to expandedPaths) and auto-clears via `onClearHighlight` after 3s
+- TokenTreeNode: `nodeRef` + `useEffect([isHighlighted])` → `scrollIntoView({ behavior: 'smooth', block: 'center' })`
+- Alias chip replaces `&rarr;` span — now a clickable button showing the alias path with `→` icon
+- Broken alias (not in allTokensFlat): chip turns red with error tooltip for 2s
+- Files changed: `hooks/useTokens.ts`, `App.tsx`, `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - `fetchAllTokensFlatWithSets` is in `useTokens.ts` — use it whenever both flat map and path-to-set mapping are needed
+  - pendingHighlight pattern: set pending state → switch set → apply in effect when tokens load for new set
+  - Alias path extraction: `(node.$value as string).slice(1, -1)` removes `{` and `}`
+  - `scrollIntoView({ behavior: 'smooth', block: 'center' })` works with nearest scrollable ancestor
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-021
+- Created `AliasAutocomplete.tsx` — dropdown with keyboard nav (↑↓ Enter Esc), color swatch, type badge, set name, max 24 results
+- `TokenEditor.tsx`: added `aliasMode` boolean state + "Alias mode" toggle button (accent-styled when active)
+- Clicking "Alias mode" toggle: activates alias input, pre-fills `{`, focuses input, shows autocomplete
+- `{` detection in reference input: `showAutocomplete = v.includes('{') && !v.endsWith('}')`
+- Autocomplete query: `reference.slice(lastIndexOf('{') + 1).replace(/\}.*$/, '')`
+- Autocomplete filters by `tokenType` (current token's type) — shows only matching type suggestions
+- `allTokensFlat` and `pathToSet` passed from App.tsx to TokenEditor as optional props
+- Files changed: `components/AliasAutocomplete.tsx` (new), `components/TokenEditor.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - `AliasAutocomplete` uses `onMouseDown` (not onClick) on items to prevent blur-before-click race
+  - `setTimeout(() => refInputRef.current?.focus(), 0)` needed after state update to focus input
+  - Alias mode toggle clears reference when deactivating (setReference(''))
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-013
+- Added filter bar (search input + type select + ref select) above token list in TokenList
+- Filters persist in sessionStorage: `'token-search'`, `'token-type-filter'`, `'token-ref-filter'` (shared across sets)
+- `displayedTokens = filterTokenNodes(sortedTokens, ...)` — filters applied after sort, non-destructive
+- `filterTokenNodes`: recursively filters tree; groups survive if any descendant matches; leaves matched by search/type/ref
+- Active filter indicator: filter bar tints accent when any filter active; type/ref selects show accent when non-default
+- `availableTypes` extracted from current set tokens via useMemo for type dropdown options
+- Clear button (×) shown when any filter active — clears all three at once
+- Files changed: `components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - sessionStorage keys `'token-search'`, `'token-type-filter'`, `'token-ref-filter'` store filter state
+  - Filter pipeline: tokens → sortTokenNodes → filterTokenNodes → displayedTokens
+  - `filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all'`
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-24 - US-022
+- Added `StepperInput` component in `TokenEditor.tsx` — wraps number input with custom ▲▼ buttons, arrow key (±1/Shift±10) and mouse wheel support
+- Added `UNIT_CONVERSIONS` lookup table for px↔rem↔em conversions (rounds to 3 decimal places)
+- Updated `DimensionEditor` to use `StepperInput` and convert value on unit change via `UNIT_CONVERSIONS`
+- Updated `NumberEditor` to use `StepperInput`
+- Hid native browser number spinners via Tailwind `[appearance:textfield]` and webkit classes
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx`
+- **Learnings for future iterations:**
+  - Use `onMouseDown` + `e.preventDefault()` on stepper buttons so blur doesn't fire before the step action
+  - `onWheel` on input elements needs `e.preventDefault()` to prevent page scroll — works in Figma iframe context
+  - Unit conversion for % requires canvas context (viewport size) — skip converting % to/from other units, pass value as-is
+  - `Math.round(v * 1000) / 1000` pattern avoids floating point artifacts in unit conversions
+---
+
+## 2026-03-25 - US-008
+- Added `activeSet`, `serverUrl`, `onTokenCreated` props to `SelectionInspector`
+- Added helper functions: `getTokenTypeForProperty`, `getTokenValueFromProp`, `formatTokenValuePreview`, `SUGGESTED_NAMES` map
+- For each unbound property row with a current value, a "+" button appears on hover (only when connected and activeSet is set)
+- Clicking "+" opens an inline creation form at the bottom of the inspector with: value preview, editable token path input (pre-filled with suggested name), Create & bind / Cancel buttons
+- On save: POSTs to `/api/tokens/:set/:path`, then sends `apply-to-selection` plugin message to bind the new token to the layer
+- Uses `useLayoutEffect` + `nameInputRef` to auto-focus the name input when form opens
+- Updated `App.tsx` to pass `activeSet`, `serverUrl`, `onTokenCreated={refreshTokens}` to `SelectionInspector`
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx`, `packages/figma-plugin/src/ui/App.tsx`
+- **Learnings for future iterations:**
+  - `SelectionInspector` now accepts `activeSet`, `serverUrl`, `onTokenCreated` — required props, not optional
+  - Token type inference by property: fill/stroke→color, width/height/padding*/cornerRadius/strokeWeight/itemSpacing→dimension, opacity→number, typography→typography, shadow→shadow, visible→boolean
+  - Dimension value format for API: `{ value: number, unit: 'px' }` — matches what DimensionEditor uses
+  - "+" button uses `opacity-0 group-hover:opacity-100` same pattern as other action buttons in the inspector
+  - `apply-to-selection` message is sent with `tokenPath`, `tokenType`, `targetProperty`, `resolvedValue` — binds the newly created token immediately
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-017
+- Added `inspectMode` boolean state and `boundTokenPaths: Set<string>` in `TokenList`
+- `boundTokenPaths` computed via useMemo from `selectedNodes[].bindings` values
+- "Bound tokens" toggle button added to the toolbar row (alongside Expand all / Collapse all)
+- When `inspectMode && selectedNodes.length === 0`: renders a "Select a layer to inspect" empty state prompt
+- When `inspectMode && selectedNodes.length > 0`: filters `displayedTokens` to only show tokens in `boundTokenPaths`
+- On hover in inspect mode, `onHoverToken` callback sends `highlight-layer-by-token` message to controller
+- Controller: added `highlight-layer-by-token` handler that calls `highlightLayersByToken(tokenPath)` — finds all page nodes with that token binding and selects + zooms to them in Figma
+- `inspectMode` and `onHoverToken` props added to `TokenTreeNode`, passed through recursive calls
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts`, `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - `boundTokenPaths` must be declared before `displayedTokens` useMemo — TypeScript reports "used before declaration" if order is wrong
+  - `filterByDuplicatePaths(result, boundTokenPaths)` reuses the existing path-set filter helper for inspect mode filtering
+  - Controller `highlight-layer-by-token` uses `figma.currentPage.findAll` + `getSharedPluginData` — must check ALL_BINDABLE_PROPERTIES and LEGACY_KEY_MAP like syncBindings does
+  - `figma.viewport.scrollAndZoomIntoView(nodes)` zooms canvas to the highlighted layers
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-018
+- Selection Inspector was already docked at bottom of plugin viewport (outside scroll area) — no repositioning needed
+- Added `useEffect([hasSelection])` to auto-expand when a layer is selected and auto-collapse when deselected
+- Changed header label from 'No selection' to 'Select a layer to inspect' for no-selection state
+- Added `useEffect` import (was missing)
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx`
+- **Learnings for future iterations:**
+  - SelectionInspector is rendered outside the `overflow-y-auto` scroll div in App.tsx — it's already a docked bottom panel
+  - `useEffect([hasSelection])` pattern: fire when boolean derived from prop changes; `setCollapsed(!hasSelection)` covers both expand and collapse automatically
+  - When `hasSelection = false`, body is already guarded by `!collapsed && hasSelection` — so auto-collapsing is mainly about making the chevron direction consistent
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-024
+- Added `handleOpenExtractToAlias` and `handleConfirmExtractToAlias` handlers in `TokenList`
+- Added extract-to-alias state: `extractToken`, `extractMode` ('new'|'existing'), `newPrimitivePath`, `newPrimitiveSet`, `existingAlias`, `existingAliasSearch`, `extractError`
+- "Extract to alias" added to right-click context menu on leaf nodes — only shown when `!isAlias(node.$value)`
+- Dialog has two modes: "Create new primitive" (input for path + set selector, pre-suggested as `primitives.<type>.<lastSegment>`) and "Use existing token" (search-filtered list from `allTokensFlat` matching same type, excluding aliases)
+- On confirm (new): POST new token to `newPrimitiveSet`, then PATCH current token `$value` to `{newPrimitivePath}`
+- On confirm (existing): PATCH current token `$value` to `{existingAlias}`
+- Added `onExtractToAlias` prop to `TokenTreeNode` and threaded through recursive calls
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - PATCH `/api/tokens/:set/:path` updates a token's fields (e.g. `{ $value: '{alias.path}' }`) — use this to change value without recreating the token
+  - POST `/api/tokens/:set/:path` returns 409 if the path already exists — check for this error in extract-new-primitive flow
+  - `ValuePreview` component can be used in modals/lists since it only depends on `type` and `value` props
+  - `!isAlias(node.$value)` guards the "Extract to alias" menu item — prevents showing on already-aliased tokens
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-023
+- Confirmed `TokenResolver` in `packages/core/src/resolver.ts` already handles gradient stop color aliases via its recursive `resolveValue` and `collectReferences` methods (arrays of stops are iterated; each stop object's color field is resolved)
+- `resolveGradientStopAliases()` in `packages/server/src/services/style-dict.ts` pre-resolves `{path}` references in gradient stop color fields before passing merged tokens to Style Dictionary
+- Added 4 tests to `packages/core/src/__tests__/resolver.test.ts` verifying: direct alias in stop colors, chained alias resolution, dependency graph invalidation propagation, and static (non-alias) colors pass through unchanged
+- All 71 core tests pass; typecheck passes for all packages
+- Files changed: `packages/core/src/__tests__/resolver.test.ts`
+- **Learnings for future iterations:**
+  - `resolveValue` in TokenResolver is already fully recursive over arrays and objects — gradient stop aliases work without any code changes to resolver.ts itself
+  - `collectReferences` similarly traverses arrays and objects to build the dependency graph — gradient stop color refs are automatically tracked
+  - `resolveGradientStopAliases` in style-dict.ts uses a flat map approach with one-hop reference following before the main SD build; this handles the most common case (stop → color token)
+  - No browser testing tool available — manual browser verification needed
+---
+
+## 2026-03-25 - US-023b
+- Added `GradientEditor` component to `TokenEditor.tsx` — renders gradient preview strip, per-stop raw/alias toggle, color picker or AliasAutocomplete, position % input, and "+ Add stop" button
+- Updated `resolveFlat` in `TokenList.tsx` — gradient tokens now have each stop's `{alias}` color resolved to a concrete hex value before posting to the plugin worker
+- Added `applyGradientPaintStyle` to `controller.ts` — creates/updates a Figma paint style of type `GRADIENT_LINEAR` with resolved ColorStop[] from the token value
+- Wired gradient into `applyStyles` dispatcher alongside color, typography, shadow
+- Files changed: `TokenEditor.tsx`, `TokenList.tsx`, `controller.ts`
+- **Learnings for future iterations:**
+  - Gradient stop color aliases must be resolved both in the UI (for preview) and before sending to the plugin worker (for Figma sync)
+  - `GradientPaint` in Figma requires `gradientTransform: [[1,0,0],[0,1,0]]` (identity matrix) as a default horizontal transform
+  - `AliasAutocomplete` with `filterType="color"` correctly filters alias suggestions to color tokens
+---
+
+## 2026-03-25 - US-025
+- Added `bulkRename(setName, find, replace, isRegex)` to `TokenStore` — applies plain-text or regex rename across all flat token paths in a set, detects collisions (new path already exists and won't be freed), updates cross-set `$value` alias references via new `updateBulkAliasRefs` helper
+- Added `POST /api/tokens/:set/bulk-rename` route to `tokens.ts` — registered before wildcard routes; returns `{ renamed, skipped, aliasesUpdated }`
+- Added Find & Replace modal to `TokenList.tsx` — find/replace inputs with regex toggle, client-side preview showing before/after with conflict warnings, confirm button disabled if all results conflict
+- Files changed: `token-store.ts`, `tokens.ts`, `TokenList.tsx`
+- **Learnings for future iterations:**
+  - Bulk-rename routes MUST be registered before wildcard `/:set/*` routes in Fastify or they'll never match
+  - Collision detection must account for tokens being freed by the rename batch (oldPaths set)
+  - The `updateBulkAliasRefs` helper replaces exact `{path}` alias references; it complements `updateAliasRefs` (which works on group prefixes)
+---
+
+## 2026-03-25 - US-026
+- Added module-level color matching helpers: `hexToRgb`, `rgbToLab`, `colorDeltaE` (CIE76), `valuesEqual` to TokenList.tsx
+- Added `promoteRows`/`promoteBusy` state and `handleOpenPromoteModal`/`handleConfirmPromote` handlers
+- Added 'Convert to aliases' button in select mode toolbar (appears when selectedPaths.size > 0)
+- Added Promote to Semantic modal: shows each selected raw-value token with proposed alias, ΔE badge for colors, per-row accept/reject checkboxes, confirm PATCHes accepted tokens
+- Files changed: `TokenList.tsx`
+- **Learnings for future iterations:**
+  - `flattenTokens(tokens)` gives the current set's tokens; filter by `selectedPaths` to get just selected ones
+  - Color nearest-primitive matching uses delta-E CIE76 in LAB space — implemented inline without external dependencies
+  - The PATCH URL for token paths uses `.split('.').map(encodeURIComponent).join('/')` to safely encode path segments
+---
+
+## 2026-03-25 - US-027
+- Created `PasteTokensModal.tsx` component with two parsing modes: JSON DTCG and `name: value` newline format; inline parse errors with context; preview table with type badge and conflict warning; per-row overwrite checkbox; calls POST for new tokens, PATCH for overwrites
+- Added "Paste tokens ⌘⇧V" item to overflow menu in `App.tsx`
+- Added Cmd/Ctrl+Shift+V keyboard shortcut to open the modal
+- Files changed: `PasteTokensModal.tsx` (new), `App.tsx`
+- **Learnings for future iterations:**
+  - `pathToSet` in App.tsx maps each flat token path to its set name — useful for filtering existingPaths to the active set
+  - Type inference from plain values: `#hex` → color, `Npx/em/rem` → dimension, plain number → number
+  - Keyboard shortcut uses `document.addEventListener('keydown', ...)` in a `useEffect` — remember to clean up on unmount
+---
+
+## 2026-03-25 - US-029
+- Created `CommandPalette.tsx` with fuzzy character-subsequence scoring, keyboard navigation (↑↓ Enter Esc), hover sync with active index, scroll-to-active
+- Added `useMemo`-driven command registry in `App.tsx` covering: create token, paste tokens, import, export, settings, tab navigation, and dynamic "switch to set: X" entries per set
+- Added Cmd+K keyboard shortcut alongside existing Cmd+Shift+V handler
+- Files changed: `CommandPalette.tsx` (new), `App.tsx`
+- **Learnings for future iterations:**
+  - Command registry needs to be a `useMemo` in App.tsx to get access to all state/handlers
+  - Fuzzy scoring gives bonus points for consecutive character matches
+  - Mouse hover should sync `activeIdx` (not just highlight) to keep keyboard/mouse in sync
+---
+
+## 2026-03-25 - US-030
+- Created `ScaffoldingWizard.tsx` — two-step wizard (pick preset → configure prefix + preview → create). 5 presets: spacing (7 tokens), border-radius (7), typography font sizes (8), z-index (8), opacity (4). Creates tokens via POST, ignores 409 conflicts (already exists).
+- Added 'Use preset' button in TokenList bottom bar (alongside + New Token)
+- Added `onUsePreset` prop to EmptyState and wired ScaffoldingWizard in App.tsx for empty state
+- Files changed: `ScaffoldingWizard.tsx` (new), `EmptyState.tsx`, `TokenList.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - POST returns 409 on path collision; wizard ignores these (skip existing tokens)
+  - Empty state now wired to PasteTokensModal (changed from 'import panel') and ScaffoldingWizard
+---
+
+## 2026-03-25 - US-031-server
+- Created `services/lint.ts` — LintConfigStore (reads/writes `$lint.json` in tokenDir), 5 rule implementations: no-raw-color (color tokens with raw values), require-description (missing $description), path-pattern (segments must match regex), max-alias-depth (chain depth > N), no-duplicate-values (same type+value in set)
+- Created `routes/lint.ts` — GET/PUT /api/lint/config, GET /api/lint/config/default, POST /api/tokens/lint
+- Registered lintRoutes in index.ts with tokenDir option
+- Files changed: `services/lint.ts` (new), `routes/lint.ts` (new), `index.ts`
+- **Learnings for future iterations:**
+  - LintRoutes use Fastify options pattern to receive tokenDir without global config
+  - The LintConfigStore persists as `$lint.json` alongside `$themes.json`
+  - max-alias-depth traversal uses a visited Set to avoid infinite loops on circular refs
+---
+
+## 2026-03-25 - US-031-plugin
+- Created `hooks/useLint.ts` — 800ms debounced fetch to POST /api/tokens/lint; clears violations if server offline; returns LintViolation[]
+- Added `lintViolations` prop to TokenList and TokenTreeNode; violations filtered by token path at each node
+- Lint badge shows ✕/⚠/ℹ with severity color; click triggers quick-fix (extract-to-alias or open editor)
+- Created `refreshAll` wrapper in App.tsx (calls both refreshTokens and increments lintKey)
+- Files changed: `useLint.ts` (new), `TokenList.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - Pass lintViolations filtered by child.path to recursive TokenTreeNode children
+  - `refreshAll` pattern: wrap refreshTokens + setLintKey increment to ensure lint re-runs after mutations
+  - Quick-fix routing: `suggestedFix === 'extract-to-alias'` → call onExtractToAliasForLint, `'add-description'` → call onEdit
+---
+
+## 2026-03-25 — US-032: Validate All Tokens Panel
+
+**Implemented**:
+- Server: `POST /api/tokens/validate` endpoint in `packages/server/src/routes/lint.ts`
+- Service: `validateAllTokens(tokenStore)` in `packages/server/src/services/lint.ts` — checks broken aliases, circular refs, missing $type, value/type mismatches, alias chain depth; returns `ValidationIssue[]` with `setName` field
+- Plugin: `AnalyticsPanel.tsx` extended with Validate All button, severity filter chips (all/error/warning/info), scrollable results list with Jump-to-token links
+- App.tsx: added `validateKey` state, "Validate All Tokens" command palette entry, `onNavigateToToken` prop wired to set switch + pending highlight
+
+## 2026-03-25 — US-033: Color Contrast Checker
+
+**Implemented**:
+- WCAG contrast utilities (hexToLuminance, wcagContrast, resolveColorValue) added to TokenEditor.tsx
+- TokenEditor: "Check contrast" collapsible panel for color tokens — pick background color token from dropdown, see contrast ratio, preview swatch, and AA/AAA grid for normal text, large text, and UI components
+- AnalyticsPanel: collapsible color contrast matrix — shows all raw color token pairs with contrast ratios color-coded by AAA/AA/fail; capped at 16 tokens for performance
+- contrastRatio/hexToLuminance added to AnalyticsPanel.tsx as local utils
+
+---
+
+## 2026-03-25 — US-033: Color Contrast Checker
+
+**Implemented**:
+- TokenEditor: collapsible "Check contrast" section for color tokens
+  - Background color token dropdown (all color tokens from allTokensFlat)
+  - Aa swatch preview with foreground/background colors
+  - Contrast ratio display + WCAG pass/fail badges (Normal AA ≥4.5, Large AA ≥3, Normal AAA ≥7, Large AAA ≥4.5, UI ≥3)
+  - WCAG helpers: hexToLuminance, wcagContrast, resolveColorValue (alias-aware)
+- AnalyticsPanel: "Color Contrast Matrix" section
+  - Collects up to 16 raw hex color tokens across all sets during load
+  - Togglable N×N matrix: FG rows × BG columns, each cell shows ratio with AAA/AA/Fail color coding
+  - Legend key below matrix; tooltip on hover shows full token paths
+- Files changed: `TokenEditor.tsx`, `AnalyticsPanel.tsx`
+
+## 2026-03-25 — US-034: Theme Missing-Coverage Warnings
+
+**Implemented**:
+- ThemeManager: during fetchThemes, also fetches flat tokens per set to compute coverage
+- Coverage = all token paths referenced by any set in the theme vs. paths covered by enabled/source sets
+- Each theme card header shows a yellow "⚠ N uncovered" badge when gaps exist
+- Clicking the badge toggles an inline list of uncovered token paths (max-h-32 scrollable, monospace)
+
+---
+
+## 2026-03-25 — US-034: Theme Missing-Coverage Warnings
+
+**Implemented**:
+- ThemeManager: coverage computation on `fetchThemes` load
+  - `flattenTokenPaths` helper: recursively walks token tree to extract dotted paths (skips `$`-prefixed keys)
+  - Fetches flat token paths for all sets in parallel
+  - For each theme: uncovered = paths in disabled sets with no value in any enabled/source set
+  - `coverage` state: `Record<theme.name, { uncovered: string[] }>`
+  - `expandedCoverage` state: controls which theme shows the uncovered list
+- UI: warning badge "⚠ N uncovered" in theme header (yellow, clickable toggle)
+- UI: expandable list of uncovered token paths below set matrix (yellow bg, scrollable, mono font)
+- Files changed: `ThemeManager.tsx`
+- **Learning**: `Object.keys(data.tokens)` only returns top-level keys; must use recursive walk for flat paths
+
+---
+
+## 2026-03-25 — US-035: Duplicate Color Value Detection
+
+**Implemented**:
+- AnalyticsPanel: `allColorTokens` state collects all color tokens from all sets with full alias resolution
+  - `resolveHex` follows alias chains up to 10 hops; normalizes hex to lowercase for consistent comparison
+- `duplicateGroups`: computed from allColorTokens, grouped by hex, filtered to groups >1 token
+- UI: "Duplicate Colors" collapsible section (only shown if groups exist):
+  - Color swatch + hex + count per group
+  - Radio buttons to pick canonical token; others become aliases
+  - "Deduplicate (N → alias)" button: PATCHes non-canonical tokens, then triggers `reloadKey` reload
+- `canonicalPick` state tracks which token is canonical per hex group
+- `reloadKey` state triggers re-fetch of analytics data after deduplication
+- Files changed: `AnalyticsPanel.tsx`
+
+## 2026-03-25 — US-035: Duplicate Color Value Detection
+
+**Implemented**:
+- AnalyticsPanel: during load, builds a unified flat map across all sets, resolves alias chains to hex values for all color tokens
+- Computes duplicate groups: tokens sharing the same resolved hex value
+- Collapsible "Duplicate Colors" section shows groups with color swatch, hex, token paths + set names
+- Radio buttons let user pick the canonical primitive per group
+- "Deduplicate" button patches all non-canonical tokens to use `{canonical.path}` alias via PATCH /api/tokens/:set/:path
+- After deduplication, triggers reload via reloadKey increment
+
+## 2026-03-25 — US-036: Color Scale Lightness Curve Inspector
+
+**Implemented**:
+- Added hexToLstar() (CIE L*) utility to AnalyticsPanel
+- Detects color scales: color tokens with numeric last segment under same parent (≥3 steps)
+- "Color Scale Lightness" collapsible section shows SVG sparkline per detected scale
+- Each step rendered as circle with actual hex fill; anomalous steps (gap > 2× average) shown in red
+- Warning label shown when uneven lightness steps are detected
+- Non-interactive (display only) per acceptance criteria
+
+---
+
+## 2026-03-25 — US-036: Color Scale Lightness Curve Inspector
+
+**Implemented**:
+- `ColorScaleGenerator` modal: prefix input, base color picker, 5/7/9 step selector
+- Scale algorithm: CIELAB (L*, a*, b*) math with linear L* from 95→8, chroma bell-curve via `4.5*t*(1-t)*1.5` factor
+- `hexToLab` + `labToHex` using standard D65 illuminant matrices
+- Swatch preview strip + sparkline SVG below
+- Sparkline: `Sparkline` component; orange dots where jump > 2 × median (disproportionate)
+- `EmptyState`: "Generate color scale" button enabled with `onGenerateColorScale` prop
+- `App.tsx`: `showColorScaleGen` state, modal rendering, wired to EmptyState
+- Files changed: `ColorScaleGenerator.tsx` (new), `EmptyState.tsx`, `App.tsx`
+- **Learning**: SVG circle title must be a child `<title>` element in React, not a prop
+
+---
+
+## 2026-03-25 — US-037: Two-Way Variable Sync with Unified Diff
+
+**Implemented**:
+- Added `VarDiffRow` interface and `flattenForVarDiff()` helper to SyncPanel.tsx (recursive flatten of nested token tree including $type)
+- Added `activeSet: string` prop to SyncPanel; updated App.tsx to pass it
+- Added `varReadResolveRef` useRef to capture async `variables-read` message from controller
+- Added useEffect message listener for `variables-read` from controller (promise-based with 10s timeout)
+- `computeVarDiff()`: sends `read-variables` to controller, awaits response, fetches local tokens from `/api/tokens/:set`, computes diff into VarDiffRow[]
+  - Categories: local-only (in local, not in Figma), figma-only (in Figma, not in local), conflict (both but values differ)
+  - Defaults: local-only → push, figma-only → pull, conflicts → push
+- `applyVarDiff()`: push rows → `apply-variables` controller message; pull rows → PUT `/api/tokens/:set/:path`
+- Variable Sync UI section added above existing Two-Way Sync (git) section
+  - "Compute Diff" button, diff rows with direction selects (Push ↑ / Pull ↓ / Skip), "Apply Choices" button
+  - Shows token count, errors, and in-sync state
+- Files changed: `SyncPanel.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - Controller message pattern: send with `parent.postMessage({ pluginMessage: ... }, '*')`, receive via `window.addEventListener('message', ...)`
+  - `variables-read` payload: `{ type: 'variables-read', tokens: [{ path, $type, $value, collection }] }`
+  - `apply-variables` payload: `{ type: 'apply-variables', tokens: [{ path, $type, $value }] }`
+  - Token path in controller uses `.` separators (Figma variable names use `/` separators, converted by controller)
+  - Promise-based message listener requires useRef to store resolve callback (avoids stale closure)
+
+## 2026-03-25 - US-037 + US-038
+- US-037 (Two-Way Git Variable Sync): Added computeUnifiedDiff() and applyDiffChoices() methods to GitSync service. Exposed GET /api/sync/diff and POST /api/sync/apply-diff routes. SyncPanel now has a "Two-Way Sync" section with Compute Diff button, per-file push/pull/skip radio selectors, and Apply Choices button. Diff is computed by fetching remote (git fetch) then comparing `origin/{branch}..HEAD` vs `HEAD..origin/{branch}` name lists and categorizing into localOnly/remoteOnly/conflicts.
+- US-038 (Partial Sync by Group): Added countTokensInGroup() recursive helper to TokenList.tsx. onSyncGroup prop flows through TokenTreeNode interface and recursive calls. Group context menu shows "Sync this group to Figma" action. In App.tsx, handleSyncGroup fetches all tokens, resolves aliases, filters by group path prefix, and sends sync-bindings message. ConfirmModal shows token count before sync.
+- Files changed: packages/server/src/services/git-sync.ts, packages/server/src/routes/sync.ts, packages/figma-plugin/src/ui/components/SyncPanel.tsx, packages/figma-plugin/src/ui/components/TokenList.tsx, packages/figma-plugin/src/ui/App.tsx
+- **Learnings for future iterations:**
+  - Git diff between local and remote: use `git diff --name-only origin/{branch}..HEAD` and `HEAD..origin/{branch}`; intersection of both = conflicts
+  - Partial sync: filter allTokensFlat by `path === groupPath || path.startsWith(groupPath + '/')` then send sync-bindings with that subset
+  - Prop propagation through recursive components: always check BOTH the top-level caller AND the recursive child call when adding new props
+  - SyncPanel already committed (from previous session) before typecheck/build; only remaining files needed staging
+---
+
+---
+
+## 2026-03-25 — US-038: Partial Sync by Group
+
+**Implemented**:
+- Right-click context menu "Sync this group to Figma" was already in TokenList.tsx (from US-010)
+- ConfirmModal with token count was already in App.tsx
+- Fixed: `handleSyncGroup` now sends `apply-variables` (Figma Variables API) instead of `sync-bindings`
+- Fixed: group prefix matching uses `.` separator (was incorrectly using `/`)
+- Group tokens are resolved via `resolveAllAliases` before sending (actual values, not alias refs)
+- Files changed: `App.tsx` (handleSyncGroup only)
+- **Learnings for future iterations:**
+  - Token paths use `.` as separator (e.g. `color.blue.500`), NOT `/` — was a bug in original code
+  - Group prefix filter: `path === groupPath || path.startsWith(groupPath + '.')`
+  - `apply-variables` format: `[{ path, $type, $value }]` (different from `sync-bindings` which uses `tokenMap` record)
+  - Group sync context menu only appears when `onSyncGroup` prop is passed to TokenList
+
+---
+
+## 2026-03-25 — US-039: Variable Scope Management UI
+
+**Implemented**:
+- Added `FIGMA_SCOPES` constant in TokenEditor.tsx mapping token types to available scopes
+  - color → FILL_COLOR, STROKE_COLOR, TEXT_FILL, EFFECT_COLOR
+  - number/dimension → WIDTH_HEIGHT, GAP, CORNER_RADIUS, OPACITY, FONT_SIZE, LINE_HEIGHT, LETTER_SPACING, STROKE_FLOAT
+  - string → FONT_FAMILY, FONT_STYLE, TEXT_CONTENT
+  - boolean → SHOW_HIDE
+- TokenEditor: `$scopes` state, loaded from token, saved in PATCH body
+- TokenEditor: collapsible "Figma variable scopes" section with checkboxes (only for supported types)
+- TokenList/TokenTreeNode: `onSetGroupScopes?: (groupPath: string) => void` prop + "Set scopes for group…" menu item
+- App.tsx: `groupScopesPath`, `groupScopesSelected`, `groupScopesApplying` state
+- App.tsx: `handleApplyGroupScopes` — walks token tree, PATCHes all tokens in group with `$scopes`
+- App.tsx: Group scope modal (bottom sheet) with 10 common scopes + Apply/Cancel
+- controller.ts: `applyVariables` now reads `$scopes` (and `$extensions['com.figma.scopes']`) and sets `variable.scopes`
+- Files changed: TokenEditor.tsx, TokenList.tsx, App.tsx, controller.ts
+- **Learnings for future iterations:**
+  - Figma `variable.scopes` is writable as `(variable as any).scopes = [...]` in controller (typed as readonly in Figma API typedefs)
+  - DTCG standard for tool-specific metadata is `$extensions['com.figma.scopes']` — controller checks this first, then `$scopes` as fallback
+  - `$scopes` stored as an array of strings (e.g. `['FILL_COLOR', 'TEXT_FILL']`)
+  - Empty `$scopes` means "all scopes" in Figma
+
+---
+
+## 2026-03-25 — US-040: Sync Status Per-Row Indicator
+
+**Implemented**:
+- Added `syncSnapshot?: Record<string, string>` to TokenListProps and TokenTreeNode props
+- `syncSnapshot` maps token path → `JSON.stringify($value)` of last-applied value
+- In App.tsx: `syncSnapshot` state + useEffect listening for `variables-applied` controller message
+  - On `variables-applied`: snapshots all `allTokensFlat` values (JSON.stringify per path)
+- Per-row: `syncChanged = !node.isGroup && syncSnapshot && path in syncSnapshot && snapshot[path] !== JSON.stringify(node.$value)`
+- Orange dot `w-1.5 h-1.5 rounded-full bg-orange-500` shown before token name with title="Changed locally since last sync"
+- Dot only shown after at least one `apply-variables` (snapshot non-empty) — clean tokens show nothing
+- Skipped "diverged" (red) state: requires async Figma read, not worth the complexity
+- Files changed: TokenList.tsx, App.tsx
+- **Learnings for future iterations:**
+  - `variables-applied` message from controller has `{ type: 'variables-applied', count: N }` — no token paths included
+  - Snapshot must be captured from `allTokensFlat` at time of `variables-applied` (not from controller message)
+  - `JSON.stringify($value)` handles all value types (strings, numbers, objects) correctly for comparison
+  - syncSnapshot is undefined until first apply, so dots never show on fresh plugin open (correct behavior)
+
+---
+
+## 2026-03-25 — US-041: Publish Readiness Checklist
+
+**Implemented**:
+- Updated `readFigmaVariables` in controller.ts to include `$description` and `$scopes` in variables-read tokens
+- Added `deleteOrphanVariables(knownPaths)` controller function + `delete-orphan-variables` message handler
+  - Removes variables from TokenManager collection not in the known paths set
+  - Sends `orphans-deleted: { count }` response
+- Added `ReadinessCheck` interface to SyncPanel.tsx
+- Added `readinessChecks`, `readinessLoading`, `readinessError`, `orphansDeleting` state
+- Added `orphansResolveRef` for promise-based `orphans-deleted` listener
+- `runReadinessChecks()`:
+  1. Reads Figma variables via `read-variables` (reuses varReadResolveRef)
+  2. Fetches local tokens from server
+  3. Computes 4 checks: missing vars, missing scopes, missing descriptions, orphan vars
+  4. "Fix" button for missing vars (apply-variables) and orphans (delete-orphan-variables)
+- Publish Readiness section in SyncPanel between Variable Sync and Two-Way Sync sections
+- Files changed: SyncPanel.tsx, controller.ts
+- **Learnings for future iterations:**
+  - `variables-read` now includes `$description` and `$scopes` per token
+  - Scopes check: "ALL_SCOPES" or empty array = no specific scope set
+  - `variable.remove()` deletes a Figma variable (no special async needed)
+  - `runReadinessChecks` references itself recursively (after orphan delete) — works because it's a useCallback
+
+## 2026-03-25 - US-041
+- Publish Readiness Checklist panel added to SyncPanel.tsx in the Sync tab
+- ReadinessCheck interface with id/label/status/count/fixLabel/onFix fields
+- runReadinessChecks() sends read-variables to controller, fetches local tokens, runs 4 checks: all tokens have Figma variables, scopes set, descriptions populated, no orphan variables
+- Fix actions: push missing tokens via apply-variables, delete orphans via delete-orphan-variables
+- controller.ts: delete-orphan-variables case walks all collections, deletes variables not in knownPaths, sends orphans-deleted count
+- SyncPanel: orphansResolveRef pattern for promise-based controller response
+- Files changed: packages/figma-plugin/src/ui/components/SyncPanel.tsx, packages/figma-plugin/src/plugin/controller.ts
+- **Learnings for future iterations:**
+  - Use varReadResolveRef pattern for promise-based Figma plugin messages (timeout + resolve ref)
+  - ReadinessCheck interface allows flexible fix actions as callbacks
+  - export-all-variables returns full variable info including scopes/descriptions; read-variables only returns basic path/$type/$value
+---
+
+---
+
+## 2026-03-25 — US-042: Figma Component Token Coverage Map
+
+**Implemented**:
+- Added `scan-component-coverage` and `select-node` message handlers to controller.ts
+- `scanComponentCoverage()`: uses `figma.currentPage.findAllWithCriteria({ types: ['COMPONENT'] })`
+  - Checks `boundVariables` for each node: fills, strokes, effects, opacity, fontSize, fontName, etc.
+  - A node is "tokenized" if it has bound variables AND no hardcoded prop count
+  - Returns: totalComponents, tokenizedComponents, untokenized[] with { id, name, hardcodedCount }
+  - Capped at 100 untokenized entries for performance
+- `selectNode(nodeId)`: uses `figma.getNodeByIdAsync`, sets `currentPage.selection` + `scrollAndZoomIntoView`
+- AnalyticsPanel.tsx: added `coverageResult`, `coverageLoading`, `showCoverage`, `coverageResolveRef` state
+- Added message listener for `component-coverage-result` 
+- `runCoverageScan()`: sends `scan-component-coverage`, 30s timeout, resolves via coverageResolveRef
+- Component Coverage UI section: stats bar (total/tokenized/untokenized/%), collapsible untokenized list
+  - Each untokenized component is a button that sends `select-node` to controller
+- Files changed: AnalyticsPanel.tsx, controller.ts
+- **Learnings for future iterations:**
+  - `figma.currentPage.findAllWithCriteria({ types: ['COMPONENT'] })` is synchronous (no await)
+  - `figma.getNodeByIdAsync(id)` is async — needed for `select-node`
+  - `node.boundVariables` is a Record where keys = property names, values = variable bindings
+  - A variable binding has `{ id: string }` — checking `'id' in v` detects it
+
+---
+
+## 2026-03-25 — US-043: Token Documentation / Style Guide Generation
+
+**Implemented**:
+- Created `packages/server/src/routes/docs.ts` with two routes:
+  - `GET /docs` — index page listing all sets with token counts
+  - `GET /docs/:set` — style guide for a specific set
+- HTML generated with CSS custom properties (var(--accent) etc.) for readability
+- Color tokens: palette swatches (80px height) with automatic text color selection based on contrast
+  - Shows WCAG AA/AAA compliance labels for on-white contrast
+- Typography tokens: "The quick brown fox" specimen styled with actual CSS from token value
+- Spacing/dimension/number tokens: visual boxes scaled to token value (capped at 200px)
+- Other tokens: simple table with path/value/description columns
+- No authentication (publicly accessible via direct URL)
+- Registered with `await fastify.register(docsRoutes)` (no prefix — /docs is not under /api)
+- Files changed: `routes/docs.ts` (new), `index.ts`
+- **Learnings for future iterations:**
+  - `tokenStore.getSets()` is async (returns Promise<string[]>), not sync
+  - `tokenStore.getFlatTokensForSet(name)` returns `Record<string, Token>` — already flat
+  - `docsRoutes` registered without prefix (unlike API routes which use `/api`)
+  - Fastify returns strings directly from handlers — just set Content-Type header and return HTML string
+  - Token $description on getFlatTokensForSet result needs `(t as any).$description` cast
+## US-044 — Filter Bar Always-On Type Filter Chip
+- Completed: 2026-03-25
+- Type filter always visible; ref/dup filters hidden until active via ⋯ menu
+- overflow-hidden on bar prevents layout breakage
+
+## US-045 — Semantic Generation Discoverability
+- Completed: 2026-03-25
+- Wizard 'complete' step added with Generate Semantic Tokens + Generate Dark Theme CTAs
+- EmptyState shows generation buttons when a primitives-named set exists
+- Handlers show a coming-soon alert pointing to context menu
+
+## US-046 — Gradient Token Editor
+- Completed: 2026-03-25
+- Added 'gradient' option to type dropdown in TokenList create form
+- getDefaultValue returns {type:'linear', stops:[{color:'#000000',position:0},{color:'#ffffff',position:1}]}
+- GradientEditor already self-contained in TokenEditor.tsx; TokenList already renders preview strips
+
+## US-047 — Duration Token Editor
+- Completed: 2026-03-25
+- DurationEditor in TokenEditor.tsx: number input + ms/s unit select + preset chips (100/150/200/300/500ms)
+- Stored as {value, unit} DTCG object
+- 'duration' added to type dropdown and getDefaultValue in TokenList
+
+## US-049 — Standalone FontFamily & FontWeight Token Editors
+- Completed: 2026-03-25
+- FontFamilyEditor: text input storing string
+- FontWeightEditor: select 100-900 with named labels
+- TokenList previews: font name rendered in own font, 'Aa' at stored weight
+- Both types added to dropdown and getDefaultValue
+
+## US-050 — StrokeStyle Token Editor
+- Completed: 2026-03-25
+- StrokeStyleEditor: select with 8 CSS stroke style keywords, stored as string
+- Added to dropdown and getDefaultValue
+
+
+## 2026-03-25 - US-SWEEP-01
+- Bug sweep: error handling, edge cases, and broken states
+- Files changed: `TokenList.tsx`, `App.tsx`, `useTokens.ts`, `TokenEditor.tsx` (linter added Escape key handler)
+- **Fixes applied:**
+  - Token create form: whitespace-only path validation with inline error display; error shown in red with border change; `res.ok` checked before closing form
+  - `useTokens.refreshTokens`: generation counter (`fetchGenRef`) prevents stale-state race when user switches sets mid-fetch; `res.ok` checks before `.json()` calls
+  - `handleDeleteSet`: wrapped in try/catch; dismisses modal even on network error
+  - `handleDuplicateSet`: checks `res.ok` before proceeding; wrapped in try/catch
+  - `handleSaveMetadata`: wrapped in try/catch; closes modal regardless
+  - `handleApplyGroupScopes`: added `res.ok` check before parsing JSON
+- **Verified OK (no changes needed):**
+  - `resolveAlias.ts`: already has cycle guard (`visited` Set) and `maxDepth=10` limit
+  - `useServerConnection`: uses polling (not SSE); already reflects disconnected state when health check fails
+  - undo slot: `pushUndo` is only called after successful delete operations (correct)
+- **Learnings for future iterations:**
+  - The `useTokens` hook uses a generation counter pattern (not AbortController) for race prevention
+  - Token create form error state: use `createError` state + border color class change
+  - Server fetch responses: always check `res.ok` before calling `.json()`
+## US-SWEEP-04 — Quality of Life
+- Completed: 2026-03-25
+- activeTab persisted in localStorage (tm_active_tab)
+- activeSet persisted in localStorage (tm_active_set)
+- Server URL already persisted in useServerConnection
+- newTokenType remembered in sessionStorage (tm_last_token_type)
+- Type badge in token list clickable to filter by that type
+- Escape key in TokenEditor navigates back
+- Enter in SyncPanel commit already implemented
+
+
+## 2026-03-25 - US-SWEEP-02
+- Dead code and cleanup pass
+- Files changed: all UI component files (React import removal), `ColorScaleGenerator.tsx`, `docs.ts`
+- **Changes made:**
+  - Removed `import React` from all component files (tsconfig uses `react-jsx` transform; React not needed)
+  - Added `Fragment` to named imports in `TokenList.tsx` (for `<Fragment key={...}>` with key prop)
+  - Fixed `[bL, bA, bB]` → `[, bA, bB]` in ColorScaleGenerator (bL unused)
+  - Removed unused `flattenTokens()` function from docs.ts (route uses `getFlatTokensForSet` instead)
+  - Removed unused `allSets` parameter from `renderSetPage()` in docs.ts
+  - No TODO/FIXME or commented-out code blocks found
+- **Learnings for future iterations:**
+  - `react-jsx` transform = don't import React for JSX; only import named hooks/utilities
+  - Use `[, value]` destructuring to silence unused-first-element errors
+  - `noUnusedLocals` + `noUnusedParameters` flags work well as one-off checks even when not in tsconfig
+## US-SWEEP-03 — UX Polish
+- Completed: 2026-03-25
+- TokenEditor sends notify toast after successful save
+- TokenEditor returns human-readable API error from JSON body
+- ConfirmModal shows busy/spinner state during async onConfirm
+- icon-only close button in Group Scopes modal gets title='Close'
+- Truncated token path tooltip (title={node.path}) added earlier
+- Loading states on destructive actions already in SyncPanel, TokenList
+

@@ -1,10 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify';
 
 export const setRoutes: FastifyPluginAsync = async (fastify) => {
-  // GET /api/sets — list all sets
+  // GET /api/sets — list all sets (with optional descriptions)
   fastify.get('/sets', async () => {
     const sets = await fastify.tokenStore.getSets();
-    return { sets };
+    const descriptions = fastify.tokenStore.getSetDescriptions();
+    return { sets, descriptions };
   });
 
   // GET /api/sets/:name — get a set
@@ -43,6 +44,43 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       reply.status(201).send({ name: set.name, tokens: set.tokens });
     } catch (err) {
       reply.status(500).send({ error: 'Failed to create set', detail: String(err) });
+    }
+  });
+
+  // PATCH /api/sets/:name/metadata — update set description
+  fastify.patch<{ Params: { name: string }; Body: { description?: string } }>('/sets/:name/metadata', async (request, reply) => {
+    const { name } = request.params;
+    const { description = '' } = request.body || {};
+    try {
+      await fastify.tokenStore.updateSetDescription(name, description);
+      return { updated: true, name, description };
+    } catch (err: any) {
+      const msg: string = err?.message ?? String(err);
+      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+      reply.status(500).send({ error: 'Failed to update metadata', detail: msg });
+    }
+  });
+
+  // POST /api/sets/:name/rename — rename a set (atomic: file + themes + in-memory)
+  fastify.post<{ Params: { name: string }; Body: { newName: string } }>('/sets/:name/rename', async (request, reply) => {
+    const { name } = request.params;
+    const { newName } = request.body || {};
+
+    if (!newName) {
+      return reply.status(400).send({ error: 'newName is required' });
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
+      return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, and underscores' });
+    }
+
+    try {
+      await fastify.tokenStore.renameSet(name, newName);
+      return { renamed: true, oldName: name, newName };
+    } catch (err: any) {
+      const msg: string = err?.message ?? String(err);
+      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+      if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
+      reply.status(500).send({ error: 'Failed to rename set', detail: msg });
     }
   });
 

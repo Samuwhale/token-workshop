@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 
 export const sseRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/events', async (request, reply) => {
+    reply.hijack();
     reply.raw.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -23,6 +24,7 @@ export const sseRoutes: FastifyPluginAsync = async (fastify) => {
     request.raw.on('close', () => {
       unsubscribe();
       clearInterval(keepAlive);
+      reply.raw.end();
     });
   });
 };

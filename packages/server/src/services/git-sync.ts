@@ -80,4 +80,58 @@ export class GitSync {
       return null;
     }
   }
+
+  async fetch(): Promise<void> {
+    await this.git.fetch();
+  }
+
+  /** Compare local HEAD vs remote tracking branch.
+   *  Returns categorized file lists. Requires remote to be configured. */
+  async computeUnifiedDiff(): Promise<{
+    localOnly: string[];
+    remoteOnly: string[];
+    conflicts: string[];
+  }> {
+    try {
+      await this.git.fetch();
+      const branch = await this.getCurrentBranch();
+      const remote = `origin/${branch}`;
+
+      const [localRaw, remoteRaw] = await Promise.all([
+        this.git.raw(['diff', '--name-only', `${remote}..HEAD`]).catch(() => ''),
+        this.git.raw(['diff', '--name-only', `HEAD..${remote}`]).catch(() => ''),
+      ]);
+
+      const localFiles = localRaw.trim().split('\n').filter(Boolean);
+      const remoteFiles = remoteRaw.trim().split('\n').filter(Boolean);
+      const conflictSet = new Set(localFiles.filter(f => remoteFiles.includes(f)));
+
+      return {
+        localOnly: localFiles.filter(f => !conflictSet.has(f)),
+        remoteOnly: remoteFiles.filter(f => !conflictSet.has(f)),
+        conflicts: [...conflictSet],
+      };
+    } catch {
+      return { localOnly: [], remoteOnly: [], conflicts: [] };
+    }
+  }
+
+  /** Apply direction choices: push, pull, or skip per file */
+  async applyDiffChoices(choices: Record<string, 'push' | 'pull' | 'skip'>): Promise<void> {
+    const toPull = Object.entries(choices).filter(([, d]) => d === 'pull').map(([f]) => f);
+    if (toPull.length > 0) {
+      // Checkout individual files from remote
+      const branch = await this.getCurrentBranch();
+      for (const file of toPull) {
+        await this.git.raw(['checkout', `origin/${branch}`, '--', file]).catch(() => { /* ignore */ });
+      }
+      await this.git.add(toPull);
+      await this.git.commit(`chore: pull ${toPull.length} file(s) from remote`).catch(() => { /* ignore */ });
+    }
+    // 'push' direction means commit + push (if not already committed)
+    const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
+    if (toPush.length > 0) {
+      await this.git.push();
+    }
+  }
 }

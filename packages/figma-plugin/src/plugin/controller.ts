@@ -1,25 +1,12 @@
 // This runs in Figma's sandbox (no DOM access)
 
+import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
+
 const SERVER_URL = 'http://localhost:9400';
+const PLUGIN_DATA_NAMESPACE = 'tokenmanager';
+const VARIABLE_COLLECTION_NAME = 'TokenManager';
 
 figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
-
-// All bindable properties — must match shared/types.ts
-const ALL_BINDABLE_PROPERTIES = [
-  'fill', 'stroke', 'width', 'height',
-  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
-  'itemSpacing', 'cornerRadius', 'strokeWeight', 'opacity',
-  'typography', 'shadow', 'visible',
-] as const;
-
-// Legacy key mapping for backward compat
-const LEGACY_KEY_MAP: Record<string, string> = {
-  color: 'fill',
-  typography: 'typography',
-  dimension: 'width',
-  shadow: 'shadow',
-  border: 'stroke',
-};
 
 // Handle messages from UI
 figma.ui.onmessage = async (msg: PluginMessage) => {
@@ -51,11 +38,23 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'sync-bindings':
       await syncBindings(msg.tokenMap, msg.scope);
       break;
+    case 'highlight-layer-by-token':
+      await highlightLayersByToken(msg.tokenPath);
+      break;
     case 'notify':
       figma.notify(msg.message);
       break;
     case 'resize':
       figma.ui.resize(msg.width, msg.height);
+      break;
+    case 'delete-orphan-variables':
+      await deleteOrphanVariables(msg.knownPaths);
+      break;
+    case 'scan-component-coverage':
+      await scanComponentCoverage();
+      break;
+    case 'select-node':
+      await selectNode(msg.nodeId);
       break;
   }
 };
@@ -71,9 +70,9 @@ async function applyVariables(tokens: any[]) {
   try {
     // Get or create collection
     const collections = await figma.variables.getLocalVariableCollectionsAsync();
-    let collection = collections.find(c => c.name === 'TokenManager');
+    let collection = collections.find(c => c.name === VARIABLE_COLLECTION_NAME);
     if (!collection) {
-      collection = figma.variables.createVariableCollection('TokenManager');
+      collection = figma.variables.createVariableCollection(VARIABLE_COLLECTION_NAME);
     }
 
     for (const token of tokens) {
@@ -97,6 +96,16 @@ async function applyVariables(tokens: any[]) {
         variable.setValueForMode(modeId, figmaValue);
       }
 
+      // Apply scopes if specified (read from $extensions or legacy $scopes)
+      const scopeOverrides: string[] = (
+        (Array.isArray(token.$extensions?.['com.figma.scopes']) ? token.$extensions['com.figma.scopes'] : null) ??
+        (Array.isArray(token.$scopes) ? token.$scopes : null) ??
+        []
+      );
+      if (scopeOverrides.length > 0) {
+        (variable as any).scopes = scopeOverrides;
+      }
+
       // Store mapping in shared plugin data
       variable.setPluginData('tokenPath', token.path);
       variable.setPluginData('tokenSet', token.setName || '');
@@ -114,6 +123,8 @@ async function applyStyles(tokens: any[]) {
     try {
       if (token.$type === 'color') {
         await applyPaintStyle(token);
+      } else if (token.$type === 'gradient') {
+        await applyGradientPaintStyle(token);
       } else if (token.$type === 'typography') {
         await applyTextStyle(token);
       } else if (token.$type === 'shadow') {
@@ -136,6 +147,32 @@ async function applyPaintStyle(token: any) {
   const color = parseColor(token.$value);
   if (color) {
     style.paints = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
+  }
+  style.setPluginData('tokenPath', token.path);
+}
+
+async function applyGradientPaintStyle(token: any) {
+  const styles = await figma.getLocalPaintStylesAsync();
+  let style = styles.find(s => s.name === token.path.replace(/\./g, '/'));
+  if (!style) {
+    style = figma.createPaintStyle();
+    style.name = token.path.replace(/\./g, '/');
+  }
+  const stops: Array<{ color: string; position: number }> = Array.isArray(token.$value) ? token.$value : [];
+  const gradientStops: ColorStop[] = stops
+    .map(stop => {
+      const color = parseColor(stop.color);
+      if (!color) return null;
+      return { position: stop.position, color: { ...color.rgb, a: color.a } } as ColorStop;
+    })
+    .filter((s): s is ColorStop => s !== null);
+  if (gradientStops.length >= 2) {
+    style.paints = [{
+      type: 'GRADIENT_LINEAR',
+      gradientTransform: [[1, 0, 0], [0, 1, 0]],
+      gradientStops,
+      opacity: 1,
+    } as GradientPaint];
   }
   style.setPluginData('tokenPath', token.path);
 }
@@ -188,6 +225,89 @@ async function applyEffectStyle(token: any) {
   style.setPluginData('tokenPath', token.path);
 }
 
+// Scan component nodes for token coverage
+async function scanComponentCoverage() {
+  try {
+    const components = figma.currentPage.findAllWithCriteria({ types: ['COMPONENT'] });
+    const CHECKABLE_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius'];
+
+    let tokenized = 0;
+    const untokenized: { id: string; name: string; hardcodedCount: number }[] = [];
+
+    for (const node of components) {
+      const bound = (node as any).boundVariables || {};
+      const boundProps = new Set(Object.keys(bound).filter(k => {
+        const v = bound[k];
+        return v && (typeof v === 'object') && ('id' in v || (Array.isArray(v) && v.length > 0));
+      }));
+
+      // Count hardcoded: props that exist on node but aren't bound
+      let hardcodedCount = 0;
+      for (const prop of CHECKABLE_PROPS) {
+        if (prop in node) {
+          const val = (node as any)[prop];
+          const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
+          if (hasValue && !boundProps.has(prop)) hardcodedCount++;
+        }
+      }
+
+      if (boundProps.size > 0 && hardcodedCount === 0) {
+        tokenized++;
+      } else {
+        untokenized.push({ id: node.id, name: node.name, hardcodedCount });
+      }
+    }
+
+    figma.ui.postMessage({
+      type: 'component-coverage-result',
+      totalComponents: components.length,
+      tokenizedComponents: tokenized,
+      untokenized: untokenized.slice(0, 100), // cap list size
+    });
+  } catch (error) {
+    figma.ui.postMessage({ type: 'error', message: String(error) });
+  }
+}
+
+// Select a node by ID on the canvas
+async function selectNode(nodeId: string) {
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (node && 'parent' in node) {
+      figma.currentPage.selection = [node as SceneNode];
+      figma.viewport.scrollAndZoomIntoView([node as SceneNode]);
+    }
+  } catch (error) {
+    // Silently ignore — node might not be accessible
+  }
+}
+
+// Delete Figma variables in TokenManager collection that are not in the known paths list
+async function deleteOrphanVariables(knownPaths: string[]) {
+  try {
+    const knownSet = new Set(knownPaths);
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    const tmCollection = collections.find(c => c.name === VARIABLE_COLLECTION_NAME);
+    if (!tmCollection) {
+      figma.ui.postMessage({ type: 'orphans-deleted', count: 0 });
+      return;
+    }
+    let deleted = 0;
+    for (const varId of tmCollection.variableIds) {
+      const variable = await figma.variables.getVariableByIdAsync(varId);
+      if (!variable) continue;
+      const path = variable.name.replace(/\//g, '.');
+      if (!knownSet.has(path)) {
+        variable.remove();
+        deleted++;
+      }
+    }
+    figma.ui.postMessage({ type: 'orphans-deleted', count: deleted });
+  } catch (error) {
+    figma.ui.postMessage({ type: 'error', message: String(error) });
+  }
+}
+
 // Read existing Figma variables as tokens
 async function readFigmaVariables() {
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
@@ -206,6 +326,8 @@ async function readFigmaVariables() {
         $type: mapVariableTypeToTokenType(variable.resolvedType),
         $value: convertFromFigmaValue(value, variable.resolvedType),
         collection: collection.name,
+        $description: variable.description || '',
+        $scopes: variable.scopes,
       });
     }
   }
@@ -417,7 +539,7 @@ async function applyToSelection(tokenPath: string, tokenType: string, targetProp
   for (const node of selection) {
     try {
       await applyTokenValue(node, targetProperty, resolvedValue, tokenType);
-      node.setSharedPluginData('tokenmanager', targetProperty, tokenPath);
+      node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, targetProperty, tokenPath);
       applied++;
     } catch (err) {
       console.error(`Failed to apply ${tokenPath} to ${node.name}:`, err);
@@ -433,7 +555,7 @@ async function applyToSelection(tokenPath: string, tokenType: string, targetProp
 async function removeBinding(property: string) {
   const selection = figma.currentPage.selection;
   for (const node of selection) {
-    node.setSharedPluginData('tokenmanager', property, '');
+    node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
   }
   await getSelection();
 }
@@ -488,13 +610,13 @@ async function getSelection() {
     // Read all bindable property keys
     const bindings: Record<string, string> = {};
     for (const prop of ALL_BINDABLE_PROPERTIES) {
-      const val = node.getSharedPluginData('tokenmanager', prop);
+      const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
       if (val) bindings[prop] = val;
     }
     // Also check legacy keys and remap
     for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
       if (!bindings[newKey]) {
-        const val = node.getSharedPluginData('tokenmanager', legacyKey);
+        const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
         if (val) bindings[newKey] = val;
       }
     }
@@ -690,6 +812,14 @@ function parseColor(value: string): { rgb: RGB; a: number } | null {
     const b = parseInt(hex[2] + hex[2], 16) / 255;
     return { rgb: { r, g, b }, a: 1 };
   }
+  // 4-char shorthand hex: #RGBA → #RRGGBBAA
+  if (hex.length === 4) {
+    const r = parseInt(hex[0] + hex[0], 16) / 255;
+    const g = parseInt(hex[1] + hex[1], 16) / 255;
+    const b = parseInt(hex[2] + hex[2], 16) / 255;
+    const a = parseInt(hex[3] + hex[3], 16) / 255;
+    return { rgb: { r, g, b }, a };
+  }
   return null;
 }
 
@@ -741,6 +871,23 @@ async function findVariable(collectionId: string, name: string): Promise<Variabl
   return variables.find(v => v.variableCollectionId === collectionId && v.name === name) || null;
 }
 
+// Select canvas layers that are bound to a specific token path
+async function highlightLayersByToken(tokenPath: string) {
+  const nodes = figma.currentPage.findAll(node => {
+    for (const prop of ALL_BINDABLE_PROPERTIES) {
+      if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop) === tokenPath) return true;
+    }
+    for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
+      if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey) === tokenPath) return true;
+    }
+    return false;
+  });
+  if (nodes.length > 0) {
+    figma.currentPage.selection = nodes as SceneNode[];
+    figma.viewport.scrollAndZoomIntoView(nodes as SceneNode[]);
+  }
+}
+
 // Sync all bindings on the page or selection with latest token values
 async function syncBindings(tokenMap: Record<string, { $value: any; $type: string }>, scope: 'page' | 'selection') {
   let nodes: SceneNode[];
@@ -749,10 +896,10 @@ async function syncBindings(tokenMap: Record<string, { $value: any; $type: strin
   } else {
     nodes = figma.currentPage.findAll(node => {
       for (const prop of ALL_BINDABLE_PROPERTIES) {
-        if (node.getSharedPluginData('tokenmanager', prop)) return true;
+        if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop)) return true;
       }
       for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
-        if (node.getSharedPluginData('tokenmanager', legacyKey)) return true;
+        if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey)) return true;
       }
       return false;
     });
@@ -771,17 +918,17 @@ async function syncBindings(tokenMap: Record<string, { $value: any; $type: strin
       // Collect bindings, including legacy remapping
       const bindings: Record<string, string> = {};
       for (const prop of ALL_BINDABLE_PROPERTIES) {
-        const val = node.getSharedPluginData('tokenmanager', prop);
+        const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
         if (val) bindings[prop] = val;
       }
       for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
         if (!bindings[newKey]) {
-          const val = node.getSharedPluginData('tokenmanager', legacyKey);
+          const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
           if (val) {
             bindings[newKey] = val;
             // Migrate legacy key to new key
-            node.setSharedPluginData('tokenmanager', newKey, val);
-            node.setSharedPluginData('tokenmanager', legacyKey, '');
+            node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, newKey, val);
+            node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey, '');
           }
         }
       }

@@ -1,0 +1,908 @@
+{
+  "project": "TokenManager UX/UI Improvements",
+  "branchName": "ralph/ux-improvements",
+  "description": "Comprehensive UX/UI improvements spanning navigation chrome, destructive operation safety, core token operations, token list navigation, token editing ergonomics, bulk operations, discoverability, validation, sync, and analytics.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Tab Bar Reorganization",
+      "description": "As a designer, I want the tab bar to surface only the primary views so that I can focus on the 80% use case without visual noise from utility actions.",
+      "acceptanceCriteria": [
+        "Tab bar shows exactly four tabs: Tokens | Themes | Sync | Analytics",
+        "Import and Export are removed from the tab bar",
+        "A '...' overflow menu or gear icon in the toolbar opens a dropdown containing Import and Export actions",
+        "Existing Import and Export functionality is fully preserved behind the new entry point",
+        "Server Settings is accessible from the overflow menu or within the Sync tab",
+        "Active tab has a background fill treatment, not just an underline",
+        "Each set tab displays its token count as a badge (e.g. 'primitives 42')",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Replace confirm() with In-Plugin Modals",
+      "description": "As a designer, I want all destructive confirmations to appear as proper in-plugin dialogs so that I don't get jarring native browser alerts that block the Figma UI.",
+      "acceptanceCriteria": [
+        "All uses of window.confirm() in the plugin are removed",
+        "Single-token delete triggers an in-plugin modal showing: token name, and a Delete / Cancel button pair",
+        "Group delete modal shows: group name, count of tokens that will be deleted, and 'Delete group (N tokens)' / Cancel",
+        "Bulk delete modal shows: count of selected tokens, orphan count, and 'Delete N tokens' / Cancel",
+        "Modals are styled consistently with the rest of the plugin UI",
+        "Pressing Escape or clicking outside the modal cancels the operation",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Shared modal component should be reusable for all subsequent destructive operations"
+    },
+    {
+      "id": "US-006",
+      "title": "Session Undo for Destructive Operations",
+      "description": "As a designer, I want to undo the last destructive operation so that accidental bulk deletes or moves don't permanently destroy my work.",
+      "acceptanceCriteria": [
+        "A single undo slot is maintained in memory per session",
+        "The following operations populate the undo slot: delete token, delete group, bulk delete, move to set, bulk rename",
+        "After any of these operations completes, a toast or snackbar appears with 'Undo' for at least 8 seconds",
+        "Pressing Cmd+Z also triggers undo if the undo slot is populated",
+        "Executing undo restores the state to exactly before the destructive operation",
+        "Performing a new destructive operation replaces the undo slot (only one level of undo)",
+        "Undo slot is cleared on plugin close / session end",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Depends on US-005 modal component"
+    },
+    {
+      "id": "US-007",
+      "title": "Set Rename",
+      "description": "As a design system maintainer, I want to rename a token set so that I can fix naming mistakes without recreating the set from scratch.",
+      "acceptanceCriteria": [
+        "A 'Rename' action is available in the set context menu (right-click and '...' button on set tab)",
+        "Renaming opens an inline input pre-filled with the current set name",
+        "Name is validated to match [a-zA-Z0-9_-] pattern; invalid characters show an inline error",
+        "On confirm: the JSON file on the server is renamed, all theme references to the old name are updated, and all cross-set alias references are updated",
+        "If any alias update fails, the rename is rolled back and an error is shown",
+        "The set tab reflects the new name immediately after success",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Requires new server endpoint with atomic rename + cascade update"
+    },
+    {
+      "id": "US-028",
+      "title": "Discoverable Set Context Menu",
+      "description": "As a designer, I want a visible menu button on each set tab so that I can discover set-level actions without knowing to right-click.",
+      "acceptanceCriteria": [
+        "Each set tab renders a '...' (kebab) button that is always visible on hover and on the active tab",
+        "Clicking '...' opens a context menu with all existing set-level actions: Generate Semantic Tokens, Generate Dark Theme, Adopt Figma File, Rename (US-007), Duplicate, Delete, Set Metadata",
+        "Right-click on the tab still works as before (no regression)",
+        "The '...' button does not overflow the tab's width",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Depends on US-007 for Rename action"
+    },
+    {
+      "id": "US-002",
+      "title": "Empty State Guidance",
+      "description": "As a new user, I want the empty token set to guide me toward my next action so that I don't stare at a blank screen wondering what to do.",
+      "acceptanceCriteria": [
+        "When a set has zero tokens, the main area renders a guided empty state instead of blank space",
+        "Empty state includes: a short description of what a token set is, and three CTA buttons: 'Create first token (Cmd+N)', 'Generate color scale', 'Paste tokens from JSON'",
+        "Each CTA button triggers the same action as its equivalent in the full UI",
+        "Empty state disappears as soon as at least one token exists in the set",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Set-Level Metadata",
+      "description": "As a design system maintainer, I want to add a description to each token set so that collaborators understand what each set is for.",
+      "acceptanceCriteria": [
+        "Each token set supports an optional $description field stored in the set file or sidecar",
+        "Set tab renders a tooltip on hover showing the description when one exists",
+        "The Analytics panel's 'by set' breakdown shows the description alongside the set name",
+        "A UI affordance (e.g. edit icon in the set context menu) allows setting/editing the description",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Set Tab Visual Treatment & Token Count",
+      "description": "As a designer, I want the active set tab to be visually prominent and show its token count so that I always know where I am and how large each set is.",
+      "acceptanceCriteria": [
+        "Active set tab has a filled background (not just underline/text weight change)",
+        "Every set tab displays the number of tokens it contains as a small badge or parenthetical",
+        "Badge updates immediately when tokens are added or removed",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Expand All / Collapse All Groups",
+      "description": "As a designer, I want to expand or collapse all token groups at once so that I can quickly navigate large token sets.",
+      "acceptanceCriteria": [
+        "The toolbar row above the token list has 'Expand all' and 'Collapse all' buttons (or a toggle)",
+        "'Expand all' opens every group in the current set",
+        "'Collapse all' closes every group in the current set",
+        "Expanded/collapsed state per group is persisted in sessionStorage keyed by set name",
+        "State is restored when switching back to a previously visited set within the same session",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Sort Order in Token List",
+      "description": "As a designer, I want to sort the token list by different criteria so that I can find patterns and spot problems more easily.",
+      "acceptanceCriteria": [
+        "A sort control in the toolbar offers: Alphabetical A-Z, Alphabetical Z-A, By type, By usage count, By value, Default (insertion/tree order)",
+        "Sorting is applied to the current set's token list without modifying the underlying data",
+        "Sort selection persists within the session",
+        "Usage count sort is disabled (greyed out) if no scan has been run yet, with a tooltip explaining why",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Filter Persistence Across Set Switches",
+      "description": "As a design system maintainer, I want my active type and ref filters to stay applied when I switch between sets so that I can audit all sets without reapplying filters each time.",
+      "acceptanceCriteria": [
+        "Type filter, ref filter, and search query persist when the active set changes",
+        "A visual indicator shows that a filter is active while browsing a different set",
+        "Filters can still be cleared manually at any time",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Duplicate Value Filter",
+      "description": "As a design system maintainer, I want to filter the token list to show only tokens that share a raw value with another token so that I can identify missing alias opportunities.",
+      "acceptanceCriteria": [
+        "A 'Duplicate values' filter chip is available alongside existing filter options",
+        "When active, the list shows only tokens whose raw (unresolved) value is identical to at least one other token in the current set",
+        "Tokens are grouped or annotated to show which others share the same value",
+        "Filter chip is visually consistent with existing type/ref filter chips",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Copy Token Path / Resolved Value",
+      "description": "As a developer, I want to copy a token's CSS variable name or resolved value to my clipboard directly from the token list so that I can use it in code without switching tools.",
+      "acceptanceCriteria": [
+        "Hovering a token row reveals two copy icons in the action area",
+        "First icon copies the CSS variable name (e.g. --color-blue-500) to clipboard",
+        "Second icon copies the resolved value (e.g. #2563eb) to clipboard",
+        "A brief toast/tooltip confirms which value was copied",
+        "Copy icons do not shift layout \u2014 they appear in the existing action area space",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Jump to Referenced Token from Alias",
+      "description": "As a designer, I want to click an alias value to navigate directly to the source token so that I can inspect or edit it without searching manually.",
+      "acceptanceCriteria": [
+        "Alias value chips in the token list and token editor show a subtle '\u2192' icon",
+        "Clicking the chip navigates the token list to the source token (scrolls to and highlights it)",
+        "If the source token is in a different set, the plugin switches to that set first, then focuses the token",
+        "If the source token cannot be found (broken alias), clicking shows an error tooltip instead of navigating",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Easier Token Referencing \u2014 Alias Ergonomics",
+      "description": "As a designer, I want alias autocomplete to be available everywhere I type a value so that I can reference tokens without switching to the full editor.",
+      "acceptanceCriteria": [
+        "Typing '{' in any value field (inline edit, quick-edit popover, full TokenEditor) opens the alias autocomplete dropdown",
+        "The dropdown filters by token type when the field type is known",
+        "Each autocomplete suggestion shows: the token path, a resolved value preview (color swatch or dimension value), and the source set",
+        "A dedicated 'alias mode' toggle button on inline-edit rows switches the input to alias mode and immediately opens autocomplete",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Dimension / Number Stepper Input",
+      "description": "As a designer, I want dimension and number token inputs to behave like a proper number field so that I can nudge values without manually typing each time.",
+      "acceptanceCriteria": [
+        "Dimension and number token value inputs render with up/down stepper arrows",
+        "Arrow keys (up/down) increment/decrement by 1; Shift+Arrow by 10",
+        "Scrolling the mouse wheel over the input increments/decrements the value",
+        "A unit selector (px / rem / %) appears next to the input for dimension tokens",
+        "Changing the unit converts the stored value appropriately (e.g. 16px to 1rem)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Richer Previews in Tree/Table View",
+      "description": "As a designer, I want token rows to show visual previews for complex types so that I can recognize values at a glance without opening the editor.",
+      "acceptanceCriteria": [
+        "Typography tokens render a small preview string styled with the token's font family, size, and weight",
+        "Shadow tokens render a small box with the box-shadow applied",
+        "Gradient tokens render a gradient strip",
+        "Previews appear in both Tree and Table view modes",
+        "Previews degrade gracefully if the value is an unresolved alias (show the alias path instead)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Reference Chain Visualization",
+      "description": "As a designer, I want to see when a token is a multi-hop alias so that I can understand how deeply nested my references are.",
+      "acceptanceCriteria": [
+        "When a token resolves through 3 or more alias hops, the token row shows a 'via N aliases' badge next to the resolved value swatch",
+        "Clicking the badge expands an inline chain view showing each hop: token-A \u2192 token-B \u2192 token-C \u2192 #hex",
+        "Collapsing the chain restores the normal row layout",
+        "Chains with fewer than 3 hops are not badged (to avoid noise)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Inspect Mode \u2014 Canvas-Aware Token Highlighting",
+      "description": "As a designer, I want the token list to highlight tokens bound to my selected Figma layer so that I can see the relationship between canvas and token system.",
+      "acceptanceCriteria": [
+        "When a layer is selected on the Figma canvas, the token list highlights or filters to the tokens bound to that layer",
+        "A 'Show bound tokens' toggle in the toolbar enables/disables this mode",
+        "Hovering a token row in the list triggers a flash/highlight on layers in the canvas that use that token (uses existing select-layer controller message)",
+        "If no layer is selected, inspect mode shows a prompt to select a layer",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Selection Inspector Positioning",
+      "description": "As a designer, I want the Selection Inspector to always be visible when a layer is selected so that I don't miss it by forgetting to scroll down.",
+      "acceptanceCriteria": [
+        "The Selection Inspector is rendered as a collapsible panel docked at a fixed position (e.g. bottom of the plugin viewport), not inline in the scroll flow",
+        "When a Figma layer is selected, the panel automatically expands if collapsed",
+        "When no layer is selected, the panel shows a minimal collapsed state with a label 'Select a layer to inspect'",
+        "The panel can be manually collapsed by the designer",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Quick Create Token from Selection",
+      "description": "As a designer, I want to create a token directly from a selected Figma layer's properties so that I can formalize values organically while working on real frames.",
+      "acceptanceCriteria": [
+        "When one or more layers are selected and the SelectionInspector is visible, any unbound property (fill color, stroke color, font family, font size, font weight, dimension) shows a '+' icon next to its value",
+        "Clicking '+' opens a token creation form pre-filled with the extracted value and a suggested path based on the active set's naming convention",
+        "The designer can edit the suggested name before saving",
+        "Saving creates the token in the active set and immediately binds it to the selected layer's property",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": "Depends on US-018 docked Selection Inspector"
+    },
+    {
+      "id": "US-009",
+      "title": "Create Sibling Token",
+      "description": "As a designer, I want to create a new token in the same group as an existing token so that I don't have to type the full path every time.",
+      "acceptanceCriteria": [
+        "Right-clicking a token row shows a 'Create sibling' action",
+        "'Create sibling' opens the token creation form with the group path pre-filled (everything up to the last '.' segment)",
+        "Focus is placed on the name field so the designer only needs to type the last path segment",
+        "The new token is created in the same set and group as the source token",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 22,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Group Management \u2014 Rename, Move, Duplicate",
+      "description": "As a design system maintainer, I want to rename, move, and duplicate entire token groups so that I can restructure my token hierarchy without tedious one-by-one edits.",
+      "acceptanceCriteria": [
+        "Right-clicking a group header shows actions: 'Rename group', 'Move group to set...', 'Duplicate group'",
+        "Rename: opens an inline input; on confirm, all tokens within the group have their paths updated and all alias references to those tokens are updated",
+        "Move to set: shows a set picker; on confirm, all tokens in the group are moved to the selected set with alias references preserved",
+        "Duplicate: creates a copy of the group with a suffix (e.g. -copy) in the same set",
+        "All operations are reflected immediately in the UI",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Extract to Alias Action",
+      "description": "As a design system maintainer, I want to convert a token with a raw value into an alias referencing a new or existing primitive so that I can refactor hardcoded values into the primitive \u2192 semantic hierarchy.",
+      "acceptanceCriteria": [
+        "Right-clicking a token with a raw (non-alias) value shows an 'Extract to alias' option",
+        "The dialog prompts for: a name for the new primitive token (pre-suggested based on value type and existing naming patterns), or an option to pick an existing token to alias instead",
+        "On confirm with a new name: the primitive token is created in the appropriate set, and the current token's value is replaced with an alias reference to the primitive",
+        "On confirm with an existing token: the current token's value is replaced with an alias reference to the selected token",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Token References in Gradient Values \u2014 Server Resolver",
+      "description": "As a designer, I want to use token aliases as color stops in gradient tokens so that semantic color tokens are respected inside gradients across themes.",
+      "acceptanceCriteria": [
+        "The server-side resolver (resolver.ts) expands alias references within gradient stop values before output",
+        "Style Dictionary transform pipeline handles alias expansion in gradient stops",
+        "Typecheck passes"
+      ],
+      "priority": 25,
+      "passes": true,
+      "notes": "Server-side only first; gradient editor alias mode (plugin side) is a separate concern"
+    },
+    {
+      "id": "US-023b",
+      "title": "Token References in Gradient Values \u2014 Editor UI",
+      "description": "As a designer, I want each color stop in the gradient editor to support alias mode so that I can reference semantic tokens in gradients.",
+      "acceptanceCriteria": [
+        "The gradient editor in TokenEditor allows each color stop to be toggled between raw color and alias mode",
+        "In alias mode, the color stop uses the same alias autocomplete as US-021",
+        "On Figma sync, alias-based gradient stops resolve to their current theme value before being pushed as Figma gradient paint values",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 26,
+      "passes": true,
+      "notes": "Depends on US-023 (server resolver) and US-021 (alias autocomplete)"
+    },
+    {
+      "id": "US-025",
+      "title": "Bulk Rename by Name Pattern (Find & Replace for Token Names)",
+      "description": "As a design system maintainer, I want to find and replace token path segments by pattern so that I can rename a namespace across hundreds of tokens at once.",
+      "acceptanceCriteria": [
+        "A new POST /api/tokens/:set/bulk-rename endpoint is added to the server accepting: find (string or regex pattern), replace (string), and returning: renamed count, skipped (duplicate) paths, and updated alias references",
+        "The endpoint renames all matching token paths within the set and updates any alias $value strings that reference the old paths (scan all sets for references, not just the current one)",
+        "If any rename would produce a path that already exists, those tokens are excluded from the rename and returned in the skipped list",
+        "The Find & Replace panel in the plugin UI accepts a find pattern (plain text or regex) and a replacement string targeting token paths, not values",
+        "Preview shows all tokens whose paths will change, with before/after path displayed \u2014 computed client-side before the request is sent",
+        "If any rename would produce a duplicate path, it is flagged in the preview and blocked before sending",
+        "On confirm, the panel calls the new bulk-rename endpoint and refreshes the token list",
+        "Typecheck passes"
+      ],
+      "priority": 27,
+      "passes": true,
+      "notes": "No bulk-rename endpoint currently exists on the server \u2014 it must be built as part of this story. Cross-set alias reference updates require scanning all sets via tokenStore.getSets() + getFlatTokensForSet()."
+    },
+    {
+      "id": "US-026",
+      "title": "Bulk Alias Creation \u2014 Promote to Semantic",
+      "description": "As a design system maintainer, I want to convert multiple tokens with raw values to aliases in one operation so that I can stop doing tedious one-by-one refactoring.",
+      "acceptanceCriteria": [
+        "Selecting multiple tokens and right-clicking shows 'Convert to aliases'",
+        "A modal shows each selected token with its proposed alias match: closest color primitive by delta-E for color tokens, or exact value match for dimensions/numbers",
+        "Each row in the modal is individually accept/reject-able",
+        "On confirm, selected tokens have their values replaced with alias references to the matched primitives",
+        "Uses allTokensFlat with resolved values to compute matches",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 28,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Mass Create from Paste",
+      "description": "As a designer, I want to paste a JSON fragment or simple name:value lines to create multiple tokens at once so that I can quickly add tokens without using the full Import flow.",
+      "acceptanceCriteria": [
+        "A 'Paste tokens' action is accessible from the overflow menu and as a keyboard shortcut",
+        "A modal accepts: a JSON fragment in DTCG format, or newline-separated 'name: value' pairs",
+        "Parsing errors are shown inline with line numbers",
+        "Valid tokens are previewed before creation, showing name, type, and value",
+        "On confirm, tokens are created/updated in the currently active set",
+        "Conflicts with existing token paths show a warning and allow skip or overwrite per-token",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 29,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-029",
+      "title": "Command Palette (Cmd+K)",
+      "description": "As a power user, I want a fuzzy-search command runner so that I can trigger any action in the plugin without navigating menus.",
+      "acceptanceCriteria": [
+        "Pressing Cmd+K opens a full-width command palette overlay",
+        "The palette accepts free-text fuzzy search across all available commands",
+        "Commands include at minimum: Create new token, Find & Replace (values), Find & Replace (names), Generate color scale, Switch to set [name], Go to token..., Export as CSS, Validate tokens, Generate semantic tokens, Generate dark theme, Import, Export",
+        "Selecting a command closes the palette and triggers the action",
+        "Pressing Escape closes the palette without triggering anything",
+        "The '?' keyboard shortcut overlay is removed (command palette supersedes it)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 30,
+      "passes": true,
+      "notes": "Use a simple action registry pattern (map of command id \u2192 { label, handler })"
+    },
+    {
+      "id": "US-030",
+      "title": "Group Presets / Scaffolding Wizard",
+      "description": "As a designer starting a new token set, I want to generate a complete group scaffold from a preset so that I don't have to manually create standard token structures.",
+      "acceptanceCriteria": [
+        "When creating a new group (or from the empty state), an option 'Use preset' is available",
+        "Available presets: Spacing scale, Border radius scale, Typography scale, Z-index layers, Opacity scale",
+        "Each preset shows a preview of the tokens it will generate before confirming",
+        "Generated tokens are added to the active set under the specified group path",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 31,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-031-server",
+      "title": "Token Linting \u2014 Server Config & Rules Engine",
+      "description": "As a design system maintainer, I want configurable lint rules stored in server config so that violations can be evaluated server-side.",
+      "acceptanceCriteria": [
+        "Lint configuration is stored in the server config alongside collectionMapping under a lintRules key",
+        "Supported rules (each independently enable/disable-able): no-raw-color, require-description, path-pattern, max-alias-depth, no-duplicate-values",
+        "A POST /api/tokens/lint endpoint accepts a set name and returns an array of violations with: rule name, token path, severity, and suggested fix type",
+        "Typecheck passes"
+      ],
+      "priority": 32,
+      "passes": true,
+      "notes": "Server-side rules engine first; plugin UI integration is US-031-plugin"
+    },
+    {
+      "id": "US-031-plugin",
+      "title": "Token Linting \u2014 Inline Violation Indicators",
+      "description": "As a design system maintainer, I want lint violations to appear inline in the token list so that I catch problems without running a manual validation pass.",
+      "acceptanceCriteria": [
+        "Violations appear inline in the token list as a warning indicator on the affected token row",
+        "Lint runs automatically after any token edit (debounced)",
+        "Each violation has a quick-fix action where applicable: 'Add missing description' opens the description field, 'Convert to alias' triggers Extract to Alias flow",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 33,
+      "passes": true,
+      "notes": "Depends on US-031-server"
+    },
+    {
+      "id": "US-032",
+      "title": "Validate All Tokens Panel",
+      "description": "As a design system maintainer, I want to run a full validation pass and see all problems in one list so that I can address issues systematically.",
+      "acceptanceCriteria": [
+        "A 'Validate' button is accessible from the Analytics tab toolbar and from the command palette",
+        "Running validation produces a structured list of errors and warnings covering: broken aliases, circular references, tokens missing $type, value/type mismatches, alias chains deeper than the configured max",
+        "Each result row shows: severity (error/warning), token path, description of the problem, and a 'Jump to token' link",
+        "Results can be filtered by severity",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 34,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Color Contrast Checker",
+      "description": "As a designer, I want to check WCAG color contrast between tokens directly in the plugin so that I can validate accessibility without leaving my workflow.",
+      "acceptanceCriteria": [
+        "A 'Check contrast' action appears in the token editor for color tokens",
+        "The action opens a panel letting the designer pick a background color token",
+        "The panel shows the contrast ratio and WCAG AA / AAA pass/fail status for normal text, large text, and UI components",
+        "The Analytics panel includes a contrast matrix showing foreground/background token pairs with their pass/fail status",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 35,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-034",
+      "title": "Theme Missing-Coverage Warnings",
+      "description": "As a designer, I want to see when tokens are not covered by any active set in a theme so that I catch missing values before publishing.",
+      "acceptanceCriteria": [
+        "Each theme card shows a warning badge: 'N tokens have no value in active sets' when coverage gaps exist",
+        "Clicking the badge navigates to a filtered list of the uncovered tokens",
+        "A token is considered 'uncovered' if it exists in a disabled or excluded set for the theme and no enabled set provides a value for the same path",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 36,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-035",
+      "title": "Duplicate Color Value Detection",
+      "description": "As a design system maintainer, I want to identify color tokens that resolve to the same hex value so that I can eliminate redundant primitives.",
+      "acceptanceCriteria": [
+        "A 'Duplicate colors' filter or report is accessible from the Analytics tab",
+        "It surfaces groups of color tokens that share an identical resolved hex value (after full alias resolution)",
+        "Each group shows all token paths resolving to that value",
+        "A 'Deduplicate' action allows promoting one as the canonical primitive and converting the others to aliases",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 37,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-036",
+      "title": "Color Scale Lightness Curve Inspector",
+      "description": "As a designer, I want to see the perceptual lightness distribution of a generated color scale so that I can spot uneven steps before publishing.",
+      "acceptanceCriteria": [
+        "After generating a color scale, a small sparkline chart appears below the generated tokens showing the L* (Oklch lightness) value for each step",
+        "Steps with disproportionately large or small lightness jumps are visually highlighted (e.g. red/orange dot on the sparkline)",
+        "The chart is non-interactive in the minimum implementation (display only)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 38,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-037",
+      "title": "Two-Way Variable Sync with Unified Diff",
+      "description": "As a designer, I want to see local and Figma-side changes together in one view so that I can make an informed decision about sync direction per token.",
+      "acceptanceCriteria": [
+        "A single 'Sync' action in the Sync tab computes both computeFigmaDiff and computePullDiff and merges the results into one diff view",
+        "Diff rows are categorized: local-only changes, Figma-only changes, conflicts (both sides changed)",
+        "Each row shows a direction arrow toggle: push local to Figma, pull Figma to local, or skip",
+        "Confirming applies all selected direction choices in a single operation",
+        "The existing separate push and pull flows are preserved as quick-action shortcuts",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 39,
+      "passes": true,
+      "notes": "Token identity key must handle renamed tokens correctly"
+    },
+    {
+      "id": "US-038",
+      "title": "Partial Sync by Group",
+      "description": "As a designer, I want to sync a single token group to Figma instead of the entire set so that iterative workflows are faster and safer.",
+      "acceptanceCriteria": [
+        "Right-clicking a group header shows 'Sync this group to Figma'",
+        "The action pushes only the tokens within that group to Figma variables, leaving other groups untouched",
+        "A confirmation shows the count of tokens that will be synced",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 40,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-039",
+      "title": "Variable Scope Management UI",
+      "description": "As a designer, I want to configure the Figma variable scopes for each token directly in the plugin so that I control where variables appear in Figma's native variable picker.",
+      "acceptanceCriteria": [
+        "The full TokenEditor includes a 'Scopes' section listing available Figma variable scopes for the token's type",
+        "Table view includes an optional 'Scopes' column (toggleable)",
+        "Scope selections are stored in the token data and respected during syncToFigma via scopeOverrides",
+        "A group-level scope editor allows setting the same scopes for all tokens in a group at once",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 41,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Sync Status Per-Row Indicator",
+      "description": "As a designer, I want to see at a glance which tokens are out of sync with Figma without having to enable a filter so that I notice drift proactively.",
+      "acceptanceCriteria": [
+        "Each token row shows a subtle indicator dot (orange for 'changed since last sync', red for 'diverged') when the token's sync state is non-clean",
+        "The indicator is always-on for tokens with non-clean sync state (no filter required)",
+        "Hovering the indicator shows a tooltip: 'Changed locally since last sync' or 'Diverged \u2014 both local and Figma have changes'",
+        "Tokens with clean sync state show no indicator",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 42,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-041",
+      "title": "Publish Readiness Checklist",
+      "description": "As a design system maintainer, I want a pre-publish checklist that validates Figma variable state so that I can confidently publish a Figma library.",
+      "acceptanceCriteria": [
+        "A 'Publish Readiness' panel is accessible from the Sync tab or as a command palette action",
+        "Checklist categories with pass/fail status: All tokens have corresponding Figma variables, Scopes are set for every variable, Descriptions are populated for every variable, No orphan Figma variables",
+        "Each failed check shows a count of affected items and a 'Fix' action where automation is possible",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 43,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-042",
+      "title": "Figma Component Token Coverage Map",
+      "description": "As a design system maintainer, I want a report showing which Figma components use tokens vs hardcoded values so that I can track tokenization progress.",
+      "acceptanceCriteria": [
+        "A 'Component Coverage' report is accessible from the Analytics tab",
+        "Running the scan walks all component nodes in the current Figma file and checks bound variables vs raw fills/strokes/text styles",
+        "Report shows: total component count, percentage tokenized, and a list of untokenized components with their hardcoded property counts",
+        "Clicking an untokenized component in the list selects it on the Figma canvas",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 44,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-043",
+      "title": "Token Documentation / Style Guide Generation",
+      "description": "As a design system maintainer, I want auto-generated visual style guide pages on the server's /docs route so that I can share the token system with stakeholders.",
+      "acceptanceCriteria": [
+        "The server's /docs route renders auto-generated HTML pages",
+        "Color tokens are displayed as palette swatches with hex values and contrast ratios",
+        "Typography tokens render specimen text styled with the actual font/size/weight values",
+        "Spacing tokens render a visual scale (boxes of increasing size)",
+        "Pages are shareable via direct URL with no authentication required (configurable)",
+        "Typecheck passes"
+      ],
+      "priority": 45,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-044",
+      "title": "Filter Bar Always-On Type Filter Chip",
+      "description": "As a new user, I want to see the Type filter chip without having to interact with the search bar first so that I discover filtering exists.",
+      "acceptanceCriteria": [
+        "The Type filter chip is always visible in the filter bar regardless of search bar focus or active filter state",
+        "Other filter chips (ref type, deprecated, missing desc) continue to appear on demand or when active",
+        "The always-on chip does not cause layout overflow in the filter bar",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 46,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-045",
+      "title": "Semantic Generation Discoverability",
+      "description": "As a new user, I want to discover 'Generate Semantic Tokens' and 'Generate Dark Theme' as prominent actions so that I find these high-value features without stumbling into a right-click context menu.",
+      "acceptanceCriteria": [
+        "After completing the starter wizard flow, the completion screen presents 'Generate Semantic Tokens' and 'Generate Dark Theme' as primary CTA buttons",
+        "Empty-set states include these as secondary actions if a primitives set exists",
+        "The actions remain available in the set context menu as before",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 47,
+      "passes": true,
+      "notes": "Depends on US-002 (empty state) and US-028 (set context menu)"
+    },
+    {
+      "id": "US-046",
+      "title": "Gradient Token Editor",
+      "description": "As a designer, I want to create and edit gradient tokens in the plugin so that I can manage gradient values alongside the rest of my design tokens.",
+      "acceptanceCriteria": [
+        "TokenEditor renders a GradientEditor component when tokenType === 'gradient'",
+        "GradientEditor displays a list of color stops, each with a color picker + hex input and a position (0\u20131) input",
+        "Stops can be added ('+' button) and removed (\u00d7) \u2014 minimum 2 stops enforced",
+        "A live gradient preview strip above the stop list shows the linear gradient as stops are edited",
+        "The default new gradient has two stops: #000000 at 0 and #ffffff at 1",
+        "Stops are stored in DTCG format: array of { color: string, position: number }",
+        "The 'gradient' type is selectable in the type dropdown when creating a new token",
+        "TokenList renders a gradient strip preview for gradient tokens (consistent with US-015 richer previews)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 48,
+      "passes": true,
+      "notes": "US-023b (alias mode per stop) depends on this story. Keep the editor self-contained as a GradientEditor sub-component in TokenEditor.tsx."
+    },
+    {
+      "id": "US-047",
+      "title": "Duration Token Editor",
+      "description": "As a designer, I want to create and edit duration tokens so that I can manage animation timing values alongside the rest of my design tokens.",
+      "acceptanceCriteria": [
+        "TokenEditor renders a DurationEditor when tokenType === 'duration'",
+        "DurationEditor shows a number input and a unit selector (ms / s); stored as { value: number, unit: 'ms' | 's' }",
+        "A row of quick-select preset chips is shown: 100ms, 150ms, 200ms, 300ms, 500ms",
+        "The 'duration' type is selectable in the type dropdown when creating a new token",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 49,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-049",
+      "title": "Standalone FontFamily & FontWeight Token Editors",
+      "description": "As a designer, I want to create standalone fontFamily and fontWeight tokens (separate from typography composites) so that I can build a primitive font scale that typography tokens reference.",
+      "acceptanceCriteria": [
+        "TokenEditor renders a FontFamilyEditor when tokenType === 'fontFamily'",
+        "FontFamilyEditor is a text input storing a string (e.g. 'Inter', 'Georgia, serif')",
+        "TokenEditor renders a FontWeightEditor when tokenType === 'fontWeight'",
+        "FontWeightEditor is a select with numeric weight options (100\u2013900) plus named labels (Thin, Light, Regular, Medium, SemiBold, Bold, ExtraBold, Black); stored as a number",
+        "Both types are selectable in the type dropdown when creating a new token",
+        "TokenList renders a meaningful inline preview: font name rendered in that font for fontFamily, sample text at the stored weight for fontWeight",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 50,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-050",
+      "title": "StrokeStyle Token Editor",
+      "description": "As a designer, I want to create and edit strokeStyle tokens so that I can define reusable border/stroke style values as tokens.",
+      "acceptanceCriteria": [
+        "TokenEditor renders a StrokeStyleEditor when tokenType === 'strokeStyle'",
+        "StrokeStyleEditor is a select of keyword values: solid, dashed, dotted, double, groove, ridge, outset, inset; stored as a string",
+        "The 'strokeStyle' type is selectable in the type dropdown when creating a new token",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 51,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-SWEEP-01",
+      "title": "Bug Sweep \u2014 Error Handling, Edge Cases, and Broken States",
+      "description": "As a developer, I want a systematic pass over the codebase to find and fix real bugs so that the plugin behaves correctly under edge cases and adverse conditions.",
+      "acceptanceCriteria": [
+        "Audit all fetch() calls in the plugin UI: every call must handle non-ok responses and network failures with a visible error message \u2014 no silent failures",
+        "SSE disconnect (useServerConnection) must show a clear 'Disconnected' state and attempt reconnection with exponential backoff; verify the current behavior is correct",
+        "Token creation must reject empty or whitespace-only token paths with an inline validation error before sending to the server",
+        "Switching sets while a token fetch is in-flight must not cause a stale-update race (cancel or ignore in-flight requests for the previous set)",
+        "The undo slot (US-006) must not restore state if the server rejected the original operation \u2014 verify the current undo implementation checks for this",
+        "Alias resolution in resolveAlias.ts must not infinitely loop on circular references \u2014 verify there is a cycle guard and add one if missing",
+        "Any console.error or unhandled promise rejection visible in the browser during normal use must be fixed",
+        "Read through all source files in all packages looking for logic bugs, unsafe assumptions, missing null checks, incorrect conditionals, and off-by-one errors \u2014 fix anything found regardless of whether it surfaces as a visible error",
+        "Typecheck passes"
+      ],
+      "priority": 52,
+      "passes": true,
+      "notes": "Both approaches are required: read the code manually for logic bugs, AND run dev-browser to catch runtime errors. Do not limit the sweep to observed symptoms."
+    },
+    {
+      "id": "US-SWEEP-02",
+      "title": "Dead Code and Cleanup Pass",
+      "description": "As a developer, I want all unreachable code, unused exports, and vestigial patterns removed so that the codebase stays lean and readable.",
+      "acceptanceCriteria": [
+        "Run TypeScript compiler with noUnusedLocals and noUnusedParameters (or equivalent) and fix all reported unused variables and parameters",
+        "Remove any imports that are no longer used anywhere in the codebase",
+        "Remove any components, hooks, or utility functions that are defined but never imported anywhere",
+        "Remove any TODO/FIXME comments that have been resolved; leave ones that represent real known gaps",
+        "Remove any commented-out blocks of code (not comments explaining logic, but commented-out implementation)",
+        "Ensure no duplicate type definitions exist across packages \u2014 if a type is defined in core and re-declared locally, use the core one",
+        "Typecheck passes",
+        "No new lint warnings introduced"
+      ],
+      "priority": 53,
+      "passes": true,
+      "notes": "Sweep the entire codebase \u2014 all packages. Do not limit to files changed on this branch."
+    },
+    {
+      "id": "US-SWEEP-03",
+      "title": "UX Polish \u2014 Feedback, Clarity, and Ease of Learning",
+      "description": "As a first-time user, I want the plugin to communicate clearly at every step so that I understand what is happening, what went wrong, and what to do next.",
+      "acceptanceCriteria": [
+        "Every destructive or slow action (delete, sync, push, export) must show a loading state on the triggering button for the full duration of the operation",
+        "Every error message shown to the user must be human-readable \u2014 no raw JavaScript error strings, fetch status codes, or JSON blobs exposed directly",
+        "Empty states: every panel that can be empty (no sets, no tokens, no themes, no git repo, no Figma selection) must show a sentence explaining why it is empty and what the user should do",
+        "All icon-only buttons must have a title or aria-label attribute so they are identifiable on hover and accessible to screen readers",
+        "Truncated token paths in the list must show the full path in a tooltip (title attribute is sufficient)",
+        "Success confirmations: operations that complete silently (e.g. token saved, theme updated) must show at minimum the existing notify toast so users know the action succeeded",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 54,
+      "passes": true,
+      "notes": "Focus on what a new user sees on their first run-through, not power-user flows."
+    },
+    {
+      "id": "US-SWEEP-04",
+      "title": "Quality of Life \u2014 Persistence, Defaults, and Friction Reduction",
+      "description": "As a returning user, I want the plugin to remember my context and reduce repetitive interactions so that daily use feels fast and frictionless.",
+      "acceptanceCriteria": [
+        "Last active set tab is persisted in localStorage and restored on plugin open",
+        "Last active main tab (Tokens / Themes / Sync / Analytics) is persisted in localStorage and restored on plugin open",
+        "Server URL is persisted in localStorage (already done via useServerConnection \u2014 verify it survives plugin close/reopen)",
+        "The token creation form remembers the last-used token type and pre-selects it for the next new token within the same session",
+        "Clicking the token type badge in the token list filters to that type (one-click filter shortcut)",
+        "Pressing Escape while the TokenEditor is open navigates back to the token list without requiring the Cancel button",
+        "Pressing Enter while focused on the commit message input in SyncPanel submits the commit (already partially implemented \u2014 verify it works and covers the edge case of an empty message)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 55,
+      "passes": true,
+      "notes": "Prefer localStorage over sessionStorage for anything that should survive plugin close. Use sessionStorage only for within-session state like expand/collapse."
+    }
+  ]
+}

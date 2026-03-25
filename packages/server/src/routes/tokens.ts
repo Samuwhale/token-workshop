@@ -7,7 +7,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const resolved = await fastify.tokenStore.resolveTokens();
       return resolved;
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to resolve tokens', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to resolve tokens', detail: String(err) });
     }
   });
 
@@ -20,6 +20,87 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     const flat = await fastify.tokenStore.getFlatTokensForSet(set);
     return { set: set, tokens: flat };
+  });
+
+  // POST /api/tokens/:set/groups/rename — rename a group (updates all token paths and alias refs)
+  fastify.post<{ Params: { set: string }; Body: { oldGroupPath: string; newGroupPath: string } }>(
+    '/tokens/:set/groups/rename',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { oldGroupPath, newGroupPath } = request.body ?? {};
+      if (!oldGroupPath || !newGroupPath) {
+        return reply.status(400).send({ error: 'oldGroupPath and newGroupPath are required' });
+      }
+      try {
+        const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath);
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
+        if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    },
+  );
+
+  // POST /api/tokens/:set/groups/move — move a group to a different set
+  fastify.post<{ Params: { set: string }; Body: { groupPath: string; targetSet: string } }>(
+    '/tokens/:set/groups/move',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { groupPath, targetSet } = request.body ?? {};
+      if (!groupPath || !targetSet) {
+        return reply.status(400).send({ error: 'groupPath and targetSet are required' });
+      }
+      try {
+        const result = await fastify.tokenStore.moveGroup(set, groupPath, targetSet);
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    },
+  );
+
+  // POST /api/tokens/:set/groups/duplicate — duplicate a group with a -copy suffix
+  fastify.post<{ Params: { set: string }; Body: { groupPath: string } }>(
+    '/tokens/:set/groups/duplicate',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { groupPath } = request.body ?? {};
+      if (!groupPath) {
+        return reply.status(400).send({ error: 'groupPath is required' });
+      }
+      try {
+        const result = await fastify.tokenStore.duplicateGroup(set, groupPath);
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    },
+  );
+
+  // POST /api/tokens/:set/bulk-rename — rename tokens by find/replace pattern
+  fastify.post<{
+    Params: { set: string };
+    Body: { find: string; replace: string; isRegex?: boolean };
+  }>('/tokens/:set/bulk-rename', async (request, reply) => {
+    const { set } = request.params;
+    const { find, replace, isRegex } = request.body ?? {};
+    if (!find || replace === undefined) {
+      return reply.status(400).send({ error: 'find and replace are required' });
+    }
+    try {
+      const result = await fastify.tokenStore.bulkRename(set, find, replace, isRegex);
+      return result;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+      return reply.status(500).send({ error: msg });
+    }
   });
 
   // GET /api/tokens/:set/* — get single token by path
@@ -40,7 +121,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const resolved = await fastify.tokenStore.resolveToken(tokenPath);
       return { path: tokenPath, token, resolved: resolved?.$value ?? null };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to get token', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to get token', detail: String(err) });
     }
   });
 
@@ -67,9 +148,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         await fastify.tokenStore.createToken(set, tokenPath, body as any);
-        reply.status(201).send({ path: tokenPath, set, token: body });
+        return reply.status(201).send({ path: tokenPath, set, token: body });
       } catch (err) {
-        reply.status(500).send({ error: 'Failed to create token', detail: String(err) });
+        return reply.status(500).send({ error: 'Failed to create token', detail: String(err) });
       }
     },
   );
@@ -93,7 +174,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         if (message.includes('not found')) {
           return reply.status(404).send({ error: message });
         }
-        reply.status(500).send({ error: 'Failed to update token', detail: message });
+        return reply.status(500).send({ error: 'Failed to update token', detail: message });
       }
     },
   );
@@ -113,7 +194,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return { deleted: true, path: tokenPath, set };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to delete token', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to delete token', detail: String(err) });
     }
   });
 };

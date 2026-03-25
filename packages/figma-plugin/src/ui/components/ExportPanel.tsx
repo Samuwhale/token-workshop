@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ExportPanelProps {
   serverUrl: string;
@@ -118,7 +118,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       setResults(flatFiles);
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Exported ${flatFiles.length} file(s)` } }, '*');
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setExporting(false);
     }
@@ -263,7 +263,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       const totalVars = figmaCollections.reduce((sum, c) => sum + c.variables.length, 0);
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Saved ${totalVars} variables to server` } }, '*');
     } catch (err) {
-      setError(String(err));
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setExporting(false);
     }

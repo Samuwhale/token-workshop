@@ -52,7 +52,13 @@ export class TokenStore {
   private async loadSet(filename: string): Promise<void> {
     const filePath = path.join(this.dir, filename);
     const content = await fs.readFile(filePath, 'utf-8');
-    const tokens = JSON.parse(content) as TokenGroup;
+    let tokens: TokenGroup;
+    try {
+      tokens = JSON.parse(content) as TokenGroup;
+    } catch {
+      console.warn(`[TokenStore] Skipping malformed JSON in "${filename}"`);
+      return;
+    }
     const name = filename.replace('.tokens.json', '');
     this.sets.set(name, { name, tokens, filePath });
   }
@@ -65,14 +71,18 @@ export class TokenStore {
 
     this.watcher.on('change', async (filePath) => {
       const filename = path.basename(filePath as string);
-      await this.loadSet(filename);
+      await this.loadSet(filename).catch(err =>
+        console.warn(`[TokenStore] Error reloading "${filename}":`, err),
+      );
       this.rebuildFlatTokens();
       this.emit({ type: 'set-updated', setName: filename.replace('.tokens.json', '') });
     });
 
     this.watcher.on('add', async (filePath) => {
       const filename = path.basename(filePath as string);
-      await this.loadSet(filename);
+      await this.loadSet(filename).catch(err =>
+        console.warn(`[TokenStore] Error loading new file "${filename}":`, err),
+      );
       this.rebuildFlatTokens();
       this.emit({ type: 'set-added', setName: filename.replace('.tokens.json', '') });
     });
@@ -107,19 +117,20 @@ export class TokenStore {
     prefix: string,
     setName: string,
     out: Map<string, { token: Token; setName: string }>,
+    parentType?: TokenType,
   ): void {
-    const inheritedType = group.$type;
+    const inheritedType = (group.$type ?? parentType) as TokenType | undefined;
     for (const [key, value] of Object.entries(group)) {
       if (key.startsWith('$')) continue;
       const fullPath = prefix ? `${prefix}.${key}` : key;
       if (isDTCGToken(value)) {
         const token = value as Token;
         const effective = !token.$type && inheritedType
-          ? { ...token, $type: inheritedType as TokenType }
+          ? { ...token, $type: inheritedType }
           : token;
         out.set(fullPath, { token: effective, setName });
       } else if (typeof value === 'object' && value !== null) {
-        this.flattenTokens(value as TokenGroup, fullPath, setName, out);
+        this.flattenTokens(value as TokenGroup, fullPath, setName, out, inheritedType);
       }
     }
   }
@@ -128,6 +139,28 @@ export class TokenStore {
 
   async getSets(): Promise<string[]> {
     return Array.from(this.sets.keys());
+  }
+
+  getSetDescriptions(): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const [name, set] of this.sets) {
+      const desc = (set.tokens as any).$description;
+      if (typeof desc === 'string' && desc) {
+        result[name] = desc;
+      }
+    }
+    return result;
+  }
+
+  async updateSetDescription(name: string, description: string): Promise<void> {
+    const set = this.sets.get(name);
+    if (!set) throw new Error(`Set "${name}" not found`);
+    if (description) {
+      (set.tokens as any).$description = description;
+    } else {
+      delete (set.tokens as any).$description;
+    }
+    await this.saveSet(name);
   }
 
   async getSet(name: string): Promise<TokenSet | undefined> {
@@ -155,6 +188,51 @@ export class TokenStore {
     return true;
   }
 
+  async renameSet(oldName: string, newName: string): Promise<void> {
+    if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
+      throw new Error('Set name must contain only alphanumeric characters, dashes, and underscores');
+    }
+    const set = this.sets.get(oldName);
+    if (!set) throw new Error(`Set "${oldName}" not found`);
+    if (this.sets.has(newName)) throw new Error(`Set "${newName}" already exists`);
+
+    const oldFilePath = path.join(this.dir, `${oldName}.tokens.json`);
+    const newFilePath = path.join(this.dir, `${newName}.tokens.json`);
+
+    // Write new file first (safe: new name doesn't exist yet)
+    await fs.writeFile(newFilePath, JSON.stringify(set.tokens, null, 2));
+
+    // Update $themes.json: replace all references to oldName with newName
+    const themesPath = path.join(this.dir, '$themes.json');
+    try {
+      const content = await fs.readFile(themesPath, 'utf-8');
+      const data = JSON.parse(content) as { $themes: Array<{ sets: Record<string, unknown> }> };
+      if (Array.isArray(data.$themes)) {
+        for (const theme of data.$themes) {
+          if (theme.sets && oldName in theme.sets) {
+            theme.sets[newName] = theme.sets[oldName];
+            delete theme.sets[oldName];
+          }
+        }
+        await fs.writeFile(themesPath, JSON.stringify(data, null, 2));
+      }
+    } catch {
+      // No themes file or parse error — that's fine, nothing to update
+    }
+
+    // Update in-memory state
+    const newSet: TokenSet = { name: newName, tokens: set.tokens, filePath: newFilePath };
+    this.sets.set(newName, newSet);
+    this.sets.delete(oldName);
+
+    // Delete old file
+    await fs.unlink(oldFilePath);
+
+    this.rebuildFlatTokens();
+    this.emit({ type: 'set-removed', setName: oldName });
+    this.emit({ type: 'set-added', setName: newName });
+  }
+
   async getToken(setName: string, tokenPath: string): Promise<Token | undefined> {
     const set = this.sets.get(setName);
     if (!set) return undefined;
@@ -179,7 +257,12 @@ export class TokenStore {
     if (!set) throw new Error(`Set "${setName}" not found`);
     const existing = this.getTokenAtPath(set.tokens, tokenPath);
     if (!existing) throw new Error(`Token "${tokenPath}" not found in set "${setName}"`);
-    Object.assign(existing, token);
+    // Replace known token fields explicitly so stale properties don't persist.
+    // A partial update only touches keys that are present in the incoming object.
+    if ('$value' in token) existing.$value = token.$value!;
+    if ('$type' in token) existing.$type = token.$type;
+    if ('$description' in token) existing.$description = token.$description;
+    if ('$extensions' in token) existing.$extensions = token.$extensions;
     await this.saveSet(setName);
     this.rebuildFlatTokens();
   }
@@ -244,6 +327,222 @@ export class TokenStore {
       result[name] = set.tokens;
     }
     return result;
+  }
+
+  // ----- Group operations -----
+
+  /** Collect all leaf tokens under a group path, with relative paths from the group root */
+  private collectGroupLeafTokens(tokens: TokenGroup, groupPath: string): Array<{ relativePath: string; token: Token }> {
+    const parts = groupPath.split('.');
+    let current: any = tokens;
+    for (const part of parts) {
+      if (!current || typeof current !== 'object') return [];
+      current = current[part];
+    }
+    if (!current || typeof current !== 'object' || isDTCGToken(current)) return [];
+    const result: Array<{ relativePath: string; token: Token }> = [];
+    const walk = (obj: any, prefix: string) => {
+      for (const [key, val] of Object.entries(obj as object)) {
+        if (key.startsWith('$')) continue;
+        const relPath = prefix ? `${prefix}.${key}` : key;
+        if (isDTCGToken(val)) {
+          result.push({ relativePath: relPath, token: val as Token });
+        } else if (typeof val === 'object' && val !== null) {
+          walk(val, relPath);
+        }
+      }
+    };
+    walk(current, '');
+    return result;
+  }
+
+  /** Update alias $value references from oldGroupPath to newGroupPath across a token tree */
+  private updateAliasRefs(group: any, oldGroupPath: string, newGroupPath: string): number {
+    let count = 0;
+    const oldPrefix = `{${oldGroupPath}.`;
+    const newPrefix = `{${newGroupPath}.`;
+    const walk = (obj: any) => {
+      for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        if (key === '$value' && typeof val === 'string' && val.startsWith(oldPrefix)) {
+          obj[key] = newPrefix + val.slice(oldPrefix.length);
+          count++;
+        } else if (typeof val === 'object' && val !== null) {
+          walk(val);
+        }
+      }
+    };
+    walk(group);
+    return count;
+  }
+
+  /** Update alias $value references using a full path map (oldPath -> newPath) */
+  private updateBulkAliasRefs(group: any, pathMap: Map<string, string>): number {
+    let count = 0;
+    const walk = (obj: any) => {
+      for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        if (key === '$value' && typeof val === 'string' && val.startsWith('{') && val.endsWith('}')) {
+          const refPath = val.slice(1, -1);
+          if (pathMap.has(refPath)) {
+            obj[key] = `{${pathMap.get(refPath)}}`;
+            count++;
+          }
+        } else if (typeof val === 'object' && val !== null) {
+          walk(val);
+        }
+      }
+    };
+    walk(group);
+    return count;
+  }
+
+  private pathExistsAt(tokens: TokenGroup, path: string): boolean {
+    const parts = path.split('.');
+    let current: any = tokens;
+    for (const part of parts) {
+      if (!current || typeof current !== 'object') return false;
+      current = current[part];
+    }
+    return current !== undefined;
+  }
+
+  async renameGroup(setName: string, oldGroupPath: string, newGroupPath: string): Promise<{ renamedCount: number; aliasesUpdated: number }> {
+    const set = this.sets.get(setName);
+    if (!set) throw new Error(`Set "${setName}" not found`);
+    const leafTokens = this.collectGroupLeafTokens(set.tokens, oldGroupPath);
+    if (leafTokens.length === 0) throw new Error(`Group "${oldGroupPath}" not found or is empty`);
+    for (const { relativePath } of leafTokens) {
+      const newPath = `${newGroupPath}.${relativePath}`;
+      if (this.getTokenAtPath(set.tokens, newPath)) {
+        throw new Error(`Token at path "${newPath}" already exists`);
+      }
+    }
+    for (const { relativePath, token } of leafTokens) {
+      this.setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, token);
+    }
+    this.deleteTokenAtPath(set.tokens, oldGroupPath);
+    await this.saveSet(setName);
+    let aliasesUpdated = 0;
+    const setsToSave = new Set<string>();
+    for (const [sName, s] of this.sets) {
+      const changed = this.updateAliasRefs(s.tokens, oldGroupPath, newGroupPath);
+      if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+    }
+    for (const sName of setsToSave) await this.saveSet(sName);
+    this.rebuildFlatTokens();
+    return { renamedCount: leafTokens.length, aliasesUpdated };
+  }
+
+  async moveGroup(fromSet: string, groupPath: string, toSet: string): Promise<{ movedCount: number }> {
+    if (fromSet === toSet) throw new Error('Source and target sets are the same');
+    const source = this.sets.get(fromSet);
+    if (!source) throw new Error(`Set "${fromSet}" not found`);
+    const target = this.sets.get(toSet);
+    if (!target) throw new Error(`Set "${toSet}" not found`);
+    const leafTokens = this.collectGroupLeafTokens(source.tokens, groupPath);
+    if (leafTokens.length === 0) throw new Error(`Group "${groupPath}" not found or is empty`);
+    for (const { relativePath, token } of leafTokens) {
+      this.setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, token);
+    }
+    this.deleteTokenAtPath(source.tokens, groupPath);
+    await this.saveSet(fromSet);
+    await this.saveSet(toSet);
+    this.rebuildFlatTokens();
+    return { movedCount: leafTokens.length };
+  }
+
+  async duplicateGroup(setName: string, groupPath: string): Promise<{ newGroupPath: string; count: number }> {
+    const set = this.sets.get(setName);
+    if (!set) throw new Error(`Set "${setName}" not found`);
+    const leafTokens = this.collectGroupLeafTokens(set.tokens, groupPath);
+    if (leafTokens.length === 0) throw new Error(`Group "${groupPath}" not found or is empty`);
+    const lastDot = groupPath.lastIndexOf('.');
+    const parentPath = lastDot >= 0 ? groupPath.slice(0, lastDot) : '';
+    const baseName = lastDot >= 0 ? groupPath.slice(lastDot + 1) : groupPath;
+    const makeNewPath = (suffix: string) => parentPath ? `${parentPath}.${suffix}` : suffix;
+    let newGroupPath = makeNewPath(`${baseName}-copy`);
+    let attempt = 2;
+    while (this.pathExistsAt(set.tokens, newGroupPath)) {
+      newGroupPath = makeNewPath(`${baseName}-copy-${attempt++}`);
+    }
+    for (const { relativePath, token } of leafTokens) {
+      this.setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, JSON.parse(JSON.stringify(token)));
+    }
+    await this.saveSet(setName);
+    this.rebuildFlatTokens();
+    return { newGroupPath, count: leafTokens.length };
+  }
+
+  async bulkRename(
+    setName: string,
+    find: string,
+    replace: string,
+    isRegex = false,
+  ): Promise<{ renamed: number; skipped: string[]; aliasesUpdated: number }> {
+    const set = this.sets.get(setName);
+    if (!set) throw new Error(`Set "${setName}" not found`);
+
+    const flatTokens = await this.getFlatTokensForSet(setName);
+
+    let pattern: RegExp | null = null;
+    if (isRegex) {
+      try {
+        pattern = new RegExp(find, 'g');
+      } catch {
+        throw new Error(`Invalid regex pattern: "${find}"`);
+      }
+    }
+
+    // Compute all intended renames
+    const renames: Array<{ oldPath: string; newPath: string; token: Token }> = [];
+    for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      const newPath = pattern
+        ? tokenPath.replace(pattern, replace)
+        : tokenPath.split(find).join(replace);
+      if (newPath !== tokenPath) {
+        renames.push({ oldPath: tokenPath, newPath, token });
+      }
+    }
+
+    // Check for collisions: new path already exists and won't be freed by this rename batch
+    const oldPaths = new Set(renames.map(r => r.oldPath));
+    const skipped: string[] = [];
+    const filteredRenames: Array<{ oldPath: string; newPath: string; token: Token }> = [];
+    for (const rename of renames) {
+      const existsInSet = this.getTokenAtPath(set.tokens, rename.newPath) !== undefined;
+      const willBeFreed = oldPaths.has(rename.newPath);
+      if (existsInSet && !willBeFreed) {
+        skipped.push(rename.oldPath);
+      } else {
+        filteredRenames.push(rename);
+      }
+    }
+
+    // Apply: set new paths first, then remove old ones
+    for (const { newPath, token } of filteredRenames) {
+      this.setTokenAtPath(set.tokens, newPath, token);
+    }
+    for (const { oldPath } of filteredRenames) {
+      this.deleteTokenAtPath(set.tokens, oldPath);
+    }
+    await this.saveSet(setName);
+
+    // Update alias references across all sets
+    const pathMap = new Map(filteredRenames.map(r => [r.oldPath, r.newPath]));
+    let aliasesUpdated = 0;
+    const setsToSave = new Set<string>();
+    for (const [sName, s] of this.sets) {
+      const changed = this.updateBulkAliasRefs(s.tokens, pathMap);
+      if (changed > 0) {
+        aliasesUpdated += changed;
+        setsToSave.add(sName);
+      }
+    }
+    for (const sName of setsToSave) await this.saveSet(sName);
+
+    this.rebuildFlatTokens();
+    return { renamed: filteredRenames.length, skipped, aliasesUpdated };
   }
 
   // ----- Path helpers -----
