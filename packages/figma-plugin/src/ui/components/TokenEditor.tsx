@@ -196,7 +196,6 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             {tokenType === 'number' && <NumberEditor value={value} onChange={setValue} />}
             {tokenType === 'string' && <StringEditor value={value} onChange={setValue} />}
             {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
-            {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
           </div>
         )}
 
@@ -585,141 +584,203 @@ function BooleanEditor({ value, onChange }: { value: any; onChange: (v: any) => 
   );
 }
 
-function GradientEditor({
-  value,
-  onChange,
-  allTokensFlat,
-  pathToSet,
-}: {
+interface GradientStop {
+  color: string;
+  position: number;
+}
+
+interface GradientEditorProps {
   value: any;
   onChange: (v: any) => void;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
-}) {
-  const stops: Array<{ color: string; position: number }> = Array.isArray(value) && value.length >= 1
-    ? value
+}
+
+function GradientEditor({ value, onChange, allTokensFlat, pathToSet }: GradientEditorProps) {
+  const stops: GradientStop[] = Array.isArray(value?.stops) && value.stops.length >= 2
+    ? value.stops
     : [{ color: '#000000', position: 0 }, { color: '#ffffff', position: 1 }];
+  const gradientType: string = value?.type || 'linear';
 
-  const [showAC, setShowAC] = useState<Record<number, boolean>>({});
-
-  const updateStop = (idx: number, key: string, val: any) => {
-    onChange(stops.map((s, i) => (i === idx ? { ...s, [key]: val } : s)));
+  const updateStop = (idx: number, patch: Partial<GradientStop>) => {
+    const next = stops.map((s, i) => i === idx ? { ...s, ...patch } : s);
+    onChange({ ...value, stops: next });
   };
+
+  const addStop = () => {
+    onChange({ ...value, stops: [...stops, { color: '#808080', position: 0.5 }] });
+  };
+
+  const removeStop = (idx: number) => {
+    if (stops.length <= 2) return;
+    onChange({ ...value, stops: stops.filter((_, i) => i !== idx) });
+  };
+
+  const previewParts = stops
+    .slice()
+    .sort((a, b) => a.position - b.position)
+    .map(s => {
+      const color = typeof s.color === 'string' && !s.color.startsWith('{') ? s.color : '#aaaaaa';
+      return `${color} ${Math.round(s.position * 100)}%`;
+    })
+    .join(', ');
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Gradient preview strip */}
+      <div className="flex gap-2 items-center">
+        <div className={labelClass}>Type</div>
+        <select
+          value={gradientType}
+          onChange={e => onChange({ ...value, type: e.target.value })}
+          className={inputClass + ' flex-1'}
+        >
+          <option value="linear">Linear</option>
+          <option value="radial">Radial</option>
+        </select>
+      </div>
       <div
-        className="h-5 rounded border border-[var(--color-figma-border)]"
-        style={{
-          background: `linear-gradient(to right, ${stops.map(s => {
-            const c = typeof s.color === 'string' && !s.color.startsWith('{') ? s.color : '#cccccc';
-            return `${c} ${Math.round(s.position * 100)}%`;
-          }).join(', ')})`,
-        }}
+        className="w-full h-6 rounded border border-[var(--color-figma-border)]"
+        style={{ background: `${gradientType}-gradient(to right, ${previewParts})` }}
       />
-
-      {stops.map((stop, idx) => {
-        const isAliasMode = typeof stop.color === 'string' && stop.color.startsWith('{');
-        return (
-          <div key={idx} className="p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)]">Stop {idx + 1}</span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => {
-                    if (isAliasMode) {
-                      updateStop(idx, 'color', '#000000');
-                      setShowAC(prev => ({ ...prev, [idx]: false }));
-                    } else {
-                      updateStop(idx, 'color', '{');
-                      setShowAC(prev => ({ ...prev, [idx]: true }));
-                    }
-                  }}
-                  className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${isAliasMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                >
-                  {isAliasMode ? '→ alias' : 'raw'}
-                </button>
-                {stops.length > 2 && (
-                  <button
-                    onClick={() => onChange(stops.filter((_, i) => i !== idx))}
-                    className="text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1 leading-none"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {isAliasMode ? (
-              <div className="relative">
-                <input
-                  type="text"
-                  value={stop.color}
-                  autoFocus={stop.color === '{'}
-                  onChange={e => {
-                    const v = e.target.value;
-                    updateStop(idx, 'color', v);
-                    setShowAC(prev => ({ ...prev, [idx]: v.includes('{') && !v.endsWith('}') }));
-                  }}
-                  onFocus={() => setShowAC(prev => ({ ...prev, [idx]: true }))}
-                  onBlur={() => setTimeout(() => setShowAC(prev => ({ ...prev, [idx]: false })), 150)}
-                  placeholder="{color.primary}"
-                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] outline-none font-mono"
-                />
-                {showAC[idx] && (
-                  <AliasAutocomplete
-                    query={stop.color.startsWith('{') ? stop.color.slice(1).replace(/\}.*$/, '') : stop.color}
-                    allTokensFlat={allTokensFlat}
-                    pathToSet={pathToSet}
-                    filterType="color"
-                    onSelect={path => {
-                      updateStop(idx, 'color', `{${path}}`);
-                      setShowAC(prev => ({ ...prev, [idx]: false }));
-                    }}
-                    onClose={() => setShowAC(prev => ({ ...prev, [idx]: false }))}
-                  />
-                )}
-              </div>
-            ) : (
-              <div className="flex gap-2 items-center">
-                <input
-                  type="color"
-                  value={(typeof stop.color === 'string' ? stop.color : '#000000').slice(0, 7)}
-                  onChange={e => updateStop(idx, 'color', e.target.value)}
-                  className="w-7 h-7 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent shrink-0"
-                />
-                <input
-                  type="text"
-                  value={typeof stop.color === 'string' ? stop.color : '#000000'}
-                  onChange={e => updateStop(idx, 'color', e.target.value)}
-                  className={inputClass + ' flex-1'}
-                />
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <label className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Position</label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                value={Math.round(stop.position * 100)}
-                onChange={e => updateStop(idx, 'position', Math.min(1, Math.max(0, (parseInt(e.target.value) || 0) / 100)))}
-                className={inputClass + ' flex-1'}
-              />
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)]">%</span>
-            </div>
-          </div>
-        );
-      })}
-
+      <div className={labelClass}>Stops</div>
+      {stops.map((stop, idx) => (
+        <GradientStopRow
+          key={idx}
+          stop={stop}
+          canRemove={stops.length > 2}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          onChange={patch => updateStop(idx, patch)}
+          onRemove={() => removeStop(idx)}
+        />
+      ))}
       <button
-        onClick={() => onChange([...stops, { color: '#808080', position: 1 }])}
-        className="py-1 text-[10px] text-[var(--color-figma-text-secondary)] border border-dashed border-[var(--color-figma-border)] rounded hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+        type="button"
+        onClick={addStop}
+        className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left"
       >
         + Add stop
       </button>
     </div>
   );
 }
+
+function GradientStopRow({ stop, canRemove, allTokensFlat, pathToSet, onChange, onRemove }: {
+  stop: GradientStop;
+  canRemove: boolean;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToSet: Record<string, string>;
+  onChange: (patch: Partial<GradientStop>) => void;
+  onRemove: () => void;
+}) {
+  const colorIsAlias = typeof stop.color === 'string' && stop.color.startsWith('{');
+  const [aliasMode, setAliasMode] = useState(colorIsAlias);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const aliasInputRef = useRef<HTMLInputElement>(null);
+
+  const toggleAliasMode = () => {
+    const next = !aliasMode;
+    setAliasMode(next);
+    if (next) {
+      onChange({ color: colorIsAlias ? stop.color : '{' });
+      setTimeout(() => aliasInputRef.current?.focus(), 0);
+    } else {
+      onChange({ color: '#000000' });
+      setShowAutocomplete(false);
+    }
+  };
+
+  const aliasQuery = (() => {
+    const c = stop.color || '';
+    const openIdx = c.lastIndexOf('{');
+    if (openIdx === -1) return '';
+    return c.slice(openIdx + 1).replace(/\}.*$/, '');
+  })();
+
+  return (
+    <div className="flex items-start gap-1.5">
+      <div className="w-16 shrink-0">
+        <StepperInput
+          value={Math.round(stop.position * 100)}
+          onChange={v => onChange({ position: Math.max(0, Math.min(100, v)) / 100 })}
+          className="w-full"
+        />
+      </div>
+      <div className="flex-1 relative min-w-0">
+        {aliasMode ? (
+          <>
+            <input
+              ref={aliasInputRef}
+              type="text"
+              value={stop.color || '{'}
+              onChange={e => {
+                const v = e.target.value;
+                onChange({ color: v });
+                setShowAutocomplete(v.includes('{') && !v.endsWith('}'));
+              }}
+              onFocus={() => {
+                if ((stop.color || '').includes('{') && !(stop.color || '').endsWith('}')) {
+                  setShowAutocomplete(true);
+                }
+              }}
+              onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
+              placeholder="{color.primary}"
+              className={inputClass}
+            />
+            {showAutocomplete && (
+              <AliasAutocomplete
+                query={aliasQuery}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                filterType="color"
+                onSelect={path => {
+                  onChange({ color: `{${path}}` });
+                  setShowAutocomplete(false);
+                }}
+                onClose={() => setShowAutocomplete(false)}
+              />
+            )}
+          </>
+        ) : (
+          <div className="flex gap-1.5 items-center">
+            <input
+              type="color"
+              value={(stop.color || '#000000').slice(0, 7)}
+              onChange={e => onChange({ color: e.target.value })}
+              className="w-8 h-[26px] rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent shrink-0"
+            />
+            <input
+              type="text"
+              value={stop.color || '#000000'}
+              onChange={e => onChange({ color: e.target.value })}
+              placeholder="#000000"
+              className={inputClass + ' flex-1'}
+            />
+          </div>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={toggleAliasMode}
+        title={aliasMode ? 'Switch to raw color' : 'Switch to alias mode'}
+        className={`p-1.5 rounded border transition-colors shrink-0 ${aliasMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+      >
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <path d="M1 4h2.5M4.5 4H7M5.5 2L7 4L5.5 6M2.5 2L1 4L2.5 6"/>
+        </svg>
+      </button>
+      {canRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+        >
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+

@@ -86,8 +86,31 @@ export function resolveAllAliases(
   const resolved: Record<string, TokenMapEntry> = {};
   for (const [path, entry] of Object.entries(tokenMap)) {
     const result = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+    let resolvedValue = result.value ?? entry.$value;
+
+    // Resolve alias references embedded in gradient stop colors
+    if (
+      entry.$type === 'gradient' &&
+      resolvedValue &&
+      typeof resolvedValue === 'object' &&
+      Array.isArray(resolvedValue.stops)
+    ) {
+      const resolvedStops = resolvedValue.stops.map((stop: any) => {
+        if (typeof stop.color === 'string' && stop.color.startsWith('{') && stop.color.endsWith('}')) {
+          const refPath = stop.color.slice(1, -1);
+          const refEntry = tokenMap[refPath];
+          if (refEntry) {
+            const refResult = resolveTokenValue(refEntry.$value, refEntry.$type, tokenMap);
+            return { ...stop, color: refResult.value ?? stop.color };
+          }
+        }
+        return stop;
+      });
+      resolvedValue = { ...resolvedValue, stops: resolvedStops };
+    }
+
     resolved[path] = {
-      $value: result.value ?? entry.$value,
+      $value: resolvedValue,
       $type: result.$type,
     };
   }
