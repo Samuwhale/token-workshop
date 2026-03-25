@@ -654,3 +654,27 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - `App.tsx`: `showColorScaleGen` state, modal rendering, wired to EmptyState
 - Files changed: `ColorScaleGenerator.tsx` (new), `EmptyState.tsx`, `App.tsx`
 - **Learning**: SVG circle title must be a child `<title>` element in React, not a prop
+
+---
+
+## 2026-03-25 — US-037: Two-Way Variable Sync with Unified Diff
+
+**Implemented**:
+- Added `VarDiffRow` interface and `flattenForVarDiff()` helper to SyncPanel.tsx (recursive flatten of nested token tree including $type)
+- Added `activeSet: string` prop to SyncPanel; updated App.tsx to pass it
+- Added `varReadResolveRef` useRef to capture async `variables-read` message from controller
+- Added useEffect message listener for `variables-read` from controller (promise-based with 10s timeout)
+- `computeVarDiff()`: sends `read-variables` to controller, awaits response, fetches local tokens from `/api/tokens/:set`, computes diff into VarDiffRow[]
+  - Categories: local-only (in local, not in Figma), figma-only (in Figma, not in local), conflict (both but values differ)
+  - Defaults: local-only → push, figma-only → pull, conflicts → push
+- `applyVarDiff()`: push rows → `apply-variables` controller message; pull rows → PUT `/api/tokens/:set/:path`
+- Variable Sync UI section added above existing Two-Way Sync (git) section
+  - "Compute Diff" button, diff rows with direction selects (Push ↑ / Pull ↓ / Skip), "Apply Choices" button
+  - Shows token count, errors, and in-sync state
+- Files changed: `SyncPanel.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - Controller message pattern: send with `parent.postMessage({ pluginMessage: ... }, '*')`, receive via `window.addEventListener('message', ...)`
+  - `variables-read` payload: `{ type: 'variables-read', tokens: [{ path, $type, $value, collection }] }`
+  - `apply-variables` payload: `{ type: 'apply-variables', tokens: [{ path, $type, $value }] }`
+  - Token path in controller uses `.` separators (Figma variable names use `/` separators, converted by controller)
+  - Promise-based message listener requires useRef to store resolve callback (avoids stale closure)
