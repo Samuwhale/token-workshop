@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
 import { TokenList } from './components/TokenList';
 import { TokenEditor } from './components/TokenEditor';
 import { ThemeManager } from './components/ThemeManager';
@@ -11,6 +11,8 @@ import { UndoToast } from './components/UndoToast';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmptyState } from './components/EmptyState';
 import { PasteTokensModal } from './components/PasteTokensModal';
+import { CommandPalette } from './components/CommandPalette';
+import type { Command } from './components/CommandPalette';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
@@ -88,6 +90,7 @@ export function App() {
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const { toastVisible, slot: undoSlot, pushUndo, executeUndo, dismissToast } = useUndo();
   const [showPasteModal, setShowPasteModal] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Set context menu state
@@ -171,12 +174,16 @@ export function App() {
     return () => document.removeEventListener('mousedown', handler);
   }, [tabMenuOpen]);
 
-  // Keyboard shortcut: Cmd/Ctrl + Shift + V → Paste Tokens
+  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
         e.preventDefault();
         setShowPasteModal(true);
+      }
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(v => !v);
       }
     };
     document.addEventListener('keydown', handler);
@@ -288,6 +295,70 @@ export function App() {
     setMenuOpen(false);
     setOverflowPanel(panel);
   };
+
+  const commands: Command[] = useMemo(() => {
+    const goToTokens = () => { setActiveTab('tokens'); setOverflowPanel(null); setEditingToken(null); };
+    const cmds: Command[] = [
+      {
+        id: 'new-token',
+        label: 'Create new token',
+        description: `In set: ${activeSet}`,
+        handler: () => { goToTokens(); },
+      },
+      {
+        id: 'paste-tokens',
+        label: 'Paste tokens',
+        description: 'Create tokens from JSON or name:value lines (⌘⇧V)',
+        handler: () => setShowPasteModal(true),
+      },
+      {
+        id: 'find-replace-names',
+        label: 'Find & Replace (names)',
+        description: 'Rename token paths by pattern',
+        handler: goToTokens,
+      },
+      {
+        id: 'import',
+        label: 'Import',
+        description: 'Import tokens from a file',
+        handler: () => openOverflowPanel('import'),
+      },
+      {
+        id: 'export',
+        label: 'Export',
+        description: 'Export tokens as CSS, JSON, or other formats',
+        handler: () => openOverflowPanel('export'),
+      },
+      {
+        id: 'settings',
+        label: 'Server Settings',
+        handler: () => openOverflowPanel('settings'),
+      },
+      {
+        id: 'themes',
+        label: 'Switch to Themes',
+        handler: () => setActiveTab('themes'),
+      },
+      {
+        id: 'sync',
+        label: 'Switch to Sync',
+        handler: () => setActiveTab('sync'),
+      },
+      {
+        id: 'analytics',
+        label: 'Switch to Analytics',
+        handler: () => setActiveTab('analytics'),
+      },
+      ...sets.map(s => ({
+        id: `switch-set-${s}`,
+        label: `Switch to set: ${s}`,
+        description: `${setTokenCounts[s] ?? 0} tokens`,
+        handler: () => { setActiveSet(s); goToTokens(); },
+      })),
+    ];
+    return cmds;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSet, sets, setTokenCounts]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -654,6 +725,14 @@ export function App() {
           danger
           onConfirm={handleDeleteSet}
           onCancel={() => setDeletingSet(null)}
+        />
+      )}
+
+      {/* Command Palette */}
+      {showCommandPalette && (
+        <CommandPalette
+          commands={commands}
+          onClose={() => setShowCommandPalette(false)}
         />
       )}
 
