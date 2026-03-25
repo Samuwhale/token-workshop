@@ -864,7 +864,7 @@
         "No new lint warnings introduced"
       ],
       "priority": 53,
-      "passes": false,
+      "passes": true,
       "notes": "Sweep the entire codebase \u2014 all packages. Do not limit to files changed on this branch."
     },
     {

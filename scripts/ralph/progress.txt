@@ -901,3 +901,18 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - Escape key in TokenEditor navigates back
 - Enter in SyncPanel commit already implemented
 
+
+## 2026-03-25 - US-SWEEP-02
+- Dead code and cleanup pass
+- Files changed: all UI component files (React import removal), `ColorScaleGenerator.tsx`, `docs.ts`
+- **Changes made:**
+  - Removed `import React` from all component files (tsconfig uses `react-jsx` transform; React not needed)
+  - Added `Fragment` to named imports in `TokenList.tsx` (for `<Fragment key={...}>` with key prop)
+  - Fixed `[bL, bA, bB]` → `[, bA, bB]` in ColorScaleGenerator (bL unused)
+  - Removed unused `flattenTokens()` function from docs.ts (route uses `getFlatTokensForSet` instead)
+  - Removed unused `allSets` parameter from `renderSetPage()` in docs.ts
+  - No TODO/FIXME or commented-out code blocks found
+- **Learnings for future iterations:**
+  - `react-jsx` transform = don't import React for JSX; only import named hooks/utilities
+  - Use `[, value]` destructuring to silence unused-first-element errors
+  - `noUnusedLocals` + `noUnusedParameters` flags work well as one-off checks even when not in tsconfig
