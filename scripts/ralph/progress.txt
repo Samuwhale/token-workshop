@@ -514,3 +514,13 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Fuzzy scoring gives bonus points for consecutive character matches
   - Mouse hover should sync `activeIdx` (not just highlight) to keep keyboard/mouse in sync
 ---
+
+## 2026-03-25 - US-030
+- Created `ScaffoldingWizard.tsx` — two-step wizard (pick preset → configure prefix + preview → create). 5 presets: spacing (7 tokens), border-radius (7), typography font sizes (8), z-index (8), opacity (4). Creates tokens via POST, ignores 409 conflicts (already exists).
+- Added 'Use preset' button in TokenList bottom bar (alongside + New Token)
+- Added `onUsePreset` prop to EmptyState and wired ScaffoldingWizard in App.tsx for empty state
+- Files changed: `ScaffoldingWizard.tsx` (new), `EmptyState.tsx`, `TokenList.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - POST returns 409 on path collision; wizard ignores these (skip existing tokens)
+  - Empty state now wired to PasteTokensModal (changed from 'import panel') and ScaffoldingWizard
+---
