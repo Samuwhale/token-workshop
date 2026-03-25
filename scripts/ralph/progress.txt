@@ -555,3 +555,11 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - Service: `validateAllTokens(tokenStore)` in `packages/server/src/services/lint.ts` — checks broken aliases, circular refs, missing $type, value/type mismatches, alias chain depth; returns `ValidationIssue[]` with `setName` field
 - Plugin: `AnalyticsPanel.tsx` extended with Validate All button, severity filter chips (all/error/warning/info), scrollable results list with Jump-to-token links
 - App.tsx: added `validateKey` state, "Validate All Tokens" command palette entry, `onNavigateToToken` prop wired to set switch + pending highlight
+
+## 2026-03-25 — US-033: Color Contrast Checker
+
+**Implemented**:
+- WCAG contrast utilities (hexToLuminance, wcagContrast, resolveColorValue) added to TokenEditor.tsx
+- TokenEditor: "Check contrast" collapsible panel for color tokens — pick background color token from dropdown, see contrast ratio, preview swatch, and AA/AAA grid for normal text, large text, and UI components
+- AnalyticsPanel: collapsible color contrast matrix — shows all raw color token pairs with contrast ratios color-coded by AAA/AA/fail; capped at 16 tokens for performance
+- contrastRatio/hexToLuminance added to AnalyticsPanel.tsx as local utils
