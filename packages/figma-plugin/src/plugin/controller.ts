@@ -63,6 +63,12 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'delete-orphan-variables':
       await deleteOrphanVariables(msg.knownPaths);
       break;
+    case 'scan-component-coverage':
+      await scanComponentCoverage();
+      break;
+    case 'select-node':
+      await selectNode(msg.nodeId);
+      break;
   }
 };
 
@@ -230,6 +236,63 @@ async function applyEffectStyle(token: any) {
     } as DropShadowEffect;
   });
   style.setPluginData('tokenPath', token.path);
+}
+
+// Scan component nodes for token coverage
+async function scanComponentCoverage() {
+  try {
+    const components = figma.currentPage.findAllWithCriteria({ types: ['COMPONENT'] });
+    const CHECKABLE_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius'];
+
+    let tokenized = 0;
+    const untokenized: { id: string; name: string; hardcodedCount: number }[] = [];
+
+    for (const node of components) {
+      const bound = (node as any).boundVariables || {};
+      const boundProps = new Set(Object.keys(bound).filter(k => {
+        const v = bound[k];
+        return v && (typeof v === 'object') && ('id' in v || (Array.isArray(v) && v.length > 0));
+      }));
+
+      // Count hardcoded: props that exist on node but aren't bound
+      let hardcodedCount = 0;
+      for (const prop of CHECKABLE_PROPS) {
+        if (prop in node) {
+          const val = (node as any)[prop];
+          const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
+          if (hasValue && !boundProps.has(prop)) hardcodedCount++;
+        }
+      }
+
+      if (boundProps.size > 0 && hardcodedCount === 0) {
+        tokenized++;
+      } else {
+        untokenized.push({ id: node.id, name: node.name, hardcodedCount });
+      }
+    }
+
+    figma.ui.postMessage({
+      type: 'component-coverage-result',
+      totalComponents: components.length,
+      tokenizedComponents: tokenized,
+      untokenized: untokenized.slice(0, 100), // cap list size
+    });
+  } catch (error) {
+    figma.ui.postMessage({ type: 'error', message: String(error) });
+  }
+}
+
+// Select a node by ID on the canvas
+async function selectNode(nodeId: string) {
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (node && 'parent' in node) {
+      figma.currentPage.selection = [node as SceneNode];
+      figma.viewport.scrollAndZoomIntoView([node as SceneNode]);
+    }
+  } catch (error) {
+    // Silently ignore — node might not be accessible
+  }
 }
 
 // Delete Figma variables in TokenManager collection that are not in the known paths list

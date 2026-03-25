@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 // WCAG contrast helpers (duplicated locally to avoid shared dep)
 function hexToLuminance(hex: string): number | null {
@@ -86,6 +86,16 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [reloadKey, setReloadKey] = useState(0);
   const [showScaleInspector, setShowScaleInspector] = useState(false);
 
+  // Component coverage state
+  const [coverageResult, setCoverageResult] = useState<{
+    totalComponents: number;
+    tokenizedComponents: number;
+    untokenized: { id: string; name: string; hardcodedCount: number }[];
+  } | null>(null);
+  const [coverageLoading, setCoverageLoading] = useState(false);
+  const [showCoverage, setShowCoverage] = useState(false);
+  const coverageResolveRef = useRef<((data: any) => void) | null>(null);
+
   const runValidate = useCallback(async () => {
     if (!connected) return;
     setValidateLoading(true);
@@ -105,6 +115,40 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   useEffect(() => {
     if (validateKey && validateKey > 0) runValidate();
   }, [validateKey, runValidate]);
+
+  // Listen for component-coverage-result from controller
+  useEffect(() => {
+    const handler = (ev: MessageEvent) => {
+      const msg = ev.data?.pluginMessage;
+      if (msg?.type === 'component-coverage-result' && coverageResolveRef.current) {
+        coverageResolveRef.current(msg);
+        coverageResolveRef.current = null;
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const runCoverageScan = useCallback(async () => {
+    setCoverageLoading(true);
+    setCoverageResult(null);
+    try {
+      const result = await new Promise<any>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          coverageResolveRef.current = null;
+          reject(new Error('Scan timed out'));
+        }, 30000);
+        coverageResolveRef.current = (data) => { clearTimeout(timeout); resolve(data); };
+        parent.postMessage({ pluginMessage: { type: 'scan-component-coverage' } }, '*');
+      });
+      setCoverageResult(result);
+      setShowCoverage(true);
+    } catch (err) {
+      // silently fail, loading indicator will stop
+    } finally {
+      setCoverageLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!connected) { setLoading(false); return; }
@@ -573,6 +617,76 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           )}
         </div>
       )}
+
+      {/* Component Coverage */}
+      <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+        <div className="flex items-center justify-between px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
+          <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Component Coverage</span>
+          <button
+            onClick={runCoverageScan}
+            disabled={coverageLoading}
+            className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+          >
+            {coverageLoading ? 'Scanning…' : 'Scan'}
+          </button>
+        </div>
+        {coverageResult && (
+          <>
+            <div className="px-3 py-2 flex gap-4 border-b border-[var(--color-figma-border)]">
+              <div className="text-center">
+                <div className="text-[16px] font-bold text-[var(--color-figma-text)]">{coverageResult.totalComponents}</div>
+                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Total</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[16px] font-bold text-[var(--color-figma-success)]">{coverageResult.tokenizedComponents}</div>
+                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Tokenized</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[16px] font-bold text-[var(--color-figma-warning)]">{coverageResult.untokenized.length}</div>
+                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Untokenized</div>
+              </div>
+              <div className="text-center flex-1">
+                <div className="text-[16px] font-bold text-[var(--color-figma-text)]">
+                  {coverageResult.totalComponents > 0
+                    ? Math.round((coverageResult.tokenizedComponents / coverageResult.totalComponents) * 100)
+                    : 0}%
+                </div>
+                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Coverage</div>
+              </div>
+            </div>
+            {coverageResult.untokenized.length > 0 && (
+              <>
+                <button
+                  onClick={() => setShowCoverage(v => !v)}
+                  className="w-full px-3 py-2 flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  <span>Untokenized components ({coverageResult.untokenized.length})</span>
+                  <span>{showCoverage ? '▲' : '▼'}</span>
+                </button>
+                {showCoverage && (
+                  <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
+                    {coverageResult.untokenized.map(comp => (
+                      <button
+                        key={comp.id}
+                        onClick={() => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId: comp.id } }, '*')}
+                        className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        <span className="text-[10px] text-[var(--color-figma-text)] truncate flex-1">{comp.name}</span>
+                        <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 ml-2">{comp.hardcodedCount} hardcoded</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+        {!coverageLoading && !coverageResult && (
+          <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+            Click "Scan" to check component tokenization on the current Figma page.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
