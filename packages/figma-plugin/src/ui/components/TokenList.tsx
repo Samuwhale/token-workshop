@@ -6,6 +6,7 @@ import { TOKEN_PROPERTY_MAP } from '../../shared/types';
 import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
+import { ScaffoldingWizard } from './ScaffoldingWizard';
 
 type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage';
 
@@ -96,6 +97,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
   const [promoteBusy, setPromoteBusy] = useState(false);
+  const [showScaffold, setShowScaffold] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [frFind, setFrFind] = useState('');
   const [frReplace, setFrReplace] = useState('');
@@ -947,6 +949,14 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             >
               + New Token
             </button>
+            <button
+              onClick={() => setShowScaffold(true)}
+              disabled={!connected}
+              className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+              title="Generate tokens from a preset scaffold"
+            >
+              Use preset
+            </button>
             {!selectMode && tokens.length > 0 && (
               <>
                 <button
@@ -985,6 +995,16 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           </button>
         </div>
       </div>
+
+      {/* Scaffolding Wizard */}
+      {showScaffold && (
+        <ScaffoldingWizard
+          serverUrl={serverUrl}
+          activeSet={setName}
+          onClose={() => setShowScaffold(false)}
+          onConfirm={() => { setShowScaffold(false); onRefresh(); }}
+        />
+      )}
 
       {/* Delete confirmation modal */}
       {deleteConfirm && modalProps && (

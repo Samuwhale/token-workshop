@@ -4,9 +4,10 @@ interface EmptyStateProps {
   connected: boolean;
   onCreateToken: () => void;
   onPasteJSON: () => void;
+  onUsePreset?: () => void;
 }
 
-export function EmptyState({ connected, onCreateToken, onPasteJSON }: EmptyStateProps) {
+export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 py-10 text-center gap-5">
       <div className="flex flex-col gap-1.5">
@@ -54,6 +55,23 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON }: EmptyState
           </svg>
           <span className="flex-1 text-left">Paste tokens from JSON</span>
         </button>
+
+        {onUsePreset && (
+          <button
+            onClick={onUsePreset}
+            disabled={!connected}
+            title={connected ? undefined : 'Server offline'}
+            className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <rect x="1" y="1" width="4" height="4" rx="0.5" />
+              <rect x="7" y="1" width="4" height="4" rx="0.5" />
+              <rect x="1" y="7" width="4" height="4" rx="0.5" />
+              <rect x="7" y="7" width="4" height="4" rx="0.5" />
+            </svg>
+            <span className="flex-1 text-left">Use a preset</span>
+          </button>
+        )}
       </div>
     </div>
   );

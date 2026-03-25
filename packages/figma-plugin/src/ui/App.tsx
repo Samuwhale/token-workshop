@@ -11,6 +11,7 @@ import { UndoToast } from './components/UndoToast';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmptyState } from './components/EmptyState';
 import { PasteTokensModal } from './components/PasteTokensModal';
+import { ScaffoldingWizard } from './components/ScaffoldingWizard';
 import { CommandPalette } from './components/CommandPalette';
 import type { Command } from './components/CommandPalette';
 import { useServerConnection } from './hooks/useServerConnection';
@@ -90,6 +91,7 @@ export function App() {
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const { toastVisible, slot: undoSlot, pushUndo, executeUndo, dismissToast } = useUndo();
   const [showPasteModal, setShowPasteModal] = useState(false);
+  const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -622,7 +624,8 @@ export function App() {
             <EmptyState
               connected={connected}
               onCreateToken={() => setCreateFromEmpty(true)}
-              onPasteJSON={() => openOverflowPanel('import')}
+              onPasteJSON={() => setShowPasteModal(true)}
+              onUsePreset={() => setShowScaffoldWizard(true)}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && !editingToken && (tokens.length > 0 || createFromEmpty) && (
@@ -733,6 +736,16 @@ export function App() {
         <CommandPalette
           commands={commands}
           onClose={() => setShowCommandPalette(false)}
+        />
+      )}
+
+      {/* Scaffolding Wizard (from empty state) */}
+      {showScaffoldWizard && (
+        <ScaffoldingWizard
+          serverUrl={serverUrl}
+          activeSet={activeSet}
+          onClose={() => setShowScaffoldWizard(false)}
+          onConfirm={() => { setShowScaffoldWizard(false); refreshTokens(); }}
         />
       )}
 
