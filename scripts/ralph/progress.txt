@@ -480,3 +480,15 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Collision detection must account for tokens being freed by the rename batch (oldPaths set)
   - The `updateBulkAliasRefs` helper replaces exact `{path}` alias references; it complements `updateAliasRefs` (which works on group prefixes)
 ---
+
+## 2026-03-25 - US-026
+- Added module-level color matching helpers: `hexToRgb`, `rgbToLab`, `colorDeltaE` (CIE76), `valuesEqual` to TokenList.tsx
+- Added `promoteRows`/`promoteBusy` state and `handleOpenPromoteModal`/`handleConfirmPromote` handlers
+- Added 'Convert to aliases' button in select mode toolbar (appears when selectedPaths.size > 0)
+- Added Promote to Semantic modal: shows each selected raw-value token with proposed alias, ΔE badge for colors, per-row accept/reject checkboxes, confirm PATCHes accepted tokens
+- Files changed: `TokenList.tsx`
+- **Learnings for future iterations:**
+  - `flattenTokens(tokens)` gives the current set's tokens; filter by `selectedPaths` to get just selected ones
+  - Color nearest-primitive matching uses delta-E CIE76 in LAB space — implemented inline without external dependencies
+  - The PATCH URL for token paths uses `.split('.').map(encodeURIComponent).join('/')` to safely encode path segments
+---
