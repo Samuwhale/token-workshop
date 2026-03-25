@@ -524,3 +524,14 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - POST returns 409 on path collision; wizard ignores these (skip existing tokens)
   - Empty state now wired to PasteTokensModal (changed from 'import panel') and ScaffoldingWizard
 ---
+
+## 2026-03-25 - US-031-server
+- Created `services/lint.ts` — LintConfigStore (reads/writes `$lint.json` in tokenDir), 5 rule implementations: no-raw-color (color tokens with raw values), require-description (missing $description), path-pattern (segments must match regex), max-alias-depth (chain depth > N), no-duplicate-values (same type+value in set)
+- Created `routes/lint.ts` — GET/PUT /api/lint/config, GET /api/lint/config/default, POST /api/tokens/lint
+- Registered lintRoutes in index.ts with tokenDir option
+- Files changed: `services/lint.ts` (new), `routes/lint.ts` (new), `index.ts`
+- **Learnings for future iterations:**
+  - LintRoutes use Fastify options pattern to receive tokenDir without global config
+  - The LintConfigStore persists as `$lint.json` alongside `$themes.json`
+  - max-alias-depth traversal uses a visited Set to avoid infinite loops on circular refs
+---
