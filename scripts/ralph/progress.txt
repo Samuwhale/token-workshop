@@ -140,6 +140,21 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-25 - US-023
+- Added a test in `packages/core/src/__tests__/resolver.test.ts` to verify that the `TokenResolver` already correctly resolves alias references inside gradient stop `color` fields (array of `{color, position}` objects)
+- Added `buildFlatValueMap`, `resolveRef`, and `resolveGradientStopAliases` helpers to `packages/server/src/services/style-dict.ts`
+- `resolveGradientStopAliases` pre-processes the merged DTCG token object before writing to Style Dictionary: walks all `$value` fields that are gradient stop arrays and replaces `{path.to.token}` references in `color` fields with their resolved string values
+- The core `TokenResolver.resolveValue` already handled gradient stop aliases generically (arrays + nested objects recursion) — the new test confirms this
+- Files changed: `packages/core/src/__tests__/resolver.test.ts`, `packages/server/src/services/style-dict.ts`
+- **Learnings for future iterations:**
+  - `TokenResolver.resolveValue` already handles nested alias refs generically (arrays + objects) — no resolver changes needed for gradient stops
+  - `buildFlatValueMap` in style-dict.ts uses `'$value' in val` guard to distinguish token nodes from group nodes
+  - Gradient stop arrays detected by checking `first element has 'color' and 'position' keys`
+  - `resolveRef` follows one extra hop to handle alias-of-alias cases in gradient stop colors
+  - Style Dictionary pre-processing is done by replacing `{path}` refs in stop colors before writing merged JSON — avoids custom SD transforms
+  - No browser testing needed for server-side only story
+---
+
 ## Codebase Patterns
 - Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
 - `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected

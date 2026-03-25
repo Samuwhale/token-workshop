@@ -408,7 +408,7 @@
         "Typecheck passes"
       ],
       "priority": 25,
-      "passes": false,
+      "passes": true,
       "notes": "Server-side only first; gradient editor alias mode (plugin side) is a separate concern"
     },
     {
