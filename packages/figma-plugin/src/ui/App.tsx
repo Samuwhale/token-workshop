@@ -275,14 +275,14 @@ export function App() {
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
-      const prefix = groupPath + '/';
-      const filtered: Record<string, (typeof resolved)[string]> = {};
+      const prefix = groupPath + '.';
+      const tokens: { path: string; $type: string; $value: any }[] = [];
       for (const [path, entry] of Object.entries(resolved)) {
         if (path === groupPath || path.startsWith(prefix)) {
-          filtered[path] = entry;
+          tokens.push({ path, $type: entry.$type, $value: entry.$value });
         }
       }
-      parent.postMessage({ pluginMessage: { type: 'sync-bindings', tokenMap: filtered, scope: 'page' } }, '*');
+      parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens } }, '*');
     } catch (err) {
       console.error('Failed to sync group to Figma:', err);
     }
