@@ -563,3 +563,19 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - TokenEditor: "Check contrast" collapsible panel for color tokens — pick background color token from dropdown, see contrast ratio, preview swatch, and AA/AAA grid for normal text, large text, and UI components
 - AnalyticsPanel: collapsible color contrast matrix — shows all raw color token pairs with contrast ratios color-coded by AAA/AA/fail; capped at 16 tokens for performance
 - contrastRatio/hexToLuminance added to AnalyticsPanel.tsx as local utils
+
+---
+
+## 2026-03-25 — US-033: Color Contrast Checker
+
+**Implemented**:
+- TokenEditor: collapsible "Check contrast" section for color tokens
+  - Background color token dropdown (all color tokens from allTokensFlat)
+  - Aa swatch preview with foreground/background colors
+  - Contrast ratio display + WCAG pass/fail badges (Normal AA ≥4.5, Large AA ≥3, Normal AAA ≥7, Large AAA ≥4.5, UI ≥3)
+  - WCAG helpers: hexToLuminance, wcagContrast, resolveColorValue (alias-aware)
+- AnalyticsPanel: "Color Contrast Matrix" section
+  - Collects up to 16 raw hex color tokens across all sets during load
+  - Togglable N×N matrix: FG rows × BG columns, each cell shows ratio with AAA/AA/Fail color coding
+  - Legend key below matrix; tooltip on hover shows full token paths
+- Files changed: `TokenEditor.tsx`, `AnalyticsPanel.tsx`
