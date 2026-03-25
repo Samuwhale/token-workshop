@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
 import type { TokenNode } from '../hooks/useTokens';
 import { PropertyPicker } from './PropertyPicker';
 import { ConfirmModal } from './ConfirmModal';
@@ -12,6 +12,7 @@ type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value'
 interface TokenListProps {
   tokens: TokenNode[];
   setName: string;
+  sets: string[];
   serverUrl: string;
   connected: boolean;
   selectedNodes: SelectionNodeInfo[];
@@ -30,7 +31,7 @@ type DeleteConfirm =
   | { type: 'group'; path: string; name: string; tokenCount: number }
   | { type: 'bulk'; paths: string[]; orphanCount: number };
 
-export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenType] = useState('color');
@@ -242,6 +243,47 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
     setNewTokenType(tokenType || 'color');
     setShowCreateForm(true);
   }, []);
+
+  // Group management
+  const [movingGroup, setMovingGroup] = useState<string | null>(null);
+  const [moveTargetSet, setMoveTargetSet] = useState('');
+
+  const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
+    if (!connected) return;
+    await fetch(`${serverUrl}/api/tokens/${setName}/groups/rename`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldGroupPath, newGroupPath }),
+    });
+    onRefresh();
+  }, [connected, serverUrl, setName, onRefresh]);
+
+  const handleRequestMoveGroup = useCallback((groupPath: string) => {
+    const otherSets = sets.filter(s => s !== setName);
+    setMoveTargetSet(otherSets[0] ?? '');
+    setMovingGroup(groupPath);
+  }, [sets, setName]);
+
+  const handleConfirmMoveGroup = useCallback(async () => {
+    if (!movingGroup || !moveTargetSet || !connected) { setMovingGroup(null); return; }
+    await fetch(`${serverUrl}/api/tokens/${setName}/groups/move`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupPath: movingGroup, targetSet: moveTargetSet }),
+    });
+    setMovingGroup(null);
+    onRefresh();
+  }, [movingGroup, moveTargetSet, connected, serverUrl, setName, onRefresh]);
+
+  const handleDuplicateGroup = useCallback(async (groupPath: string) => {
+    if (!connected) return;
+    await fetch(`${serverUrl}/api/tokens/${setName}/groups/duplicate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupPath }),
+    });
+    onRefresh();
+  }, [connected, serverUrl, setName, onRefresh]);
 
   const handleCreate = async () => {
     if (!newTokenPath || !connected) return;
@@ -587,6 +629,9 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
                 highlightedToken={highlightedToken ?? null}
                 onNavigateToAlias={onNavigateToAlias}
                 onCreateSibling={handleOpenCreateSibling}
+                onRenameGroup={handleRenameGroup}
+                onRequestMoveGroup={handleRequestMoveGroup}
+                onDuplicateGroup={handleDuplicateGroup}
                 inspectMode={inspectMode}
                 onHoverToken={handleHoverToken}
               />
@@ -697,6 +742,45 @@ export function TokenList({ tokens, setName, serverUrl, connected, selectedNodes
           onCancel={() => setDeleteConfirm(null)}
         />
       )}
+
+      {/* Move group to set modal */}
+      {movingGroup && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move group to set</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
+              <span className="font-mono text-[var(--color-figma-text)]">{movingGroup}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Destination set</label>
+              <select
+                value={moveTargetSet}
+                onChange={e => setMoveTargetSet(e.target.value)}
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              >
+                {sets.filter(s => s !== setName).map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setMovingGroup(null)}
+                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmMoveGroup}
+                disabled={!moveTargetSet}
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+              >
+                Move
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -719,6 +803,9 @@ function TokenTreeNode({
   highlightedToken,
   onNavigateToAlias,
   onCreateSibling,
+  onRenameGroup,
+  onRequestMoveGroup,
+  onDuplicateGroup,
   inspectMode,
   onHoverToken,
 }: {
@@ -739,6 +826,9 @@ function TokenTreeNode({
   highlightedToken: string | null;
   onNavigateToAlias?: (path: string) => void;
   onCreateSibling?: (groupPath: string, tokenType: string) => void;
+  onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;
+  onRequestMoveGroup?: (groupPath: string) => void;
+  onDuplicateGroup?: (groupPath: string) => void;
   inspectMode?: boolean;
   onHoverToken?: (path: string) => void;
 }) {
@@ -752,6 +842,26 @@ function TokenTreeNode({
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [chainExpanded, setChainExpanded] = useState(false);
   const nodeRef = useRef<HTMLDivElement>(null);
+
+  // Group-specific state
+  const [groupMenuPos, setGroupMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [renamingGroup, setRenamingGroup] = useState(false);
+  const [renameGroupVal, setRenameGroupVal] = useState('');
+  const renameGroupInputRef = useRef<HTMLInputElement>(null);
+
+  useLayoutEffect(() => {
+    if (renamingGroup && renameGroupInputRef.current) {
+      renameGroupInputRef.current.focus();
+      renameGroupInputRef.current.select();
+    }
+  }, [renamingGroup]);
+
+  useEffect(() => {
+    if (!groupMenuPos) return;
+    const close = () => setGroupMenuPos(null);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [groupMenuPos]);
 
   // Close context menu on outside click
   useEffect(() => {
@@ -836,33 +946,64 @@ function TokenTreeNode({
 
   if (node.isGroup) {
     const leafCount = countLeaves(node);
+
+    const confirmGroupRename = () => {
+      const newName = renameGroupVal.trim();
+      setRenamingGroup(false);
+      if (!newName || newName === node.name) return;
+      const lastDot = node.path.lastIndexOf('.');
+      const parentPath = lastDot >= 0 ? node.path.slice(0, lastDot) : '';
+      const newGroupPath = parentPath ? `${parentPath}.${newName}` : newName;
+      onRenameGroup?.(node.path, newGroupPath);
+    };
+
     return (
       <div>
         <div
           className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group"
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
-          onClick={() => onToggleExpand(node.path)}
+          onClick={() => !renamingGroup && onToggleExpand(node.path)}
+          onContextMenu={e => {
+            if (selectMode) return;
+            e.preventDefault();
+            setGroupMenuPos({ x: e.clientX, y: e.clientY });
+          }}
         >
           <svg
             width="8"
             height="8"
             viewBox="0 0 8 8"
-            className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+            className={`transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
             fill="currentColor"
           >
             <path d="M2 1l4 3-4 3V1z" />
           </svg>
-          <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{node.name}</span>
-          {node.children && (
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-1">
-              ({leafCount} tokens)
+          {renamingGroup ? (
+            <input
+              ref={renameGroupInputRef}
+              value={renameGroupVal}
+              onChange={e => setRenameGroupVal(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') confirmGroupRename();
+                if (e.key === 'Escape') setRenamingGroup(false);
+              }}
+              onBlur={confirmGroupRename}
+              onClick={e => e.stopPropagation()}
+              className="flex-1 text-[11px] font-medium bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0"
+            />
+          ) : (
+            <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{node.name}</span>
+          )}
+          {!renamingGroup && node.children && (
+            <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-1 shrink-0">
+              ({leafCount})
             </span>
           )}
-          {!selectMode && (
+          {!selectMode && !renamingGroup && (
             <button
               onClick={(e) => { e.stopPropagation(); onDeleteGroup(node.path, node.name, leafCount); }}
               title="Delete group"
-              className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] transition-opacity"
+              className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] transition-opacity shrink-0"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
@@ -870,6 +1011,47 @@ function TokenTreeNode({
             </button>
           )}
         </div>
+
+        {/* Group context menu */}
+        {groupMenuPos && (
+          <div
+            className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[160px]"
+            style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
+          >
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                setRenameGroupVal(node.name);
+                setRenamingGroup(true);
+              }}
+              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Rename group
+            </button>
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                onRequestMoveGroup?.(node.path);
+              }}
+              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Move group to set…
+            </button>
+            <button
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                onDuplicateGroup?.(node.path);
+              }}
+              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Duplicate group
+            </button>
+          </div>
+        )}
+
         {isExpanded && node.children?.map(child => (
           <TokenTreeNode
             key={child.path}
@@ -890,6 +1072,9 @@ function TokenTreeNode({
             highlightedToken={highlightedToken}
             onNavigateToAlias={onNavigateToAlias}
             onCreateSibling={onCreateSibling}
+            onRenameGroup={onRenameGroup}
+            onRequestMoveGroup={onRequestMoveGroup}
+            onDuplicateGroup={onDuplicateGroup}
             inspectMode={inspectMode}
             onHoverToken={onHoverToken}
           />

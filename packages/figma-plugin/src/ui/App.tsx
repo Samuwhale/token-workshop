@@ -538,6 +538,7 @@ export function App() {
             <TokenList
               tokens={tokens}
               setName={activeSet}
+              sets={sets}
               serverUrl={serverUrl}
               connected={connected}
               selectedNodes={selectedNodes}

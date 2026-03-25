@@ -22,6 +22,67 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     return { set: set, tokens: flat };
   });
 
+  // POST /api/tokens/:set/groups/rename — rename a group (updates all token paths and alias refs)
+  fastify.post<{ Params: { set: string }; Body: { oldGroupPath: string; newGroupPath: string } }>(
+    '/tokens/:set/groups/rename',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { oldGroupPath, newGroupPath } = request.body ?? {};
+      if (!oldGroupPath || !newGroupPath) {
+        return reply.status(400).send({ error: 'oldGroupPath and newGroupPath are required' });
+      }
+      try {
+        const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath);
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
+        if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    },
+  );
+
+  // POST /api/tokens/:set/groups/move — move a group to a different set
+  fastify.post<{ Params: { set: string }; Body: { groupPath: string; targetSet: string } }>(
+    '/tokens/:set/groups/move',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { groupPath, targetSet } = request.body ?? {};
+      if (!groupPath || !targetSet) {
+        return reply.status(400).send({ error: 'groupPath and targetSet are required' });
+      }
+      try {
+        const result = await fastify.tokenStore.moveGroup(set, groupPath, targetSet);
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    },
+  );
+
+  // POST /api/tokens/:set/groups/duplicate — duplicate a group with a -copy suffix
+  fastify.post<{ Params: { set: string }; Body: { groupPath: string } }>(
+    '/tokens/:set/groups/duplicate',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { groupPath } = request.body ?? {};
+      if (!groupPath) {
+        return reply.status(400).send({ error: 'groupPath is required' });
+      }
+      try {
+        const result = await fastify.tokenStore.duplicateGroup(set, groupPath);
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    },
+  );
+
   // GET /api/tokens/:set/* — get single token by path
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/*', async (request, reply) => {
     const { set } = request.params;
