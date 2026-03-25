@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 interface GitStatus {
   isRepo: boolean;
@@ -17,9 +17,36 @@ interface GitStatus {
 interface SyncPanelProps {
   serverUrl: string;
   connected: boolean;
+  activeSet: string;
 }
 
-export function SyncPanel({ serverUrl, connected }: SyncPanelProps) {
+interface VarDiffRow {
+  path: string;
+  cat: 'local-only' | 'figma-only' | 'conflict';
+  localValue?: string;
+  figmaValue?: string;
+  localType?: string;
+  figmaType?: string;
+}
+
+function flattenForVarDiff(
+  group: Record<string, any>,
+  prefix = ''
+): { path: string; value: string; type: string }[] {
+  const result: { path: string; value: string; type: string }[] = [];
+  for (const [key, val] of Object.entries(group)) {
+    if (key.startsWith('$')) continue;
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (val && typeof val === 'object' && '$value' in val) {
+      result.push({ path, value: String(val.$value), type: String(val.$type ?? 'string') });
+    } else if (val && typeof val === 'object') {
+      result.push(...flattenForVarDiff(val, path));
+    }
+  }
+  return result;
+}
+
+export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +54,18 @@ export function SyncPanel({ serverUrl, connected }: SyncPanelProps) {
   const [remoteUrl, setRemoteUrl] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
+  const [diffView, setDiffView] = useState<{ localOnly: string[]; remoteOnly: string[]; conflicts: string[] } | null>(null);
+  const [diffLoading, setDiffLoading] = useState(false);
+  const [diffChoices, setDiffChoices] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
+  const [applyingDiff, setApplyingDiff] = useState(false);
+
+  // Variable sync state
+  const [varRows, setVarRows] = useState<VarDiffRow[]>([]);
+  const [varDirs, setVarDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
+  const [varLoading, setVarLoading] = useState(false);
+  const [varSyncing, setVarSyncing] = useState(false);
+  const [varError, setVarError] = useState<string | null>(null);
+  const varReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
 
   const fetchStatus = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
@@ -56,6 +95,112 @@ export function SyncPanel({ serverUrl, connected }: SyncPanelProps) {
     fetchStatus();
   }, [fetchStatus]);
 
+  // Listen for variables-read response from controller
+  useEffect(() => {
+    const handler = (ev: MessageEvent) => {
+      const msg = ev.data?.pluginMessage;
+      if (msg?.type === 'variables-read' && varReadResolveRef.current) {
+        varReadResolveRef.current(msg.tokens ?? []);
+        varReadResolveRef.current = null;
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const computeVarDiff = useCallback(async () => {
+    if (!activeSet) return;
+    setVarLoading(true);
+    setVarError(null);
+    try {
+      const figmaTokens: any[] = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          varReadResolveRef.current = null;
+          reject(new Error('Figma read timed out — is the plugin running?'));
+        }, 10000);
+        varReadResolveRef.current = (tokens) => {
+          clearTimeout(timeout);
+          resolve(tokens);
+        };
+        parent.postMessage({ pluginMessage: { type: 'read-variables' } }, '*');
+      });
+
+      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      if (!res.ok) throw new Error('Could not fetch local tokens');
+      const data = await res.json();
+      const localFlat = flattenForVarDiff(data.tokens || {});
+
+      const figmaMap = new Map<string, { value: string; type: string }>(
+        figmaTokens.map(t => [t.path, { value: String(t.$value ?? ''), type: String(t.$type ?? 'string') }])
+      );
+      const localMap = new Map<string, { value: string; type: string }>(
+        localFlat.map(t => [t.path, { value: t.value, type: t.type }])
+      );
+
+      const rows: VarDiffRow[] = [];
+      for (const [path, local] of localMap) {
+        const figma = figmaMap.get(path);
+        if (!figma) {
+          rows.push({ path, cat: 'local-only', localValue: local.value, localType: local.type });
+        } else if (figma.value !== local.value) {
+          rows.push({ path, cat: 'conflict', localValue: local.value, figmaValue: figma.value, localType: local.type, figmaType: figma.type });
+        }
+      }
+      for (const [path, figma] of figmaMap) {
+        if (!localMap.has(path)) {
+          rows.push({ path, cat: 'figma-only', figmaValue: figma.value, figmaType: figma.type });
+        }
+      }
+
+      setVarRows(rows);
+      const dirs: Record<string, 'push' | 'pull' | 'skip'> = {};
+      for (const r of rows) {
+        dirs[r.path] = r.cat === 'figma-only' ? 'pull' : 'push';
+      }
+      setVarDirs(dirs);
+    } catch (err) {
+      setVarError(String(err));
+    } finally {
+      setVarLoading(false);
+    }
+  }, [serverUrl, activeSet]);
+
+  const applyVarDiff = useCallback(async () => {
+    setVarSyncing(true);
+    setVarError(null);
+    try {
+      const pushRows = varRows.filter(r => varDirs[r.path] === 'push');
+      const pullRows = varRows.filter(r => varDirs[r.path] === 'pull');
+
+      if (pushRows.length > 0) {
+        const tokens = pushRows.map(r => ({
+          path: r.path,
+          $type: r.localType ?? 'string',
+          $value: r.localValue ?? '',
+        }));
+        parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens } }, '*');
+      }
+
+      if (pullRows.length > 0) {
+        await Promise.all(pullRows.map(r =>
+          fetch(`${serverUrl}/api/tokens/${activeSet}/${r.path}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaValue ?? '' }),
+          })
+        ));
+      }
+
+      setVarRows([]);
+      setVarDirs({});
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Variable sync applied' } }, '*');
+    } catch (err) {
+      setVarError(String(err));
+    } finally {
+      setVarSyncing(false);
+    }
+  }, [serverUrl, activeSet, varRows, varDirs]);
+
   const doAction = async (action: string, body?: any) => {
     setActionLoading(action);
     setError(null);
@@ -77,6 +222,46 @@ export function SyncPanel({ serverUrl, connected }: SyncPanelProps) {
       setActionLoading(null);
     }
   };
+
+  const computeDiff = useCallback(async () => {
+    setDiffLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${serverUrl}/api/sync/diff`);
+      if (!res.ok) throw new Error('Could not compute diff');
+      const data = await res.json() as { localOnly: string[]; remoteOnly: string[]; conflicts: string[] };
+      setDiffView(data);
+      // Default choices: local-only → push, remote-only → pull, conflicts → skip
+      const choices: Record<string, 'push' | 'pull' | 'skip'> = {};
+      for (const f of data.localOnly) choices[f] = 'push';
+      for (const f of data.remoteOnly) choices[f] = 'pull';
+      for (const f of data.conflicts) choices[f] = 'skip';
+      setDiffChoices(choices);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setDiffLoading(false);
+    }
+  }, [serverUrl]);
+
+  const applyDiff = useCallback(async () => {
+    setApplyingDiff(true);
+    setError(null);
+    try {
+      const res = await fetch(`${serverUrl}/api/sync/apply-diff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choices: diffChoices }),
+      });
+      if (!res.ok) throw new Error('Failed to apply diff');
+      setDiffView(null);
+      fetchStatus();
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setApplyingDiff(false);
+    }
+  }, [serverUrl, diffChoices, fetchStatus]);
 
   if (!connected) {
     return (
@@ -178,6 +363,131 @@ export function SyncPanel({ serverUrl, connected }: SyncPanelProps) {
             </button>
           </div>
         </div>
+
+        {/* Variable Sync — Figma ↔ Local */}
+        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Variable Sync</span>
+            <button
+              onClick={computeVarDiff}
+              disabled={varLoading || !activeSet}
+              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+            >
+              {varLoading ? 'Reading…' : 'Compute Diff'}
+            </button>
+          </div>
+          {varError && (
+            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{varError}</div>
+          )}
+          {varRows.length > 0 && (() => {
+            const catLabel = (cat: VarDiffRow['cat']) =>
+              cat === 'local-only' ? '↑ local' : cat === 'figma-only' ? '↓ Figma' : '⚡ conflict';
+            const catColor = (cat: VarDiffRow['cat']) =>
+              cat === 'local-only' ? 'text-[var(--color-figma-success)]'
+              : cat === 'figma-only' ? 'text-[var(--color-figma-accent)]'
+              : 'text-yellow-600';
+            return (
+              <>
+                <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
+                  {varRows.map(row => {
+                    const dir = varDirs[row.path] ?? 'push';
+                    return (
+                      <div key={row.path} className="flex items-center gap-2 px-3 py-1.5">
+                        <span className={`text-[9px] font-medium shrink-0 ${catColor(row.cat)}`}>{catLabel(row.cat)}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={row.path}>{row.path}</span>
+                        <select
+                          value={dir}
+                          onChange={e => setVarDirs(prev => ({ ...prev, [row.path]: e.target.value as 'push' | 'pull' | 'skip' }))}
+                          className="text-[9px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5 shrink-0"
+                        >
+                          <option value="push">Push ↑</option>
+                          <option value="pull">Pull ↓</option>
+                          <option value="skip">Skip</option>
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between">
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{varRows.length} token{varRows.length !== 1 ? 's' : ''} differ</span>
+                  <button
+                    onClick={applyVarDiff}
+                    disabled={varSyncing}
+                    className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                  >
+                    {varSyncing ? 'Applying…' : 'Apply Choices'}
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+          {!varLoading && varRows.length === 0 && !varError && (
+            <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+              Click "Compute Diff" to compare local tokens with Figma variables.
+            </div>
+          )}
+        </div>
+
+        {/* Two-Way Sync unified diff */}
+        {status?.remote && (
+          <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+            <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Two-Way Sync</span>
+              <button
+                onClick={computeDiff}
+                disabled={diffLoading}
+                className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+              >
+                {diffLoading ? 'Computing…' : 'Compute Diff'}
+              </button>
+            </div>
+            {diffView && (() => {
+              const allFiles = [
+                ...diffView.localOnly.map(f => ({ file: f, cat: 'local' as const })),
+                ...diffView.remoteOnly.map(f => ({ file: f, cat: 'remote' as const })),
+                ...diffView.conflicts.map(f => ({ file: f, cat: 'conflict' as const })),
+              ];
+              if (allFiles.length === 0) {
+                return <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">Local and remote are in sync ✓</div>;
+              }
+              return (
+                <>
+                  <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
+                    {allFiles.map(({ file, cat }) => {
+                      const choice = diffChoices[file] ?? 'skip';
+                      const catLabel = cat === 'local' ? '↑ local' : cat === 'remote' ? '↓ remote' : '⚡ conflict';
+                      const catColor = cat === 'local' ? 'text-[var(--color-figma-success)]' : cat === 'remote' ? 'text-[var(--color-figma-accent)]' : 'text-yellow-600';
+                      return (
+                        <div key={file} className="flex items-center gap-2 px-3 py-1.5">
+                          <span className={`text-[9px] font-medium shrink-0 ${catColor}`}>{catLabel}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono">{file}</span>
+                          <select
+                            value={choice}
+                            onChange={e => setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
+                            className="text-[9px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5"
+                          >
+                            <option value="push">Push ↑</option>
+                            <option value="pull">Pull ↓</option>
+                            <option value="skip">Skip</option>
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex justify-end">
+                    <button
+                      onClick={applyDiff}
+                      disabled={applyingDiff}
+                      className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                    >
+                      {applyingDiff ? 'Applying…' : 'Apply Choices'}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
 
         {/* Changes */}
         <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">

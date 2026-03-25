@@ -675,7 +675,7 @@ export function App() {
             <ThemeManager serverUrl={serverUrl} connected={connected} />
           )}
           {overflowPanel === null && activeTab === 'sync' && (
-            <SyncPanel serverUrl={serverUrl} connected={connected} />
+            <SyncPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} />
           )}
           {overflowPanel === null && activeTab === 'analytics' && (
             <AnalyticsPanel
