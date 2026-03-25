@@ -547,3 +547,11 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `refreshAll` pattern: wrap refreshTokens + setLintKey increment to ensure lint re-runs after mutations
   - Quick-fix routing: `suggestedFix === 'extract-to-alias'` → call onExtractToAliasForLint, `'add-description'` → call onEdit
 ---
+
+## 2026-03-25 — US-032: Validate All Tokens Panel
+
+**Implemented**:
+- Server: `POST /api/tokens/validate` endpoint in `packages/server/src/routes/lint.ts`
+- Service: `validateAllTokens(tokenStore)` in `packages/server/src/services/lint.ts` — checks broken aliases, circular refs, missing $type, value/type mismatches, alias chain depth; returns `ValidationIssue[]` with `setName` field
+- Plugin: `AnalyticsPanel.tsx` extended with Validate All button, severity filter chips (all/error/warning/info), scrollable results list with Jump-to-token links
+- App.tsx: added `validateKey` state, "Validate All Tokens" command palette entry, `onNavigateToToken` prop wired to set switch + pending highlight

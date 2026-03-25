@@ -97,6 +97,7 @@ export function App() {
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
+  const [validateKey, setValidateKey] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Set context menu state
@@ -354,6 +355,12 @@ export function App() {
         id: 'analytics',
         label: 'Switch to Analytics',
         handler: () => setActiveTab('analytics'),
+      },
+      {
+        id: 'validate',
+        label: 'Validate All Tokens',
+        description: 'Run cross-set validation for broken aliases, circular refs, and more',
+        handler: () => { setActiveTab('analytics'); setValidateKey(k => k + 1); },
       },
       ...sets.map(s => ({
         id: `switch-set-${s}`,
@@ -668,7 +675,16 @@ export function App() {
             <SyncPanel serverUrl={serverUrl} connected={connected} />
           )}
           {overflowPanel === null && activeTab === 'analytics' && (
-            <AnalyticsPanel serverUrl={serverUrl} connected={connected} />
+            <AnalyticsPanel
+              serverUrl={serverUrl}
+              connected={connected}
+              validateKey={validateKey}
+              onNavigateToToken={(path, set) => {
+                setActiveSet(set);
+                setActiveTab('tokens');
+                setPendingHighlight(path);
+              }}
+            />
           )}
         </div>
         {overflowPanel === null && activeTab === 'tokens' && (

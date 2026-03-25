@@ -1,4 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+
+interface ValidationIssue {
+  rule: string;
+  path: string;
+  setName: string;
+  severity: 'error' | 'warning' | 'info';
+  message: string;
+  suggestedFix?: string;
+}
 
 interface SetStats {
   name: string;
@@ -10,6 +19,8 @@ interface SetStats {
 interface AnalyticsPanelProps {
   serverUrl: string;
   connected: boolean;
+  validateKey?: number;
+  onNavigateToToken?: (path: string, set: string) => void;
 }
 
 function countLeafNodes(group: Record<string, any>): { total: number; byType: Record<string, number> } {
@@ -32,9 +43,32 @@ function countLeafNodes(group: Record<string, any>): { total: number; byType: Re
   return { total, byType };
 }
 
-export function AnalyticsPanel({ serverUrl, connected }: AnalyticsPanelProps) {
+export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateToToken }: AnalyticsPanelProps) {
   const [stats, setStats] = useState<SetStats[]>([]);
   const [loading, setLoading] = useState(true);
+  const [validateResults, setValidateResults] = useState<ValidationIssue[] | null>(null);
+  const [validateLoading, setValidateLoading] = useState(false);
+  const [severityFilter, setSeverityFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
+
+  const runValidate = useCallback(async () => {
+    if (!connected) return;
+    setValidateLoading(true);
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/validate`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json() as { issues: ValidationIssue[] };
+        setValidateResults(data.issues ?? []);
+      }
+    } catch {
+      setValidateResults([]);
+    } finally {
+      setValidateLoading(false);
+    }
+  }, [serverUrl, connected]);
+
+  useEffect(() => {
+    if (validateKey && validateKey > 0) runValidate();
+  }, [validateKey, runValidate]);
 
   useEffect(() => {
     if (!connected) { setLoading(false); return; }
@@ -86,8 +120,84 @@ export function AnalyticsPanel({ serverUrl, connected }: AnalyticsPanelProps) {
   }
   const sortedTypes = Object.entries(allByType).sort((a, b) => b[1] - a[1]);
 
+  const filteredIssues = validateResults
+    ? (severityFilter === 'all' ? validateResults : validateResults.filter(i => i.severity === severityFilter))
+    : null;
+
   return (
     <div className="flex flex-col gap-3 p-3">
+      {/* Validate button */}
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Token Analytics</span>
+        <button
+          onClick={runValidate}
+          disabled={validateLoading || !connected}
+          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+        >
+          {validateLoading ? 'Validating…' : 'Validate All'}
+        </button>
+      </div>
+
+      {/* Validation results */}
+      {validateResults !== null && (
+        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+              Validation — {validateResults.length} issue{validateResults.length !== 1 ? 's' : ''}
+            </span>
+            <div className="flex gap-1">
+              {(['all', 'error', 'warning', 'info'] as const).map(f => (
+                <button
+                  key={f}
+                  onClick={() => setSeverityFilter(f)}
+                  className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors ${
+                    severityFilter === f
+                      ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10'
+                      : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+          </div>
+          {filteredIssues && filteredIssues.length === 0 ? (
+            <div className="px-3 py-4 text-[11px] text-[var(--color-figma-text-secondary)] text-center">
+              {validateResults.length === 0 ? 'No issues found ✓' : 'No issues match filter'}
+            </div>
+          ) : (
+            <div className="divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
+              {(filteredIssues ?? []).map((issue, i) => (
+                <div key={i} className="px-3 py-2 flex items-start gap-2">
+                  <span className={`text-[9px] px-1 py-0.5 rounded border shrink-0 mt-0.5 ${
+                    issue.severity === 'error'
+                      ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)]'
+                      : issue.severity === 'warning'
+                      ? 'border-yellow-500 text-yellow-700'
+                      : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+                  }`}>
+                    {issue.severity === 'error' ? '✕' : issue.severity === 'warning' ? '⚠' : 'ℹ'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] text-[var(--color-figma-text)] font-medium truncate">{issue.path}</div>
+                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">{issue.message}</div>
+                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-70">set: {issue.setName}</div>
+                  </div>
+                  {onNavigateToToken && (
+                    <button
+                      onClick={() => onNavigateToToken(issue.path, issue.setName)}
+                      className="text-[9px] text-[var(--color-figma-accent)] hover:underline shrink-0"
+                    >
+                      Jump
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Summary */}
       <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
         <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">

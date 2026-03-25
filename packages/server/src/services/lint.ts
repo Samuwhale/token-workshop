@@ -245,3 +245,119 @@ export async function lintTokens(
 
   return violations;
 }
+
+// ---------------------------------------------------------------------------
+// Structural validation (broken aliases, circular refs, missing type, etc.)
+// ---------------------------------------------------------------------------
+
+export interface ValidationIssue {
+  severity: Severity;
+  setName: string;
+  path: string;
+  rule: string;
+  message: string;
+}
+
+function detectCycles(
+  startPath: string,
+  allTokens: Record<string, { token: Token; setName: string }>,
+): boolean {
+  const visited = new Set<string>();
+  let current = startPath;
+  while (true) {
+    if (visited.has(current)) return true;
+    const entry = allTokens[current];
+    if (!entry || !isAlias(entry.token.$value)) return false;
+    visited.add(current);
+    current = (entry.token.$value as string).slice(1, -1);
+  }
+}
+
+const TYPE_VALUE_CHECKS: Record<string, (v: unknown) => boolean> = {
+  color: v => typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v),
+  number: v => typeof v === 'number',
+  dimension: v => typeof v === 'object' && v !== null && 'value' in v && 'unit' in v,
+  fontWeight: v => typeof v === 'number' || typeof v === 'string',
+  string: v => typeof v === 'string',
+  boolean: v => typeof v === 'boolean',
+};
+
+export async function validateAllTokens(tokenStore: TokenStore): Promise<ValidationIssue[]> {
+  const issues: ValidationIssue[] = [];
+  const sets = await tokenStore.getSets();
+
+  // Build full cross-set flat token map
+  const allTokensMap: Record<string, { token: Token; setName: string }> = {};
+  for (const setName of sets) {
+    const flatTokens = await tokenStore.getFlatTokensForSet(setName);
+    for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      allTokensMap[tokenPath] = { token, setName };
+    }
+  }
+
+  for (const [tokenPath, { token, setName }] of Object.entries(allTokensMap)) {
+    // Missing $type
+    if (!token.$type) {
+      issues.push({
+        severity: 'warning',
+        setName,
+        path: tokenPath,
+        rule: 'missing-type',
+        message: `Token is missing a $type declaration.`,
+      });
+    }
+
+    // Alias checks
+    if (isAlias(token.$value)) {
+      const refPath = (token.$value as string).slice(1, -1);
+
+      // Broken alias
+      if (!allTokensMap[refPath]) {
+        issues.push({
+          severity: 'error',
+          setName,
+          path: tokenPath,
+          rule: 'broken-alias',
+          message: `Alias "${token.$value}" references non-existent token "${refPath}".`,
+        });
+      }
+
+      // Circular reference
+      if (detectCycles(tokenPath, allTokensMap)) {
+        issues.push({
+          severity: 'error',
+          setName,
+          path: tokenPath,
+          rule: 'circular-reference',
+          message: `Token is part of a circular alias reference chain.`,
+        });
+      }
+
+      // Alias depth
+      const depth = getAliasDepth(tokenPath, Object.fromEntries(Object.entries(allTokensMap).map(([k, v]) => [k, v.token])));
+      if (depth > 3) {
+        issues.push({
+          severity: 'warning',
+          setName,
+          path: tokenPath,
+          rule: 'max-alias-depth',
+          message: `Alias chain depth is ${depth} (recommended max: 3).`,
+        });
+      }
+    } else if (token.$type && TYPE_VALUE_CHECKS[token.$type]) {
+      // Value/type mismatch
+      const check = TYPE_VALUE_CHECKS[token.$type];
+      if (!check(token.$value)) {
+        issues.push({
+          severity: 'error',
+          setName,
+          path: tokenPath,
+          rule: 'type-mismatch',
+          message: `Value does not match declared type "${token.$type}".`,
+        });
+      }
+    }
+  }
+
+  return issues;
+}
