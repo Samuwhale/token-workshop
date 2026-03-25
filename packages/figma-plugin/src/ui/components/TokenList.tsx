@@ -805,7 +805,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
         {/* Filter bar */}
         {tokens.length > 0 && !selectMode && (
-          <div className={`flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] ${filtersActive ? 'bg-[var(--color-figma-accent)]/8' : 'bg-[var(--color-figma-bg)]'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] overflow-hidden ${filtersActive ? 'bg-[var(--color-figma-accent)]/8' : 'bg-[var(--color-figma-bg)]'}`}>
             <input
               type="text"
               value={searchQuery}
@@ -813,34 +813,63 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               placeholder="Search tokens…"
               className="flex-1 min-w-0 px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
             />
+            {/* Type filter — always visible */}
             <select
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value)}
               title="Filter by type"
-              className={`px-1 py-1 rounded border text-[10px] outline-none cursor-pointer ${typeFilter ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]'}`}
+              className={`shrink-0 px-1 py-1 rounded border text-[10px] outline-none cursor-pointer ${typeFilter ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]'}`}
             >
-              <option value="">All types</option>
+              <option value="">Type</option>
               {availableTypes.map(t => (
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
-            <select
-              value={refFilter}
-              onChange={e => setRefFilter(e.target.value as 'all' | 'aliases' | 'direct')}
-              title="Filter by reference"
-              className={`px-1 py-1 rounded border text-[10px] outline-none cursor-pointer ${refFilter !== 'all' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]'}`}
-            >
-              <option value="all">All refs</option>
-              <option value="aliases">Aliases only</option>
-              <option value="direct">Direct only</option>
-            </select>
-            <button
-              onClick={() => setShowDuplicates(!showDuplicates)}
-              title="Show only tokens with duplicate raw values"
-              className={`px-1.5 py-1 rounded border text-[10px] whitespace-nowrap transition-colors ${showDuplicates ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-            >
-              Dup. values
-            </button>
+            {/* Ref filter — only when active */}
+            {refFilter !== 'all' && (
+              <select
+                value={refFilter}
+                onChange={e => setRefFilter(e.target.value as 'all' | 'aliases' | 'direct')}
+                title="Filter by reference"
+                className="shrink-0 px-1 py-1 rounded border text-[10px] outline-none cursor-pointer border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10"
+              >
+                <option value="all">All refs</option>
+                <option value="aliases">Aliases only</option>
+                <option value="direct">Direct only</option>
+              </select>
+            )}
+            {/* Dup values — only when active */}
+            {showDuplicates && (
+              <button
+                onClick={() => setShowDuplicates(false)}
+                title="Clear duplicate filter"
+                className="shrink-0 px-1.5 py-1 rounded border text-[10px] whitespace-nowrap transition-colors border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10"
+              >
+                Dups ✕
+              </button>
+            )}
+            {/* More filters button — expands other filters */}
+            {(refFilter === 'all' || !showDuplicates) && (
+              <div className="relative shrink-0 group/more">
+                <button
+                  title="More filters"
+                  className="flex items-center justify-center w-6 h-6 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-[10px]"
+                >
+                  ⋯
+                </button>
+                <div className="hidden group-hover/more:flex absolute right-0 top-full mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg flex-col py-1 min-w-[140px]">
+                  {refFilter === 'all' && (
+                    <>
+                      <button onClick={() => setRefFilter('aliases')} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Aliases only</button>
+                      <button onClick={() => setRefFilter('direct')} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Direct values only</button>
+                    </>
+                  )}
+                  {!showDuplicates && (
+                    <button onClick={() => setShowDuplicates(true)} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show duplicates</button>
+                  )}
+                </div>
+              </div>
+            )}
             {filtersActive && (
               <button
                 onClick={clearFilters}
