@@ -1,10 +1,10 @@
 import type { FastifyPluginAsync } from 'fastify';
 
-export const healthRoutes: FastifyPluginAsync = async (fastify) => {
+export const healthRoutes: FastifyPluginAsync<{ version: string }> = async (fastify, opts) => {
   fastify.get('/health', async () => {
     return {
       status: 'ok',
-      version: '0.1.0',
+      version: opts.version,
       timestamp: new Date().toISOString(),
     };
   });

@@ -88,7 +88,7 @@ export function App() {
   const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; set: string } | null>(null);
-  const { connected, serverUrl, updateServerUrl } = useServerConnection();
+  const { connected, serverUrl, updateServerUrl, retryConnection } = useServerConnection();
   const { sets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, refreshTokens } = useTokens(serverUrl, connected);
   const { selectedNodes } = useSelection();
   const { syncing, syncProgress, syncResult, sync } = useSyncBindings(serverUrl, connected);
@@ -100,9 +100,6 @@ export function App() {
   const { toastVisible, slot: undoSlot, pushUndo, executeUndo, dismissToast } = useUndo();
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
-  const hasPrimitivesSet = sets.some(s => /prim/i.test(s));
-  const handleGenerateSemanticTokens = hasPrimitivesSet ? () => {} : undefined;
-  const handleGenerateDarkTheme = hasPrimitivesSet ? () => {} : undefined;
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [lintKey, setLintKey] = useState(0);
@@ -121,11 +118,10 @@ export function App() {
   const [createFromEmpty, setCreateFromEmpty] = useState(false);
 
   // Reset createFromEmpty when switching sets
-  const prevActiveSet = useRef(activeSet);
-  if (prevActiveSet.current !== activeSet) {
-    prevActiveSet.current = activeSet;
+  useEffect(() => {
     if (createFromEmpty) setCreateFromEmpty(false);
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSet]);
 
   // Set metadata editing state
   const [editingMetadataSet, setEditingMetadataSet] = useState<string | null>(null);
@@ -260,7 +256,10 @@ export function App() {
     e.preventDefault();
     e.stopPropagation();
     setTabMenuOpen(setName);
-    setTabMenuPos({ x: e.clientX, y: e.clientY });
+    setTabMenuPos({
+      x: Math.min(e.clientX, window.innerWidth - 176),
+      y: Math.min(e.clientY, window.innerHeight - 240),
+    });
   };
 
   const startRename = (setName: string) => {
@@ -525,8 +524,25 @@ export function App() {
     <div className="flex flex-col h-screen">
       {/* Connection status */}
       <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] ${connected ? 'bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]' : 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'}`}>
-        <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-[var(--color-figma-success)]' : 'bg-[var(--color-figma-error)]'}`} />
-        {connected ? 'Connected to server' : 'Server offline \u2014 read-only mode'}
+        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-[var(--color-figma-success)]' : 'bg-[var(--color-figma-error)]'}`} />
+        <span className="flex-1">{connected ? 'Connected to server' : 'Server offline \u2014 read-only mode'}</span>
+        {!connected && (
+          <>
+            <button
+              onClick={retryConnection}
+              className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
+            >
+              Retry
+            </button>
+            <span className="opacity-40">·</span>
+            <button
+              onClick={() => setOverflowPanel('settings')}
+              className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
+            >
+              Settings
+            </button>
+          </>
+        )}
       </div>
 
       {/* Tab bar */}
@@ -679,39 +695,11 @@ export function App() {
             >
               <button
                 role="menuitem"
-                aria-disabled="true"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
-              >
-                Generate Semantic Tokens
-              </button>
-              <button
-                role="menuitem"
-                aria-disabled="true"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
-              >
-                Generate Dark Theme
-              </button>
-              <button
-                role="menuitem"
-                aria-disabled="true"
-                tabIndex={-1}
-                onMouseDown={e => e.preventDefault()}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
-              >
-                Adopt Figma File
-              </button>
-              <div className="border-t border-[var(--color-figma-border)] my-1" />
-              <button
-                role="menuitem"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => openSetMetadata(tabMenuOpen)}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Set Metadata
+                Edit description
               </button>
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
@@ -777,14 +765,44 @@ export function App() {
         <div className="flex-1 overflow-y-auto">
           {/* Overflow panels */}
           {overflowPanel === 'import' && (
-            <ImportPanel
-              serverUrl={serverUrl}
-              connected={connected}
-              onImported={refreshTokens}
-            />
+            <>
+              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <button
+                  onClick={() => setOverflowPanel(null)}
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  aria-label="Back"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6.5 2L3.5 5l3 3"/>
+                  </svg>
+                  Back
+                </button>
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Import</span>
+              </div>
+              <ImportPanel
+                serverUrl={serverUrl}
+                connected={connected}
+                onImported={refreshTokens}
+              />
+            </>
           )}
           {overflowPanel === 'export' && (
-            <ExportPanel serverUrl={serverUrl} connected={connected} />
+            <>
+              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <button
+                  onClick={() => setOverflowPanel(null)}
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  aria-label="Back"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6.5 2L3.5 5l3 3"/>
+                  </svg>
+                  Back
+                </button>
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Export</span>
+              </div>
+              <ExportPanel serverUrl={serverUrl} connected={connected} />
+            </>
           )}
           {overflowPanel === 'settings' && (
             <div className="flex flex-col gap-3 p-3">
@@ -819,8 +837,6 @@ export function App() {
               onPasteJSON={() => setShowPasteModal(true)}
               onUsePreset={() => setShowScaffoldWizard(true)}
               onGenerateColorScale={() => setShowColorScaleGen(true)}
-              onGenerateSemanticTokens={handleGenerateSemanticTokens}
-              onGenerateDarkTheme={handleGenerateDarkTheme}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && !editingToken && (tokens.length > 0 || createFromEmpty) && (
@@ -895,7 +911,7 @@ export function App() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
             <div className="text-[12px] font-medium text-[var(--color-figma-text)]">
-              Set Metadata — {editingMetadataSet}
+              Edit description — {editingMetadataSet}
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Description</label>
@@ -1019,8 +1035,6 @@ export function App() {
           activeSet={activeSet}
           onClose={() => setShowScaffoldWizard(false)}
           onConfirm={() => { refreshAll(); }}
-          onGenerateSemanticTokens={handleGenerateSemanticTokens}
-          onGenerateDarkTheme={handleGenerateDarkTheme}
         />
       )}
 

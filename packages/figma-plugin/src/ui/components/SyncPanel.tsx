@@ -205,7 +205,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       if (pullRows.length > 0) {
         await Promise.all(pullRows.map(r =>
           fetch(`${serverUrl}/api/tokens/${activeSet}/${r.path}`, {
-            method: 'PUT',
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaValue ?? '' }),
           })
@@ -493,7 +493,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
           )}
           {varRows.length > 0 && (() => {
             const catLabel = (cat: VarDiffRow['cat']) =>
-              cat === 'local-only' ? '↑ local' : cat === 'figma-only' ? '↓ Figma' : '⚡ conflict';
+              cat === 'local-only' ? 'Local only ↑' : cat === 'figma-only' ? 'Figma only ↓' : '⚡ conflict';
             const catColor = (cat: VarDiffRow['cat']) =>
               cat === 'local-only' ? 'text-[var(--color-figma-success)]'
               : cat === 'figma-only' ? 'text-[var(--color-figma-accent)]'
@@ -512,8 +512,8 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
                           onChange={e => setVarDirs(prev => ({ ...prev, [row.path]: e.target.value as 'push' | 'pull' | 'skip' }))}
                           className="text-[9px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5 shrink-0"
                         >
-                          <option value="push">Push ↑</option>
-                          <option value="pull">Pull ↓</option>
+                          <option value="push">Push to Figma ↑</option>
+                          <option value="pull">Pull from Figma ↓</option>
                           <option value="skip">Skip</option>
                         </select>
                       </div>

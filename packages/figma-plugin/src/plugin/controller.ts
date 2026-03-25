@@ -1,25 +1,12 @@
 // This runs in Figma's sandbox (no DOM access)
 
+import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
+
 const SERVER_URL = 'http://localhost:9400';
+const PLUGIN_DATA_NAMESPACE = 'tokenmanager';
+const VARIABLE_COLLECTION_NAME = 'TokenManager';
 
 figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
-
-// All bindable properties — must match shared/types.ts
-const ALL_BINDABLE_PROPERTIES = [
-  'fill', 'stroke', 'width', 'height',
-  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
-  'itemSpacing', 'cornerRadius', 'strokeWeight', 'opacity',
-  'typography', 'shadow', 'visible',
-] as const;
-
-// Legacy key mapping for backward compat
-const LEGACY_KEY_MAP: Record<string, string> = {
-  color: 'fill',
-  typography: 'typography',
-  dimension: 'width',
-  shadow: 'shadow',
-  border: 'stroke',
-};
 
 // Handle messages from UI
 figma.ui.onmessage = async (msg: PluginMessage) => {
@@ -83,9 +70,9 @@ async function applyVariables(tokens: any[]) {
   try {
     // Get or create collection
     const collections = await figma.variables.getLocalVariableCollectionsAsync();
-    let collection = collections.find(c => c.name === 'TokenManager');
+    let collection = collections.find(c => c.name === VARIABLE_COLLECTION_NAME);
     if (!collection) {
-      collection = figma.variables.createVariableCollection('TokenManager');
+      collection = figma.variables.createVariableCollection(VARIABLE_COLLECTION_NAME);
     }
 
     for (const token of tokens) {
@@ -300,7 +287,7 @@ async function deleteOrphanVariables(knownPaths: string[]) {
   try {
     const knownSet = new Set(knownPaths);
     const collections = await figma.variables.getLocalVariableCollectionsAsync();
-    const tmCollection = collections.find(c => c.name === 'TokenManager');
+    const tmCollection = collections.find(c => c.name === VARIABLE_COLLECTION_NAME);
     if (!tmCollection) {
       figma.ui.postMessage({ type: 'orphans-deleted', count: 0 });
       return;
@@ -552,7 +539,7 @@ async function applyToSelection(tokenPath: string, tokenType: string, targetProp
   for (const node of selection) {
     try {
       await applyTokenValue(node, targetProperty, resolvedValue, tokenType);
-      node.setSharedPluginData('tokenmanager', targetProperty, tokenPath);
+      node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, targetProperty, tokenPath);
       applied++;
     } catch (err) {
       console.error(`Failed to apply ${tokenPath} to ${node.name}:`, err);
@@ -568,7 +555,7 @@ async function applyToSelection(tokenPath: string, tokenType: string, targetProp
 async function removeBinding(property: string) {
   const selection = figma.currentPage.selection;
   for (const node of selection) {
-    node.setSharedPluginData('tokenmanager', property, '');
+    node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
   }
   await getSelection();
 }
@@ -623,13 +610,13 @@ async function getSelection() {
     // Read all bindable property keys
     const bindings: Record<string, string> = {};
     for (const prop of ALL_BINDABLE_PROPERTIES) {
-      const val = node.getSharedPluginData('tokenmanager', prop);
+      const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
       if (val) bindings[prop] = val;
     }
     // Also check legacy keys and remap
     for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
       if (!bindings[newKey]) {
-        const val = node.getSharedPluginData('tokenmanager', legacyKey);
+        const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
         if (val) bindings[newKey] = val;
       }
     }
@@ -825,6 +812,14 @@ function parseColor(value: string): { rgb: RGB; a: number } | null {
     const b = parseInt(hex[2] + hex[2], 16) / 255;
     return { rgb: { r, g, b }, a: 1 };
   }
+  // 4-char shorthand hex: #RGBA → #RRGGBBAA
+  if (hex.length === 4) {
+    const r = parseInt(hex[0] + hex[0], 16) / 255;
+    const g = parseInt(hex[1] + hex[1], 16) / 255;
+    const b = parseInt(hex[2] + hex[2], 16) / 255;
+    const a = parseInt(hex[3] + hex[3], 16) / 255;
+    return { rgb: { r, g, b }, a };
+  }
   return null;
 }
 
@@ -880,10 +875,10 @@ async function findVariable(collectionId: string, name: string): Promise<Variabl
 async function highlightLayersByToken(tokenPath: string) {
   const nodes = figma.currentPage.findAll(node => {
     for (const prop of ALL_BINDABLE_PROPERTIES) {
-      if (node.getSharedPluginData('tokenmanager', prop) === tokenPath) return true;
+      if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop) === tokenPath) return true;
     }
     for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
-      if (node.getSharedPluginData('tokenmanager', legacyKey) === tokenPath) return true;
+      if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey) === tokenPath) return true;
     }
     return false;
   });
@@ -901,10 +896,10 @@ async function syncBindings(tokenMap: Record<string, { $value: any; $type: strin
   } else {
     nodes = figma.currentPage.findAll(node => {
       for (const prop of ALL_BINDABLE_PROPERTIES) {
-        if (node.getSharedPluginData('tokenmanager', prop)) return true;
+        if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop)) return true;
       }
       for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
-        if (node.getSharedPluginData('tokenmanager', legacyKey)) return true;
+        if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey)) return true;
       }
       return false;
     });
@@ -923,17 +918,17 @@ async function syncBindings(tokenMap: Record<string, { $value: any; $type: strin
       // Collect bindings, including legacy remapping
       const bindings: Record<string, string> = {};
       for (const prop of ALL_BINDABLE_PROPERTIES) {
-        const val = node.getSharedPluginData('tokenmanager', prop);
+        const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
         if (val) bindings[prop] = val;
       }
       for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
         if (!bindings[newKey]) {
-          const val = node.getSharedPluginData('tokenmanager', legacyKey);
+          const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
           if (val) {
             bindings[newKey] = val;
             // Migrate legacy key to new key
-            node.setSharedPluginData('tokenmanager', newKey, val);
-            node.setSharedPluginData('tokenmanager', legacyKey, '');
+            node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, newKey, val);
+            node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey, '');
           }
         }
       }

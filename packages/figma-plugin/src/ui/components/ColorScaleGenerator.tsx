@@ -1,50 +1,5 @@
 import { useState, useMemo } from 'react';
-
-// ---------------------------------------------------------------------------
-// Color math — hex ↔ CIELAB
-// ---------------------------------------------------------------------------
-
-function toLinear(c: number): number {
-  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-}
-
-function fromLinear(c: number): number {
-  const v = Math.max(0, Math.min(1, c));
-  return v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
-}
-
-function hexToLab(hex: string): [number, number, number] | null {
-  const clean = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
-  const r = toLinear(parseInt(clean.slice(0, 2), 16) / 255);
-  const g = toLinear(parseInt(clean.slice(2, 4), 16) / 255);
-  const b = toLinear(parseInt(clean.slice(4, 6), 16) / 255);
-  // sRGB → XYZ (D65)
-  const X = 0.4124 * r + 0.3576 * g + 0.1805 * b;
-  const Y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  const Z = 0.0193 * r + 0.1192 * g + 0.9505 * b;
-  // XYZ → Lab
-  const f = (t: number) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
-  const fx = f(X / 0.95047), fy = f(Y / 1.00000), fz = f(Z / 1.08883);
-  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
-}
-
-function labToHex(L: number, a: number, b: number): string {
-  // Lab → XYZ
-  const fy = (L + 16) / 116;
-  const fx = a / 500 + fy;
-  const fz = fy - b / 200;
-  const f3 = (t: number) => t > 0.206897 ? t * t * t : (t - 16 / 116) / 7.787;
-  const X = f3(fx) * 0.95047;
-  const Y = f3(fy) * 1.00000;
-  const Z = f3(fz) * 1.08883;
-  // XYZ → sRGB
-  const lr = fromLinear( 3.2406 * X - 1.5372 * Y - 0.4986 * Z);
-  const lg = fromLinear(-0.9689 * X + 1.8758 * Y + 0.0415 * Z);
-  const lb = fromLinear( 0.0557 * X - 0.2040 * Y + 1.0570 * Z);
-  const h = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, '0');
-  return `#${h(lr)}${h(lg)}${h(lb)}`;
-}
+import { hexToLab, labToHex } from '../shared/colorUtils';
 
 // ---------------------------------------------------------------------------
 // Scale generation
@@ -76,8 +31,9 @@ function generateScale(baseHex: string, count: 5 | 7 | 9): ScaleStep[] {
   // Chroma peaks in the middle and tapers toward ends
   const steps: ScaleStep[] = names.map((label, i) => {
     const t = i / (count - 1); // 0 → 1
-    // L* linearly from 95 to 8
-    const L = 95 - t * (95 - 8);
+    // L* with a slight power curve so mid-tones are more spread out
+    const eased = Math.pow(t, 0.85);
+    const L = 95 - eased * (95 - 8);
     // Chroma: scale peaks at t=0.4 (near 500) and falls off at ends
     // Use a bell-shaped factor: 4t(1-t) peaks at t=0.5; shift peak slightly toward light
     const chromaFactor = Math.min(1, 4.5 * t * (1 - t) * 1.5);
@@ -122,7 +78,9 @@ function Sparkline({ steps }: { steps: ScaleStep[] }) {
     <svg width={W} height={H} className="w-full">
       <path d={d} fill="none" stroke="var(--color-figma-border)" strokeWidth="1.5" />
       {points.map(([x, y], i) => {
-        const jump = i < jumps.length ? jumps[i] : (i > 0 ? jumps[i - 1] : 0);
+        const jumpBefore = i > 0 ? jumps[i - 1] : 0;
+        const jumpAfter = i < jumps.length ? jumps[i] : 0;
+        const jump = Math.max(jumpBefore, jumpAfter);
         const isOutlier = jump > threshold && median > 0;
         return (
           <circle
@@ -171,13 +129,21 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
     setCreating(true);
     setError('');
     try {
-      await Promise.all(scale.map(step =>
+      const results = await Promise.all(scale.map(step =>
         fetch(`${serverUrl}/api/tokens/${activeSet}/${prefix}.${step.label}`, {
-          method: 'PUT',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $type: 'color', $value: step.hex }),
         })
       ));
+      const failed = results.filter(r => !r.ok);
+      if (failed.length > 0) {
+        const firstError = await failed[0].json().catch(() => ({}));
+        setError((firstError as any).error || `Failed to create ${failed.length} token(s)`);
+        setCreating(false);
+        return;
+      }
+      setCreating(false);
       onConfirm();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');

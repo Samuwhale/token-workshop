@@ -52,7 +52,13 @@ export class TokenStore {
   private async loadSet(filename: string): Promise<void> {
     const filePath = path.join(this.dir, filename);
     const content = await fs.readFile(filePath, 'utf-8');
-    const tokens = JSON.parse(content) as TokenGroup;
+    let tokens: TokenGroup;
+    try {
+      tokens = JSON.parse(content) as TokenGroup;
+    } catch {
+      console.warn(`[TokenStore] Skipping malformed JSON in "${filename}"`);
+      return;
+    }
     const name = filename.replace('.tokens.json', '');
     this.sets.set(name, { name, tokens, filePath });
   }
@@ -65,14 +71,18 @@ export class TokenStore {
 
     this.watcher.on('change', async (filePath) => {
       const filename = path.basename(filePath as string);
-      await this.loadSet(filename);
+      await this.loadSet(filename).catch(err =>
+        console.warn(`[TokenStore] Error reloading "${filename}":`, err),
+      );
       this.rebuildFlatTokens();
       this.emit({ type: 'set-updated', setName: filename.replace('.tokens.json', '') });
     });
 
     this.watcher.on('add', async (filePath) => {
       const filename = path.basename(filePath as string);
-      await this.loadSet(filename);
+      await this.loadSet(filename).catch(err =>
+        console.warn(`[TokenStore] Error loading new file "${filename}":`, err),
+      );
       this.rebuildFlatTokens();
       this.emit({ type: 'set-added', setName: filename.replace('.tokens.json', '') });
     });
@@ -107,19 +117,20 @@ export class TokenStore {
     prefix: string,
     setName: string,
     out: Map<string, { token: Token; setName: string }>,
+    parentType?: TokenType,
   ): void {
-    const inheritedType = group.$type;
+    const inheritedType = (group.$type ?? parentType) as TokenType | undefined;
     for (const [key, value] of Object.entries(group)) {
       if (key.startsWith('$')) continue;
       const fullPath = prefix ? `${prefix}.${key}` : key;
       if (isDTCGToken(value)) {
         const token = value as Token;
         const effective = !token.$type && inheritedType
-          ? { ...token, $type: inheritedType as TokenType }
+          ? { ...token, $type: inheritedType }
           : token;
         out.set(fullPath, { token: effective, setName });
       } else if (typeof value === 'object' && value !== null) {
-        this.flattenTokens(value as TokenGroup, fullPath, setName, out);
+        this.flattenTokens(value as TokenGroup, fullPath, setName, out, inheritedType);
       }
     }
   }
@@ -246,7 +257,12 @@ export class TokenStore {
     if (!set) throw new Error(`Set "${setName}" not found`);
     const existing = this.getTokenAtPath(set.tokens, tokenPath);
     if (!existing) throw new Error(`Token "${tokenPath}" not found in set "${setName}"`);
-    Object.assign(existing, token);
+    // Replace known token fields explicitly so stale properties don't persist.
+    // A partial update only touches keys that are present in the incoming object.
+    if ('$value' in token) existing.$value = token.$value!;
+    if ('$type' in token) existing.$type = token.$type;
+    if ('$description' in token) existing.$description = token.$description;
+    if ('$extensions' in token) existing.$extensions = token.$extensions;
     await this.saveSet(setName);
     this.rebuildFlatTokens();
   }
@@ -451,7 +467,7 @@ export class TokenStore {
       newGroupPath = makeNewPath(`${baseName}-copy-${attempt++}`);
     }
     for (const { relativePath, token } of leafTokens) {
-      this.setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, token);
+      this.setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, JSON.parse(JSON.stringify(token)));
     }
     await this.saveSet(setName);
     this.rebuildFlatTokens();
@@ -471,7 +487,11 @@ export class TokenStore {
 
     let pattern: RegExp | null = null;
     if (isRegex) {
-      pattern = new RegExp(find, 'g');
+      try {
+        pattern = new RegExp(find, 'g');
+      } catch {
+        throw new Error(`Invalid regex pattern: "${find}"`);
+      }
     }
 
     // Compute all intended renames

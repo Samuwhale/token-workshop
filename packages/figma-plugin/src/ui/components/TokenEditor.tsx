@@ -276,7 +276,9 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
               className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
             >
               <span>Check contrast</span>
-              <span>{showContrast ? '▲' : '▼'}</span>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showContrast ? 'rotate-180' : ''}`}>
+                <path d="M2 3.5l3 3 3-3"/>
+              </svg>
             </button>
             {showContrast && (() => {
               const colorTokens = Object.entries(allTokensFlat).filter(([, e]) => e.$type === 'color');
@@ -356,7 +358,9 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
           >
             <span>Figma variable scopes {scopes.length > 0 ? `(${scopes.length} selected)` : ''}</span>
-            <span>{showScopes ? '▲' : '▼'}</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showScopes ? 'rotate-180' : ''}`}>
+              <path d="M2 3.5l3 3 3-3"/>
+            </svg>
           </button>
           {showScopes && (
             <div className="px-3 py-2 flex flex-col gap-1.5">

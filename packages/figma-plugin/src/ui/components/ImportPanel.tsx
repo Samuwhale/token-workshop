@@ -14,7 +14,6 @@ interface ImportToken {
 }
 
 export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelProps) {
-  const [, setSource] = useState<'variables' | 'styles' | null>(null);
   const [tokens, setTokens] = useState<ImportToken[]>([]);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -22,6 +21,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
   const [targetSet, setTargetSet] = useState('imported');
   const [sets, setSets] = useState<string[]>([]);
   const [selectedTokens, setSelectedTokens] = useState<Set<string>>(new Set());
+  const [source, setSource] = useState<'variables' | 'styles' | null>(null);
 
   // Fetch available sets
   useEffect(() => {

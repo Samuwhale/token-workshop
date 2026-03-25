@@ -1,13 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { hexToLuminance, wcagContrast } from '../shared/colorUtils';
-
-// CIE L* (perceptual lightness) from hex (0–100 scale)
-function hexToLstar(hex: string): number | null {
-  const Y = hexToLuminance(hex);
-  if (Y === null) return null;
-  const f = (t: number) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
-  return 116 * f(Y) - 16;
-}
+import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
 
 interface ValidationIssue {
   rule: string;

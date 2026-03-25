@@ -62,14 +62,18 @@ function buildFlatValueMap(obj: Record<string, any>, prefix = ''): Record<string
 /**
  * Resolve a single `{path.to.token}` reference from the flat value map.
  * Only resolves to string values (colors) to avoid infinite loops.
- * Follows one level of indirection if the target is also a reference.
+ * Follows the reference chain until a concrete value or a cycle is detected.
  */
-function resolveRef(ref: string, flatMap: Record<string, unknown>): string {
+function resolveRef(ref: string, flatMap: Record<string, unknown>, visited = new Set<string>()): string {
+  if (visited.has(ref)) {
+    // Cycle detected — return the unresolved reference as-is
+    return ref;
+  }
+  visited.add(ref);
   const path = ref.slice(1, -1);
   const val = flatMap[path];
   if (typeof val === 'string' && val.startsWith('{') && val.endsWith('}')) {
-    // Follow one hop of indirection
-    return resolveRef(val, flatMap);
+    return resolveRef(val, flatMap, visited);
   }
   return typeof val === 'string' ? val : ref;
 }
@@ -122,6 +126,7 @@ export async function exportTokens(
   platforms: ExportPlatform[],
   outputDir?: string,
 ): Promise<ExportResult[]> {
+  const isTemp = !outputDir;
   const tmpDir = outputDir || path.join(os.tmpdir(), `tokenmanager-export-${Date.now()}`);
   await fs.mkdir(tmpDir, { recursive: true });
 
@@ -175,6 +180,12 @@ export async function exportTokens(
     } catch (err) {
       results.push({ platform, files: [{ path: 'error.txt', content: String(err) }] });
     }
+  }
+
+  if (isTemp) {
+    await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {
+      // Non-fatal — temp cleanup failure should not break the export result
+    });
   }
 
   return results;

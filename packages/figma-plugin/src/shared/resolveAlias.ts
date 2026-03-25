@@ -88,14 +88,10 @@ export function resolveAllAliases(
     const result = resolveTokenValue(entry.$value, entry.$type, tokenMap);
     let resolvedValue = result.value ?? entry.$value;
 
-    // Resolve alias references embedded in gradient stop colors
-    if (
-      entry.$type === 'gradient' &&
-      resolvedValue &&
-      typeof resolvedValue === 'object' &&
-      Array.isArray(resolvedValue.stops)
-    ) {
-      const resolvedStops = resolvedValue.stops.map((stop: any) => {
+    // Resolve alias references embedded in gradient stop colors.
+    // GradientValue is a flat GradientStop[], not { stops: GradientStop[] }.
+    if (entry.$type === 'gradient' && Array.isArray(resolvedValue)) {
+      resolvedValue = resolvedValue.map((stop: any) => {
         if (typeof stop.color === 'string' && stop.color.startsWith('{') && stop.color.endsWith('}')) {
           const refPath = stop.color.slice(1, -1);
           const refEntry = tokenMap[refPath];
@@ -106,7 +102,6 @@ export function resolveAllAliases(
         }
         return stop;
       });
-      resolvedValue = { ...resolvedValue, stops: resolvedStops };
     }
 
     resolved[path] = {

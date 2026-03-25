@@ -7,7 +7,7 @@
  */
 
 import { TOKEN_TYPES, FONT_WEIGHT_NAMES, STROKE_STYLE_KEYWORDS } from './constants.js';
-import { isReference } from './dtcg-types.js';
+import { isReference, isDTCGToken, isDTCGGroup } from './dtcg-types.js';
 import type {
   Token,
   TokenGroup,
@@ -16,9 +16,6 @@ import type {
   DurationValue,
   ShadowValue,
   TypographyValue,
-  BorderValue,
-  TransitionValue,
-  GradientStop,
 } from './types.js';
 
 // ---------------------------------------------------------------------------
@@ -224,16 +221,16 @@ export class TokenValidator {
 
       const currentPath = parentPath ? `${parentPath}.${key}` : key;
 
-      if (this.isToken(node)) {
+      if (isDTCGToken(node)) {
         // Apply inherited type if the token doesn't specify one
         const token: Token = inheritedType && !node.$type
           ? { ...node, $type: inheritedType }
           : (node as Token);
         results.push(this.validate(token, currentPath));
-      } else if (this.isGroup(node)) {
+      } else if (isDTCGGroup(node)) {
         // Propagate inherited type to child group if it doesn't define its own
         const group: TokenGroup = inheritedType && !node.$type
-          ? { ...node, $type: inheritedType }
+          ? { ...(node as TokenGroup), $type: inheritedType }
           : (node as TokenGroup);
         results.push(...this.validateSet(group, currentPath));
       }
@@ -468,15 +465,4 @@ export class TokenValidator {
     errors.push(`${path}: strokeStyle must be a keyword string or { dashArray, lineCap }`);
   }
 
-  // -----------------------------------------------------------------------
-  // Helpers
-  // -----------------------------------------------------------------------
-
-  private isToken(node: unknown): node is Token {
-    return typeof node === 'object' && node !== null && '$value' in node;
-  }
-
-  private isGroup(node: unknown): node is TokenGroup {
-    return typeof node === 'object' && node !== null && !('$value' in node);
-  }
 }

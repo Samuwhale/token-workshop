@@ -1,5 +1,12 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const _require = createRequire(import.meta.url);
+const _pkgPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
+const { version: SERVER_VERSION } = _require(_pkgPath) as { version: string };
 import { tokenRoutes } from './routes/tokens.js';
 import { setRoutes } from './routes/sets.js';
 import { themeRoutes } from './routes/themes.js';
@@ -36,11 +43,16 @@ export async function startServer(config: ServerConfig) {
   fastify.decorate('tokenStore', tokenStore);
   fastify.decorate('gitSync', gitSync);
 
+  // Ensure the file watcher is closed on server shutdown
+  fastify.addHook('onClose', async () => {
+    await tokenStore.shutdown();
+  });
+
   // Register routes
-  await fastify.register(healthRoutes, { prefix: '/api' });
+  await fastify.register(healthRoutes, { prefix: '/api', version: SERVER_VERSION });
   await fastify.register(tokenRoutes, { prefix: '/api' });
   await fastify.register(setRoutes, { prefix: '/api' });
-  await fastify.register(themeRoutes, { prefix: '/api' });
+  await fastify.register(themeRoutes, { prefix: '/api', tokenDir: config.tokenDir });
   await fastify.register(syncRoutes, { prefix: '/api' });
   await fastify.register(exportRoutes, { prefix: '/api' });
   await fastify.register(sseRoutes, { prefix: '/api' });

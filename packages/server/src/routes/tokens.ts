@@ -7,7 +7,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const resolved = await fastify.tokenStore.resolveTokens();
       return resolved;
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to resolve tokens', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to resolve tokens', detail: String(err) });
     }
   });
 
@@ -121,7 +121,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const resolved = await fastify.tokenStore.resolveToken(tokenPath);
       return { path: tokenPath, token, resolved: resolved?.$value ?? null };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to get token', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to get token', detail: String(err) });
     }
   });
 
@@ -148,9 +148,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         await fastify.tokenStore.createToken(set, tokenPath, body as any);
-        reply.status(201).send({ path: tokenPath, set, token: body });
+        return reply.status(201).send({ path: tokenPath, set, token: body });
       } catch (err) {
-        reply.status(500).send({ error: 'Failed to create token', detail: String(err) });
+        return reply.status(500).send({ error: 'Failed to create token', detail: String(err) });
       }
     },
   );
@@ -174,7 +174,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         if (message.includes('not found')) {
           return reply.status(404).send({ error: message });
         }
-        reply.status(500).send({ error: 'Failed to update token', detail: message });
+        return reply.status(500).send({ error: 'Failed to update token', detail: message });
       }
     },
   );
@@ -194,7 +194,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return { deleted: true, path: tokenPath, set };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to delete token', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to delete token', detail: String(err) });
     }
   });
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const DEFAULT_URL = 'http://localhost:9400';
 const STORAGE_KEY = 'tokenmanager_server_url';
@@ -12,6 +12,8 @@ export function useServerConnection() {
       return DEFAULT_URL;
     }
   });
+  const serverUrlRef = useRef(serverUrl);
+  serverUrlRef.current = serverUrl;
 
   const updateServerUrl = useCallback((url: string) => {
     try {
@@ -20,6 +22,15 @@ export function useServerConnection() {
       // ignore
     }
     setServerUrl(url);
+  }, []);
+
+  const retryConnection = useCallback(async () => {
+    try {
+      const res = await fetch(`${serverUrlRef.current}/api/health`, { signal: AbortSignal.timeout(2000) });
+      setConnected(res.ok);
+    } catch {
+      setConnected(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -43,5 +54,5 @@ export function useServerConnection() {
     };
   }, [serverUrl]);
 
-  return { connected, serverUrl, updateServerUrl };
+  return { connected, serverUrl, updateServerUrl, retryConnection };
 }

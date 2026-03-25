@@ -7,6 +7,7 @@ import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEnt
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
 import { ScaffoldingWizard } from './ScaffoldingWizard';
+import { hexToRgb, rgbToLab, colorDeltaE } from '../shared/colorUtils';
 import type { LintViolation } from '../hooks/useLint';
 
 function countTokensInGroup(node: TokenNode): number {
@@ -45,38 +46,7 @@ type DeleteConfirm =
 // ---------------------------------------------------------------------------
 // Color matching helpers for "Promote to Semantic" (US-026)
 // ---------------------------------------------------------------------------
-
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const h = hex.replace('#', '');
-  if (h.length !== 6 && h.length !== 8) return null;
-  return {
-    r: parseInt(h.slice(0, 2), 16) / 255,
-    g: parseInt(h.slice(2, 4), 16) / 255,
-    b: parseInt(h.slice(4, 6), 16) / 255,
-  };
-}
-
-function rgbToLab(r: number, g: number, b: number): { L: number; a: number; b: number } {
-  // sRGB to linear
-  const lin = (c: number) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  const R = lin(r), G = lin(g), B = lin(b);
-  // linear RGB to XYZ (D65)
-  const X = (0.4124564 * R + 0.3575761 * G + 0.1804375 * B) / 0.95047;
-  const Y = (0.2126729 * R + 0.7151522 * G + 0.0721750 * B) / 1.0;
-  const Z = (0.0193339 * R + 0.1191920 * G + 0.9503041 * B) / 1.08883;
-  // XYZ to LAB
-  const f = (t: number) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
-  return { L: 116 * f(Y) - 16, a: 500 * (f(X) - f(Y)), b: 200 * (f(Y) - f(Z)) };
-}
-
-function colorDeltaE(hexA: string, hexB: string): number | null {
-  const rgbA = hexToRgb(hexA);
-  const rgbB = hexToRgb(hexB);
-  if (!rgbA || !rgbB) return null;
-  const labA = rgbToLab(rgbA.r, rgbA.g, rgbA.b);
-  const labB = rgbToLab(rgbB.r, rgbB.g, rgbB.b);
-  return Math.sqrt((labA.L - labB.L) ** 2 + (labA.a - labB.a) ** 2 + (labA.b - labB.b) ** 2);
-}
+// hexToRgb, rgbToLab, colorDeltaE are imported from ../shared/colorUtils
 
 function valuesEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
@@ -829,7 +799,6 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 <option value="alpha-desc">Z → A</option>
                 <option value="by-type">By type</option>
                 <option value="by-value">By value</option>
-                <option value="by-usage" disabled>By usage (run scan first)</option>
               </select>
             </div>
           </div>
@@ -837,7 +806,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
         {/* Filter bar */}
         {tokens.length > 0 && !selectMode && (
-          <div className={`flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] overflow-hidden ${filtersActive ? 'bg-[var(--color-figma-accent)]/8' : 'bg-[var(--color-figma-bg)]'}`}>
+          <div className={`flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] overflow-hidden ${filtersActive ? 'bg-[var(--color-figma-accent)]/20' : 'bg-[var(--color-figma-bg)]'}`}>
             <input
               type="text"
               value={searchQuery}
@@ -890,9 +859,11 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                   aria-haspopup="menu"
                   aria-expanded={moreFiltersOpen}
                   onClick={() => setMoreFiltersOpen(v => !v)}
-                  className="flex items-center justify-center w-6 h-6 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-[10px]"
+                  className="flex items-center justify-center w-6 h-6 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                 >
-                  ⋯
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+                    <path d="M1 2h8M2.5 5h5M4 8h2"/>
+                  </svg>
                 </button>
                 {moreFiltersOpen && (
                   <div role="menu" className="absolute right-0 top-full mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg flex flex-col py-1 min-w-[140px]">
@@ -934,8 +905,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         ) : tokens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M12 8v8M8 12h8" />
             </svg>
             <p className="mt-2 text-[12px]">No tokens yet</p>
             <p className="text-[10px]">Create a token or import from Figma</p>
@@ -997,6 +968,21 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 })}
               </tbody>
             </table>
+          </div>
+        ) : displayedTokens.length === 0 && filtersActive ? (
+          <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+              <path d="M8 11h6M11 8v6" />
+            </svg>
+            <p className="mt-2 text-[11px] font-medium">No tokens match your filters</p>
+            <button
+              onClick={clearFilters}
+              className="mt-2 px-3 py-1 rounded text-[10px] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+            >
+              Clear filters
+            </button>
           </div>
         ) : (
           <div className="py-1">
@@ -1121,7 +1107,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                   className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)]"
                   title="Select tokens for bulk actions"
                 >
-                  Select
+                  Multi-select
                 </button>
                 <button
                   onClick={() => setShowFindReplace(true)}
@@ -1139,6 +1125,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           <button
             onClick={handleApplyVariables}
             disabled={applying || tokens.length === 0}
+            title="Publish tokens as Figma Variables (supports modes and theming)"
             className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
           >
             Apply as Variables
@@ -1146,6 +1133,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           <button
             onClick={handleApplyStyles}
             disabled={applying || tokens.length === 0}
+            title="Publish tokens as Figma Styles (color, text, and effect styles)"
             className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
           >
             Apply as Styles
@@ -1535,7 +1523,6 @@ function TokenTreeNode({
   const [showPicker, setShowPicker] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState<{ top: number; left: number } | undefined>();
   const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
-  const [aliasError, setAliasError] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [chainExpanded, setChainExpanded] = useState(false);
   const nodeRef = useRef<HTMLDivElement>(null);
@@ -1582,6 +1569,7 @@ function TokenTreeNode({
   // chain.length is the number of alias hops (e.g. chain=['B','C'] = A→B→C→value = 3 hops)
   const aliasChain = resolveResult?.chain ?? [];
   const showChainBadge = aliasChain.length >= 2;
+  const isBrokenAlias = isAlias(node.$value) && !!resolveResult?.error;
 
   // Sync state indicator
   const syncChanged = !node.isGroup && syncSnapshot && node.path in syncSnapshot
@@ -1603,13 +1591,8 @@ function TokenTreeNode({
 
   const handleAliasClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!isAlias(node.$value)) return;
+    if (!isAlias(node.$value) || isBrokenAlias) return;
     const aliasPath = (node.$value as string).slice(1, -1);
-    if (!allTokensFlat[aliasPath]) {
-      setAliasError(true);
-      setTimeout(() => setAliasError(false), 2000);
-      return;
-    }
     onNavigateToAlias?.(aliasPath);
   };
 
@@ -1677,7 +1660,10 @@ function TokenTreeNode({
           onContextMenu={e => {
             if (selectMode) return;
             e.preventDefault();
-            setGroupMenuPos({ x: e.clientX, y: e.clientY });
+            setGroupMenuPos({
+              x: Math.min(e.clientX, window.innerWidth - 168),
+              y: Math.min(e.clientY, window.innerHeight - 220),
+            });
           }}
         >
           <svg
@@ -1836,7 +1822,10 @@ function TokenTreeNode({
   const handleContextMenu = (e: React.MouseEvent) => {
     if (node.isGroup || selectMode) return;
     e.preventDefault();
-    setContextMenuPos({ x: e.clientX, y: e.clientY });
+    setContextMenuPos({
+      x: Math.min(e.clientX, window.innerWidth - 168),
+      y: Math.min(e.clientY, window.innerHeight - 280),
+    });
   };
 
   return (
@@ -1889,8 +1878,8 @@ function TokenTreeNode({
           {isAlias(node.$value) && (
             <button
               onClick={handleAliasClick}
-              className={`flex items-center gap-0.5 px-1 py-0.5 rounded border text-[8px] transition-colors ${aliasError ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
-              title={aliasError ? 'Token not found — broken alias' : `Navigate to ${node.$value}`}
+              className={`flex items-center gap-0.5 px-1 py-0.5 rounded border text-[8px] transition-colors ${isBrokenAlias ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 cursor-default' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
+              title={isBrokenAlias ? `Broken alias — ${resolveResult?.error}` : `Navigate to ${node.$value}`}
             >
               <span>{(node.$value as string).slice(1, -1)}</span>
               <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -1954,10 +1943,10 @@ function TokenTreeNode({
       {showChainBadge && (
         <button
           onClick={e => { e.stopPropagation(); setChainExpanded(v => !v); }}
-          title={chainExpanded ? 'Collapse alias chain' : `Resolves through ${aliasChain.length} aliases`}
+          title={chainExpanded ? 'Collapse alias chain' : `${aliasChain.length} hops: ${node.path} → ${aliasChain.join(' → ')}`}
           className={`text-[8px] px-1 py-0.5 rounded border shrink-0 transition-colors ${chainExpanded ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
         >
-          via {aliasChain.length}
+          {aliasChain.length} hops
         </button>
       )}
 

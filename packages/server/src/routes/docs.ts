@@ -6,7 +6,7 @@ function hexToLuminance(hex: string): number | null {
   const r = parseInt(clean.slice(0, 2), 16) / 255;
   const g = parseInt(clean.slice(2, 4), 16) / 255;
   const b = parseInt(clean.slice(4, 6), 16) / 255;
-  const lin = (c: number) => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  const lin = (c: number) => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 }
 
@@ -30,6 +30,11 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/** Strip characters that could inject CSS when used inside a style= attribute value. */
+function escapeCssValue(s: string): string {
+  return s.replace(/[{}<>;"\n\r]/g, '');
+}
+
 function renderColorTokens(tokens: FlatToken[]): string {
   return `
     <div class="token-grid color-grid">
@@ -40,7 +45,7 @@ function renderColorTokens(tokens: FlatToken[]): string {
         const textColor = cr !== null && crDark !== null && cr > crDark ? '#ffffff' : '#000000';
         return `
           <div class="swatch-card">
-            <div class="swatch" style="background:${escapeHtml(String(t.$value))};color:${textColor}">
+            <div class="swatch" style="background:${escapeCssValue(String(t.$value))};color:${textColor}">
               <span class="swatch-label">${escapeHtml(t.path.split('.').pop() ?? t.path)}</span>
             </div>
             <div class="swatch-info">
