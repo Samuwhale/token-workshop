@@ -891,3 +891,13 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - The `useTokens` hook uses a generation counter pattern (not AbortController) for race prevention
   - Token create form error state: use `createError` state + border color class change
   - Server fetch responses: always check `res.ok` before calling `.json()`
+## US-SWEEP-04 — Quality of Life
+- Completed: 2026-03-25
+- activeTab persisted in localStorage (tm_active_tab)
+- activeSet persisted in localStorage (tm_active_set)
+- Server URL already persisted in useServerConnection
+- newTokenType remembered in sessionStorage (tm_last_token_type)
+- Type badge in token list clickable to filter by that type
+- Escape key in TokenEditor navigates back
+- Enter in SyncPanel commit already implemented
+

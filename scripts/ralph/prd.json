@@ -901,7 +901,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 55,
-      "passes": false,
+      "passes": true,
       "notes": "Prefer localStorage over sessionStorage for anything that should survive plugin close. Use sessionStorage only for within-session state like expand/collapse."
     }
   ]
