@@ -1,5 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
+// WCAG contrast helpers (duplicated locally to avoid shared dep)
+function hexToLuminance(hex: string): number | null {
+  const clean = hex.replace('#', '');
+  if (!/^[0-9a-fA-F]{3,8}$/.test(clean)) return null;
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean.slice(0, 6);
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const lin = (c: number) => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function contrastRatio(hex1: string, hex2: string): number | null {
+  const l1 = hexToLuminance(hex1);
+  const l2 = hexToLuminance(hex2);
+  if (l1 === null || l2 === null) return null;
+  const [li, da] = l1 > l2 ? [l1, l2] : [l2, l1];
+  return (li + 0.05) / (da + 0.05);
+}
+
 interface ValidationIssue {
   rule: string;
   path: string;
@@ -49,6 +69,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [validateResults, setValidateResults] = useState<ValidationIssue[] | null>(null);
   const [validateLoading, setValidateLoading] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
+  const [colorTokens, setColorTokens] = useState<{ path: string; hex: string }[]>([]);
+  const [showContrastMatrix, setShowContrastMatrix] = useState(false);
 
   const runValidate = useCallback(async () => {
     if (!connected) return;
@@ -80,15 +102,24 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       const sets: string[] = setsData.sets || [];
       const descriptions: Record<string, string> = setsData.descriptions || {};
 
+      const allColors: { path: string; hex: string }[] = [];
       const results = await Promise.all(
         sets.map(async (name) => {
           const res = await fetch(`${serverUrl}/api/tokens/${name}`);
           const data = await res.json();
+          const flat = data.tokens as Record<string, { $value: unknown; $type: string }> || {};
           const { total, byType } = countLeafNodes(data.tokens || {});
+          for (const [p, t] of Object.entries(flat)) {
+            if (t.$type === 'color' && typeof t.$value === 'string' && !t.$value.startsWith('{') && /^#[0-9a-fA-F]{3,8}$/.test(t.$value)) {
+              allColors.push({ path: p, hex: t.$value });
+            }
+          }
           return { name, description: descriptions[name], total, byType };
         })
       );
       setStats(results);
+      setColorTokens(allColors.slice(0, 16)); // cap for matrix performance
+
       setLoading(false);
     };
 
@@ -271,6 +302,65 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Contrast matrix */}
+      {colorTokens.length >= 2 && (
+        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+          <button
+            onClick={() => setShowContrastMatrix(v => !v)}
+            className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
+          >
+            <span>Color Contrast Matrix ({colorTokens.length} tokens)</span>
+            <span>{showContrastMatrix ? '▲' : '▼'}</span>
+          </button>
+          {showContrastMatrix && (
+            <div className="overflow-auto max-h-80 p-2">
+              <table className="text-[8px] border-collapse w-full">
+                <thead>
+                  <tr>
+                    <th className="px-1 py-0.5 text-left text-[var(--color-figma-text-secondary)] font-normal sticky left-0 bg-[var(--color-figma-bg)]">FG \ BG</th>
+                    {colorTokens.map(bg => (
+                      <th key={bg.path} title={bg.path} className="px-1 py-0.5 text-center font-normal max-w-[40px]">
+                        <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] mx-auto" style={{ background: bg.hex }} />
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {colorTokens.map(fg => (
+                    <tr key={fg.path}>
+                      <td className="px-1 py-0.5 sticky left-0 bg-[var(--color-figma-bg)]">
+                        <div className="flex items-center gap-1">
+                          <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: fg.hex }} />
+                          <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[60px]" title={fg.path}>{fg.path.split('.').pop()}</span>
+                        </div>
+                      </td>
+                      {colorTokens.map(bg => {
+                        if (fg.path === bg.path) return <td key={bg.path} className="px-1 py-0.5 text-center bg-[var(--color-figma-bg-hover)]">—</td>;
+                        const r = contrastRatio(fg.hex, bg.hex);
+                        const aa = r !== null && r >= 4.5;
+                        const aaa = r !== null && r >= 7;
+                        return (
+                          <td key={bg.path} title={`${fg.path} on ${bg.path}: ${r?.toFixed(2)}:1`} className={`px-1 py-0.5 text-center ${aaa ? 'bg-[var(--color-figma-success)]/20' : aa ? 'bg-yellow-50' : 'bg-[var(--color-figma-error)]/10'}`}>
+                            <span className={aaa ? 'text-[var(--color-figma-success)]' : aa ? 'text-yellow-700' : 'text-[var(--color-figma-error)]'}>
+                              {r !== null ? r.toFixed(1) : '—'}
+                            </span>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="flex gap-3 mt-2 px-1 text-[8px] text-[var(--color-figma-text-secondary)]">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[var(--color-figma-success)]/20 border border-[var(--color-figma-success)]/40" />AAA (≥7:1)</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-yellow-50 border border-yellow-200" />AA (≥4.5:1)</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30" />Fail</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

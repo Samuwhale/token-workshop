@@ -2,6 +2,39 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import type { TokenMapEntry } from '../../shared/types';
 
+// ---------------------------------------------------------------------------
+// WCAG contrast utilities
+// ---------------------------------------------------------------------------
+function hexToLuminance(hex: string): number | null {
+  const clean = hex.replace('#', '');
+  if (!/^[0-9a-fA-F]{3,8}$/.test(clean)) return null;
+  const full = clean.length === 3
+    ? clean.split('').map(c => c + c).join('')
+    : clean.slice(0, 6);
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const lin = (c: number) => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function wcagContrast(hex1: string, hex2: string): number | null {
+  const l1 = hexToLuminance(hex1);
+  const l2 = hexToLuminance(hex2);
+  if (l1 === null || l2 === null) return null;
+  const [lighter, darker] = l1 > l2 ? [l1, l2] : [l2, l1];
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function resolveColorValue(path: string, allTokensFlat: Record<string, TokenMapEntry>): string | null {
+  const entry = allTokensFlat[path];
+  if (!entry || entry.$type !== 'color') return null;
+  const v = entry.$value;
+  return typeof v === 'string' && v.startsWith('{')
+    ? resolveColorValue(v.slice(1, -1), allTokensFlat)
+    : typeof v === 'string' ? v : null;
+}
+
 interface TokenEditorProps {
   tokenPath: string;
   setName: string;
@@ -22,6 +55,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const [aliasMode, setAliasMode] = useState(false);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
+  const [showContrast, setShowContrast] = useState(false);
+  const [bgTokenPath, setBgTokenPath] = useState<string>('');
 
   useEffect(() => {
     const fetchToken = async () => {
@@ -196,6 +231,72 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             {tokenType === 'number' && <NumberEditor value={value} onChange={setValue} />}
             {tokenType === 'string' && <StringEditor value={value} onChange={setValue} />}
             {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
+          </div>
+        )}
+
+        {/* Contrast checker (color tokens only) */}
+        {tokenType === 'color' && (
+          <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+            <button
+              onClick={() => setShowContrast(v => !v)}
+              className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+            >
+              <span>Check contrast</span>
+              <span>{showContrast ? '▲' : '▼'}</span>
+            </button>
+            {showContrast && (() => {
+              const colorTokens = Object.entries(allTokensFlat).filter(([, e]) => e.$type === 'color');
+              const fgHex = resolveColorValue(tokenPath, allTokensFlat) ?? (typeof value === 'string' && !value.startsWith('{') ? value : null);
+              const bgHex = bgTokenPath ? resolveColorValue(bgTokenPath, allTokensFlat) : null;
+              const ratio = fgHex && bgHex ? wcagContrast(fgHex, bgHex) : null;
+              const pass = (r: number, min: number) => r >= min;
+              return (
+                <div className="p-3 flex flex-col gap-3">
+                  <div>
+                    <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Background color token</label>
+                    <select
+                      value={bgTokenPath}
+                      onChange={e => setBgTokenPath(e.target.value)}
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none"
+                    >
+                      <option value="">— select token —</option>
+                      {colorTokens.map(([p]) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {ratio !== null ? (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-3">
+                        {fgHex && bgHex && (
+                          <div className="w-10 h-10 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-[13px] font-bold" style={{ color: fgHex, background: bgHex }}>Aa</div>
+                        )}
+                        <div>
+                          <div className="text-[18px] font-semibold text-[var(--color-figma-text)]">{ratio.toFixed(2)}:1</div>
+                          <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Contrast ratio</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1 text-[9px] text-center">
+                        {[
+                          { label: 'Normal AA', min: 4.5 },
+                          { label: 'Large AA', min: 3 },
+                          { label: 'Normal AAA', min: 7 },
+                          { label: 'Large AAA', min: 4.5 },
+                          { label: 'UI (AA)', min: 3 },
+                        ].map(({ label, min }) => (
+                          <div key={label} className={`rounded px-1 py-1 border ${pass(ratio, min) ? 'border-[var(--color-figma-success)] text-[var(--color-figma-success)]' : 'border-[var(--color-figma-error)] text-[var(--color-figma-error)]'}`}>
+                            <div>{pass(ratio, min) ? '✓' : '✕'}</div>
+                            <div>{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (bgTokenPath ? (
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Could not resolve color values.</div>
+                  ) : null)}
+                </div>
+              );
+            })()}
           </div>
         )}
 
