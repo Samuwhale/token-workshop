@@ -750,3 +750,28 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Snapshot must be captured from `allTokensFlat` at time of `variables-applied` (not from controller message)
   - `JSON.stringify($value)` handles all value types (strings, numbers, objects) correctly for comparison
   - syncSnapshot is undefined until first apply, so dots never show on fresh plugin open (correct behavior)
+
+---
+
+## 2026-03-25 — US-041: Publish Readiness Checklist
+
+**Implemented**:
+- Updated `readFigmaVariables` in controller.ts to include `$description` and `$scopes` in variables-read tokens
+- Added `deleteOrphanVariables(knownPaths)` controller function + `delete-orphan-variables` message handler
+  - Removes variables from TokenManager collection not in the known paths set
+  - Sends `orphans-deleted: { count }` response
+- Added `ReadinessCheck` interface to SyncPanel.tsx
+- Added `readinessChecks`, `readinessLoading`, `readinessError`, `orphansDeleting` state
+- Added `orphansResolveRef` for promise-based `orphans-deleted` listener
+- `runReadinessChecks()`:
+  1. Reads Figma variables via `read-variables` (reuses varReadResolveRef)
+  2. Fetches local tokens from server
+  3. Computes 4 checks: missing vars, missing scopes, missing descriptions, orphan vars
+  4. "Fix" button for missing vars (apply-variables) and orphans (delete-orphan-variables)
+- Publish Readiness section in SyncPanel between Variable Sync and Two-Way Sync sections
+- Files changed: SyncPanel.tsx, controller.ts
+- **Learnings for future iterations:**
+  - `variables-read` now includes `$description` and `$scopes` per token
+  - Scopes check: "ALL_SCOPES" or empty array = no specific scope set
+  - `variable.remove()` deletes a Figma variable (no special async needed)
+  - `runReadinessChecks` references itself recursively (after orphan delete) — works because it's a useCallback
