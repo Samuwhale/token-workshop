@@ -5,9 +5,10 @@ interface EmptyStateProps {
   onCreateToken: () => void;
   onPasteJSON: () => void;
   onUsePreset?: () => void;
+  onGenerateColorScale?: () => void;
 }
 
-export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset }: EmptyStateProps) {
+export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset, onGenerateColorScale }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-6 py-10 text-center gap-5">
       <div className="flex flex-col gap-1.5">
@@ -32,9 +33,10 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset 
         </button>
 
         <button
-          disabled
-          title="Coming soon"
-          className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] opacity-40 cursor-not-allowed"
+          onClick={onGenerateColorScale}
+          disabled={!connected || !onGenerateColorScale}
+          title={connected ? undefined : 'Server offline'}
+          className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="6" cy="6" r="4.5" />
