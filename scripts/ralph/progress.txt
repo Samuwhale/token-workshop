@@ -117,6 +117,29 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing tool available — manual browser verification needed
 ---
 
+## 2026-03-25 - US-010
+- Added 3 methods to `TokenStore`: `renameGroup`, `moveGroup`, `duplicateGroup`
+- `renameGroup`: collects leaf tokens under group path, recreates at new path, deletes old, updates alias `$value` strings across ALL sets, saves affected files
+- `moveGroup`: moves leaf tokens to target set (aliases don't need updating — alias format is path-only, not set-qualified)
+- `duplicateGroup`: copies group with `-copy` suffix (increments to `-copy-2` etc. if taken)
+- Added 3 POST routes: `/api/tokens/:set/groups/rename`, `/api/tokens/:set/groups/move`, `/api/tokens/:set/groups/duplicate`
+- Added `sets: string[]` prop to `TokenList` and `sets={sets}` in App.tsx TokenList call
+- Added `groupMenuPos`, `renamingGroup`, `renameGroupVal` state to `TokenTreeNode` (used in group branch)
+- Group header now responds to `onContextMenu` → shows 3-item context menu
+- Inline rename input replaces group name text when renaming (focus via `useLayoutEffect`)
+- "Move group to set…" triggers `handleRequestMoveGroup` in TokenList → shows set picker modal
+- New props threaded through recursive `TokenTreeNode` calls: `onRenameGroup`, `onRequestMoveGroup`, `onDuplicateGroup`
+- Files changed: `packages/server/src/services/token-store.ts`, `packages/server/src/routes/tokens.ts`, `packages/figma-plugin/src/ui/components/TokenList.tsx`, `packages/figma-plugin/src/ui/App.tsx`
+- **Learnings for future iterations:**
+  - Group routes use `/api/tokens/:set/groups/rename` — registered BEFORE wildcards so Fastify's find-my-way prefers them
+  - `collectGroupLeafTokens` navigates to group node, then walks recursively with relative paths — relative path is used for duplication/move/rename token reconstruction
+  - Alias update: only need `{oldGroup.` prefix match — exact match to group path as alias is unusual and skipped
+  - Moving a group between sets does NOT require alias updates — aliases use `{path}` (not `{setName.path}`)
+  - `useLayoutEffect` for focus in group rename input: declared at top of `TokenTreeNode` (before `if (node.isGroup)` branch) since React requires unconditional hooks
+  - `onBlur` on the rename input calls `confirmGroupRename` which only renames if value changed — blur-cancel is NOT used here unlike set rename
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## Codebase Patterns
 - Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
 - `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
