@@ -503,3 +503,14 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Type inference from plain values: `#hex` → color, `Npx/em/rem` → dimension, plain number → number
   - Keyboard shortcut uses `document.addEventListener('keydown', ...)` in a `useEffect` — remember to clean up on unmount
 ---
+
+## 2026-03-25 - US-029
+- Created `CommandPalette.tsx` with fuzzy character-subsequence scoring, keyboard navigation (↑↓ Enter Esc), hover sync with active index, scroll-to-active
+- Added `useMemo`-driven command registry in `App.tsx` covering: create token, paste tokens, import, export, settings, tab navigation, and dynamic "switch to set: X" entries per set
+- Added Cmd+K keyboard shortcut alongside existing Cmd+Shift+V handler
+- Files changed: `CommandPalette.tsx` (new), `App.tsx`
+- **Learnings for future iterations:**
+  - Command registry needs to be a `useMemo` in App.tsx to get access to all state/handlers
+  - Fuzzy scoring gives bonus points for consecutive character matches
+  - Mouse hover should sync `activeIdx` (not just highlight) to keep keyboard/mouse in sync
+---
