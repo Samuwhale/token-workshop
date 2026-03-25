@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 
 // ---------------------------------------------------------------------------
 // Color math — hex ↔ CIELAB
@@ -69,7 +69,7 @@ interface ScaleStep {
 function generateScale(baseHex: string, count: 5 | 7 | 9): ScaleStep[] {
   const lab = hexToLab(baseHex);
   if (!lab) return [];
-  const [bL, bA, bB] = lab;
+  const [, bA, bB] = lab;
 
   const names = getStepNames(count);
   // L* anchors: near-white (95) at step 0, near-black (8) at last step

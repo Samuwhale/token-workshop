@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // WCAG contrast helpers (duplicated locally to avoid shared dep)
 function hexToLuminance(hex: string): number | null {

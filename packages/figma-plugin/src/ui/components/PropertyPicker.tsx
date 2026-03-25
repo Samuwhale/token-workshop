@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import type { BindableProperty, NodeCapabilities } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
 

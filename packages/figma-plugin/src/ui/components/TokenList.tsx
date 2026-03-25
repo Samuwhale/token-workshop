@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect, Fragment } from 'react';
 import type { TokenNode } from '../hooks/useTokens';
 import { PropertyPicker } from './PropertyPicker';
 import { ConfirmModal } from './ConfirmModal';
@@ -2039,7 +2039,7 @@ function TokenTreeNode({
         <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium shrink-0">Chain:</span>
         <span className="text-[9px] text-[var(--color-figma-accent)] font-mono shrink-0">{node.path}</span>
         {aliasChain.map((hop, i) => (
-          <React.Fragment key={hop}>
+          <Fragment key={hop}>
             <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-secondary)] shrink-0">
               <path d="M1 4h6M4 1l3 3-3 3"/>
             </svg>
@@ -2060,7 +2060,7 @@ function TokenTreeNode({
                 </span>
               </>
             )}
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
     )}

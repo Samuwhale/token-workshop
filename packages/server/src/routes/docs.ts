@@ -25,19 +25,6 @@ interface FlatToken {
   $description?: string;
 }
 
-function flattenTokens(group: Record<string, any>, prefix = ''): FlatToken[] {
-  const result: FlatToken[] = [];
-  for (const [key, val] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (val && typeof val === 'object' && '$value' in val) {
-      result.push({ path, $type: String(val.$type ?? 'string'), $value: val.$value, $description: val.$description });
-    } else if (val && typeof val === 'object') {
-      result.push(...flattenTokens(val, path));
-    }
-  }
-  return result;
-}
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -156,7 +143,7 @@ const CSS = `
   .token-list { display:flex; flex-direction:column; gap:0.5rem; }
 `;
 
-function renderSetPage(setName: string, tokens: FlatToken[], allSets: string[]): string {
+function renderSetPage(setName: string, tokens: FlatToken[]): string {
   const byType: Record<string, FlatToken[]> = {};
   for (const t of tokens) {
     if (!byType[t.$type]) byType[t.$type] = [];
@@ -240,8 +227,7 @@ export async function docsRoutes(fastify: FastifyInstance) {
       $value: t.$value,
       $description: (t as any).$description,
     }));
-    const allSets = await fastify.tokenStore.getSets();
     reply.header('Content-Type', 'text/html; charset=utf-8');
-    return renderSetPage(set, flat, allSets);
+    return renderSetPage(set, flat);
   });
 }

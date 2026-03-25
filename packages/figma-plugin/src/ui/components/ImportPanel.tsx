@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ImportPanelProps {
   serverUrl: string;
@@ -14,7 +14,7 @@ interface ImportToken {
 }
 
 export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelProps) {
-  const [source, setSource] = useState<'variables' | 'styles' | null>(null);
+  const [, setSource] = useState<'variables' | 'styles' | null>(null);
   const [tokens, setTokens] = useState<ImportToken[]>([]);
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
