@@ -270,6 +270,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} />}
             {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'number' && <NumberEditor value={value} onChange={setValue} />}
+            {tokenType === 'duration' && <DurationEditor value={value} onChange={setValue} />}
             {tokenType === 'string' && <StringEditor value={value} onChange={setValue} />}
             {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
           </div>
@@ -756,6 +757,48 @@ function BooleanEditor({ value, onChange }: { value: any; onChange: (v: any) => 
         <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${value ? 'left-4' : 'left-0.5'}`} />
       </button>
       <span className="text-[11px] text-[var(--color-figma-text)]">{value ? 'true' : 'false'}</span>
+    </div>
+  );
+}
+
+const DURATION_PRESETS = [100, 150, 200, 300, 500];
+
+function DurationEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const ms = typeof value?.value === 'number' ? value.value : typeof value === 'number' ? value : 200;
+  const unit: 'ms' | 's' = value?.unit === 's' ? 's' : 'ms';
+  const update = (patch: { value?: number; unit?: 'ms' | 's' }) =>
+    onChange({ value: ms, unit, ...patch });
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        <input
+          type="number"
+          min={0}
+          step={unit === 'ms' ? 50 : 0.05}
+          value={ms}
+          onChange={e => update({ value: parseFloat(e.target.value) || 0 })}
+          className={inputClass + ' flex-1'}
+        />
+        <select
+          value={unit}
+          onChange={e => update({ unit: e.target.value as 'ms' | 's' })}
+          className={inputClass + ' w-16'}
+        >
+          <option value="ms">ms</option>
+          <option value="s">s</option>
+        </select>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {DURATION_PRESETS.map(p => (
+          <button
+            key={p}
+            onClick={() => onChange({ value: p, unit: 'ms' })}
+            className={`px-2 py-0.5 rounded border text-[10px] transition-colors ${ms === p && unit === 'ms' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+          >
+            {p}ms
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
