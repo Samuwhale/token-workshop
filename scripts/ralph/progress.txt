@@ -848,3 +848,9 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - EmptyState shows generation buttons when a primitives-named set exists
 - Handlers show a coming-soon alert pointing to context menu
 
+## US-046 — Gradient Token Editor
+- Completed: 2026-03-25
+- Added 'gradient' option to type dropdown in TokenList create form
+- getDefaultValue returns {type:'linear', stops:[{color:'#000000',position:0},{color:'#ffffff',position:1}]}
+- GradientEditor already self-contained in TokenEditor.tsx; TokenList already renders preview strips
+

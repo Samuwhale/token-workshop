@@ -778,7 +778,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 48,
-      "passes": false,
+      "passes": true,
       "notes": "US-023b (alias mode per stop) depends on this story. Keep the editor self-contained as a GradientEditor sub-component in TokenEditor.tsx."
     },
     {
