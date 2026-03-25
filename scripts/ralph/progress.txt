@@ -492,3 +492,14 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Color nearest-primitive matching uses delta-E CIE76 in LAB space — implemented inline without external dependencies
   - The PATCH URL for token paths uses `.split('.').map(encodeURIComponent).join('/')` to safely encode path segments
 ---
+
+## 2026-03-25 - US-027
+- Created `PasteTokensModal.tsx` component with two parsing modes: JSON DTCG and `name: value` newline format; inline parse errors with context; preview table with type badge and conflict warning; per-row overwrite checkbox; calls POST for new tokens, PATCH for overwrites
+- Added "Paste tokens ⌘⇧V" item to overflow menu in `App.tsx`
+- Added Cmd/Ctrl+Shift+V keyboard shortcut to open the modal
+- Files changed: `PasteTokensModal.tsx` (new), `App.tsx`
+- **Learnings for future iterations:**
+  - `pathToSet` in App.tsx maps each flat token path to its set name — useful for filtering existingPaths to the active set
+  - Type inference from plain values: `#hex` → color, `Npx/em/rem` → dimension, plain number → number
+  - Keyboard shortcut uses `document.addEventListener('keydown', ...)` in a `useEffect` — remember to clean up on unmount
+---
