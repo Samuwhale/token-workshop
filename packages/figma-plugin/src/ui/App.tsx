@@ -101,8 +101,8 @@ export function App() {
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
   const hasPrimitivesSet = sets.some(s => /prim/i.test(s));
-  const handleGenerateSemanticTokens = hasPrimitivesSet ? () => alert('Generate Semantic Tokens: coming soon — right-click a token set tab for early access.') : undefined;
-  const handleGenerateDarkTheme = hasPrimitivesSet ? () => alert('Generate Dark Theme: coming soon — right-click a token set tab for early access.') : undefined;
+  const handleGenerateSemanticTokens = hasPrimitivesSet ? () => {} : undefined;
+  const handleGenerateDarkTheme = hasPrimitivesSet ? () => {} : undefined;
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [lintKey, setLintKey] = useState(0);
@@ -147,6 +147,12 @@ export function App() {
   const [renameValue, setRenameValue] = useState('');
   const [renameError, setRenameError] = useState('');
   const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // New set creation state
+  const [creatingSet, setCreatingSet] = useState(false);
+  const [newSetName, setNewSetName] = useState('');
+  const [newSetError, setNewSetError] = useState('');
+  const newSetInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (connected) {
@@ -242,6 +248,14 @@ export function App() {
     }
   }, [renamingSet]);
 
+  // Focus new set input when it appears
+  useLayoutEffect(() => {
+    if (creatingSet && newSetInputRef.current) {
+      newSetInputRef.current.focus();
+      newSetInputRef.current.select();
+    }
+  }, [creatingSet]);
+
   const openSetMenu = (setName: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -286,6 +300,31 @@ export function App() {
       refreshTokens();
     } catch {
       setRenameError('Rename failed');
+    }
+  };
+
+  const handleCreateSet = async () => {
+    const name = newSetName.trim();
+    if (!name) { setNewSetError('Name cannot be empty'); return; }
+    if (!/^[a-zA-Z0-9_-]+$/.test(name)) { setNewSetError('Only letters, numbers, - and _'); return; }
+    if (!connected) { setCreatingSet(false); return; }
+    try {
+      const res = await fetch(`${serverUrl}/api/sets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setNewSetError((data as any).error || 'Failed to create set');
+        return;
+      }
+      setCreatingSet(false);
+      setNewSetName('');
+      setNewSetError('');
+      refreshTokens();
+    } catch {
+      setNewSetError('Network error');
     }
   };
 
@@ -491,10 +530,12 @@ export function App() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+      <div className="flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]" role="tablist">
         {TABS.map(tab => (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id && overflowPanel === null}
             onClick={() => { setActiveTab(tab.id); setOverflowPanel(null); }}
             className={`px-3 py-2 text-[11px] font-medium transition-colors rounded-sm mx-0.5 my-1 ${
               activeTab === tab.id && overflowPanel === null
@@ -512,6 +553,9 @@ export function App() {
             onClick={() => setMenuOpen(v => !v)}
             className={`flex items-center justify-center w-7 h-7 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors ${menuOpen ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
             title="More actions"
+            aria-label="More actions"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
               <circle cx="6" cy="2" r="1.2" />
@@ -521,20 +565,23 @@ export function App() {
           </button>
 
           {menuOpen && (
-            <div className="absolute right-1 top-full mt-0.5 w-40 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50">
+            <div className="absolute right-1 top-full mt-0.5 w-40 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50" role="menu">
               <button
+                role="menuitem"
                 onClick={() => { setShowPasteModal(true); setMenuOpen(false); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Paste tokens <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-1">⌘⇧V</span>
               </button>
               <button
+                role="menuitem"
                 onClick={() => openOverflowPanel('import')}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Import
               </button>
               <button
+                role="menuitem"
                 onClick={() => openOverflowPanel('export')}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
@@ -542,6 +589,7 @@ export function App() {
               </button>
               <div className="border-t border-[var(--color-figma-border)]" />
               <button
+                role="menuitem"
                 onClick={() => openOverflowPanel('settings')}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
@@ -625,32 +673,40 @@ export function App() {
           {tabMenuOpen && (
             <div
               ref={tabMenuRef}
+              role="menu"
               className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[168px]"
               style={{ top: tabMenuPos.y, left: tabMenuPos.x }}
             >
               <button
+                role="menuitem"
+                aria-disabled="true"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
-                disabled
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
               >
                 Generate Semantic Tokens
               </button>
               <button
+                role="menuitem"
+                aria-disabled="true"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
-                disabled
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
               >
                 Generate Dark Theme
               </button>
               <button
+                role="menuitem"
+                aria-disabled="true"
+                tabIndex={-1}
                 onMouseDown={e => e.preventDefault()}
-                disabled
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text-tertiary)] opacity-40 cursor-not-allowed"
               >
                 Adopt Figma File
               </button>
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
+                role="menuitem"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => openSetMetadata(tabMenuOpen)}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -659,6 +715,7 @@ export function App() {
               </button>
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
+                role="menuitem"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => startRename(tabMenuOpen)}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -666,6 +723,7 @@ export function App() {
                 Rename
               </button>
               <button
+                role="menuitem"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => handleDuplicateSet(tabMenuOpen)}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -673,6 +731,7 @@ export function App() {
                 Duplicate
               </button>
               <button
+                role="menuitem"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => { setDeletingSet(tabMenuOpen); setTabMenuOpen(null); }}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -682,21 +741,34 @@ export function App() {
             </div>
           )}
 
-          <button
-            onClick={() => {
-              const name = prompt('New set name:');
-              if (name && connected) {
-                fetch(`${serverUrl}/api/sets`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ name }),
-                }).then(() => refreshTokens());
-              }
-            }}
-            className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-          >
-            + Add Set
-          </button>
+          {creatingSet ? (
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1">
+                <input
+                  ref={newSetInputRef}
+                  value={newSetName}
+                  onChange={e => { setNewSetName(e.target.value); setNewSetError(''); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleCreateSet();
+                    if (e.key === 'Escape') { setCreatingSet(false); setNewSetName(''); setNewSetError(''); }
+                  }}
+                  onBlur={() => { setCreatingSet(false); setNewSetName(''); setNewSetError(''); }}
+                  className="px-2 py-1 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none w-28"
+                  placeholder="Set name"
+                />
+              </div>
+              {newSetError && (
+                <span className="text-[9px] text-red-500 mt-0.5 px-1">{newSetError}</span>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => { setCreatingSet(true); setNewSetName(''); setNewSetError(''); }}
+              className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              + Add Set
+            </button>
+          )}
         </div>
       )}
 

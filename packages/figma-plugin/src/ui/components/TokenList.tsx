@@ -187,6 +187,17 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     return () => clearTimeout(timer);
   }, [highlightedToken, onClearHighlight]);
 
+  useEffect(() => {
+    if (!moreFiltersOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (moreFiltersRef.current && !moreFiltersRef.current.contains(e.target as Node)) {
+        setMoreFiltersOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [moreFiltersOpen]);
+
   // Sort order — persisted in sessionStorage (shared across sets)
   const [sortOrder, setSortOrderState] = useState<SortOrder>(() => {
     try {
@@ -236,6 +247,9 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     setShowDuplicatesState(v);
     try { sessionStorage.setItem('token-duplicates', v ? '1' : '0'); } catch {}
   }, []);
+
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const moreFiltersRef = useRef<HTMLDivElement>(null);
 
   const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates;
 
@@ -790,6 +804,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             <button
               onClick={() => setInspectMode(v => !v)}
               title={inspectMode ? 'Disable inspect mode' : 'Show tokens bound to selected layer'}
+              aria-pressed={inspectMode}
               className={`px-2 py-0.5 rounded text-[10px] transition-colors ${inspectMode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
             >
               Bound tokens
@@ -797,6 +812,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             <button
               onClick={() => setTableMode(v => !v)}
               title={tableMode ? 'Switch to tree view' : 'Switch to table view'}
+              aria-pressed={tableMode}
               className={`px-2 py-0.5 rounded text-[10px] transition-colors ${tableMode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
             >
               Table
@@ -805,6 +821,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               <select
                 value={sortOrder}
                 onChange={e => setSortOrder(e.target.value as SortOrder)}
+                aria-label="Sort order"
                 className="text-[10px] bg-transparent text-[var(--color-figma-text-secondary)] border-none outline-none cursor-pointer hover:text-[var(--color-figma-text)] pr-1"
               >
                 <option value="default">Default order</option>
@@ -833,6 +850,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value)}
               title="Filter by type"
+              aria-label="Filter by type"
               className={`shrink-0 px-1 py-1 rounded border text-[10px] outline-none cursor-pointer ${typeFilter ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]'}`}
             >
               <option value="">Type</option>
@@ -865,24 +883,30 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             )}
             {/* More filters button — expands other filters */}
             {(refFilter === 'all' || !showDuplicates) && (
-              <div className="relative shrink-0 group/more">
+              <div className="relative shrink-0" ref={moreFiltersRef}>
                 <button
                   title="More filters"
+                  aria-label="More filters"
+                  aria-haspopup="menu"
+                  aria-expanded={moreFiltersOpen}
+                  onClick={() => setMoreFiltersOpen(v => !v)}
                   className="flex items-center justify-center w-6 h-6 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-[10px]"
                 >
                   ⋯
                 </button>
-                <div className="hidden group-hover/more:flex absolute right-0 top-full mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg flex-col py-1 min-w-[140px]">
-                  {refFilter === 'all' && (
-                    <>
-                      <button onClick={() => setRefFilter('aliases')} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Aliases only</button>
-                      <button onClick={() => setRefFilter('direct')} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Direct values only</button>
-                    </>
-                  )}
-                  {!showDuplicates && (
-                    <button onClick={() => setShowDuplicates(true)} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show duplicates</button>
-                  )}
-                </div>
+                {moreFiltersOpen && (
+                  <div role="menu" className="absolute right-0 top-full mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg flex flex-col py-1 min-w-[140px]">
+                    {refFilter === 'all' && (
+                      <>
+                        <button role="menuitem" onClick={() => { setRefFilter('aliases'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Aliases only</button>
+                        <button role="menuitem" onClick={() => { setRefFilter('direct'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Direct values only</button>
+                      </>
+                    )}
+                    {!showDuplicates && (
+                      <button role="menuitem" onClick={() => { setShowDuplicates(true); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Show duplicates</button>
+                    )}
+                  </div>
+                )}
               </div>
             )}
             {filtersActive && (
@@ -891,7 +915,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 title="Clear all filters"
                 className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] shrink-0"
               >
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true">
                   <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                 </svg>
               </button>
@@ -1637,9 +1661,19 @@ function TokenTreeNode({
     return (
       <div>
         <div
+          role="button"
+          tabIndex={0}
+          aria-expanded={isExpanded}
+          aria-label={`Toggle group ${node.name}`}
           className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group"
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
+          onKeyDown={e => {
+            if ((e.key === 'Enter' || e.key === ' ') && !renamingGroup) {
+              e.preventDefault();
+              onToggleExpand(node.path);
+            }
+          }}
           onContextMenu={e => {
             if (selectMode) return;
             e.preventDefault();
@@ -1652,6 +1686,7 @@ function TokenTreeNode({
             viewBox="0 0 8 8"
             className={`transition-transform shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
             fill="currentColor"
+            aria-hidden="true"
           >
             <path d="M2 1l4 3-4 3V1z" />
           </svg>
@@ -1682,7 +1717,7 @@ function TokenTreeNode({
               title="Delete group"
               className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] transition-opacity shrink-0"
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
               </svg>
             </button>
@@ -1692,10 +1727,12 @@ function TokenTreeNode({
         {/* Group context menu */}
         {groupMenuPos && (
           <div
+            role="menu"
             className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[160px]"
             style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
           >
             <button
+              role="menuitem"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 setGroupMenuPos(null);
@@ -1707,6 +1744,7 @@ function TokenTreeNode({
               Rename group
             </button>
             <button
+              role="menuitem"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 setGroupMenuPos(null);
@@ -1717,6 +1755,7 @@ function TokenTreeNode({
               Move group to set…
             </button>
             <button
+              role="menuitem"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 setGroupMenuPos(null);
@@ -1728,6 +1767,7 @@ function TokenTreeNode({
             </button>
             {onSetGroupScopes && (
               <button
+                role="menuitem"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => {
                   setGroupMenuPos(null);
@@ -1740,6 +1780,7 @@ function TokenTreeNode({
             )}
             {onSyncGroup && (
               <button
+                role="menuitem"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => {
                   setGroupMenuPos(null);
@@ -1814,6 +1855,7 @@ function TokenTreeNode({
           checked={isSelected}
           onChange={() => onToggleSelect(node.path)}
           onClick={(e) => e.stopPropagation()}
+          aria-label={`Select token ${node.path}`}
           className="shrink-0 cursor-pointer"
         />
       )}
@@ -1927,7 +1969,7 @@ function TokenTreeNode({
             title="Apply to selection"
             className="p-1 rounded hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]"
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M12 5l7 7-7 7M5 12h14" />
             </svg>
           </button>
@@ -1937,11 +1979,11 @@ function TokenTreeNode({
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >
             {copiedWhat === 'path' ? (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             ) : (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
               </svg>
             )}
@@ -1952,11 +1994,11 @@ function TokenTreeNode({
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >
             {copiedWhat === 'value' ? (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             ) : (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M4 7h16M4 12h10M4 17h7"/>
               </svg>
             )}
@@ -1966,7 +2008,7 @@ function TokenTreeNode({
             title="Edit token"
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
@@ -1976,7 +2018,7 @@ function TokenTreeNode({
             title="Delete token"
             className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)]"
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
             </svg>
           </button>
@@ -2145,8 +2187,9 @@ function ValuePreview({ type, value }: { type?: string; value?: any }) {
     let gradientCss: string | null = null;
     if (typeof value === 'string' && value.includes('gradient')) {
       gradientCss = value;
-    } else if (typeof value === 'object' && value !== null && Array.isArray(value.stops)) {
-      const stops = (value.stops as Array<{ color: string; position?: number }>)
+    } else if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && 'color' in value[0]) {
+      // DTCG gradient: GradientStop[] = [{color, position}, ...]
+      const stops = (value as Array<{ color: string; position?: number }>)
         .map(s => `${s.color}${s.position != null ? ` ${Math.round(s.position * 100)}%` : ''}`)
         .join(', ');
       gradientCss = `linear-gradient(to right, ${stops})`;
@@ -2159,31 +2202,6 @@ function ValuePreview({ type, value }: { type?: string; value?: any }) {
         />
       );
     }
-  }
-
-  if (type === 'fontFamily' && typeof value === 'string' && value) {
-    const family = value.split(',')[0].trim();
-    return (
-      <span
-        className="text-[11px] text-[var(--color-figma-text)] shrink-0 truncate max-w-[80px]"
-        style={{ fontFamily: value }}
-        title={value}
-      >
-        {family}
-      </span>
-    );
-  }
-
-  if (type === 'fontWeight' && typeof value === 'number') {
-    return (
-      <span
-        className="text-[11px] text-[var(--color-figma-text)] shrink-0"
-        style={{ fontWeight: value }}
-        title={String(value)}
-      >
-        Aa
-      </span>
-    );
   }
 
   return <div className="w-4 h-4 shrink-0" />;

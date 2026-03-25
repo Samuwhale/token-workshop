@@ -1,16 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-
-// WCAG contrast helpers (duplicated locally to avoid shared dep)
-function hexToLuminance(hex: string): number | null {
-  const clean = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{3,8}$/.test(clean)) return null;
-  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean.slice(0, 6);
-  const r = parseInt(full.slice(0, 2), 16) / 255;
-  const g = parseInt(full.slice(2, 4), 16) / 255;
-  const b = parseInt(full.slice(4, 6), 16) / 255;
-  const lin = (c: number) => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-}
+import { hexToLuminance, wcagContrast } from '../shared/colorUtils';
 
 // CIE L* (perceptual lightness) from hex (0–100 scale)
 function hexToLstar(hex: string): number | null {
@@ -18,14 +7,6 @@ function hexToLstar(hex: string): number | null {
   if (Y === null) return null;
   const f = (t: number) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
   return 116 * f(Y) - 16;
-}
-
-function contrastRatio(hex1: string, hex2: string): number | null {
-  const l1 = hexToLuminance(hex1);
-  const l2 = hexToLuminance(hex2);
-  if (l1 === null || l2 === null) return null;
-  const [li, da] = l1 > l2 ? [l1, l2] : [l2, l1];
-  return (li + 0.05) / (da + 0.05);
 }
 
 interface ValidationIssue {
@@ -478,7 +459,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                       </td>
                       {colorTokens.map(bg => {
                         if (fg.path === bg.path) return <td key={bg.path} className="px-1 py-0.5 text-center bg-[var(--color-figma-bg-hover)]">—</td>;
-                        const r = contrastRatio(fg.hex, bg.hex);
+                        const r = wcagContrast(fg.hex, bg.hex);
                         const aa = r !== null && r >= 4.5;
                         const aaa = r !== null && r >= 7;
                         return (

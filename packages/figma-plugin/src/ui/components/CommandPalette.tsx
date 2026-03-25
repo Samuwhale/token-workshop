@@ -101,10 +101,13 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
         className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-2xl w-full mx-3 flex flex-col"
         style={{ maxHeight: '60vh' }}
         onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
       >
         {/* Search input */}
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--color-figma-border)]">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-secondary)] shrink-0">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-secondary)] shrink-0">
             <circle cx="6" cy="6" r="4" />
             <path d="M9 9l3 3" />
           </svg>
@@ -115,6 +118,8 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search commands…"
+            aria-label="Search commands"
+            aria-autocomplete="list"
             className="flex-1 bg-transparent outline-none text-[12px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           <kbd className="text-[9px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5">
@@ -123,13 +128,15 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
         </div>
 
         {/* Results */}
-        <div ref={listRef} className="overflow-y-auto flex-1">
+        <div ref={listRef} className="overflow-y-auto flex-1" role="listbox" aria-label="Commands">
           {filtered.length === 0 && (
             <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">No commands match "{query}"</div>
           )}
           {filtered.map((cmd, idx) => (
             <button
               key={cmd.id}
+              role="option"
+              aria-selected={idx === activeIdx}
               className={`w-full text-left px-3 py-2 flex flex-col gap-0 transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
               onMouseEnter={() => setActiveIdx(idx)}
               onClick={() => execute(cmd)}

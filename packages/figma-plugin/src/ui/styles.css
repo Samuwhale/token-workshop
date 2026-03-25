@@ -6,12 +6,29 @@
   --color-figma-bg-hover: #444444;
   --color-figma-text: #ffffff;
   --color-figma-text-secondary: #b3b3b3;
+  --color-figma-text-tertiary: #666666;
   --color-figma-border: #4d4d4d;
   --color-figma-accent: #0d99ff;
   --color-figma-accent-hover: #0b87e0;
   --color-figma-success: #14ae5c;
   --color-figma-warning: #f2a20d;
   --color-figma-error: #f24822;
+  --token-badge-color-bg: #e74c3c33;
+  --token-badge-color-text: #e74c3c;
+  --token-badge-dimension-bg: #3498db33;
+  --token-badge-dimension-text: #3498db;
+  --token-badge-typography-bg: #9b59b633;
+  --token-badge-typography-text: #9b59b6;
+  --token-badge-shadow-bg: #2c3e5033;
+  --token-badge-shadow-text: #95a5a6;
+  --token-badge-border-bg: #e67e2233;
+  --token-badge-border-text: #e67e22;
+  --token-badge-number-bg: #1abc9c33;
+  --token-badge-number-text: #1abc9c;
+  --token-badge-string-bg: #f39c1233;
+  --token-badge-string-text: #f39c12;
+  --token-badge-boolean-bg: #2ecc7133;
+  --token-badge-boolean-text: #2ecc71;
 }
 
 body {
@@ -28,18 +45,23 @@ body {
   box-sizing: border-box;
 }
 
+button:focus-visible {
+  outline: 1.5px solid var(--color-figma-accent);
+  outline-offset: 1px;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-figma-border); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #666; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-figma-text-secondary); }
 
 /* Token type color badges */
-.token-type-color { background: #e74c3c33; color: #e74c3c; }
-.token-type-dimension { background: #3498db33; color: #3498db; }
-.token-type-typography { background: #9b59b633; color: #9b59b6; }
-.token-type-shadow { background: #2c3e5033; color: #95a5a6; }
-.token-type-border { background: #e67e2233; color: #e67e22; }
-.token-type-number { background: #1abc9c33; color: #1abc9c; }
-.token-type-string { background: #f39c1233; color: #f39c12; }
-.token-type-boolean { background: #2ecc7133; color: #2ecc71; }
+.token-type-color { background: var(--token-badge-color-bg); color: var(--token-badge-color-text); }
+.token-type-dimension { background: var(--token-badge-dimension-bg); color: var(--token-badge-dimension-text); }
+.token-type-typography { background: var(--token-badge-typography-bg); color: var(--token-badge-typography-text); }
+.token-type-shadow { background: var(--token-badge-shadow-bg); color: var(--token-badge-shadow-text); }
+.token-type-border { background: var(--token-badge-border-bg); color: var(--token-badge-border-text); }
+.token-type-number { background: var(--token-badge-number-bg); color: var(--token-badge-number-text); }
+.token-type-string { background: var(--token-badge-string-bg); color: var(--token-badge-string-text); }
+.token-type-boolean { background: var(--token-badge-boolean-bg); color: var(--token-badge-boolean-text); }
