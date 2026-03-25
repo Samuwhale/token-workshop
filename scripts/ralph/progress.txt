@@ -155,6 +155,23 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - No browser testing needed for server-side only story
 ---
 
+## 2026-03-25 - US-023b
+- Replaced buggy pre-existing `GradientEditor` (that treated value as a plain array) with new `GradientEditor` + `GradientStopRow` components in `TokenEditor.tsx`
+- `GradientEditor` renders type selector (linear/radial), gradient preview strip, per-stop rows, and Add stop button
+- `GradientStopRow` is a sub-component with own state: alias mode toggle, `AliasAutocomplete` in alias mode, color picker + hex input in raw mode, position stepper (0–100%)
+- Each stop's alias mode is initialized from whether `stop.color` starts with `{`
+- `AliasAutocomplete` is filtered to `filterType="color"` for stop color alias selection
+- Extended `resolveAllAliases` in `resolveAlias.ts` to also resolve `{path}` references inside gradient stop `color` fields — ensures alias-based stop colors are resolved before Figma sync
+- Removed duplicate gradient type case in the type-specific editor section (was already present from prior session)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/shared/resolveAlias.ts`
+- **Learnings for future iterations:**
+  - A partial `GradientEditor` was already present from a prior session — always check if a component already exists before adding a new one
+  - Gradient token `$value` format is `{ stops: [{color, position}], type: 'linear'|'radial' }` — NOT a plain array; old implementation was treating it as array
+  - `GradientStopRow` uses `useState(colorIsAlias)` to init alias mode — this correctly captures initial server-loaded state
+  - `resolveAllAliases` only resolves top-level string aliases by default; gradient stop colors need explicit extra handling since they are nested object fields
+  - No browser testing tool available — manual browser verification needed
+---
+
 ## Codebase Patterns
 - Plugin UI is all in `packages/figma-plugin/src/ui/` — App.tsx, hooks/, components/
 - `controller.ts` has pre-existing Figma environment type errors (figma global not available in tsc) — ignore these, they are expected
