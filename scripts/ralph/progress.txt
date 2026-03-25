@@ -427,3 +427,16 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `!isAlias(node.$value)` guards the "Extract to alias" menu item — prevents showing on already-aliased tokens
   - No browser testing tool available — manual browser verification needed
 ---
+
+## 2026-03-25 - US-023
+- Confirmed `TokenResolver` in `packages/core/src/resolver.ts` already handles gradient stop color aliases via its recursive `resolveValue` and `collectReferences` methods (arrays of stops are iterated; each stop object's color field is resolved)
+- `resolveGradientStopAliases()` in `packages/server/src/services/style-dict.ts` pre-resolves `{path}` references in gradient stop color fields before passing merged tokens to Style Dictionary
+- Added 4 tests to `packages/core/src/__tests__/resolver.test.ts` verifying: direct alias in stop colors, chained alias resolution, dependency graph invalidation propagation, and static (non-alias) colors pass through unchanged
+- All 71 core tests pass; typecheck passes for all packages
+- Files changed: `packages/core/src/__tests__/resolver.test.ts`
+- **Learnings for future iterations:**
+  - `resolveValue` in TokenResolver is already fully recursive over arrays and objects — gradient stop aliases work without any code changes to resolver.ts itself
+  - `collectReferences` similarly traverses arrays and objects to build the dependency graph — gradient stop color refs are automatically tracked
+  - `resolveGradientStopAliases` in style-dict.ts uses a flat map approach with one-hop reference following before the main SD build; this handles the most common case (stop → color token)
+  - No browser testing tool available — manual browser verification needed
+---
