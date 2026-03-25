@@ -689,3 +689,20 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Prop propagation through recursive components: always check BOTH the top-level caller AND the recursive child call when adding new props
   - SyncPanel already committed (from previous session) before typecheck/build; only remaining files needed staging
 ---
+
+---
+
+## 2026-03-25 — US-038: Partial Sync by Group
+
+**Implemented**:
+- Right-click context menu "Sync this group to Figma" was already in TokenList.tsx (from US-010)
+- ConfirmModal with token count was already in App.tsx
+- Fixed: `handleSyncGroup` now sends `apply-variables` (Figma Variables API) instead of `sync-bindings`
+- Fixed: group prefix matching uses `.` separator (was incorrectly using `/`)
+- Group tokens are resolved via `resolveAllAliases` before sending (actual values, not alias refs)
+- Files changed: `App.tsx` (handleSyncGroup only)
+- **Learnings for future iterations:**
+  - Token paths use `.` as separator (e.g. `color.blue.500`), NOT `/` — was a bug in original code
+  - Group prefix filter: `path === groupPath || path.startsWith(groupPath + '.')`
+  - `apply-variables` format: `[{ path, $type, $value }]` (different from `sync-bindings` which uses `tokenMap` record)
+  - Group sync context menu only appears when `onSyncGroup` prop is passed to TokenList
