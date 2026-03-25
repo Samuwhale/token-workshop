@@ -619,3 +619,13 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - `canonicalPick` state tracks which token is canonical per hex group
 - `reloadKey` state triggers re-fetch of analytics data after deduplication
 - Files changed: `AnalyticsPanel.tsx`
+
+## 2026-03-25 — US-035: Duplicate Color Value Detection
+
+**Implemented**:
+- AnalyticsPanel: during load, builds a unified flat map across all sets, resolves alias chains to hex values for all color tokens
+- Computes duplicate groups: tokens sharing the same resolved hex value
+- Collapsible "Duplicate Colors" section shows groups with color swatch, hex, token paths + set names
+- Radio buttons let user pick the canonical primitive per group
+- "Deduplicate" button patches all non-canonical tokens to use `{canonical.path}` alias via PATCH /api/tokens/:set/:path
+- After deduplication, triggers reload via reloadKey increment
