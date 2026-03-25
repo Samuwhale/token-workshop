@@ -882,7 +882,7 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 54,
-      "passes": false,
+      "passes": true,
       "notes": "Focus on what a new user sees on their first run-through, not power-user flows."
     },
     {

@@ -916,3 +916,12 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `react-jsx` transform = don't import React for JSX; only import named hooks/utilities
   - Use `[, value]` destructuring to silence unused-first-element errors
   - `noUnusedLocals` + `noUnusedParameters` flags work well as one-off checks even when not in tsconfig
+## US-SWEEP-03 — UX Polish
+- Completed: 2026-03-25
+- TokenEditor sends notify toast after successful save
+- TokenEditor returns human-readable API error from JSON body
+- ConfirmModal shows busy/spinner state during async onConfirm
+- icon-only close button in Group Scopes modal gets title='Close'
+- Truncated token path tooltip (title={node.path}) added earlier
+- Loading states on destructive actions already in SyncPanel, TokenList
+
