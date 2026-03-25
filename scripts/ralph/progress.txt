@@ -789,3 +789,27 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - ReadinessCheck interface allows flexible fix actions as callbacks
   - export-all-variables returns full variable info including scopes/descriptions; read-variables only returns basic path/$type/$value
 ---
+
+---
+
+## 2026-03-25 — US-042: Figma Component Token Coverage Map
+
+**Implemented**:
+- Added `scan-component-coverage` and `select-node` message handlers to controller.ts
+- `scanComponentCoverage()`: uses `figma.currentPage.findAllWithCriteria({ types: ['COMPONENT'] })`
+  - Checks `boundVariables` for each node: fills, strokes, effects, opacity, fontSize, fontName, etc.
+  - A node is "tokenized" if it has bound variables AND no hardcoded prop count
+  - Returns: totalComponents, tokenizedComponents, untokenized[] with { id, name, hardcodedCount }
+  - Capped at 100 untokenized entries for performance
+- `selectNode(nodeId)`: uses `figma.getNodeByIdAsync`, sets `currentPage.selection` + `scrollAndZoomIntoView`
+- AnalyticsPanel.tsx: added `coverageResult`, `coverageLoading`, `showCoverage`, `coverageResolveRef` state
+- Added message listener for `component-coverage-result` 
+- `runCoverageScan()`: sends `scan-component-coverage`, 30s timeout, resolves via coverageResolveRef
+- Component Coverage UI section: stats bar (total/tokenized/untokenized/%), collapsible untokenized list
+  - Each untokenized component is a button that sends `select-node` to controller
+- Files changed: AnalyticsPanel.tsx, controller.ts
+- **Learnings for future iterations:**
+  - `figma.currentPage.findAllWithCriteria({ types: ['COMPONENT'] })` is synchronous (no await)
+  - `figma.getNodeByIdAsync(id)` is async — needed for `select-node`
+  - `node.boundVariables` is a Record where keys = property names, values = variable bindings
+  - A variable binding has `{ id: string }` — checking `'id' in v` detects it
