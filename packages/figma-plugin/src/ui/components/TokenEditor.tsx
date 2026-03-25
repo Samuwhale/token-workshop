@@ -149,7 +149,11 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error('Failed to save token');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error((data as any).error || 'Failed to save token');
+      }
+      parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${tokenPath}" saved` } }, '*');
       onBack();
     } catch (err) {
       setError(String(err));

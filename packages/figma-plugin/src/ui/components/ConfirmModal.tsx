@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface ConfirmModalProps {
   title: string;
@@ -6,7 +6,7 @@ interface ConfirmModalProps {
   confirmLabel: string;
   cancelLabel?: string;
   danger?: boolean;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -19,6 +19,13 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const [busy, setBusy] = useState(false);
+
+  const handleConfirm = async () => {
+    setBusy(true);
+    try { await onConfirm(); } finally { setBusy(false); }
+  };
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCancel();
@@ -49,14 +56,15 @@ export function ConfirmModal({
             {cancelLabel}
           </button>
           <button
-            onClick={onConfirm}
-            className={`flex-1 px-3 py-1.5 rounded text-[11px] font-medium transition-colors ${
+            onClick={handleConfirm}
+            disabled={busy}
+            className={`flex-1 px-3 py-1.5 rounded text-[11px] font-medium transition-colors disabled:opacity-50 ${
               danger
                 ? 'bg-[var(--color-figma-error)] text-white hover:opacity-90'
                 : 'bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]'
             }`}
           >
-            {confirmLabel}
+            {busy ? '…' : confirmLabel}
           </button>
         </div>
       </div>
