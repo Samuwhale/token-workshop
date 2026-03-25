@@ -535,3 +535,15 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - The LintConfigStore persists as `$lint.json` alongside `$themes.json`
   - max-alias-depth traversal uses a visited Set to avoid infinite loops on circular refs
 ---
+
+## 2026-03-25 - US-031-plugin
+- Created `hooks/useLint.ts` — 800ms debounced fetch to POST /api/tokens/lint; clears violations if server offline; returns LintViolation[]
+- Added `lintViolations` prop to TokenList and TokenTreeNode; violations filtered by token path at each node
+- Lint badge shows ✕/⚠/ℹ with severity color; click triggers quick-fix (extract-to-alias or open editor)
+- Created `refreshAll` wrapper in App.tsx (calls both refreshTokens and increments lintKey)
+- Files changed: `useLint.ts` (new), `TokenList.tsx`, `App.tsx`
+- **Learnings for future iterations:**
+  - Pass lintViolations filtered by child.path to recursive TokenTreeNode children
+  - `refreshAll` pattern: wrap refreshTokens + setLintKey increment to ensure lint re-runs after mutations
+  - Quick-fix routing: `suggestedFix === 'extract-to-alias'` → call onExtractToAliasForLint, `'add-description'` → call onEdit
+---
