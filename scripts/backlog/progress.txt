@@ -1,0 +1,173 @@
+# Backlog Progress Log
+Started: Wed Mar 25 13:54:58 CET 2026
+---
+
+## Codebase Patterns
+
+- **SVG chevron pattern**: Group expand/collapse arrows use `<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3V1z" /></svg>` with a `rotate-90` class toggled for direction change. Use this instead of text characters `▶`/`▼`.
+- **Build command**: Run `cd packages/figma-plugin && npm run build` — the root `npm run build` fails due to missing package manager binary (turbo issue). The plugin build itself succeeds cleanly.
+- **Pre-existing duplicate title warning**: `TokenList.tsx` ~L1884–1886 has a duplicate `title` attribute on the type badge; this is pre-existing and not a blocker.
+- **Stale backlog references**: Some backlog items reference code that no longer exists (e.g., "Generate Semantic Tokens" greyed menu items). Skip and pick a different item if the code can't be found.
+
+---
+
+## 2026-03-25 - Table mode Scopes column toggle uses text arrows `▶`/`▼`
+
+- Replaced `<span className="text-[8px]">{showScopesCol ? '▼' : '▶'}</span>` with an SVG chevron matching the group expand/collapse pattern (`rotate-90` transition)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L933
+- **Learnings for future iterations:**
+  - The SVG chevron path `M2 1l4 3-4 3V1z` points right by default; add `rotate-90` class to point down
+  - Build via `cd packages/figma-plugin && npm run build`, not root `npm run build`
+---
+
+## 2026-03-25 - "Source" theme state has no definition anywhere
+
+- Added `title` tooltip attributes to the state badge `<span>` in the token set matrix for all three states: "source" explains it is the base set whose tokens can be overridden by enabled sets; "enabled" clarifies tokens are active; "disabled" clarifies tokens are not used
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L222
+- **Learnings for future iterations:**
+  - The state badge is a plain `<span>` (not a `<button>`), so `title` is the correct tooltip mechanism
+  - All three states (source/enabled/disabled) share the same JSX span — add a ternary to the `title` prop
+---
+
+## 2026-03-25 - Component coverage scan fails silently
+
+- Added `coverageError` state to `AnalyticsPanel`; set it in the catch block with a user-friendly message distinguishing timeout vs general failure; cleared on each new scan start
+- Added an error display `<div>` in the JSX, shown when `!coverageLoading && coverageError` — displayed in `--color-figma-error` red above the existing empty-state hint
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L68, ~L119, ~L657
+- **Learnings for future iterations:**
+  - `coverageResolveRef` uses a `reject` on timeout with `new Error('Scan timed out')` — distinguish by `err.message`
+  - The empty-state div was the only JSX to update; add the error block as a sibling before it
+---
+
+## 2026-03-25 - Sync-changed dot has no legend
+
+- Added `syncChangedCount` useMemo at the `TokenList` component level (after `displayedTokens`) that counts tokens whose value in `allTokensFlat` differs from the `syncSnapshot` value
+- Added a toolbar note ("N changed since last sync") with an orange dot that appears when `syncSnapshot && syncChangedCount > 0`, placed inside the `ml-auto` sort div in the toolbar
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L288, ~L801
+- **Learnings for future iterations:**
+  - `syncSnapshot` is a `Record<string, string>` (JSON-stringified values); compare via `syncSnapshot[path] !== JSON.stringify(token.$value)`
+  - `allTokensFlat` is `Record<string, TokenMapEntry>` — iterate with `Object.entries()` to count changed tokens
+  - The toolbar `ml-auto` div wraps the sort indicator; elements added inside it sit to the right of the toolbar
+---
+
+## 2026-03-25 - ΔE score unexplained in Convert to Aliases modal
+
+- Replaced raw `ΔE=N` text with a qualitative label: "Exact" (ΔE < 1), "Close" (ΔE 1–5), "Approximate" (ΔE ≥ 5)
+- Raw ΔE value is now in a `title` tooltip for those who want the number
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1415
+- **Learnings for future iterations:**
+  - Standard perceptual ΔE thresholds: <1 imperceptible (Exact), 1-5 perceptible but close (Close), >5 clearly different (Approximate)
+  - The ΔE span is only rendered when `row.$type === 'color' && row.deltaE !== undefined`
+---
+
+## 2026-03-25 - Copy path vs copy value icons indistinguishable at 10px
+
+- Changed the "Copy CSS var" (copy path) button icon from a clipboard to a `</>` code-style icon using SVG path `M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16`
+- Changed the "Copy resolved value" button icon from horizontal lines to a clipboard icon (the previous copy-path icon)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1999–2028
+- **Learnings for future iterations:**
+  - The `</>` code icon SVG path is: `<path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>` with `strokeLinecap="round" strokeLinejoin="round"` on viewBox 0 0 24 24
+  - The two buttons share identical "Copied!" checkmark states — only the default icons differ
+  - "Disabled set menu items unexplained" (App.tsx ~L687) references code that no longer exists; skip it
+---
+
+## 2026-03-25 - Lint violation badges have no legend
+
+- Added a lint legend bar below the filter bar in `TokenList.tsx`; it appears only when `lintViolations.length > 0` and shows `✕ error · ⚠ warning · ℹ info — click to fix` using the same border/color styles as the actual badges
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L915
+- **Learnings for future iterations:**
+  - The legend uses the same color classes as the per-row badge buttons: `border-[var(--color-figma-error)]` for error, `border-yellow-500 text-yellow-700 bg-yellow-50` for warning, `border-[var(--color-figma-border)]` for info
+  - Insertion point is after the filter bar closing `</div>` / `}` (previously L914) and before the `inspectMode` check
+  - The `lintViolations` prop is already available at the TokenList component level (passed in at L69)
+---
+
+## 2026-03-25 - Color editor strips alpha channel
+
+- Preserved the alpha suffix (#RRGGBBAA) when the color picker fires onChange: extract `hex.slice(7)` if `hex.length === 9`, then append it to the picker's 6-char output
+- Text input already displayed the full hex; only the color picker was clobbering alpha
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L466 (`ColorEditor`)
+- **Learnings for future iterations:**
+  - HTML `<input type="color">` only supports 6-char `#RRGGBB`; alpha must be tracked separately and re-appended on change
+  - Other color pickers in the file (L670, L727, L1070) use `.slice(0, 7)` for shadow/gradient sub-colors — those may need a similar fix if alpha matters there
+---
+
+## 2026-03-25 - Toolbar: mode toggles look like one-shot actions
+
+- Added a vertical separator (`w-px h-3 bg-[var(--color-figma-border)]`) after the Expand/Collapse action buttons, only when those buttons are visible
+- Added `border` class to both mode toggle buttons ("For selection" / "Table"); inactive state uses `border-[var(--color-figma-border)]`; active state uses `border-[var(--color-figma-accent)]/40` (complementing the existing accent bg/text active style)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L765–796
+- **Learnings for future iterations:**
+  - The mode buttons already had active-state styling; the fix was purely about the inactive appearance and visual separation from one-shot actions
+  - Separator is inside the `tokens.some(n => n.isGroup)` conditional so it only appears when action buttons exist
+---
+
+## 2026-03-25 - Theme states have no legend
+
+- Added a persistent legend strip at the top of the themes list showing all three state badges (source/enabled/disabled) with one-word descriptions ("base set", "overrides source", "not used")
+- Legend only appears when themes exist (inside the `themes.length > 0` branch)
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L183
+- **Learnings for future iterations:**
+  - Legend uses the same badge styles as the actual state badges for visual consistency
+  - The legend lives just before the `themes.map(...)` call inside the `flex flex-col gap-3` container
+---
+
+## 2026-03-25 - Complex types show raw JSON in value column
+
+- Rewrote `formatValue()` with proper handlers for typography, shadow, gradient, and border types
+- Typography: shows "fontFamily / fontSize / fontWeight" (e.g. "Inter / 16px / 400")
+- Shadow: shows "offsetX offsetY blur" for single shadow; "×N offsetX offsetY blur" for multi-shadow arrays; uses `offsetX`/`x` and `blur`/`blurRadius` fallbacks
+- Gradient: shows `gradientType` string or "N stops" if stops array is present
+- Border: shows "width style" (e.g. "1px solid")
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2256
+- **Learnings for future iterations:**
+  - Shadow values can be a single object or an array; always check `Array.isArray(value)` first
+  - Shadow field names vary: `offsetX`/`offsetY` (W3C DTCG) or `x`/`y` (older formats); `blur` or `blurRadius`
+  - Typography `fontSize` can be a string like "16px", a number, or a `{value, unit}` dimension object
+  - The `formatValue` function is used in both the list row value column and the alias chain resolution display
+---
+
+## 2026-03-25 - Settings panel server URL input doesn't auto-select on focus
+
+- Added `onFocus={e => e.target.select()}` to the server URL `<input>` in the Settings panel
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L892
+- **Learnings for future iterations:**
+  - This is a one-liner; the input is at ~L888 inside the `overflowPanel === 'settings'` branch
+  - No state changes needed; `e.target.select()` selects all text natively
+---
+
+## 2026-03-25 - Commit message textarea has no placeholder
+
+- Changed `placeholder="Commit message"` to `placeholder="Describe your changes…"` on the commit input
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L708
+- **Learnings for future iterations:**
+  - The commit area uses `<input type="text">` (not a `<textarea>`) — the backlog description says "textarea" but it's actually an input
+  - The input already had a placeholder; this was an improvement to a more descriptive prompt
+---
+
+## 2026-03-25 - Commit button enabled with an empty message
+
+- Changed `!commitMsg` to `!commitMsg.trim()` on the commit button's `disabled` prop
+- Changed `&& commitMsg` to `&& commitMsg.trim()` on the Enter key handler for consistency
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L711, ~L716
+- **Learnings for future iterations:**
+  - The button already had `disabled={!commitMsg || actionLoading !== null}`; `!commitMsg` is falsy for empty string but truthy for whitespace-only strings — the fix is just `.trim()`
+  - Both the Enter key handler and the button click handler needed the same fix
+---
+
+## 2026-03-25 - Long theme names clip with no tooltip
+
+- Added `title={theme.name}` and `truncate max-w-[140px]` classes to the theme name `<span>` in the card header
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L205
+- **Learnings for future iterations:**
+  - The theme name span is inside a flex row with the coverage badge and delete button — adding `max-w-[140px] truncate` ensures the name clips with an ellipsis and the tooltip reveals the full name
+  - This is a one-liner; no state changes needed
+---
+
+## 2026-03-25 - Long branch names truncate with no tooltip
+
+- Added `title={status.branch || 'main'}` and `truncate max-w-[160px]` classes to the branch name `<span>` in SyncPanel
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L451
+- **Learnings for future iterations:**
+  - The branch name is rendered in a flex row with a git-branch SVG icon — adding `max-w-[160px] truncate` ensures long names clip with ellipsis and the tooltip reveals the full name
+  - This is a one-liner; no state changes needed
+---

@@ -1,4 +1,30 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo, Component } from 'react';
+import type { ReactNode, ErrorInfo } from 'react';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(_error: Error, _info: ErrorInfo) {}
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-6 gap-3 text-center">
+          <p className="text-[11px] font-medium text-[var(--color-figma-error)]">Something went wrong</p>
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all max-w-xs">
+            {(this.state.error as Error).message}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+          >
+            Reload
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { TokenList } from './components/TokenList';
 import { TokenEditor } from './components/TokenEditor';
 import { ThemeManager } from './components/ThemeManager';
@@ -149,6 +175,8 @@ export function App() {
   const [newSetName, setNewSetName] = useState('');
   const [newSetError, setNewSetError] = useState('');
   const newSetInputRef = useRef<HTMLInputElement>(null);
+  const setTabsScrollRef = useRef<HTMLDivElement>(null);
+  const [setTabsOverflow, setSetTabsOverflow] = useState(false);
 
   useEffect(() => {
     if (connected) {
@@ -251,6 +279,18 @@ export function App() {
       newSetInputRef.current.select();
     }
   }, [creatingSet]);
+
+  // Detect horizontal overflow in set tab bar
+  useEffect(() => {
+    const el = setTabsScrollRef.current;
+    if (!el) return;
+    const check = () => setSetTabsOverflow(el.scrollWidth > el.clientWidth);
+    check();
+    el.addEventListener('scroll', check);
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', check); ro.disconnect(); };
+  }, [sets]);
 
   const openSetMenu = (setName: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -563,8 +603,22 @@ export function App() {
           </button>
         ))}
 
+        {/* Command palette trigger */}
+        <button
+          onClick={() => setShowCommandPalette(v => !v)}
+          className="ml-auto flex items-center gap-1 px-2 py-1 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors text-[10px]"
+          title="Command palette (⌘K)"
+          aria-label="Open command palette"
+        >
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="4.5" cy="4.5" r="3.5"/>
+            <path d="M8 8l2 2"/>
+          </svg>
+          <span className="opacity-50">⌘K</span>
+        </button>
+
         {/* Overflow menu */}
-        <div className="ml-auto relative" ref={menuRef}>
+        <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(v => !v)}
             className={`flex items-center justify-center w-7 h-7 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors ${menuOpen ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
@@ -618,7 +672,8 @@ export function App() {
 
       {/* Set selector (for tokens tab) */}
       {activeTab === 'tokens' && overflowPanel === null && sets.length > 0 && (
-        <div className="flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto">
+        <div className="relative">
+        <div ref={setTabsScrollRef} className="flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto">
           {sets.map(set => {
             const isActive = activeSet === set;
             const isRenaming = renamingSet === set;
@@ -740,7 +795,7 @@ export function App() {
                     if (e.key === 'Enter') handleCreateSet();
                     if (e.key === 'Escape') { setCreatingSet(false); setNewSetName(''); setNewSetError(''); }
                   }}
-                  onBlur={() => { setCreatingSet(false); setNewSetName(''); setNewSetError(''); }}
+                  onBlur={() => { if (!newSetName.trim()) { setCreatingSet(false); setNewSetName(''); setNewSetError(''); } }}
                   className="px-2 py-1 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none w-28"
                   placeholder="Set name"
                 />
@@ -758,9 +813,14 @@ export function App() {
             </button>
           )}
         </div>
+        {setTabsOverflow && (
+          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--color-figma-bg-secondary)] to-transparent pointer-events-none" aria-hidden="true" />
+        )}
+        </div>
       )}
 
       {/* Content */}
+      <ErrorBoundary>
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           {/* Overflow panels */}
@@ -805,6 +865,20 @@ export function App() {
             </>
           )}
           {overflowPanel === 'settings' && (
+            <>
+              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <button
+                  onClick={() => setOverflowPanel(null)}
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  aria-label="Back"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6.5 2L3.5 5l3 3"/>
+                  </svg>
+                  Back
+                </button>
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Settings</span>
+              </div>
             <div className="flex flex-col gap-3 p-3">
               <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                 <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
@@ -815,6 +889,7 @@ export function App() {
                     type="text"
                     value={serverUrlInput}
                     onChange={e => setServerUrlInput(e.target.value)}
+                    onFocus={e => e.target.select()}
                     placeholder="http://localhost:9400"
                     className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
                   />
@@ -827,6 +902,7 @@ export function App() {
                 </div>
               </div>
             </div>
+            </>
           )}
 
           {/* Main tab panels */}
@@ -905,6 +981,7 @@ export function App() {
           />
         )}
       </div>
+      </ErrorBoundary>
 
       {/* Set metadata editor */}
       {editingMetadataSet && (

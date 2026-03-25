@@ -97,6 +97,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   setNameRef.current = setName;
   const initializedForSet = useRef<string | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
+  const moreFiltersRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (tokens.length === 0) return;
@@ -218,9 +220,6 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     try { sessionStorage.setItem('token-duplicates', v ? '1' : '0'); } catch {}
   }, []);
 
-  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
-  const moreFiltersRef = useRef<HTMLDivElement>(null);
-
   const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates;
 
   // Compute duplicate value info from all tokens in the current set
@@ -285,6 +284,13 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
     return result;
   }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, inspectMode, selectedNodes.length, boundTokenPaths]);
+
+  const syncChangedCount = useMemo(() => {
+    if (!syncSnapshot) return 0;
+    return Object.entries(allTokensFlat).filter(
+      ([path, token]) => path in syncSnapshot && syncSnapshot[path] !== JSON.stringify(token.$value)
+    ).length;
+  }, [syncSnapshot, allTokensFlat]);
 
   const clearFilters = useCallback(() => {
     setSearchQuery('');
@@ -412,8 +418,9 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     if (!trimmedPath) { setCreateError('Token path cannot be empty'); return; }
     if (!connected) return;
     setCreateError('');
+    const effectiveSet = setName || 'default';
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${setName}/${trimmedPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${effectiveSet}/${trimmedPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -769,30 +776,43 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 >
                   Collapse all
                 </button>
+                <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
               </>
             )}
             <button
               onClick={() => setInspectMode(v => !v)}
-              title={inspectMode ? 'Disable inspect mode' : 'Show tokens bound to selected layer'}
+              title={inspectMode ? 'Show all tokens' : 'Filter to tokens used by the selected layer'}
               aria-pressed={inspectMode}
-              className={`px-2 py-0.5 rounded text-[10px] transition-colors ${inspectMode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+              className={`px-2 py-0.5 rounded text-[10px] transition-colors border ${inspectMode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium border-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
             >
-              Bound tokens
+              For selection
             </button>
             <button
               onClick={() => setTableMode(v => !v)}
               title={tableMode ? 'Switch to tree view' : 'Switch to table view'}
               aria-pressed={tableMode}
-              className={`px-2 py-0.5 rounded text-[10px] transition-colors ${tableMode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+              className={`px-2 py-0.5 rounded text-[10px] transition-colors border ${tableMode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium border-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
             >
               Table
             </button>
-            <div className="ml-auto">
+            <div className={`ml-auto flex items-center gap-1 ${sortOrder !== 'default' ? 'text-[var(--color-figma-accent)]' : ''}`}>
+              {syncSnapshot && syncChangedCount > 0 && (
+                <span
+                  title="Tokens edited locally since the last sync"
+                  className="flex items-center gap-1 text-[10px] text-orange-500 mr-1"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+                  {syncChangedCount} changed since last sync
+                </span>
+              )}
+              {sortOrder !== 'default' && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] shrink-0" aria-label="Non-default sort active" />
+              )}
               <select
                 value={sortOrder}
                 onChange={e => setSortOrder(e.target.value as SortOrder)}
                 aria-label="Sort order"
-                className="text-[10px] bg-transparent text-[var(--color-figma-text-secondary)] border-none outline-none cursor-pointer hover:text-[var(--color-figma-text)] pr-1"
+                className={`text-[10px] bg-transparent border-none outline-none cursor-pointer pr-1 ${sortOrder !== 'default' ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
               >
                 <option value="default">Default order</option>
                 <option value="alpha-asc">A → Z</option>
@@ -894,6 +914,28 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           </div>
         )}
 
+        {/* Lint legend — shown when any violations exist so users know the badges are clickable */}
+        {lintViolations.length > 0 && (
+          <div className="flex items-center gap-1.5 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[9px] text-[var(--color-figma-text-secondary)]">
+            <span>Lint:</span>
+            <span className="flex items-center gap-0.5">
+              <span className="px-1 py-0.5 rounded border border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 text-[8px]">✕</span>
+              <span>error</span>
+            </span>
+            <span>·</span>
+            <span className="flex items-center gap-0.5">
+              <span className="px-1 py-0.5 rounded border border-yellow-500 text-yellow-700 bg-yellow-50 text-[8px]">⚠</span>
+              <span>warning</span>
+            </span>
+            <span>·</span>
+            <span className="flex items-center gap-0.5">
+              <span className="px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[8px]">ℹ</span>
+              <span>info</span>
+            </span>
+            <span className="ml-1 opacity-60">— click to fix</span>
+          </div>
+        )}
+
         {inspectMode && selectedNodes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -927,7 +969,16 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                       title="Toggle Scopes column"
                     >
                       Scopes
-                      <span className="text-[8px]">{showScopesCol ? '▼' : '▶'}</span>
+                      <svg
+                        width="8"
+                        height="8"
+                        viewBox="0 0 8 8"
+                        className={`transition-transform shrink-0 ${showScopesCol ? 'rotate-90' : ''}`}
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M2 1l4 3-4 3V1z" />
+                      </svg>
                     </button>
                   </th>
                 </tr>
@@ -1385,7 +1436,12 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                       <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                         → <span className="font-mono text-[var(--color-figma-accent)]">{`{${row.proposedAlias}}`}</span>
                         {row.$type === 'color' && row.deltaE !== undefined && (
-                          <span className="ml-1 text-[9px] opacity-60">ΔE={row.deltaE.toFixed(1)}</span>
+                          <span
+                            className="ml-1 text-[9px] opacity-60"
+                            title={`ΔE=${row.deltaE.toFixed(2)} — color difference score (lower is better)`}
+                          >
+                            {row.deltaE < 1 ? 'Exact' : row.deltaE < 5 ? 'Close' : 'Approximate'}
+                          </span>
                         )}
                       </div>
                     ) : (
@@ -1870,7 +1926,8 @@ function TokenTreeNode({
             <button
               onClick={e => { e.stopPropagation(); onFilterByType?.(node.$type!); }}
               title={`Filter by type: ${node.$type}`}
-              className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase token-type-${node.$type} cursor-pointer hover:opacity-80`}
+              className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase token-type-${node.$type} cursor-pointer transition-opacity hover:opacity-70 hover:ring-1 hover:ring-current/40`}
+              title={`Click to filter by ${node.$type}`}
             >
               {node.$type}
             </button>
@@ -1902,7 +1959,7 @@ function TokenTreeNode({
         const count = duplicateCounts.get(JSON.stringify(node.$value));
         return count ? (
           <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] shrink-0" title={`${count} tokens share this value`}>
-            ×{count}
+            {count} shared
           </span>
         ) : null;
       })()}
@@ -1972,8 +2029,8 @@ function TokenTreeNode({
                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             ) : (
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>
               </svg>
             )}
           </button>
@@ -1988,7 +2045,7 @@ function TokenTreeNode({
               </svg>
             ) : (
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M4 7h16M4 12h10M4 17h7"/>
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
               </svg>
             )}
           </button>
@@ -2002,6 +2059,7 @@ function TokenTreeNode({
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
           </button>
+          <div className="w-px h-3.5 bg-[var(--color-figma-border)] mx-0.5 shrink-0" aria-hidden="true" />
           <button
             onClick={() => onDelete(node.path)}
             title="Delete token"
@@ -2203,12 +2261,37 @@ function formatValue(type?: string, value?: any): string {
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (typeof value === 'object') {
     if ('value' in value && 'unit' in value) return `${value.value}${value.unit}`;
-    if (type === 'typography' && value.fontSize) {
-      const size = typeof value.fontSize === 'object' ? `${value.fontSize.value}${value.fontSize.unit}` : `${value.fontSize}px`;
-      return `${value.fontFamily || ''} ${size}`;
+    if (type === 'typography') {
+      const size = typeof value.fontSize === 'object'
+        ? `${value.fontSize.value}${value.fontSize.unit}`
+        : value.fontSize ? String(value.fontSize) : '';
+      const weight = value.fontWeight != null ? String(value.fontWeight) : '';
+      const family = value.fontFamily ? String(value.fontFamily) : '';
+      return [family, size, weight].filter(Boolean).join(' / ');
     }
-    if (type === 'shadow') return 'Shadow';
-    if (type === 'border') return 'Border';
+    if (type === 'shadow') {
+      const s = Array.isArray(value) ? value[0] : value;
+      if (s && typeof s === 'object') {
+        const x = s.offsetX ?? s.x ?? '0';
+        const y = s.offsetY ?? s.y ?? '0';
+        const blur = s.blur ?? s.blurRadius ?? '0';
+        const prefix = Array.isArray(value) && value.length > 1 ? `×${value.length} ` : '';
+        return `${prefix}${x} ${y} ${blur}`;
+      }
+      return 'Shadow';
+    }
+    if (type === 'gradient') {
+      if (value.gradientType) return String(value.gradientType);
+      if (Array.isArray(value.stops)) return `${value.stops.length} stops`;
+      return 'Gradient';
+    }
+    if (type === 'border') {
+      const w = value.width
+        ? (typeof value.width === 'object' ? `${value.width.value}${value.width.unit}` : String(value.width))
+        : '';
+      const style = value.style ? String(value.style) : '';
+      return [w, style].filter(Boolean).join(' ') || 'Border';
+    }
     return JSON.stringify(value).slice(0, 30);
   }
   return String(value);

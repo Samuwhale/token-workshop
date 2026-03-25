@@ -54,7 +54,13 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
   const filtered = useMemo(() => {
     if (!query.trim()) return commands;
     return commands
-      .map(cmd => ({ cmd, score: fuzzyScore(query, cmd.label) }))
+      .map(cmd => ({
+        cmd,
+        score: Math.max(
+          fuzzyScore(query, cmd.label),
+          cmd.description ? fuzzyScore(query, cmd.description) : 0,
+        ),
+      }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
       .map(({ cmd }) => cmd);

@@ -66,6 +66,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     untokenized: { id: string; name: string; hardcodedCount: number }[];
   } | null>(null);
   const [coverageLoading, setCoverageLoading] = useState(false);
+  const [coverageError, setCoverageError] = useState<string | null>(null);
   const [showCoverage, setShowCoverage] = useState(false);
   const coverageResolveRef = useRef<((data: any) => void) | null>(null);
 
@@ -105,6 +106,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const runCoverageScan = useCallback(async () => {
     setCoverageLoading(true);
     setCoverageResult(null);
+    setCoverageError(null);
     try {
       const result = await new Promise<any>((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -117,7 +119,9 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       setCoverageResult(result);
       setShowCoverage(true);
     } catch (err) {
-      // silently fail, loading indicator will stop
+      setCoverageError(err instanceof Error && err.message === 'Scan timed out'
+        ? 'Scan timed out. Try selecting fewer components.'
+        : 'Scan failed. Make sure the plugin is running on the Figma canvas.');
     } finally {
       setCoverageLoading(false);
     }
@@ -654,7 +658,12 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             )}
           </>
         )}
-        {!coverageLoading && !coverageResult && (
+        {!coverageLoading && coverageError && (
+          <div className="px-3 py-3 text-[10px] text-[var(--color-figma-error)]">
+            {coverageError}
+          </div>
+        )}
+        {!coverageLoading && !coverageResult && !coverageError && (
           <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
             Click "Scan" to check component tokenization on the current Figma page.
           </div>

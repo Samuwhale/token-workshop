@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import type { TokenMapEntry } from '../../shared/types';
 import { hexToLuminance, wcagContrast } from '../shared/colorUtils';
@@ -72,6 +72,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const [bgTokenPath, setBgTokenPath] = useState<string>('');
   const [scopes, setScopes] = useState<string[]>([]);
   const [showScopes, setShowScopes] = useState(false);
+  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[] } | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   useEffect(() => {
     const fetchToken = async () => {
@@ -85,6 +87,14 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         setDescription(token?.$description || '');
         const savedScopes = token?.$extensions?.['com.figma.scopes'] ?? token?.$scopes;
         setScopes(Array.isArray(savedScopes) ? savedScopes : []);
+        const ref = typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}') ? token.$value : '';
+        if (ref) setReference(ref);
+        initialRef.current = {
+          value: token?.$value ?? '',
+          description: token?.$description || '',
+          reference: ref,
+          scopes: Array.isArray(savedScopes) ? savedScopes : [],
+        };
         if (typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}')) {
           setReference(token.$value);
         }
@@ -102,13 +112,33 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
     if (reference) setAliasMode(true);
   }, [reference]);
 
+  const isDirty = useMemo(() => {
+    if (!initialRef.current) return false;
+    const init = initialRef.current;
+    return (
+      value !== init.value ||
+      description !== init.description ||
+      reference !== init.reference ||
+      JSON.stringify(scopes) !== JSON.stringify(init.scopes)
+    );
+  }, [value, description, reference, scopes]);
+
+  const handleBack = () => {
+    if (isDirty) { setShowDiscardConfirm(true); } else { onBack(); }
+  };
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onBack(); }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (showDiscardConfirm) { setShowDiscardConfirm(false); return; }
+        if (showAutocomplete) { setShowAutocomplete(false); return; }
+        handleBack();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onBack]);
+  }, [onBack, isDirty, showDiscardConfirm, showAutocomplete]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -141,7 +171,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
+      <div className="flex flex-col items-center justify-center gap-2 py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
+        <div className="w-4 h-4 rounded-full border-2 border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin" aria-hidden="true" />
         Loading token...
       </div>
     );
@@ -385,13 +416,34 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         </div>
       )}
 
+      {/* Discard confirmation */}
+      {showDiscardConfirm && (
+        <div className="mx-3 mb-2 p-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px]">
+          <p className="text-[var(--color-figma-text)] mb-2">Discard unsaved changes?</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowDiscardConfirm(false)}
+              className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              Keep editing
+            </button>
+            <button
+              onClick={onBack}
+              className="flex-1 px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
         >
-          Cancel
+          {isDirty ? 'Cancel' : 'Back'}
         </button>
         <button
           onClick={handleSave}
@@ -412,12 +464,14 @@ const labelClass = 'text-[9px] text-[var(--color-figma-text-secondary)] mb-0.5';
 
 function ColorEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const hex = typeof value === 'string' ? value : '#000000';
+  // Preserve alpha suffix (#RRGGBBAA) when the color picker (which only supports #RRGGBB) changes
+  const alpha = hex.length === 9 ? hex.slice(7) : '';
   return (
     <div className="flex gap-2 items-center">
       <input
         type="color"
         value={hex.slice(0, 7)}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => onChange(e.target.value + alpha)}
         className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent"
       />
       <input

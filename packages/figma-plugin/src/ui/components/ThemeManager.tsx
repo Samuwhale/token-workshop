@@ -158,7 +158,8 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
+      <div className="flex flex-col items-center justify-center gap-2 py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
+        <div className="w-4 h-4 rounded-full border-2 border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin" aria-hidden="true" />
         Loading themes...
       </div>
     );
@@ -174,25 +175,41 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
 
       <div className="flex-1 overflow-y-auto p-3">
         {themes.length === 0 && !showCreate ? (
-          <div className="flex flex-col items-center justify-center py-8 text-[var(--color-figma-text-secondary)]">
-            <p className="text-[12px]">No themes configured</p>
-            <p className="text-[10px] mt-1">Themes control which token sets are active</p>
+          <div className="flex flex-col items-center justify-center py-8 text-[var(--color-figma-text-secondary)] text-center px-4">
+            <p className="text-[12px] font-medium text-[var(--color-figma-text)]">No themes configured</p>
+            <p className="text-[10px] mt-1.5 leading-relaxed">Themes let you switch between token sets — for example, light and dark modes. Each theme enables a different combination of sets, making it easy to publish multi-mode Figma variables.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
+            {/* State legend */}
+            <div className="flex items-center gap-3 px-1 pb-1 text-[9px] text-[var(--color-figma-text-secondary)]">
+              <span className="font-medium">Set states:</span>
+              <span className="flex items-center gap-1">
+                <span className="px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]">source</span>
+                <span>base set</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]">enabled</span>
+                <span>overrides source</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]">disabled</span>
+                <span>not used</span>
+              </span>
+            </div>
             {themes.map(theme => (
               <div key={theme.name} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                 {/* Theme header */}
                 <div className="flex items-center justify-between px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-medium">{theme.name}</span>
+                    <span className="text-[11px] font-medium truncate max-w-[140px]" title={theme.name}>{theme.name}</span>
                     {coverage[theme.name]?.uncovered.length > 0 && (
                       <button
                         onClick={() => setExpandedCoverage(expandedCoverage === theme.name ? null : theme.name)}
                         className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-yellow-100 text-yellow-800 border border-yellow-300 hover:bg-yellow-200 transition-colors"
                         title={`${coverage[theme.name].uncovered.length} tokens have no value in active sets`}
                       >
-                        ⚠ {coverage[theme.name].uncovered.length} uncovered
+                        ⚠ {coverage[theme.name].uncovered.length} without value
                       </button>
                     )}
                   </div>
@@ -218,13 +235,22 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
                         onClick={() => handleToggleSet(theme.name, setName, state)}
                       >
                         <span className="text-[11px] text-[var(--color-figma-text)]">{setName}</span>
-                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
-                          state === 'source'
-                            ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]'
-                            : state === 'enabled'
-                            ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]'
-                            : 'bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]'
-                        }`}>
+                        <span
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
+                            state === 'source'
+                              ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]'
+                              : state === 'enabled'
+                              ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]'
+                              : 'bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]'
+                          }`}
+                          title={
+                            state === 'source'
+                              ? 'Source — base set whose tokens can be overridden by enabled sets'
+                              : state === 'enabled'
+                              ? 'Enabled — this set\'s tokens are active in the theme'
+                              : 'Disabled — this set\'s tokens are not used in the theme'
+                          }
+                        >
                           {state}
                         </span>
                       </div>

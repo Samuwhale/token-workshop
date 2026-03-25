@@ -385,7 +385,8 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
+      <div className="flex flex-col items-center justify-center gap-2 py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
+        <div className="w-4 h-4 rounded-full border-2 border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin" aria-hidden="true" />
         Loading Git status...
       </div>
     );
@@ -426,8 +427,19 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
         {/* Branch info */}
         <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-            Branch
+          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Branch</span>
+            <button
+              onClick={() => { setLoading(true); fetchStatus(); }}
+              disabled={loading}
+              title="Refresh git status"
+              className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-40"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={loading ? 'animate-spin' : ''}>
+                <path d="M23 4v6h-6M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
+            </button>
           </div>
           <div className="px-3 py-2 flex items-center gap-2">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2">
@@ -436,7 +448,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
               <circle cx="6" cy="18" r="3" />
               <path d="M18 9a9 9 0 01-9 9" />
             </svg>
-            <span className="text-[11px] font-medium">{status.branch || 'main'}</span>
+            <span className="text-[11px] font-medium truncate max-w-[160px]" title={status.branch || 'main'}>{status.branch || 'main'}</span>
           </div>
           {branches.length > 1 && (
             <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
@@ -693,15 +705,15 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
                 type="text"
                 value={commitMsg}
                 onChange={e => setCommitMsg(e.target.value)}
-                placeholder="Commit message"
+                placeholder="Describe your changes…"
                 className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
                 onKeyDown={e => {
-                  if (e.key === 'Enter' && commitMsg) doAction('commit', { message: commitMsg }).then(() => setCommitMsg(''));
+                  if (e.key === 'Enter' && commitMsg.trim()) doAction('commit', { message: commitMsg }).then(() => setCommitMsg(''));
                 }}
               />
               <button
                 onClick={() => doAction('commit', { message: commitMsg }).then(() => setCommitMsg(''))}
-                disabled={!commitMsg || actionLoading !== null}
+                disabled={!commitMsg.trim() || actionLoading !== null}
                 className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
                 {actionLoading === 'commit' ? 'Committing...' : 'Commit Changes'}
