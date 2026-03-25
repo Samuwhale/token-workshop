@@ -31,6 +31,60 @@ type DeleteConfirm =
   | { type: 'group'; path: string; name: string; tokenCount: number }
   | { type: 'bulk'; paths: string[]; orphanCount: number };
 
+// ---------------------------------------------------------------------------
+// Color matching helpers for "Promote to Semantic" (US-026)
+// ---------------------------------------------------------------------------
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const h = hex.replace('#', '');
+  if (h.length !== 6 && h.length !== 8) return null;
+  return {
+    r: parseInt(h.slice(0, 2), 16) / 255,
+    g: parseInt(h.slice(2, 4), 16) / 255,
+    b: parseInt(h.slice(4, 6), 16) / 255,
+  };
+}
+
+function rgbToLab(r: number, g: number, b: number): { L: number; a: number; b: number } {
+  // sRGB to linear
+  const lin = (c: number) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const R = lin(r), G = lin(g), B = lin(b);
+  // linear RGB to XYZ (D65)
+  const X = (0.4124564 * R + 0.3575761 * G + 0.1804375 * B) / 0.95047;
+  const Y = (0.2126729 * R + 0.7151522 * G + 0.0721750 * B) / 1.0;
+  const Z = (0.0193339 * R + 0.1191920 * G + 0.9503041 * B) / 1.08883;
+  // XYZ to LAB
+  const f = (t: number) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  return { L: 116 * f(Y) - 16, a: 500 * (f(X) - f(Y)), b: 200 * (f(Y) - f(Z)) };
+}
+
+function colorDeltaE(hexA: string, hexB: string): number | null {
+  const rgbA = hexToRgb(hexA);
+  const rgbB = hexToRgb(hexB);
+  if (!rgbA || !rgbB) return null;
+  const labA = rgbToLab(rgbA.r, rgbA.g, rgbA.b);
+  const labB = rgbToLab(rgbB.r, rgbB.g, rgbB.b);
+  return Math.sqrt((labA.L - labB.L) ** 2 + (labA.a - labB.a) ** 2 + (labA.b - labB.b) ** 2);
+}
+
+function valuesEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (typeof a === 'object' && a !== null && b !== null) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+  return false;
+}
+
+interface PromoteRow {
+  path: string;
+  $type: string;
+  $value: unknown;
+  proposedAlias: string | null;
+  deltaE?: number;
+  accepted: boolean;
+}
+
 export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
@@ -40,6 +94,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
+  const [promoteBusy, setPromoteBusy] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [frFind, setFrFind] = useState('');
   const [frReplace, setFrReplace] = useState('');
@@ -564,6 +620,61 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     }
   };
 
+  const handleOpenPromoteModal = () => {
+    const flat = flattenTokens(tokens);
+    const selectedFlat = flat.filter(t => selectedPaths.has(t.path) && !isAlias(t.$value));
+    const rows: PromoteRow[] = selectedFlat.map(t => {
+      // Find candidate primitives: same type, not an alias, not the token itself
+      const candidates = Object.entries(allTokensFlat).filter(
+        ([candidatePath, entry]) => candidatePath !== t.path && entry.$type === t.$type && !isAlias(entry.$value),
+      );
+      if (t.$type === 'color' && typeof t.$value === 'string') {
+        let bestPath: string | null = null;
+        let bestDelta = Infinity;
+        for (const [candidatePath, entry] of candidates) {
+          if (typeof entry.$value !== 'string') continue;
+          // Resolve alias if needed
+          const resolved = resolveTokenValue(entry.$value, entry.$type, allTokensFlat);
+          const resolvedHex = typeof resolved.value === 'string' ? resolved.value : entry.$value as string;
+          const d = colorDeltaE(t.$value, resolvedHex);
+          if (d !== null && d < bestDelta) {
+            bestDelta = d;
+            bestPath = candidatePath;
+          }
+        }
+        return { path: t.path, $type: t.$type, $value: t.$value, proposedAlias: bestPath, deltaE: bestDelta === Infinity ? undefined : bestDelta, accepted: bestPath !== null };
+      } else {
+        // Exact value match for other types
+        const match = candidates.find(([, entry]) => valuesEqual(entry.$value, t.$value));
+        return { path: t.path, $type: t.$type, $value: t.$value, proposedAlias: match?.[0] ?? null, accepted: match !== undefined };
+      }
+    });
+    setPromoteRows(rows);
+  };
+
+  const handleConfirmPromote = async () => {
+    if (!promoteRows) return;
+    setPromoteBusy(true);
+    const toApply = promoteRows.filter(r => r.accepted && r.proposedAlias);
+    try {
+      await Promise.all(
+        toApply.map(r =>
+          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $value: `{${r.proposedAlias}}` }),
+          }),
+        ),
+      );
+      setPromoteRows(null);
+      setSelectMode(false);
+      setSelectedPaths(new Set());
+      onRefresh();
+    } finally {
+      setPromoteBusy(false);
+    }
+  };
+
   const getDeleteModalProps = (): { title: string; description?: string; confirmLabel: string } | null => {
     if (!deleteConfirm) return null;
     if (deleteConfirm.type === 'token') {
@@ -604,12 +715,20 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               {selectedPaths.size} selected
             </span>
             {selectedPaths.size > 0 && (
-              <button
-                onClick={requestBulkDelete}
-                className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity"
-              >
-                Delete {selectedPaths.size}
-              </button>
+              <>
+                <button
+                  onClick={handleOpenPromoteModal}
+                  className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+                >
+                  Convert to aliases
+                </button>
+                <button
+                  onClick={requestBulkDelete}
+                  className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity"
+                >
+                  Delete {selectedPaths.size}
+                </button>
+              </>
             )}
             <button
               onClick={() => { setSelectMode(false); setSelectedPaths(new Set()); }}
@@ -1065,6 +1184,65 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
               >
                 {frBusy ? 'Renaming…' : `Rename ${frPreview.filter(r => !r.conflict).length}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Promote to Semantic (Convert to Aliases) modal */}
+      {promoteRows !== null && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-96 flex flex-col" style={{ maxHeight: '80vh' }}>
+            <div className="p-4 border-b border-[var(--color-figma-border)]">
+              <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Convert to Aliases</div>
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Each token will be replaced with an alias reference to the matched primitive.</div>
+            </div>
+            <div className="flex flex-col gap-0 overflow-y-auto flex-1">
+              {promoteRows.length === 0 && (
+                <div className="p-4 text-[11px] text-[var(--color-figma-text-secondary)] italic">No raw-value tokens selected.</div>
+              )}
+              {promoteRows.map((row, idx) => (
+                <div key={row.path} className={`flex items-start gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] ${!row.proposedAlias ? 'opacity-50' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={row.accepted && row.proposedAlias !== null}
+                    disabled={row.proposedAlias === null}
+                    onChange={e => setPromoteRows(prev => prev && prev.map((r, i) => i === idx ? { ...r, accepted: e.target.checked } : r))}
+                    className="mt-0.5 accent-[var(--color-figma-accent)] shrink-0"
+                  />
+                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <ValuePreview type={row.$type} value={row.$value} />
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{row.path}</span>
+                    </div>
+                    {row.proposedAlias ? (
+                      <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                        → <span className="font-mono text-[var(--color-figma-accent)]">{`{${row.proposedAlias}}`}</span>
+                        {row.$type === 'color' && row.deltaE !== undefined && (
+                          <span className="ml-1 text-[9px] opacity-60">ΔE={row.deltaE.toFixed(1)}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No matching primitive found</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end p-4 border-t border-[var(--color-figma-border)]">
+              <button
+                onClick={() => setPromoteRows(null)}
+                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmPromote}
+                disabled={promoteBusy || promoteRows.every(r => !r.accepted || !r.proposedAlias)}
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+              >
+                {promoteBusy ? 'Converting…' : `Convert ${promoteRows.filter(r => r.accepted && r.proposedAlias).length}`}
               </button>
             </div>
           </div>
