@@ -7,6 +7,7 @@ export interface TokenNode {
   $type?: string;
   $value?: any;
   $description?: string;
+  $extensions?: Record<string, unknown>;
   children?: TokenNode[];
   isGroup: boolean;
 }
@@ -154,6 +155,7 @@ function buildTree(group: Record<string, any>, prefix = ''): TokenNode[] {
         $type: value.$type,
         $value: value.$value,
         $description: value.$description,
+        $extensions: value.$extensions,
         isGroup: false,
       });
     } else if (value && typeof value === 'object') {

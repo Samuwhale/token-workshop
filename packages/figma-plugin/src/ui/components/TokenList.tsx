@@ -34,6 +34,7 @@ interface TokenListProps {
   lintViolations?: LintViolation[];
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
+  syncSnapshot?: Record<string, string>;
 }
 
 type DeleteConfirm =
@@ -95,7 +96,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenType] = useState('color');
@@ -778,6 +779,13 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             >
               Bound tokens
             </button>
+            <button
+              onClick={() => setTableMode(v => !v)}
+              title={tableMode ? 'Switch to tree view' : 'Switch to table view'}
+              className={`px-2 py-0.5 rounded text-[10px] transition-colors ${tableMode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+            >
+              Table
+            </button>
             <div className="ml-auto">
               <select
                 value={sortOrder}
@@ -864,6 +872,64 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             <p className="mt-2 text-[12px]">No tokens yet</p>
             <p className="text-[10px]">Create a token or import from Figma</p>
           </div>
+        ) : tableMode ? (
+          /* Table view */
+          <div className="overflow-auto flex-1">
+            <table className="w-full text-[10px] border-collapse">
+              <thead className="sticky top-0 bg-[var(--color-figma-bg-secondary)] z-10">
+                <tr className="border-b border-[var(--color-figma-border)]">
+                  <th className="px-2 py-1.5 text-left font-medium text-[var(--color-figma-text-secondary)] w-[40%]">Name</th>
+                  <th className="px-2 py-1.5 text-left font-medium text-[var(--color-figma-text-secondary)] w-[15%]">Type</th>
+                  <th className="px-2 py-1.5 text-left font-medium text-[var(--color-figma-text-secondary)] w-[30%]">Value</th>
+                  <th className="px-2 py-1.5 text-left font-medium text-[var(--color-figma-text-secondary)]">
+                    <button
+                      onClick={() => setShowScopesCol(v => !v)}
+                      className={`flex items-center gap-1 transition-colors ${showScopesCol ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      title="Toggle Scopes column"
+                    >
+                      Scopes
+                      <span className="text-[8px]">{showScopesCol ? '▼' : '▶'}</span>
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {flattenLeafNodes(displayedTokens).map(leaf => {
+                  const leafScopes = Array.isArray(leaf.$extensions?.['com.figma.scopes'])
+                    ? (leaf.$extensions!['com.figma.scopes'] as string[])
+                    : [];
+                  return (
+                    <tr
+                      key={leaf.path}
+                      className="border-b border-[var(--color-figma-border)]/50 hover:bg-[var(--color-figma-bg-hover)] cursor-pointer"
+                      onClick={() => onEdit(leaf.path)}
+                    >
+                      <td className="px-2 py-1.5 font-mono text-[var(--color-figma-text)] truncate max-w-0" title={leaf.path}>{leaf.path}</td>
+                      <td className="px-2 py-1.5">
+                        <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase token-type-${leaf.$type}`}>{leaf.$type}</span>
+                      </td>
+                      <td className="px-2 py-1.5 text-[var(--color-figma-text-secondary)] truncate max-w-0 font-mono" title={String(leaf.$value)}>
+                        {typeof leaf.$value === 'object' ? JSON.stringify(leaf.$value) : String(leaf.$value ?? '')}
+                      </td>
+                      {showScopesCol && (
+                        <td className="px-2 py-1.5">
+                          {leafScopes.length > 0 ? (
+                            <div className="flex flex-wrap gap-0.5">
+                              {leafScopes.map(s => (
+                                <span key={s} className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px]">{s}</span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[var(--color-figma-text-secondary)]">—</span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="py-1">
             {displayedTokens.map(node => (
@@ -896,6 +962,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onExtractToAliasForLint={(path, $type, $value) => handleOpenExtractToAlias(path, $type, $value)}
                 onSyncGroup={onSyncGroup}
                 onSetGroupScopes={onSetGroupScopes}
+                syncSnapshot={syncSnapshot}
               />
             ))}
           </div>
@@ -1354,6 +1421,7 @@ function TokenTreeNode({
   onExtractToAliasForLint,
   onSyncGroup,
   onSetGroupScopes,
+  syncSnapshot,
 }: {
   node: TokenNode;
   depth: number;
@@ -1382,6 +1450,7 @@ function TokenTreeNode({
   onExtractToAliasForLint?: (path: string, $type?: string, $value?: any) => void;
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
+  syncSnapshot?: Record<string, string>;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -1436,6 +1505,10 @@ function TokenTreeNode({
   // chain.length is the number of alias hops (e.g. chain=['B','C'] = A→B→C→value = 3 hops)
   const aliasChain = resolveResult?.chain ?? [];
   const showChainBadge = aliasChain.length >= 2;
+
+  // Sync state indicator
+  const syncChanged = !node.isGroup && syncSnapshot && node.path in syncSnapshot
+    && syncSnapshot[node.path] !== JSON.stringify(node.$value);
 
   const handleCopyPath = () => {
     const cssVar = '--' + node.path.replace(/\./g, '-');
@@ -1658,6 +1731,7 @@ function TokenTreeNode({
             onExtractToAliasForLint={onExtractToAliasForLint}
             onSyncGroup={onSyncGroup}
             onSetGroupScopes={onSetGroupScopes}
+            syncSnapshot={syncSnapshot}
           />
         ))}
       </div>
@@ -1700,6 +1774,12 @@ function TokenTreeNode({
         style={selectMode ? { cursor: 'pointer' } : undefined}
       >
         <div className="flex items-center gap-1.5">
+          {syncChanged && (
+            <span
+              title="Changed locally since last sync"
+              className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0 cursor-default"
+            />
+          )}
           <span className="text-[11px] text-[var(--color-figma-text)] truncate">{node.name}</span>
           {node.$type && (
             <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase token-type-${node.$type}`}>
@@ -2110,6 +2190,18 @@ function collectAllGroupPaths(nodes: TokenNode[]): string[] {
 function countLeaves(node: TokenNode): number {
   if (!node.isGroup || !node.children) return node.isGroup ? 0 : 1;
   return node.children.reduce((sum, child) => sum + countLeaves(child), 0);
+}
+
+function flattenLeafNodes(nodes: TokenNode[]): TokenNode[] {
+  const result: TokenNode[] = [];
+  const walk = (list: TokenNode[]) => {
+    for (const node of list) {
+      if (!node.isGroup) result.push(node);
+      else if (node.children) walk(node.children);
+    }
+  };
+  walk(nodes);
+  return result;
 }
 
 function findLeafByPath(nodes: TokenNode[], path: string): TokenNode | null {

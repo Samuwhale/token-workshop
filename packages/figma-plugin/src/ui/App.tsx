@@ -100,6 +100,7 @@ export function App() {
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
   const [validateKey, setValidateKey] = useState(0);
+  const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Set context menu state
@@ -146,6 +147,23 @@ export function App() {
       });
     }
   }, [connected, serverUrl, tokens]);
+
+  // Listen for variables-applied and capture a sync snapshot
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      const msg = e.data?.pluginMessage;
+      if (msg?.type === 'variables-applied') {
+        // Snapshot current allTokensFlat values as last-applied baseline
+        const snap: Record<string, string> = {};
+        for (const [path, entry] of Object.entries(allTokensFlat)) {
+          snap[path] = JSON.stringify(entry.$value);
+        }
+        setSyncSnapshot(snap);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [allTokensFlat]);
 
   // Apply pending highlight after switching sets
   useEffect(() => {
@@ -310,7 +328,7 @@ export function App() {
               patchPromises.push(fetch(`${serverUrl}/api/tokens/${activeSet}/${path}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ $scopes: groupScopesSelected }),
+                body: JSON.stringify({ $extensions: { 'com.figma.scopes': groupScopesSelected } }),
               }));
             }
           } else if (val && typeof val === 'object') {
@@ -725,6 +743,7 @@ export function App() {
               onClearHighlight={() => setHighlightedToken(null)}
               onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
               onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
+              syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && editingToken && (
