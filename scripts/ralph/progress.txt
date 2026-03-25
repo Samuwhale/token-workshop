@@ -469,3 +469,14 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `GradientPaint` in Figma requires `gradientTransform: [[1,0,0],[0,1,0]]` (identity matrix) as a default horizontal transform
   - `AliasAutocomplete` with `filterType="color"` correctly filters alias suggestions to color tokens
 ---
+
+## 2026-03-25 - US-025
+- Added `bulkRename(setName, find, replace, isRegex)` to `TokenStore` — applies plain-text or regex rename across all flat token paths in a set, detects collisions (new path already exists and won't be freed), updates cross-set `$value` alias references via new `updateBulkAliasRefs` helper
+- Added `POST /api/tokens/:set/bulk-rename` route to `tokens.ts` — registered before wildcard routes; returns `{ renamed, skipped, aliasesUpdated }`
+- Added Find & Replace modal to `TokenList.tsx` — find/replace inputs with regex toggle, client-side preview showing before/after with conflict warnings, confirm button disabled if all results conflict
+- Files changed: `token-store.ts`, `tokens.ts`, `TokenList.tsx`
+- **Learnings for future iterations:**
+  - Bulk-rename routes MUST be registered before wildcard `/:set/*` routes in Fastify or they'll never match
+  - Collision detection must account for tokens being freed by the rename batch (oldPaths set)
+  - The `updateBulkAliasRefs` helper replaces exact `{path}` alias references; it complements `updateAliasRefs` (which works on group prefixes)
+---

@@ -441,7 +441,7 @@
         "Typecheck passes"
       ],
       "priority": 27,
-      "passes": false,
+      "passes": true,
       "notes": "No bulk-rename endpoint currently exists on the server \u2014 it must be built as part of this story. Cross-set alias reference updates require scanning all sets via tokenStore.getSets() + getFlatTokensForSet()."
     },
     {
