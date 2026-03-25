@@ -706,3 +706,27 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - Group prefix filter: `path === groupPath || path.startsWith(groupPath + '.')`
   - `apply-variables` format: `[{ path, $type, $value }]` (different from `sync-bindings` which uses `tokenMap` record)
   - Group sync context menu only appears when `onSyncGroup` prop is passed to TokenList
+
+---
+
+## 2026-03-25 — US-039: Variable Scope Management UI
+
+**Implemented**:
+- Added `FIGMA_SCOPES` constant in TokenEditor.tsx mapping token types to available scopes
+  - color → FILL_COLOR, STROKE_COLOR, TEXT_FILL, EFFECT_COLOR
+  - number/dimension → WIDTH_HEIGHT, GAP, CORNER_RADIUS, OPACITY, FONT_SIZE, LINE_HEIGHT, LETTER_SPACING, STROKE_FLOAT
+  - string → FONT_FAMILY, FONT_STYLE, TEXT_CONTENT
+  - boolean → SHOW_HIDE
+- TokenEditor: `$scopes` state, loaded from token, saved in PATCH body
+- TokenEditor: collapsible "Figma variable scopes" section with checkboxes (only for supported types)
+- TokenList/TokenTreeNode: `onSetGroupScopes?: (groupPath: string) => void` prop + "Set scopes for group…" menu item
+- App.tsx: `groupScopesPath`, `groupScopesSelected`, `groupScopesApplying` state
+- App.tsx: `handleApplyGroupScopes` — walks token tree, PATCHes all tokens in group with `$scopes`
+- App.tsx: Group scope modal (bottom sheet) with 10 common scopes + Apply/Cancel
+- controller.ts: `applyVariables` now reads `$scopes` (and `$extensions['com.figma.scopes']`) and sets `variable.scopes`
+- Files changed: TokenEditor.tsx, TokenList.tsx, App.tsx, controller.ts
+- **Learnings for future iterations:**
+  - Figma `variable.scopes` is writable as `(variable as any).scopes = [...]` in controller (typed as readonly in Figma API typedefs)
+  - DTCG standard for tool-specific metadata is `$extensions['com.figma.scopes']` — controller checks this first, then `$scopes` as fallback
+  - `$scopes` stored as an array of strings (e.g. `['FILL_COLOR', 'TEXT_FILL']`)
+  - Empty `$scopes` means "all scopes" in Figma
