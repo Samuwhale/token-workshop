@@ -18,6 +18,7 @@ import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
 import { useUndo } from './hooks/useUndo';
+import { useLint } from './hooks/useLint';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
 
@@ -93,6 +94,9 @@ export function App() {
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [lintKey, setLintKey] = useState(0);
+  const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
+  const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Set context menu state
@@ -638,7 +642,8 @@ export function App() {
               selectedNodes={selectedNodes}
               allTokensFlat={allTokensFlat}
               onEdit={(path) => setEditingToken({ path, set: activeSet })}
-              onRefresh={refreshTokens}
+              onRefresh={refreshAll}
+              lintViolations={lintViolations}
               onPushUndo={pushUndo}
               defaultCreateOpen={createFromEmpty}
               highlightedToken={highlightedToken}
@@ -651,7 +656,7 @@ export function App() {
               tokenPath={editingToken.path}
               setName={editingToken.set}
               serverUrl={serverUrl}
-              onBack={() => { setEditingToken(null); refreshTokens(); }}
+              onBack={() => { setEditingToken(null); refreshAll(); }}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
             />
@@ -745,7 +750,7 @@ export function App() {
           serverUrl={serverUrl}
           activeSet={activeSet}
           onClose={() => setShowScaffoldWizard(false)}
-          onConfirm={() => { setShowScaffoldWizard(false); refreshTokens(); }}
+          onConfirm={() => { setShowScaffoldWizard(false); refreshAll(); }}
         />
       )}
 
@@ -756,7 +761,7 @@ export function App() {
           activeSet={activeSet}
           existingPaths={new Set(Object.keys(allTokensFlat).filter(p => pathToSet[p] === activeSet))}
           onClose={() => setShowPasteModal(false)}
-          onConfirm={() => { setShowPasteModal(false); refreshTokens(); }}
+          onConfirm={() => { setShowPasteModal(false); refreshAll(); }}
         />
       )}
 

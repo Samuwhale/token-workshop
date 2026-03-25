@@ -7,6 +7,7 @@ import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEnt
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
 import { ScaffoldingWizard } from './ScaffoldingWizard';
+import type { LintViolation } from '../hooks/useLint';
 
 type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage';
 
@@ -25,6 +26,7 @@ interface TokenListProps {
   highlightedToken?: string | null;
   onNavigateToAlias?: (path: string) => void;
   onClearHighlight?: () => void;
+  lintViolations?: LintViolation[];
 }
 
 type DeleteConfirm =
@@ -86,7 +88,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [] }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenType] = useState('color');
@@ -881,6 +883,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onExtractToAlias={handleOpenExtractToAlias}
                 inspectMode={inspectMode}
                 onHoverToken={handleHoverToken}
+                lintViolations={lintViolations.filter(v => v.path === node.path)}
+                onExtractToAliasForLint={(path, $type, $value) => handleOpenExtractToAlias(path, $type, $value)}
               />
             ))}
           </div>
@@ -1335,6 +1339,8 @@ function TokenTreeNode({
   onExtractToAlias,
   inspectMode,
   onHoverToken,
+  lintViolations = [],
+  onExtractToAliasForLint,
 }: {
   node: TokenNode;
   depth: number;
@@ -1359,6 +1365,8 @@ function TokenTreeNode({
   onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
   inspectMode?: boolean;
   onHoverToken?: (path: string) => void;
+  lintViolations?: LintViolation[];
+  onExtractToAliasForLint?: (path: string, $type?: string, $value?: any) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -1606,6 +1614,8 @@ function TokenTreeNode({
             onExtractToAlias={onExtractToAlias}
             inspectMode={inspectMode}
             onHoverToken={onHoverToken}
+            lintViolations={lintViolations.filter(v => v.path === child.path)}
+            onExtractToAliasForLint={onExtractToAliasForLint}
           />
         ))}
       </div>
@@ -1685,6 +1695,38 @@ function TokenTreeNode({
           </span>
         ) : null;
       })()}
+
+      {/* Lint violation indicators */}
+      {lintViolations.length > 0 && (
+        <div className="flex items-center gap-0.5 shrink-0">
+          {lintViolations.slice(0, 3).map((v, i) => (
+            <button
+              key={i}
+              title={`${v.rule}: ${v.message}${v.suggestedFix ? ` (Fix: ${v.suggestedFix})` : ''}`}
+              onClick={e => {
+                e.stopPropagation();
+                if (v.suggestedFix === 'extract-to-alias') {
+                  onExtractToAliasForLint?.(node.path, node.$type, node.$value);
+                } else if (v.suggestedFix === 'add-description') {
+                  onEdit(node.path);
+                }
+              }}
+              className={`text-[8px] px-1 py-0.5 rounded border shrink-0 transition-colors ${
+                v.severity === 'error'
+                  ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10'
+                  : v.severity === 'warning'
+                  ? 'border-yellow-500 text-yellow-700 bg-yellow-50'
+                  : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+              }`}
+            >
+              {v.severity === 'error' ? '✕' : v.severity === 'warning' ? '⚠' : 'ℹ'}
+            </button>
+          ))}
+          {lintViolations.length > 3 && (
+            <span className="text-[8px] text-[var(--color-figma-text-secondary)]">+{lintViolations.length - 3}</span>
+          )}
+        </div>
+      )}
 
       {/* Alias chain badge — shown when token resolves through 3+ hops */}
       {showChainBadge && (
