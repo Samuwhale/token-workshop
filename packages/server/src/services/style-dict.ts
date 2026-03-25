@@ -39,6 +39,84 @@ const PLATFORM_CONFIGS: Record<ExportPlatform, any> = {
   },
 };
 
+/**
+ * Build a flat path→rawValue lookup from a merged DTCG token object.
+ * Skips $-prefixed metadata keys and descends into nested groups.
+ */
+function buildFlatValueMap(obj: Record<string, any>, prefix = ''): Record<string, unknown> {
+  const map: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (key.startsWith('$')) continue;
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      if ('$value' in val) {
+        map[path] = val.$value;
+      } else {
+        Object.assign(map, buildFlatValueMap(val, path));
+      }
+    }
+  }
+  return map;
+}
+
+/**
+ * Resolve a single `{path.to.token}` reference from the flat value map.
+ * Only resolves to string values (colors) to avoid infinite loops.
+ * Follows one level of indirection if the target is also a reference.
+ */
+function resolveRef(ref: string, flatMap: Record<string, unknown>): string {
+  const path = ref.slice(1, -1);
+  const val = flatMap[path];
+  if (typeof val === 'string' && val.startsWith('{') && val.endsWith('}')) {
+    // Follow one hop of indirection
+    return resolveRef(val, flatMap);
+  }
+  return typeof val === 'string' ? val : ref;
+}
+
+/**
+ * Walk the merged DTCG token tree and pre-resolve alias references inside
+ * gradient stop `color` fields. This ensures Style Dictionary receives
+ * concrete color values for gradient stops rather than `{path}` references
+ * that it may not resolve inside array values.
+ */
+function resolveGradientStopAliases(merged: Record<string, any>): Record<string, any> {
+  const flatMap = buildFlatValueMap(merged);
+
+  const processValue = (val: unknown): unknown => {
+    if (!Array.isArray(val)) return val;
+    // Check if this looks like a gradient stop array: [{color, position}, ...]
+    if (val.length === 0) return val;
+    const first = val[0];
+    if (typeof first !== 'object' || first === null || !('color' in first) || !('position' in first)) {
+      return val;
+    }
+    return (val as Array<{ color: unknown; position: unknown } & Record<string, unknown>>).map(stop => {
+      const color = stop.color;
+      if (typeof color === 'string' && color.startsWith('{') && color.endsWith('}')) {
+        return { ...stop, color: resolveRef(color, flatMap) };
+      }
+      return stop;
+    });
+  };
+
+  const processObj = (obj: Record<string, any>): Record<string, any> => {
+    const result: Record<string, any> = {};
+    for (const [key, val] of Object.entries(obj)) {
+      if (key === '$value') {
+        result[key] = processValue(val);
+      } else if (val && typeof val === 'object' && !Array.isArray(val)) {
+        result[key] = processObj(val);
+      } else {
+        result[key] = val;
+      }
+    }
+    return result;
+  };
+
+  return processObj(merged);
+}
+
 export async function exportTokens(
   tokens: Record<string, TokenGroup>,
   platforms: ExportPlatform[],
@@ -54,7 +132,10 @@ export async function exportTokens(
   for (const [_setName, tokenGroup] of Object.entries(tokens)) {
     Object.assign(merged, tokenGroup);
   }
-  await fs.writeFile(tokenFile, JSON.stringify(merged, null, 2));
+  // Pre-resolve alias references inside gradient stop color fields so that
+  // Style Dictionary receives concrete color values rather than {path} refs.
+  const resolvedMerged = resolveGradientStopAliases(merged);
+  await fs.writeFile(tokenFile, JSON.stringify(resolvedMerged, null, 2));
 
   const results: ExportResult[] = [];
 

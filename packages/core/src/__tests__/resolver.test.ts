@@ -107,6 +107,29 @@ describe('TokenResolver', () => {
   });
 
   describe('composite type resolution', () => {
+    it('resolves alias references inside gradient stop colors', () => {
+      const tokens: Record<string, Token> = {
+        'color.red': makeToken('#ff0000', 'color'),
+        'color.white': makeToken('#ffffff', 'color'),
+        'gradient.hero': makeToken(
+          [
+            { color: '{color.red}', position: 0 },
+            { color: '{color.white}', position: 1 },
+          ] as any,
+          'gradient',
+        ),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      const result = resolver.resolve('gradient.hero');
+
+      const stops = result.$value as Array<{ color: string; position: number }>;
+      expect(stops[0].color).toBe('#ff0000');
+      expect(stops[1].color).toBe('#ffffff');
+      expect(stops[0].position).toBe(0);
+      expect(stops[1].position).toBe(1);
+    });
+
     it('resolves references inside a typography value', () => {
       const tokens: Record<string, Token> = {
         'font.body': makeToken('Inter', 'fontFamily'),
