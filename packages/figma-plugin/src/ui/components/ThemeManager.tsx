@@ -59,7 +59,7 @@ export function ThemeManager({ serverUrl, connected }: ThemeManagerProps) {
           const res = await fetch(`${serverUrl}/api/tokens/${s}`);
           if (res.ok) {
             const data = await res.json();
-            setTokenPaths[s] = new Set(Object.keys(data.tokens || {}));
+            setTokenPaths[s] = new Set(flattenTokenPaths(data.tokens || {}));
           }
         } catch { /* ignore */ }
       }));
