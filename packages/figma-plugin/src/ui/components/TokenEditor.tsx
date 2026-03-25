@@ -192,9 +192,11 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} />}
             {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} />}
             {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} />}
+            {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'number' && <NumberEditor value={value} onChange={setValue} />}
             {tokenType === 'string' && <StringEditor value={value} onChange={setValue} />}
             {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
+            {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
           </div>
         )}
 
@@ -579,6 +581,145 @@ function BooleanEditor({ value, onChange }: { value: any; onChange: (v: any) => 
         <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${value ? 'left-4' : 'left-0.5'}`} />
       </button>
       <span className="text-[11px] text-[var(--color-figma-text)]">{value ? 'true' : 'false'}</span>
+    </div>
+  );
+}
+
+function GradientEditor({
+  value,
+  onChange,
+  allTokensFlat,
+  pathToSet,
+}: {
+  value: any;
+  onChange: (v: any) => void;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToSet: Record<string, string>;
+}) {
+  const stops: Array<{ color: string; position: number }> = Array.isArray(value) && value.length >= 1
+    ? value
+    : [{ color: '#000000', position: 0 }, { color: '#ffffff', position: 1 }];
+
+  const [showAC, setShowAC] = useState<Record<number, boolean>>({});
+
+  const updateStop = (idx: number, key: string, val: any) => {
+    onChange(stops.map((s, i) => (i === idx ? { ...s, [key]: val } : s)));
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {/* Gradient preview strip */}
+      <div
+        className="h-5 rounded border border-[var(--color-figma-border)]"
+        style={{
+          background: `linear-gradient(to right, ${stops.map(s => {
+            const c = typeof s.color === 'string' && !s.color.startsWith('{') ? s.color : '#cccccc';
+            return `${c} ${Math.round(s.position * 100)}%`;
+          }).join(', ')})`,
+        }}
+      />
+
+      {stops.map((stop, idx) => {
+        const isAliasMode = typeof stop.color === 'string' && stop.color.startsWith('{');
+        return (
+          <div key={idx} className="p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] text-[var(--color-figma-text-secondary)]">Stop {idx + 1}</span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    if (isAliasMode) {
+                      updateStop(idx, 'color', '#000000');
+                      setShowAC(prev => ({ ...prev, [idx]: false }));
+                    } else {
+                      updateStop(idx, 'color', '{');
+                      setShowAC(prev => ({ ...prev, [idx]: true }));
+                    }
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[9px] border transition-colors ${isAliasMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                >
+                  {isAliasMode ? '→ alias' : 'raw'}
+                </button>
+                {stops.length > 2 && (
+                  <button
+                    onClick={() => onChange(stops.filter((_, i) => i !== idx))}
+                    className="text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 rounded px-1 leading-none"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {isAliasMode ? (
+              <div className="relative">
+                <input
+                  type="text"
+                  value={stop.color}
+                  autoFocus={stop.color === '{'}
+                  onChange={e => {
+                    const v = e.target.value;
+                    updateStop(idx, 'color', v);
+                    setShowAC(prev => ({ ...prev, [idx]: v.includes('{') && !v.endsWith('}') }));
+                  }}
+                  onFocus={() => setShowAC(prev => ({ ...prev, [idx]: true }))}
+                  onBlur={() => setTimeout(() => setShowAC(prev => ({ ...prev, [idx]: false })), 150)}
+                  placeholder="{color.primary}"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] outline-none font-mono"
+                />
+                {showAC[idx] && (
+                  <AliasAutocomplete
+                    query={stop.color.startsWith('{') ? stop.color.slice(1).replace(/\}.*$/, '') : stop.color}
+                    allTokensFlat={allTokensFlat}
+                    pathToSet={pathToSet}
+                    filterType="color"
+                    onSelect={path => {
+                      updateStop(idx, 'color', `{${path}}`);
+                      setShowAC(prev => ({ ...prev, [idx]: false }));
+                    }}
+                    onClose={() => setShowAC(prev => ({ ...prev, [idx]: false }))}
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="flex gap-2 items-center">
+                <input
+                  type="color"
+                  value={(typeof stop.color === 'string' ? stop.color : '#000000').slice(0, 7)}
+                  onChange={e => updateStop(idx, 'color', e.target.value)}
+                  className="w-7 h-7 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent shrink-0"
+                />
+                <input
+                  type="text"
+                  value={typeof stop.color === 'string' ? stop.color : '#000000'}
+                  onChange={e => updateStop(idx, 'color', e.target.value)}
+                  className={inputClass + ' flex-1'}
+                />
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <label className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Position</label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={Math.round(stop.position * 100)}
+                onChange={e => updateStop(idx, 'position', Math.min(1, Math.max(0, (parseInt(e.target.value) || 0) / 100)))}
+                className={inputClass + ' flex-1'}
+              />
+              <span className="text-[9px] text-[var(--color-figma-text-secondary)]">%</span>
+            </div>
+          </div>
+        );
+      })}
+
+      <button
+        onClick={() => onChange([...stops, { color: '#808080', position: 1 }])}
+        className="py-1 text-[10px] text-[var(--color-figma-text-secondary)] border border-dashed border-[var(--color-figma-border)] rounded hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+      >
+        + Add stop
+      </button>
     </div>
   );
 }

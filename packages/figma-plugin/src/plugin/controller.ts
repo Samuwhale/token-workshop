@@ -117,6 +117,8 @@ async function applyStyles(tokens: any[]) {
     try {
       if (token.$type === 'color') {
         await applyPaintStyle(token);
+      } else if (token.$type === 'gradient') {
+        await applyGradientPaintStyle(token);
       } else if (token.$type === 'typography') {
         await applyTextStyle(token);
       } else if (token.$type === 'shadow') {
@@ -139,6 +141,32 @@ async function applyPaintStyle(token: any) {
   const color = parseColor(token.$value);
   if (color) {
     style.paints = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
+  }
+  style.setPluginData('tokenPath', token.path);
+}
+
+async function applyGradientPaintStyle(token: any) {
+  const styles = await figma.getLocalPaintStylesAsync();
+  let style = styles.find(s => s.name === token.path.replace(/\./g, '/'));
+  if (!style) {
+    style = figma.createPaintStyle();
+    style.name = token.path.replace(/\./g, '/');
+  }
+  const stops: Array<{ color: string; position: number }> = Array.isArray(token.$value) ? token.$value : [];
+  const gradientStops: ColorStop[] = stops
+    .map(stop => {
+      const color = parseColor(stop.color);
+      if (!color) return null;
+      return { position: stop.position, color: { ...color.rgb, a: color.a } } as ColorStop;
+    })
+    .filter((s): s is ColorStop => s !== null);
+  if (gradientStops.length >= 2) {
+    style.paints = [{
+      type: 'GRADIENT_LINEAR',
+      gradientTransform: [[1, 0, 0], [0, 1, 0]],
+      gradientStops,
+      opacity: 1,
+    } as GradientPaint];
   }
   style.setPluginData('tokenPath', token.path);
 }

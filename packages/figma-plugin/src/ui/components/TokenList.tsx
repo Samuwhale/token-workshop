@@ -476,6 +476,20 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
   const resolveFlat = (flat: any[]) =>
     flat.map(t => {
+      if (t.$type === 'gradient' && Array.isArray(t.$value)) {
+        const resolvedStops = t.$value.map((stop: { color: string; position: number }) => {
+          if (typeof stop.color === 'string' && stop.color.startsWith('{') && stop.color.endsWith('}')) {
+            const refPath = stop.color.slice(1, -1);
+            const refEntry = allTokensFlat[refPath];
+            if (refEntry) {
+              const inner = resolveTokenValue(refEntry.$value, refEntry.$type, allTokensFlat);
+              return { ...stop, color: inner.value ?? refEntry.$value };
+            }
+          }
+          return stop;
+        });
+        return { ...t, $value: resolvedStops };
+      }
       const resolved = resolveTokenValue(t.$value, t.$type, allTokensFlat);
       return { ...t, $value: resolved.value ?? t.$value, $type: resolved.$type };
     });
