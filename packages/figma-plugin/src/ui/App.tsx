@@ -10,6 +10,7 @@ import { SelectionInspector } from './components/SelectionInspector';
 import { UndoToast } from './components/UndoToast';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmptyState } from './components/EmptyState';
+import { PasteTokensModal } from './components/PasteTokensModal';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
@@ -86,6 +87,7 @@ export function App() {
   const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const { toastVisible, slot: undoSlot, pushUndo, executeUndo, dismissToast } = useUndo();
+  const [showPasteModal, setShowPasteModal] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Set context menu state
@@ -168,6 +170,18 @@ export function App() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [tabMenuOpen]);
+
+  // Keyboard shortcut: Cmd/Ctrl + Shift + V → Paste Tokens
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
+        e.preventDefault();
+        setShowPasteModal(true);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
 
   // Focus rename input when it appears
   useLayoutEffect(() => {
@@ -315,6 +329,12 @@ export function App() {
 
           {menuOpen && (
             <div className="absolute right-1 top-full mt-0.5 w-40 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50">
+              <button
+                onClick={() => { setShowPasteModal(true); setMenuOpen(false); }}
+                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Paste tokens <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-1">⌘⇧V</span>
+              </button>
               <button
                 onClick={() => openOverflowPanel('import')}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -634,6 +654,17 @@ export function App() {
           danger
           onConfirm={handleDeleteSet}
           onCancel={() => setDeletingSet(null)}
+        />
+      )}
+
+      {/* Paste Tokens modal */}
+      {showPasteModal && (
+        <PasteTokensModal
+          serverUrl={serverUrl}
+          activeSet={activeSet}
+          existingPaths={new Set(Object.keys(allTokensFlat).filter(p => pathToSet[p] === activeSet))}
+          onClose={() => setShowPasteModal(false)}
+          onConfirm={() => { setShowPasteModal(false); refreshTokens(); }}
         />
       )}
 
