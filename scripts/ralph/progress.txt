@@ -587,3 +587,19 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - Coverage = all token paths referenced by any set in the theme vs. paths covered by enabled/source sets
 - Each theme card header shows a yellow "⚠ N uncovered" badge when gaps exist
 - Clicking the badge toggles an inline list of uncovered token paths (max-h-32 scrollable, monospace)
+
+---
+
+## 2026-03-25 — US-034: Theme Missing-Coverage Warnings
+
+**Implemented**:
+- ThemeManager: coverage computation on `fetchThemes` load
+  - `flattenTokenPaths` helper: recursively walks token tree to extract dotted paths (skips `$`-prefixed keys)
+  - Fetches flat token paths for all sets in parallel
+  - For each theme: uncovered = paths in disabled sets with no value in any enabled/source set
+  - `coverage` state: `Record<theme.name, { uncovered: string[] }>`
+  - `expandedCoverage` state: controls which theme shows the uncovered list
+- UI: warning badge "⚠ N uncovered" in theme header (yellow, clickable toggle)
+- UI: expandable list of uncovered token paths below set matrix (yellow bg, scrollable, mono font)
+- Files changed: `ThemeManager.tsx`
+- **Learning**: `Object.keys(data.tokens)` only returns top-level keys; must use recursive walk for flat paths
