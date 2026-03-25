@@ -83,6 +83,26 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // POST /api/tokens/:set/bulk-rename — rename tokens by find/replace pattern
+  fastify.post<{
+    Params: { set: string };
+    Body: { find: string; replace: string; isRegex?: boolean };
+  }>('/tokens/:set/bulk-rename', async (request, reply) => {
+    const { set } = request.params;
+    const { find, replace, isRegex } = request.body ?? {};
+    if (!find || replace === undefined) {
+      return reply.status(400).send({ error: 'find and replace are required' });
+    }
+    try {
+      const result = await fastify.tokenStore.bulkRename(set, find, replace, isRegex);
+      return result;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+      return reply.status(500).send({ error: msg });
+    }
+  });
+
   // GET /api/tokens/:set/* — get single token by path
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/*', async (request, reply) => {
     const { set } = request.params;

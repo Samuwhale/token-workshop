@@ -40,6 +40,12 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const [showFindReplace, setShowFindReplace] = useState(false);
+  const [frFind, setFrFind] = useState('');
+  const [frReplace, setFrReplace] = useState('');
+  const [frIsRegex, setFrIsRegex] = useState(false);
+  const [frError, setFrError] = useState('');
+  const [frBusy, setFrBusy] = useState(false);
 
   // Expand/collapse state — persisted in sessionStorage per set
   const setNameRef = useRef(setName);
@@ -508,6 +514,56 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     setTimeout(() => setApplying(false), 1500);
   };
 
+  const frPreview = useMemo(() => {
+    if (!frFind) return [];
+    const currentSetPaths = flattenTokens(tokens).map(t => t.path as string);
+    const existingPathSet = new Set(currentSetPaths);
+    let pattern: RegExp | null = null;
+    if (frIsRegex) {
+      try { pattern = new RegExp(frFind, 'g'); } catch { return []; }
+    }
+    const renames: Array<{ oldPath: string; newPath: string; conflict: boolean }> = [];
+    const willBeFreed = new Set<string>();
+    for (const oldPath of currentSetPaths) {
+      const newPath = pattern ? oldPath.replace(pattern, frReplace) : oldPath.split(frFind).join(frReplace);
+      if (newPath !== oldPath) {
+        willBeFreed.add(oldPath);
+        renames.push({ oldPath, newPath, conflict: false });
+      }
+    }
+    // Mark conflicts
+    for (const r of renames) {
+      if (existingPathSet.has(r.newPath) && !willBeFreed.has(r.newPath)) {
+        r.conflict = true;
+      }
+    }
+    return renames;
+  }, [frFind, frReplace, frIsRegex, tokens]);
+
+  const handleFindReplace = async () => {
+    if (!frFind || frBusy) return;
+    setFrError('');
+    setFrBusy(true);
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ find: frFind, replace: frReplace, isRegex: frIsRegex }),
+      });
+      const data = await res.json() as { renamed?: number; skipped?: string[]; aliasesUpdated?: number; error?: string };
+      if (!res.ok) { setFrError(data.error ?? 'Rename failed'); return; }
+      setShowFindReplace(false);
+      setFrFind('');
+      setFrReplace('');
+      setFrIsRegex(false);
+      onRefresh();
+    } catch (err) {
+      setFrError(String(err));
+    } finally {
+      setFrBusy(false);
+    }
+  };
+
   const getDeleteModalProps = (): { title: string; description?: string; confirmLabel: string } | null => {
     if (!deleteConfirm) return null;
     if (deleteConfirm.type === 'token') {
@@ -773,13 +829,23 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               + New Token
             </button>
             {!selectMode && tokens.length > 0 && (
-              <button
-                onClick={() => setSelectMode(true)}
-                className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)]"
-                title="Select tokens for bulk actions"
-              >
-                Select
-              </button>
+              <>
+                <button
+                  onClick={() => setSelectMode(true)}
+                  className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)]"
+                  title="Select tokens for bulk actions"
+                >
+                  Select
+                </button>
+                <button
+                  onClick={() => setShowFindReplace(true)}
+                  disabled={!connected}
+                  className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                  title="Find & replace token names"
+                >
+                  Find &amp; Replace
+                </button>
+              </>
             )}
           </div>
         )}
@@ -924,6 +990,86 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           </div>
         );
       })()}
+
+      {/* Find & Replace modal */}
+      {showFindReplace && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '80vh' }}>
+            <div className="p-4 border-b border-[var(--color-figma-border)]">
+              <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Find &amp; Replace Token Names</div>
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Replace path segments across all tokens in <span className="font-mono text-[var(--color-figma-text)]">{setName}</span></div>
+            </div>
+            <div className="p-4 flex flex-col gap-3 overflow-y-auto flex-1">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Find</label>
+                <input
+                  type="text"
+                  value={frFind}
+                  onChange={e => { setFrFind(e.target.value); setFrError(''); }}
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                  autoFocus
+                  placeholder={frIsRegex ? 'e.g. ^colors\\.' : 'e.g. colors'}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Replace with</label>
+                <input
+                  type="text"
+                  value={frReplace}
+                  onChange={e => setFrReplace(e.target.value)}
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                  placeholder={frIsRegex ? 'e.g. palette.' : 'e.g. palette'}
+                />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={frIsRegex}
+                  onChange={e => { setFrIsRegex(e.target.checked); setFrError(''); }}
+                  className="accent-[var(--color-figma-accent)]"
+                />
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Use regex</span>
+              </label>
+
+              {/* Preview */}
+              {frFind && frPreview.length === 0 && (
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No token paths match.</div>
+              )}
+              {frPreview.length > 0 && (
+                <div className="flex flex-col gap-0.5">
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">{frPreview.length} token{frPreview.length !== 1 ? 's' : ''} will change:</div>
+                  <div className="flex flex-col gap-1 overflow-y-auto" style={{ maxHeight: '200px' }}>
+                    {frPreview.map(({ oldPath, newPath, conflict }) => (
+                      <div key={oldPath} className={`text-[10px] font-mono rounded px-2 py-1 ${conflict ? 'bg-red-50 border border-red-300 text-red-700' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
+                        <div className="truncate text-[var(--color-figma-text-secondary)] line-through">{oldPath}</div>
+                        <div className="truncate text-[var(--color-figma-text)]">{newPath}</div>
+                        {conflict && <div className="text-[9px] text-red-600 mt-0.5">⚠ conflicts with existing token — will be skipped</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {frError && <div className="text-[10px] text-[var(--color-figma-error)]">{frError}</div>}
+            </div>
+            <div className="flex gap-2 justify-end p-4 border-t border-[var(--color-figma-border)]">
+              <button
+                onClick={() => { setShowFindReplace(false); setFrFind(''); setFrReplace(''); setFrIsRegex(false); setFrError(''); }}
+                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFindReplace}
+                disabled={!frFind || frBusy || frPreview.length === 0 || frPreview.every(r => r.conflict)}
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+              >
+                {frBusy ? 'Renaming…' : `Rename ${frPreview.filter(r => !r.conflict).length}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Move group to set modal */}
       {movingGroup && (

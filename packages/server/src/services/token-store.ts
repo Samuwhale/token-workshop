@@ -360,6 +360,27 @@ export class TokenStore {
     return count;
   }
 
+  /** Update alias $value references using a full path map (oldPath -> newPath) */
+  private updateBulkAliasRefs(group: any, pathMap: Map<string, string>): number {
+    let count = 0;
+    const walk = (obj: any) => {
+      for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        if (key === '$value' && typeof val === 'string' && val.startsWith('{') && val.endsWith('}')) {
+          const refPath = val.slice(1, -1);
+          if (pathMap.has(refPath)) {
+            obj[key] = `{${pathMap.get(refPath)}}`;
+            count++;
+          }
+        } else if (typeof val === 'object' && val !== null) {
+          walk(val);
+        }
+      }
+    };
+    walk(group);
+    return count;
+  }
+
   private pathExistsAt(tokens: TokenGroup, path: string): boolean {
     const parts = path.split('.');
     let current: any = tokens;
@@ -435,6 +456,73 @@ export class TokenStore {
     await this.saveSet(setName);
     this.rebuildFlatTokens();
     return { newGroupPath, count: leafTokens.length };
+  }
+
+  async bulkRename(
+    setName: string,
+    find: string,
+    replace: string,
+    isRegex = false,
+  ): Promise<{ renamed: number; skipped: string[]; aliasesUpdated: number }> {
+    const set = this.sets.get(setName);
+    if (!set) throw new Error(`Set "${setName}" not found`);
+
+    const flatTokens = await this.getFlatTokensForSet(setName);
+
+    let pattern: RegExp | null = null;
+    if (isRegex) {
+      pattern = new RegExp(find, 'g');
+    }
+
+    // Compute all intended renames
+    const renames: Array<{ oldPath: string; newPath: string; token: Token }> = [];
+    for (const [tokenPath, token] of Object.entries(flatTokens)) {
+      const newPath = pattern
+        ? tokenPath.replace(pattern, replace)
+        : tokenPath.split(find).join(replace);
+      if (newPath !== tokenPath) {
+        renames.push({ oldPath: tokenPath, newPath, token });
+      }
+    }
+
+    // Check for collisions: new path already exists and won't be freed by this rename batch
+    const oldPaths = new Set(renames.map(r => r.oldPath));
+    const skipped: string[] = [];
+    const filteredRenames: Array<{ oldPath: string; newPath: string; token: Token }> = [];
+    for (const rename of renames) {
+      const existsInSet = this.getTokenAtPath(set.tokens, rename.newPath) !== undefined;
+      const willBeFreed = oldPaths.has(rename.newPath);
+      if (existsInSet && !willBeFreed) {
+        skipped.push(rename.oldPath);
+      } else {
+        filteredRenames.push(rename);
+      }
+    }
+
+    // Apply: set new paths first, then remove old ones
+    for (const { newPath, token } of filteredRenames) {
+      this.setTokenAtPath(set.tokens, newPath, token);
+    }
+    for (const { oldPath } of filteredRenames) {
+      this.deleteTokenAtPath(set.tokens, oldPath);
+    }
+    await this.saveSet(setName);
+
+    // Update alias references across all sets
+    const pathMap = new Map(filteredRenames.map(r => [r.oldPath, r.newPath]));
+    let aliasesUpdated = 0;
+    const setsToSave = new Set<string>();
+    for (const [sName, s] of this.sets) {
+      const changed = this.updateBulkAliasRefs(s.tokens, pathMap);
+      if (changed > 0) {
+        aliasesUpdated += changed;
+        setsToSave.add(sName);
+      }
+    }
+    for (const sName of setsToSave) await this.saveSet(sName);
+
+    this.rebuildFlatTokens();
+    return { renamed: filteredRenames.length, skipped, aliasesUpdated };
   }
 
   // ----- Path helpers -----
