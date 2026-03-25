@@ -639,3 +639,18 @@ Started: Tue Mar 24 23:02:19 CET 2026
 - Each step rendered as circle with actual hex fill; anomalous steps (gap > 2× average) shown in red
 - Warning label shown when uneven lightness steps are detected
 - Non-interactive (display only) per acceptance criteria
+
+---
+
+## 2026-03-25 — US-036: Color Scale Lightness Curve Inspector
+
+**Implemented**:
+- `ColorScaleGenerator` modal: prefix input, base color picker, 5/7/9 step selector
+- Scale algorithm: CIELAB (L*, a*, b*) math with linear L* from 95→8, chroma bell-curve via `4.5*t*(1-t)*1.5` factor
+- `hexToLab` + `labToHex` using standard D65 illuminant matrices
+- Swatch preview strip + sparkline SVG below
+- Sparkline: `Sparkline` component; orange dots where jump > 2 × median (disproportionate)
+- `EmptyState`: "Generate color scale" button enabled with `onGenerateColorScale` prop
+- `App.tsx`: `showColorScaleGen` state, modal rendering, wired to EmptyState
+- Files changed: `ColorScaleGenerator.tsx` (new), `EmptyState.tsx`, `App.tsx`
+- **Learning**: SVG circle title must be a child `<title>` element in React, not a prop
