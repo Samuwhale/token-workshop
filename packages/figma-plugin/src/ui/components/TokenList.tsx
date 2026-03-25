@@ -33,6 +33,7 @@ interface TokenListProps {
   onClearHighlight?: () => void;
   lintViolations?: LintViolation[];
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
+  onSetGroupScopes?: (groupPath: string) => void;
 }
 
 type DeleteConfirm =
@@ -94,7 +95,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenType] = useState('color');
@@ -269,6 +270,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
+  const [tableMode, setTableMode] = useState(false);
+  const [showScopesCol, setShowScopesCol] = useState(false);
 
   const boundTokenPaths = useMemo(() => {
     const paths = new Set<string>();
@@ -892,6 +895,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 lintViolations={lintViolations.filter(v => v.path === node.path)}
                 onExtractToAliasForLint={(path, $type, $value) => handleOpenExtractToAlias(path, $type, $value)}
                 onSyncGroup={onSyncGroup}
+                onSetGroupScopes={onSetGroupScopes}
               />
             ))}
           </div>
@@ -1349,6 +1353,7 @@ function TokenTreeNode({
   lintViolations = [],
   onExtractToAliasForLint,
   onSyncGroup,
+  onSetGroupScopes,
 }: {
   node: TokenNode;
   depth: number;
@@ -1376,6 +1381,7 @@ function TokenTreeNode({
   lintViolations?: LintViolation[];
   onExtractToAliasForLint?: (path: string, $type?: string, $value?: any) => void;
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
+  onSetGroupScopes?: (groupPath: string) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -1594,6 +1600,18 @@ function TokenTreeNode({
             >
               Duplicate group
             </button>
+            {onSetGroupScopes && (
+              <button
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  setGroupMenuPos(null);
+                  onSetGroupScopes(node.path);
+                }}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Set scopes for group…
+              </button>
+            )}
             {onSyncGroup && (
               <button
                 onMouseDown={e => e.preventDefault()}
@@ -1639,6 +1657,7 @@ function TokenTreeNode({
             lintViolations={lintViolations.filter(v => v.path === child.path)}
             onExtractToAliasForLint={onExtractToAliasForLint}
             onSyncGroup={onSyncGroup}
+            onSetGroupScopes={onSetGroupScopes}
           />
         ))}
       </div>

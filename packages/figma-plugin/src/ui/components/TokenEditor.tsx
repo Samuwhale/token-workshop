@@ -3,6 +3,42 @@ import { AliasAutocomplete } from './AliasAutocomplete';
 import type { TokenMapEntry } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
+// Figma variable scopes by token type
+// ---------------------------------------------------------------------------
+const FIGMA_SCOPES: Record<string, { label: string; value: string }[]> = {
+  color: [
+    { label: 'Fill Color', value: 'FILL_COLOR' },
+    { label: 'Stroke Color', value: 'STROKE_COLOR' },
+    { label: 'Text Fill', value: 'TEXT_FILL' },
+    { label: 'Effect Color', value: 'EFFECT_COLOR' },
+  ],
+  number: [
+    { label: 'Width & Height', value: 'WIDTH_HEIGHT' },
+    { label: 'Gap / Spacing', value: 'GAP' },
+    { label: 'Corner Radius', value: 'CORNER_RADIUS' },
+    { label: 'Opacity', value: 'OPACITY' },
+    { label: 'Font Size', value: 'FONT_SIZE' },
+    { label: 'Line Height', value: 'LINE_HEIGHT' },
+    { label: 'Letter Spacing', value: 'LETTER_SPACING' },
+    { label: 'Stroke Width', value: 'STROKE_FLOAT' },
+  ],
+  dimension: [
+    { label: 'Width & Height', value: 'WIDTH_HEIGHT' },
+    { label: 'Gap / Spacing', value: 'GAP' },
+    { label: 'Corner Radius', value: 'CORNER_RADIUS' },
+    { label: 'Stroke Width', value: 'STROKE_FLOAT' },
+  ],
+  string: [
+    { label: 'Font Family', value: 'FONT_FAMILY' },
+    { label: 'Font Style', value: 'FONT_STYLE' },
+    { label: 'Text Content', value: 'TEXT_CONTENT' },
+  ],
+  boolean: [
+    { label: 'Visibility (Show/Hide)', value: 'SHOW_HIDE' },
+  ],
+};
+
+// ---------------------------------------------------------------------------
 // WCAG contrast utilities
 // ---------------------------------------------------------------------------
 function hexToLuminance(hex: string): number | null {
@@ -57,6 +93,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const refInputRef = useRef<HTMLInputElement>(null);
   const [showContrast, setShowContrast] = useState(false);
   const [bgTokenPath, setBgTokenPath] = useState<string>('');
+  const [scopes, setScopes] = useState<string[]>([]);
+  const [showScopes, setShowScopes] = useState(false);
 
   useEffect(() => {
     const fetchToken = async () => {
@@ -68,6 +106,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         setTokenType(token?.$type || 'string');
         setValue(token?.$value ?? '');
         setDescription(token?.$description || '');
+        const savedScopes = token?.$extensions?.['com.figma.scopes'] ?? token?.$scopes;
+        setScopes(Array.isArray(savedScopes) ? savedScopes : []);
         if (typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}')) {
           setReference(token.$value);
         }
@@ -94,6 +134,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         $value: reference || value,
       };
       if (description) body.$description = description;
+      if (scopes.length > 0) body.$extensions = { 'com.figma.scopes': scopes };
 
       const res = await fetch(`${serverUrl}/api/tokens/${setName}/${tokenPath}`, {
         method: 'PATCH',
@@ -312,6 +353,40 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           />
         </div>
       </div>
+
+      {/* Figma Variable Scopes */}
+      {FIGMA_SCOPES[tokenType] && (
+        <div className="border-t border-[var(--color-figma-border)]">
+          <button
+            type="button"
+            onClick={() => setShowScopes(v => !v)}
+            className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+          >
+            <span>Figma variable scopes {scopes.length > 0 ? `(${scopes.length} selected)` : ''}</span>
+            <span>{showScopes ? '▲' : '▼'}</span>
+          </button>
+          {showScopes && (
+            <div className="px-3 py-2 flex flex-col gap-1.5">
+              <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1">
+                Controls where this variable appears in Figma's variable picker. Empty = All scopes.
+              </p>
+              {FIGMA_SCOPES[tokenType].map(scope => (
+                <label key={scope.value} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={scopes.includes(scope.value)}
+                    onChange={e => setScopes(prev =>
+                      e.target.checked ? [...prev, scope.value] : prev.filter(s => s !== scope.value)
+                    )}
+                    className="w-3 h-3 rounded"
+                  />
+                  <span className="text-[11px] text-[var(--color-figma-text)]">{scope.label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">

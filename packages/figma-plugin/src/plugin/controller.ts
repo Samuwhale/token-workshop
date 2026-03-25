@@ -100,6 +100,16 @@ async function applyVariables(tokens: any[]) {
         variable.setValueForMode(modeId, figmaValue);
       }
 
+      // Apply scopes if specified (read from $extensions or legacy $scopes)
+      const scopeOverrides: string[] = (
+        (Array.isArray(token.$extensions?.['com.figma.scopes']) ? token.$extensions['com.figma.scopes'] : null) ??
+        (Array.isArray(token.$scopes) ? token.$scopes : null) ??
+        []
+      );
+      if (scopeOverrides.length > 0) {
+        (variable as any).scopes = scopeOverrides;
+      }
+
       // Store mapping in shared plugin data
       variable.setPluginData('tokenPath', token.path);
       variable.setPluginData('tokenSet', token.setName || '');

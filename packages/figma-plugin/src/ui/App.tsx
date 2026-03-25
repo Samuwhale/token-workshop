@@ -127,6 +127,11 @@ export function App() {
   // Group sync state
   const [syncGroupPending, setSyncGroupPending] = useState<{ groupPath: string; tokenCount: number } | null>(null);
 
+  // Group scope state
+  const [groupScopesPath, setGroupScopesPath] = useState<string | null>(null);
+  const [groupScopesSelected, setGroupScopesSelected] = useState<string[]>([]);
+  const [groupScopesApplying, setGroupScopesApplying] = useState(false);
+
   // Rename state
   const [renamingSet, setRenamingSet] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -287,6 +292,42 @@ export function App() {
       console.error('Failed to sync group to Figma:', err);
     }
   }, [syncGroupPending, connected, serverUrl]);
+
+  const handleApplyGroupScopes = useCallback(async () => {
+    if (!groupScopesPath || !connected) return;
+    setGroupScopesApplying(true);
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      const data = await res.json();
+      const prefix = groupScopesPath + '.';
+      const patchPromises: Promise<any>[] = [];
+      const walk = (group: Record<string, any>, p: string) => {
+        for (const [key, val] of Object.entries(group)) {
+          if (key.startsWith('$')) continue;
+          const path = p ? `${p}.${key}` : key;
+          if (val && typeof val === 'object' && '$value' in val) {
+            if (path === groupScopesPath || path.startsWith(prefix)) {
+              patchPromises.push(fetch(`${serverUrl}/api/tokens/${activeSet}/${path}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ $scopes: groupScopesSelected }),
+              }));
+            }
+          } else if (val && typeof val === 'object') {
+            walk(val, path);
+          }
+        }
+      };
+      walk(data.tokens || {}, '');
+      await Promise.all(patchPromises);
+      setGroupScopesPath(null);
+      setGroupScopesSelected([]);
+    } catch (err) {
+      console.error('Failed to apply group scopes:', err);
+    } finally {
+      setGroupScopesApplying(false);
+    }
+  }, [groupScopesPath, groupScopesSelected, connected, serverUrl, activeSet]);
 
   const handleDuplicateSet = async (setName: string) => {
     setTabMenuOpen(null);
@@ -683,6 +724,7 @@ export function App() {
               onNavigateToAlias={handleNavigateToAlias}
               onClearHighlight={() => setHighlightedToken(null)}
               onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
+              onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && editingToken && (
@@ -788,6 +830,60 @@ export function App() {
           onConfirm={handleSyncGroup}
           onCancel={() => setSyncGroupPending(null)}
         />
+      )}
+
+      {/* Group Scope Editor */}
+      {groupScopesPath && (
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+          <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
+              <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Set Figma Scopes</span>
+              <button onClick={() => setGroupScopesPath(null)} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="p-4 flex flex-col gap-2">
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                Select scopes for all tokens in <span className="font-mono font-medium">{groupScopesPath}</span>. Empty = All scopes.
+              </p>
+              {([
+                { label: 'Fill Color', value: 'FILL_COLOR' },
+                { label: 'Stroke Color', value: 'STROKE_COLOR' },
+                { label: 'Text Fill', value: 'TEXT_FILL' },
+                { label: 'Effect Color', value: 'EFFECT_COLOR' },
+                { label: 'Width & Height', value: 'WIDTH_HEIGHT' },
+                { label: 'Gap / Spacing', value: 'GAP' },
+                { label: 'Corner Radius', value: 'CORNER_RADIUS' },
+                { label: 'Opacity', value: 'OPACITY' },
+                { label: 'Font Size', value: 'FONT_SIZE' },
+                { label: 'Font Family', value: 'FONT_FAMILY' },
+              ] as const).map(scope => (
+                <label key={scope.value} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={groupScopesSelected.includes(scope.value)}
+                    onChange={e => setGroupScopesSelected(prev =>
+                      e.target.checked ? [...prev, scope.value] : prev.filter(s => s !== scope.value)
+                    )}
+                    className="w-3 h-3 rounded"
+                  />
+                  <span className="text-[11px] text-[var(--color-figma-text)]">{scope.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+              <button
+                onClick={() => setGroupScopesPath(null)}
+                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+              >Cancel</button>
+              <button
+                onClick={handleApplyGroupScopes}
+                disabled={groupScopesApplying}
+                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+              >{groupScopesApplying ? 'Applying…' : 'Apply to group'}</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Command Palette */}
