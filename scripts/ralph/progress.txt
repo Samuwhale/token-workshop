@@ -730,3 +730,23 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - DTCG standard for tool-specific metadata is `$extensions['com.figma.scopes']` — controller checks this first, then `$scopes` as fallback
   - `$scopes` stored as an array of strings (e.g. `['FILL_COLOR', 'TEXT_FILL']`)
   - Empty `$scopes` means "all scopes" in Figma
+
+---
+
+## 2026-03-25 — US-040: Sync Status Per-Row Indicator
+
+**Implemented**:
+- Added `syncSnapshot?: Record<string, string>` to TokenListProps and TokenTreeNode props
+- `syncSnapshot` maps token path → `JSON.stringify($value)` of last-applied value
+- In App.tsx: `syncSnapshot` state + useEffect listening for `variables-applied` controller message
+  - On `variables-applied`: snapshots all `allTokensFlat` values (JSON.stringify per path)
+- Per-row: `syncChanged = !node.isGroup && syncSnapshot && path in syncSnapshot && snapshot[path] !== JSON.stringify(node.$value)`
+- Orange dot `w-1.5 h-1.5 rounded-full bg-orange-500` shown before token name with title="Changed locally since last sync"
+- Dot only shown after at least one `apply-variables` (snapshot non-empty) — clean tokens show nothing
+- Skipped "diverged" (red) state: requires async Figma read, not worth the complexity
+- Files changed: TokenList.tsx, App.tsx
+- **Learnings for future iterations:**
+  - `variables-applied` message from controller has `{ type: 'variables-applied', count: N }` — no token paths included
+  - Snapshot must be captured from `allTokensFlat` at time of `variables-applied` (not from controller message)
+  - `JSON.stringify($value)` handles all value types (strings, numbers, objects) correctly for comparison
+  - syncSnapshot is undefined until first apply, so dots never show on fresh plugin open (correct behavior)
