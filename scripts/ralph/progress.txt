@@ -837,3 +837,8 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - `docsRoutes` registered without prefix (unlike API routes which use `/api`)
   - Fastify returns strings directly from handlers — just set Content-Type header and return HTML string
   - Token $description on getFlatTokensForSet result needs `(t as any).$description` cast
+## US-044 — Filter Bar Always-On Type Filter Chip
+- Completed: 2026-03-25
+- Type filter always visible; ref/dup filters hidden until active via ⋯ menu
+- overflow-hidden on bar prevents layout breakage
+
