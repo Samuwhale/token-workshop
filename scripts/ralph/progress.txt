@@ -395,3 +395,20 @@ Started: Tue Mar 24 23:02:19 CET 2026
   - When `hasSelection = false`, body is already guarded by `!collapsed && hasSelection` — so auto-collapsing is mainly about making the chevron direction consistent
   - No browser testing tool available — manual browser verification needed
 ---
+
+## 2026-03-25 - US-024
+- Added `handleOpenExtractToAlias` and `handleConfirmExtractToAlias` handlers in `TokenList`
+- Added extract-to-alias state: `extractToken`, `extractMode` ('new'|'existing'), `newPrimitivePath`, `newPrimitiveSet`, `existingAlias`, `existingAliasSearch`, `extractError`
+- "Extract to alias" added to right-click context menu on leaf nodes — only shown when `!isAlias(node.$value)`
+- Dialog has two modes: "Create new primitive" (input for path + set selector, pre-suggested as `primitives.<type>.<lastSegment>`) and "Use existing token" (search-filtered list from `allTokensFlat` matching same type, excluding aliases)
+- On confirm (new): POST new token to `newPrimitiveSet`, then PATCH current token `$value` to `{newPrimitivePath}`
+- On confirm (existing): PATCH current token `$value` to `{existingAlias}`
+- Added `onExtractToAlias` prop to `TokenTreeNode` and threaded through recursive calls
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - PATCH `/api/tokens/:set/:path` updates a token's fields (e.g. `{ $value: '{alias.path}' }`) — use this to change value without recreating the token
+  - POST `/api/tokens/:set/:path` returns 409 if the path already exists — check for this error in extract-new-primitive flow
+  - `ValuePreview` component can be used in modals/lists since it only depends on `type` and `value` props
+  - `!isAlias(node.$value)` guards the "Extract to alias" menu item — prevents showing on already-aliased tokens
+  - No browser testing tool available — manual browser verification needed
+---
