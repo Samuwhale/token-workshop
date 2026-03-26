@@ -42,7 +42,8 @@ export function applyColorModifiers(hex: string, modifiers: ColorModifierOp[]): 
       case 'mix': {
         const labA = hexToLab(current);
         const labB = hexToLab(mod.color);
-        if (!labA || !labB) break;
+        if (!labA) throw new Error(`Color modifier 'mix': invalid source color "${current}"`);
+        if (!labB) throw new Error(`Color modifier 'mix': invalid mix color "${mod.color}"`);
         const r = Math.max(0, Math.min(1, mod.ratio));
         const L = labA[0] * (1 - r) + labB[0] * r;
         const a = labA[1] * (1 - r) + labB[1] * r;

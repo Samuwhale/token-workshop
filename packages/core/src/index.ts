@@ -93,7 +93,6 @@ export type {
   GeneratorConfig,
   TokenGenerator,
   GeneratedTokenResult,
-  GeneratorTemplate,
 } from './generator-types.js';
 export {
   DEFAULT_COLOR_RAMP_CONFIG,

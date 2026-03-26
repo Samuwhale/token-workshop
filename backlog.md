@@ -39,7 +39,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
-- [ ] **Resolver crashes on malformed composite tokens** — `resolveValue()` in `packages/core/src/resolver.ts` recurses into nested objects and arrays without null guards on intermediate values. A composite token with an `undefined` field in its object value will throw at runtime. Add null checks before recursing into object/array values.
+- [~] **Resolver crashes on malformed composite tokens** — `resolveValue()` in `packages/core/src/resolver.ts` recurses into nested objects and arrays without null guards on intermediate values. A composite token with an `undefined` field in its object value will throw at runtime. Add null checks before recursing into object/array values.
 
 ### QoL
 
@@ -135,7 +135,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### Bugs
 
 - [x] **Division by zero in formula evaluator** — `parseMulDiv()` in `packages/core/src/eval-expr.ts` performs division without checking for a zero divisor, silently producing `Infinity` or `NaN` values that get written as token values. Add a check and return an error when the right-hand side of `/` resolves to zero.
-- [~] **Color modifier `mix` silently no-ops on invalid color** — In `packages/core/src/color-modifier.ts`, the `mix` case calls `hexToLab()` and silently `break`s if either color is invalid. The token gets no modifier applied with no error or warning. Surface a validation error to the caller instead of silently skipping.
+- [x] **Color modifier `mix` silently no-ops on invalid color** — In `packages/core/src/color-modifier.ts`, the `mix` case calls `hexToLab()` and silently `break`s if either color is invalid. The token gets no modifier applied with no error or warning. Surface a validation error to the caller instead of silently skipping.
 
 ### UX
 

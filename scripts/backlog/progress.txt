@@ -16,6 +16,13 @@
   - The previous `[~]` item (Missing return in sync route) was already fixed — all catch blocks used `return reply.status(500).send(...)`. Marked stale/done.
 ---
 
+## 2026-03-26 - Color modifier `mix` silently no-ops on invalid color
+- Replaced silent `break` in the `mix` case of `applyColorModifiers()` with two explicit `throw new Error(...)` calls — one for invalid source color, one for invalid mix color
+- Files changed: `packages/core/src/color-modifier.ts` ~L45
+- **Learnings for future iterations:**
+  - The other switch cases (`lighten`/`darken`) still silently break on invalid input — a deliberate decision to only fix the `mix` case per the backlog item scope
+---
+
 ## 2026-03-26 - File watcher errors silently halt updates
 - Added `.on('error', ...)` handler to the chokidar watcher in `startWatching()` that logs errors to stderr via `console.error`
 - Files changed: `packages/server/src/services/token-store.ts` ~L98
