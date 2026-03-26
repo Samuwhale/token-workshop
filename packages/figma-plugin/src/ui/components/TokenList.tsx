@@ -297,14 +297,14 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
-    if (!highlightedToken || tableMode || !virtualListRef.current) return;
+    if (!highlightedToken || viewMode !== 'tree' || !virtualListRef.current) return;
     const idx = flatItems.findIndex(item => item.node.path === highlightedToken);
     if (idx < 0) return;
     const containerH = virtualListRef.current.clientHeight;
     const targetScrollTop = Math.max(0, idx * VIRTUAL_ITEM_HEIGHT - containerH / 2 + VIRTUAL_ITEM_HEIGHT / 2);
     virtualListRef.current.scrollTop = targetScrollTop;
     setVirtualScrollTop(targetScrollTop);
-  }, [highlightedToken, flatItems, tableMode]);
+  }, [highlightedToken, flatItems, viewMode]);
 
   useEffect(() => {
     if (!moreFiltersOpen) return;
@@ -802,8 +802,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
   // Flat list of visible nodes for virtual scrolling (respects expand/collapse state)
   const flatItems = useMemo(
-    () => (tableMode ? [] : flattenVisible(displayedTokens, expandedPaths)),
-    [displayedTokens, expandedPaths, tableMode]
+    () => (viewMode !== 'tree' ? [] : flattenVisible(displayedTokens, expandedPaths)),
+    [displayedTokens, expandedPaths, viewMode]
   );
 
   const handleSelectAll = () => {
@@ -1136,14 +1136,17 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             >
               For selection
             </button>
-            <button
-              onClick={() => setTableMode(v => !v)}
-              title={tableMode ? 'Switch to tree view' : 'Switch to table view'}
-              aria-pressed={tableMode}
-              className={`px-2 py-0.5 rounded text-[10px] transition-colors border ${tableMode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium border-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
-            >
-              Table
-            </button>
+            {(['tree', 'table', 'canvas'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : 'Canvas view — spatial token map'}
+                aria-pressed={viewMode === mode}
+                className={`px-2 py-0.5 rounded text-[10px] transition-colors border capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium border-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+              >
+                {mode}
+              </button>
+            ))}
             <div className={`ml-auto flex items-center gap-1 ${sortOrder !== 'default' ? 'text-[var(--color-figma-accent)]' : ''}`}>
               {syncSnapshot && syncChangedCount > 0 && (
                 <span
@@ -1309,7 +1312,14 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             <p className="mt-2 text-[12px]">No tokens yet</p>
             <p className="text-[10px]">Create a token or import from Figma</p>
           </div>
-        ) : tableMode ? (
+        ) : viewMode === 'canvas' ? (
+          /* Canvas view */
+          <TokenCanvas
+            tokens={displayedTokens}
+            allTokensFlat={allTokensFlat}
+            onEdit={onEdit}
+          />
+        ) : viewMode === 'table' ? (
           /* Table view */
           <div className="overflow-auto flex-1">
             <table className="w-full text-[10px] border-collapse">
@@ -1498,7 +1508,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
       {/* Bottom actions */}
       <div className="p-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
-        {!tableMode && !showCreateForm && (
+        {viewMode === 'tree' && !showCreateForm && (
           <div className="flex gap-1.5">
             <button
               onClick={() => onCreateNew ? onCreateNew() : setShowCreateForm(true)}

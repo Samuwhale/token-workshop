@@ -17,6 +17,8 @@ import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { Command, TokenEntry } from './components/CommandPalette';
 import { PreviewPanel } from './components/PreviewPanel';
+import { HeatmapPanel } from './components/HeatmapPanel';
+import type { HeatmapResult } from './components/HeatmapPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
@@ -105,7 +107,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'preview', label: 'Preview' },
 ];
 
-type OverflowPanel = 'import' | 'export' | 'settings' | null;
+type OverflowPanel = 'import' | 'export' | 'settings' | 'heatmap' | null;
 
 export function App() {
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
@@ -207,6 +209,16 @@ export function App() {
     }
   }, [connected, serverUrl, tokens]);
 
+  // Heatmap state
+  const [heatmapResult, setHeatmapResult] = useState<HeatmapResult | null>(null);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+
+  const triggerHeatmapScan = useCallback(() => {
+    setHeatmapLoading(true);
+    setHeatmapResult(null);
+    parent.postMessage({ pluginMessage: { type: 'scan-canvas-heatmap' } }, '*');
+  }, []);
+
   // Listen for variables-applied and capture a sync snapshot
   useEffect(() => {
     const handler = (e: MessageEvent) => {
@@ -218,6 +230,15 @@ export function App() {
           snap[path] = stableStringify(entry.$value);
         }
         setSyncSnapshot(snap);
+      } else if (msg?.type === 'canvas-heatmap-result') {
+        setHeatmapResult({
+          total: msg.total,
+          green: msg.green,
+          yellow: msg.yellow,
+          red: msg.red,
+          nodes: msg.nodes,
+        });
+        setHeatmapLoading(false);
       }
     };
     window.addEventListener('message', handler);
@@ -722,6 +743,33 @@ export function App() {
           <span className="opacity-50">⌘K</span>
         </button>
 
+        {/* Heatmap toggle */}
+        <button
+          onClick={() => {
+            if (overflowPanel === 'heatmap') {
+              setOverflowPanel(null);
+            } else {
+              setOverflowPanel('heatmap');
+              triggerHeatmapScan();
+            }
+          }}
+          className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
+            overflowPanel === 'heatmap'
+              ? 'bg-[var(--color-figma-accent)] text-white'
+              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+          }`}
+          title="Canvas heatmap: token adoption overlay"
+          aria-label="Toggle canvas heatmap"
+          aria-pressed={overflowPanel === 'heatmap'}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </button>
+
         {/* Overflow menu */}
         <div className="relative" ref={menuRef}>
           <button
@@ -1101,6 +1149,31 @@ export function App() {
                 </div>
               </div>
             </div>
+            </>
+          )}
+
+          {/* Heatmap panel */}
+          {overflowPanel === 'heatmap' && (
+            <>
+              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <button
+                  onClick={() => setOverflowPanel(null)}
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  aria-label="Back"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6.5 2L3.5 5l3 3"/>
+                  </svg>
+                  Back
+                </button>
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Canvas Heatmap</span>
+              </div>
+              <HeatmapPanel
+                result={heatmapResult}
+                loading={heatmapLoading}
+                onRescan={triggerHeatmapScan}
+                onSelectNodes={(ids) => parent.postMessage({ pluginMessage: { type: 'select-heatmap-nodes', nodeIds: ids } }, '*')}
+              />
             </>
           )}
 

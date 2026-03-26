@@ -777,3 +777,19 @@
   - WCAG relative luminance = 0.2126R + 0.7152G + 0.0722B (linear) — always pick black or white since one always achieves ≥4.5:1 except for pure mid-grays
   - L* inversion (100 - L*) in CIELAB is a clean perceptual dark-mode transform; OKLCH would give slightly better hue consistency but isn't in the codebase
 ---
+
+## 2026-03-26 - Figma canvas heatmap: token adoption overlay
+- Added `scan-canvas-heatmap` and `select-heatmap-nodes` message handlers to controller.ts
+- `scanCanvasHeatmap()` scans all visual nodes on the current page, checks both Figma `boundVariables` and plugin data bindings, classifies each node as green/yellow/red
+- Added `selectHeatmapNodes()` to select nodes by ID array and zoom to them
+- Created new `HeatmapPanel.tsx` component with stats bar, coverage bar, grouped node list, per-status filters, and click-to-select-on-canvas
+- Added `'heatmap'` to `OverflowPanel` type in App.tsx
+- Added heatmap toggle button (grid icon) in header between ⌘K and overflow menu — active state uses accent color
+- Wired `canvas-heatmap-result` message handler in App.tsx to update `heatmapResult`/`heatmapLoading` state
+- Panel renders via `overflowPanel === 'heatmap'` with same Back-button pattern as Import/Export/Settings
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L56, ~L285, `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L19, ~L110, ~L211, ~L737, ~L1155
+- **Learnings for future iterations:**
+  - `boundVariables` uses Figma property names (`fills`, `strokes`) while our plugin data uses `BindableProperty` names (`fill`, `stroke`) — they don't match directly; treat them as independent coverage signals
+  - The "grouped + flat filter" pattern (show by status groups by default, click legend to filter flat) works well for heatmap-style UIs where the "red" group is most actionable
+  - `select-heatmap-nodes` bulk-selects by ID array — limit node list to 300 to avoid giant selection messages
+---
