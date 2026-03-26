@@ -143,6 +143,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
   const [showModifiers, setShowModifiers] = useState(false);
   const [pendingTypeChange, setPendingTypeChange] = useState<string | null>(null);
+  const [dependents, setDependents] = useState<Array<{ path: string; setName: string }>>([]);
+  const [showDependents, setShowDependents] = useState(false);
 
   const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
@@ -183,6 +185,23 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       }
     };
     fetchToken();
+  }, [serverUrl, setName, tokenPath, isCreateMode]);
+
+  // Fetch reverse dependencies (tokens that reference this one)
+  useEffect(() => {
+    if (isCreateMode) return;
+    const fetchDependents = async () => {
+      try {
+        const res = await fetch(`${serverUrl}/api/tokens/${setName}/dependents/${tokenPath}`);
+        if (res.ok) {
+          const data = await res.json();
+          setDependents(data.dependents ?? []);
+        }
+      } catch {
+        // silently fail — dependency info is supplementary
+      }
+    };
+    fetchDependents();
   }, [serverUrl, setName, tokenPath, isCreateMode]);
 
   // Sync alias mode with loaded reference
@@ -892,6 +911,57 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
               >
                 + Add another group
               </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Token dependents — tokens that reference this one */}
+      {!isCreateMode && (
+        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowDependents(v => !v)}
+            className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            <span>Used by{dependents.length > 0 ? ` (${dependents.length})` : ''}</span>
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showDependents ? 'rotate-90' : ''}`} aria-hidden="true">
+              <path d="M2 1l4 3-4 3V1z"/>
+            </svg>
+          </button>
+          {showDependents && (
+            <div className="border-t border-[var(--color-figma-border)]">
+              {dependents.length === 0 ? (
+                <p className="px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">Not referenced by any other token.</p>
+              ) : (
+                <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
+                  {dependents.map(dep => {
+                    const entry = allTokensFlat[dep.path];
+                    const colorVal = entry?.$type === 'color' && typeof entry.$value === 'string' && !entry.$value.startsWith('{') ? entry.$value : null;
+                    return (
+                      <div key={dep.path} className="px-3 py-1.5 flex items-center gap-2">
+                        {colorVal && (
+                          <span
+                            className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]"
+                            style={{ background: colorVal }}
+                          />
+                        )}
+                        <span
+                          className="flex-1 font-mono text-[10px] text-[var(--color-figma-text)] truncate"
+                          title={dep.path}
+                        >
+                          {dep.path}
+                        </span>
+                        {dep.setName !== setName && (
+                          <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+                            {dep.setName}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

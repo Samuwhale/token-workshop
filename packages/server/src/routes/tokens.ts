@@ -103,6 +103,20 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // GET /api/tokens/:set/dependents/* — get tokens that reference a given token path (cross-set)
+  fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/dependents/*', async (request, reply) => {
+    const tokenPath = request.params['*'];
+    if (!tokenPath) {
+      return reply.status(400).send({ error: 'Token path is required' });
+    }
+    try {
+      const dependents = fastify.tokenStore.getDependents(tokenPath);
+      return { tokenPath, dependents, count: dependents.length };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to get dependents', detail: String(err) });
+    }
+  });
+
   // GET /api/tokens/:set/* — get single token by path
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/*', async (request, reply) => {
     const { set } = request.params;

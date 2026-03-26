@@ -81,6 +81,11 @@ export class TokenResolver {
     return this.resolved.get(path)!;
   }
 
+  /** Get all token paths that directly reference this token (reverse dependencies). */
+  getDependents(path: string): Set<string> {
+    return new Set(this.dependents.get(path) ?? []);
+  }
+
   /** Resolve every token. Returns a map of path -> ResolvedToken. */
   resolveAll(): Map<string, ResolvedToken> {
     // Initialise colors

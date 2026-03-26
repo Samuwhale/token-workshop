@@ -690,3 +690,15 @@
   - `showBatchEditor` state must be reset alongside `selectMode` / `selectedPaths` in all exit paths (Escape key and Cancel button)
   - The `$description` field is a first-class PATCH field — server at `token-store.ts:287` handles it natively
 ---
+
+## 2026-03-26 - Token dependency graph and impact analysis
+- Added `getDependents(path)` public method to `TokenResolver` — exposes the private `dependents` reverse-index map
+- Added `getDependents(tokenPath)` method to `TokenStore` — returns `Array<{path, setName}>` using the merged cross-set resolver
+- Added `GET /api/tokens/:set/dependents/*` route in tokens.ts — registered BEFORE the wildcard GET route to ensure correct matching
+- Added "Used by" collapsible section in `TokenEditor` — shows dependent token paths with color swatches and cross-set badges; fetches on mount; silently fails if server unavailable
+- Files changed: `packages/core/src/resolver.ts` ~L85, `packages/server/src/services/token-store.ts` ~L348, `packages/server/src/routes/tokens.ts` ~L106, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L145, ~L189, ~L960
+- **Learnings for future iterations:**
+  - `GET /tokens/:set/dependents/*` must be registered BEFORE `GET /tokens/:set/*` — Fastify uses registration order to resolve conflicts between overlapping wildcard routes
+  - The `TokenStore` resolver is already cross-set (merges all sets into a flat namespace), so no per-set dependency lookup is needed
+  - `setName` from `flatTokens.get(path)?.setName` correctly identifies which set each dependent belongs to for cross-set badge display
+---

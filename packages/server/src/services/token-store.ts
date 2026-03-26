@@ -344,6 +344,16 @@ export class TokenStore {
     return result;
   }
 
+  /** Get all tokens that reference the given token path, with their set names. */
+  getDependents(tokenPath: string): Array<{ path: string; setName: string }> {
+    if (!this.resolver) return [];
+    const depPaths = this.resolver.getDependents(tokenPath);
+    return Array.from(depPaths).map(path => ({
+      path,
+      setName: this.flatTokens.get(path)?.setName ?? 'unknown',
+    }));
+  }
+
   /** Get all token groups (the raw data) keyed by set name */
   getAllTokenData(): Record<string, TokenGroup> {
     const result: Record<string, TokenGroup> = {};
