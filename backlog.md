@@ -288,7 +288,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Inline Quick-Edit a Token Value
 
-- [ ] **Flow audit & overhaul: Inline Quick-Edit** — Trace the new inline editing flow for simple types (click color swatch → popover picker appears → change color → auto-save; click dimension value → inline input appears → type value → blur to save). Identify edge cases: what happens if the user clicks a different token while a picker is open? what if the new value is invalid? Ensure the inline edit state is visually distinct from the read state, that auto-save is immediate (not deferred), and that escape cancels cleanly. `packages/figma-plugin/src/ui/components/TokenList.tsx`, `InlineColorPicker.tsx`, `InlineValueEditor.tsx`
+- [x] **Flow audit & overhaul: Inline Quick-Edit** — Trace the new inline editing flow for simple types (click color swatch → popover picker appears → change color → auto-save; click dimension value → inline input appears → type value → blur to save). Identify edge cases: what happens if the user clicks a different token while a picker is open? what if the new value is invalid? Ensure the inline edit state is visually distinct from the read state, that auto-save is immediate (not deferred), and that escape cancels cleanly. `packages/figma-plugin/src/ui/components/TokenList.tsx`, `InlineColorPicker.tsx`, `InlineValueEditor.tsx`
 
 ### Flow: Undo / Redo Token Operations
 

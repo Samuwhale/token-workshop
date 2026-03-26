@@ -1953,6 +1953,7 @@ function TokenTreeNode({
   const [chainExpanded, setChainExpanded] = useState(false);
   const [inlineEditActive, setInlineEditActive] = useState(false);
   const [inlineEditValue, setInlineEditValue] = useState('');
+  const inlineEditEscapedRef = useRef(false);
   const colorInputRef = useRef<HTMLInputElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
 
@@ -2488,10 +2489,13 @@ function TokenTreeNode({
           type={node.$type === 'number' || node.$type === 'fontWeight' || node.$type === 'duration' ? 'number' : 'text'}
           value={inlineEditValue}
           onChange={e => setInlineEditValue(e.target.value)}
-          onBlur={handleInlineSubmit}
+          onBlur={() => {
+            if (inlineEditEscapedRef.current) { inlineEditEscapedRef.current = false; return; }
+            handleInlineSubmit();
+          }}
           onKeyDown={e => {
             if (e.key === 'Enter') { e.preventDefault(); handleInlineSubmit(); }
-            if (e.key === 'Escape') { e.preventDefault(); setInlineEditActive(false); }
+            if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditActive(false); }
             e.stopPropagation();
           }}
           onClick={e => e.stopPropagation()}

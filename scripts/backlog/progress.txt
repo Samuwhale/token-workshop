@@ -140,3 +140,12 @@
   - `useCallback` for inline submit handler captures `node` prop — fine since node identity changes per item
   - Alpha preservation: `node.$value.length === 9` check guards the `slice(7)` alpha extraction
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Inline Quick-Edit
+- Fixed Escape key bug: pressing Escape in an inline text editor was silently saving the value instead of cancelling. Root cause: `setInlineEditActive(false)` is an async state update; when the input disappears from DOM React fires `onBlur`, which called `handleInlineSubmit()` with the stale `inlineEditActive=true` closure value.
+- Fix: added `inlineEditEscapedRef = useRef(false)`, set it synchronously in the Escape handler, and check+reset it at the top of the `onBlur` handler before calling `handleInlineSubmit`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1956, ~L2492-2499
+- **Learnings for future iterations:**
+  - When pressing Escape to cancel an edit causes DOM removal, the resulting `onBlur` fires with the old memoized closure — use a `ref` (not state) to synchronously flag the cancellation before the blur fires. This is the same pattern as `renameGroupEscapedRef` already in the same component.
+  - Enter key is safe because React re-renders before blur fires when the input disappears, so the second `handleInlineSubmit` call sees `inlineEditActive=false` and exits early.
+---
