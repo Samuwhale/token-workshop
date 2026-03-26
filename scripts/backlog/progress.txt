@@ -567,3 +567,13 @@
   - `modeKey(collectionName, modeId)` pattern (pipe-separated) is a safe composite key since collection names and modeIds won't contain pipes
   - For variables import, coarse-grained selection (per mode, not per token) is the right UX since there can be hundreds of tokens across many modes
 ---
+
+## 2026-03-26 - Token Graph: node-based generation editor
+- Implemented `TokenGraph.tsx` as a new 'graph' view mode in the Tokens tab — a pannable SVG-based node canvas that visualises each generator as a 3-node flow: Source → Generator → Output. Clicking a generator node opens `TokenGeneratorDialog` for editing. A "+ New" toolbar button and empty-state CTA open the dialog for creating generators. A delete button on each row calls `DELETE /api/generators/:id`. Dot-grid background follows pan. Added 'graph' to the `viewMode` union in `TokenList.tsx`, added the graph button to the mode selector (SVG icon), hid the filter bar in graph view, and wired `onRefreshGenerators` through `TokenListProps` → `App.tsx` → `TokenGraph` so both token list and generator list refresh after saves.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGraph.tsx` (new), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L12, L68, L163, L469, L1365, L1408, L1544, `packages/figma-plugin/src/ui/App.tsx` ~L1964, L2012, L2045
+- **Learnings for future iterations:**
+  - No external graph library needed — absolute-positioned divs inside a pan-layer div with a sibling SVG for edges works well and keeps the bundle small
+  - Column header labels outside the pan layer but with `left` positions offset by `pan.x` give the illusion of fixed column labels while panning
+  - The 'graph' branch must come BEFORE the `tokens.length === 0` guard (same as 'json') so it shows even when no tokens exist
+  - `onRefreshGenerators` needed as a new optional prop on `TokenListProps` — `onRefresh` alone only refreshes tokens, not the generators list
+---

@@ -1961,6 +1961,7 @@ export function App() {
                     onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
                     syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                     generators={generators}
+                    onRefreshGenerators={refreshGenerators}
                     derivedTokenPaths={derivedTokenPaths}
                     showIssuesOnly={showIssuesOnly}
                     onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
@@ -2009,6 +2010,7 @@ export function App() {
                 onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
                 syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                 generators={generators}
+                onRefreshGenerators={refreshGenerators}
                 derivedTokenPaths={derivedTokenPaths}
                 showIssuesOnly={showIssuesOnly}
                 onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
@@ -2042,6 +2044,7 @@ export function App() {
                   onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
                   syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                   generators={generators}
+                  onRefreshGenerators={refreshGenerators}
                   derivedTokenPaths={derivedTokenPaths}
                   showIssuesOnly={showIssuesOnly}
                   onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}

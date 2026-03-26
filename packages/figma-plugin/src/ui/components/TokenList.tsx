@@ -9,6 +9,7 @@ import type { UndoSlot } from '../hooks/useUndo';
 import { QuickStartDialog } from './QuickStartDialog';
 import { BatchEditor } from './BatchEditor';
 import { TokenCanvas } from './TokenCanvas';
+import { TokenGraph } from './TokenGraph';
 import { hexToRgb, rgbToLab, colorDeltaE, stableStringify } from '../shared/colorUtils';
 import { ValuePreview } from './ValuePreview';
 import { ColorPicker } from './ColorPicker';
@@ -64,6 +65,7 @@ interface TokenListProps {
   onSetGroupScopes?: (groupPath: string) => void;
   syncSnapshot?: Record<string, string>;
   generators?: TokenGenerator[];
+  onRefreshGenerators?: () => void;
   derivedTokenPaths?: Set<string>;
   showIssuesOnly?: boolean;
   onToggleIssuesOnly?: () => void;
@@ -158,7 +160,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSyncGroupStyles, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths, showIssuesOnly, onToggleIssuesOnly, cascadeDiff }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSyncGroupStyles, onSetGroupScopes, syncSnapshot, generators, onRefreshGenerators, derivedTokenPaths, showIssuesOnly, onToggleIssuesOnly, cascadeDiff }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
@@ -465,7 +467,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
-  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid' | 'json'>('tree');
+  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid' | 'json' | 'graph'>('tree');
   const [showScopesCol, setShowScopesCol] = useState(false);
 
   // JSON editor state
@@ -1355,15 +1357,22 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             >
               For selection
             </button>
-            {(['tree', 'table', 'grid', 'canvas', 'json'] as const).map(mode => (
+            {(['tree', 'table', 'grid', 'canvas', 'json', 'graph'] as const).map(mode => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : mode === 'grid' ? 'Grid view — color swatch palette' : mode === 'canvas' ? 'Canvas view — spatial token map' : 'JSON editor — raw DTCG JSON'}
+                title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : mode === 'grid' ? 'Grid view — color swatch palette' : mode === 'canvas' ? 'Canvas view — spatial token map' : mode === 'json' ? 'JSON editor — raw DTCG JSON' : 'Graph view — node-based generator editor'}
                 aria-pressed={viewMode === mode}
                 className={`px-2 py-0.5 rounded text-[10px] transition-colors border capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium border-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
               >
-                {mode === 'json' ? '</>': mode}
+                {mode === 'json' ? '</>' : mode === 'graph' ? (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <rect x="2" y="9" width="7" height="6" rx="1"/>
+                    <rect x="15" y="9" width="7" height="6" rx="1"/>
+                    <rect x="8.5" y="7" width="7" height="10" rx="1"/>
+                    <path d="M9 12h-1M16 12h-1"/>
+                  </svg>
+                ) : mode}
               </button>
             ))}
             <div className={`ml-auto flex items-center gap-1 ${sortOrder !== 'default' ? 'text-[var(--color-figma-accent)]' : ''}`}>
@@ -1395,8 +1404,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           </div>
         )}
 
-        {/* Filter bar — hidden in JSON view */}
-        {tokens.length > 0 && !selectMode && viewMode !== 'json' && (
+        {/* Filter bar — hidden in JSON and graph views */}
+        {tokens.length > 0 && !selectMode && viewMode !== 'json' && viewMode !== 'graph' && (
           <div className={`flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] overflow-hidden ${filtersActive ? 'bg-[var(--color-figma-accent)]/20' : 'bg-[var(--color-figma-bg)]'}`}>
             <input
               ref={searchRef}
@@ -1532,6 +1541,16 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             <p className="mt-2 text-[11px] font-medium">Select a layer to inspect</p>
             <p className="text-[10px] mt-0.5">Tokens bound to the selected layer will appear here</p>
           </div>
+        ) : viewMode === 'graph' ? (
+          /* Graph view — node-based generator editor */
+          <TokenGraph
+            generators={generators ?? []}
+            serverUrl={serverUrl}
+            sets={sets}
+            activeSet={setName}
+            onRefresh={onRefresh}
+            onRefreshGenerators={onRefreshGenerators ?? (() => {})}
+          />
         ) : viewMode === 'json' ? (
           /* JSON editor — raw DTCG JSON, works for both empty and non-empty sets */
           <div className="h-full flex flex-col">
