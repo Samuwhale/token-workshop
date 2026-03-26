@@ -46,7 +46,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [~] **UX audit & overhaul: Token List** — Read the token list component and all child row/group components, study design-token-tool UX patterns (Tokens Studio, Style Dictionary UI, Theo), identify every friction point (how you find a token, how groups expand/collapse, what clicking a row does, how the set switcher works), then redesign the interactions: make clicking a token predictably open the editor, add visible affordances for drag-to-reorder, improve group headers, ensure the empty state guides the user clearly, and make search/filter immediately accessible. `packages/plugin/src/components/TokenList.tsx`
+- [ ] **UX audit & overhaul: Token List** — Read the token list component and all child row/group components, study design-token-tool UX patterns (Tokens Studio, Style Dictionary UI, Theo), identify every friction point (how you find a token, how groups expand/collapse, what clicking a row does, how the set switcher works), then redesign the interactions: make clicking a token predictably open the editor, add visible affordances for drag-to-reorder, improve group headers, ensure the empty state guides the user clearly, and make search/filter immediately accessible. `packages/plugin/src/components/TokenList.tsx`
 
 - [x] **UX audit & overhaul: Token Editor** — Read the token editor and all type-specific input components, research how professional design tools handle token/variable editing (Figma's own variable editor, Tokens Studio), map every user action (name editing, type switching, value input, alias autocomplete, scope selection, save/cancel), identify friction (unclear save triggers, alias UX, type-switch side-effects), then redesign: make save/discard obvious, improve alias autocomplete discoverability, ensure type switching doesn't silently corrupt values, and add inline validation feedback. `packages/plugin/src/components/TokenEditor.tsx`
 
@@ -300,7 +300,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Flow: View Token Dependencies Before Editing
 
-- [ ] **Flow audit & overhaul: Dependency Impact** — Trace the flow: user opens editor drawer for a token → dependency section shows N dependents → user expands it → sees before/after previews → edits value → saves. Ensure the dependency fetch is fast (or cached), that the section is collapsed by default and doesn't dominate the editor, and that the before/after previews are legible at small sizes. `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `DependencyGraph.tsx`
+- [x] **Flow audit & overhaul: Dependency Impact** — Trace the flow: user opens editor drawer for a token → dependency section shows N dependents → user expands it → sees before/after previews → edits value → saves. Ensure the dependency fetch is fast (or cached), that the section is collapsed by default and doesn't dominate the editor, and that the before/after previews are legible at small sizes. `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `DependencyGraph.tsx`
 
 ---
 

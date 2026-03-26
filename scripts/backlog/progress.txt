@@ -702,3 +702,15 @@
   - The `TokenStore` resolver is already cross-set (merges all sets into a flat namespace), so no per-set dependency lookup is needed
   - `setName` from `flatTokens.get(path)?.setName` correctly identifies which set each dependent belongs to for cross-set badge display
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Dependency Impact
+- Fixed `dependentsLoading` state — it was declared but never set during fetch; added `setDependentsLoading(true/false)` with a `finally` block
+- Added loading indicator ("…") in the "Used by" section header and body while fetch is in flight
+- Added before/after color swatch preview in dependent rows: when editing a color token (non-alias mode, isDirty), alias dependents now show old color → arrow → new color instead of no swatch
+- Section remains collapsed by default ✓; fetch is a single API call ✓
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L194, ~L926
+- **Learnings for future iterations:**
+  - `dependentsLoading` pattern: always use `finally` to ensure loading resets even on silent failures
+  - For before/after color comparison use `.slice(0, 7)` to strip alpha from 8-char hex before displaying swatches
+  - Alias dependents have `entry.$value.startsWith('{')` — use this to distinguish direct-color vs alias rows
+---

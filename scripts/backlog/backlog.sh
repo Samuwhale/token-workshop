@@ -92,11 +92,14 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     exit 0
   fi
 
-  # Run the agent in its own process group so Ctrl+C reaches the parent (this script)
-  # but not the agent subprocess. The parent's graceful_stop trap fires, sets
-  # STOP_REQUESTED=1, and we exit cleanly after the agent finishes naturally.
+  # Run the agent with SIGINT ignored in the parent so Ctrl+C sets STOP_REQUESTED
+  # via the graceful_stop trap but does not kill the agent mid-task.
+  # On macOS, trap '' INT in a subshell blocks inheritance, so we use a wrapper:
+  # the agent runs as a background job; the parent waits on it. SIGINT fires
+  # graceful_stop (sets STOP_REQUESTED=1) but wait resumes naturally after the
+  # signal handler returns, so the agent finishes before we check the flag.
   if [[ "$TOOL" == "amp" ]]; then
-    OUTPUT=$(set -m; cat "$SCRIPT_DIR/CLAUDE.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
+    OUTPUT=$(cat "$SCRIPT_DIR/CLAUDE.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
   else
     # Build context file: patterns + last 3 progress entries (agents learn from recent failures)
     CONTEXT_FILE=$(mktemp)
@@ -106,9 +109,11 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       "$PROGRESS_FILE" >> "$CONTEXT_FILE" 2>/dev/null || true
 
     AGENT_TMP=$(mktemp)
-    # setsid runs the agent in a new session (new process group), so terminal
-    # Ctrl+C (SIGINT to the foreground process group) does not reach it.
-    setsid claude \
+    # Run agent in background so the parent's wait builtin is interruptible by
+    # Ctrl+C (fires graceful_stop) without killing the agent process itself.
+    # SIGINT sent to the terminal process group does reach background jobs, so
+    # we explicitly ignore it in the agent wrapper subshell.
+    (trap '' INT; claude \
       --dangerously-skip-permissions \
       --print \
       --no-session-persistence \
@@ -117,7 +122,9 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       --json-schema "$JSON_SCHEMA" \
       --fallback-model claude-haiku-4-5-20251001 \
       --append-system-prompt-file "$CONTEXT_FILE" \
-      < "$SCRIPT_DIR/CLAUDE.md" > "$AGENT_TMP" 2>/dev/null || true
+      < "$SCRIPT_DIR/CLAUDE.md" > "$AGENT_TMP" 2>/dev/null) &
+    AGENT_PID=$!
+    wait $AGENT_PID || true
 
     rm -f "$CONTEXT_FILE"
     OUTPUT=$(cat "$AGENT_TMP")

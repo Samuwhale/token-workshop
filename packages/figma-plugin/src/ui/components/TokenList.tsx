@@ -9,6 +9,14 @@ import type { UndoSlot } from '../hooks/useUndo';
 import { QuickStartDialog } from './QuickStartDialog';
 import { BatchEditor } from './BatchEditor';
 import { hexToRgb, rgbToLab, colorDeltaE, stableStringify } from '../shared/colorUtils';
+import { ValuePreview } from './ValuePreview';
+import type { SortOrder } from './tokenListUtils';
+import {
+  countTokensInGroup, formatDisplayPath, nodeParentPath, flattenVisible,
+  formatValue, pruneDeletedPaths, filterByDuplicatePaths, filterTokenNodes,
+  sortTokenNodes, collectGroupPathsByDepth, collectAllGroupPaths, countLeaves,
+  flattenLeafNodes, findLeafByPath, collectGroupLeaves, getDefaultValue,
+} from './tokenListUtils';
 
 type GeneratorType = 'colorRamp' | 'typeScale' | 'spacingScale' | 'opacityScale' | 'borderRadiusScale' | 'zIndexScale' | 'customScale';
 
@@ -25,52 +33,11 @@ interface TokenGenerator {
 }
 import type { LintViolation } from '../hooks/useLint';
 
-function countTokensInGroup(node: TokenNode): number {
-  if (!node.isGroup) return 1;
-  return (node.children ?? []).reduce((sum, c) => sum + countTokensInGroup(c), 0);
-}
-
-/**
- * Returns a display path where the leaf segment is quoted if it contains a dot,
- * making literal dots in segment names visually distinguishable from path separators.
- * e.g. formatDisplayPath("spacing.1.5", "1.5") → 'spacing."1.5"'
- */
-function formatDisplayPath(path: string, leafName: string): string {
-  if (!leafName.includes('.')) return path;
-  const parent = path.length > leafName.length ? path.slice(0, path.length - leafName.length - 1) : '';
-  const quoted = `"${leafName}"`;
-  return parent ? `${parent}.${quoted}` : quoted;
-}
-
-/** Returns the parent group path of a node, correctly handling dots in segment names. */
-function nodeParentPath(nodePath: string, nodeName: string): string {
-  if (nodePath.length <= nodeName.length) return '';
-  return nodePath.slice(0, nodePath.length - nodeName.length - 1);
-}
-
 // ---------------------------------------------------------------------------
-// Virtual scroll constants and helpers
+// Virtual scroll constants
 // ---------------------------------------------------------------------------
 const VIRTUAL_ITEM_HEIGHT = 28; // px per row (approximate; overscan compensates for taller rows)
 const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the viewport
-
-/** Flatten the visible portion of a token tree into a depth-annotated list for virtual scrolling. */
-function flattenVisible(
-  nodes: TokenNode[],
-  expandedPaths: Set<string>,
-  depth = 0
-): Array<{ node: TokenNode; depth: number }> {
-  const result: Array<{ node: TokenNode; depth: number }> = [];
-  for (const node of nodes) {
-    result.push({ node, depth });
-    if (node.isGroup && expandedPaths.has(node.path) && node.children) {
-      result.push(...flattenVisible(node.children, expandedPaths, depth + 1));
-    }
-  }
-  return result;
-}
-
-type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage';
 
 interface TokenListProps {
   tokens: TokenNode[];
