@@ -423,3 +423,13 @@
   - The `sr-only` hidden input approach cleanly separates the visual swatch button from the native picker — avoids hacks like `opacity-0 absolute`
   - StepperInput's `style={{ fontSize: 6 }}` can be removed when switching to SVG — the text size override was only needed for the unicode characters
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Find & Replace
+- Audited the Find & Replace flow (already embedded in TokenList.tsx). The preview UI (old→new diffs with highlighted segments, conflict detection, count in button) was already good. The missing piece was undoability after bulk rename.
+- Added undo/redo support to `handleFindReplace`: captures find/replace values before the async call, then on success pushes a `UndoSlot` with `restore` (inverted bulk-rename: find↔replace) and `redo` (original bulk-rename). Only applies for plain-text, non-empty-replacement renames — regex and empty-replacement can't be safely inverted automatically.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L901
+- **Learnings for future iterations:**
+  - Capture mutable state (frFind, frReplace, frIsRegex, computed counts) into `const` variables before any `await` so undo closures reference stable values, not React state
+  - For bulk-rename undo: inverting the find/replace pair is sufficient for plain-text non-empty cases; regex inversions are non-trivial and should be skipped
+  - The undo slot's `description` field appears in the UndoToast, so include the operation count and the find→replace pair for clarity
+---

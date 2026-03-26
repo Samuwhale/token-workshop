@@ -232,7 +232,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Edit Token
 
-- [ ] **Flow audit & overhaul: Edit Token** — Trace the token editing flow (click token → editor opens → make change → save/discard → list updates), identify friction (is it obvious how to save? can you accidentally discard changes? does the editor close predictably?), then redesign: make the save/discard affordance unambiguous, add unsaved-changes protection, and ensure the editor closes and the list scrolls to the edited token on save. `packages/plugin/src/components/TokenEditor.tsx`, `packages/plugin/src/components/TokenList.tsx`
+- [~] **Flow audit & overhaul: Edit Token** — Trace the token editing flow (click token → editor opens → make change → save/discard → list updates), identify friction (is it obvious how to save? can you accidentally discard changes? does the editor close predictably?), then redesign: make the save/discard affordance unambiguous, add unsaved-changes protection, and ensure the editor closes and the list scrolls to the edited token on save. `packages/plugin/src/components/TokenEditor.tsx`, `packages/plugin/src/components/TokenList.tsx`
 
 ### Flow: Generate Color Scale
 
@@ -284,7 +284,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Find and Replace Token Names
 
-- [~] **Flow audit & overhaul: Find & Replace** — Trace the find & replace flow (trigger → search input → matches highlight → replacement input → preview renames → confirm → tokens renamed), read all find-replace UI and service code, identify friction (is the preview of renamed tokens clear enough to prevent mistakes?), then redesign: make the match preview legible (show old name → new name diffs), add a count of affected tokens before confirming, and ensure the action is undoable. `packages/plugin/src/components/FindReplace.tsx`
+- [x] **Flow audit & overhaul: Find & Replace** — Trace the find & replace flow (trigger → search input → matches highlight → replacement input → preview renames → confirm → tokens renamed), read all find-replace UI and service code, identify friction (is the preview of renamed tokens clear enough to prevent mistakes?), then redesign: make the match preview legible (show old name → new name diffs), add a count of affected tokens before confirming, and ensure the action is undoable. `packages/plugin/src/components/FindReplace.tsx`
 
 ### Flow: Inline Quick-Edit a Token Value
 

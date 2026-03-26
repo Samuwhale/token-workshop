@@ -902,14 +902,44 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     if (!frFind || frBusy) return;
     setFrError('');
     setFrBusy(true);
+    // Capture values before async call so undo closure has stable references
+    const capturedFind = frFind;
+    const capturedReplace = frReplace;
+    const capturedIsRegex = frIsRegex;
+    const renamedCount = frPreview.filter(r => !r.conflict).length;
     try {
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ find: frFind, replace: frReplace, isRegex: frIsRegex }),
+        body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
       });
       const data = await res.json() as { renamed?: number; skipped?: string[]; aliasesUpdated?: number; error?: string };
       if (!res.ok) { setFrError(data.error ?? 'Rename failed'); return; }
+      // Push undo for plain-text renames with a non-empty replacement string.
+      // Regex and empty-replacement cases can't be automatically inverted safely.
+      if (onPushUndo && renamedCount > 0 && !capturedIsRegex && capturedReplace !== '') {
+        const capturedSet = setName;
+        const capturedUrl = serverUrl;
+        onPushUndo({
+          description: `Rename ${renamedCount} token${renamedCount !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
+          restore: async () => {
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
+            });
+            onRefresh();
+          },
+          redo: async () => {
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
+            });
+            onRefresh();
+          },
+        });
+      }
       setShowFindReplace(false);
       setFrFind('');
       setFrReplace('');
