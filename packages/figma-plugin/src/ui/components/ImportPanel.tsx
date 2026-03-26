@@ -27,6 +27,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
   const [newSetInputVisible, setNewSetInputVisible] = useState(false);
   const [newSetDraft, setNewSetDraft] = useState('');
   const readTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -160,6 +161,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
 
     try {
       const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
+      setImportProgress({ done: 0, total: tokensToImport.length });
 
       const setRes = await fetch(`${serverUrl}/api/sets`, {
         method: 'POST',
@@ -189,6 +191,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
         } else {
           imported++;
         }
+        setImportProgress({ done: imported, total: tokensToImport.length });
       }
 
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Imported ${imported} tokens to "${targetSet}"` } }, '*');
@@ -200,6 +203,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setImporting(false);
+      setImportProgress(null);
     }
   };
 
@@ -553,10 +557,16 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
           {/* Action row */}
           {conflictPaths !== null && conflictPaths.length > 0 ? (
             <div className="flex flex-col gap-1.5">
-              <div className="text-[10px] text-[var(--color-figma-text)]">
-                <span className="font-medium">{conflictPaths.length} token{conflictPaths.length !== 1 ? 's' : ''}</span>{' '}
-                already exist in &ldquo;{targetSet}&rdquo;. How should conflicts be handled?
-              </div>
+              {(() => {
+                const newCount = selectedTokens.size - conflictPaths.length;
+                return (
+                  <div className="text-[10px] text-[var(--color-figma-text)]">
+                    <span className="font-medium">{conflictPaths.length} conflict{conflictPaths.length !== 1 ? 's' : ''}</span>
+                    {newCount > 0 && <span className="text-[var(--color-figma-text-secondary)]">, {newCount} new</span>}
+                    {' '}— how should conflicts be handled?
+                  </div>
+                );
+              })()}
               <div className="max-h-[72px] overflow-y-auto rounded border border-[var(--color-figma-warning,#f59e0b)]/30 bg-[var(--color-figma-warning,#f59e0b)]/5 divide-y divide-[var(--color-figma-border)]">
                 {conflictPaths.map(path => (
                   <div key={path} className="px-2 py-1 text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate">
@@ -570,14 +580,22 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
                   disabled={importing}
                   className="flex-1 px-2 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
                 >
-                  {importing ? 'Importing…' : 'Keep existing'}
+                  {importing
+                    ? importProgress
+                      ? `Importing ${importProgress.done}/${importProgress.total}…`
+                      : 'Importing…'
+                    : 'Skip conflicts'}
                 </button>
                 <button
                   onClick={() => executeImport('overwrite')}
                   disabled={importing}
                   className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
                 >
-                  {importing ? 'Importing…' : 'Overwrite conflicts'}
+                  {importing
+                    ? importProgress
+                      ? `Importing ${importProgress.done}/${importProgress.total}…`
+                      : 'Importing…'
+                    : 'Overwrite all'}
                 </button>
               </div>
               <button
@@ -585,7 +603,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
                 disabled={importing}
                 className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline disabled:opacity-40"
               >
-                Cancel
+                Revise selection
               </button>
             </div>
           ) : (
@@ -594,9 +612,13 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
               disabled={selectedTokens.size === 0 || importing || checkingConflicts}
               className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
             >
-              {importing || checkingConflicts
-                ? 'Checking…'
-                : `Import ${selectedTokens.size} Token${selectedTokens.size !== 1 ? 's' : ''} to "${targetSet}"`}
+              {checkingConflicts
+                ? 'Checking for conflicts…'
+                : importing
+                  ? importProgress
+                    ? `Importing ${importProgress.done}/${importProgress.total}…`
+                    : 'Importing…'
+                  : `Import ${selectedTokens.size} token${selectedTokens.size !== 1 ? 's' : ''} to "${targetSet}"`}
             </button>
           )}
         </div>

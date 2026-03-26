@@ -1,5 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ConfirmModal } from './ConfirmModal';
+
+const STATE_LABELS: Record<string, string> = {
+  disabled: 'Off',
+  source: 'Base',
+  enabled: 'On',
+};
+
+const STATE_DESCRIPTIONS: Record<string, string> = {
+  disabled: 'Not used in this theme',
+  source: 'Foundation set — tokens can be overridden by "On" sets',
+  enabled: 'Active in this theme — overrides the base set',
+};
 
 interface Theme {
   name: string;
@@ -28,6 +40,16 @@ function flattenTokenEntries(group: Record<string, any>, prefix = ''): Array<{ p
   return entries;
 }
 
+function getThemeStatus(theme: Theme): string {
+  const baseSets = Object.entries(theme.sets).filter(([, s]) => s === 'source').map(([n]) => n);
+  const onSets = Object.entries(theme.sets).filter(([, s]) => s === 'enabled').map(([n]) => n);
+  if (baseSets.length === 0 && onSets.length === 0) return '';
+  const parts: string[] = [];
+  if (baseSets.length > 0) parts.push(`Base: ${baseSets.join(', ')}`);
+  if (onSets.length > 0) parts.push(`+${onSets.length} active`);
+  return parts.join(' · ');
+}
+
 export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +73,8 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
   });
   const [cardDragInfo, setCardDragInfo] = useState<string | null>(null);
   const [cardDragOver, setCardDragOver] = useState<string | null>(null);
+  const [newlyCreatedTheme, setNewlyCreatedTheme] = useState<string | null>(null);
+  const newThemeCardRef = useRef<HTMLDivElement | null>(null);
 
   const fetchThemes = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
@@ -160,6 +184,7 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
       setThemes(prev => [...prev, { name: trimmedName, sets: defaultSets }]);
       setNewThemeName('');
       setShowCreate(false);
+      setNewlyCreatedTheme(trimmedName);
       fetchThemes();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -222,6 +247,7 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
   const handleSetState = async (themeName: string, setName: string, targetState: string) => {
     const theme = themes.find(t => t.name === themeName);
     if (!theme) return;
+    if (themeName === newlyCreatedTheme) setNewlyCreatedTheme(null);
 
     const updatedSets = { ...theme.sets, [setName]: targetState as 'enabled' | 'disabled' | 'source' };
     const previousThemes = themes;
@@ -378,6 +404,7 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
             {(themeOrder.length > 0 ? themeOrder.map(n => themes.find(t => t.name === n)).filter((t): t is Theme => !!t) : themes).map(theme => (
               <div
                 key={theme.name}
+                ref={theme.name === newlyCreatedTheme ? (el) => { if (el) { newThemeCardRef.current = el; el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } } : undefined}
                 draggable
                 onDragStart={e => handleCardDragStart(e, theme.name)}
                 onDragOver={e => handleCardDragOver(e, theme.name)}
@@ -422,26 +449,51 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                           <circle cx="2" cy="10" r="1"/><circle cx="6" cy="10" r="1"/>
                         </svg>
                       </span>
-                      <span className="text-[11px] font-medium truncate max-w-[140px]" title={theme.name}>{theme.name}</span>
-                      <button
-                        onClick={() => startRename(theme.name)}
-                        className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-                        title="Rename theme"
-                      >
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                      </button>
-                      {coverage[theme.name]?.uncovered.length > 0 && (
-                        <button
-                          onClick={() => setExpandedCoverage(expandedCoverage === theme.name ? null : theme.name)}
-                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/40 hover:bg-[var(--color-figma-warning)]/25 transition-colors"
-                          title={`${coverage[theme.name].uncovered.length} tokens have no value in active sets`}
-                        >
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {coverage[theme.name].uncovered.length} unresolved
-                        </button>
-                      )}
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-medium truncate max-w-[140px]" title={theme.name}>{theme.name}</span>
+                          <button
+                            onClick={() => startRename(theme.name)}
+                            className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
+                            title="Rename theme"
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                        </div>
+                        {(() => {
+                          const status = getThemeStatus(theme);
+                          const hasUncovered = (coverage[theme.name]?.uncovered.length ?? 0) > 0;
+                          const isNew = newlyCreatedTheme === theme.name;
+                          if (isNew && !status) {
+                            return (
+                              <span className="text-[9px] text-[var(--color-figma-accent)]">
+                                Set at least one set to "Base" below
+                              </span>
+                            );
+                          }
+                          if (!status && !hasUncovered) return null;
+                          return (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {status && (
+                                <span className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">{status}</span>
+                              )}
+                              {hasUncovered && (
+                                <button
+                                  onClick={() => setExpandedCoverage(expandedCoverage === theme.name ? null : theme.name)}
+                                  className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/40 hover:bg-[var(--color-figma-warning)]/25 transition-colors flex-shrink-0"
+                                  title={`${coverage[theme.name].uncovered.length} tokens have no value in active sets`}
+                                >
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                  {coverage[theme.name].uncovered.length} gaps
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
                     </div>
                   )}
                   {renameTheme !== theme.name && (
@@ -493,7 +545,7 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                         </span>
                         <span className="text-[11px] text-[var(--color-figma-text)] flex-1 truncate" title={setName}>{setName}</span>
                         <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[9px] font-medium">
-                          {(['disabled', 'enabled', 'source'] as const).map(s => (
+                          {(['disabled', 'source', 'enabled'] as const).map(s => (
                             <button
                               key={s}
                               onClick={() => { if (state !== s) handleSetState(theme.name, setName, s); }}
@@ -503,17 +555,13 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                                     ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]'
                                     : s === 'enabled'
                                     ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]'
-                                    : 'bg-[var(--color-figma-border)]/60 text-[var(--color-figma-text)]'
+                                    : 'bg-[var(--color-figma-border)]/60 text-[var(--color-figma-text-secondary)]'
                                   : 'text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
                               }`}
-                              title={
-                                s === 'source' ? 'Base set — tokens can be overridden by enabled sets'
-                                : s === 'enabled' ? 'Active in this theme'
-                                : 'Not used in this theme'
-                              }
+                              title={STATE_DESCRIPTIONS[s]}
                               aria-pressed={state === s}
                             >
-                              {s}
+                              {STATE_LABELS[s]}
                             </button>
                           ))}
                         </div>
@@ -526,9 +574,9 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                 {expandedCoverage === theme.name && coverage[theme.name]?.uncovered.length > 0 && (
                   <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/10 px-3 py-2">
                     <div className="text-[10px] font-medium text-[var(--color-figma-warning)] mb-1">
-                      Unresolved tokens ({coverage[theme.name].uncovered.length})
+                      Missing values ({coverage[theme.name].uncovered.length})
                     </div>
-                    <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">Enable a set that defines these tokens, or add them to an active set.</p>
+                    <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have alias references that can't be resolved. Set a set containing them to "Base" or "On".</p>
                     <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
                       {coverage[theme.name].uncovered.map(p => (
                         <div key={p} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate">{p}</div>

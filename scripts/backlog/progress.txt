@@ -569,3 +569,20 @@
   - A scrollable conflict list (max-h with overflow-y-auto) at ~18px row height needs `max-h-[72px]` for 4 visible rows
   - CSS fallback for missing variables: `var(--color-figma-warning, #f59e0b)` lets warning-tinted elements render correctly even if the variable isn't defined
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Theme Management
+- Relabeled set state buttons from "disabled/source/enabled" to "Off/Base/On" with descriptive tooltips
+- Reordered state buttons to "Off → Base → On" (logical progression)
+- Added `getThemeStatus()` helper that generates a theme summary ("Base: core · +2 active")
+- Added status summary line under theme name in card header
+- Added `newlyCreatedTheme` state: shows "Set at least one set to 'Base' below" hint on freshly created themes; dismissed on first set-state change
+- Auto-scrolls newly created theme card into view
+- Renamed "Unresolved tokens" → "Missing values" and improved the explanation copy
+- Renamed coverage button label from "N unresolved" → "N gaps"
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1, ~L35, ~L60, ~L75, ~L245, ~L430, ~L490, ~L560
+- **Learnings for future iterations:**
+  - Three-state toggles benefit from plain-language labels ("Off/Base/On") instead of internal state names ("disabled/source/enabled")
+  - A status summary line under the card title (not just header-level) gives users at-a-glance config status without having to scan every row
+  - "Newly created" state (one-time hint) is a lightweight way to guide users through next steps without a full onboarding flow
+  - `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` via a ref callback works cleanly for post-create scroll
+---
