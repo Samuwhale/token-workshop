@@ -353,3 +353,23 @@
   - Tailwind opacity modifiers (e.g. `bg-[var(--color-figma-warning)]/15`) work correctly with CSS variables in this codebase
   - Hardcoded yellow Tailwind classes break in dark mode contexts; always audit for `yellow-*`, `amber-*`, `orange-*` in plugin UI code
 ---
+
+## 2026-03-26 - UX audit & overhaul: Sync Panel
+- Redesigned SyncPanel.tsx with clearer information architecture and plain-language copy
+- Two named sections with descriptions: "Figma Variables" (token ↔ Figma var sync + readiness) and "Git Repository" (branch, changes, commit, remote, push/pull)
+- Variable diff rows now grouped by category with plain-English subheaders: "Local only — not yet in Figma", "Figma only — not in local files", "Values differ — choose which to keep"
+- Conflict rows now show both local and Figma values side-by-side for informed decision-making
+- Added `varChecked` state: button label changes from "Compare" → "Re-check" after first run; "In sync" badge shown when no differences
+- "Apply Choices" button renamed to "Sync N tokens" with a live count of non-skip items; disabled when count is 0
+- Readiness section shows "N issues" or "Ready" badge in header
+- Push/Pull footer and Remote Differences section only rendered when `status.remote` is set
+- Bulk action labels improved: "Push all ↑" → "↑ Push all", "Pull all ↓" → "↓ Pull all"
+- Empty states now use inline `<strong>` callouts pointing to the action button by name
+- Extracted `VarDiffRowItem` sub-component for cleaner diff row rendering
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` (full redesign)
+- **Learnings for future iterations:**
+  - Conditional rendering of footer/sections based on `status.remote` avoids cluttering the UI for users who haven't set up a remote
+  - Grouped diff rows by category (subheader rows) make scanning much faster than a flat list with a status label column
+  - Showing actual values in conflict rows is the single highest-value addition — users can't make an informed push/pull decision without seeing both values
+  - Button label that includes action count ("Sync 3 tokens") is clearer than generic "Apply Choices"
+---

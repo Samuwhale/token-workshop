@@ -56,6 +56,10 @@ function flattenForVarDiff(
   return result;
 }
 
+function truncateValue(v: string, max = 24): string {
+  return v.length > max ? v.slice(0, max) + '…' : v;
+}
+
 export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,6 +79,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
   const [varLoading, setVarLoading] = useState(false);
   const [varSyncing, setVarSyncing] = useState(false);
   const [varError, setVarError] = useState<string | null>(null);
+  const [varChecked, setVarChecked] = useState(false);
   const varReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
 
   // Publish readiness state
@@ -87,7 +92,6 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
   const fetchAbortRef = useRef<AbortController | null>(null);
 
   const fetchStatus = useCallback(async () => {
-    // Cancel any in-flight request from a previous call
     fetchAbortRef.current?.abort();
     const controller = new AbortController();
     fetchAbortRef.current = controller;
@@ -143,6 +147,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
     if (!activeSet) return;
     setVarLoading(true);
     setVarError(null);
+    setVarChecked(false);
     try {
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
@@ -184,6 +189,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       }
 
       setVarRows(rows);
+      setVarChecked(true);
       const dirs: Record<string, 'push' | 'pull' | 'skip'> = {};
       for (const r of rows) {
         dirs[r.path] = r.cat === 'figma-only' ? 'pull' : 'push';
@@ -197,7 +203,6 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
   }, [serverUrl, activeSet]);
 
   const applyVarDiff = useCallback(async () => {
-    // Snapshot state at invocation time so mid-flight mutations don't affect the payload.
     const dirsSnapshot = varDirs;
     const rowsSnapshot = varRows;
     setVarSyncing(true);
@@ -227,6 +232,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
 
       setVarRows([]);
       setVarDirs({});
+      setVarChecked(true);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Variable sync applied' } }, '*');
     } catch (err) {
       setVarError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -257,18 +263,11 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       const figmaMap = new Map<string, any>(figmaTokens.map(t => [t.path, t]));
       const localPaths = new Set(localFlat.map(t => t.path));
 
-      // Check 1: all local tokens have Figma variables
       const missingInFigma = localFlat.filter(t => !figmaMap.has(t.path));
-
-      // Check 2: scopes set (non-ALL_SCOPES and non-empty)
       const missingScopes = figmaTokens.filter(t =>
         !t.$scopes || t.$scopes.length === 0 || (t.$scopes.length === 1 && t.$scopes[0] === 'ALL_SCOPES')
       );
-
-      // Check 3: descriptions populated
       const missingDescriptions = figmaTokens.filter(t => !t.$description);
-
-      // Check 4: no orphan Figma variables (in Figma but not in local)
       const orphans = figmaTokens.filter(t => !localPaths.has(t.path));
 
       const checks: ReadinessCheck[] = [
@@ -356,7 +355,6 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       if (!res.ok) throw new Error('Could not compute diff');
       const data = await res.json() as { localOnly: string[]; remoteOnly: string[]; conflicts: string[] };
       setDiffView(data);
-      // Default choices: local-only → push, remote-only → pull, conflicts → skip
       const choices: Record<string, 'push' | 'pull' | 'skip'> = {};
       for (const f of data.localOnly) choices[f] = 'push';
       for (const f of data.remoteOnly) choices[f] = 'pull';
@@ -439,6 +437,13 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       ]
     : [];
 
+  // Compute counts for var sync
+  const varSyncCount = Object.values(varDirs).filter(d => d !== 'skip').length;
+
+  // Readiness pass/fail summary
+  const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
+  const readinessPasses = readinessChecks.filter(c => c.status === 'pass').length;
+
   return (
     <div className="flex flex-col h-full">
       {error && (
@@ -447,351 +452,473 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
-        {/* Branch info */}
-        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Branch</span>
-            <button
-              onClick={() => { setLoading(true); fetchStatus(); }}
-              disabled={loading}
-              title="Refresh git status"
-              className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-40"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={loading ? 'animate-spin' : ''}>
-                <path d="M23 4v6h-6M1 20v-6h6"/>
-                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-              </svg>
-            </button>
-          </div>
-          <div className="px-3 py-2 flex items-center gap-2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2">
-              <line x1="6" y1="3" x2="6" y2="15" />
-              <circle cx="18" cy="6" r="3" />
-              <circle cx="6" cy="18" r="3" />
-              <path d="M18 9a9 9 0 01-9 9" />
-            </svg>
-            <span className="text-[11px] font-medium truncate max-w-[160px]" title={status.branch || 'main'}>{status.branch || 'main'}</span>
-          </div>
-          {branches.length > 1 && (
-            <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
-              <select
-                value={status.branch || ''}
-                onChange={e => doAction('checkout', { branch: e.target.value })}
-                className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none"
-              >
-                {branches.map(b => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
 
-        {/* Remote */}
-        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-            Remote
-          </div>
-          <div className="px-3 py-2 flex gap-2">
-            <input
-              type="text"
-              value={remoteUrl}
-              onChange={e => setRemoteUrl(e.target.value)}
-              placeholder="https://github.com/user/repo.git"
-              className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
-            />
-            <button
-              onClick={() => doAction('remote', { url: remoteUrl })}
-              disabled={!remoteUrl || actionLoading !== null}
-              className="px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] text-[10px] hover:bg-[var(--color-figma-border)] disabled:opacity-40"
-            >
-              Set
-            </button>
-          </div>
-        </div>
-
-        {/* Variable Sync — Figma ↔ Local */}
-        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Variable Sync</span>
-            <button
-              onClick={computeVarDiff}
-              disabled={varLoading || !activeSet}
-              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-            >
-              {varLoading ? 'Reading…' : 'Compute Diff'}
-            </button>
-          </div>
-          {varError && (
-            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{varError}</div>
-          )}
-          {varRows.length > 0 && (() => {
-            const catLabel = (cat: VarDiffRow['cat']) =>
-              cat === 'local-only' ? 'Local only ↑' : cat === 'figma-only' ? 'Figma only ↓' : '⚡ conflict';
-            const catTitle = (cat: VarDiffRow['cat']) =>
-              cat === 'local-only' ? 'This token exists locally but not in Figma. Push to add it to Figma.'
-              : cat === 'figma-only' ? 'This token exists in Figma but not locally. Pull to add it to your local set.'
-              : 'This token exists in both places but has different values. Choose push (keep local) or pull (keep Figma).';
-            const catColor = (cat: VarDiffRow['cat']) =>
-              cat === 'local-only' ? 'text-[var(--color-figma-success)]'
-              : cat === 'figma-only' ? 'text-[var(--color-figma-accent)]'
-              : 'text-yellow-600';
-            return (
-              <>
-                <div className="flex items-center gap-2 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] sticky top-0">
-                  <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] shrink-0 w-16">Status</span>
-                  <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] flex-1">Path</span>
-                  <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] shrink-0">Direction</span>
-                </div>
-                <div className="flex items-center gap-1 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] mr-1">Bulk:</span>
-                  {(['push', 'pull', 'skip'] as const).map(action => (
-                    <button
-                      key={action}
-                      onClick={() => setVarDirs(Object.fromEntries(varRows.map(r => [r.path, action])))}
-                      className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-hover)] capitalize"
-                    >
-                      {action === 'push' ? 'Push all ↑' : action === 'pull' ? 'Pull all ↓' : 'Skip all'}
-                    </button>
-                  ))}
-                </div>
-                <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
-                  {varRows.map(row => {
-                    const dir = varDirs[row.path] ?? 'push';
-                    return (
-                      <div key={row.path} className="flex items-center gap-2 px-3 py-1.5">
-                        <span className={`text-[9px] font-medium shrink-0 ${catColor(row.cat)}`} title={catTitle(row.cat)}>{catLabel(row.cat)}</span>
-                        <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={row.path}>{row.path}</span>
-                        <select
-                          value={dir}
-                          onChange={e => setVarDirs(prev => ({ ...prev, [row.path]: e.target.value as 'push' | 'pull' | 'skip' }))}
-                          className="text-[9px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5 shrink-0"
-                        >
-                          <option value="push">Push to Figma ↑</option>
-                          <option value="pull">Pull from Figma ↓</option>
-                          <option value="skip">Skip</option>
-                        </select>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between">
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{varRows.length} token{varRows.length !== 1 ? 's' : ''} differ</span>
-                  <button
-                    onClick={applyVarDiff}
-                    disabled={varSyncing}
-                    className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                  >
-                    {varSyncing ? 'Applying…' : 'Apply Choices'}
-                  </button>
-                </div>
-              </>
-            );
-          })()}
-          {!varLoading && varRows.length === 0 && !varError && (
-            <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-              Click "Compute Diff" to compare local tokens with Figma variables.
+        {/* ── Section 1: Figma Variable Sync ─────────────────────────── */}
+        <section>
+          <div className="mb-2">
+            <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">Figma Variables</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+              Compare token values between your local files and Figma variables.
             </div>
-          )}
-        </div>
-
-        {/* Publish Readiness Checklist */}
-        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Publish Readiness</span>
-            <button
-              onClick={runReadinessChecks}
-              disabled={readinessLoading || !activeSet}
-              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-            >
-              {readinessLoading ? 'Checking…' : 'Run Checks'}
-            </button>
           </div>
-          {readinessError && (
-            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{readinessError}</div>
-          )}
-          {readinessChecks.length > 0 && (
-            <div className="divide-y divide-[var(--color-figma-border)]">
-              {readinessChecks.map(check => (
-                <div key={check.id} className="flex items-center gap-2 px-3 py-2">
-                  <span className={`shrink-0 ${check.status === 'pass' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
-                    {check.status === 'pass' ? (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
-                    ) : (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M18 6L6 18M6 6l12 12" />
-                      </svg>
-                    )}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-[var(--color-figma-text)]">{check.label}</div>
-                    {check.count !== undefined && check.status === 'fail' && (
-                      <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{check.count} affected</div>
-                    )}
-                  </div>
-                  {check.fixLabel && check.onFix && (
-                    <button
-                      onClick={check.onFix}
-                      disabled={orphansDeleting}
-                      className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0 disabled:opacity-40"
-                    >
-                      {orphansDeleting && check.id === 'orphans' ? 'Deleting…' : check.fixLabel}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          {!readinessLoading && readinessChecks.length === 0 && !readinessError && (
-            <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-              Click "Run Checks" to validate Figma variable state before publishing.
-            </div>
-          )}
-        </div>
 
-        {/* Two-Way Sync unified diff */}
-        {status?.remote && (
+          {/* Variable Diff */}
           <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
             <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Two-Way Sync</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Token differences</span>
+                {varChecked && varRows.length === 0 && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
+                )}
+                {varRows.length > 0 && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{varRows.length} differ</span>
+                )}
+              </div>
               <button
-                onClick={computeDiff}
-                disabled={diffLoading}
+                onClick={computeVarDiff}
+                disabled={varLoading || !activeSet}
                 className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
               >
-                {diffLoading ? 'Computing…' : 'Compute Diff'}
+                {varLoading ? 'Reading…' : varChecked ? 'Re-check' : 'Compare'}
               </button>
             </div>
-            {diffView && (() => {
-              const allFiles = [
-                ...diffView.localOnly.map(f => ({ file: f, cat: 'local' as const })),
-                ...diffView.remoteOnly.map(f => ({ file: f, cat: 'remote' as const })),
-                ...diffView.conflicts.map(f => ({ file: f, cat: 'conflict' as const })),
-              ];
-              if (allFiles.length === 0) {
-                return <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">Local and remote are in sync ✓</div>;
-              }
+
+            {varError && (
+              <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{varError}</div>
+            )}
+
+            {varRows.length > 0 && (() => {
+              const localOnly = varRows.filter(r => r.cat === 'local-only');
+              const figmaOnly = varRows.filter(r => r.cat === 'figma-only');
+              const conflicts = varRows.filter(r => r.cat === 'conflict');
+
               return (
                 <>
-                  <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
-                    {allFiles.map(({ file, cat }) => {
-                      const choice = diffChoices[file] ?? 'skip';
-                      const catLabel = cat === 'local' ? '↑ local' : cat === 'remote' ? '↓ remote' : '⚡ conflict';
-                      const catColor = cat === 'local' ? 'text-[var(--color-figma-success)]' : cat === 'remote' ? 'text-[var(--color-figma-accent)]' : 'text-yellow-600';
-                      return (
-                        <div key={file} className="flex items-center gap-2 px-3 py-1.5">
-                          <span className={`text-[9px] font-medium shrink-0 ${catColor}`}>{catLabel}</span>
-                          <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono">{file}</span>
-                          <select
-                            value={choice}
-                            onChange={e => setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
-                            className="text-[9px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5"
-                          >
-                            <option value="push">Push ↑</option>
-                            <option value="pull">Pull ↓</option>
-                            <option value="skip">Skip</option>
-                          </select>
-                        </div>
-                      );
-                    })}
+                  {/* Bulk actions */}
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+                    <span className="text-[9px] text-[var(--color-figma-text-secondary)] mr-0.5">Select all:</span>
+                    {(['push', 'pull', 'skip'] as const).map(action => (
+                      <button
+                        key={action}
+                        onClick={() => setVarDirs(Object.fromEntries(varRows.map(r => [r.path, action])))}
+                        className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
+                      >
+                        {action === 'push' ? '↑ Push all' : action === 'pull' ? '↓ Pull all' : 'Skip all'}
+                      </button>
+                    ))}
                   </div>
-                  <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex justify-end">
+
+                  <div className="divide-y divide-[var(--color-figma-border)] max-h-52 overflow-y-auto">
+                    {/* Group by category for clarity */}
+                    {localOnly.length > 0 && (
+                      <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
+                        <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+                          Local only — not yet in Figma ({localOnly.length})
+                        </span>
+                      </div>
+                    )}
+                    {localOnly.map(row => (
+                      <VarDiffRowItem key={row.path} row={row} dir={varDirs[row.path] ?? 'push'} onChange={d => setVarDirs(prev => ({ ...prev, [row.path]: d }))} />
+                    ))}
+
+                    {figmaOnly.length > 0 && (
+                      <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
+                        <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+                          Figma only — not in local files ({figmaOnly.length})
+                        </span>
+                      </div>
+                    )}
+                    {figmaOnly.map(row => (
+                      <VarDiffRowItem key={row.path} row={row} dir={varDirs[row.path] ?? 'pull'} onChange={d => setVarDirs(prev => ({ ...prev, [row.path]: d }))} />
+                    ))}
+
+                    {conflicts.length > 0 && (
+                      <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
+                        <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+                          Values differ — choose which to keep ({conflicts.length})
+                        </span>
+                      </div>
+                    )}
+                    {conflicts.map(row => (
+                      <VarDiffRowItem key={row.path} row={row} dir={varDirs[row.path] ?? 'push'} onChange={d => setVarDirs(prev => ({ ...prev, [row.path]: d }))} />
+                    ))}
+                  </div>
+
+                  <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
+                    <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                      {varSyncCount > 0 ? `${varSyncCount} token${varSyncCount !== 1 ? 's' : ''} will be updated` : 'All skipped'}
+                    </span>
                     <button
-                      onClick={applyDiff}
-                      disabled={applyingDiff}
+                      onClick={applyVarDiff}
+                      disabled={varSyncing || varSyncCount === 0}
                       className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
-                      {applyingDiff ? 'Applying…' : 'Apply Choices'}
+                      {varSyncing ? 'Syncing…' : `Sync ${varSyncCount > 0 ? varSyncCount + ' token' + (varSyncCount !== 1 ? 's' : '') : ''}`}
                     </button>
                   </div>
                 </>
               );
             })()}
-          </div>
-        )}
 
-        {/* Changes */}
-        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-              Changes
-            </span>
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              {allChanges.length} file(s)
-            </span>
-          </div>
-          {allChanges.length > 0 ? (
-            <div className="max-h-32 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
-              {allChanges.map((change, i) => (
-                <div key={i} className="flex items-center gap-2 px-3 py-1">
-                  <span className={`text-[9px] font-mono font-bold w-3 ${
-                    change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
-                    change.status === 'A' ? 'text-[var(--color-figma-success)]' :
-                    change.status === 'D' ? 'text-[var(--color-figma-error)]' :
-                    'text-[var(--color-figma-text-secondary)]'
-                  }`}>
-                    {change.status}
-                  </span>
-                  <span className="text-[10px] text-[var(--color-figma-text)] truncate">{change.file}</span>
+            {!varLoading && !varError && (
+              varChecked && varRows.length === 0 ? (
+                <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  Local tokens match Figma variables.
                 </div>
-              ))}
+              ) : !varChecked && varRows.length === 0 ? (
+                <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to check for differences between local tokens and Figma variables.
+                </div>
+              ) : null
+            )}
+          </div>
+
+          {/* Publish Readiness */}
+          <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mt-2">
+            <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Publish readiness</span>
+                {readinessFails > 0 && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] font-medium">{readinessFails} issue{readinessFails !== 1 ? 's' : ''}</span>
+                )}
+                {readinessFails === 0 && readinessPasses > 0 && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Ready</span>
+                )}
+              </div>
+              <button
+                onClick={runReadinessChecks}
+                disabled={readinessLoading || !activeSet}
+                className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+              >
+                {readinessLoading ? 'Checking…' : readinessChecks.length > 0 ? 'Re-check' : 'Run checks'}
+              </button>
             </div>
-          ) : (
-            <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] text-center">
-              No uncommitted changes
+            {readinessError && (
+              <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{readinessError}</div>
+            )}
+            {readinessChecks.length > 0 && (
+              <div className="divide-y divide-[var(--color-figma-border)]">
+                {readinessChecks.map(check => (
+                  <div key={check.id} className="flex items-center gap-2 px-3 py-2">
+                    <span className={`shrink-0 ${check.status === 'pass' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
+                      {check.status === 'pass' ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      ) : (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                      )}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] text-[var(--color-figma-text)]">{check.label}</div>
+                      {check.count !== undefined && check.status === 'fail' && (
+                        <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{check.count} affected</div>
+                      )}
+                    </div>
+                    {check.fixLabel && check.onFix && (
+                      <button
+                        onClick={check.onFix}
+                        disabled={orphansDeleting}
+                        className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0 disabled:opacity-40"
+                      >
+                        {orphansDeleting && check.id === 'orphans' ? 'Deleting…' : check.fixLabel}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {!readinessLoading && readinessChecks.length === 0 && !readinessError && (
+              <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                Click <strong className="font-medium text-[var(--color-figma-text)]">Run checks</strong> to validate your Figma variables before publishing.
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ── Section 2: Git Repository ──────────────────────────────── */}
+        <section>
+          <div className="mb-2">
+            <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">Git Repository</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
+              Commit and push token file changes to version control.
+            </div>
+          </div>
+
+          {/* Branch */}
+          <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+            <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2">
+                  <line x1="6" y1="3" x2="6" y2="15" />
+                  <circle cx="18" cy="6" r="3" />
+                  <circle cx="6" cy="18" r="3" />
+                  <path d="M18 9a9 9 0 01-9 9" />
+                </svg>
+                <span className="text-[11px] font-medium truncate max-w-[140px]" title={status.branch || 'main'}>{status.branch || 'main'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[9px] font-medium ${allChanges.length > 0 ? 'text-yellow-600' : 'text-[var(--color-figma-success)]'}`}>
+                  {allChanges.length > 0 ? `${allChanges.length} change${allChanges.length !== 1 ? 's' : ''}` : 'Clean'}
+                </span>
+                <button
+                  onClick={() => { setLoading(true); fetchStatus(); }}
+                  disabled={loading}
+                  title="Refresh git status"
+                  className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-40"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={loading ? 'animate-spin' : ''}>
+                    <path d="M23 4v6h-6M1 20v-6h6"/>
+                    <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            {branches.length > 1 && (
+              <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
+                <select
+                  value={status.branch || ''}
+                  onChange={e => doAction('checkout', { branch: e.target.value })}
+                  className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none"
+                >
+                  {branches.map(b => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Changed files */}
+          {allChanges.length > 0 && (
+            <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mt-2">
+              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+                Uncommitted changes
+              </div>
+              <div className="max-h-28 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+                {allChanges.map((change, i) => (
+                  <div key={i} className="flex items-center gap-2 px-3 py-1">
+                    <span className={`text-[9px] font-mono font-bold w-3 ${
+                      change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
+                      change.status === 'A' ? 'text-[var(--color-figma-success)]' :
+                      change.status === 'D' ? 'text-[var(--color-figma-error)]' :
+                      'text-[var(--color-figma-text-secondary)]'
+                    }`}>
+                      {change.status}
+                    </span>
+                    <span className="text-[10px] text-[var(--color-figma-text)] truncate">{change.file}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-        </div>
 
-        {/* Commit */}
-        {!status.status?.isClean && (
-          <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-            <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-              Commit
+          {/* Commit */}
+          {!status.status?.isClean && (
+            <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mt-2">
+              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+                Commit message
+              </div>
+              <div className="p-3 flex flex-col gap-2">
+                <input
+                  type="text"
+                  value={commitMsg}
+                  onChange={e => setCommitMsg(e.target.value)}
+                  placeholder="Describe your changes…"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && commitMsg.trim()) doAction('commit', { message: commitMsg }).then(() => setCommitMsg(''));
+                  }}
+                />
+                <button
+                  onClick={() => doAction('commit', { message: commitMsg }).then(() => setCommitMsg(''))}
+                  disabled={!commitMsg.trim() || actionLoading !== null}
+                  className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                >
+                  {actionLoading === 'commit' ? 'Committing…' : 'Commit changes'}
+                </button>
+              </div>
             </div>
-            <div className="p-3 flex flex-col gap-2">
+          )}
+
+          {/* Remote URL */}
+          <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mt-2">
+            <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+              Remote URL
+            </div>
+            <div className="px-3 py-2 flex gap-2">
               <input
                 type="text"
-                value={commitMsg}
-                onChange={e => setCommitMsg(e.target.value)}
-                placeholder="Describe your changes…"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && commitMsg.trim()) doAction('commit', { message: commitMsg }).then(() => setCommitMsg(''));
-                }}
+                value={remoteUrl}
+                onChange={e => setRemoteUrl(e.target.value)}
+                placeholder="https://github.com/user/repo.git"
+                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
               />
               <button
-                onClick={() => doAction('commit', { message: commitMsg }).then(() => setCommitMsg(''))}
-                disabled={!commitMsg.trim() || actionLoading !== null}
-                className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                onClick={() => doAction('remote', { url: remoteUrl })}
+                disabled={!remoteUrl || actionLoading !== null}
+                className="px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] text-[10px] hover:bg-[var(--color-figma-border)] disabled:opacity-40"
               >
-                {actionLoading === 'commit' ? 'Committing...' : 'Commit Changes'}
+                Save
               </button>
             </div>
           </div>
-        )}
+
+          {/* Git diff (Two-Way Sync) — only shown when remote is configured */}
+          {status?.remote && (
+            <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mt-2">
+              <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote differences</span>
+                  {diffView && diffView.localOnly.length + diffView.remoteOnly.length + diffView.conflicts.length === 0 && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
+                  )}
+                </div>
+                <button
+                  onClick={computeDiff}
+                  disabled={diffLoading}
+                  className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                >
+                  {diffLoading ? 'Computing…' : diffView ? 'Re-check' : 'Compare'}
+                </button>
+              </div>
+              {diffView && (() => {
+                const allFiles = [
+                  ...diffView.localOnly.map(f => ({ file: f, cat: 'local' as const })),
+                  ...diffView.remoteOnly.map(f => ({ file: f, cat: 'remote' as const })),
+                  ...diffView.conflicts.map(f => ({ file: f, cat: 'conflict' as const })),
+                ];
+                if (allFiles.length === 0) {
+                  return (
+                    <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                      Local and remote are in sync.
+                    </div>
+                  );
+                }
+                const pendingCount = Object.values(diffChoices).filter(c => c !== 'skip').length;
+                return (
+                  <>
+                    <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
+                      {allFiles.map(({ file, cat }) => {
+                        const choice = diffChoices[file] ?? 'skip';
+                        const catLabel = cat === 'local' ? 'Local only' : cat === 'remote' ? 'Remote only' : 'Values differ';
+                        const catColor = cat === 'local' ? 'text-[var(--color-figma-success)]' : cat === 'remote' ? 'text-[var(--color-figma-accent)]' : 'text-yellow-600';
+                        return (
+                          <div key={file} className="flex items-center gap-2 px-3 py-1.5">
+                            <span className={`text-[9px] font-medium shrink-0 w-20 ${catColor}`}>{catLabel}</span>
+                            <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={file}>{file}</span>
+                            <select
+                              value={choice}
+                              onChange={e => setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
+                              className="text-[9px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5"
+                            >
+                              <option value="push">↑ Push</option>
+                              <option value="pull">↓ Pull</option>
+                              <option value="skip">Skip</option>
+                            </select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
+                      <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                        {pendingCount > 0 ? `${pendingCount} file${pendingCount !== 1 ? 's' : ''} will be updated` : 'All skipped'}
+                      </span>
+                      <button
+                        onClick={applyDiff}
+                        disabled={applyingDiff || pendingCount === 0}
+                        className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                      >
+                        {applyingDiff ? 'Applying…' : `Apply ${pendingCount > 0 ? pendingCount + ' change' + (pendingCount !== 1 ? 's' : '') : ''}`}
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+              {!diffLoading && !diffView && (
+                <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which files differ between local and remote.
+                </div>
+              )}
+            </div>
+          )}
+        </section>
       </div>
 
-      {/* Push / Pull */}
-      <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex gap-2">
-        <button
-          onClick={() => doAction('pull')}
-          disabled={actionLoading !== null || !status.remote}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+      {/* Push / Pull — only shown when remote is configured */}
+      {status?.remote && (
+        <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex gap-2">
+          <button
+            onClick={() => doAction('pull')}
+            disabled={actionLoading !== null}
+            className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+          >
+            {actionLoading === 'pull' ? 'Pulling…' : '↓ Pull'}
+          </button>
+          <button
+            onClick={() => doAction('push')}
+            disabled={actionLoading !== null}
+            className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+          >
+            {actionLoading === 'push' ? 'Pushing…' : '↑ Push'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── VarDiffRowItem ──────────────────────────────────────────────────────────
+
+interface VarDiffRowItemProps {
+  row: VarDiffRow;
+  dir: 'push' | 'pull' | 'skip';
+  onChange: (dir: 'push' | 'pull' | 'skip') => void;
+}
+
+function VarDiffRowItem({ row, dir, onChange }: VarDiffRowItemProps) {
+  return (
+    <div className="px-3 py-1.5 flex flex-col gap-0.5">
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={row.path}>{row.path}</span>
+        <select
+          value={dir}
+          onChange={e => onChange(e.target.value as 'push' | 'pull' | 'skip')}
+          className="text-[9px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5 shrink-0"
         >
-          {actionLoading === 'pull' ? 'Pulling...' : 'Pull'}
-        </button>
-        <button
-          onClick={() => doAction('push')}
-          disabled={actionLoading !== null || !status.remote}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-        >
-          {actionLoading === 'push' ? 'Pushing...' : 'Push'}
-        </button>
+          <option value="push">↑ Push to Figma</option>
+          <option value="pull">↓ Pull to local</option>
+          <option value="skip">Skip</option>
+        </select>
       </div>
+      {row.cat === 'conflict' && (
+        <div className="flex items-center gap-2 pl-0.5">
+          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Local:</span>
+          <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate" title={row.localValue}>{truncateValue(row.localValue ?? '')}</span>
+          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 mx-0.5">vs</span>
+          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Figma:</span>
+          <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate" title={row.figmaValue}>{truncateValue(row.figmaValue ?? '')}</span>
+        </div>
+      )}
+      {row.cat === 'local-only' && row.localValue !== undefined && (
+        <div className="pl-0.5">
+          <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.localValue)}</span>
+        </div>
+      )}
+      {row.cat === 'figma-only' && row.figmaValue !== undefined && (
+        <div className="pl-0.5">
+          <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.figmaValue)}</span>
+        </div>
+      )}
     </div>
   );
 }
