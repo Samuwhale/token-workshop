@@ -150,6 +150,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     try { sessionStorage.setItem('tm_last_token_type', t); } catch {}
   };
   const [newTokenValue, setNewTokenValue] = useState('');
+  const [newTokenDescription, setNewTokenDescription] = useState('');
   const [typeAutoInferred, setTypeAutoInferred] = useState(false);
   const [createError, setCreateError] = useState('');
   const [siblingPrefix, setSiblingPrefix] = useState<string | null>(null);
@@ -676,6 +677,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         body: JSON.stringify({
           $type: newTokenType,
           $value: newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType),
+          ...(newTokenDescription.trim() ? { $description: newTokenDescription.trim() } : {}),
         }),
       });
       if (!res.ok) {
@@ -691,6 +693,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
       setShowCreateForm(false);
       setNewTokenPath('');
       setNewTokenValue('');
+      setNewTokenDescription('');
       setSiblingPrefix(null);
       onRefresh();
       onTokenCreated?.(createdPath);
@@ -1585,6 +1588,14 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
               onKeyDown={e => e.key === 'Enter' && handleCreate()}
             />
+            <input
+              type="text"
+              placeholder="Description (optional)"
+              value={newTokenDescription}
+              onChange={e => setNewTokenDescription(e.target.value)}
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+            />
             <select
               value={newTokenType}
               onChange={e => { setNewTokenType(e.target.value); setTypeAutoInferred(false); }}
@@ -1614,7 +1625,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 Create
               </button>
               <button
-                onClick={() => { setShowCreateForm(false); setNewTokenPath(''); setNewTokenValue(''); setTypeAutoInferred(false); setSiblingPrefix(null); setCreateError(''); }}
+                onClick={() => { setShowCreateForm(false); setNewTokenPath(''); setNewTokenValue(''); setNewTokenDescription(''); setTypeAutoInferred(false); setSiblingPrefix(null); setCreateError(''); }}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel
@@ -2321,22 +2332,36 @@ function TokenTreeNode({
             </span>
           )}
           {!selectMode && !renamingGroup && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                setGroupMenuPos({
-                  x: Math.min(rect.left, window.innerWidth - 168),
-                  y: Math.min(rect.bottom + 2, window.innerHeight - 220),
-                });
-              }}
-              title="Group actions"
-              className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
-              </svg>
-            </button>
+            <>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateSibling?.(node.path, 'color');
+                }}
+                title="Add token to group"
+                className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14"/>
+                </svg>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  setGroupMenuPos({
+                    x: Math.min(rect.left, window.innerWidth - 168),
+                    y: Math.min(rect.bottom + 2, window.innerHeight - 220),
+                  });
+                }}
+                title="Group actions"
+                className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+                </svg>
+              </button>
+            </>
           )}
         </div>
 
@@ -2639,7 +2664,7 @@ function TokenTreeNode({
           )}
         </div>
         {node.$description && (
-          <div className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">{node.$description}</div>
+          <div className="text-[9px] text-[var(--color-figma-text-secondary)] truncate" title={node.$description}>{node.$description}</div>
         )}
         {parentGroupPath && (
           <button

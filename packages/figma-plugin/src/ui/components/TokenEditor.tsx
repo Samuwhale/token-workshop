@@ -678,11 +678,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                       )}
                       {mod.type === 'mix' && (
                         <>
-                          <input
-                            type="color"
-                            value={mod.color.slice(0, 7)}
-                            onChange={e => setColorModifiers(prev => prev.map((m, idx) => idx === i ? { ...m, color: e.target.value } : m))}
-                            className="w-6 h-6 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent shrink-0"
+                          <ColorSwatchButton
+                            color={mod.color}
+                            onChange={v => setColorModifiers(prev => prev.map((m, idx) => idx === i ? { ...m, color: v } : m))}
+                            className="w-6 h-6"
                           />
                           <input
                             type="range"
@@ -1065,6 +1064,25 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 
 const inputClass = 'w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]';
 const labelClass = 'text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5';
+
+function ColorSwatchButton({ color, onChange, className = 'w-8 h-8' }: { color: string; onChange: (hex: string) => void; className?: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={`${className} rounded border border-[var(--color-figma-border)] cursor-pointer`}
+        style={{ backgroundColor: color.slice(0, 7) }}
+        title="Pick color"
+        aria-label="Pick color"
+      />
+      {open && (
+        <ColorPicker value={color} onChange={onChange} onClose={() => setOpen(false)} />
+      )}
+    </div>
+  );
+}
 
 function ColorEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const hex = typeof value === 'string' ? value : '#000000';

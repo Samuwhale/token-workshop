@@ -263,3 +263,13 @@
   - P3↔sRGB conversion goes through XYZ D65 as intermediary — the P3 transfer function is identical to sRGB's gamma curve
   - `usePointerDrag` with `setPointerCapture` gives smooth dragging even when cursor leaves the canvas bounds
 ---
+
+## 2026-03-26 - Token `$description` field
+- Added description input to the create token form (state `newTokenDescription`, included in POST body, cleared on create/cancel)
+- Added `title={node.$description}` to the truncated description div in the list view for hover-expand
+- TokenEditor already had a full textarea for $description editing — no changes needed there
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L152, L678, L695, L1587, L1618, L2642
+- **Learnings for future iterations:**
+  - The TokenEditor (full edit modal) already had $description support; the gap was only in the quick-create form and hover tooltip in the list
+  - Virtual row height (VIRTUAL_ITEM_HEIGHT=28px) makes CSS expand-on-hover complex — a `title` attribute tooltip is the right approach for truncated text in a virtualized list
+---
