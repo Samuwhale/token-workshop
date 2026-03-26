@@ -1,2 +1,10 @@
 # Backlog Progress Log
 ---
+
+## 2026-03-26 - Missing `return` after error response in sync route
+- Added `return` before all `reply.status(500).send(...)` calls in catch blocks throughout the file (11 occurrences replaced using replace_all)
+- Files changed: `packages/server/src/routes/sync.ts` ~L32, L46, L61, L71, L81, L100, L115, L126, L145, L157, L171
+- **Learnings for future iterations:**
+  - The backlog item mentioned one catch block, but the same pattern existed across all 11 catch blocks in the file — apply the fix uniformly rather than just the one mentioned
+  - A hook auto-updated backlog.md to `[x]` after the edit (no manual re-mark needed in this project setup)
+---

@@ -95,9 +95,9 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
-- [ ] **Missing `return` after error response in sync route** — In `packages/server/src/routes/sync.ts`, the catch block sends a 500 response but doesn't `return`, so execution continues and Fastify may attempt to send a second response. Add `return` before the `reply.status(500)` call.
+- [x] **Missing `return` after error response in sync route** — In `packages/server/src/routes/sync.ts`, the catch block sends a 500 response but doesn't `return`, so execution continues and Fastify may attempt to send a second response. Add `return` before the `reply.status(500)` call.
 - [ ] **Race condition: concurrent file watcher rebuilds** — In `packages/server/src/services/token-store.ts`, the `change`/`add`/`unlink` watcher handlers all call `rebuildFlatTokens()` without debouncing or locking. Rapid file-system events (e.g., an editor writing multiple files at once) trigger concurrent rebuilds, leaving the resolver in a partially stale state. Debounce the rebuild or use a rebuild queue.
-- [ ] **File watcher errors silently halt updates** — The chokidar watcher in `token-store.ts` has no `error` event handler. If the watcher encounters a permission error or the watched directory is deleted, it stops firing events with no indication to the server or user.
+- [~] **File watcher errors silently halt updates** — The chokidar watcher in `token-store.ts` has no `error` event handler. If the watcher encounters a permission error or the watched directory is deleted, it stops firing events with no indication to the server or user.
 
 ### UX
 
@@ -134,7 +134,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
-- [ ] **Division by zero in formula evaluator** — `parseMulDiv()` in `packages/core/src/eval-expr.ts` performs division without checking for a zero divisor, silently producing `Infinity` or `NaN` values that get written as token values. Add a check and return an error when the right-hand side of `/` resolves to zero.
+- [x] **Division by zero in formula evaluator** — `parseMulDiv()` in `packages/core/src/eval-expr.ts` performs division without checking for a zero divisor, silently producing `Infinity` or `NaN` values that get written as token values. Add a check and return an error when the right-hand side of `/` resolves to zero.
 - [ ] **Color modifier `mix` silently no-ops on invalid color** — In `packages/core/src/color-modifier.ts`, the `mix` case calls `hexToLab()` and silently `break`s if either color is invalid. The token gets no modifier applied with no error or warning. Surface a validation error to the caller instead of silently skipping.
 
 ### UX

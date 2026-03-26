@@ -51,6 +51,7 @@ export function evalExpr(expr: string): number {
         left = Math.pow(left, exp);
       } else {
         const right = parsePow();
+        if (op === '/' && right === 0) throw new Error('Division by zero in formula');
         left = op === '*' ? left * right : left / right;
       }
     }

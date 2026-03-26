@@ -29,7 +29,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         },
       };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to get sync status', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to get sync status', detail: String(err) });
     }
   });
 
@@ -43,7 +43,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.gitSync.init();
       return { initialized: true };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to initialize git repo', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to initialize git repo', detail: String(err) });
     }
   });
 
@@ -58,7 +58,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const commitHash = await fastify.gitSync.commit(message);
       return { commit: commitHash, message };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to commit', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to commit', detail: String(err) });
     }
   });
 
@@ -68,7 +68,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.gitSync.push();
       return { pushed: true };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to push', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to push', detail: String(err) });
     }
   });
 
@@ -78,7 +78,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.gitSync.pull();
       return { pulled: true };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to pull', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to pull', detail: String(err) });
     }
   });
 
@@ -97,7 +97,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         })),
       };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to get log', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to get log', detail: String(err) });
     }
   });
 
@@ -112,7 +112,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.gitSync.setRemote(url);
       return { remote: url };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to set remote', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to set remote', detail: String(err) });
     }
   });
 
@@ -123,7 +123,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const current = await fastify.gitSync.getCurrentBranch();
       return { branches, current };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to list branches', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to list branches', detail: String(err) });
     }
   });
 
@@ -142,7 +142,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return { branch, created: !!create };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to checkout branch', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to checkout branch', detail: String(err) });
     }
   });
 
@@ -154,7 +154,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const diff = await fastify.gitSync.computeUnifiedDiff();
       return diff;
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to compute diff', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to compute diff', detail: String(err) });
     }
   });
 
@@ -168,7 +168,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.gitSync.applyDiffChoices(choices);
         return { applied: true };
       } catch (err) {
-        reply.status(500).send({ error: 'Failed to apply diff', detail: String(err) });
+        return reply.status(500).send({ error: 'Failed to apply diff', detail: String(err) });
       }
     },
   );
