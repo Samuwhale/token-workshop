@@ -112,3 +112,14 @@
 - **Learnings for future iterations:**
   - Check for existing toolbar implementations before implementing — expand/collapse was already complete with sessionStorage persistence and depth-2 default expansion
 ---
+
+## 2026-03-26 - Copy token path (raw dot-notation)
+- Added "Copy token path" and "Copy as JSON" items to the token row right-click context menu, separated from the existing items by a divider
+- "Copy token path" copies the raw dot-notation path (e.g., `color.primary.500`) to clipboard
+- "Copy as JSON" copies a DTCG-style snippet `{ "$value": ..., "$type": ... }` (with `$description` if present) formatted with 2-space indent
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2756
+- **Learnings for future iterations:**
+  - Context menu items close the menu (`setContextMenuPos(null)`) immediately after click — no need for a "Copied!" state on context menu items since the menu disappears anyway
+  - The existing `copiedWhat` state is for the inline hover buttons; context menu copy actions are fire-and-forget
+  - Divider uses `border-t border-[var(--color-figma-border)]` inside a `div` with `my-1` — consistent with the menu container's existing border color
+---
