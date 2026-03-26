@@ -142,6 +142,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const [showGeneratorDialog, setShowGeneratorDialog] = useState(false);
   const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
   const [showModifiers, setShowModifiers] = useState(false);
+  const [pendingTypeChange, setPendingTypeChange] = useState<string | null>(null);
 
   const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
@@ -229,13 +230,24 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
     fontFamily: '',
   };
 
-  const handleTypeChange = (newType: string) => {
+  const applyTypeChange = (newType: string) => {
     setTokenType(newType);
     setValue(DEFAULT_VALUE_FOR_TYPE[newType] ?? '');
     setScopes([]);
     setReference('');
     setAliasMode(false);
     setShowAutocomplete(false);
+    setPendingTypeChange(null);
+  };
+
+  const handleTypeChange = (newType: string) => {
+    if (aliasMode) { applyTypeChange(newType); return; }
+    const isDefaultValue = JSON.stringify(value) === JSON.stringify(DEFAULT_VALUE_FOR_TYPE[tokenType] ?? '');
+    if (!isDefaultValue) {
+      setPendingTypeChange(newType);
+    } else {
+      applyTypeChange(newType);
+    }
   };
 
   const handleBack = () => {
@@ -391,6 +403,29 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         {error && (
           <div className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] break-words max-h-16 overflow-auto">
             {error}
+          </div>
+        )}
+
+        {/* Type-change confirmation — shown when a type switch would reset a non-default value */}
+        {pendingTypeChange && (
+          <div className="px-2 py-2 rounded border border-amber-500/30 bg-amber-500/10 text-[10px]">
+            <p className="text-[var(--color-figma-text)] mb-2">
+              Switch to <strong>{pendingTypeChange}</strong>? This will reset the current value.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPendingTypeChange(null)}
+                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Keep {tokenType}
+              </button>
+              <button
+                onClick={() => applyTypeChange(pendingTypeChange)}
+                className="flex-1 px-2 py-1 rounded bg-amber-500 text-white hover:bg-amber-600"
+              >
+                Switch type
+              </button>
+            </div>
           </div>
         )}
 

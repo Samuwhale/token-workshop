@@ -155,6 +155,7 @@ export function SelectionInspector({
   const [bindingFromProp, setBindingFromProp] = useState<BindableProperty | null>(null);
   const [bindQuery, setBindQuery] = useState('');
   const [bindSelectedIndex, setBindSelectedIndex] = useState(-1);
+  const [lastBoundProp, setLastBoundProp] = useState<BindableProperty | null>(null);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const prevNodeIdsRef = useRef<string>('');
@@ -180,6 +181,7 @@ export function SelectionInspector({
       setFreshSyncResult(null);
       setBindingFromProp(null);
       setBindQuery('');
+      setLastBoundProp(null);
       setCreatingFromProp(null);
       setNewTokenName('');
       setCreateError('');
@@ -294,6 +296,8 @@ export function SelectionInspector({
       });
     }
     cancelBind();
+    setLastBoundProp(prop);
+    setTimeout(() => setLastBoundProp(prev => prev === prop ? null : prev), 1500);
   };
 
   const handleCreateToken = async () => {
@@ -475,7 +479,7 @@ export function SelectionInspector({
                     ? Object.entries(tokenMap)
                         .filter(([, entry]) => compatibleTypesForBind.includes(entry.$type))
                         .filter(([path]) => !bindQuery || path.toLowerCase().includes(bindQuery.toLowerCase()))
-                        .slice(0, 8)
+                        .slice(0, 12)
                     : [];
 
                   return (
@@ -531,7 +535,15 @@ export function SelectionInspector({
                           )}
                         </div>
 
-                        {/* Actions — faint always, full opacity on hover */}
+                        {/* Actions — post-bind flash or faint buttons */}
+                        {lastBoundProp === prop ? (
+                          <div className="flex items-center gap-1 shrink-0 text-[9px] text-[var(--color-figma-success,#18a058)]">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                            Bound
+                          </div>
+                        ) : (
                         <div className="flex items-center gap-0.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
                           {isBound && onNavigateToToken && (
                             <button
@@ -591,6 +603,7 @@ export function SelectionInspector({
                             </button>
                           )}
                         </div>
+                        )}
                       </div>
 
                       {/* Inline: bind existing token */}
@@ -623,8 +636,9 @@ export function SelectionInspector({
                                 if (e.key === 'Escape') { cancelBind(); return; }
                                 if (e.key === 'ArrowDown') { e.preventDefault(); setBindSelectedIndex(i => Math.min(i + 1, bindCandidates.length - 1)); return; }
                                 if (e.key === 'ArrowUp') { e.preventDefault(); setBindSelectedIndex(i => Math.max(i - 1, 0)); return; }
-                                if (e.key === 'Enter' && bindSelectedIndex >= 0 && bindCandidates[bindSelectedIndex]) {
-                                  handleBindToken(prop, bindCandidates[bindSelectedIndex][0]);
+                                if (e.key === 'Enter' && bindCandidates.length > 0) {
+                                  const target = bindSelectedIndex >= 0 ? bindCandidates[bindSelectedIndex] : bindCandidates[0];
+                                  if (target) handleBindToken(prop, target[0]);
                                 }
                               }}
                               placeholder={`Search ${compatibleTypesForBind.join(' / ')} tokens…`}
@@ -635,7 +649,7 @@ export function SelectionInspector({
                                 {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in set`}
                               </div>
                             ) : (
-                              <div className="max-h-[112px] overflow-y-auto flex flex-col gap-px">
+                              <div className="max-h-[156px] overflow-y-auto flex flex-col gap-px">
                                 {bindCandidates.map(([path, entry], idx) => {
                                   let resolvedColorSwatch: string | null = null;
                                   let resolvedValueDisplay: string | null = null;

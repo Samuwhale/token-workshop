@@ -637,3 +637,17 @@
   - Auto-running comparisons on mount requires care if multiple functions share a `ref` (here `varReadResolveRef`) — only auto-run one of them to avoid race conditions
   - Summary status bars with dot indicators work well at the top of dense panels — keep them compact (9px text, 1.5px dots) so they don't compete with content
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Token Binding
+- Audited SelectionInspector.tsx and PropertyPicker.tsx — found several improvements already in place (bindSelectedIndex, arrow key nav, opacity-40 affordance hints, resolved value display in search)
+- Added `lastBoundProp` state: after `handleBindToken` → `cancelBind()`, sets prop + clears after 1500ms via timeout
+- Added "✓ Bound" success flash on property row — replaces action buttons for 1.5s after a binding is applied
+- Updated Enter key to fall through to first candidate when nothing is arrow-selected (was previously gated on `bindSelectedIndex >= 0`)
+- Increased token search result cap from 8 → 12; increased list max-height from 112px → 156px
+- Cleared `lastBoundProp` on selected-node-change useEffect to prevent stale checkmark across layer switches
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L157, ~L181, ~L296, ~L626, ~L480, ~L539
+- **Learnings for future iterations:**
+  - Many "planned" improvements were already implemented in a previous session — always read the file fully before assuming work is needed
+  - Post-binding feedback pattern: `cancelBind()` → `setLastBoundProp(prop)` → `setTimeout(clear, 1500)`. Place the success indicator outside the `opacity-40` hover wrapper so it shows at full opacity.
+  - Enter-to-select-first is the standard omnibar pattern — change `bindSelectedIndex >= 0` guard to `bindCandidates.length > 0` with `bindSelectedIndex >= 0 ? candidates[idx] : candidates[0]` fallback
+---
