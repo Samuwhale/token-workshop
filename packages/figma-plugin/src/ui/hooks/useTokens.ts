@@ -30,7 +30,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
     if (!connected) return;
     const gen = ++fetchGenRef.current;
     try {
-      const setsRes = await fetch(`${serverUrl}/api/sets`);
+      const setsRes = await fetch(`${serverUrl}/api/sets`, { signal: AbortSignal.timeout(5000) });
       if (!setsRes.ok) return;
       const setsData = await setsRes.json();
       const allSets: string[] = setsData.sets || [];
@@ -42,7 +42,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
         const current = activeSet || allSets[0];
         if (!activeSet) setActiveSet(current);
 
-        const tokensRes = await fetch(`${serverUrl}/api/tokens/${current}`);
+        const tokensRes = await fetch(`${serverUrl}/api/tokens/${current}`, { signal: AbortSignal.timeout(5000) });
         if (!tokensRes.ok) return;
         const tokensData = await tokensRes.json();
         if (gen !== fetchGenRef.current) return;
@@ -55,7 +55,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
             if (setName === current) {
               counts[setName] = countLeafNodes(tokensData.tokens || {});
             } else {
-              const res = await fetch(`${serverUrl}/api/tokens/${setName}`);
+              const res = await fetch(`${serverUrl}/api/tokens/${setName}`, { signal: AbortSignal.timeout(5000) });
               if (!res.ok) return;
               const data = await res.json();
               counts[setName] = countLeafNodes(data.tokens || {});

@@ -38,3 +38,12 @@
   - Always check if a "remove unused export" item also requires removing the underlying definition, not just the re-export
   - When an interface is only used by a const in the same file and both are dead code, both should be removed together
 ---
+
+## 2026-03-26 - Race condition: concurrent file watcher rebuilds
+- Added `scheduleRebuild(event)` private method to `TokenStore` that debounces `rebuildFlatTokens()` by 50ms and batches pending `ChangeEvent`s, flushing them after the rebuild completes. Replaced direct `rebuildFlatTokens()` + `emit()` calls in the three watcher handlers (`change`, `add`, `unlink`) with `scheduleRebuild()`. Also clears the timer in `shutdown()` to prevent leaks.
+- Files changed: `packages/server/src/services/token-store.ts` ~L20, L67
+- **Learnings for future iterations:**
+  - Only debounce the watcher-triggered rebuilds — CRUD methods (createToken, updateToken, etc.) still call `rebuildFlatTokens()` directly since callers expect immediate state consistency.
+  - The debounce timer must be cleared in `shutdown()` to avoid timers firing after the watcher is closed.
+  - Coalescing events into `_pendingWatcherEvents` ensures all SSE listeners still receive one event per changed file even when the rebuild is batched.
+---
