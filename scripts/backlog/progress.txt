@@ -284,6 +284,17 @@
   - Virtual row height (VIRTUAL_ITEM_HEIGHT=28px) makes CSS expand-on-hover complex — a `title` attribute tooltip is the right approach for truncated text in a virtualized list
 ---
 
+## 2026-03-26 - Apply-to-layer discoverability
+- Made apply-to-selection the primary single-click action on token rows (non-select mode): clicking the name/info area now calls `handleApplyToSelection`; double-clicking opens the editor
+- Pulled the apply arrow button out of the `opacity-0 group-hover:opacity-100` wrapper into its own standalone button with `opacity-40` at rest (always faintly visible) and full opacity on row hover; padded to `p-1.5` and icon enlarged to 12×12
+- Updated tooltip to "Apply to selection (double-click row to edit)" to surface the edit affordance
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2697 (name div click/dblclick), ~L2892 (apply button extracted from group-hover wrapper)
+- **Learnings for future iterations:**
+  - The name/info div already had an `onClick` for select mode only — extending it to also handle non-select mode with `e.stopPropagation()` is clean and requires no changes to child buttons (type badge, etc. already stopPropagation)
+  - Extracting the apply button from the shared group-hover wrapper lets it have independent opacity treatment while keeping secondary actions (copy, edit, delete) fully hidden until hover
+  - `opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto` is the pattern for a permanently-faint but non-interactive hint that becomes interactive on hover
+---
+
 ## 2026-03-26 - "Create another" rapid-entry mode
 - Added `handleCreateAndNew` async function that POSTs the token then re-opens the form with the same group prefix and type pre-filled (clears name, value, description; keeps type; sets `siblingPrefix` to parent group)
 - Added "& New" button (secondary accent style, `flex-1`) next to the "Create" button; tooltip explains Shift+Enter shortcut

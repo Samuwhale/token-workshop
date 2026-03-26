@@ -1629,6 +1629,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 derivedTokenPaths={derivedTokenPaths}
                 onJumpToGroup={handleJumpToGroup}
                 onInlineSave={handleInlineSave}
+                onRenameToken={handleRenameToken}
               />
             ))}
             <div style={{ height: virtualBottomPad }} aria-hidden="true" />
@@ -2190,6 +2191,7 @@ function TokenTreeNode({
   skipChildren,
   onJumpToGroup,
   onInlineSave,
+  onRenameToken,
 }: {
   node: TokenNode;
   depth: number;
@@ -2229,6 +2231,8 @@ function TokenTreeNode({
   onJumpToGroup?: (path: string) => void;
   /** Inline quick-save: called when the user edits a simple value directly in the list. */
   onInlineSave?: (path: string, type: string, newValue: any) => void;
+  /** Rename a leaf token and update all alias references. */
+  onRenameToken?: (oldPath: string, newPath: string) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -2252,12 +2256,25 @@ function TokenTreeNode({
   const renameGroupInputRef = useRef<HTMLInputElement>(null);
   const renameGroupEscapedRef = useRef(false);
 
+  // Token rename state
+  const [renamingToken, setRenamingToken] = useState(false);
+  const [renameTokenVal, setRenameTokenVal] = useState('');
+  const renameTokenInputRef = useRef<HTMLInputElement>(null);
+  const renameTokenEscapedRef = useRef(false);
+
   useLayoutEffect(() => {
     if (renamingGroup && renameGroupInputRef.current) {
       renameGroupInputRef.current.focus();
       renameGroupInputRef.current.select();
     }
   }, [renamingGroup]);
+
+  useLayoutEffect(() => {
+    if (renamingToken && renameTokenInputRef.current) {
+      renameTokenInputRef.current.focus();
+      renameTokenInputRef.current.select();
+    }
+  }, [renamingToken]);
 
   useEffect(() => {
     if (!groupMenuPos) return;
@@ -2362,6 +2379,15 @@ function TokenTreeNode({
       setPickerAnchor({ top: rect.bottom + 2, left: rect.left });
       setShowPicker(true);
     }
+  };
+
+  const confirmTokenRename = () => {
+    const newName = renameTokenVal.trim();
+    setRenamingToken(false);
+    if (!newName || newName === node.name) return;
+    const parentPath = nodeParentPath(node.path, node.name);
+    const newPath = parentPath ? `${parentPath}.${newName}` : newName;
+    onRenameToken?.(node.path, newPath);
   };
 
   if (node.isGroup) {
@@ -2588,6 +2614,7 @@ function TokenTreeNode({
             generatorsBySource={generatorsBySource}
             derivedTokenPaths={derivedTokenPaths}
             onInlineSave={onInlineSave}
+            onRenameToken={onRenameToken}
           />
         ))}
       </div>
@@ -2888,18 +2915,22 @@ function TokenTreeNode({
         </button>
       )}
 
-      {/* Actions (on hover, not in select mode) */}
+      {/* Apply to selection — dimly visible at rest, prominent on row hover */}
+      {!selectMode && (
+        <button
+          onClick={e => { e.stopPropagation(); handleApplyToSelection(e); }}
+          title="Apply to selection (double-click row to edit)"
+          className="p-1.5 rounded shrink-0 opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M12 5l7 7-7 7M5 12h14" />
+          </svg>
+        </button>
+      )}
+
+      {/* Secondary actions (copy, edit, delete — on row hover) */}
       {!selectMode && (
         <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity [transition-delay:100ms] group-hover:[transition-delay:0ms]">
-          <button
-            onClick={handleApplyToSelection}
-            title="Apply to selection"
-            className="p-1 rounded hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M12 5l7 7-7 7M5 12h14" />
-            </svg>
-          </button>
           <button
             onClick={handleCopyPath}
             title={copiedWhat === 'path' ? 'Copied!' : `Copy CSS var (--${node.path.replace(/\./g, '-')})`}
