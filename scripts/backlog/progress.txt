@@ -622,3 +622,18 @@
   - Keyboard nav in search lists requires candidates to be computed before the input's `onKeyDown`, not inside a deferred IIFE — move the candidates computation to the enclosing scope
   - Arrow key handlers must call `e.preventDefault()` to suppress scroll on the parent container
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Sync to Figma
+- Auto-run var diff comparison on mount (when connected + activeSet) so users see sync state immediately on panel open
+- Added summary status bar at top showing 3 dot-indicators: Figma sync state, readiness state, git state — at-a-glance overview
+- Populated `detail` field in readiness checks for Scopes (directs to Figma Variables panel) and Descriptions (directs to token editor) — was in the interface but never populated
+- Show `check.detail` in readiness check row below the "X affected" count
+- Improved pre-sync footer: shows "↑ N to Figma · ↓ N to local" breakdown instead of just "X tokens will be updated"; button renamed "Apply N changes"
+- Updated section descriptions: Figma Variables now explains push/pull direction; Git section explains when to use it (after syncing to Figma)
+- "Reading…" → "Checking…" on Compare button during auto-run
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L128, ~L288, ~L453, ~L475, ~L507, ~L547, ~L555, ~L652
+- **Learnings for future iterations:**
+  - `useCallback`-memoized functions can safely be included in `useEffect` deps for auto-run patterns — they only recreate when their own deps change
+  - Auto-running comparisons on mount requires care if multiple functions share a `ref` (here `varReadResolveRef`) — only auto-run one of them to avoid race conditions
+  - Summary status bars with dot indicators work well at the top of dense panels — keep them compact (9px text, 1.5px dots) so they don't compete with content
+---
