@@ -727,7 +727,7 @@ export function App() {
         label: 'Export Tokens',
         description: 'Export tokens as CSS, JSON, or other formats',
         category: 'Data',
-        handler: () => openOverflowPanel('export'),
+        handler: () => { setActiveTab('publish'); setOverflowPanel(null); },
       },
       {
         id: 'settings',
