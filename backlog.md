@@ -276,7 +276,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Switch Token Set
 
-- [ ] **Flow audit & overhaul: Switch Token Set** — Trace the set switching flow (set tab click → list reloads → set metadata), read the set tab and set context code, identify friction (is it clear which set is active? is the context menu on set tabs discoverable?), then redesign: make the active set tab unmistakeable, add a visible affordance for right-click/long-press context menu, and ensure switching sets is instant with no loading jank. `packages/plugin/src/components/SetTabs.tsx`, `packages/plugin/src/components/TokenList.tsx`
+- [x] **Flow audit & overhaul: Switch Token Set** — Trace the set switching flow (set tab click → list reloads → set metadata), read the set tab and set context code, identify friction (is it clear which set is active? is the context menu on set tabs discoverable?), then redesign: make the active set tab unmistakeable, add a visible affordance for right-click/long-press context menu, and ensure switching sets is instant with no loading jank. `packages/plugin/src/components/SetTabs.tsx`, `packages/plugin/src/components/TokenList.tsx`
 
 ### Flow: Server Connection & Settings
 

@@ -373,3 +373,17 @@
   - Showing actual values in conflict rows is the single highest-value addition — users can't make an informed push/pull decision without seeing both values
   - Button label that includes action count ("Sync 3 tokens") is clearer than generic "Apply Choices"
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Switch Token Set
+- Added `data-active-set` attribute on each set tab group div
+- Added `useEffect` on `activeSet` change to scroll active tab into view via `scrollIntoView({ behavior: 'smooth', inline: 'nearest' })`
+- Changed inactive dots button from `opacity-0` to `opacity-40` so the affordance is always slightly visible (goes to opacity-100 on hover)
+- Added `font-medium` to active tab text to make the active state visually stronger
+- Updated `title` on main tab button to show 'Right-click for options' when no description is set
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L308, ~L767, ~L795, ~L815
+- **Learnings for future iterations:**
+  - Set tab UI is inline in App.tsx (no separate SetTabs.tsx component) — backlog path reference was stale
+  - `container.querySelector('[data-active-set="true"]')` is the cleanest way to find the active tab inside a scrollable container without ref arrays
+  - `scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })` prevents jarring jumps while keeping the active tab visible
+  - `opacity-40` (not `opacity-0`) for always-visible-but-subtle affordances — users see something is there without it being visually noisy
+---

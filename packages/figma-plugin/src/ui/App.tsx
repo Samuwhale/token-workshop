@@ -1,30 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo, Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
-
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
-  state = { error: null };
-  static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error, info: ErrorInfo) { console.error('[ErrorBoundary]', error, info); }
-  render() {
-    if (this.state.error) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full p-6 gap-3 text-center">
-          <p className="text-[11px] font-medium text-[var(--color-figma-error)]">Something went wrong</p>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all max-w-xs">
-            {(this.state.error as Error).message}
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
-          >
-            Reload
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 import { TokenList } from './components/TokenList';
 import { TokenEditor } from './components/TokenEditor';
 import { ThemeManager } from './components/ThemeManager';
@@ -50,6 +25,31 @@ import { useGenerators } from './hooks/useGenerators';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
 import { stableStringify } from './shared/colorUtils';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error, info: ErrorInfo) { console.error('[ErrorBoundary]', error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full p-6 gap-3 text-center">
+          <p className="text-[11px] font-medium text-[var(--color-figma-error)]">Something went wrong</p>
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all max-w-xs">
+            {(this.state.error as Error).message}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+          >
+            Reload
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function useSyncBindings(serverUrl: string, connected: boolean) {
   const [syncing, setSyncing] = useState(false);
@@ -311,6 +311,14 @@ export function App() {
     if (!el) return;
     setSetTabsOverflow(el.scrollWidth > el.clientWidth);
   }, [sets]);
+
+  // Scroll active set tab into view whenever activeSet changes
+  useEffect(() => {
+    const container = setTabsScrollRef.current;
+    if (!container) return;
+    const activeEl = container.querySelector('[data-active-set="true"]') as HTMLElement | null;
+    if (activeEl) activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+  }, [activeSet]);
 
   const openSetMenu = (setName: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -764,7 +772,7 @@ export function App() {
             const isActive = activeSet === set;
             const isRenaming = renamingSet === set;
             return (
-              <div key={set} className="relative flex group/settab">
+              <div key={set} data-active-set={isActive} className="relative flex group/settab">
                 {isRenaming ? (
                   <div className="flex flex-col">
                     <div className="flex items-center">
@@ -791,10 +799,10 @@ export function App() {
                     <button
                       onClick={() => setActiveSet(set)}
                       onContextMenu={e => openSetMenu(set, e)}
-                      title={setDescriptions[set] || undefined}
+                      title={setDescriptions[set] || 'Right-click for options'}
                       className={`flex items-center pl-2 pr-1 py-1 rounded-l text-[10px] whitespace-nowrap transition-colors ${
                         isActive
-                          ? 'bg-[var(--color-figma-accent)] text-white'
+                          ? 'bg-[var(--color-figma-accent)] text-white font-medium'
                           : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                       }`}
                     >
@@ -812,7 +820,7 @@ export function App() {
                       className={`flex items-center justify-center px-1 py-1 rounded-r text-[10px] transition-colors ${
                         isActive
                           ? 'opacity-100 bg-[var(--color-figma-accent)] text-white/80 hover:text-white hover:bg-[var(--color-figma-accent-hover)]'
-                          : 'opacity-0 group-hover/settab:opacity-100 bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                          : 'opacity-40 group-hover/settab:opacity-100 bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                       }`}
                     >
                       <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
