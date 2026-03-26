@@ -14,17 +14,50 @@ interface ImportToken {
   collection?: string;
 }
 
+interface ModeData {
+  modeId: string;
+  modeName: string;
+  tokens: ImportToken[];
+}
+
+interface CollectionData {
+  name: string;
+  modes: ModeData[];
+}
+
+function slugify(str: string) {
+  return str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9/_-]/g, '');
+}
+
+function defaultSetName(collectionName: string, modeName: string, totalModes: number) {
+  const base = slugify(collectionName);
+  if (totalModes <= 1) return base;
+  return `${base}/${slugify(modeName)}`;
+}
+
+function modeKey(collectionName: string, modeId: string) {
+  return `${collectionName}|${modeId}`;
+}
+
 export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelProps) {
+  // Variables import state
+  const [collectionData, setCollectionData] = useState<CollectionData[]>([]);
+  const [modeSetNames, setModeSetNames] = useState<Record<string, string>>({});
+  const [modeEnabled, setModeEnabled] = useState<Record<string, boolean>>({});
+
+  // Styles import state (unchanged flat list)
   const [tokens, setTokens] = useState<ImportToken[]>([]);
+  const [selectedTokens, setSelectedTokens] = useState<Set<string>>(new Set());
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+
+  // Shared state
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [targetSet, setTargetSet] = useState(() => localStorage.getItem('importTargetSet') || 'imported');
   const [sets, setSets] = useState<string[]>([]);
-  const [selectedTokens, setSelectedTokens] = useState<Set<string>>(new Set());
   const [source, setSource] = useState<'variables' | 'styles' | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
@@ -58,9 +91,20 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
       if (msg.type === 'variables-read' && pendingSourceRef.current === 'variables') {
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
         pendingSourceRef.current = null;
-        setTokens(msg.tokens || []);
-        setSelectedTokens(new Set((msg.tokens || []).map((t: ImportToken) => t.path)));
-        setTypeFilter(null);
+        const cols: CollectionData[] = msg.collections || [];
+        setCollectionData(cols);
+        // Build default set names and enabled map
+        const names: Record<string, string> = {};
+        const enabled: Record<string, boolean> = {};
+        for (const col of cols) {
+          for (const mode of col.modes) {
+            const key = modeKey(col.name, mode.modeId);
+            names[key] = defaultSetName(col.name, mode.modeName, col.modes.length);
+            enabled[key] = true;
+          }
+        }
+        setModeSetNames(names);
+        setModeEnabled(enabled);
         setLoading(false);
       }
       if (msg.type === 'styles-read' && pendingSourceRef.current === 'styles') {
@@ -92,6 +136,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
     pendingSourceRef.current = 'variables';
     setSource('variables');
     setLoading(true);
+    setCollectionData([]);
     setTokens([]);
     setError(null);
     setSuccessMessage(null);
@@ -110,26 +155,91 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
     parent.postMessage({ pluginMessage: { type: 'read-styles' } }, '*');
   };
 
+  const handleBack = () => {
+    setCollectionData([]);
+    setTokens([]);
+    setSource(null);
+    setTypeFilter(null);
+    setConflictPaths(null);
+  };
+
+  // ── Variables import (multi-set) ──────────────────────────────────────────
+
+  const enabledModes = collectionData.flatMap(col =>
+    col.modes.filter(m => modeEnabled[modeKey(col.name, m.modeId)])
+  );
+  const totalEnabledSets = enabledModes.length;
+  const totalEnabledTokens = collectionData.reduce((acc, col) =>
+    acc + col.modes
+      .filter(m => modeEnabled[modeKey(col.name, m.modeId)])
+      .reduce((a, m) => a + m.tokens.length, 0), 0);
+
+  const handleImportVariables = async () => {
+    setImporting(true);
+    setError(null);
+    let importedSets = 0;
+    let importedTokens = 0;
+    try {
+      const allModes = collectionData.flatMap(col =>
+        col.modes
+          .filter(m => modeEnabled[modeKey(col.name, m.modeId)])
+          .map(m => ({ col, mode: m, setName: modeSetNames[modeKey(col.name, m.modeId)] || defaultSetName(col.name, m.modeName, col.modes.length) }))
+      );
+      setImportProgress({ done: 0, total: allModes.length });
+
+      for (const { mode, setName } of allModes) {
+        // Ensure set exists
+        const setRes = await fetch(`${serverUrl}/api/sets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: setName }),
+        });
+        if (!setRes.ok && setRes.status !== 409) {
+          throw new Error(`Failed to create set "${setName}": ${setRes.statusText}`);
+        }
+
+        // Import tokens
+        for (const token of mode.tokens) {
+          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${token.path}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $type: token.$type, $value: token.$value }),
+          }).catch(() => {});
+        }
+        importedTokens += mode.tokens.length;
+        importedSets++;
+        setImportProgress({ done: importedSets, total: allModes.length });
+      }
+
+      parent.postMessage({ pluginMessage: { type: 'notify', message: `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''}` } }, '*');
+      onImported();
+      setCollectionData([]);
+      setSource(null);
+      setSuccessMessage(`Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
+      setImporting(false);
+      setImportProgress(null);
+    }
+  };
+
+  // ── Styles import (flat list, unchanged) ─────────────────────────────────
+
   const toggleToken = (path: string) => {
     setConflictPaths(null);
     setSelectedTokens(prev => {
       const next = new Set(prev);
-      if (next.has(path)) {
-        next.delete(path);
-      } else {
-        next.add(path);
-      }
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
       return next;
     });
   };
 
   const toggleAll = () => {
     setConflictPaths(null);
-    if (selectedTokens.size === tokens.length) {
-      setSelectedTokens(new Set());
-    } else {
-      setSelectedTokens(new Set(tokens.map(t => t.path)));
-    }
+    if (selectedTokens.size === tokens.length) setSelectedTokens(new Set());
+    else setSelectedTokens(new Set(tokens.map(t => t.path)));
   };
 
   const commitNewSet = () => {
@@ -145,13 +255,6 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
   const cancelNewSet = () => {
     setNewSetInputVisible(false);
     setNewSetDraft('');
-  };
-
-  const handleBack = () => {
-    setTokens([]);
-    setSource(null);
-    setTypeFilter(null);
-    setConflictPaths(null);
   };
 
   const executeImport = async (strategy: 'skip' | 'overwrite') => {
@@ -207,7 +310,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
     }
   };
 
-  const handleImport = async () => {
+  const handleImportStyles = async () => {
     if (!connected || selectedTokens.size === 0) return;
     setError(null);
     setSuccessMessage(null);
@@ -233,6 +336,8 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
     }
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
+
   if (!connected) {
     return (
       <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
@@ -251,7 +356,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
         )}
 
         {/* Source selection */}
-        {tokens.length === 0 && !loading && !successMessage && (
+        {collectionData.length === 0 && tokens.length === 0 && !loading && !successMessage && (
           <div className="flex flex-col gap-2">
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-1">
               Import Source
@@ -269,7 +374,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
               </div>
               <div className="flex-1 text-left">
                 <div className="text-[11px] font-medium text-white">Import from Figma Variables</div>
-                <div className="text-[9px] text-white/70">Read all local variable collections</div>
+                <div className="text-[9px] text-white/70">Map collections + modes to token sets</div>
               </div>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-white/70">
                 <path d="M2 1l4 3-4 3V1z" />
@@ -298,7 +403,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
         )}
 
         {/* Success state */}
-        {tokens.length === 0 && !loading && successMessage && (
+        {collectionData.length === 0 && tokens.length === 0 && !loading && successMessage && (
           <div className="flex flex-col items-center justify-center gap-2 py-10">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <circle cx="10" cy="10" r="9" stroke="var(--color-figma-success)" strokeWidth="1.5" />
@@ -320,11 +425,91 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
             <svg className="animate-spin shrink-0" width="14" height="14" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
             </svg>
-            {source === 'variables' ? 'Reading variables from Figma\u2026' : 'Reading styles from Figma\u2026'}
+            {source === 'variables' ? 'Reading variables from Figma…' : 'Reading styles from Figma…'}
           </div>
         )}
 
-        {/* Preview */}
+        {/* Variables: collection/mode mapping UI */}
+        {collectionData.length > 0 && !loading && (
+          <>
+            {/* Header row */}
+            <div className="flex items-center gap-2 pb-1 border-b border-[var(--color-figma-border)]">
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 5l3 3" />
+                </svg>
+                Back
+              </button>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">
+                Figma Variables
+              </span>
+            </div>
+
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+              Map to Token Sets
+            </div>
+            <div className="text-[9px] text-[var(--color-figma-text-secondary)] -mt-2">
+              Each enabled mode will be imported as a separate token set.
+            </div>
+
+            {collectionData.map(col => (
+              <div key={col.name} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+                {/* Collection header */}
+                <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center gap-2">
+                  <span className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wide flex-1 truncate">
+                    {col.name}
+                  </span>
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                    {col.modes.reduce((a, m) => a + m.tokens.length, 0)} tokens
+                  </span>
+                </div>
+
+                {/* Mode rows */}
+                <div className="divide-y divide-[var(--color-figma-border)]">
+                  {col.modes.map(mode => {
+                    const key = modeKey(col.name, mode.modeId);
+                    const enabled = modeEnabled[key] ?? true;
+                    const setName = modeSetNames[key] ?? defaultSetName(col.name, mode.modeName, col.modes.length);
+                    return (
+                      <div key={mode.modeId} className={`flex items-center gap-2 px-3 py-2 ${!enabled ? 'opacity-40' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={enabled}
+                          onChange={e => setModeEnabled(prev => ({ ...prev, [key]: e.target.checked }))}
+                          className="accent-[var(--color-figma-accent)] shrink-0"
+                        />
+                        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-[var(--color-figma-text)] font-medium">{mode.modeName}</span>
+                            <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                              {mode.tokens.length} token{mode.tokens.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)]">
+                            <span className="shrink-0">→</span>
+                            <input
+                              type="text"
+                              value={setName}
+                              disabled={!enabled}
+                              onChange={e => setModeSetNames(prev => ({ ...prev, [key]: e.target.value }))}
+                              className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[9px] outline-none focus:border-[var(--color-figma-accent)] disabled:opacity-50 font-mono"
+                              placeholder="set-name"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* Styles: flat token list */}
         {tokens.length > 0 && !loading && (
           <>
             {/* Back row */}
@@ -339,7 +524,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
                 Back
               </button>
               <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">
-                {source === 'variables' ? 'Figma Variables' : 'Figma Styles'}
+                Figma Styles
               </span>
             </div>
 
@@ -392,21 +577,9 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
               );
             })()}
 
-            {/* Token list - grouped by collection (variables) or type (styles) */}
+            {/* Token list */}
             {(() => {
               const filtered = typeFilter ? tokens.filter(t => t.$type === typeFilter) : tokens;
-              const getGroupKey = (t: ImportToken) =>
-                source === 'variables' ? (t.collection ?? 'Default') : t.$type;
-
-              const groupMap = new Map<string, ImportToken[]>();
-              for (const t of filtered) {
-                const key = getGroupKey(t);
-                if (!groupMap.has(key)) groupMap.set(key, []);
-                groupMap.get(key)!.push(t);
-              }
-              const groups = [...groupMap.entries()];
-              const useGroups = groups.length > 1;
-
               const tokensByPath = new Map(tokens.map(t => [t.path, t]));
               const resolveAlias = (value: any, depth = 0): string | null => {
                 if (depth > 10 || typeof value !== 'string') return null;
@@ -465,31 +638,9 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
                 );
               };
 
-              if (!useGroups) {
-                return (
-                  <div className="rounded border border-[var(--color-figma-border)] overflow-hidden divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
-                    {filtered.map(renderRow)}
-                  </div>
-                );
-              }
-
               return (
-                <div className="rounded border border-[var(--color-figma-border)] overflow-hidden max-h-64 overflow-y-auto">
-                  {groups.map(([groupName, groupTokens], i) => {
-                    const selectedCount = groupTokens.filter(t => selectedTokens.has(t.path)).length;
-                    return (
-                      <div key={groupName}>
-                        {i > 0 && <div className="border-t border-[var(--color-figma-border)]" />}
-                        <div className="sticky top-0 z-10 flex items-center justify-between px-3 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-                          <span className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wide truncate">{groupName}</span>
-                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 ml-2">{selectedCount}/{groupTokens.length}</span>
-                        </div>
-                        <div className="divide-y divide-[var(--color-figma-border)]">
-                          {groupTokens.map(renderRow)}
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div className="rounded border border-[var(--color-figma-border)] overflow-hidden divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
+                  {filtered.map(renderRow)}
                 </div>
               );
             })()}
@@ -497,11 +648,28 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
         )}
       </div>
 
-      {/* Footer: set selector + action button (visible when preview is active) */}
+      {/* Footer: variables import button */}
+      {collectionData.length > 0 && !loading && (
+        <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2">
+          <button
+            onClick={handleImportVariables}
+            disabled={totalEnabledSets === 0 || importing}
+            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+          >
+            {importing
+              ? importProgress
+                ? `Importing set ${importProgress.done}/${importProgress.total}…`
+                : 'Importing…'
+              : `Import ${totalEnabledTokens} token${totalEnabledTokens !== 1 ? 's' : ''} into ${totalEnabledSets} set${totalEnabledSets !== 1 ? 's' : ''}`}
+          </button>
+        </div>
+      )}
+
+      {/* Footer: styles import */}
       {tokens.length > 0 && !loading && (
         <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2">
 
-          {/* Target set row — always visible in footer */}
+          {/* Target set row */}
           {newSetInputVisible ? (
             <div className="flex gap-1.5">
               <input
@@ -608,7 +776,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
             </div>
           ) : (
             <button
-              onClick={handleImport}
+              onClick={handleImportStyles}
               disabled={selectedTokens.size === 0 || importing || checkingConflicts}
               className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
             >

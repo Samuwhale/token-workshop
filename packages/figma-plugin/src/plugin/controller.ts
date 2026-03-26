@@ -458,30 +458,33 @@ async function deleteOrphanVariables(knownPaths: string[]) {
 
 // Read existing Figma variables as tokens
 async function readFigmaVariables() {
-  const collections = await figma.variables.getLocalVariableCollectionsAsync();
-  const tokens: any[] = [];
+  const localCollections = await figma.variables.getLocalVariableCollectionsAsync();
+  const collections: any[] = [];
 
-  for (const collection of collections) {
-    for (const varId of collection.variableIds) {
-      const variable = await figma.variables.getVariableByIdAsync(varId);
-      if (!variable) continue;
+  for (const collection of localCollections) {
+    if (collection.modes.length === 0) continue;
 
-      if (collection.modes.length === 0) continue;
-      const modeId = collection.modes[0].modeId;
-      const value = variable.valuesByMode[modeId];
-
-      tokens.push({
-        path: variable.name.replace(/\//g, '.'),
-        $type: mapVariableTypeToTokenType(variable.resolvedType),
-        $value: convertFromFigmaValue(value, variable.resolvedType),
-        collection: collection.name,
-        $description: variable.description || '',
-        $scopes: variable.scopes,
-      });
+    const modes: any[] = [];
+    for (const mode of collection.modes) {
+      const tokens: any[] = [];
+      for (const varId of collection.variableIds) {
+        const variable = await figma.variables.getVariableByIdAsync(varId);
+        if (!variable) continue;
+        const value = variable.valuesByMode[mode.modeId];
+        tokens.push({
+          path: variable.name.replace(/\//g, '.'),
+          $type: mapVariableTypeToTokenType(variable.resolvedType),
+          $value: convertFromFigmaValue(value, variable.resolvedType),
+          $description: variable.description || '',
+          $scopes: variable.scopes,
+        });
+      }
+      modes.push({ modeId: mode.modeId, modeName: mode.name, tokens });
     }
+    collections.push({ name: collection.name, modes });
   }
 
-  figma.ui.postMessage({ type: 'variables-read', tokens });
+  figma.ui.postMessage({ type: 'variables-read', collections });
 }
 
 // Read existing Figma styles as tokens

@@ -557,3 +557,13 @@
   - ActiveThemes stored as `Record<string, string>` (dimensionId → optionName) in both localStorage and Figma clientStorage. Key prefix changed from `active-theme:` to `active-themes:`.
   - Token resolution with multiple dimensions: iterate dimensions in order, for each apply its active option's source sets then enabled sets. Later dimensions override earlier ones for same paths.
 ---
+
+## 2026-03-26 - Import from Figma Variables
+- Updated `readFigmaVariables()` in controller.ts to return ALL modes per collection instead of only the first mode. Now sends `{ type: 'variables-read', collections: [{name, modes: [{modeId, modeName, tokens:[...]}]}] }`.
+- Rewrote ImportPanel.tsx variables flow: instead of a flat token list going to one set, shows a collection/mode → set-name mapping UI. Each collection×mode pair shows token count and an editable set name (default: `{collection}/{mode}` when multi-mode, `{collection}` when single-mode). Users can enable/disable individual modes and rename the target sets before importing. Styles import flow is unchanged.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L460, `packages/figma-plugin/src/ui/components/ImportPanel.tsx` (full rewrite)
+- **Learnings for future iterations:**
+  - The prior implementation silently dropped all modes except the first — the fix is non-trivial because you need the outer collection loop to drive per-mode token extraction
+  - `modeKey(collectionName, modeId)` pattern (pipe-separated) is a safe composite key since collection names and modeIds won't contain pipes
+  - For variables import, coarse-grained selection (per mode, not per token) is the right UX since there can be hundreds of tokens across many modes
+---
