@@ -162,6 +162,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const [dragSource, setDragSource] = useState<{ paths: string[]; names: string[] } | null>(null);
+  const [dragOverGroup, setDragOverGroup] = useState<string | null>(null);
   const [showBatchEditor, setShowBatchEditor] = useState(false);
   const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
   const [promoteBusy, setPromoteBusy] = useState(false);
@@ -599,6 +601,25 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     onRefresh();
   }, [connected, serverUrl, setName, onRefresh]);
 
+  const handleDropOnGroup = useCallback(async (targetGroupPath: string) => {
+    if (!dragSource || !connected) return;
+    const source = dragSource;
+    setDragSource(null);
+    setDragOverGroup(null);
+    for (let i = 0; i < source.paths.length; i++) {
+      const oldPath = source.paths[i];
+      const name = source.names[i];
+      const newPath = targetGroupPath ? `${targetGroupPath}.${name}` : name;
+      if (newPath === oldPath) continue;
+      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPath, newPath }),
+      });
+    }
+    onRefresh();
+  }, [dragSource, connected, serverUrl, setName, onRefresh]);
+
   const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
     const encodedPath = oldPath.split('.').map(encodeURIComponent).join('/');
@@ -919,6 +940,11 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const displayedLeafPaths = useMemo(
     () => new Set(flattenLeafNodes(displayedTokens).map(n => n.path)),
     [displayedTokens]
+  );
+
+  const selectedLeafNodes = useMemo(
+    () => flattenLeafNodes(displayedTokens).filter(n => selectedPaths.has(n.path)),
+    [displayedTokens, selectedPaths]
   );
 
   const handleSelectAll = () => {
@@ -1630,6 +1656,12 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onJumpToGroup={handleJumpToGroup}
                 onInlineSave={handleInlineSave}
                 onRenameToken={handleRenameToken}
+                onDragStart={(paths, names) => setDragSource({ paths, names })}
+                onDragEnd={() => { setDragSource(null); setDragOverGroup(null); }}
+                onDragOverGroup={setDragOverGroup}
+                onDropOnGroup={handleDropOnGroup}
+                dragOverGroup={dragOverGroup}
+                selectedLeafNodes={selectedLeafNodes}
               />
             ))}
             <div style={{ height: virtualBottomPad }} aria-hidden="true" />
@@ -2192,6 +2224,12 @@ function TokenTreeNode({
   onJumpToGroup,
   onInlineSave,
   onRenameToken,
+  onDragStart,
+  onDragEnd,
+  onDragOverGroup,
+  onDropOnGroup,
+  dragOverGroup,
+  selectedLeafNodes,
 }: {
   node: TokenNode;
   depth: number;
@@ -2233,6 +2271,12 @@ function TokenTreeNode({
   onInlineSave?: (path: string, type: string, newValue: any) => void;
   /** Rename a leaf token and update all alias references. */
   onRenameToken?: (oldPath: string, newPath: string) => void;
+  onDragStart?: (paths: string[], names: string[]) => void;
+  onDragEnd?: () => void;
+  onDragOverGroup?: (groupPath: string | null) => void;
+  onDropOnGroup?: (groupPath: string) => void;
+  dragOverGroup?: string | null;
+  selectedLeafNodes?: TokenNode[];
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -2410,9 +2454,24 @@ function TokenTreeNode({
           aria-expanded={isExpanded}
           aria-label={`Toggle group ${node.name}`}
           data-group-path={node.path}
-          className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)]"
+          className={`flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
+          onDragOver={(e) => {
+            if (!e.dataTransfer.types.includes('application/x-token-drag')) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            onDragOverGroup?.(node.path);
+          }}
+          onDragLeave={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+              onDragOverGroup?.(null);
+            }
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            onDropOnGroup?.(node.path);
+          }}
           onKeyDown={e => {
             if ((e.key === 'Enter' || e.key === ' ') && !renamingGroup) {
               e.preventDefault();
@@ -2689,6 +2748,13 @@ function TokenTreeNode({
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       tabIndex={selectMode ? -1 : 0}
       data-token-path={node.path}
+      draggable={!selectMode}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('application/x-token-drag', 'true');
+        onDragStart?.([node.path], [node.name]);
+      }}
+      onDragEnd={() => onDragEnd?.()}
       onMouseEnter={() => { setHovered(true); if (inspectMode) onHoverToken?.(node.path); }}
       onMouseLeave={() => { setHovered(false); setShowPicker(false); }}
       onContextMenu={handleContextMenu}

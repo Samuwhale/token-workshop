@@ -325,6 +325,19 @@
   - For inline-edit pickers where each change fires `onChange` live, save should happen in `onClose` to avoid flooding the undo stack with intermediate states.
 ---
 
+## 2026-03-26 - Drag-to-move tokens between groups
+- Added HTML5 drag-and-drop to token rows: tokens are `draggable` (outside select mode) with `application/x-token-drag` MIME type to distinguish from other drags
+- Group headers accept drops: `onDragOver` (with type guard), `onDragLeave` (with `contains` check to prevent false triggers), `onDrop` — highlighted with accent ring when a token is dragged over them
+- `handleDropOnGroup` in TokenList issues `POST /tokens/:set/tokens/rename` for each dropped token, computing `newPath = targetGroupPath + "." + tokenName`
+- State: `dragSource` (paths + names), `dragOverGroup` (currently hovered group path) managed at TokenList level; passed as props to TokenTreeNode
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L163, L603, L940, L1650, L2196, L2262, L2414, L2701
+- **Learnings for future iterations:**
+  - `application/x-token-drag` custom MIME type in `dataTransfer.types` lets group header `onDragOver` reject non-token drags without maintaining extra state
+  - `onDragLeave` must check `!e.currentTarget.contains(e.relatedTarget)` to avoid flickering when the cursor moves over child elements inside the group header
+  - `handleDropOnGroup` is a `useCallback` with `dragSource` in deps — it always sees the latest source; no stale-closure risk
+  - The `POST /tokens/:set/tokens/rename` endpoint (added in prior session for rename-token feature) doubles as the move endpoint since moving = renaming with a different parent prefix
+---
+
 ## 2026-03-26 - Rename token with reference update
 - Added "Rename token" to the leaf token right-click context menu in `TokenTreeNode`. On commit, fetches dependent count via `GET /api/tokens/:set/dependents/*`. If N > 0, shows a ConfirmModal "N tokens reference this token. All references will be updated to '<new path>'." before executing. Rename POSTs to a new `/api/tokens/:set/tokens/rename` endpoint that moves the leaf token and calls `updateBulkAliasRefs` across all sets.
 - Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L160, L591, L1632, L1822, L2193, L2252, L2270, L2393, L2749, L3035; `packages/server/src/routes/tokens.ts` ~L129; `packages/server/src/services/token-store.ts` ~L486
