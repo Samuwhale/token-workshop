@@ -485,3 +485,15 @@
   - Badge dots on icon buttons (`absolute top-1 right-1 w-2 h-2 rounded-full`) with a `border border-[bg]` halo are the right pattern for notification indicators on icon buttons
   - The overflow menu items support `flex items-center gap-2` layout for adding trailing status indicators
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Preset Token Creation
+- Removed the broken `justCreated` confirmation screen from `QuickStartDialog` — the "Generate Semantic Tokens" button there was never functional because `lastCreatedTokens` was never populated (the `onSaved` callback passed no data)
+- Changed `TokenGeneratorDialog.onSaved` from `() => void` to `(info?: { targetGroup: string }) => void` and wired both call sites (direct save + after semantic mapping) to pass `{ targetGroup }`
+- Updated `QuickStartDialog` to receive `targetGroup` from `onSaved`, compute the first token path as `${targetGroup}.${firstStepName}`, and pass it to `onConfirm`
+- Updated `App.tsx` `onConfirm` handler to close the dialog (`setShowScaffoldWizard(false)`), refresh, and call `setPendingHighlight(firstPath)` — matching the pattern used by `ColorScaleGenerator`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L928, ~L1149, ~L1172-1173; `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx` (rewritten); `packages/figma-plugin/src/ui/App.tsx` ~L1358
+- **Learnings for future iterations:**
+  - `TokenGeneratorDialog` already has its own internal `SemanticMappingDialog` — never add a second offer of semantic mapping in a parent wrapper
+  - The `ColorScaleGenerator` → `onConfirm(firstPath)` → `setPendingHighlight(firstPath)` pattern is the canonical way to highlight newly created tokens after a modal flow
+  - When a dialog's `onSaved` is `() => void`, the parent can't know what was created — always pass a `info` object with at minimum `{ targetGroup }` so callers can highlight or navigate
+---

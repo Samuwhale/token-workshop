@@ -1355,7 +1355,7 @@ export function App() {
           activeSet={activeSet}
           allSets={sets}
           onClose={() => setShowScaffoldWizard(false)}
-          onConfirm={() => { refreshAll(); }}
+          onConfirm={(firstPath) => { setShowScaffoldWizard(false); refreshAll(); if (firstPath) setPendingHighlight(firstPath); }}
         />
       )}
 
