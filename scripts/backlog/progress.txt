@@ -1,6 +1,23 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-26 - UX audit & overhaul: Export
+- Added "Select all / Deselect all" toggle next to platform count
+- Added inline code example preview (shown when platform is selected) so users know what output looks like before exporting
+- Renamed "Figma Variables" mode tab to "From Figma" to clarify direction (reading FROM Figma, not exporting TO Figma)
+- Updated mode description copy to be more specific about what each mode does
+- Moved "Copy All" to the sticky footer (as a secondary button alongside Re-export) — was previously a small text link hidden in the results header
+- Added "Copy All" button to footer with copiedAll feedback state (checkmark + "Copied DTCG JSON")
+- Renamed "Import into Token Server" → "Save to Token Server" (less ambiguous given there's a separate Import panel)
+- Added "Read Variables from Figma" as the primary footer CTA in the Figma Variables empty state (removed duplicate button from empty state body)
+- Export button now shows "Select a platform to export" when nothing is selected (disabled state now communicates why)
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L15, ~L49, ~L218, ~L336, ~L380, ~L538, ~L738
+- **Learnings for future iterations:**
+  - Footer-anchored CTAs are more reliable than inline buttons for primary actions — users may not scroll far enough to see inline actions
+  - Disabled buttons should communicate the reason they are disabled via label text, not just opacity
+  - "Copy All" button should show a brief copied state (checkmark + text) even in the footer — `copiedAll` state pattern is consistent with per-file `copiedFile` state
+---
+
 ## 2026-03-26 - Keyboard navigation in the token list
 - Added `searchRef` to the search input for `/` shortcut focus
 - Added `handleListKeyDown` on the outer container: ↑/↓ navigates between `[data-token-path]` rows, `n` opens create form, `/` focuses search, `Escape` closes create form or exits select mode

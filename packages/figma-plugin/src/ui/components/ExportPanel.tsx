@@ -365,7 +365,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               <rect x="3" y="14" width="7" height="7" rx="1" />
               <rect x="14" y="14" width="7" height="7" rx="1" />
             </svg>
-            Figma Variables
+            From Figma
           </button>
         </div>
 
@@ -554,18 +554,12 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 </div>
                 <div className="text-center">
                   <div className="text-[11px] text-[var(--color-figma-text)] font-medium mb-1">
-                    Export Figma Variables
+                    Read Variables from this File
                   </div>
                   <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[200px]">
-                    Read all local variables from this file, including alias references between variables.
+                    Reads all local variable collections and alias references. Then copy as DTCG JSON or save directly to your token server.
                   </div>
                 </div>
-                <button
-                  onClick={handleExportFigmaVariables}
-                  className="px-4 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-                >
-                  Read Variables
-                </button>
               </div>
             )}
 
@@ -747,22 +741,66 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
       {/* Sticky action footer */}
       <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
-        {mode === 'platforms' && (
+        {mode === 'platforms' && results.length > 0 && (
+          <div className="flex gap-1.5">
+            <button
+              onClick={handleCopyAllPlatformResults}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+              </svg>
+              Copy All
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={selected.size === 0 || exporting}
+              className="flex-1 px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+            >
+              {exporting ? 'Exporting...' : 'Re-export'}
+            </button>
+          </div>
+        )}
+        {mode === 'platforms' && results.length === 0 && (
           <button
             onClick={handleExport}
             disabled={selected.size === 0 || exporting}
             className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
           >
-            {exporting ? 'Exporting...' : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
+            {exporting ? 'Exporting...' : selected.size === 0 ? 'Select a platform to export' : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
+          </button>
+        )}
+        {mode === 'figma-variables' && figmaCollections.length === 0 && !figmaLoading && (
+          <button
+            onClick={handleExportFigmaVariables}
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+          >
+            Read Variables from Figma
           </button>
         )}
         {mode === 'figma-variables' && figmaCollections.length > 0 && (
           <>
             <button
               onClick={handleCopyAll}
-              className="w-full px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
             >
-              Copy as DTCG JSON
+              {copiedAll ? (
+                <>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                  Copied DTCG JSON
+                </>
+              ) : (
+                <>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                  </svg>
+                  Copy as DTCG JSON
+                </>
+              )}
             </button>
             <button
               onClick={handleSaveToServer}
@@ -770,7 +808,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
               title="Create or update tokens in your local token server from these Figma variables"
             >
-              {exporting ? 'Importing...' : 'Import into Token Server'}
+              {exporting ? 'Saving...' : 'Save to Token Server'}
             </button>
           </>
         )}

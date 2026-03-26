@@ -154,7 +154,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [ ] **UX audit & overhaul: Import** — Read the import panel and all sub-components, research how import/migration UIs work (Tokens Studio import, Figma's own import flows), audit the full import flow (source selection → load → filter → conflict check → target set → confirm), identify friction (is the conflict UI understandable? is the progress state clear?), then redesign: reduce the number of steps if possible, make conflicts visually obvious with clear resolution options, and ensure the user always knows what will happen before they commit. `packages/plugin/src/routes/ImportPanel.tsx`
+- [~] **UX audit & overhaul: Import** — Read the import panel and all sub-components, research how import/migration UIs work (Tokens Studio import, Figma's own import flows), audit the full import flow (source selection → load → filter → conflict check → target set → confirm), identify friction (is the conflict UI understandable? is the progress state clear?), then redesign: reduce the number of steps if possible, make conflicts visually obvious with clear resolution options, and ensure the user always knows what will happen before they commit. `packages/plugin/src/routes/ImportPanel.tsx`
 
 - [x] **UX audit & overhaul: Paste Tokens** — Read the paste tokens modal and its parser logic, research how paste/import modals work in comparable tools, audit the full flow (paste text → parse → see preview → set group path → confirm), identify friction (is multi-format support communicated clearly? is type inference visible to the user?), then redesign: improve format hints and examples, make the parsed preview more readable, and reduce cognitive load of the group path field. `packages/plugin/src/components/PasteTokensModal.tsx`
 
@@ -172,7 +172,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [~] **UX audit & overhaul: Export** — Read the export panel code, research how design token export UIs work (Style Dictionary, Tokens Studio, Specify), audit the mode toggle (platforms vs figma-variables), platform selection, filtering, and download/copy flows, identify friction (is the output format understandable before export? is copy-to-clipboard obvious?), then redesign: improve mode and platform selection clarity, make format previews more useful, and streamline the path from "I want to export" to "I have my output". `packages/plugin/src/routes/ExportPanel.tsx`
+- [x] **UX audit & overhaul: Export** — Read the export panel code, research how design token export UIs work (Style Dictionary, Tokens Studio, Specify), audit the mode toggle (platforms vs figma-variables), platform selection, filtering, and download/copy flows, identify friction (is the output format understandable before export? is copy-to-clipboard obvious?), then redesign: improve mode and platform selection clarity, make format previews more useful, and streamline the path from "I want to export" to "I have my output". `packages/plugin/src/routes/ExportPanel.tsx`
 
 ### UI
 
