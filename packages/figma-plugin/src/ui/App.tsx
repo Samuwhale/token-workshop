@@ -2079,7 +2079,7 @@ export function App() {
                 </button>
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Themes</span>
               </div>
-              <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} />
+              <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onThemesChange={setThemes} />
             </>
           )}
           </div>

@@ -469,3 +469,11 @@
   - Theme creation re-uses the same POST /api/themes endpoint with existing set statuses — no new API endpoint needed for duplicate
   - `setNewlyCreatedTheme` triggers scroll-into-view for the new card, reuse this for any "create and focus" flow
 ---
+
+## 2026-03-26 - Theme live preview during editing
+- Added `onThemesChange` callback prop to `ThemeManager`. A `useEffect` fires `onThemesChange?.(themes)` on every local themes state change (initial load, optimistic toggle, error revert, create, delete, rename). App.tsx passes `setThemes` as that callback, so toggling a set status in the theme editor immediately updates the `themes` array that `themedAllTokensFlat` depends on — the token list re-renders in real-time without any save-and-check cycle.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L21, L54; `packages/figma-plugin/src/ui/App.tsx` ~L2082
+- **Learnings for future iterations:**
+  - Using a single `useEffect(() => { cb?.(state) }, [state])` to lift state is cleaner than threading the callback through every setter call site.
+  - The token list re-render is already reactive to `themes` changes because `themedAllTokensFlat` is a useMemo with `themes` as a dependency — no additional wiring needed.
+---

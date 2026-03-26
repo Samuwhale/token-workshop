@@ -1821,6 +1821,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onSyncGroup={onSyncGroup}
                 onSetGroupScopes={onSetGroupScopes}
                 syncSnapshot={syncSnapshot}
+                cascadeDiff={cascadeDiff}
                 onFilterByType={setTypeFilter}
                 generatorsBySource={generatorsBySource}
                 derivedTokenPaths={derivedTokenPaths}
@@ -2439,6 +2440,7 @@ function TokenTreeNode({
   onSyncGroup,
   onSetGroupScopes,
   syncSnapshot,
+  cascadeDiff,
   onFilterByType,
   generatorsBySource,
   derivedTokenPaths,
@@ -2483,6 +2485,7 @@ function TokenTreeNode({
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   syncSnapshot?: Record<string, string>;
+  cascadeDiff?: Record<string, { before: any; after: any }>;
   onFilterByType?: (type: string) => void;
   generatorsBySource?: Map<string, TokenGenerator[]>;
   derivedTokenPaths?: Set<string>;
@@ -2935,6 +2938,7 @@ function TokenTreeNode({
             onSyncGroup={onSyncGroup}
             onSetGroupScopes={onSetGroupScopes}
             syncSnapshot={syncSnapshot}
+            cascadeDiff={cascadeDiff}
             onFilterByType={onFilterByType}
             generatorsBySource={generatorsBySource}
             derivedTokenPaths={derivedTokenPaths}

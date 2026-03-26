@@ -51,8 +51,12 @@ function getThemeStatus(theme: Theme): string {
   return parts.join(' · ');
 }
 
-export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onThemesChange }: ThemeManagerProps) {
   const [themes, setThemes] = useState<Theme[]>([]);
+
+  // Propagate theme state changes to the parent so the token list can preview
+  // in real-time as set assignments are toggled (before save-and-check).
+  useEffect(() => { onThemesChange?.(themes); }, [themes]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [newThemeName, setNewThemeName] = useState('');
