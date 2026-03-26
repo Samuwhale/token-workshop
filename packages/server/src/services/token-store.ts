@@ -95,6 +95,10 @@ export class TokenStore {
       this.rebuildFlatTokens();
       this.emit({ type: 'set-removed', setName: name });
     });
+
+    this.watcher.on('error', (err) => {
+      console.error('[TokenStore] File watcher error:', err);
+    });
   }
 
   private rebuildFlatTokens(): void {

@@ -8,3 +8,10 @@
   - The backlog item mentioned one catch block, but the same pattern existed across all 11 catch blocks in the file — apply the fix uniformly rather than just the one mentioned
   - A hook auto-updated backlog.md to `[x]` after the edit (no manual re-mark needed in this project setup)
 ---
+
+## 2026-03-26 - Division by zero in formula evaluator
+- Added zero-divisor check in `parseMulDiv()`: throws `'Division by zero in formula'` when right-hand side of `/` is 0
+- Files changed: `packages/core/src/eval-expr.ts` ~L54
+- **Learnings for future iterations:**
+  - The previous `[~]` item (Missing return in sync route) was already fixed — all catch blocks used `return reply.status(500).send(...)`. Marked stale/done.
+---
