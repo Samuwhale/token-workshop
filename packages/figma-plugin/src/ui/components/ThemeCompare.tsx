@@ -1,0 +1,257 @@
+import { useMemo, useState } from 'react';
+import type { TokenMapEntry } from '../../shared/types';
+import { resolveAllAliases } from '../../shared/resolveAlias';
+import { stableStringify } from '../shared/colorUtils';
+
+type ThemeEntry = { name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> };
+
+interface ThemeCompareProps {
+  themes: ThemeEntry[];
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToSet: Record<string, string>;
+}
+
+function resolveForTheme(
+  theme: ThemeEntry | null,
+  allTokensFlat: Record<string, TokenMapEntry>,
+  pathToSet: Record<string, string>,
+): Record<string, TokenMapEntry> {
+  if (!theme) return resolveAllAliases(allTokensFlat);
+  const merged: Record<string, TokenMapEntry> = {};
+  for (const [setName, status] of Object.entries(theme.sets)) {
+    if (status !== 'source') continue;
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      if (pathToSet[path] === setName) merged[path] = entry;
+    }
+  }
+  for (const [setName, status] of Object.entries(theme.sets)) {
+    if (status !== 'enabled') continue;
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      if (pathToSet[path] === setName) merged[path] = entry;
+    }
+  }
+  return resolveAllAliases(merged);
+}
+
+function formatValue(value: any, type: string): string {
+  if (value === undefined || value === null) return '—';
+  if (type === 'dimension' && typeof value === 'object' && 'value' in value) {
+    return `${value.value}${value.unit ?? 'px'}`;
+  }
+  if (type === 'typography' && typeof value === 'object') {
+    const family = Array.isArray(value.fontFamily) ? value.fontFamily[0] : (value.fontFamily ?? '');
+    const size = typeof value.fontSize === 'object'
+      ? `${value.fontSize?.value ?? ''}${value.fontSize?.unit ?? 'px'}`
+      : value.fontSize ? `${value.fontSize}px` : '';
+    const weight = value.fontWeight ?? '';
+    return [family, size, weight].filter(Boolean).join(' ') || '—';
+  }
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+function ColorSwatch({ hex }: { hex: string }) {
+  const bg = hex.slice(0, 7);
+  return (
+    <div
+      className="w-3.5 h-3.5 rounded-sm border border-white/20 ring-1 ring-[var(--color-figma-border)] shrink-0"
+      style={{ backgroundColor: bg }}
+      aria-hidden="true"
+    />
+  );
+}
+
+export function ThemeCompare({ themes, allTokensFlat, pathToSet }: ThemeCompareProps) {
+  const [themeA, setThemeA] = useState<string>('');
+  const [themeB, setThemeB] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+
+  const resolvedA = useMemo(() => {
+    if (!themeA) return null;
+    const t = themes.find(t => t.name === themeA) ?? null;
+    return resolveForTheme(t, allTokensFlat, pathToSet);
+  }, [themeA, themes, allTokensFlat, pathToSet]);
+
+  const resolvedB = useMemo(() => {
+    if (!themeB) return null;
+    const t = themes.find(t => t.name === themeB) ?? null;
+    return resolveForTheme(t, allTokensFlat, pathToSet);
+  }, [themeB, themes, allTokensFlat, pathToSet]);
+
+  const diffs = useMemo(() => {
+    if (!resolvedA || !resolvedB) return [];
+    const allPaths = new Set([...Object.keys(resolvedA), ...Object.keys(resolvedB)]);
+    const result: Array<{
+      path: string;
+      type: string;
+      valueA: any;
+      valueB: any;
+    }> = [];
+    for (const path of allPaths) {
+      const entA = resolvedA[path];
+      const entB = resolvedB[path];
+      const valA = entA?.$value;
+      const valB = entB?.$value;
+      if (stableStringify(valA) !== stableStringify(valB)) {
+        result.push({
+          path,
+          type: entA?.$type ?? entB?.$type ?? 'unknown',
+          valueA: valA,
+          valueB: valB,
+        });
+      }
+    }
+    return result.sort((a, b) => a.path.localeCompare(b.path));
+  }, [resolvedA, resolvedB]);
+
+  const availableTypes = useMemo(() => {
+    const types = new Set(diffs.map(d => d.type));
+    return Array.from(types).sort();
+  }, [diffs]);
+
+  const filteredDiffs = useMemo(() => {
+    if (typeFilter === 'all') return diffs;
+    return diffs.filter(d => d.type === typeFilter);
+  }, [diffs, typeFilter]);
+
+  const canCompare = themeA && themeB && themeA !== themeB;
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Theme selectors */}
+      <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">A</span>
+          <select
+            value={themeA}
+            onChange={e => setThemeA(e.target.value)}
+            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
+          >
+            <option value="">Select a theme…</option>
+            {themes.map(t => (
+              <option key={t.name} value={t.name}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">B</span>
+          <select
+            value={themeB}
+            onChange={e => setThemeB(e.target.value)}
+            className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
+          >
+            <option value="">Select a theme…</option>
+            {themes.map(t => (
+              <option key={t.name} value={t.name}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Results */}
+      {!canCompare ? (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
+            {themes.length < 2
+              ? 'You need at least two themes to compare.'
+              : 'Select two different themes above to see how they differ.'}
+          </p>
+        </div>
+      ) : diffs.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
+            These themes produce identical resolved values.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Summary + filter bar */}
+          <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+              {filteredDiffs.length === diffs.length
+                ? `${diffs.length} differing token${diffs.length !== 1 ? 's' : ''}`
+                : `${filteredDiffs.length} of ${diffs.length}`}
+            </span>
+            <div className="ml-auto flex items-center gap-1">
+              <button
+                onClick={() => setTypeFilter('all')}
+                className={`px-1.5 py-0.5 rounded text-[9px] transition-colors ${
+                  typeFilter === 'all'
+                    ? 'bg-[var(--color-figma-accent)] text-white'
+                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                All
+              </button>
+              {availableTypes.map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTypeFilter(t)}
+                  className={`px-1.5 py-0.5 rounded text-[9px] capitalize transition-colors ${
+                    typeFilter === t
+                      ? 'bg-[var(--color-figma-accent)] text-white'
+                      : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Diff list */}
+          <div className="flex-1 overflow-y-auto">
+            {filteredDiffs.map(diff => {
+              const isColor = diff.type === 'color';
+              const hexA = isColor && typeof diff.valueA === 'string' ? diff.valueA : null;
+              const hexB = isColor && typeof diff.valueB === 'string' ? diff.valueB : null;
+              const labelA = formatValue(diff.valueA, diff.type);
+              const labelB = formatValue(diff.valueB, diff.type);
+              const segments = diff.path.split('.');
+              const leaf = segments[segments.length - 1];
+              const parent = segments.slice(0, -1).join('.');
+              return (
+                <div
+                  key={diff.path}
+                  className="px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  <div className="flex items-baseline gap-1 mb-1.5">
+                    {parent && (
+                      <span className="text-[9px] text-[var(--color-figma-text-tertiary)] truncate">{parent}.</span>
+                    )}
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{leaf}</span>
+                    <span className="ml-auto text-[8px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
+                      {diff.type}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {/* Theme A value */}
+                    <div className="flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded bg-[var(--color-figma-bg-secondary)]">
+                      <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
+                      {hexA && <ColorSwatch hex={hexA} />}
+                      <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={labelA}>
+                        {diff.valueA === undefined ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : labelA}
+                      </span>
+                    </div>
+                    {/* Arrow */}
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]">
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                    {/* Theme B value */}
+                    <div className="flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded bg-[var(--color-figma-bg-secondary)]">
+                      <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
+                      {hexB && <ColorSwatch hex={hexB} />}
+                      <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate" title={labelB}>
+                        {diff.valueB === undefined ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : labelB}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

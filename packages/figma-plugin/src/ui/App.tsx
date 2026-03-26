@@ -3,6 +3,7 @@ import type { ReactNode, ErrorInfo } from 'react';
 import { TokenList } from './components/TokenList';
 import { TokenEditor } from './components/TokenEditor';
 import { ThemeManager } from './components/ThemeManager';
+import { ThemeCompare } from './components/ThemeCompare';
 import { PublishPanel } from './components/PublishPanel';
 import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
@@ -132,7 +133,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'publish', label: 'Publish' },
 ];
 
-type OverflowPanel = 'import' | 'settings' | 'heatmap' | 'analytics' | 'themes' | null;
+type OverflowPanel = 'import' | 'settings' | 'heatmap' | 'analytics' | 'themes' | 'theme-compare' | null;
 
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 400;
@@ -1702,6 +1703,12 @@ export function App() {
                     >
                       Manage themes...
                     </button>
+                    <button
+                      onClick={() => { setOverflowPanel('theme-compare'); setThemeDropdownOpen(false); }}
+                      className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    >
+                      Compare themes...
+                    </button>
                   </div>
                 )}
               </div>
@@ -2080,6 +2087,24 @@ export function App() {
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Themes</span>
               </div>
               <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onThemesChange={setThemes} />
+            </>
+          )}
+          {overflowPanel === 'theme-compare' && (
+            <>
+              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <button
+                  onClick={() => setOverflowPanel(null)}
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  aria-label="Back"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6.5 2L3.5 5l3 3"/>
+                  </svg>
+                  Back
+                </button>
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Compare Themes</span>
+              </div>
+              <ThemeCompare themes={themes} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />
             </>
           )}
           </div>

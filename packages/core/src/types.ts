@@ -145,19 +145,22 @@ export interface ThemeSetConfig {
   [setName: string]: ThemeSetStatus;
 }
 
-export interface ThemeGroup {
+export interface ThemeOption {
   name: string;
   sets: ThemeSetConfig;
 }
 
-export interface Theme {
+export interface ThemeDimension {
+  id: string;
   name: string;
-  group?: string;
-  sets: ThemeSetConfig;
+  options: ThemeOption[];
 }
+
+/** Active themes: one selected option per dimension. Key = dimension id, value = option name. */
+export type ActiveThemes = Record<string, string>;
 
 export interface ThemesFile {
-  $themes: Theme[];
+  $themes: ThemeDimension[];
 }
 
 // ---------------------------------------------------------------------------

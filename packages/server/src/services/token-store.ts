@@ -258,12 +258,15 @@ export class TokenStore {
     const themesPath = path.join(this.dir, '$themes.json');
     try {
       const content = await fs.readFile(themesPath, 'utf-8');
-      const data = JSON.parse(content) as { $themes: Array<{ sets: Record<string, unknown> }> };
+      const data = JSON.parse(content) as { $themes: Array<{ options: Array<{ sets: Record<string, unknown> }> }> };
       if (Array.isArray(data.$themes)) {
-        for (const theme of data.$themes) {
-          if (theme.sets && oldName in theme.sets) {
-            theme.sets[newName] = theme.sets[oldName];
-            delete theme.sets[oldName];
+        for (const dimension of data.$themes) {
+          if (!Array.isArray(dimension.options)) continue;
+          for (const option of dimension.options) {
+            if (option.sets && oldName in option.sets) {
+              option.sets[newName] = option.sets[oldName];
+              delete option.sets[oldName];
+            }
           }
         }
         await fs.writeFile(themesPath, JSON.stringify(data, null, 2));

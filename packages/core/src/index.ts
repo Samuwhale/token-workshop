@@ -42,8 +42,9 @@ export type {
   TokenSet,
   ThemeSetStatus,
   ThemeSetConfig,
-  ThemeGroup,
-  Theme,
+  ThemeOption,
+  ThemeDimension,
+  ActiveThemes,
   ThemesFile,
   ResolvedToken,
 } from './types.js';

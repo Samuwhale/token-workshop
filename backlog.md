@@ -87,7 +87,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [~] **Multi-dimensional theme model** — Add support for theme groups (dimensions) with options, matching Tokens Studio's Group/Option model. A theme group represents one axis of variation (e.g., "Color Mode", "Brand", "Density"), and each group has mutually exclusive options (e.g., "Light"/"Dark"). Multiple groups can be active simultaneously, creating a matrix of combinations. This maps cleanly to Figma Variable Collections (groups) and Modes (options). Without this, enterprise design systems with multiple theming dimensions (brand × mode × density) require flat theme duplication. This is the single largest capability gap vs. Tokens Studio.
 - [x] **Theme live preview during editing** — When editing a theme's set configuration (toggling sets on/off/base), there's no immediate feedback on how tokens resolve under that configuration. With the theme switcher in the toolbar (see App Shell), switching *existing* themes already updates the token list. But when *editing* a theme's set assignments, the token list and split-view preview should update in real-time as you toggle sets, so designers can experiment with set combinations without save-and-check cycles.
 - [x] **Duplicate theme** — No way to clone an existing theme as a starting point. Add a "Duplicate" action to the theme card that copies all set statuses and ordering into a new theme with a "-copy" suffix. Essential when creating variants (e.g., "dark-high-contrast" from "dark").
-- [~] **Compare themes side-by-side** — No way to see how two themes differ. Add a comparison view that shows tokens with differing resolved values between two selected themes, highlighting what changes. Useful for auditing light/dark or brand variants.
+- [x] **Compare themes side-by-side** — No way to see how two themes differ. Add a comparison view that shows tokens with differing resolved values between two selected themes, highlighting what changes. Useful for auditing light/dark or brand variants.
 
 ---
 
@@ -102,7 +102,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### UX
 
 - [~] **Create Figma Styles from tokens** — Currently only Figma Variables are supported. Add the ability to create/update Figma Styles (Color, Text, Effect) from tokens. Many teams use styles alongside variables, and Tokens Studio supports both targets.
-- [ ] **Batch create variables/styles from group** — Tokens Studio has "Create variables from group" and "Create styles from group" in the group right-click context menu. Add these actions so users can bulk-publish an entire group (e.g., all `colors.brand.*` tokens) to Figma in one click, rather than syncing the entire set.
+- [~] **Batch create variables/styles from group** — Tokens Studio has "Create variables from group" and "Create styles from group" in the group right-click context menu. Add these actions so users can bulk-publish an entire group (e.g., all `colors.brand.*` tokens) to Figma in one click, rather than syncing the entire set.
 
 ---
 

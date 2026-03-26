@@ -486,3 +486,14 @@
   - The cascade diff should only activate when no theme is active (activeTheme === null), because the theme-aware merge uses pathToSet-filtered logic that is independent of set tab order.
   - Color swatches in badges: use `style={{ backgroundColor: value }}` with `w-2.5 h-2.5 rounded-sm border border-black/10` for the swatch inline element. Only show for color type with string values.
 ---
+
+## 2026-03-26 - Compare themes side-by-side
+- Created ThemeCompare.tsx component: two theme selectors, computes resolved tokens per theme reusing the same source→enabled merge logic as App.tsx, diffs resolved values, shows list of differing tokens with color swatches and A→B value display. Added type filter buttons in summary bar.
+- Added 'theme-compare' to OverflowPanel union type in App.tsx.
+- Added "Compare themes..." button to the theme dropdown (after "Manage themes...").
+- Added overflow panel rendering for 'theme-compare' that renders ThemeCompare with themes, allTokensFlat, pathToSet.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L6, L136, L1704, L2100
+- **Learnings for future iterations:**
+  - Theme resolution logic (source→enabled merge + resolveAllAliases) is duplicated in ThemeCompare; could be extracted as a shared utility if more consumers appear.
+  - OverflowPanel type and its rendering block are the two places to touch when adding a new panel — keep them in sync.
+---
