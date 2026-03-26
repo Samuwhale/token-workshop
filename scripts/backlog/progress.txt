@@ -725,3 +725,11 @@
   - `jsx: "react-jsx"` in tsconfig means no explicit React import is needed in new .tsx files using JSX
   - `isAlias` was still needed directly in TokenList.tsx (used in ~8 places) even after moving `filterTokenNodes` to utils — don't remove an import just because the function using it moved
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Dependency Impact
+- Audited the dependency flow in TokenEditor.tsx: found the section was already well-implemented (loading state, before/after logic, collapsed by default). Fixed one gap: alias-color dependents showed no swatch because `colorVal` only captured non-alias colors. Changed to use `resolveColorValue(dep.path, allTokensFlat)` which resolves through alias chains, so all color dependents (direct and alias) now show a color swatch.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L951
+- **Learnings for future iterations:**
+  - When auditing a "flow" backlog item, read the implementation first — it may already be 80% done from earlier sessions. Focus on the remaining gap rather than rebuilding.
+  - `resolveColorValue(path, allTokensFlat)` resolves through the full alias chain. Use it anywhere you need to show a color swatch for a token that may be an alias.
+---
