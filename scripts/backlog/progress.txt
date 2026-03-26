@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-26 - Auto-type inference on value input
+- Already implemented: `inferTypeFromValue()` at `TokenList.tsx:121` infers color/dimension/duration/boolean/number from value patterns, wired to onChange at ~L1577, with accent border visual feedback on the type dropdown at ~L1591
+- Files changed: none
+- **Learnings for future iterations:**
+  - Check for existing implementations before coding — this feature was already complete including visual feedback
+---
+
 ## 2026-03-26 - Missing `return` after error response in sync route
 - Added `return` before all `reply.status(500).send(...)` calls in catch blocks throughout the file (11 occurrences replaced using replace_all)
 - Files changed: `packages/server/src/routes/sync.ts` ~L32, L46, L61, L71, L81, L100, L115, L126, L145, L157, L171
@@ -234,4 +241,18 @@
 - Files changed: none
 - **Learnings for future iterations:**
   - Always check existing implementation before starting work — this feature was built as part of the core resolver architecture, not as a separate addition
+---
+
+## 2026-03-26 - Rich color picker with color space support
+- Replaced native `<input type="color">` in `ColorEditor` with a custom `ColorPicker` popover component
+- Added color space conversions to `colorUtils.ts`: HSL (`rgbToHsl`/`hslToRgb`), LCH (`labToLch`/`lchToLab`), Display P3 (`srgbToP3`/`p3ToSrgb`), plus convenience wrappers
+- ColorPicker features: canvas-based 2D saturation/lightness area, hue strip, opacity strip, color space tabs (Hex/HSL/LCH/P3), numeric channel inputs per space, P3 gamut warning, eyedropper (samples Figma selection)
+- Added `sampleSelectionColor()` handler in controller.ts to read fill color from selected layer and post back to UI
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L84-180, `packages/figma-plugin/src/ui/components/ColorPicker.tsx` (new, ~320 lines), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L7,L1069-1094, `packages/figma-plugin/src/plugin/controller.ts` ~L66,L78-97
+- **Learnings for future iterations:**
+  - HSL is the best canonical editing model for a 2D color area — LCH and P3 are derived on-demand from the HSL state
+  - Hue must be preserved in component state for achromatic colors (s=0) since hex→HSL→hex round-trips lose hue information
+  - Canvas `putImageData` at 240x150 (~36K pixels) is fast enough to redraw on every hue change without debouncing
+  - P3↔sRGB conversion goes through XYZ D65 as intermediary — the P3 transfer function is identical to sRGB's gamma curve
+  - `usePointerDrag` with `setPointerCapture` gives smooth dragging even when cursor leaves the canvas bounds
 ---

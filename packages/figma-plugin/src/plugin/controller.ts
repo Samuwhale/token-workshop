@@ -74,6 +74,32 @@ interface PluginMessage {
   [key: string]: any;
 }
 
+// Sample fill color from the first selected node and send it back to UI
+function sampleSelectionColor() {
+  const sel = figma.currentPage.selection;
+  if (sel.length === 0) {
+    figma.notify('Select a layer to sample its fill color');
+    return;
+  }
+  const node = sel[0];
+  if (!('fills' in node) || !Array.isArray(node.fills) || node.fills.length === 0) {
+    figma.notify('Selected layer has no fills');
+    return;
+  }
+  const fill = (node.fills as readonly Paint[]).find((f): f is SolidPaint => f.type === 'SOLID' && f.visible !== false);
+  if (!fill) {
+    figma.notify('No solid fill found on selected layer');
+    return;
+  }
+  const { r, g, b } = fill.color;
+  const toHex = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, '0');
+  let hex = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  if (fill.opacity !== undefined && fill.opacity < 1) {
+    hex += toHex(fill.opacity);
+  }
+  figma.ui.postMessage({ type: 'eyedropper-result', hex });
+}
+
 // Apply tokens as Figma variables
 async function applyVariables(tokens: any[]) {
   try {

@@ -117,6 +117,19 @@ function parseInlineValue(type: string, str: string): any {
   return str;
 }
 
+/** Infer token type from a raw value string. Returns null if no pattern matches. */
+function inferTypeFromValue(value: string): string | null {
+  const v = value.trim();
+  if (!v) return null;
+  if (/^#([0-9a-fA-F]{3,8})$/.test(v)) return 'color';
+  if (/^(rgb|hsl)a?\s*\(/.test(v)) return 'color';
+  if (/^(-?\d+(\.\d+)?)(px|em|rem|%|vh|vw|pt|dp|sp|cm|mm|fr|ch|ex)$/.test(v)) return 'dimension';
+  if (/^(-?\d+(\.\d+)?)(ms|s)$/.test(v)) return 'duration';
+  if (/^(true|false)$/i.test(v)) return 'boolean';
+  if (/^-?\d+(\.\d+)?$/.test(v)) return 'number';
+  return null;
+}
+
 interface PromoteRow {
   path: string;
   $type: string;
@@ -662,7 +675,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           $type: newTokenType,
-          $value: getDefaultValue(newTokenType),
+          $value: newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType),
         }),
       });
       if (!res.ok) {
@@ -672,11 +685,12 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
       }
       const createdPath = trimmedPath;
       const createdType = newTokenType;
-      const createdValue = getDefaultValue(newTokenType);
+      const createdValue = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
       const capturedSet = effectiveSet;
       const capturedUrl = serverUrl;
       setShowCreateForm(false);
       setNewTokenPath('');
+      setNewTokenValue('');
       setSiblingPrefix(null);
       onRefresh();
       onTokenCreated?.(createdPath);
@@ -1553,10 +1567,28 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               autoFocus
             />
             {createError && <p className="text-[10px] text-[var(--color-figma-error)]">{createError}</p>}
+            <input
+              type="text"
+              placeholder="Value (optional, e.g. #FF0000, 16px)"
+              value={newTokenValue}
+              onChange={e => {
+                const val = e.target.value;
+                setNewTokenValue(val);
+                const inferred = inferTypeFromValue(val);
+                if (inferred) {
+                  setNewTokenType(inferred);
+                  setTypeAutoInferred(true);
+                } else if (typeAutoInferred && !val.trim()) {
+                  setTypeAutoInferred(false);
+                }
+              }}
+              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+            />
             <select
               value={newTokenType}
-              onChange={e => setNewTokenType(e.target.value)}
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none"
+              onChange={e => { setNewTokenType(e.target.value); setTypeAutoInferred(false); }}
+              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none ${typeAutoInferred ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)]'}`}
             >
               <option value="color">Color</option>
               <option value="dimension">Dimension</option>
@@ -1582,7 +1614,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 Create
               </button>
               <button
-                onClick={() => { setShowCreateForm(false); setNewTokenPath(''); setSiblingPrefix(null); setCreateError(''); }}
+                onClick={() => { setShowCreateForm(false); setNewTokenPath(''); setNewTokenValue(''); setTypeAutoInferred(false); setSiblingPrefix(null); setCreateError(''); }}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel

@@ -323,6 +323,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     printf '\n\n## Assigned Item\n\nWork on this specific item (already marked [~] in backlog.md):\n\n%s\n\nDo NOT pick a different item. Do NOT modify backlog.md.\n' "$CLAIMED_ITEM" >> "$CONTEXT_FILE"
 
     AGENT_TMP=$(mktemp)
+    AGENT_ERR=$(mktemp)
     # Run agent in background so the parent's wait builtin is interruptible by
     # Ctrl+C (fires graceful_stop) without killing the agent process itself.
     (trap '' INT; claude \
@@ -334,13 +335,33 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       --json-schema "$JSON_SCHEMA" \
       --fallback-model claude-haiku-4-5-20251001 \
       --append-system-prompt-file "$CONTEXT_FILE" \
-      < "$SCRIPT_DIR/CLAUDE.md" > "$AGENT_TMP" 2>/dev/null) &
+      < "$SCRIPT_DIR/CLAUDE.md" > "$AGENT_TMP" 2>"$AGENT_ERR") &
     AGENT_PID=$!
-    wait $AGENT_PID || true
+    wait $AGENT_PID
+    AGENT_EXIT=$?
 
     rm -f "$CONTEXT_FILE"
     OUTPUT=$(cat "$AGENT_TMP")
     rm -f "$AGENT_TMP"
+
+    # Detect usage/rate-limit errors before attempting to parse output.
+    # When Claude is out of usage the agent exits non-zero and emits an error
+    # on stderr rather than valid JSON — continuing the loop would just spin
+    # through all remaining iterations unclaiming and reclaiming the same item.
+    if [ $AGENT_EXIT -ne 0 ]; then
+      AGENT_ERR_TEXT=$(cat "$AGENT_ERR" 2>/dev/null)
+      COMBINED="$OUTPUT $AGENT_ERR_TEXT"
+      if echo "$COMBINED" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|billing|overloaded|capacity|too many requests|529|Claude\.ai/upgrade'; then
+        rm -f "$AGENT_ERR"
+        echo ""
+        echo "ERROR: Claude usage limit reached — stopping runner."
+        echo "  Unclaiming: $CLAIMED_ITEM"
+        update_item_status " " "$CLAIMED_ITEM"
+        CLAIMED_ITEM=""
+        exit 2
+      fi
+    fi
+    rm -f "$AGENT_ERR"
 
     # Human-readable agent summary
     _S=$(echo "$OUTPUT" | jq -r '.structured_output.status // ""' 2>/dev/null || echo "")
@@ -349,6 +370,16 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     _TURNS=$(echo "$OUTPUT" | jq -r '.num_turns // ""' 2>/dev/null || echo "")
     _SECS=$(echo "$OUTPUT" | jq -r 'if .duration_ms then ((.duration_ms/1000)|floor|tostring)+"s" else "" end' 2>/dev/null || echo "")
     _COST=$(echo "$OUTPUT" | jq -r 'if .total_cost_usd then "$"+(.total_cost_usd*100|round/100|tostring) else "" end' 2>/dev/null || echo "")
+    # If output looks like a usage/rate-limit error embedded in stdout JSON error field,
+    # stop the runner rather than looping.
+    if [ -z "$_S" ] && echo "$OUTPUT" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|overloaded|capacity|too many requests|529'; then
+      echo ""
+      echo "ERROR: Claude usage limit reached — stopping runner."
+      echo "  Unclaiming: $CLAIMED_ITEM"
+      update_item_status " " "$CLAIMED_ITEM"
+      CLAIMED_ITEM=""
+      exit 2
+    fi
     case "$_S" in done) _ICON="✓" ;; failed) _ICON="✗" ;; *) _ICON="·" ;; esac
     echo ""
     if [ -n "$_ITEM" ]; then echo "  $_ICON $_S: $_ITEM"; else echo "  $_ICON ${_S:-unknown}"; fi
