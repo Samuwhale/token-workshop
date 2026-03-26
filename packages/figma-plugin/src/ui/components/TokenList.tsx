@@ -588,18 +588,6 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     onRefresh();
   }, [connected, serverUrl, setName, onRefresh]);
 
-  const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
-    if (!connected) return;
-    const encodedPath = oldPath.split('.').map(encodeURIComponent).join('/');
-    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedPath}`);
-    const data = res.ok ? await res.json() as { count: number } : { count: 0 };
-    if (data.count > 0) {
-      setRenameTokenConfirm({ oldPath, newPath, depCount: data.count });
-    } else {
-      await executeTokenRename(oldPath, newPath);
-    }
-  }, [connected, serverUrl, setName]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const executeTokenRename = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
     await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
@@ -610,6 +598,18 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     setRenameTokenConfirm(null);
     onRefresh();
   }, [connected, serverUrl, setName, onRefresh]);
+
+  const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
+    if (!connected) return;
+    const encodedPath = oldPath.split('.').map(encodeURIComponent).join('/');
+    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedPath}`);
+    const data = res.ok ? await res.json() as { count: number } : { count: 0 };
+    if (data.count > 0) {
+      setRenameTokenConfirm({ oldPath, newPath, depCount: data.count });
+    } else {
+      await executeTokenRename(oldPath, newPath);
+    }
+  }, [connected, serverUrl, setName, executeTokenRename]);
 
   const handleRequestMoveGroup = useCallback((groupPath: string) => {
     const otherSets = sets.filter(s => s !== setName);
@@ -2746,8 +2746,26 @@ function TokenTreeNode({
               className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0 cursor-default"
             />
           )}
-          <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{node.name}</span>
-          {node.$type && (
+          {renamingToken ? (
+            <input
+              ref={renameTokenInputRef}
+              value={renameTokenVal}
+              onChange={e => setRenameTokenVal(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.stopPropagation(); confirmTokenRename(); }
+                if (e.key === 'Escape') { e.stopPropagation(); renameTokenEscapedRef.current = true; setRenamingToken(false); }
+              }}
+              onBlur={() => {
+                if (!renameTokenEscapedRef.current) confirmTokenRename();
+                renameTokenEscapedRef.current = false;
+              }}
+              onClick={e => e.stopPropagation()}
+              className="text-[11px] text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none w-32 shrink-0"
+            />
+          ) : (
+            <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{node.name}</span>
+          )}
+          {!renamingToken && node.$type && (
             <button
               onClick={e => { e.stopPropagation(); onFilterByType?.(node.$type!); }}
               title={`Filter by type: ${node.$type}`}
@@ -3032,6 +3050,17 @@ function TokenTreeNode({
             }}
           >
             Duplicate token
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setContextMenuPos(null);
+              setRenameTokenVal(node.name);
+              setRenamingToken(true);
+            }}
+          >
+            Rename token
           </button>
           {!isAlias(node.$value) && (
             <button

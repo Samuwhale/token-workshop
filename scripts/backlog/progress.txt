@@ -306,6 +306,13 @@
   - Three-button layout `[Create] [& New] [Cancel]` needs `gap-1.5` (down from `gap-2`) and `px-2` (down from `px-3`) on the two primary buttons to fit cleanly
 ---
 
+## 2026-03-26 - Duplicate token set
+- Already implemented: `handleDuplicateSet()` at `App.tsx:617` fetches all tokens from the source set, creates a new set with name `{setName}-copy` (incrementing suffix on collision), then calls `refreshTokens()`. The "Duplicate" menu item is rendered at `App.tsx:1085` in the set context menu alongside Rename and Delete.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Set context menu actions are all in App.tsx; the menu renders at ~L1061 and handlers are grouped at ~L467–660
+---
+
 ## 2026-03-26 - Rich color picker with color space support
 - `ColorPicker.tsx` was already fully implemented with HSL, LCH, P3, opacity slider, and Figma eyedropper. The work was wiring it up everywhere native `<input type="color">` was still used.
 - Added `ColorSwatchButton` helper component to `TokenEditor.tsx` (swatch button + `ColorPicker` popover) and used it to replace 4 native inputs: mix modifier, ShadowEditor, BorderEditor, GradientStopEditor.
