@@ -355,3 +355,22 @@
   - When adding sibling elements to a single-root JSX expression, wrap in `<>...</>` fragment
   - The `setSets` setter is exposed from useTokens hook and can be used for optimistic UI updates
 ---
+
+## 2026-03-26 - Delete token from editor
+- Added a trash icon button to the TokenEditor footer (edit mode only) that shows a ConfirmModal, then calls DELETE /api/tokens/{setName}/{tokenPath} and closes the drawer via onBack()
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L143, ~L290, ~L1030, ~L1040
+- **Learnings for future iterations:**
+  - TokenEditor already imports ConfirmModal — no additional imports needed for delete confirmation
+  - The delete button is conditionally rendered with `!isCreateMode` so it doesn't appear when creating a new token
+  - Token leaf name is extracted with `tokenPath.split('.').pop()` for the modal title (segments with dots in names handled gracefully since this is display only)
+---
+
+## 2026-03-26 - Revert to saved in editor
+- Added `handleRevert()` function that resets all editor state fields (`tokenType`, `value`, `description`, `reference`, `scopes`, `colorModifiers`, `aliasMode`) to `initialRef.current` values
+- Added a "Revert" button in the footer between Cancel and Save; conditionally rendered only when `isDirty && !isCreateMode`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L283 (handleRevert), ~L1074 (Revert button)
+- **Learnings for future iterations:**
+  - `initialRef.current` stores all editable fields captured from the server on load — the complete saved state is already available without any additional network requests
+  - `aliasMode` must be reset explicitly: it's derived from whether `reference` is set, but it's tracked as separate state — set it to `!!init.reference` when reverting
+  - The Revert button sits between Cancel and Save in the footer; no spacing changes needed since the footer already uses `gap-2`
+---

@@ -140,6 +140,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const [showScopes, setShowScopes] = useState(false);
   const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[] } | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showGeneratorDialog, setShowGeneratorDialog] = useState(false);
   const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
@@ -277,6 +278,29 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 
   const handleBack = () => {
     if (isDirty) { setShowDiscardConfirm(true); } else { onBack(); }
+  };
+
+  const handleRevert = () => {
+    if (!initialRef.current) return;
+    const init = initialRef.current;
+    setTokenType(init.type);
+    setValue(init.value);
+    setDescription(init.description);
+    setReference(init.reference);
+    setScopes(init.scopes);
+    setColorModifiers(init.colorModifiers);
+    setAliasMode(!!init.reference);
+  };
+
+  const handleDelete = async () => {
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${setName}/${tokenPath}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      onBack();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+      setShowDeleteConfirm(false);
+    }
   };
 
   useEffect(() => {
@@ -1018,14 +1042,46 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         />
       )}
 
+      {/* Delete confirmation */}
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title={`Delete "${tokenPath.split('.').pop()}"?`}
+          description={`Token path: ${tokenPath}`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
       {/* Footer */}
       <div className="flex items-center gap-2 px-3 py-2.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+        {!isCreateMode && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            title="Delete token"
+            className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+            </svg>
+          </button>
+        )}
         <button
           onClick={handleBack}
           className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
         >
           {isDirty || isCreateMode ? 'Cancel' : 'Close'}
         </button>
+        {isDirty && !isCreateMode && (
+          <button
+            onClick={handleRevert}
+            title="Revert to last saved state"
+            className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+          >
+            Revert
+          </button>
+        )}
         <button
           onClick={handleSave}
           disabled={saving || !canSave || (!isCreateMode && !isDirty) || (isCreateMode && !editPath.trim())}
