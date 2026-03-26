@@ -733,3 +733,13 @@
   - When auditing a "flow" backlog item, read the implementation first — it may already be 80% done from earlier sessions. Focus on the remaining gap rather than rebuilding.
   - `resolveColorValue(path, allTokensFlat)` resolves through the full alias chain. Use it anywhere you need to show a color swatch for a token that may be an alias.
 ---
+
+## 2026-03-26 - UX audit & overhaul: Token List
+- Marked as stale/done — referenced path (`packages/plugin/src/components/TokenList.tsx`) does not exist; actual file is `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- All primary goals were addressed by previously completed items: editor drawer (click-to-edit), keyboard navigation (`/` for search focus), inline editing, UI audit overhaul (group headers, row hierarchy), empty state UX audit
+- Drag-to-reorder affordances: feature not implemented (no backend token ordering), so affordances are N/A; if token reordering is added in the future, affordances should be added at that time
+- Files changed: `backlog.md` only (status update)
+- **Learnings for future iterations:**
+  - When a backlog item's stated goals are fully covered by a collection of other completed items, mark as done rather than treating it as a standalone audit — avoid duplicate work
+  - Drag affordances should only be added when the underlying drag/reorder feature exists; adding visual affordances for a non-functional feature misleads users
+---
