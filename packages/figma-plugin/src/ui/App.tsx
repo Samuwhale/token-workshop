@@ -549,7 +549,7 @@ export function App() {
     setTabMenuOpen(setName);
     setTabMenuPos({
       x: Math.min(e.clientX, window.innerWidth - 176),
-      y: Math.min(e.clientY, window.innerHeight - 240),
+      y: Math.min(e.clientY, window.innerHeight - 280),
     });
   };
 
@@ -756,6 +756,155 @@ export function App() {
       return;
     }
     refreshTokens();
+  };
+
+  // Flatten a nested token object to { [dotPath]: tokenEntry }
+  const flattenTokensObj = (obj: Record<string, any>, prefix = ''): Record<string, any> => {
+    const flat: Record<string, any> = {};
+    for (const [key, val] of Object.entries(obj)) {
+      if (key.startsWith('$')) continue;
+      const path = prefix ? `${prefix}.${key}` : key;
+      if (val && typeof val === 'object' && '$value' in val) {
+        flat[path] = val;
+      } else if (val && typeof val === 'object') {
+        Object.assign(flat, flattenTokensObj(val, path));
+      }
+    }
+    return flat;
+  };
+
+  const openMergeDialog = (setName: string) => {
+    setTabMenuOpen(null);
+    setMergingSet(setName);
+    setMergeTargetSet(sets.find(s => s !== setName) || '');
+    setMergeConflicts([]);
+    setMergeResolutions({});
+    setMergeSrcFlat({});
+    setMergeChecked(false);
+  };
+
+  const handleCheckMergeConflicts = async () => {
+    if (!mergingSet || !mergeTargetSet || !connected) return;
+    setMergeLoading(true);
+    try {
+      const [srcRes, tgtRes] = await Promise.all([
+        fetch(`${serverUrl}/api/sets/${mergingSet}`),
+        fetch(`${serverUrl}/api/sets/${mergeTargetSet}`),
+      ]);
+      const srcData = await srcRes.json();
+      const tgtData = await tgtRes.json();
+      const srcFlat = flattenTokensObj(srcData.tokens || {});
+      const tgtFlat = flattenTokensObj(tgtData.tokens || {});
+      const conflicts: Array<{ path: string; sourceValue: any; targetValue: any }> = [];
+      for (const [path, srcEntry] of Object.entries(srcFlat)) {
+        if (tgtFlat[path]) {
+          if (JSON.stringify(srcEntry.$value) !== JSON.stringify(tgtFlat[path].$value)) {
+            conflicts.push({ path, sourceValue: srcEntry.$value, targetValue: tgtFlat[path].$value });
+          }
+        }
+      }
+      setMergeSrcFlat(srcFlat);
+      setMergeConflicts(conflicts);
+      const res: Record<string, 'source' | 'target'> = {};
+      for (const c of conflicts) res[c.path] = 'target';
+      setMergeResolutions(res);
+      setMergeChecked(true);
+    } catch {
+      // ignore
+    } finally {
+      setMergeLoading(false);
+    }
+  };
+
+  const handleConfirmMerge = async () => {
+    if (!mergingSet || !mergeTargetSet || !connected) return;
+    setMergeLoading(true);
+    try {
+      const tgtRes = await fetch(`${serverUrl}/api/sets/${mergeTargetSet}`);
+      const tgtData = await tgtRes.json();
+      const tgtFlat = flattenTokensObj(tgtData.tokens || {});
+      const writes: Promise<any>[] = [];
+      for (const [path, srcEntry] of Object.entries(mergeSrcFlat)) {
+        const conflict = mergeConflicts.find(c => c.path === path);
+        if (conflict) {
+          if (mergeResolutions[path] === 'source') {
+            writes.push(fetch(`${serverUrl}/api/tokens/${mergeTargetSet}/${path}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),
+            }));
+          }
+        } else if (!tgtFlat[path]) {
+          writes.push(fetch(`${serverUrl}/api/tokens/${mergeTargetSet}/${path}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),
+          }));
+        }
+      }
+      await Promise.all(writes);
+      setMergingSet(null);
+      setMergeChecked(false);
+      setActiveSet(mergeTargetSet);
+      refreshTokens();
+    } catch {
+      // ignore
+    } finally {
+      setMergeLoading(false);
+    }
+  };
+
+  const openSplitDialog = async (setName: string) => {
+    setTabMenuOpen(null);
+    if (!connected) return;
+    try {
+      const res = await fetch(`${serverUrl}/api/sets/${setName}`);
+      const data = await res.json();
+      const tokenRoot = data.tokens || {};
+      const preview = Object.entries(tokenRoot)
+        .filter(([k, v]) => !k.startsWith('$') && v && typeof v === 'object' && !('$value' in (v as any)))
+        .map(([key, val]) => {
+          const flat = flattenTokensObj(val as Record<string, any>);
+          const sanitized = key.replace(/[^a-zA-Z0-9_-]/g, '-');
+          return { key, newName: `${setName}-${sanitized}`, count: Object.keys(flat).length };
+        })
+        .filter(p => p.count > 0);
+      setSplittingSet(setName);
+      setSplitPreview(preview);
+      setSplitDeleteOriginal(false);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleConfirmSplit = async () => {
+    if (!splittingSet || !connected) return;
+    setSplitLoading(true);
+    try {
+      const res = await fetch(`${serverUrl}/api/sets/${splittingSet}`);
+      const data = await res.json();
+      const tokenRoot = data.tokens || {};
+      for (const { key, newName } of splitPreview) {
+        if (sets.includes(newName)) continue;
+        const groupTokens = tokenRoot[key];
+        await fetch(`${serverUrl}/api/sets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName, tokens: groupTokens }),
+        });
+      }
+      if (splitDeleteOriginal) {
+        await fetch(`${serverUrl}/api/sets/${splittingSet}`, { method: 'DELETE' });
+        const remaining = sets.filter(s => s !== splittingSet);
+        if (activeSet === splittingSet) setActiveSet(remaining[0] ?? '');
+      }
+      setSplittingSet(null);
+      refreshTokens();
+    } catch {
+      // ignore
+    } finally {
+      setSplitLoading(false);
+    }
   };
 
   const openSetMetadata = (setName: string) => {
@@ -1219,6 +1368,24 @@ export function App() {
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Duplicate
+              </button>
+              <div className="border-t border-[var(--color-figma-border)] my-1" />
+              <button
+                role="menuitem"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => openMergeDialog(tabMenuOpen)}
+                disabled={sets.filter(s => s !== tabMenuOpen).length === 0}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Merge into…
+              </button>
+              <button
+                role="menuitem"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => openSplitDialog(tabMenuOpen)}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Split by group
               </button>
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
@@ -2013,6 +2180,157 @@ export function App() {
                 disabled={groupScopesApplying}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
               >{groupScopesApplying ? 'Applying…' : 'Apply to group'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Merge into dialog */}
+      {mergingSet && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
+              <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Merge "{mergingSet}" into…</span>
+              <button onClick={() => setMergingSet(null)} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="p-4 flex flex-col gap-3 overflow-y-auto">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Target set</label>
+                <select
+                  value={mergeTargetSet}
+                  onChange={e => { setMergeTargetSet(e.target.value); setMergeChecked(false); setMergeConflicts([]); }}
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                >
+                  {sets.filter(s => s !== mergingSet).map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+              {!mergeChecked && (
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Tokens from <span className="font-mono font-medium">{mergingSet}</span> will be added to <span className="font-mono font-medium">{mergeTargetSet}</span>. Conflicts where both sets have the same path but different values will be shown for resolution.
+                </p>
+              )}
+              {mergeChecked && mergeConflicts.length === 0 && (
+                <p className="text-[10px] text-green-500">No conflicts — all tokens can be merged cleanly.</p>
+              )}
+              {mergeChecked && mergeConflicts.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    {mergeConflicts.length} conflict{mergeConflicts.length !== 1 ? 's' : ''} found. Choose which value to keep:
+                  </p>
+                  <div className="flex flex-col gap-2 max-h-52 overflow-y-auto">
+                    {mergeConflicts.map(c => (
+                      <div key={c.path} className="flex flex-col gap-1 rounded border border-[var(--color-figma-border)] p-2">
+                        <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={c.path}>{c.path}</span>
+                        <div className="flex gap-2">
+                          <label className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
+                            <input
+                              type="radio"
+                              name={`conflict-${c.path}`}
+                              checked={mergeResolutions[c.path] === 'source'}
+                              onChange={() => setMergeResolutions(r => ({ ...r, [c.path]: 'source' }))}
+                              className="w-3 h-3 shrink-0"
+                            />
+                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={`${mergingSet}: ${String(c.sourceValue)}`}>
+                              {mergingSet}: {String(c.sourceValue).slice(0, 18)}{String(c.sourceValue).length > 18 ? '…' : ''}
+                            </span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
+                            <input
+                              type="radio"
+                              name={`conflict-${c.path}`}
+                              checked={mergeResolutions[c.path] === 'target'}
+                              onChange={() => setMergeResolutions(r => ({ ...r, [c.path]: 'target' }))}
+                              className="w-3 h-3 shrink-0"
+                            />
+                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={`${mergeTargetSet}: ${String(c.targetValue)}`}>
+                              {mergeTargetSet}: {String(c.targetValue).slice(0, 18)}{String(c.targetValue).length > 18 ? '…' : ''}
+                            </span>
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)]">
+              <button
+                onClick={() => setMergingSet(null)}
+                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+              >Cancel</button>
+              {!mergeChecked ? (
+                <button
+                  onClick={handleCheckMergeConflicts}
+                  disabled={!mergeTargetSet || mergeLoading}
+                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                >{mergeLoading ? 'Checking…' : 'Check conflicts'}</button>
+              ) : (
+                <button
+                  onClick={handleConfirmMerge}
+                  disabled={mergeLoading}
+                  className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+                >{mergeLoading ? 'Merging…' : 'Merge'}</button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Split by group dialog */}
+      {splittingSet && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
+              <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Split "{splittingSet}"</span>
+              <button onClick={() => setSplittingSet(null)} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="p-4 flex flex-col gap-3 overflow-y-auto">
+              {splitPreview.length === 0 ? (
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No top-level groups found in this set to split.</p>
+              ) : (
+                <>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                    Creates {splitPreview.length} new set{splitPreview.length !== 1 ? 's' : ''} from top-level groups:
+                  </p>
+                  <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                    {splitPreview.map(p => (
+                      <div key={p.key} className="flex items-center justify-between px-2 py-1 rounded bg-[var(--color-figma-bg-hover)]">
+                        <span className="text-[11px] font-mono text-[var(--color-figma-text)] truncate">{p.newName}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-2 shrink-0">{p.count} token{p.count !== 1 ? 's' : ''}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {splitPreview.some(p => sets.includes(p.newName)) && (
+                    <p className="text-[10px] text-amber-500">Some sets already exist and will be skipped.</p>
+                  )}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={splitDeleteOriginal}
+                      onChange={e => setSplitDeleteOriginal(e.target.checked)}
+                      className="w-3 h-3 rounded"
+                    />
+                    <span className="text-[11px] text-[var(--color-figma-text)]">Delete "{splittingSet}" after split</span>
+                  </label>
+                </>
+              )}
+            </div>
+            <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)]">
+              <button
+                onClick={() => setSplittingSet(null)}
+                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+              >Cancel</button>
+              <button
+                onClick={handleConfirmSplit}
+                disabled={splitLoading || splitPreview.length === 0}
+                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+              >{splitLoading ? 'Splitting…' : 'Split'}</button>
             </div>
           </div>
         </div>

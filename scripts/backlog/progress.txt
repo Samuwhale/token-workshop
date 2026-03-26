@@ -430,3 +430,26 @@
   - STATE_LABELS and STATE_DESCRIPTIONS were already defined at the top of ThemeManager.tsx and used as `title` tooltips on buttons — the gap was no *persistent* UI (tooltips require hover discovery)
   - Theme switcher in App.tsx is a simple name-only dropdown; status explanations are only needed in ThemeManager where the toggles appear
 ---
+
+## 2026-03-26 - Set merge and split
+- Added "Merge into…" and "Split by group" actions to the set context menu in App.tsx
+- Merge: two-step flow — pick target set → check conflicts (shows per-token radio to keep source or target value) → merge. Tokens unique to source are added; conflicts let user pick winner.
+- Split: fetches top-level groups from the set, previews new set names (`{setName}-{group}` with sanitized keys), optional "delete original after split" checkbox.
+- Both operations use existing API endpoints (`GET/POST /api/sets`, `POST/PATCH /api/tokens/:set/:path`).
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L321 (state), ~L763 (handlers), ~L1336 (menu items), ~L2160 (dialogs)
+- **Learnings for future iterations:**
+  - `flattenTokensObj` helper (inline, not extracted) walks nested token tree to `{ [dotPath]: tokenEntry }` — needed for conflict detection
+  - Split strips the top-level group key from token paths in the new set (e.g., `colors.red` in the original becomes `red` in the `{set}-colors` set)
+  - Group names in tokens can contain dots/special chars; sanitize with `.replace(/[^a-zA-Z0-9_-]/g, '-')` before using as set name
+  - The merge dialog stores `mergeSrcFlat` in state after the conflict-check step to avoid re-fetching source tokens during confirm
+---
+
+## 2026-03-26 - JSON editor view mode
+- Added `'json'` view mode to TokenList toolbar alongside List/Table/Grid/Canvas. Shows raw DTCG nested JSON in a textarea editor with JSON validation, alias reference checking (broken `{refs}` shown as orange badges), Save and Revert buttons. Bi-directionally syncs with list view (list changes update JSON; saving JSON refreshes list). Also added `GET /api/tokens/:set/raw` and `PUT /api/tokens/:set` server endpoints, plus `replaceSetTokens()` method on TokenStore. Empty sets show a placeholder and allow pasting token JSON.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L76 (validateJsonRefs helper), ~L450 (viewMode type + JSON state), ~L1356 (toolbar button), ~L1533 (JSON view render); `packages/server/src/routes/tokens.ts` ~L171 (GET /raw + PUT endpoints); `packages/server/src/services/token-store.ts` ~L196 (replaceSetTokens method)
+- **Learnings for future iterations:**
+  - The GET /api/tokens/:set endpoint returns FLAT dotted-path keys (from `getFlatTokensForSet`), not nested. To show/edit the raw file format, a separate `/raw` endpoint fetching `getSet().tokens` is needed.
+  - The wildcard route `/tokens/:set/*` must be registered AFTER the fixed routes `/tokens/:set/raw` and `/tokens/:set` (PUT) — Fastify routes are matched in registration order.
+  - `viewMode === 'json'` must be checked BEFORE the `tokens.length === 0` guard in the ternary chain so the editor is accessible on empty sets (paste-to-import use case).
+  - Hide the filter bar when `viewMode === 'json'` — search/type filters are irrelevant in the raw JSON view.
+---
