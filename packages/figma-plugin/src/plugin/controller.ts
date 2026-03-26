@@ -8,6 +8,8 @@ const VARIABLE_COLLECTION_NAME = 'TokenManager';
 
 figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
 
+let deepInspectEnabled = false;
+
 // Handle messages from UI
 figma.ui.onmessage = async (msg: PluginMessage) => {
   switch (msg.type) {
@@ -30,6 +32,10 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       await applyToSelection(msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
       break;
     case 'get-selection':
+      await getSelection();
+      break;
+    case 'set-deep-inspect':
+      deepInspectEnabled = msg.enabled;
       await getSelection();
       break;
     case 'remove-binding':

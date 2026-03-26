@@ -110,6 +110,13 @@ export interface SelectionNodeInfo {
   bindings: Record<string, string>; // property -> tokenPath
   capabilities: NodeCapabilities;
   currentValues: Record<string, any>;
+  depth?: number;   // 0 = directly selected, 1+ = nested descendant
+  parentId?: string;
+}
+
+export interface SetDeepInspectMessage {
+  type: 'set-deep-inspect';
+  enabled: boolean;
 }
 
 export interface ApplyToSelectionMessage {

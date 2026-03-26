@@ -102,7 +102,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### UX
 
 - [x] **Create Figma Styles from tokens** — Currently only Figma Variables are supported. Add the ability to create/update Figma Styles (Color, Text, Effect) from tokens. Many teams use styles alongside variables, and Tokens Studio supports both targets.
-- [~] **Batch create variables/styles from group** — Tokens Studio has "Create variables from group" and "Create styles from group" in the group right-click context menu. Add these actions so users can bulk-publish an entire group (e.g., all `colors.brand.*` tokens) to Figma in one click, rather than syncing the entire set.
+- [x] **Batch create variables/styles from group** — Tokens Studio has "Create variables from group" and "Create styles from group" in the group right-click context menu. Add these actions so users can bulk-publish an entire group (e.g., all `colors.brand.*` tokens) to Figma in one click, rather than syncing the entire set.
 
 ---
 
@@ -116,7 +116,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### UX
 
 - [~] **Deep inspect for nested components** — Tokens Studio's Inspect panel can drill into component instances to show tokens applied on nested layers, not just the top-level selection. Ensure our inspector supports recursive inspection of component children with a "Deep inspect" toggle.
-- [ ] **Remap token on selection** — Tokens Studio lets you remap a token binding on a selected layer to a different token (e.g., swap `color.brand.old` for `color.brand.new`) without detaching and re-applying. Add a "Remap" action in the inspector that shows the current binding and lets you pick a replacement token.
+- [~] **Remap token on selection** — Tokens Studio lets you remap a token binding on a selected layer to a different token (e.g., swap `color.brand.old` for `color.brand.new`) without detaching and re-applying. Add a "Remap" action in the inspector that shows the current binding and lets you pick a replacement token.
 - [ ] **Bulk remap across selection** — When renaming or restructuring tokens, allow bulk-remapping all token bindings across the current selection (or page/document) from old paths to new paths. Tokens Studio supports this for migration workflows.
 
 ---

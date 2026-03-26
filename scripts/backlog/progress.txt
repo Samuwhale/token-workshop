@@ -507,3 +507,12 @@
   - Compare by `JSON.stringify` for complex values to detect changes correctly.
   - `VarDiffRowItem` reuses cleanly for StyleDiffRow since both expose `localValue`/`figmaValue` as display strings.
 ---
+
+## 2026-03-26 - Batch create variables/styles from group
+- Added "Create variables from group" (renamed from "Sync this group to Figma") and "Create styles from group" to the group right-click context menu. Variables action sends `apply-variables`, styles action sends `apply-styles` to the Figma plugin. Both show a confirmation modal with token count before executing.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L62, L2486, L2885, L2441, L1822; `packages/figma-plugin/src/ui/App.tsx` ~L395, L757, L2229, L1960
+- **Learnings for future iterations:**
+  - TokenList has two prop interfaces: the outer `TokenListProps` (line ~62) and `TokenTreeNodeProps` (line ~2486) — both need updating when adding group-level actions
+  - The outer TokenList function destructures props at its declaration line and passes them down at a specific `TokenTreeNode` render site (~L1822) — both locations need the new prop
+  - `replace_all` for props in App.tsx can miss occurrences with different indentation levels — verify with grep after replacing
+---
