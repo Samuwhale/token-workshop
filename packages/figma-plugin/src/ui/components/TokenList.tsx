@@ -47,6 +47,28 @@ function nodeParentPath(nodePath: string, nodeName: string): string {
   return nodePath.slice(0, nodePath.length - nodeName.length - 1);
 }
 
+// ---------------------------------------------------------------------------
+// Virtual scroll constants and helpers
+// ---------------------------------------------------------------------------
+const VIRTUAL_ITEM_HEIGHT = 28; // px per row (approximate; overscan compensates for taller rows)
+const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the viewport
+
+/** Flatten the visible portion of a token tree into a depth-annotated list for virtual scrolling. */
+function flattenVisible(
+  nodes: TokenNode[],
+  expandedPaths: Set<string>,
+  depth = 0
+): Array<{ node: TokenNode; depth: number }> {
+  const result: Array<{ node: TokenNode; depth: number }> = [];
+  for (const node of nodes) {
+    result.push({ node, depth });
+    if (node.isGroup && expandedPaths.has(node.path) && node.children) {
+      result.push(...flattenVisible(node.children, expandedPaths, depth + 1));
+    }
+  }
+  return result;
+}
+
 type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage';
 
 interface TokenListProps {
@@ -146,6 +168,9 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const virtualListRef = useRef<HTMLDivElement>(null);
+  const [virtualScrollTop, setVirtualScrollTop] = useState(0);
 
   useEffect(() => {
     if (tokens.length === 0) return;
@@ -187,6 +212,66 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     setExpandedPaths(new Set());
   }, []);
 
+  // Container-level keyboard shortcut handler for the token list
+  const handleListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+
+    // Escape: close create form, exit select mode, or blur search
+    if (e.key === 'Escape') {
+      if (showCreateForm) {
+        e.preventDefault();
+        setShowCreateForm(false);
+        setNewTokenPath('');
+        setSiblingPrefix(null);
+        setCreateError('');
+        return;
+      }
+      if (selectMode) {
+        e.preventDefault();
+        setSelectMode(false);
+        setSelectedPaths(new Set());
+        return;
+      }
+      return;
+    }
+
+    // Don't handle shortcuts when typing in a form field
+    if (isTyping) return;
+
+    // n: open create form
+    if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      setShowCreateForm(true);
+      return;
+    }
+
+    // /: focus search input
+    if (e.key === '/') {
+      e.preventDefault();
+      searchRef.current?.focus();
+      return;
+    }
+
+    // ↑/↓: navigate between visible token rows
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-token-path]'));
+      if (rows.length === 0) return;
+      const currentIndex = rows.findIndex(el => el === document.activeElement);
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = currentIndex > 0 ? rows[currentIndex - 1] : rows[rows.length - 1];
+        prev?.focus();
+        prev?.scrollIntoView({ block: 'nearest' });
+      } else {
+        e.preventDefault();
+        const next = currentIndex < rows.length - 1 ? rows[currentIndex + 1] : rows[0];
+        next?.focus();
+        next?.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }, [showCreateForm, selectMode]);
+
   // Expand ancestor groups when navigating to a highlighted token
   useEffect(() => {
     if (!highlightedToken) return;
@@ -205,6 +290,17 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     const timer = setTimeout(() => onClearHighlight?.(), 3000);
     return () => clearTimeout(timer);
   }, [highlightedToken, onClearHighlight]);
+
+  // Scroll virtual list to bring the highlighted token into view
+  useLayoutEffect(() => {
+    if (!highlightedToken || tableMode || !virtualListRef.current) return;
+    const idx = flatItems.findIndex(item => item.node.path === highlightedToken);
+    if (idx < 0) return;
+    const containerH = virtualListRef.current.clientHeight;
+    const targetScrollTop = Math.max(0, idx * VIRTUAL_ITEM_HEIGHT - containerH / 2 + VIRTUAL_ITEM_HEIGHT / 2);
+    virtualListRef.current.scrollTop = targetScrollTop;
+    setVirtualScrollTop(targetScrollTop);
+  }, [highlightedToken, flatItems, tableMode]);
 
   useEffect(() => {
     if (!moreFiltersOpen) return;
@@ -640,6 +736,12 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     [displayedTokens]
   );
 
+  // Flat list of visible nodes for virtual scrolling (respects expand/collapse state)
+  const flatItems = useMemo(
+    () => (tableMode ? [] : flattenVisible(displayedTokens, expandedPaths)),
+    [displayedTokens, expandedPaths, tableMode]
+  );
+
   const handleSelectAll = () => {
     const allSelected = [...displayedLeafPaths].every(p => selectedPaths.has(p));
     if (allSelected) {
@@ -835,10 +937,27 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
   const modalProps = getDeleteModalProps();
 
+  // Scroll the virtual list to a group header row
+  const handleJumpToGroup = useCallback((groupPath: string) => {
+    const idx = flatItems.findIndex(item => item.node.path === groupPath);
+    if (idx >= 0 && virtualListRef.current) {
+      const targetScrollTop = Math.max(0, idx * VIRTUAL_ITEM_HEIGHT);
+      virtualListRef.current.scrollTop = targetScrollTop;
+      setVirtualScrollTop(targetScrollTop);
+    }
+  }, [flatItems]);
+
+  // Virtual scroll window computation (derived, no memo needed)
+  const virtualContainerH = virtualListRef.current?.clientHeight ?? 500;
+  const virtualStartIdx = Math.max(0, Math.floor(virtualScrollTop / VIRTUAL_ITEM_HEIGHT) - VIRTUAL_OVERSCAN);
+  const virtualEndIdx = Math.min(flatItems.length, Math.ceil((virtualScrollTop + virtualContainerH) / VIRTUAL_ITEM_HEIGHT) + VIRTUAL_OVERSCAN);
+  const virtualTopPad = virtualStartIdx * VIRTUAL_ITEM_HEIGHT;
+  const virtualBottomPad = Math.max(0, (flatItems.length - virtualEndIdx) * VIRTUAL_ITEM_HEIGHT);
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Token tree */}
-      <div className="flex-1 overflow-y-auto">
+    <div className="flex flex-col h-full" onKeyDown={handleListKeyDown}>
+      {/* Toolbars — fixed above the scrollable token list */}
+      <div className="flex-shrink-0">
         {/* Select mode toolbar */}
         {selectMode && (
           <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -945,6 +1064,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         {tokens.length > 0 && !selectMode && (
           <div className={`flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] overflow-hidden ${filtersActive ? 'bg-[var(--color-figma-accent)]/20' : 'bg-[var(--color-figma-bg)]'}`}>
             <input
+              ref={searchRef}
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
@@ -1052,7 +1172,13 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             <span className="ml-1 opacity-60">— click to fix</span>
           </div>
         )}
-
+      </div>
+      {/* Scrollable token content with virtual scroll */}
+      <div
+        ref={virtualListRef}
+        className="flex-1 overflow-y-auto"
+        onScroll={e => setVirtualScrollTop(e.currentTarget.scrollTop)}
+      >
         {inspectMode && selectedNodes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -1154,11 +1280,13 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           </div>
         ) : (
           <div className="py-1">
-            {displayedTokens.map(node => (
+            <div style={{ height: virtualTopPad }} aria-hidden="true" />
+            {flatItems.slice(virtualStartIdx, virtualEndIdx).map(({ node, depth }) => (
               <TokenTreeNode
                 key={node.path}
                 node={node}
-                depth={0}
+                depth={depth}
+                skipChildren
                 onEdit={onEdit}
                 onDelete={requestDeleteToken}
                 onDeleteGroup={requestDeleteGroup}
@@ -1166,7 +1294,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 selectionCapabilities={selectionCapabilities}
                 allTokensFlat={allTokensFlat}
                 selectMode={selectMode}
-                isSelected={selectedPaths.has(node.path)}
+                isSelected={node.isGroup ? false : selectedPaths.has(node.path)}
                 onToggleSelect={toggleSelect}
                 expandedPaths={expandedPaths}
                 onToggleExpand={handleToggleExpand}
@@ -1189,8 +1317,10 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onFilterByType={setTypeFilter}
                 generatorsBySource={generatorsBySource}
                 derivedTokenPaths={derivedTokenPaths}
+                onJumpToGroup={handleJumpToGroup}
               />
             ))}
+            <div style={{ height: virtualBottomPad }} aria-hidden="true" />
           </div>
         )}
       </div>
@@ -1700,6 +1830,8 @@ function TokenTreeNode({
   onFilterByType,
   generatorsBySource,
   derivedTokenPaths,
+  skipChildren,
+  onJumpToGroup,
 }: {
   node: TokenNode;
   depth: number;
@@ -1733,6 +1865,10 @@ function TokenTreeNode({
   onFilterByType?: (type: string) => void;
   generatorsBySource?: Map<string, TokenGenerator[]>;
   derivedTokenPaths?: Set<string>;
+  /** When true, skip recursive children rendering (used by the virtual scroll flat list). */
+  skipChildren?: boolean;
+  /** Callback to scroll the virtual list to a group header by path. */
+  onJumpToGroup?: (path: string) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -1773,12 +1909,12 @@ function TokenTreeNode({
     return () => document.removeEventListener('click', close);
   }, [contextMenuPos]);
 
-  // Scroll highlighted token into view
+  // Scroll highlighted token into view (only when NOT in virtual scroll mode)
   useEffect(() => {
-    if (isHighlighted && nodeRef.current) {
+    if (isHighlighted && nodeRef.current && !skipChildren) {
       nodeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, [isHighlighted]);
+  }, [isHighlighted, skipChildren]);
 
   const resolveResult = isAlias(node.$value)
     ? resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat)
@@ -1866,8 +2002,8 @@ function TokenTreeNode({
           aria-expanded={isExpanded}
           aria-label={`Toggle group ${node.name}`}
           data-group-path={node.path}
-          className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group sticky bg-[var(--color-figma-bg)]"
-          style={{ paddingLeft: `${depth * 16 + 8}px`, top: `${depth * 24}px`, zIndex: Math.max(1, 10 - depth) }}
+          className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)]"
+          style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
           onKeyDown={e => {
             if ((e.key === 'Enter' || e.key === ' ') && !renamingGroup) {
@@ -2020,7 +2156,7 @@ function TokenTreeNode({
           </div>
         )}
 
-        {isExpanded && node.children?.map(child => (
+        {!skipChildren && isExpanded && node.children?.map(child => (
           <TokenTreeNode
             key={child.path}
             node={child}
@@ -2071,14 +2207,42 @@ function TokenTreeNode({
   };
 
   const handleRowKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (node.isGroup || selectMode) return;
-    if (e.key === 'Enter' || e.key === ' ') {
+    if (node.isGroup) return;
+
+    // Enter or e: open editor
+    if (e.key === 'Enter' || (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey)) {
       e.preventDefault();
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setContextMenuPos({
-        x: Math.min(rect.left, window.innerWidth - 168),
-        y: Math.min(rect.bottom, window.innerHeight - 280),
-      });
+      onEdit(node.path);
+      return;
+    }
+
+    // Space: toggle selection in select mode; open context menu otherwise
+    if (e.key === ' ') {
+      e.preventDefault();
+      if (selectMode) {
+        onToggleSelect(node.path);
+      } else {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setContextMenuPos({
+          x: Math.min(rect.left, window.innerWidth - 168),
+          y: Math.min(rect.bottom, window.innerHeight - 280),
+        });
+      }
+      return;
+    }
+
+    // Delete or Backspace: delete token
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      onDelete(node.path);
+      return;
+    }
+
+    // Cmd+D / Ctrl+D: duplicate token
+    if (e.key === 'd' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      onDuplicateToken?.(node.path);
+      return;
     }
   };
 
@@ -2086,16 +2250,21 @@ function TokenTreeNode({
 
   const handleJumpToGroup = (groupPath: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const el = document.querySelector<HTMLElement>(`[data-group-path="${groupPath}"]`);
-    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (onJumpToGroup) {
+      onJumpToGroup(groupPath);
+    } else {
+      const el = document.querySelector<HTMLElement>(`[data-group-path="${groupPath}"]`);
+      el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   };
 
   return (
     <div ref={nodeRef}>
     <div
-      className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''}`}
+      className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       tabIndex={selectMode ? -1 : 0}
+      data-token-path={node.path}
       onMouseEnter={() => { setHovered(true); if (inspectMode) onHoverToken?.(node.path); }}
       onMouseLeave={() => { setHovered(false); setShowPicker(false); }}
       onContextMenu={handleContextMenu}

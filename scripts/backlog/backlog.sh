@@ -9,6 +9,14 @@
 
 set -e
 
+STOP_REQUESTED=0
+graceful_stop() {
+  STOP_REQUESTED=1
+  echo ""
+  echo "  → Stop requested — will exit after current item completes."
+}
+trap graceful_stop INT TERM
+
 TOOL="claude"
 MAX_ITERATIONS=20
 
@@ -68,7 +76,7 @@ JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["d
 
 echo "Starting Backlog Runner — Tool: $TOOL — Max iterations: $MAX_ITERATIONS"
 echo "  Remaining items: $(remaining)"
-echo "  Stop signal:     touch $STOP_FILE"
+echo "  Stop signal:     Ctrl+C  (or: touch $STOP_FILE)"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
   REMAINING=$(remaining)
@@ -84,6 +92,9 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     exit 0
   fi
 
+  # Ignore SIGINT during agent run so Ctrl+C doesn't kill it mid-task.
+  # SIG_IGN is inherited across exec(), so the agent subprocess is protected too.
+  trap '' INT
   if [[ "$TOOL" == "amp" ]]; then
     OUTPUT=$(cat "$SCRIPT_DIR/CLAUDE.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
   else
@@ -107,6 +118,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
     rm -f "$CONTEXT_FILE"
   fi
+  trap graceful_stop INT
 
   # Detect completion via structured JSON output
   STATUS=$(echo "$OUTPUT" | jq -r \
@@ -117,6 +129,20 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     echo "Backlog completed all tasks!"
     echo "Completed at iteration $i / $MAX_ITERATIONS"
     exit 0
+  fi
+
+  # Push after each completed or failed item
+  if [ "$STATUS" = "done" ]; then
+    ITEM=$(echo "$OUTPUT" | jq -r \
+      'try (.result | if type == "string" then fromjson else . end | .item) catch ""' \
+      2>/dev/null || echo "backlog item")
+    if [ -n "$(git -C "$PROJECT_ROOT" status --porcelain 2>/dev/null)" ]; then
+      echo ""
+      echo "--- Pushing: $ITEM ---"
+      git -C "$PROJECT_ROOT" add -A
+      git -C "$PROJECT_ROOT" commit -m "chore(backlog): $STATUS – $ITEM" || true
+      git -C "$PROJECT_ROOT" push || true
+    fi
   fi
 
   # Drain inbox: if backlog-inbox.md has non-whitespace content, append to backlog.md and clear it
@@ -136,15 +162,15 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     echo "$SUMMARY"
   fi
 
-  # Graceful stop
-  if [ -f "$STOP_FILE" ]; then
-    rm -f "$STOP_FILE"
+  # Graceful stop — triggered by Ctrl+C (STOP_REQUESTED) or stop file
+  if [ "$STOP_REQUESTED" -eq 1 ] || [ -f "$STOP_FILE" ]; then
+    [ -f "$STOP_FILE" ] && rm -f "$STOP_FILE"
     echo ""
     echo "Stop signal received. Exiting after iteration $i."
     exit 0
   fi
 
-  sleep 2
+  sleep 2 || true
 done
 
 echo ""

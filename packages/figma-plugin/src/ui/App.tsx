@@ -40,7 +40,7 @@ import { PasteTokensModal } from './components/PasteTokensModal';
 import { QuickStartDialog } from './components/QuickStartDialog';
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
-import type { Command } from './components/CommandPalette';
+import type { Command, TokenEntry } from './components/CommandPalette';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
@@ -128,6 +128,9 @@ export function App() {
   const [highlightedToken, setHighlightedToken] = useState<string | null>(null);
   const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearConfirmText, setClearConfirmText] = useState('');
+  const [clearing, setClearing] = useState(false);
   const { toastVisible, slot: undoSlot, pushUndo, executeUndo, dismissToast } = useUndo();
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
@@ -503,6 +506,34 @@ export function App() {
     refreshTokens();
   };
 
+  const handleClearAll = async () => {
+    if (clearConfirmText !== 'DELETE') return;
+    setClearing(true);
+    try {
+      await fetch(`${serverUrl}/api/data`, { method: 'DELETE' });
+    } catch {
+      // best-effort
+    }
+    // Clear all plugin localStorage keys
+    const keysToRemove = ['tm_active_tab', 'tm_active_set', 'analytics_canonicalPick', 'themeCardOrder', 'importTargetSet'];
+    for (const key of keysToRemove) {
+      try { localStorage.removeItem(key); } catch {}
+    }
+    // Clear per-set sort/filter keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('token-sort:') || k.startsWith('token-type-filter:'))) {
+        try { localStorage.removeItem(k); } catch {}
+      }
+    }
+    setClearing(false);
+    setShowClearConfirm(false);
+    setClearConfirmText('');
+    setOverflowPanel(null);
+    setActiveTabState('tokens');
+    refreshTokens();
+  };
+
   const openOverflowPanel = (panel: OverflowPanel) => {
     setMenuOpen(false);
     setOverflowPanel(panel);
@@ -515,68 +546,88 @@ export function App() {
         id: 'new-token',
         label: 'Create new token',
         description: `In set: ${activeSet}`,
+        category: 'Tokens',
         handler: () => { goToTokens(); },
       },
       {
         id: 'paste-tokens',
         label: 'Paste tokens',
-        description: 'Create tokens from JSON or name:value lines (⌘⇧V)',
+        description: 'Create tokens from JSON or name:value lines',
+        category: 'Tokens',
+        shortcut: '⌘⇧V',
         handler: () => setShowPasteModal(true),
       },
       {
         id: 'find-replace-names',
         label: 'Find & Replace (names)',
         description: 'Rename token paths by pattern',
+        category: 'Tokens',
         handler: goToTokens,
       },
       {
         id: 'import',
         label: 'Import',
         description: 'Import tokens from a file',
+        category: 'Data',
         handler: () => openOverflowPanel('import'),
       },
       {
         id: 'export',
         label: 'Export',
         description: 'Export tokens as CSS, JSON, or other formats',
+        category: 'Data',
         handler: () => openOverflowPanel('export'),
       },
       {
         id: 'settings',
         label: 'Server Settings',
+        category: 'Settings',
         handler: () => openOverflowPanel('settings'),
       },
       {
         id: 'themes',
         label: 'Switch to Themes',
+        category: 'Navigation',
         handler: () => setActiveTab('themes'),
       },
       {
         id: 'sync',
         label: 'Switch to Sync',
+        category: 'Navigation',
         handler: () => setActiveTab('sync'),
       },
       {
         id: 'analytics',
         label: 'Switch to Analytics',
+        category: 'Navigation',
         handler: () => setActiveTab('analytics'),
       },
       {
         id: 'validate',
         label: 'Validate All Tokens',
         description: 'Run cross-set validation for broken aliases, circular refs, and more',
+        category: 'Tokens',
         handler: () => { setActiveTab('analytics'); setValidateKey(k => k + 1); },
       },
       ...sets.map(s => ({
         id: `switch-set-${s}`,
         label: `Switch to set: ${s}`,
         description: `${setTokenCounts[s] ?? 0} tokens`,
+        category: 'Sets',
         handler: () => { setActiveSet(s); goToTokens(); },
       })),
     ];
     return cmds;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSet, sets, setTokenCounts]);
+
+  // Flat token list for command palette token search mode
+  const paletteTokens: TokenEntry[] = useMemo(() => {
+    return Object.entries(allTokensFlat).map(([path, entry]) => ({
+      path,
+      type: entry.$type,
+    }));
+  }, [allTokensFlat]);
 
   return (
     <div className="flex flex-col h-screen">
@@ -926,6 +977,55 @@ export function App() {
                   </button>
                 </div>
               </div>
+              <div className="rounded border border-[var(--color-figma-error)] overflow-hidden opacity-80">
+                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-error)] font-medium uppercase tracking-wide">
+                  Danger Zone
+                </div>
+                <div className="p-3 flex flex-col gap-2">
+                  {!showClearConfirm ? (
+                    <>
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                        Permanently deletes all tokens, themes, and sets. This cannot be undone.
+                      </p>
+                      <button
+                        onClick={() => { setShowClearConfirm(true); setClearConfirmText(''); }}
+                        className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-error)] text-[var(--color-figma-error)] text-[11px] font-medium hover:bg-[var(--color-figma-error)] hover:text-white transition-colors"
+                      >
+                        Clear all data…
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                        Type <span className="font-mono font-bold text-[var(--color-figma-error)]">DELETE</span> to confirm.
+                      </p>
+                      <input
+                        type="text"
+                        value={clearConfirmText}
+                        onChange={e => setClearConfirmText(e.target.value)}
+                        placeholder="DELETE"
+                        autoFocus
+                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-error)] text-[var(--color-figma-text)] text-[11px] outline-none font-mono"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setShowClearConfirm(false); setClearConfirmText(''); }}
+                          className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleClearAll}
+                          disabled={clearConfirmText !== 'DELETE' || clearing}
+                          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-error)] text-white text-[11px] font-medium disabled:opacity-40 hover:opacity-90 transition-opacity"
+                        >
+                          {clearing ? 'Clearing…' : 'Clear all data'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
             </>
           )}
@@ -1134,6 +1234,23 @@ export function App() {
       {showCommandPalette && (
         <CommandPalette
           commands={commands}
+          tokens={paletteTokens}
+          onGoToToken={(path) => {
+            const targetSet = pathToSet[path];
+            setActiveTab('tokens');
+            setOverflowPanel(null);
+            setEditingToken(null);
+            if (targetSet && targetSet !== activeSet) {
+              setActiveSet(targetSet);
+              setPendingHighlight(path);
+            } else {
+              setHighlightedToken(path);
+            }
+          }}
+          onCopyTokenCssVar={(path) => {
+            const cssVar = `--${path.replace(/\./g, '-')}`;
+            navigator.clipboard.writeText(cssVar).catch(() => {});
+          }}
           onClose={() => setShowCommandPalette(false)}
         />
       )}

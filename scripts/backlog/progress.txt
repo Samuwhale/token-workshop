@@ -1,2 +1,66 @@
 # Backlog Progress Log
 ---
+
+## 2026-03-26 - Keyboard navigation in the token list
+- Added `searchRef` to the search input for `/` shortcut focus
+- Added `handleListKeyDown` on the outer container: ↑/↓ navigates between `[data-token-path]` rows, `n` opens create form, `/` focuses search, `Escape` closes create form or exits select mode
+- Updated `handleRowKeyDown` in `TokenTreeNode`: `Enter`/`e` → open editor, `Space` → toggle select (in select mode) or context menu, `Delete`/`Backspace` → delete with confirmation, `Cmd+D`/`Ctrl+D` → duplicate
+- Added `data-token-path={node.path}` to leaf token row divs (used by ↑/↓ navigation)
+- Added `focus-visible:ring-1` focus ring on rows for keyboard visibility
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L148, ~L189, ~L900, ~L1010, ~L2135, ~L2185
+- **Learnings for future iterations:**
+  - `[data-token-path]` attribute on leaf rows enables `querySelectorAll`-based ↑/↓ navigation without a virtual focus state
+  - `focus-visible:ring-*` is the right CSS for keyboard-only focus rings (not `:focus` which would show on click)
+  - The container `onKeyDown` naturally receives events from focused children via bubbling — no `document.addEventListener` needed
+  - Check `target.tagName` for INPUT/TEXTAREA/SELECT before acting on letter shortcuts like `n` and `/`
+---
+
+## 2026-03-26 - Token-specific commands and fuzzy token search in command palette
+- Added `category?` and `shortcut?` fields to the `Command` interface
+- Added `TokenEntry` type and `tokens`/`onGoToToken`/`onCopyTokenCssVar` props to `CommandPalette`
+- Implemented `>` prefix token search mode: typing `>color.brand` switches to token search, results show token path + type, Enter navigates, CSS button copies CSS var
+- Added command category grouping with section headers when no query is active
+- Added keyboard shortcut display (`<kbd>` badges) on command rows
+- Added recent actions section using `localStorage` key `tm_palette_recent` (last 5 executed commands shown at top when no query)
+- Updated all existing commands in App.tsx with `category` and `shortcut` metadata
+- Added `paletteTokens` useMemo in App.tsx (from `allTokensFlat`) and wired `onGoToToken`/`onCopyTokenCssVar` handlers to palette
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` (full rewrite), `packages/figma-plugin/src/ui/App.tsx` ~L542, ~L629, ~L1233
+- **Learnings for future iterations:**
+  - `allTokensFlat` is already loaded in App.tsx on connection — just pass it to the palette as `TokenEntry[]`
+  - `handleNavigateToAlias` pattern (check `pathToSet`, use `setPendingHighlight` if cross-set) is the right model for "Go to token" navigation
+  - `navigator.clipboard.writeText` works inside Figma plugin iframes for copy actions
+  - `data-palette-item` attribute on list items is needed to scroll active item into view via `querySelectorAll`
+---
+
+## 2026-03-26 - Add "Clear All Data" action
+- Added `clearAll()` method to `TokenStore` that deletes all `.tokens.json` files and `$themes.json`
+- Added `DELETE /api/data` route in `sets.ts` that calls `tokenStore.clearAll()`
+- Added "Danger Zone" section to the Settings panel in `App.tsx` with a two-step confirmation: a "Clear all data…" button reveals an inline confirmation requiring the user to type "DELETE", then a red "Clear all data" button executes the wipe
+- On confirm: calls the server endpoint, clears all plugin localStorage keys (tm_active_tab, tm_active_set, analytics_canonicalPick, themeCardOrder, importTargetSet, token-sort:*, token-type-filter:*), then refreshes token state
+- Files changed: `packages/server/src/services/token-store.ts` ~L192, `packages/server/src/routes/sets.ts` ~L87, `packages/figma-plugin/src/ui/App.tsx` ~L130, ~L509, ~L960
+- **Learnings for future iterations:**
+  - The settings panel is inline in `App.tsx` (no separate SettingsPanel.tsx component) — the backlog path reference was stale
+  - localStorage iteration for prefix-based clearing must use indexed access (`localStorage.key(i)`) since `localStorage.length` reflects live state
+  - `color-figma-error` CSS variable is the correct token for red/destructive UI in this codebase
+---
+
+## 2026-03-26 - Virtual scrolling for large token sets
+- Added `flattenVisible()` helper that walks the token tree and returns `Array<{node, depth}>` respecting expand/collapse state
+- Added `VIRTUAL_ITEM_HEIGHT = 28` and `VIRTUAL_OVERSCAN = 8` constants
+- Added `virtualListRef` and `virtualScrollTop` state to `TokenList`
+- Added `flatItems` useMemo (derives from `displayedTokens` + `expandedPaths`, disabled in table mode)
+- Restructured render: toolbars moved into a `flex-shrink-0` wrapper; new `flex-1 overflow-y-auto` scroll container wraps only the token content area
+- Tree render section replaced with virtual window: top/bottom padding spacers + slice of `flatItems`
+- Added `skipChildren` prop to `TokenTreeNode`: when true, skips recursive children render (flat list owns child ordering)
+- Added `onJumpToGroup` prop to `TokenTreeNode`: replaces DOM-based `scrollIntoView` with a callback that sets `virtualListRef.current.scrollTop`
+- Added `useLayoutEffect` to scroll virtual list to highlighted token by index
+- Removed `sticky` positioning from group headers (incompatible with flat virtual list)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L50-75 (helpers), ~L172 (refs), ~L296 (effect), ~L741 (memo), ~L938-960 (handler + window vars), ~L964 (render restructure), ~L1282-1325 (virtual render), ~L1833 (TokenTreeNode props), ~L2005 (group header), ~L2159 (children guard)
+- **Learnings for future iterations:**
+  - Splitting toolbar (flex-shrink-0) from scrollable content (flex-1 overflow-y-auto) is the prerequisite for any virtual scroll in a panel that has both toolbars and a list
+  - Virtual scroll with padding spacers (top/bottom `<div style={{height}}>`) is simpler than the translate3d approach and works well with React
+  - `skipChildren` flag on the recursive tree component is the minimal change needed to convert recursive rendering to flat-list rendering — no separate component split required
+  - Variable row heights (rows with descriptions) cause slight scroll position errors; overscan of 8 items compensates adequately for a plugin UI
+  - `useLayoutEffect` (not `useEffect`) for scroll-to-highlighted prevents flash of wrong scroll position
+  - Keyboard ↑/↓ navigation (`querySelectorAll('[data-token-path]')`) still works in virtual scroll since it only traverses visible DOM nodes — acceptable limitation for small navigation steps
+---

@@ -84,6 +84,16 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // DELETE /api/data — wipe all sets and themes (danger zone)
+  fastify.delete('/data', async (_request, reply) => {
+    try {
+      await fastify.tokenStore.clearAll();
+      return { cleared: true };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to clear data', detail: String(err) });
+    }
+  });
+
   // DELETE /api/sets/:name — delete a set
   fastify.delete<{ Params: { name: string } }>('/sets/:name', async (request, reply) => {
     const { name } = request.params;

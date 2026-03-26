@@ -189,6 +189,18 @@ export class TokenStore {
     return true;
   }
 
+  async clearAll(): Promise<void> {
+    const names = Array.from(this.sets.keys());
+    for (const name of names) {
+      const filePath = path.join(this.dir, `${name}.tokens.json`);
+      await fs.unlink(filePath).catch(() => {});
+    }
+    this.sets.clear();
+    this.flatTokens.clear();
+    const themesPath = path.join(this.dir, '$themes.json');
+    await fs.unlink(themesPath).catch(() => {});
+  }
+
   async renameSet(oldName: string, newName: string): Promise<void> {
     if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
       throw new Error('Set name must contain only alphanumeric characters, dashes, and underscores');
