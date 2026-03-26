@@ -2598,6 +2598,9 @@ function TokenTreeNode({
   const syncChanged = !node.isGroup && syncSnapshot && node.path in syncSnapshot
     && syncSnapshot[node.path] !== stableStringify(node.$value);
 
+  // Cascade diff: token resolves to a different value under the proposed set order
+  const cascadeChange = !node.isGroup ? cascadeDiff?.[node.path] : undefined;
+
   const handleCopyPath = () => {
     const cssVar = '--' + node.path.replace(/\./g, '-');
     navigator.clipboard.writeText(cssVar).catch(() => {});
@@ -3014,7 +3017,7 @@ function TokenTreeNode({
   return (
     <div ref={nodeRef}>
     <div
-      className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''}`}
+      className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       tabIndex={selectMode ? -1 : 0}
       data-token-path={node.path}
@@ -3225,6 +3228,28 @@ function TokenTreeNode({
           </span>
         ) : null;
       })()}
+
+      {/* Cascade diff badge — shown when set reorder would change this token's resolved value */}
+      {cascadeChange && (
+        <span
+          className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded border border-amber-400/60 bg-amber-500/10 text-[8px] shrink-0"
+          title={`Would change: ${formatValue(node.$type, cascadeChange.before)} → ${formatValue(node.$type, cascadeChange.after)}`}
+        >
+          {node.$type === 'color' && typeof cascadeChange.before === 'string' ? (
+            <span style={{ backgroundColor: cascadeChange.before }} className="w-2.5 h-2.5 rounded-sm border border-black/10 shrink-0 inline-block" />
+          ) : (
+            <span className="text-[var(--color-figma-text-secondary)] max-w-[36px] truncate">{formatValue(node.$type, cascadeChange.before)}</span>
+          )}
+          <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-amber-500 shrink-0" aria-hidden="true">
+            <path d="M1 3h4M3 1l2 2-2 2"/>
+          </svg>
+          {node.$type === 'color' && typeof cascadeChange.after === 'string' ? (
+            <span style={{ backgroundColor: cascadeChange.after }} className="w-2.5 h-2.5 rounded-sm border border-black/10 shrink-0 inline-block" />
+          ) : (
+            <span className="text-amber-700 max-w-[36px] truncate">{formatValue(node.$type, cascadeChange.after)}</span>
+          )}
+        </span>
+      )}
 
       {/* Lint violation indicators */}
       {lintViolations.length > 0 && (

@@ -477,3 +477,12 @@
   - Using a single `useEffect(() => { cb?.(state) }, [state])` to lift state is cleaner than threading the callback through every setter call site.
   - The token list re-render is already reactive to `themes` changes because `themedAllTokensFlat` is a useMemo with `themes` as a dependency — no additional wiring needed.
 ---
+
+## 2026-03-26 - Cascade visualization on set reorder
+- Implemented live cascade diff overlay when dragging set tabs. During drag, computes a proposed token resolution with the reordered set order and diffs against current. Token rows that would resolve differently get an amber highlight ring + a compact before→after badge (color swatches for color tokens, text for others).
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L98 (fetchAllTokensFlatWithSets now returns perSetFlat); `packages/figma-plugin/src/ui/App.tsx` ~L195 (perSetFlat state), ~L316 (cascadeDiff useMemo), ~L1927/1974/2005 (pass cascadeDiff to TokenList); `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L68 (TokenListProps), ~L160 (destructure), ~L1823 (pass to TokenTreeNode), ~L2442/2487 (TokenTreeNode params), ~L2601 (cascadeChange var), ~L3020 (row highlight), ~L3231 (badge)
+- **Learnings for future iterations:**
+  - The per-set raw token data needed for cascade preview isn't stored in state by default — it must be explicitly collected alongside the merged flat map in fetchAllTokensFlatWithSets.
+  - The cascade diff should only activate when no theme is active (activeTheme === null), because the theme-aware merge uses pathToSet-filtered logic that is independent of set tab order.
+  - Color swatches in badges: use `style={{ backgroundColor: value }}` with `w-2.5 h-2.5 rounded-sm border border-black/10` for the swatch inline element. Only show for color type with string values.
+---
