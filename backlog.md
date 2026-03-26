@@ -116,11 +116,11 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### UX
 
-- [~] **UX audit & overhaul: Analytics Panel** — Read the analytics panel, validation issue list, and set statistics components, research how linting/validation UIs work in developer tools (ESLint output, design linters), audit how issues are displayed and how users navigate from an issue to the affected token, identify friction (is it clear what an issue means? is the fix obvious?), then redesign: improve issue grouping and severity visual hierarchy, make "navigate to token" and "auto-fix" actions prominent, and ensure the stats view communicates coverage at a glance. `packages/plugin/src/components/AnalyticsPanel.tsx`
+- [x] **UX audit & overhaul: Analytics Panel** — Read the analytics panel, validation issue list, and set statistics components, research how linting/validation UIs work in developer tools (ESLint output, design linters), audit how issues are displayed and how users navigate from an issue to the affected token, identify friction (is it clear what an issue means? is the fix obvious?), then redesign: improve issue grouping and severity visual hierarchy, make "navigate to token" and "auto-fix" actions prominent, and ensure the stats view communicates coverage at a glance. `packages/plugin/src/components/AnalyticsPanel.tsx`
 
 ### UI
 
-- [ ] **UI audit & overhaul: Analytics Panel** — Read the analytics layout, audit the visual design of issue rows, severity badges, set statistics cards, and coverage charts, then redesign: use consistent severity colour coding, improve stat card layout, and ensure the panel feels informational rather than alarming. `packages/plugin/src/components/AnalyticsPanel.tsx`
+- [~] **UI audit & overhaul: Analytics Panel** — Read the analytics layout, audit the visual design of issue rows, severity badges, set statistics cards, and coverage charts, then redesign: use consistent severity colour coding, improve stat card layout, and ensure the panel feels informational rather than alarming. `packages/plugin/src/components/AnalyticsPanel.tsx`
 
 ### QA
 

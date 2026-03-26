@@ -179,3 +179,17 @@
   - When form inputs have a clear priority order (most-important first), reordering them reduces cognitive load without any additional code
   - Inline helper text below inputs (showing the result format) is a lightweight way to make naming conventions obvious without tooltips
 ---
+
+## 2026-03-26 - UX audit & overhaul: Analytics Panel
+- Sorted validation issues by severity (errors → warnings → info) when filter is "all"
+- Made severity badges text labels ("Error"/"Warn"/"Info") with coloured backgrounds instead of icon-only (✕/⚠/ℹ)
+- Integrated set name inline with token path (same line, subdued) instead of a third separate row
+- Showed `suggestedFix` text in issue rows (was captured but never rendered) with a pencil icon prefix
+- Made "Jump" button a bordered pill ("Go →") with accent colour instead of a plain underline link
+- Replaced all ▲/▼ unicode chevrons with SVG chevrons per codebase pattern (Contrast Matrix, Duplicate Colors, Scale Inspector, Coverage)
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L265, ~L402, ~L530, ~L590, ~L648, ~L738
+- **Learnings for future iterations:**
+  - Check `suggestedFix` field on ValidationIssue — it was already wired server-side but never rendered in the UI
+  - Issue rows with path + message + setName benefit from inlining setName next to path (subdued) rather than a third standalone row
+  - `[...arr].sort()` is needed before sorting (don't mutate state directly in render)
+---

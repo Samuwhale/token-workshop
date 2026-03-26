@@ -263,7 +263,12 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const sortedTypes = Object.entries(allByType).sort((a, b) => b[1] - a[1]);
 
   const filteredIssues = validateResults
-    ? (severityFilter === 'all' ? validateResults : validateResults.filter(i => i.severity === severityFilter))
+    ? (severityFilter === 'all'
+        ? [...validateResults].sort((a, b) => {
+            const order = { error: 0, warning: 1, info: 2 } as const;
+            return order[a.severity] - order[b.severity];
+          })
+        : validateResults.filter(i => i.severity === severityFilter))
     : null;
 
   const severityCounts = validateResults
@@ -401,26 +406,37 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             <div className="divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
               {(filteredIssues ?? []).map((issue, i) => (
                 <div key={i} className="px-3 py-2 flex items-start gap-2">
-                  <span className={`text-[9px] px-1 py-0.5 rounded border shrink-0 mt-0.5 ${
+                  <span className={`text-[9px] px-1 py-0.5 rounded border shrink-0 mt-0.5 font-medium ${
                     issue.severity === 'error'
-                      ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)]'
+                      ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5'
                       : issue.severity === 'warning'
-                      ? 'border-yellow-500 text-yellow-700'
+                      ? 'border-[var(--color-figma-warning)] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10'
                       : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
                   }`}>
-                    {issue.severity === 'error' ? '✕' : issue.severity === 'warning' ? '⚠' : 'ℹ'}
+                    {issue.severity === 'error' ? 'Error' : issue.severity === 'warning' ? 'Warn' : 'Info'}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-[var(--color-figma-text)] font-medium truncate">{issue.path}</div>
-                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">{issue.message}</div>
-                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-70">set: {issue.setName}</div>
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-[10px] text-[var(--color-figma-text)] font-medium font-mono truncate">{issue.path}</span>
+                      <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">{issue.setName}</span>
+                    </div>
+                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">{issue.message}</div>
+                    {issue.suggestedFix && (
+                      <div className="text-[9px] text-[var(--color-figma-accent)] mt-0.5 flex items-center gap-1">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                        </svg>
+                        {issue.suggestedFix}
+                      </div>
+                    )}
                   </div>
                   {onNavigateToToken && (
                     <button
                       onClick={() => onNavigateToToken(issue.path, issue.setName)}
-                      className="text-[9px] text-[var(--color-figma-accent)] hover:underline shrink-0"
+                      className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                      title="Go to token"
                     >
-                      Jump
+                      Go →
                     </button>
                   )}
                 </div>
@@ -528,7 +544,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
           >
             <span>Color Contrast Matrix ({colorTokens.length} tokens)</span>
-            <span>{showContrastMatrix ? '▲' : '▼'}</span>
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showContrastMatrix ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
           </button>
           {showContrastMatrix && (
             <div className="overflow-auto max-h-80 p-2">
@@ -558,8 +574,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                         const aa = r !== null && r >= 4.5;
                         const aaa = r !== null && r >= 7;
                         return (
-                          <td key={bg.path} title={`${fg.path} on ${bg.path}: ${r?.toFixed(2)}:1`} className={`px-1 py-0.5 text-center ${aaa ? 'bg-[var(--color-figma-success)]/20' : aa ? 'bg-yellow-50' : 'bg-[var(--color-figma-error)]/10'}`}>
-                            <span className={aaa ? 'text-[var(--color-figma-success)]' : aa ? 'text-yellow-700' : 'text-[var(--color-figma-error)]'}>
+                          <td key={bg.path} title={`${fg.path} on ${bg.path}: ${r?.toFixed(2)}:1`} className={`px-1 py-0.5 text-center ${aaa ? 'bg-[var(--color-figma-success)]/20' : aa ? 'bg-[var(--color-figma-warning)]/10' : 'bg-[var(--color-figma-error)]/10'}`}>
+                            <span className={aaa ? 'text-[var(--color-figma-success)]' : aa ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-error)]'}>
                               {r !== null ? r.toFixed(1) : '—'}
                             </span>
                           </td>
@@ -587,10 +603,10 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
           >
             <span className="flex items-center gap-1.5">
-              <span className="text-yellow-600">⚠</span>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-600" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
               Duplicate Colors ({duplicateGroups.length} group{duplicateGroups.length !== 1 ? 's' : ''})
             </span>
-            <span>{showDuplicates ? '▲' : '▼'}</span>
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showDuplicates ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
           </button>
           {showDuplicates && (
             <div className="divide-y divide-[var(--color-figma-border)]">
@@ -648,7 +664,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             className="w-full px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide"
           >
             <span>Color Scale Lightness ({colorScales.length} scale{colorScales.length !== 1 ? 's' : ''})</span>
-            <span>{showScaleInspector ? '▲' : '▼'}</span>
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showScaleInspector ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
           </button>
           {showScaleInspector && (
             <div className="divide-y divide-[var(--color-figma-border)] p-3 flex flex-col gap-4">
@@ -737,7 +753,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                   className="w-full px-3 py-2 flex items-center justify-between text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
                 >
                   <span>Untokenized components ({coverageResult.untokenized.length})</span>
-                  <span>{showCoverage ? '▲' : '▼'}</span>
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showCoverage ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
                 </button>
                 {showCoverage && (
                   <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
