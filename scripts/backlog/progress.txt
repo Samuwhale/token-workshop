@@ -387,3 +387,14 @@
   - `scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })` prevents jarring jumps while keeping the active tab visible
   - `opacity-40` (not `opacity-0`) for always-visible-but-subtle affordances — users see something is there without it being visually noisy
 ---
+
+## 2026-03-26 - Fix plugin crash: ReferenceError: Cannot access 'It' before initialization
+- Investigated circular dependencies with madge (none found) and build output (clean)
+- Root cause: `ErrorBoundary` class was defined at lines 4–27 of `App.tsx`, BEFORE all other import statements (lines 28–52). Class declarations (unlike function declarations) are not hoisted and have a temporal dead zone. When Vite/Rollup inlines modules, the class could be placed after code that references it in the bundled output.
+- Fix: moved `ErrorBoundary` to after all import statements (now placed between the last import and `useSyncBindings`)
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1 (imports reorganized)
+- **Learnings for future iterations:**
+  - Class declarations have TDZ (like `let`/`const`) — never define them before import statements
+  - `madge --circular --extensions ts,tsx src/` is the right command for circular dep detection in this codebase
+  - The minified variable name in a crash report (`It`, `Jt`, etc.) changes each build — don't rely on it to identify the root cause; focus on structural issues instead
+---
