@@ -8,7 +8,9 @@ Codebase patterns are already injected into your context — no need to read a s
 ## Workflow (one item per session)
 
 1. **Read `backlog.md`** in the project root. Find all `[ ]` items. Skip any currently `[~]` (in-progress by another run).
-2. **Pick ONE item** — prefer simpler, self-contained items (single file, obviously scoped change).
+2. **Pick ONE item** using this priority order:
+   - **First:** any item tagged `[HIGH]` or `[P0]` — pick the first one found, regardless of complexity.
+   - **Otherwise:** prefer simpler, self-contained items (single file, obviously scoped change).
 3. **Mark `[~]` first** — this is your very first file write, before touching any source file.
 4. **Assess complexity:**
    - *Simple* (single file, change is obviously scoped): plan inline, execute, validate.

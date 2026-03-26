@@ -497,3 +497,16 @@
   - The `ColorScaleGenerator` → `onConfirm(firstPath)` → `setPendingHighlight(firstPath)` pattern is the canonical way to highlight newly created tokens after a modal flow
   - When a dialog's `onSaved` is `() => void`, the parent can't know what was created — always pass a `info` object with at minimum `{ targetGroup }` so callers can highlight or navigate
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Export Tokens
+- Added mode description line below the segmented toggle explaining what each mode does in plain language
+- Added file download button alongside the copy button in each generated file's action bar (uses Blob URL download)
+- Added transient "Copied" feedback state on the per-file copy button (1.5s, reverts to "Copy")
+- Auto-expands the first result file after export completes so users see output immediately without manual clicks
+- Renamed "Save to Token Server" → "Import into Token Server" in the Figma Variables footer for clarity
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L54, ~L120, ~L219, ~L353, ~L473, ~L748
+- **Learnings for future iterations:**
+  - `URL.createObjectURL` + programmatic `<a>` click is the correct pattern for file download inside a Figma plugin iframe
+  - Auto-expanding the first result with `setExpandedFile(flatFiles[0]?.path)` is a 1-line win after any "generate" action
+  - Transient copy feedback (setTimeout reset) avoids needing a toast for per-item copy confirmations
+---

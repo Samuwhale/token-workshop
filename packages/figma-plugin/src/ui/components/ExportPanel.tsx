@@ -52,6 +52,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<{ platform: string; path: string; content: string }[]>([]);
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
+  const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
   // Figma variables export state
   const [figmaLoading, setFigmaLoading] = useState(false);
@@ -117,6 +118,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         }
       }
       setResults(flatFiles);
+      if (flatFiles.length > 0) setExpandedFile(flatFiles[0].path);
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Exported ${flatFiles.length} file(s)` } }, '*');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -193,6 +195,23 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     }
 
     return JSON.stringify(output, null, 2);
+  };
+
+  const handleDownloadFile = (file: { path: string; content: string }) => {
+    const blob = new Blob([file.content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.path.split('/').pop() || 'tokens.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCopyFile = (file: { path: string; content: string }) => {
+    navigator.clipboard.writeText(file.content);
+    setCopiedFile(file.path);
+    setTimeout(() => setCopiedFile(null), 1500);
+    parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied to clipboard' } }, '*');
   };
 
   const handleCopyAll = () => {
@@ -346,6 +365,13 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           </button>
         </div>
 
+        {/* Mode description */}
+        <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed -mt-1">
+          {mode === 'platforms'
+            ? 'Generate code files from your token server — CSS variables, Dart, Swift, Android XML, or W3C JSON.'
+            : 'Read variables directly from this Figma file and copy or import them into the token server.'}
+        </div>
+
         {/* Platform export mode */}
         {mode === 'platforms' && (
           <>
@@ -444,19 +470,42 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                             <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
                               {file.content.split('\n').length} lines
                             </span>
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(file.content);
-                                parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied to clipboard' } }, '*');
-                              }}
-                              className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                            >
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <rect x="9" y="9" width="13" height="13" rx="2" />
-                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                              </svg>
-                              Copy
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleDownloadFile(file)}
+                                className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                                title="Download file"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                                  <polyline points="7 10 12 15 17 10" />
+                                  <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                Download
+                              </button>
+                              <button
+                                onClick={() => handleCopyFile(file)}
+                                className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                                title="Copy to clipboard"
+                              >
+                                {copiedFile === file.path ? (
+                                  <>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <path d="M20 6L9 17l-5-5" />
+                                    </svg>
+                                    Copied
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <rect x="9" y="9" width="13" height="13" rx="2" />
+                                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                                    </svg>
+                                    Copy
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -708,8 +757,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               onClick={handleSaveToServer}
               disabled={exporting}
               className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+              title="Create or update tokens in your local token server from these Figma variables"
             >
-              {exporting ? 'Saving...' : 'Save to Token Server'}
+              {exporting ? 'Importing...' : 'Import into Token Server'}
             </button>
           </>
         )}

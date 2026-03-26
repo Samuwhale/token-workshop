@@ -6,7 +6,9 @@
 
 # Backlog Inbox
 
-Add items here while backlog.sh is running. They will be appended to the relevant section at the end of each iteration.
+Add items here while backlog.sh is running. They will be triaged at the end of each iteration:
+- Items tagged `[HIGH]` or `[P0]` are inserted before the first `[ ]` item in the queue (picked next).
+- All other items are appended to the bottom.
 
 ---
 
@@ -252,7 +254,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Export Tokens
 
-- [ ] **Flow audit & overhaul: Export Tokens** — Trace the full export flow (trigger → panel open → mode select → platform/format select → filter → generate → download/copy), identify friction (is the mode toggle self-explanatory? is the output preview useful before downloading?), then redesign: improve mode and platform selection clarity, add a more useful output preview, and make download vs copy-to-clipboard equally discoverable. `packages/plugin/src/routes/ExportPanel.tsx`
+- [x] **Flow audit & overhaul: Export Tokens** — Trace the full export flow (trigger → panel open → mode select → platform/format select → filter → generate → download/copy), identify friction (is the mode toggle self-explanatory? is the output preview useful before downloading?), then redesign: improve mode and platform selection clarity, add a more useful output preview, and make download vs copy-to-clipboard equally discoverable. `packages/plugin/src/routes/ExportPanel.tsx`
 
 ### Flow: Create and Manage Themes
 
