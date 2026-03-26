@@ -158,6 +158,19 @@ export class TokenStore {
     return Array.from(this.sets.keys());
   }
 
+  reorderSets(names: string[]): void {
+    const newMap = new Map<string, TokenSet>();
+    for (const name of names) {
+      const set = this.sets.get(name);
+      if (set) newMap.set(name, set);
+    }
+    // Append any sets not included in the names list
+    for (const [name, set] of this.sets) {
+      if (!newMap.has(name)) newMap.set(name, set);
+    }
+    this.sets = newMap;
+  }
+
   getSetDescriptions(): Record<string, string> {
     const result: Record<string, string> = {};
     for (const [name, set] of this.sets) {

@@ -293,6 +293,10 @@ export function App() {
   const [renamingSet, setRenamingSet] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [renameError, setRenameError] = useState('');
+
+  // Drag-to-reorder set tabs state
+  const [dragSetName, setDragSetName] = useState<string | null>(null);
+  const [dragOverSetName, setDragOverSetName] = useState<string | null>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   // New set creation state
@@ -511,6 +515,47 @@ export function App() {
       refreshTokens();
     } catch {
       setRenameError('Rename failed');
+    }
+  };
+
+  const handleSetDragStart = (e: React.DragEvent, setName: string) => {
+    setDragSetName(setName);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleSetDragOver = (e: React.DragEvent, setName: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragSetName && dragSetName !== setName) {
+      setDragOverSetName(setName);
+    }
+  };
+
+  const handleSetDragEnd = () => {
+    setDragSetName(null);
+    setDragOverSetName(null);
+  };
+
+  const handleSetDrop = async (e: React.DragEvent, targetSetName: string) => {
+    e.preventDefault();
+    if (!dragSetName || dragSetName === targetSetName) { handleSetDragEnd(); return; }
+    const fromIdx = sets.indexOf(dragSetName);
+    const toIdx = sets.indexOf(targetSetName);
+    if (fromIdx === -1 || toIdx === -1) { handleSetDragEnd(); return; }
+    const newOrder = [...sets];
+    newOrder.splice(fromIdx, 1);
+    newOrder.splice(toIdx, 0, dragSetName);
+    setDragSetName(null);
+    setDragOverSetName(null);
+    setSets(newOrder);
+    try {
+      await fetch(`${serverUrl}/api/sets/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: newOrder }),
+      });
+    } catch {
+      refreshTokens(); // revert on failure
     }
   };
 
@@ -988,13 +1033,23 @@ export function App() {
 
       {/* Set selector (for tokens tab) */}
       {activeTab === 'tokens' && overflowPanel === null && sets.length > 0 && (
+        <>
         <div className="relative">
         <div ref={setTabsScrollRef} className="flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
           {sets.map(set => {
             const isActive = activeSet === set;
             const isRenaming = renamingSet === set;
             return (
-              <div key={set} data-active-set={isActive} className="relative flex group/settab">
+              <div
+                key={set}
+                data-active-set={isActive}
+                draggable={!isRenaming}
+                onDragStart={e => handleSetDragStart(e, set)}
+                onDragOver={e => handleSetDragOver(e, set)}
+                onDrop={e => handleSetDrop(e, set)}
+                onDragEnd={handleSetDragEnd}
+                className={`relative flex group/settab ${dragOverSetName === set && dragSetName !== set ? 'border-l-2 border-[var(--color-figma-accent)]' : ''}`}
+              >
                 {isRenaming ? (
                   <div className="flex flex-col">
                     <div className="flex items-center">
@@ -1156,6 +1211,12 @@ export function App() {
           </>
         )}
         </div>
+        {sets.length > 1 && (
+          <div className="px-2 py-0.5 text-[9px] text-[var(--color-figma-text-tertiary)] select-none bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+            ← lower precedence · drag to reorder · higher precedence →
+          </div>
+        )}
+        </>
       )}
 
       {/* Theme switcher (for tokens tab) */}

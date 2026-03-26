@@ -84,6 +84,16 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // PUT /api/sets/reorder — reorder sets
+  fastify.put<{ Body: { order: string[] } }>('/sets/reorder', async (request, reply) => {
+    const { order } = request.body || {};
+    if (!Array.isArray(order)) {
+      return reply.status(400).send({ error: 'order must be an array of set names' });
+    }
+    fastify.tokenStore.reorderSets(order);
+    return { reordered: true };
+  });
+
   // DELETE /api/data — wipe all sets and themes (danger zone)
   fastify.delete('/data', async (_request, reply) => {
     try {
