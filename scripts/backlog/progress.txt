@@ -553,3 +553,19 @@
   - Top-level legends/keys for UI states can often be replaced by descriptive `title` attributes on the elements themselves, saving vertical space
   - Empty states should always contain their own primary CTA — don't rely on a sticky footer button that may not be visible
 ---
+
+## 2026-03-26 - UX audit & overhaul: Import
+- Redesigned ImportPanel.tsx with 6 targeted UX improvements:
+  1. Replaced `prompt()` for new set name with inline text input (autoFocus, Enter/Escape keybindings, Create/Cancel buttons) in the footer
+  2. Moved target set selector from the scrollable body to the footer action bar (co-located with the import button, matching "choose destination → confirm" mental model)
+  3. Added animated spinner (SVG arc + `animate-spin`) to the loading state
+  4. Added scrollable conflict path list in the conflict UI (max-h 72px = ~4 rows) with warning tint
+  5. Renamed conflict buttons from "Skip existing · import N new" / "Overwrite all · N" to "Keep existing" / "Overwrite conflicts"
+  6. Made Back button a dedicated full-width row with chevron icon and source breadcrumb; replaced success banner at top with centred icon + message + "Import more" CTA
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` (full rewrite, ~310 lines)
+- **Learnings for future iterations:**
+  - `autoFocus` on an `<input>` fires when the element mounts (when `newSetInputVisible` flips to `true`) — no `useRef`/`useEffect` needed for inline inputs that appear conditionally
+  - Placing the destination picker in the footer (beside the action button) is better UX than placing it above the content list, especially when the user hasn't reviewed the content yet
+  - A scrollable conflict list (max-h with overflow-y-auto) at ~18px row height needs `max-h-[72px]` for 4 visible rows
+  - CSS fallback for missing variables: `var(--color-figma-warning, #f59e0b)` lets warning-tinted elements render correctly even if the variable isn't defined
+---
