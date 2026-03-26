@@ -92,11 +92,11 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     exit 0
   fi
 
-  # Ignore SIGINT during agent run so Ctrl+C doesn't kill it mid-task.
-  # SIG_IGN is inherited across exec(), so the agent subprocess is protected too.
-  trap '' INT
+  # Run the agent in its own process group so Ctrl+C reaches the parent (this script)
+  # but not the agent subprocess. The parent's graceful_stop trap fires, sets
+  # STOP_REQUESTED=1, and we exit cleanly after the agent finishes naturally.
   if [[ "$TOOL" == "amp" ]]; then
-    OUTPUT=$(cat "$SCRIPT_DIR/CLAUDE.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
+    OUTPUT=$(set -m; cat "$SCRIPT_DIR/CLAUDE.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
   else
     # Build context file: patterns + last 3 progress entries (agents learn from recent failures)
     CONTEXT_FILE=$(mktemp)
@@ -106,7 +106,9 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       "$PROGRESS_FILE" >> "$CONTEXT_FILE" 2>/dev/null || true
 
     AGENT_TMP=$(mktemp)
-    claude \
+    # setsid runs the agent in a new session (new process group), so terminal
+    # Ctrl+C (SIGINT to the foreground process group) does not reach it.
+    setsid claude \
       --dangerously-skip-permissions \
       --print \
       --no-session-persistence \
@@ -135,7 +137,6 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     _META="${_TURNS:+${_TURNS} turns}${_SECS:+ · ${_SECS}}${_COST:+ · ${_COST}}"
     [ -n "$_META" ] && echo "    ${_META# · }"
   fi
-  trap graceful_stop INT
 
   # Detect completion via structured JSON output
   STATUS=$(echo "$OUTPUT" | jq -r '.structured_output.status // ""' 2>/dev/null || echo "")
@@ -164,7 +165,15 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   # HIGH/P0 items are normalised to `- [ ] [HIGH] …` and inserted before the first [ ] item
   # so they are picked up by the agent on the next iteration. Other items append to the bottom.
   INBOX_LOCKDIR="$PROJECT_ROOT/.backlog-inbox.lock"
+  # Stale lock recovery: if lockdir exists but the PID inside is dead, clean it up.
+  if [ -d "$INBOX_LOCKDIR" ]; then
+    LOCK_PID=$(cat "$INBOX_LOCKDIR/pid" 2>/dev/null || echo "")
+    if [ -z "$LOCK_PID" ] || ! kill -0 "$LOCK_PID" 2>/dev/null; then
+      rm -rf "$INBOX_LOCKDIR" 2>/dev/null || true
+    fi
+  fi
   if mkdir "$INBOX_LOCKDIR" 2>/dev/null; then
+    echo $$ > "$INBOX_LOCKDIR/pid"
     if [ -f "$INBOX_FILE" ] && grep -qE '\S' "$INBOX_FILE" 2>/dev/null; then
       echo ""
       echo "--- Inbox has new items — triaging into backlog.md ---"
@@ -176,14 +185,16 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       HIGH_ITEMS=$(grep -E '^\- \[ \] \[(HIGH|P0)\]' "$INBOX_FILE" 2>/dev/null || true)
       OTHER_ITEMS=$(grep -vE '^\- \[ \] \[(HIGH|P0)\]' "$INBOX_FILE" 2>/dev/null || true)
 
-      # HIGH/P0: insert before the first [ ] item so the agent picks them next
+      # HIGH/P0: insert before the first [ ] item so the agent picks them next.
+      # Write to a tempfile then mv atomically — prevents backlog corruption on interrupt.
       if [ -n "$HIGH_ITEMS" ]; then
         FIRST_TODO_LINE=$(grep -n '^\- \[ \]' "$BACKLOG_FILE" | head -1 | cut -d: -f1)
         if [ -n "$FIRST_TODO_LINE" ]; then
           INSERT_AT=$((FIRST_TODO_LINE - 1))
           HEAD=$(head -n "$INSERT_AT" "$BACKLOG_FILE")
           TAIL=$(tail -n +"$FIRST_TODO_LINE" "$BACKLOG_FILE")
-          printf '%s\n%s\n%s' "$HEAD" "$HIGH_ITEMS" "$TAIL" > "$BACKLOG_FILE"
+          TMPFILE=$(mktemp "$BACKLOG_FILE.XXXXXX")
+          printf '%s\n%s\n%s' "$HEAD" "$HIGH_ITEMS" "$TAIL" > "$TMPFILE" && mv "$TMPFILE" "$BACKLOG_FILE" || rm -f "$TMPFILE"
           echo "  → $(echo "$HIGH_ITEMS" | wc -l | tr -d ' ') HIGH/P0 item(s) inserted at top of queue (line $FIRST_TODO_LINE)"
         else
           echo "" >> "$BACKLOG_FILE"
@@ -202,7 +213,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       truncate -s 0 "$INBOX_FILE"
       echo "--- Inbox drained ---"
     fi
-    rmdir "$INBOX_LOCKDIR"
+    rm -rf "$INBOX_LOCKDIR"
   else
     echo "  (inbox drain skipped — another instance holds the lock)"
   fi

@@ -20,11 +20,13 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [ ] **UX audit & overhaul: App Shell** — Read the full app shell code, study how Figma plugin shells are conventionally structured (tab bars, overflow menus, resize handles), audit every interaction point (tab switching, overflow menu, resize, connection state), then rewrite the shell UX: improve tab labelling and iconography, ensure the active state is unmistakeable, make overflow actions discoverable, and surface connection status in a non-intrusive but always-visible way. `packages/plugin/src/components/AppShell.tsx`
+- [!] **UX audit & overhaul: App Shell** — Read the full app shell code, study how Figma plugin shells are conventionally structured (tab bars, overflow menus, resize handles), audit every interaction point (tab switching, overflow menu, resize, connection state), then rewrite the shell UX: improve tab labelling and iconography, ensure the active state is unmistakeable, make overflow actions discoverable, and surface connection status in a non-intrusive but always-visible way. `packages/plugin/src/components/AppShell.tsx`
+<!-- stale — AppShell.tsx does not exist; app shell is in App.tsx -->
 
 ### UI
 
-- [ ] **UI audit & overhaul: App Shell** — Read the shell layout and all its sub-components, pull reference screenshots of polished Figma plugins (Linear, Tokens Studio, Variables), then redesign the shell: tighten spacing, improve the tab bar visual design, unify the header/toolbar area, and ensure the overall chrome feels lightweight rather than heavy. `packages/plugin/src/components/AppShell.tsx`
+- [!] **UI audit & overhaul: App Shell** — Read the shell layout and all its sub-components, pull reference screenshots of polished Figma plugins (Linear, Tokens Studio, Variables), then redesign the shell: tighten spacing, improve the tab bar visual design, unify the header/toolbar area, and ensure the overall chrome feels lightweight rather than heavy. `packages/plugin/src/components/AppShell.tsx`
+<!-- stale — AppShell.tsx does not exist; app shell lives in App.tsx -->
 
 ---
 
@@ -262,11 +264,11 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Flow: Sync Design Tokens to Figma
 
-- [ ] **Flow audit & overhaul: Sync to Figma** — Trace the full sync flow (open sync panel → view readiness → fix issues → select scope → trigger sync → progress → result), read all sync service and diff viewer code, research how comparable sync UIs communicate consequences (what changes, how many variables, potential overwrites), identify friction (are readiness failures clearly actionable? is scope selection confusing?), then redesign: make the pre-sync state crystal clear (what will change and why), improve readiness check copy to be actionable, and make progress/result feedback satisfying and informative. `packages/plugin/src/components/SyncPanel.tsx`, `packages/plugin/src/services/sync-service.ts`
+- [x] **Flow audit & overhaul: Sync to Figma** — Trace the full sync flow (open sync panel → view readiness → fix issues → select scope → trigger sync → progress → result), read all sync service and diff viewer code, research how comparable sync UIs communicate consequences (what changes, how many variables, potential overwrites), identify friction (are readiness failures clearly actionable? is scope selection confusing?), then redesign: make the pre-sync state crystal clear (what will change and why), improve readiness check copy to be actionable, and make progress/result feedback satisfying and informative. `packages/plugin/src/components/SyncPanel.tsx`, `packages/plugin/src/services/sync-service.ts`
 
 ### Flow: Bind Token to Figma Node Property
 
-- [ ] **Flow audit & overhaul: Token Binding** — Trace the property binding flow (select node → inspector shows properties → click property → picker opens → select token → binding applied), read all selection inspector and property picker code, identify friction (is it clear which properties are bindable? does the picker show too many/few options? is the binding result visible immediately?), then redesign: make bindable properties visually distinct from read-only ones, improve the picker search so the right token is easy to find, and make the post-binding state feel satisfying and complete. `packages/plugin/src/components/SelectionInspector.tsx`, `packages/plugin/src/components/PropertyPicker.tsx`
+- [x] **Flow audit & overhaul: Token Binding** — Trace the property binding flow (select node → inspector shows properties → click property → picker opens → select token → binding applied), read all selection inspector and property picker code, identify friction (is it clear which properties are bindable? does the picker show too many/few options? is the binding result visible immediately?), then redesign: make bindable properties visually distinct from read-only ones, improve the picker search so the right token is easy to find, and make the post-binding state feel satisfying and complete. `packages/plugin/src/components/SelectionInspector.tsx`, `packages/plugin/src/components/PropertyPicker.tsx`
 
 ### Flow: Validate and Fix Token Issues
 

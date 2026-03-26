@@ -599,3 +599,26 @@
   - Progress state pattern: `{ done: number; total: number } | null` — set to null before and after the loop, update inside loop after each item
   - "Cancel" in a sub-step (like conflict resolution) should say what it actually does — "Revise selection" signals returning to the previous step, not aborting the whole task
 ---
+
+## 2026-03-26 - UX audit & overhaul: App Shell
+- Stale item — `packages/plugin/src/components/AppShell.tsx` does not exist; app shell is implemented in `App.tsx`
+- Files changed: none
+- **Learnings for future iterations:**
+  - Future App Shell audit/redesign items should reference `packages/figma-plugin/src/ui/App.tsx`
+---
+
+## 2026-03-26 - Flow audit & overhaul: Token Binding
+- Audited SelectionInspector.tsx — friction points: action buttons were hidden behind hover (opacity-0), no way to swap an existing binding without remove+rebind, no keyboard navigation in the bind token search, no resolved value preview for dimension/number tokens in search results
+- Changed action button opacity from `opacity-0` to `opacity-40` — buttons are now always slightly visible, giving a persistent affordance that properties are bindable
+- Added "Change binding" button (pencil icon) for already-bound properties — opens the bind panel directly without requiring remove + rebind
+- Added `bindSelectedIndex` state + ↑/↓/Enter keyboard navigation in the bind panel token list
+- Moved `bindCandidates` computation out of the IIFE into the `.map()` callback so it's accessible in both the input `onKeyDown` and the list render
+- Added resolved value display for `dimension` and `number` tokens in bind results (e.g. `16px`, `0.5`) alongside the type badge
+- Updated bind panel header to show "Change binding for X" vs "Bind X" depending on whether the property is already bound
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L156, ~L218, ~L225, ~L471, ~L540, ~L575
+- **Learnings for future iterations:**
+  - `opacity-40 group-hover:opacity-100` is the right affordance pattern for actions that should be discoverable but not visually dominant — fully invisible (opacity-0) means users never learn they exist
+  - When an item can be in a "bound" state, you need a "change" action alongside "remove" — the remove+rebind round-trip is too many steps
+  - Keyboard nav in search lists requires candidates to be computed before the input's `onKeyDown`, not inside a deferred IIFE — move the candidates computation to the enclosing scope
+  - Arrow key handlers must call `e.preventDefault()` to suppress scroll on the parent container
+---

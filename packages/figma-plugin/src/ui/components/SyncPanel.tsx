@@ -126,6 +126,11 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
     return () => { fetchAbortRef.current?.abort(); };
   }, [fetchStatus]);
 
+  // Auto-run var diff when the panel loads (so users see the state immediately)
+  useEffect(() => {
+    if (connected && activeSet) computeVarDiff();
+  }, [connected, activeSet, computeVarDiff]);
+
   // Listen for variables-read and orphans-deleted responses from controller
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
@@ -287,12 +292,14 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
           label: 'Scopes set for every variable',
           status: missingScopes.length === 0 ? 'pass' : 'fail',
           count: missingScopes.length || undefined,
+          detail: missingScopes.length > 0 ? 'Open Figma Variables panel → select each variable → set scopes to limit where it can be applied.' : undefined,
         },
         {
           id: 'descriptions',
           label: 'Descriptions populated',
           status: missingDescriptions.length === 0 ? 'pass' : 'fail',
           count: missingDescriptions.length || undefined,
+          detail: missingDescriptions.length > 0 ? 'Add $description fields to tokens in the token editor, then re-sync to Figma.' : undefined,
         },
         {
           id: 'orphans',
@@ -439,6 +446,8 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
 
   // Compute counts for var sync
   const varSyncCount = Object.values(varDirs).filter(d => d !== 'skip').length;
+  const varPushCount = Object.values(varDirs).filter(d => d === 'push').length;
+  const varPullCount = Object.values(varDirs).filter(d => d === 'pull').length;
 
   // Readiness pass/fail summary
   const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
@@ -452,6 +461,48 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
         </div>
       )}
 
+      {/* Quick-status overview bar */}
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex-wrap">
+        <div className="flex items-center gap-1">
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+            varLoading ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' :
+            varChecked && varRows.length === 0 ? 'bg-[var(--color-figma-success)]' :
+            varRows.length > 0 ? 'bg-yellow-500' :
+            'bg-[var(--color-figma-border)]'
+          }`} />
+          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+            {varLoading ? 'Comparing…' :
+             varChecked && varRows.length === 0 ? 'Figma in sync' :
+             varRows.length > 0 ? `${varRows.length} token${varRows.length !== 1 ? 's' : ''} differ` :
+             'Figma not checked'}
+          </span>
+        </div>
+        <span className="text-[var(--color-figma-border)] text-[9px]">·</span>
+        <div className="flex items-center gap-1">
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+            readinessLoading ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' :
+            readinessFails === 0 && readinessPasses > 0 ? 'bg-[var(--color-figma-success)]' :
+            readinessFails > 0 ? 'bg-[var(--color-figma-error)]' :
+            'bg-[var(--color-figma-border)]'
+          }`} />
+          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+            {readinessLoading ? 'Checking…' :
+             readinessFails === 0 && readinessPasses > 0 ? 'Ready to publish' :
+             readinessFails > 0 ? `${readinessFails} issue${readinessFails !== 1 ? 's' : ''}` :
+             'Readiness unknown'}
+          </span>
+        </div>
+        <span className="text-[var(--color-figma-border)] text-[9px]">·</span>
+        <div className="flex items-center gap-1">
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+            allChanges.length > 0 ? 'bg-yellow-500' : 'bg-[var(--color-figma-success)]'
+          }`} />
+          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+            {allChanges.length > 0 ? `${allChanges.length} uncommitted` : 'Git clean'}
+          </span>
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
 
         {/* ── Section 1: Figma Variable Sync ─────────────────────────── */}
@@ -459,7 +510,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
           <div className="mb-2">
             <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">Figma Variables</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-              Compare token values between your local files and Figma variables.
+              Keep local tokens and Figma variables in sync. Push local changes to Figma, or pull Figma changes back.
             </div>
           </div>
 
@@ -480,7 +531,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
                 disabled={varLoading || !activeSet}
                 className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
               >
-                {varLoading ? 'Reading…' : varChecked ? 'Re-check' : 'Compare'}
+                {varLoading ? 'Checking…' : varChecked ? 'Re-check' : 'Compare'}
               </button>
             </div>
 
@@ -547,14 +598,20 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
 
                   <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
                     <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                      {varSyncCount > 0 ? `${varSyncCount} token${varSyncCount !== 1 ? 's' : ''} will be updated` : 'All skipped'}
+                      {varSyncCount === 0
+                        ? 'Nothing to apply — all skipped'
+                        : [
+                            varPushCount > 0 ? `↑ ${varPushCount} to Figma` : null,
+                            varPullCount > 0 ? `↓ ${varPullCount} to local` : null,
+                          ].filter(Boolean).join(' · ')
+                      }
                     </span>
                     <button
                       onClick={applyVarDiff}
                       disabled={varSyncing || varSyncCount === 0}
                       className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
-                      {varSyncing ? 'Syncing…' : `Sync ${varSyncCount > 0 ? varSyncCount + ' token' + (varSyncCount !== 1 ? 's' : '') : ''}`}
+                      {varSyncing ? 'Syncing…' : `Apply ${varSyncCount > 0 ? varSyncCount + ' change' + (varSyncCount !== 1 ? 's' : '') : ''}`}
                     </button>
                   </div>
                 </>
@@ -571,7 +628,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
                 </div>
               ) : !varChecked && varRows.length === 0 ? (
                 <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to check for differences between local tokens and Figma variables.
+                  Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which tokens differ between local files and Figma.
                 </div>
               ) : null
             )}
@@ -620,6 +677,9 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
                       {check.count !== undefined && check.status === 'fail' && (
                         <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{check.count} affected</div>
                       )}
+                      {check.detail && check.status === 'fail' && (
+                        <div className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">{check.detail}</div>
+                      )}
                     </div>
                     {check.fixLabel && check.onFix && (
                       <button
@@ -647,7 +707,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
           <div className="mb-2">
             <div className="text-[11px] font-semibold text-[var(--color-figma-text)]">Git Repository</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-              Commit and push token file changes to version control.
+              After syncing tokens to Figma, commit and push to track changes in version control.
             </div>
           </div>
 

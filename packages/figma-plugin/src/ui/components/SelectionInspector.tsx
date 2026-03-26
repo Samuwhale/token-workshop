@@ -154,6 +154,7 @@ export function SelectionInspector({
   // Inline bind-existing-token state
   const [bindingFromProp, setBindingFromProp] = useState<BindableProperty | null>(null);
   const [bindQuery, setBindQuery] = useState('');
+  const [bindSelectedIndex, setBindSelectedIndex] = useState(-1);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const prevNodeIdsRef = useRef<string>('');
@@ -240,6 +241,7 @@ export function SelectionInspector({
   const cancelBind = () => {
     setBindingFromProp(null);
     setBindQuery('');
+    setBindSelectedIndex(-1);
   };
 
   const openCreateFromProp = (prop: BindableProperty) => {
@@ -252,6 +254,7 @@ export function SelectionInspector({
     cancelCreate();
     setBindingFromProp(prop);
     setBindQuery('');
+    setBindSelectedIndex(-1);
   };
 
   const handleBindToken = (prop: BindableProperty, tokenPath: string) => {
@@ -464,6 +467,16 @@ export function SelectionInspector({
                   const isThisPropActive = creatingFromProp === prop || bindingFromProp === prop;
                   const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && activeSet && !isThisPropActive;
                   const canBind = !isBound && !isMixed && connected && hasAnyTokens && !isThisPropActive;
+                  const canChangeBind = isBound && connected && hasAnyTokens && !isThisPropActive;
+
+                  // Compute bind candidates here so they're accessible in both the input onKeyDown and the list render
+                  const compatibleTypesForBind = bindingFromProp === prop ? getCompatibleTokenTypes(prop) : [];
+                  const bindCandidates = bindingFromProp === prop
+                    ? Object.entries(tokenMap)
+                        .filter(([, entry]) => compatibleTypesForBind.includes(entry.$type))
+                        .filter(([path]) => !bindQuery || path.toLowerCase().includes(bindQuery.toLowerCase()))
+                        .slice(0, 8)
+                    : [];
 
                   return (
                     <div key={prop}>
@@ -518,8 +531,8 @@ export function SelectionInspector({
                           )}
                         </div>
 
-                        {/* Actions — shown on hover (or always when this row is active) */}
-                        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Actions — faint always, full opacity on hover */}
+                        <div className="flex items-center gap-0.5 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity">
                           {isBound && onNavigateToToken && (
                             <button
                               onClick={() => onNavigateToToken(binding as string)}
@@ -539,6 +552,18 @@ export function SelectionInspector({
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                                 <path d="M18 6L6 18M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                          {canChangeBind && (
+                            <button
+                              onClick={() => openBindFromProp(prop)}
+                              title="Change binding"
+                              className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
                               </svg>
                             </button>
                           )}
@@ -577,7 +602,7 @@ export function SelectionInspector({
                               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                             </svg>
                             <span className="text-[9px] text-[var(--color-figma-accent)] font-medium flex-1">
-                              Bind {PROPERTY_LABELS[prop]}
+                              {isBound ? `Change binding for ${PROPERTY_LABELS[prop]}` : `Bind ${PROPERTY_LABELS[prop]}`}
                             </span>
                             <button
                               onClick={cancelBind}
@@ -593,60 +618,67 @@ export function SelectionInspector({
                             <input
                               autoFocus
                               value={bindQuery}
-                              onChange={e => setBindQuery(e.target.value)}
-                              onKeyDown={e => { if (e.key === 'Escape') cancelBind(); }}
-                              placeholder={`Search ${getCompatibleTokenTypes(prop).join(' / ')} tokens…`}
+                              onChange={e => { setBindQuery(e.target.value); setBindSelectedIndex(-1); }}
+                              onKeyDown={e => {
+                                if (e.key === 'Escape') { cancelBind(); return; }
+                                if (e.key === 'ArrowDown') { e.preventDefault(); setBindSelectedIndex(i => Math.min(i + 1, bindCandidates.length - 1)); return; }
+                                if (e.key === 'ArrowUp') { e.preventDefault(); setBindSelectedIndex(i => Math.max(i - 1, 0)); return; }
+                                if (e.key === 'Enter' && bindSelectedIndex >= 0 && bindCandidates[bindSelectedIndex]) {
+                                  handleBindToken(prop, bindCandidates[bindSelectedIndex][0]);
+                                }
+                              }}
+                              placeholder={`Search ${compatibleTypesForBind.join(' / ')} tokens…`}
                               className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
                             />
-                            {(() => {
-                              const compatibleTypes = getCompatibleTokenTypes(prop);
-                              const candidates = Object.entries(tokenMap)
-                                .filter(([, entry]) => compatibleTypes.includes(entry.$type))
-                                .filter(([path]) => !bindQuery || path.toLowerCase().includes(bindQuery.toLowerCase()))
-                                .slice(0, 8);
-                              if (candidates.length === 0) {
-                                return (
-                                  <div className="text-[9px] text-[var(--color-figma-text-secondary)] py-1 text-center">
-                                    {bindQuery ? 'No matching tokens' : `No ${compatibleTypes.join(' or ')} tokens in set`}
-                                  </div>
-                                );
-                              }
-                              return (
-                                <div className="max-h-[112px] overflow-y-auto flex flex-col gap-px">
-                                  {candidates.map(([path, entry]) => {
-                                    let resolvedColorSwatch: string | null = null;
-                                    if (entry.$type === 'color') {
-                                      const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
-                                      if (typeof r.value === 'string' && r.value.startsWith('#')) resolvedColorSwatch = r.value;
-                                    }
-                                    return (
-                                      <button
-                                        key={path}
-                                        onClick={() => handleBindToken(prop, path)}
-                                        className="flex items-center gap-1.5 px-1.5 py-1 rounded text-left hover:bg-[var(--color-figma-accent)]/10 transition-colors group/item"
-                                      >
-                                        {resolvedColorSwatch ? (
-                                          <div
-                                            className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                                            style={{ backgroundColor: resolvedColorSwatch }}
-                                          />
-                                        ) : (
-                                          <div className="w-3 h-3 shrink-0 flex items-center justify-center">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
-                                          </div>
-                                        )}
-                                        <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate flex-1 group-hover/item:text-[var(--color-figma-accent)]">
-                                          {path}
+                            {bindCandidates.length === 0 ? (
+                              <div className="text-[9px] text-[var(--color-figma-text-secondary)] py-1 text-center">
+                                {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in set`}
+                              </div>
+                            ) : (
+                              <div className="max-h-[112px] overflow-y-auto flex flex-col gap-px">
+                                {bindCandidates.map(([path, entry], idx) => {
+                                  let resolvedColorSwatch: string | null = null;
+                                  let resolvedValueDisplay: string | null = null;
+                                  const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+                                  if (entry.$type === 'color') {
+                                    if (typeof r.value === 'string' && r.value.startsWith('#')) resolvedColorSwatch = r.value;
+                                  } else if ((entry.$type === 'dimension' || entry.$type === 'number') && r.value != null) {
+                                    const v = r.value as any;
+                                    resolvedValueDisplay = typeof v === 'object' && 'value' in v ? `${v.value}${v.unit}` : String(v);
+                                  }
+                                  const isSelected = idx === bindSelectedIndex;
+                                  return (
+                                    <button
+                                      key={path}
+                                      onClick={() => handleBindToken(prop, path)}
+                                      className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'}`}
+                                    >
+                                      {resolvedColorSwatch ? (
+                                        <div
+                                          className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                                          style={{ backgroundColor: resolvedColorSwatch }}
+                                        />
+                                      ) : (
+                                        <div className="w-3 h-3 shrink-0 flex items-center justify-center">
+                                          <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
+                                        </div>
+                                      )}
+                                      <span className={`text-[9px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>
+                                        {path}
+                                      </span>
+                                      {resolvedValueDisplay && (
+                                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
+                                          {resolvedValueDisplay}
                                         </span>
-                                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-                                          {entry.$type}
-                                        </span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            })()}
+                                      )}
+                                      <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
+                                        {entry.$type}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
