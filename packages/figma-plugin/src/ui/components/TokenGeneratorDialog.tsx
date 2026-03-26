@@ -1617,22 +1617,57 @@ export function TokenGeneratorDialog({
 
             {selectedType !== 'contrastCheck' && !previewError && !previewLoading && previewTokens.length === 0 && (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-2 bg-[var(--color-figma-bg-secondary)]">
-                No preview available.
+                {isMultiBrand ? 'Preview unavailable in multi-brand mode.' : 'No preview available.'}
               </div>
             )}
+          </div>
+
+          {/* Multi-brand input table */}
+          <div className="border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Multi-brand inputs</span>
+              <button
+                onClick={() => setInputTable(inputTable ? undefined : { inputKey: 'brandColor', rows: [] })}
+                className="text-[9px] text-[var(--color-figma-accent)] hover:underline"
+              >
+                {inputTable ? 'Disable' : 'Enable'}
+              </button>
+            </div>
+            {!inputTable && (
+              <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                Run this generator for multiple brands, each writing to its own token set.
+              </p>
+            )}
+            {inputTable && <InputTableEditor table={inputTable} onChange={setInputTable} />}
           </div>
 
           {/* Target */}
           <div className="flex flex-col gap-2.5">
             <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Target</span>
-            <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target set</label>
-              <select value={targetSet} onChange={e => setTargetSet(e.target.value)}
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]">
-                {allSets.map(s => <option key={s} value={s}>{s}</option>)}
-                {allSets.length === 0 && <option value={activeSet}>{activeSet}</option>}
-              </select>
-            </div>
+            {isMultiBrand ? (
+              <div>
+                <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target set template</label>
+                <input
+                  type="text"
+                  value={targetSetTemplate}
+                  onChange={e => setTargetSetTemplate(e.target.value)}
+                  placeholder="brands/{brand}"
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
+                />
+                <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
+                  {'{brand}'} is replaced with each row's brand slug — e.g. <span className="font-mono">brands/berry</span>
+                </p>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target set</label>
+                <select value={targetSet} onChange={e => setTargetSet(e.target.value)}
+                  className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]">
+                  {allSets.map(s => <option key={s} value={s}>{s}</option>)}
+                  {allSets.length === 0 && <option value={activeSet}>{activeSet}</option>}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target group path</label>
               <input type="text" value={targetGroup} onChange={e => setTargetGroup(e.target.value)} placeholder="e.g. spacing"
@@ -1657,15 +1692,17 @@ export function TokenGeneratorDialog({
         {/* Footer */}
         <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
           <button onClick={onClose} className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
-          <button onClick={handleSave} disabled={saving || !targetGroup.trim() || !name.trim() || (typeNeedsSource && !hasSource)}
+          <button onClick={handleSave} disabled={saving || !targetGroup.trim() || !name.trim() || (!isMultiBrand && typeNeedsSource && !hasSource)}
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50">
             {saving
               ? (isEditing ? 'Saving…' : 'Creating…')
               : isEditing
                 ? 'Update generator'
-                : previewTokens.length > 0
-                  ? `Create (${previewTokens.length} tokens)`
-                  : 'Create generator'
+                : isMultiBrand && inputTable
+                  ? `Create (${inputTable.rows.length} brand${inputTable.rows.length !== 1 ? 's' : ''})`
+                  : previewTokens.length > 0
+                    ? `Create (${previewTokens.length} tokens)`
+                    : 'Create generator'
             }
           </button>
         </div>

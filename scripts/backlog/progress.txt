@@ -618,3 +618,13 @@
   - `GraphPanel` initial template selection happens via `useState` on first render — pass a computed `initialTemplate` based on group token type rather than relying on `pendingTemplateId`.
   - Remember to call `onClearPendingGroup` in both `handleApplied` and `handleBack` to reset the group context state in App.tsx.
 ---
+
+## 2026-03-26 - Second screen / detached window
+- Investigated Figma plugin API for detached window support — the API (ShowUIOptions) only supports `width`, `height`, `position {x,y}`, `title`, `visible`, `themeColors`. No native detached/floating window API exists.
+- Implemented an "Expand to second screen" toggle button in the toolbar: resizes the plugin to MAX_WIDTH×MAX_HEIGHT (900×900) on click; restores to 400×600 on second click. State persists in localStorage (`tm_expanded`) and is restored on plugin open via a mount-time effect.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L208 (state + toggleExpand + mount effect), ~L1295 (expand button before heatmap toggle)
+- **Learnings for future iterations:**
+  - Figma plugin API has no `detach` or `floating` option in ShowUIOptions — "second screen" must be simulated by resizing to max dimensions.
+  - Restore-on-mount requires a separate `useEffect([], [])` that fires once; putting it inside `toggleExpand` would require the state value at mount time.
+  - The existing resize infrastructure (controller.ts `case 'resize'` + `figma.ui.resize()`) handles this with zero controller changes needed.
+---

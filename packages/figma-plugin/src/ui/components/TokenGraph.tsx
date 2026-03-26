@@ -347,22 +347,40 @@ export function TokenGraph({
                     <div className="text-[7px] font-semibold text-[var(--color-figma-accent)] uppercase tracking-widest truncate">
                       {TYPE_LABELS[gen.type] ?? gen.type}
                     </div>
-                    {/* Edit icon on hover */}
-                    <svg
-                      width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                      className="shrink-0 text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-80 transition-opacity"
-                      aria-hidden="true"
-                    >
-                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* Contrast failure warning badge */}
+                      {contrastFailCount > 0 && (
+                        <span
+                          className="flex items-center gap-0.5 px-1 py-0.5 rounded-full bg-amber-500/15 text-amber-600"
+                          title={`${contrastFailCount} step${contrastFailCount !== 1 ? 's' : ''} fail WCAG AA`}
+                        >
+                          <svg width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                          </svg>
+                          <span className="text-[7px] font-semibold leading-none">{contrastFailCount}</span>
+                        </span>
+                      )}
+                      {/* Edit icon on hover */}
+                      <svg
+                        width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        className="text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-80 transition-opacity"
+                        aria-hidden="true"
+                      >
+                        <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </div>
                   </div>
                   <div className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate leading-tight">
                     {gen.name}
                   </div>
                   <div className="text-[9px] text-[var(--color-figma-text-secondary)] leading-tight">
                     {stepCount} step{stepCount !== 1 ? 's' : ''}
+                    {contrastFailCount > 0 && (
+                      <span className="ml-1 text-amber-600">· {contrastFailCount} fail AA</span>
+                    )}
                   </div>
                 </button>
 
@@ -376,10 +394,17 @@ export function TokenGraph({
                     width: OUT_W,
                     height: OUT_H,
                   }}
-                  className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 flex flex-col justify-center gap-0.5 overflow-hidden"
+                  className={`rounded border bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 flex flex-col justify-center gap-0.5 overflow-hidden ${contrastFailCount > 0 ? 'border-amber-500/40' : 'border-[var(--color-figma-border)]'}`}
                 >
-                  <div className="text-[7px] font-semibold text-[var(--color-figma-text-tertiary)] uppercase tracking-widest">
-                    Output
+                  <div className="flex items-center gap-1">
+                    <div className="text-[7px] font-semibold text-[var(--color-figma-text-tertiary)] uppercase tracking-widest flex-1">
+                      Output
+                    </div>
+                    {contrastFailCount > 0 && (
+                      <span className="text-[7px] font-semibold text-amber-600 shrink-0">
+                        {contrastFailCount} fail AA
+                      </span>
+                    )}
                   </div>
                   <div
                     className="text-[10px] font-medium text-[var(--color-figma-text)] truncate leading-tight"
