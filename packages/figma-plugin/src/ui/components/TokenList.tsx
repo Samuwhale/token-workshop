@@ -114,6 +114,37 @@ function valuesEqual(a: unknown, b: unknown): boolean {
   return false;
 }
 
+/** Types that can be edited inline in the list row (without opening the drawer). */
+const INLINE_SIMPLE_TYPES = new Set(['color', 'dimension', 'number', 'string', 'boolean', 'fontFamily', 'fontWeight', 'duration']);
+
+/** Get a human-editable string representation of a token value for the inline input. */
+function getEditableString(type: string | undefined, value: any): string {
+  if (value === undefined || value === null) return '';
+  if (type === 'dimension' && typeof value === 'object' && value !== null && 'value' in value && 'unit' in value) {
+    return `${value.value}${value.unit}`;
+  }
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'string') return value;
+  return String(value);
+}
+
+/** Parse an inline-edited string back to the correct token value shape. */
+function parseInlineValue(type: string, str: string): any {
+  if (type === 'boolean') return str.trim().toLowerCase() !== 'false';
+  if (type === 'number' || type === 'fontWeight' || type === 'duration') {
+    const n = parseFloat(str);
+    return isNaN(n) ? str : n;
+  }
+  if (type === 'dimension') {
+    const m = str.trim().match(/^(-?\d*\.?\d+)\s*(px|rem|em|%|vw|vh|pt|dp|sp|cm|mm|fr|ch|ex)?$/);
+    if (m) return { value: parseFloat(m[1]), unit: m[2] || 'px' };
+    return str;
+  }
+  // color, string, fontFamily: return as-is
+  return str;
+}
+
 interface PromoteRow {
   path: string;
   $type: string;
@@ -594,6 +625,39 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     });
     onRefresh();
   }, [connected, serverUrl, setName, allTokensFlat, onRefresh]);
+
+  const handleInlineSave = useCallback(async (path: string, type: string, newValue: any) => {
+    if (!connected) return;
+    const oldEntry = allTokensFlat[path];
+    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ $type: type, $value: newValue }),
+    });
+    if (onPushUndo && oldEntry) {
+      onPushUndo({
+        description: `Edit ${path}`,
+        restore: async () => {
+          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $type: oldEntry.$type, $value: oldEntry.$value }),
+          });
+          onRefresh();
+        },
+        redo: async () => {
+          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $type: type, $value: newValue }),
+          });
+          onRefresh();
+        },
+      });
+    }
+    onRefresh();
+  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo]);
 
   const handleCreate = async () => {
     const trimmedPath = newTokenPath.trim();
@@ -1323,6 +1387,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 generatorsBySource={generatorsBySource}
                 derivedTokenPaths={derivedTokenPaths}
                 onJumpToGroup={handleJumpToGroup}
+                onInlineSave={handleInlineSave}
               />
             ))}
             <div style={{ height: virtualBottomPad }} aria-hidden="true" />
@@ -1837,6 +1902,7 @@ function TokenTreeNode({
   derivedTokenPaths,
   skipChildren,
   onJumpToGroup,
+  onInlineSave,
 }: {
   node: TokenNode;
   depth: number;
@@ -1874,6 +1940,8 @@ function TokenTreeNode({
   skipChildren?: boolean;
   /** Callback to scroll the virtual list to a group header by path. */
   onJumpToGroup?: (path: string) => void;
+  /** Inline quick-save: called when the user edits a simple value directly in the list. */
+  onInlineSave?: (path: string, type: string, newValue: any) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -1883,6 +1951,9 @@ function TokenTreeNode({
   const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [chainExpanded, setChainExpanded] = useState(false);
+  const [inlineEditActive, setInlineEditActive] = useState(false);
+  const [inlineEditValue, setInlineEditValue] = useState('');
+  const colorInputRef = useRef<HTMLInputElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
 
   // Group-specific state
@@ -1929,6 +2000,18 @@ function TokenTreeNode({
   const aliasChain = resolveResult?.chain ?? [];
   const showChainBadge = aliasChain.length >= 2;
   const isBrokenAlias = isAlias(node.$value) && !!resolveResult?.error;
+
+  // Inline quick-edit eligibility
+  const canInlineEdit = !node.isGroup && !isAlias(node.$value) && !!node.$type
+    && INLINE_SIMPLE_TYPES.has(node.$type) && !!onInlineSave;
+
+  const handleInlineSubmit = useCallback(() => {
+    if (!inlineEditActive) return;
+    setInlineEditActive(false);
+    const raw = inlineEditValue.trim();
+    if (!raw || raw === getEditableString(node.$type, node.$value)) return;
+    onInlineSave?.(node.path, node.$type!, parseInlineValue(node.$type!, raw));
+  }, [inlineEditActive, inlineEditValue, node, onInlineSave]);
 
   // Sync state indicator
   const syncChanged = !node.isGroup && syncSnapshot && node.path in syncSnapshot
@@ -2196,6 +2279,7 @@ function TokenTreeNode({
             onFilterByType={onFilterByType}
             generatorsBySource={generatorsBySource}
             derivedTokenPaths={derivedTokenPaths}
+            onInlineSave={onInlineSave}
           />
         ))}
       </div>
@@ -2288,7 +2372,31 @@ function TokenTreeNode({
       )}
 
       {/* Value preview (resolve aliases for display) */}
-      <ValuePreview type={node.$type} value={displayValue} />
+      {canInlineEdit && node.$type === 'color' && typeof displayValue === 'string' ? (
+        <>
+          <button
+            onClick={e => { e.stopPropagation(); colorInputRef.current?.click(); }}
+            title="Click to edit color"
+            className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
+            style={{ backgroundColor: displayValue }}
+          />
+          <input
+            ref={colorInputRef}
+            type="color"
+            key={typeof node.$value === 'string' ? node.$value.slice(0, 7) : '#000000'}
+            defaultValue={typeof node.$value === 'string' ? node.$value.slice(0, 7) : '#000000'}
+            className="sr-only"
+            onBlur={e => {
+              const alpha = typeof node.$value === 'string' && node.$value.length === 9 ? node.$value.slice(7) : '';
+              const newColor = e.target.value + alpha;
+              if (newColor !== node.$value) onInlineSave?.(node.path, 'color', newColor);
+            }}
+            onClick={e => e.stopPropagation()}
+          />
+        </>
+      ) : (
+        <ValuePreview type={node.$type} value={displayValue} />
+      )}
 
       {/* Name and info */}
       <div
@@ -2367,9 +2475,46 @@ function TokenTreeNode({
       </div>
 
       {/* Value text */}
-      <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[80px] truncate">
-        {formatValue(node.$type, displayValue)}
-      </span>
+      {canInlineEdit && node.$type === 'boolean' ? (
+        <button
+          onClick={e => { e.stopPropagation(); onInlineSave?.(node.path, 'boolean', !node.$value); }}
+          title="Click to toggle"
+          className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 cursor-pointer hover:text-[var(--color-figma-accent)] transition-colors"
+        >
+          {formatValue(node.$type, displayValue)}
+        </button>
+      ) : canInlineEdit && node.$type !== 'color' && inlineEditActive ? (
+        <input
+          type={node.$type === 'number' || node.$type === 'fontWeight' || node.$type === 'duration' ? 'number' : 'text'}
+          value={inlineEditValue}
+          onChange={e => setInlineEditValue(e.target.value)}
+          onBlur={handleInlineSubmit}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); handleInlineSubmit(); }
+            if (e.key === 'Escape') { e.preventDefault(); setInlineEditActive(false); }
+            e.stopPropagation();
+          }}
+          onClick={e => e.stopPropagation()}
+          autoFocus
+          className="text-[10px] text-[var(--color-figma-text)] shrink-0 w-[80px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none"
+        />
+      ) : canInlineEdit && node.$type !== 'color' ? (
+        <span
+          className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[80px] truncate cursor-text hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
+          title="Click to edit"
+          onClick={e => {
+            e.stopPropagation();
+            setInlineEditValue(getEditableString(node.$type, node.$value));
+            setInlineEditActive(true);
+          }}
+        >
+          {formatValue(node.$type, displayValue)}
+        </span>
+      ) : (
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[80px] truncate">
+          {formatValue(node.$type, displayValue)}
+        </span>
+      )}
       {/* Duplicate annotation */}
       {(() => {
         const count = duplicateCounts.get(JSON.stringify(node.$value));

@@ -122,3 +122,21 @@
   - The copy-path button needs `{!isCreateMode && <button>...</button>}` wrapping (with closing `}`) as JSX conditional — easy to miss the closing brace
   - `handleEditorClose` already calls `refreshAll()` on close, so create mode gets a free list refresh after the token is created
 ---
+
+## 2026-03-26 - Inline quick-edit for simple token types
+- Added inline editing to token list rows without opening the drawer:
+  - **Color**: color swatch becomes a clickable button that triggers a hidden `<input type="color">`, saves on blur (preserves alpha channel for 9-char `#RRGGBBAA` values)
+  - **Boolean**: value text becomes a toggle button, clicking directly flips the value
+  - **Dimension/number/string/fontFamily/fontWeight/duration**: value text becomes click-to-edit with a focused inline input; Enter or blur saves, Escape cancels
+- Added `INLINE_SIMPLE_TYPES`, `getEditableString()`, and `parseInlineValue()` helpers at module level
+- Added `handleInlineSave` in `TokenList` with undo/redo support (PATCH + restore snapshot)
+- Added `onInlineSave` prop to `TokenTreeNode`; passed in both the virtual-scroll render and recursive child render
+- Added `canInlineEdit` guard: only applies to non-alias, non-complex-type leaf tokens
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L115, ~L597, ~L1390, ~L1880, ~L1955, ~L2373, ~L2476
+- **Learnings for future iterations:**
+  - `<input type="color">` triggered via `.click()` on a ref from a sibling button — wrapping in `<label>` also works but requires more layout care
+  - Use `key={node.$value.slice(0, 7)}` + `defaultValue` pattern for color inputs to reset when external value changes without causing premature blur
+  - `onBlur` (not `onChange`) is the right event for committing color picker changes — fires when picker closes
+  - `useCallback` for inline submit handler captures `node` prop — fine since node identity changes per item
+  - Alpha preservation: `node.$value.length === 9` check guards the `slice(7)` alpha extraction
+---
