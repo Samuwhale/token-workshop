@@ -100,9 +100,13 @@ interface TokenEditorProps {
   isCreateMode?: boolean;
   /** Initial token type for create mode. */
   initialType?: string;
+  /** Called whenever the dirty state changes so the parent can guard backdrop clicks. */
+  onDirtyChange?: (dirty: boolean) => void;
+  /** Called with the final saved path on a successful save so the parent can highlight it. */
+  onSaved?: (savedPath: string) => void;
 }
 
-export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, onDirtyChange, onSaved }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -198,6 +202,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
     );
   }, [tokenType, value, description, reference, scopes, colorModifiers]);
 
+  useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
+
   const canSave = useMemo(() => {
     if (tokenType === 'typography' && !aliasMode) {
       const v = typeof value === 'object' && value !== null ? value : {};
@@ -280,6 +286,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       }
       const label = isCreateMode ? 'created' : 'saved';
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${targetPath}" ${label}` } }, '*');
+      onSaved?.(targetPath);
       onBack();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -302,7 +309,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -320,7 +327,16 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
               className="w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)] outline-none pb-0.5 truncate"
             />
           ) : (
-            <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{tokenPath}</div>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{tokenPath}</div>
+              {isDirty && (
+                <span
+                  className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)] shrink-0"
+                  title="Unsaved changes"
+                  aria-label="Unsaved changes"
+                />
+              )}
+            </div>
           )}
           <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{isCreateMode ? 'new token' : `in ${setName}`}</div>
         </div>

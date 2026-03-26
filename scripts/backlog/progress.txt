@@ -433,3 +433,17 @@
   - For bulk-rename undo: inverting the find/replace pair is sufficient for plain-text non-empty cases; regex inversions are non-trivial and should be skipped
   - The undo slot's `description` field appears in the UndoToast, so include the operation count and the find→replace pair for clarity
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Edit Token
+- Fixed 4 friction points in the edit token flow:
+  1. Back arrow in header called `onBack` directly (bypassing dirty check) — changed to `handleBack`
+  2. Backdrop click had no dirty guard — added `editorIsDirtyRef` in App.tsx; backdrop now no-ops when dirty
+  3. Save did not scroll to/highlight the saved token — added `onSaved` prop; App.tsx wires `handleEditorSave` which sets `highlightedToken` before clearing editor
+  4. No proactive unsaved-changes signal — added a small accent dot next to the token path in the header when `isDirty`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L89, ~L105, ~L201, ~L283, ~L305, ~L323; `packages/figma-plugin/src/ui/App.tsx` ~L142, ~L1132, ~L1143
+- **Learnings for future iterations:**
+  - The header back-arrow and footer Cancel were previously inconsistent — always verify every dismiss path calls the dirty-gated handler, not the raw `onBack`
+  - Dirty state lives inside the editor component; expose it upward via `onDirtyChange?: (dirty: boolean) => void` + `useEffect` to sync a `useRef` in the parent — avoids lifting state while still enabling parent-level guards
+  - The existing `highlightedToken` machinery in TokenList.tsx already handles scroll-and-highlight; the only missing piece was setting it on save close
+  - Unsaved-changes dot pattern (small accent circle next to title) is universally understood (VS Code, Figma) — prefer it over changing button labels alone
+---

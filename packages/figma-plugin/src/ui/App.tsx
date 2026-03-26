@@ -140,6 +140,12 @@ export function App() {
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
   const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll]);
+  const editorIsDirtyRef = useRef(false);
+  const handleEditorSave = useCallback((savedPath: string) => {
+    setHighlightedToken(savedPath);
+    setEditingToken(null);
+    refreshAll();
+  }, [refreshAll]);
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const [validateKey, setValidateKey] = useState(0);
   const [analyticsIssueCount, setAnalyticsIssueCount] = useState<number | null>(null);
@@ -1129,7 +1135,7 @@ export function App() {
         <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
           <div
             className="absolute inset-0 bg-black/30 drawer-fade-in"
-            onClick={handleEditorClose}
+            onClick={() => { if (!editorIsDirtyRef.current) handleEditorClose(); }}
           />
           <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: '65%' }}>
             <div className="flex justify-center pt-2 pb-1 shrink-0">
@@ -1148,6 +1154,8 @@ export function App() {
                 onRefreshGenerators={refreshGenerators}
                 isCreateMode={editingToken.isCreate}
                 initialType={editingToken.initialType}
+                onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
+                onSaved={handleEditorSave}
               />
             </div>
           </div>

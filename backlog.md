@@ -228,11 +228,11 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Create Token from Scratch
 
-- [ ] **Flow audit & overhaul: Create Token from Scratch** — Trace every step of this flow end-to-end in the code (trigger → editor open → name/type/value entry → save → list update → undo), research how other token tools handle first-time token creation, identify every point of confusion or unnecessary friction, then redesign: ensure the creation trigger is always visible and labelled clearly, that the editor opens in a predictable location, that required fields are obvious, and that save confirmation is immediate and reassuring. `packages/plugin/src/components/TokenList.tsx`, `packages/plugin/src/components/TokenEditor.tsx`
+- [~] **Flow audit & overhaul: Create Token from Scratch** — Trace every step of this flow end-to-end in the code (trigger → editor open → name/type/value entry → save → list update → undo), research how other token tools handle first-time token creation, identify every point of confusion or unnecessary friction, then redesign: ensure the creation trigger is always visible and labelled clearly, that the editor opens in a predictable location, that required fields are obvious, and that save confirmation is immediate and reassuring. `packages/plugin/src/components/TokenList.tsx`, `packages/plugin/src/components/TokenEditor.tsx`
 
 ### Flow: Edit Token
 
-- [~] **Flow audit & overhaul: Edit Token** — Trace the token editing flow (click token → editor opens → make change → save/discard → list updates), identify friction (is it obvious how to save? can you accidentally discard changes? does the editor close predictably?), then redesign: make the save/discard affordance unambiguous, add unsaved-changes protection, and ensure the editor closes and the list scrolls to the edited token on save. `packages/plugin/src/components/TokenEditor.tsx`, `packages/plugin/src/components/TokenList.tsx`
+- [x] **Flow audit & overhaul: Edit Token** — Trace the token editing flow (click token → editor opens → make change → save/discard → list updates), identify friction (is it obvious how to save? can you accidentally discard changes? does the editor close predictably?), then redesign: make the save/discard affordance unambiguous, add unsaved-changes protection, and ensure the editor closes and the list scrolls to the edited token on save. `packages/plugin/src/components/TokenEditor.tsx`, `packages/plugin/src/components/TokenList.tsx`
 
 ### Flow: Generate Color Scale
 
