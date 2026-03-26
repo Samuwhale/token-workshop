@@ -115,9 +115,9 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [~] **Deep inspect for nested components** — Tokens Studio's Inspect panel can drill into component instances to show tokens applied on nested layers, not just the top-level selection. Ensure our inspector supports recursive inspection of component children with a "Deep inspect" toggle.
+- [x] **Deep inspect for nested components** — Tokens Studio's Inspect panel can drill into component instances to show tokens applied on nested layers, not just the top-level selection. Ensure our inspector supports recursive inspection of component children with a "Deep inspect" toggle.
 - [~] **Remap token on selection** — Tokens Studio lets you remap a token binding on a selected layer to a different token (e.g., swap `color.brand.old` for `color.brand.new`) without detaching and re-applying. Add a "Remap" action in the inspector that shows the current binding and lets you pick a replacement token.
-- [ ] **Bulk remap across selection** — When renaming or restructuring tokens, allow bulk-remapping all token bindings across the current selection (or page/document) from old paths to new paths. Tokens Studio supports this for migration workflows.
+- [~] **Bulk remap across selection** — When renaming or restructuring tokens, allow bulk-remapping all token bindings across the current selection (or page/document) from old paths to new paths. Tokens Studio supports this for migration workflows.
 
 ---
 

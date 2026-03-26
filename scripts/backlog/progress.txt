@@ -516,3 +516,12 @@
   - The outer TokenList function destructures props at its declaration line and passes them down at a specific `TokenTreeNode` render site (~L1822) — both locations need the new prop
   - `replace_all` for props in App.tsx can miss occurrences with different indentation levels — verify with grep after replacing
 ---
+
+## 2026-03-26 - Deep inspect for nested components
+- Added "Deep inspect" toggle to SelectionInspector that recursively traverses component children to surface all nested token bindings. Toggle sends `set-deep-inspect` message to the plugin, which stores state and re-runs `getSelection()` with recursive child traversal. Children with bindings appear in a "Nested Layers" read-only section below the main property groups, indented by depth level.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L106 (added `depth`/`parentId` to `SelectionNodeInfo`, added `SetDeepInspectMessage`), `packages/figma-plugin/src/plugin/controller.ts` ~L771 (added `deepInspectEnabled` state, `set-deep-inspect` handler, `readNodeBindings()` helper, `collectDescendantsWithBindings()` recursive helper), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L157 (added `deepInspect` state, split `rootNodes`/`deepChildNodes`, "Deep" toggle button, "Nested Layers" section)
+- **Learnings for future iterations:**
+  - When adding a plugin-side boolean toggle (like deepInspect), store it as a module-level `let` variable — the plugin sandbox is long-lived so state persists between messages.
+  - The recursive `collectDescendantsWithBindings` only collects children WITH bindings, but still recurses into all children — this avoids sending huge payloads while still catching deeply-nested bindings.
+  - Splitting `selectedNodes` into `rootNodes` (depth 0) and `deepChildNodes` (depth 1+) lets existing single-selection editing logic stay untouched while the deep section is purely read-only.
+---

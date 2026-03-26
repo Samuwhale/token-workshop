@@ -2121,7 +2121,7 @@ export function App() {
                 </button>
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Themes</span>
               </div>
-              <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onThemesChange={setThemes} />
+              <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} />
             </>
           )}
           {overflowPanel === 'theme-compare' && (
@@ -2139,7 +2139,7 @@ export function App() {
                 </button>
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Compare Themes</span>
               </div>
-              <ThemeCompare themes={themes} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />
+              <ThemeCompare dimensions={dimensions} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />
             </>
           )}
           </div>

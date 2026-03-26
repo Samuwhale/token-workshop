@@ -155,12 +155,17 @@ export function SelectionInspector({
   const [bindQuery, setBindQuery] = useState('');
   const [bindSelectedIndex, setBindSelectedIndex] = useState(-1);
   const [lastBoundProp, setLastBoundProp] = useState<BindableProperty | null>(null);
+  const [deepInspect, setDeepInspect] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const prevNodeIdsRef = useRef<string>('');
 
-  const hasSelection = selectedNodes.length > 0;
-  const caps = getMergedCapabilities(selectedNodes);
+  // Split selected nodes into directly-selected (depth 0) vs deep children (depth 1+)
+  const rootNodes = selectedNodes.filter(n => (n.depth ?? 0) === 0);
+  const deepChildNodes = selectedNodes.filter(n => (n.depth ?? 0) > 0);
+
+  const hasSelection = rootNodes.length > 0;
+  const caps = getMergedCapabilities(rootNodes);
 
   // Capture sync result for freshness badge (outlives the 3s global clear)
   useEffect(() => {
@@ -169,7 +174,7 @@ export function SelectionInspector({
 
   // Clear freshness and cancel any open inline panels when the selected nodes change
   useEffect(() => {
-    const ids = selectedNodes.map(n => n.id).join(',');
+    const ids = rootNodes.map(n => n.id).join(',');
     if (ids !== prevNodeIdsRef.current) {
       prevNodeIdsRef.current = ids;
       setFreshSyncResult(null);
@@ -184,14 +189,14 @@ export function SelectionInspector({
 
   const totalBindings = hasSelection
     ? ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
-        const b = getBindingForProperty(selectedNodes, prop);
+        const b = getBindingForProperty(rootNodes, prop);
         return sum + (b && b !== 'mixed' ? 1 : 0);
       }, 0)
     : 0;
 
-  const mixedBindings = hasSelection && selectedNodes.length > 1
+  const mixedBindings = hasSelection && rootNodes.length > 1
     ? ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
-        return sum + (getBindingForProperty(selectedNodes, prop) === 'mixed' ? 1 : 0);
+        return sum + (getBindingForProperty(rootNodes, prop) === 'mixed' ? 1 : 0);
       }, 0)
     : 0;
 
@@ -249,7 +254,14 @@ export function SelectionInspector({
   const openBindFromProp = (prop: BindableProperty) => {
     cancelCreate();
     setBindingFromProp(prop);
-    setBindQuery('');
+    // Pre-populate with parent group to surface sibling tokens when remapping
+    const currentBinding = getBindingForProperty(rootNodes, prop);
+    if (currentBinding && currentBinding !== 'mixed') {
+      const lastDot = currentBinding.lastIndexOf('.');
+      setBindQuery(lastDot > 0 ? currentBinding.slice(0, lastDot) : '');
+    } else {
+      setBindQuery('');
+    }
     setBindSelectedIndex(-1);
   };
 
@@ -336,9 +348,9 @@ export function SelectionInspector({
 
   const headerLabel = !hasSelection
     ? 'Select a layer to inspect'
-    : selectedNodes.length === 1
-    ? `${selectedNodes[0].name} (${selectedNodes[0].type})`
-    : `${selectedNodes.length} layers selected`;
+    : rootNodes.length === 1
+    ? `${rootNodes[0].name} (${rootNodes[0].type})`
+    : `${rootNodes.length} layers selected`;
 
   const hasAnyTokens = Object.keys(tokenMap).length > 0;
 
@@ -364,8 +376,8 @@ export function SelectionInspector({
   const hasVisibleProperties = PROPERTY_GROUPS.some(group => {
     if (!shouldShowGroup(group.condition, caps)) return false;
     return group.properties.some(prop => {
-      const binding = getBindingForProperty(selectedNodes, prop);
-      const value = getCurrentValue(selectedNodes, prop);
+      const binding = getBindingForProperty(rootNodes, prop);
+      const value = getCurrentValue(rootNodes, prop);
       return binding || value !== undefined;
     });
   });
@@ -398,6 +410,22 @@ export function SelectionInspector({
 
       {/* Sync controls */}
       <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0">
+        {/* Deep inspect toggle */}
+        <button
+          onClick={() => {
+            const next = !deepInspect;
+            setDeepInspect(next);
+            parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: next } }, '*');
+          }}
+          title={deepInspect ? 'Deep inspect on — showing nested children' : 'Enable deep inspect to show nested children'}
+          className={`text-[9px] px-1.5 py-0.5 rounded transition-colors mr-1 ${
+            deepInspect
+              ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
+              : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+          }`}
+        >
+          Deep
+        </button>
         {syncing && syncProgress ? (
           <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
             Syncing... {syncProgress.processed}/{syncProgress.total}
@@ -451,8 +479,8 @@ export function SelectionInspector({
             if (!shouldShowGroup(group.condition, caps)) return null;
 
             const visibleProps = group.properties.filter(prop => {
-              const binding = getBindingForProperty(selectedNodes, prop);
-              const value = getCurrentValue(selectedNodes, prop);
+              const binding = getBindingForProperty(rootNodes, prop);
+              const value = getCurrentValue(rootNodes, prop);
               return binding || value !== undefined;
             });
 
@@ -464,8 +492,8 @@ export function SelectionInspector({
                   {group.label}
                 </div>
                 {visibleProps.map(prop => {
-                  const binding = getBindingForProperty(selectedNodes, prop);
-                  const value = getCurrentValue(selectedNodes, prop);
+                  const binding = getBindingForProperty(rootNodes, prop);
+                  const value = getCurrentValue(rootNodes, prop);
 
                   let resolvedDisplay: string | null = null;
                   let resolvedColor: string | null = null;
@@ -588,7 +616,7 @@ export function SelectionInspector({
                           {canChangeBind && (
                             <button
                               onClick={() => openBindFromProp(prop)}
-                              title="Change binding"
+                              title="Remap to another token"
                               className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -739,15 +767,15 @@ export function SelectionInspector({
                             <div className="flex items-center gap-1.5">
                               <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Value:</span>
                               {(prop === 'fill' || prop === 'stroke') &&
-                               typeof getCurrentValue(selectedNodes, prop) === 'string' &&
-                               getCurrentValue(selectedNodes, prop).startsWith('#') && (
+                               typeof getCurrentValue(rootNodes, prop) === 'string' &&
+                               getCurrentValue(rootNodes, prop).startsWith('#') && (
                                 <div
                                   className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                                  style={{ backgroundColor: getCurrentValue(selectedNodes, prop) }}
+                                  style={{ backgroundColor: getCurrentValue(rootNodes, prop) }}
                                 />
                               )}
                               <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate">
-                                {formatTokenValuePreview(prop, getCurrentValue(selectedNodes, prop))}
+                                {formatTokenValuePreview(prop, getCurrentValue(rootNodes, prop))}
                               </span>
                             </div>
                             <div className="flex flex-col gap-0.5">
@@ -789,6 +817,90 @@ export function SelectionInspector({
               </div>
             );
           })}
+          </div>
+        )}
+
+        {/* Deep inspect: nested layers with token bindings */}
+        {deepInspect && deepChildNodes.length > 0 && (
+          <div className="mt-1 pt-1 border-t border-[var(--color-figma-border)]/50">
+            <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide flex items-center gap-1">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                <path d="M9 22V12h6v10" />
+              </svg>
+              Nested Layers ({deepChildNodes.length})
+            </div>
+            {deepChildNodes.map(child => {
+              const boundProps = ALL_BINDABLE_PROPERTIES.filter(p => child.bindings[p]);
+              if (boundProps.length === 0) return null;
+              const indent = Math.min((child.depth ?? 1) - 1, 3);
+              return (
+                <div
+                  key={child.id}
+                  className="px-2 py-1.5 hover:bg-[var(--color-figma-bg-hover)] rounded"
+                  style={{ paddingLeft: `${8 + indent * 10}px` }}
+                >
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                    </svg>
+                    <span className="text-[9px] font-medium text-[var(--color-figma-text)] truncate flex-1" title={child.name}>
+                      {child.name}
+                    </span>
+                    <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 uppercase tracking-wide">
+                      {child.type}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5 pl-3">
+                    {boundProps.map(prop => {
+                      const tokenPath = child.bindings[prop];
+                      const entry = tokenMap[tokenPath];
+                      let swatchColor: string | null = null;
+                      if (entry?.$type === 'color') {
+                        const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+                        if (typeof r.value === 'string' && r.value.startsWith('#')) swatchColor = r.value;
+                      }
+                      return (
+                        <div key={prop} className="flex items-center gap-1">
+                          {swatchColor ? (
+                            <div className="w-2.5 h-2.5 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: swatchColor }} />
+                          ) : (
+                            <div className="w-2.5 h-2.5 shrink-0" />
+                          )}
+                          <span className="text-[8px] text-[var(--color-figma-text-secondary)] w-[60px] shrink-0 truncate">
+                            {PROPERTY_LABELS[prop]}
+                          </span>
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-accent)] shrink-0" aria-hidden="true">
+                            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                          </svg>
+                          <span className="text-[8px] text-[var(--color-figma-accent)] font-mono truncate flex-1" title={tokenPath}>
+                            {tokenPath}
+                          </span>
+                          {onNavigateToToken && (
+                            <button
+                              onClick={() => onNavigateToToken(tokenPath)}
+                              title="Go to token"
+                              className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                            >
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M5 12h14M12 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {deepInspect && deepChildNodes.length === 0 && hasSelection && (
+          <div className="mt-1 pt-1 border-t border-[var(--color-figma-border)]/50 px-3 py-2 text-center">
+            <p className="text-[9px] text-[var(--color-figma-text-secondary)]">No token bindings found in nested layers.</p>
           </div>
         )}
       </div>

@@ -774,32 +774,63 @@ function readCurrentValues(node: SceneNode): Record<string, any> {
   return values;
 }
 
+function readNodeBindings(node: SceneNode): Record<string, string> {
+  const bindings: Record<string, string> = {};
+  for (const prop of ALL_BINDABLE_PROPERTIES) {
+    const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
+    if (val) bindings[prop] = val;
+  }
+  for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
+    if (!bindings[newKey]) {
+      const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
+      if (val) bindings[newKey] = val;
+    }
+  }
+  return bindings;
+}
+
+function collectDescendantsWithBindings(node: SceneNode, depth: number): ReturnType<typeof getSelection extends (...args: any) => Promise<infer R> ? never : never>[] {
+  const results: any[] = [];
+  if (!('children' in node)) return results;
+  for (const child of (node as any).children as SceneNode[]) {
+    const bindings = readNodeBindings(child);
+    if (Object.keys(bindings).length > 0) {
+      results.push({
+        id: child.id,
+        name: child.name,
+        type: child.type,
+        bindings,
+        capabilities: getNodeCapabilities(child),
+        currentValues: readCurrentValues(child),
+        depth,
+        parentId: node.id,
+      });
+    }
+    results.push(...collectDescendantsWithBindings(child, depth + 1));
+  }
+  return results;
+}
+
 async function getSelection() {
   const selection = figma.currentPage.selection;
-  const info = selection.map(node => {
-    // Read all bindable property keys
-    const bindings: Record<string, string> = {};
-    for (const prop of ALL_BINDABLE_PROPERTIES) {
-      const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
-      if (val) bindings[prop] = val;
-    }
-    // Also check legacy keys and remap
-    for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
-      if (!bindings[newKey]) {
-        const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
-        if (val) bindings[newKey] = val;
-      }
-    }
-
+  const info: any[] = selection.map(node => {
     return {
       id: node.id,
       name: node.name,
       type: node.type,
-      bindings,
+      bindings: readNodeBindings(node),
       capabilities: getNodeCapabilities(node),
       currentValues: readCurrentValues(node),
+      depth: 0,
     };
   });
+
+  if (deepInspectEnabled) {
+    for (const node of selection) {
+      info.push(...collectDescendantsWithBindings(node, 1));
+    }
+  }
+
   figma.ui.postMessage({ type: 'selection', nodes: info });
 }
 
