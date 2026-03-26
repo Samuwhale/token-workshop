@@ -105,3 +105,10 @@
   - `TOKEN_TYPE_VALUES` (a `Set<string>`) is already exported from `@tokenmanager/core` — use it for type membership checks rather than duplicating the list
   - No Zod dependency needed; a small inline guard is cleaner and avoids a new dep
 ---
+
+## 2026-03-26 - Expand/collapse all groups
+- Stale — already fully implemented. `handleExpandAll` and `handleCollapseAll` functions exist at ~L210-216 in TokenList.tsx. "Expand all" / "Collapse all" buttons rendered in the toolbar at ~L1114-1130, shown only when groups exist. State persisted to sessionStorage per set.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Check for existing toolbar implementations before implementing — expand/collapse was already complete with sessionStorage persistence and depth-2 default expansion
+---
