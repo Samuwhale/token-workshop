@@ -667,3 +667,11 @@
   - There was already a `dist/flatten.js` file in core (from a deleted `flatten.ts` source) with a different `flattenTokenGroup` signature (returns array, not Map). The new implementation in `dtcg-types.ts` has a different output format (Map).
   - The `dist/index.js` is the authoritative file the figma-plugin build reads; it must export any new symbols from core.
 ---
+
+## 2026-03-26 - Reference resolution duplicated between client and server
+- `resolveColorValue()` no longer existed in TokenEditor.tsx — consolidation was largely already done (both files imported `resolveRefValue` from `@tokenmanager/core`). The only remaining local wrapper was `resolveRef` in `style-dict.ts` (1-line wrapper, used once). Removed it and inlined the call. Also added `resolveRefValue` to `dist/dtcg-types.js` and `dist/index.js` since it existed in src but was missing from the dist, causing the build to fail.
+- Files changed: `packages/server/src/services/style-dict.ts` ~L68, `packages/core/dist/dtcg-types.js` ~L62, `packages/core/dist/index.js` ~L8
+- **Learnings for future iterations:**
+  - When `@tokenmanager/core` src exports a new symbol, the dist files must be updated manually: add the implementation to `dist/dtcg-types.js` and add it to the export list in `dist/index.js`. The TS watch process doesn't always catch new exports.
+  - Backlog items referencing old function names (e.g. `resolveColorValue`) may be partially stale — check current file state before planning the full consolidation.
+---

@@ -61,25 +61,6 @@ function buildFlatValueMap(obj: Record<string, any>, prefix = ''): Record<string
 }
 
 /**
- * Resolve a single `{path.to.token}` reference from the flat value map.
- * Only resolves to string values (colors) to avoid infinite loops.
- * Follows the reference chain until a concrete value or a cycle is detected.
- */
-function resolveRef(ref: string, flatMap: Record<string, unknown>, visited = new Set<string>()): string {
-  if (visited.has(ref)) {
-    // Cycle detected — return the unresolved reference as-is
-    return ref;
-  }
-  visited.add(ref);
-  const path = ref.slice(1, -1);
-  const val = flatMap[path];
-  if (typeof val === 'string' && val.startsWith('{') && val.endsWith('}')) {
-    return resolveRef(val, flatMap, visited);
-  }
-  return typeof val === 'string' ? val : ref;
-}
-
-/**
  * Walk the merged DTCG token tree and pre-resolve alias references inside
  * gradient stop `color` fields. This ensures Style Dictionary receives
  * concrete color values for gradient stops rather than `{path}` references
@@ -99,7 +80,7 @@ function resolveGradientStopAliases(merged: Record<string, any>): Record<string,
     return (val as Array<{ color: unknown; position: unknown } & Record<string, unknown>>).map(stop => {
       const color = stop.color;
       if (typeof color === 'string' && color.startsWith('{') && color.endsWith('}')) {
-        return { ...stop, color: resolveRef(color, flatMap) };
+        return { ...stop, color: resolveRefValue(color, flatMap) ?? color };
       }
       return stop;
     });

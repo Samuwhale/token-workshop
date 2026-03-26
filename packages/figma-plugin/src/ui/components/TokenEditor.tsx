@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { resolveRefValue } from '@tokenmanager/core';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { ConfirmModal } from './ConfirmModal';
 import type { TokenMapEntry } from '../../shared/types';
@@ -46,16 +47,6 @@ const FIGMA_SCOPES: Record<string, { label: string; value: string }[]> = {
   ],
 };
 
-function resolveColorValue(path: string, allTokensFlat: Record<string, TokenMapEntry>, visited = new Set<string>()): string | null {
-  if (visited.has(path)) return null;
-  visited.add(path);
-  const entry = allTokensFlat[path];
-  if (!entry || entry.$type !== 'color') return null;
-  const v = entry.$value;
-  return typeof v === 'string' && v.startsWith('{')
-    ? resolveColorValue(v.slice(1, -1), allTokensFlat, visited)
-    : typeof v === 'string' ? v : null;
-}
 
 function resolveAliasChain(
   ref: string,
@@ -139,6 +130,15 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 
   const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
+
+  // Flat map of color token string values — used for reference resolution in this editor.
+  const colorFlatMap = useMemo(() => {
+    const map: Record<string, unknown> = {};
+    for (const [p, e] of Object.entries(allTokensFlat)) {
+      if (e.$type === 'color') map[p] = e.$value;
+    }
+    return map;
+  }, [allTokensFlat]);
 
   useEffect(() => {
     if (isCreateMode) return; // skip fetch in create mode
@@ -412,7 +412,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         </button>}
         {aliasMode && reference && tokenType === 'color' && (() => {
           const refPath = reference.startsWith('{') && reference.endsWith('}') ? reference.slice(1, -1) : null;
-          const resolved = refPath ? resolveColorValue(refPath, allTokensFlat) : null;
+          const resolved = refPath ? resolveRefValue(refPath, colorFlatMap) : null;
           if (!resolved) return null;
           return (
             <div
@@ -623,7 +623,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         {/* Color modifiers — only when aliasing a color */}
         {tokenType === 'color' && aliasMode && reference.startsWith('{') && reference.endsWith('}') && (() => {
           const refPath = reference.slice(1, -1);
-          const baseHex = resolveColorValue(refPath, allTokensFlat);
+          const baseHex = resolveRefValue(refPath, colorFlatMap);
           const previewHex = baseHex && colorModifiers.length > 0 ? applyColorModifiers(baseHex, colorModifiers) : baseHex;
           return (
             <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
@@ -749,8 +749,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             </button>
             {showContrast && (() => {
               const colorTokens = Object.entries(allTokensFlat).filter(([, e]) => e.$type === 'color');
-              const fgHex = resolveColorValue(tokenPath, allTokensFlat) ?? (typeof value === 'string' && !value.startsWith('{') ? value : null);
-              const bgHex = bgTokenPath ? resolveColorValue(bgTokenPath, allTokensFlat) : null;
+              const fgHex = resolveRefValue(tokenPath, colorFlatMap) ?? (typeof value === 'string' && !value.startsWith('{') ? value : null);
+              const bgHex = bgTokenPath ? resolveRefValue(bgTokenPath, colorFlatMap) : null;
               const ratio = fgHex && bgHex ? wcagContrast(fgHex, bgHex) : null;
               const pass = (r: number, min: number) => r >= min;
               return (
@@ -965,7 +965,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                   {dependents.map(dep => {
                     const entry = allTokensFlat[dep.path];
                     // Resolve through alias chains so alias-color dependents also get a swatch
-                    const resolvedColor = entry?.$type === 'color' ? resolveColorValue(dep.path, allTokensFlat) : null;
+                    const resolvedColor = entry?.$type === 'color' ? resolveRefValue(dep.path, colorFlatMap) : null;
 
                     // Before/after preview: when this is a color token being edited
                     // and the dependent is an alias (its value resolves through this token)
