@@ -645,3 +645,13 @@
   - The local definitions in TokenEditor/TokenList were slightly stale (missing `contrastCheck` type, missing optional fields). Importing from the hook picks up the fuller type automatically.
   - `useGenerators.ts` is the canonical source for generator-related types — always import from there.
 ---
+
+## 2026-03-26 - Contrast Check graph node
+- Implemented `contrastCheck` as a new generator type across all layers: `ContrastCheckConfig` interface (backgroundHex, steps[], levels[]) in core/generator-types.ts; `runContrastCheckGenerator` in core/generator-engine.ts that outputs number tokens (contrast ratio per step); server switch case in generator-service.ts; standalone type in plugin useGenerators.ts; `ContrastCheckConfigEditor` (background color picker, AA/AAA level toggles, per-step color input with live ratio) and `ContrastCheckPreview` (summary badge + per-step swatch/ratio/AA/AAA) in TokenGeneratorDialog.tsx; warning badge on generator node + amber border on output node in TokenGraph.tsx.
+- Files changed: `packages/core/src/generator-types.ts` ~L11, `packages/core/src/generator-engine.ts` ~L270, `packages/core/src/index.ts` ~L94, `packages/server/src/services/generator-service.ts` ~L415, `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L7, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L440, `packages/figma-plugin/src/ui/components/TokenGraph.tsx` ~L29
+- **Learnings for future iterations:**
+  - `isOverridden` was repurposed as a "failure" flag in GeneratedTokenResult for contrastCheck (ratio < 4.5 = true). Consider adding a dedicated `meta` field in the future if more result annotations are needed.
+  - The generator type union in useGenerators.ts is manually kept in sync with core/generator-types.ts — these are intentionally separate (no @tokenmanager/core import in plugin).
+  - contrastCheck is `STANDALONE_TYPES` (no source token from token store needed) — all color data lives in the config.
+  - Warning badges in TokenGraph.tsx are computed client-side from the config (wcagContrast on config.steps[].hex vs config.backgroundHex) without a server round-trip.
+---
