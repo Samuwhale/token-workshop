@@ -107,7 +107,7 @@ interface ColorScaleGeneratorProps {
   activeSet: string;
   existingPaths: Set<string>;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (firstTokenPath?: string) => void;
 }
 
 export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClose, onConfirm }: ColorScaleGeneratorProps) {
@@ -152,7 +152,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
         return;
       }
       setCreating(false);
-      onConfirm();
+      onConfirm(`${prefix}.${scale[0].label}`);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -177,59 +177,23 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-          {/* Inputs: color first (most important), then steps, then prefix */}
-          <div className="flex flex-col gap-3">
-            {/* Base color */}
-            <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Base color</label>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="color"
-                  value={baseHex.slice(0, 7)}
-                  onChange={e => setBaseHex(e.target.value)}
-                  className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent shrink-0"
-                />
-                <input
-                  type="text"
-                  value={baseHex}
-                  onChange={e => setBaseHex(e.target.value)}
-                  placeholder="#3b82f6"
-                  className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
-                />
-              </div>
-            </div>
-
-            {/* Steps */}
-            <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
-              <div className="flex gap-2">
-                {([5, 7, 9] as const).map(n => (
-                  <button
-                    key={n}
-                    onClick={() => setSteps(n)}
-                    className={`flex-1 py-1 rounded text-[10px] font-medium border transition-colors ${steps === n ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Prefix */}
-            <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Token prefix</label>
+          {/* Base color — the primary input */}
+          <div>
+            <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Base color</label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="color"
+                value={baseHex.slice(0, 7)}
+                onChange={e => setBaseHex(e.target.value)}
+                className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent shrink-0"
+              />
               <input
                 type="text"
-                value={prefix}
-                onChange={e => setPrefix(e.target.value.replace(/[^a-zA-Z0-9_.-]/g, ''))}
-                placeholder="e.g. brand, primary, neutral"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                value={baseHex}
+                onChange={e => setBaseHex(e.target.value)}
+                placeholder="#3b82f6"
+                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
               />
-              {prefix && scale.length > 0 && (
-                <p className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)] font-mono">
-                  {prefix}.{firstStep} → {prefix}.{lastStep}
-                </p>
-              )}
             </div>
           </div>
 
@@ -238,15 +202,14 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
             <div className="text-[10px] text-[var(--color-figma-error)]">Invalid color — enter a valid hex value (e.g. #3b82f6)</div>
           )}
 
-          {/* Preview swatches — taller cards with label + hex */}
+          {/* Preview swatches — dominant element, shown immediately after color input */}
           {scale.length > 0 && (
             <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">Preview</label>
               <div className="flex gap-0.5 rounded overflow-hidden">
                 {scale.map(step => (
                   <div key={step.label} className="flex-1 flex flex-col min-w-0">
                     <div
-                      className="h-12"
+                      className="h-16"
                       style={{ background: step.hex }}
                       title={`${prefix}.${step.label}: ${step.hex}`}
                     />
@@ -283,10 +246,46 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
             </details>
           )}
 
+          {/* Steps & prefix — secondary controls below the preview */}
+          <div className="flex gap-3">
+            {/* Steps */}
+            <div className="shrink-0">
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
+              <div className="flex gap-1">
+                {([5, 7, 9] as const).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => setSteps(n)}
+                    className={`w-8 py-1 rounded text-[10px] font-medium border transition-colors ${steps === n ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Prefix */}
+            <div className="flex-1 min-w-0">
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Token prefix</label>
+              <input
+                type="text"
+                value={prefix}
+                onChange={e => setPrefix(e.target.value.replace(/[^a-zA-Z0-9_.-]/g, ''))}
+                placeholder="e.g. brand, primary, neutral"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              />
+              {prefix && scale.length > 0 && (
+                <p className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)] font-mono">
+                  {prefix}.{firstStep} → {prefix}.{lastStep}
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Conflicts */}
           {conflicts.length > 0 && (
-            <div className="text-[10px] text-yellow-700 bg-yellow-50 border border-yellow-200 rounded px-2 py-1.5">
-              ⚠ {conflicts.length} token{conflicts.length !== 1 ? 's' : ''} already exist and will be overwritten.
+            <div className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5 border border-[var(--color-figma-error)]/20 rounded px-2 py-1.5">
+              {conflicts.length} token{conflicts.length !== 1 ? 's' : ''} already exist{conflicts.length === 1 ? 's' : ''} — rename the prefix or choose a different number of steps.
             </div>
           )}
 
@@ -305,7 +304,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
           </button>
           <button
             onClick={handleCreate}
-            disabled={creating || !prefix || scale.length === 0}
+            disabled={creating || !prefix || scale.length === 0 || conflicts.length > 0}
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
             {creating ? 'Creating…' : `Create ${scale.length} tokens`}

@@ -614,6 +614,13 @@ export function App() {
         category: 'Tokens',
         handler: () => { setActiveTab('analytics'); setValidateKey(k => k + 1); },
       },
+      {
+        id: 'generate-color-scale',
+        label: 'Generate Color Scale',
+        description: 'Create a perceptually uniform color ramp',
+        category: 'Tokens',
+        handler: () => { goToTokens(); setShowColorScaleGen(true); },
+      },
       ...sets.map(s => ({
         id: `switch-set-${s}`,
         label: `Switch to Set: ${s}`,
@@ -1296,7 +1303,7 @@ export function App() {
           activeSet={activeSet}
           existingPaths={new Set(Object.keys(allTokensFlat).filter(p => pathToSet[p] === activeSet))}
           onClose={() => setShowColorScaleGen(false)}
-          onConfirm={() => { setShowColorScaleGen(false); refreshAll(); }}
+          onConfirm={(firstPath) => { setShowColorScaleGen(false); refreshAll(); if (firstPath) setPendingHighlight(firstPath); }}
         />
       )}
 

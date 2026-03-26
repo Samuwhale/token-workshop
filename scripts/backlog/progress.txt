@@ -308,3 +308,19 @@
   - Template configs use different step shapes (`name`, `value`, `exponent`, `multiplier`) depending on generator type — extract step names with fallback chain `s.name ?? s.value`
   - `text-[var(--color-figma-text-tertiary)]` is available for ultra-low-emphasis text
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Generate Color Scale
+- Reordered layout: preview swatches now appear immediately after color picker (before steps/prefix) making it the dominant element
+- Increased swatch height from h-12 to h-16 for better visual evaluation
+- Moved steps + prefix to a compact inline row below the preview, reducing visual weight of secondary controls
+- Fixed misleading conflict warning: previously said "will be overwritten" but server returns 409; now blocks creation and tells user to rename prefix
+- Disabled Create button when token name conflicts exist (previously allowed creation that would fail with server error)
+- Added "Generate Color Scale" command to command palette (previously only accessible from EmptyState — unreachable once tokens existed)
+- Added post-creation highlight: after tokens are created, the first token in the scale is highlighted via `setPendingHighlight`
+- Files changed: `packages/figma-plugin/src/ui/components/ColorScaleGenerator.tsx` ~L179-L296, `packages/figma-plugin/src/ui/App.tsx` ~L617, ~L1299
+- **Learnings for future iterations:**
+  - The color scale generator was only reachable from EmptyState — any generator/wizard should always have a command palette entry as a secondary trigger
+  - POST /api/tokens/:set/:path returns 409 if token exists — conflict checks in the UI must block creation, not just warn
+  - `setPendingHighlight` works across refresh cycles (waits for token data to load before highlighting) — use it for any post-creation navigation
+  - Steps + prefix can share a row since steps is a fixed-width button group — saves vertical space for the preview
+---

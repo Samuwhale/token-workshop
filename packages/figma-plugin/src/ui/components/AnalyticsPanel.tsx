@@ -52,6 +52,20 @@ function normalizeHex(hex: string): string {
   return '#' + h;
 }
 
+/** Human-friendly rule labels & descriptions for validation issues */
+const RULE_LABELS: Record<string, { label: string; tip: string }> = {
+  'missing-type':       { label: 'Missing type',       tip: 'Add a $type to make the token spec-compliant' },
+  'broken-alias':       { label: 'Broken reference',   tip: 'The referenced token doesn\'t exist — update or remove the alias' },
+  'circular-reference': { label: 'Circular reference',  tip: 'Break the alias loop so the token can resolve' },
+  'max-alias-depth':    { label: 'Deep alias chain',   tip: 'Shorten the chain by pointing closer to the source token' },
+  'type-mismatch':      { label: 'Type / value mismatch', tip: 'The value doesn\'t match the declared $type' },
+  // lint rules (shown when linting is wired to the same list)
+  'no-raw-color':        { label: 'Raw color value',    tip: 'Extract the color to a primitive token and reference it' },
+  'require-description': { label: 'Missing description', tip: 'Add a $description to improve discoverability' },
+  'path-pattern':        { label: 'Naming convention',  tip: 'Rename the token to match the configured pattern' },
+  'no-duplicate-values': { label: 'Duplicate value',    tip: 'Consider extracting a shared token' },
+};
+
 const TYPE_COLORS: Record<string, string> = {
   color:      '#e85d4a',
   dimension:  '#4a9ee8',
@@ -89,6 +103,9 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   }); // hex → chosen canonical path
   const [reloadKey, setReloadKey] = useState(0);
   const [showScaleInspector, setShowScaleInspector] = useState(false);
+  const [resultsStale, setResultsStale] = useState(false); // true after a "Go →" navigation
+  const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
+  const hasAutoValidated = useRef(false);
 
   // Component coverage state
   const [coverageResult, setCoverageResult] = useState<{
@@ -115,6 +132,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
         const data = await res.json() as { issues: ValidationIssue[] };
         const issues = data.issues ?? [];
         setValidateResults(issues);
+        setResultsStale(false);
         onValidationComplete?.(issues.length);
       }
     } catch {
@@ -130,6 +148,14 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     // finishes would trigger a redundant validation on the same validateKey.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validateKey, runValidate]);
+
+  // Auto-validate on first visit when connected and no results yet
+  useEffect(() => {
+    if (connected && !hasAutoValidated.current && validateResults === null && !validateLoading) {
+      hasAutoValidated.current = true;
+      runValidate();
+    }
+  }, [connected, validateResults, validateLoading, runValidate]);
 
   // Listen for component-coverage-result from controller
   useEffect(() => {
@@ -279,6 +305,25 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
         info: validateResults.filter(i => i.severity === 'info').length,
       }
     : null;
+
+  // Group filtered issues by rule for collapsible sections
+  const issueGroups: { rule: string; label: string; tip: string; severity: 'error' | 'warning' | 'info'; issues: ValidationIssue[] }[] = (() => {
+    if (!filteredIssues || filteredIssues.length === 0) return [];
+    const map = new Map<string, ValidationIssue[]>();
+    for (const issue of filteredIssues) {
+      const list = map.get(issue.rule) ?? [];
+      list.push(issue);
+      map.set(issue.rule, list);
+    }
+    const severityOrder = { error: 0, warning: 1, info: 2 } as const;
+    return [...map.entries()]
+      .map(([rule, issues]) => {
+        const meta = RULE_LABELS[rule] ?? { label: rule, tip: '' };
+        const worst = issues.reduce((a, b) => severityOrder[a.severity] <= severityOrder[b.severity] ? a : b);
+        return { rule, label: meta.label, tip: meta.tip, severity: worst.severity, issues };
+      })
+      .sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+  })();
 
   // Detect color scales: groups of color tokens with numeric suffix under same parent
   const colorScales = (() => {

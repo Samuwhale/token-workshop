@@ -236,7 +236,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Generate Color Scale
 
-- [ ] **Flow audit & overhaul: Generate Color Scale** — Trace the flow (trigger → generator open → colour input → step select → prefix → preview → confirm → tokens appear), identify friction (is real-time preview working? is the group prefix field necessary at this step?), then redesign: prioritise the preview—make it the dominant element—and reduce required inputs to the essential minimum. `packages/plugin/src/components/ColorScaleGenerator.tsx`
+- [x] **Flow audit & overhaul: Generate Color Scale** — Trace the flow (trigger → generator open → colour input → step select → prefix → preview → confirm → tokens appear), identify friction (is real-time preview working? is the group prefix field necessary at this step?), then redesign: prioritise the preview—make it the dominant element—and reduce required inputs to the essential minimum. `packages/plugin/src/components/ColorScaleGenerator.tsx`
 
 ### Flow: Create Tokens via Presets
 
@@ -268,7 +268,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Validate and Fix Token Issues
 
-- [ ] **Flow audit & overhaul: Validate & Fix** — Trace the validation flow (trigger → analytics view → issues listed → click issue → navigate to token → fix → re-validate), read the validator and analytics components, identify friction (is it clear how to trigger validation? is the issue list overwhelming? is "navigate to token" obvious?), then redesign: ensure validation runs automatically and the badge count is always current, make issue descriptions use plain language, and make the fix path (navigate → edit → re-validate) a smooth loop. `packages/plugin/src/components/AnalyticsPanel.tsx`, `packages/core/src/validator.ts`
+- [~] **Flow audit & overhaul: Validate & Fix** — Trace the validation flow (trigger → analytics view → issues listed → click issue → navigate to token → fix → re-validate), read the validator and analytics components, identify friction (is it clear how to trigger validation? is the issue list overwhelming? is "navigate to token" obvious?), then redesign: ensure validation runs automatically and the badge count is always current, make issue descriptions use plain language, and make the fix path (navigate → edit → re-validate) a smooth loop. `packages/plugin/src/components/AnalyticsPanel.tsx`, `packages/core/src/validator.ts`
 
 ### Flow: Command Palette Usage
 
