@@ -533,3 +533,19 @@
   - The "Change binding" button already existed (`canChangeBind`) — remap was a UX enhancement on top of it, not a new flow.
   - Pre-populating search with parent segment (lastIndexOf('.')) is acceptable as a heuristic for the search box even though it's flagged as structurally wrong for path parsing — different use case.
 ---
+
+## 2026-03-26 - Multi-dimensional theme model
+- Implemented full multi-dimensional theme model: `ThemeDimension` (e.g. "Color Mode") contains mutually exclusive `ThemeOption`s (e.g. "Light"/"Dark"). Multiple dimensions can be active simultaneously, creating a matrix of combinations.
+- **Data model**: Replaced flat `Theme[]` with `ThemeDimension[]` in `types.ts` — new types: `ThemeDimension { id, name, options }`, `ThemeOption { name, sets }`, `ActiveThemes = Record<string, string>` (dimId → optionName)
+- **Server API**: Complete rewrite of `routes/themes.ts` — new endpoints: `GET /api/themes` → `{ dimensions }`, `POST /api/themes/dimensions`, `PUT /api/themes/dimensions/:id`, `DELETE /api/themes/dimensions/:id`, `POST /api/themes/dimensions/:id/options`, `DELETE /api/themes/dimensions/:id/options/:optionName`
+- **Token store**: Updated `renameSet` in `token-store.ts` to traverse `dimension.options[]` instead of flat `theme[]`
+- **Controller**: Changed `get-active-theme`/`set-active-theme` to `get-active-themes`/`set-active-themes` using a map object instead of single string
+- **App.tsx**: Multi-dimensional switcher bar (one dropdown per dimension), multi-option token resolution that merges all active options in dimension order
+- **ThemeManager.tsx**: Complete rewrite — dimensions as top-level cards, options inside each card with the same Off/Base/On set matrix, inline option creation per dimension, coverage gaps per option
+- **ThemeCompare.tsx**: Updated to accept `dimensions` prop and build a flat option list for comparison
+- Files changed: `packages/core/src/types.ts` ~L142-161, `packages/core/src/index.ts` ~L43-47, `packages/server/src/routes/themes.ts` (full rewrite), `packages/server/src/services/token-store.ts` ~L261-272, `packages/figma-plugin/src/plugin/controller.ts` ~L68-82, `packages/figma-plugin/src/ui/App.tsx` ~L239-357+L1692-1748+L2124+L2142, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` (full rewrite), `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L6-80
+- **Learnings for future iterations:**
+  - The server tsconfig uses `"paths": { "@tokenmanager/core": ["../core/src"] }` with composite project references — server imports directly from core source, not dist. Run core build if server fails with "no exported member" errors.
+  - ActiveThemes stored as `Record<string, string>` (dimensionId → optionName) in both localStorage and Figma clientStorage. Key prefix changed from `active-theme:` to `active-themes:`.
+  - Token resolution with multiple dimensions: iterate dimensions in order, for each apply its active option's source sets then enabled sets. Later dimensions override earlier ones for same paths.
+---
