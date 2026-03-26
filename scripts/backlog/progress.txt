@@ -149,3 +149,19 @@
   - When pressing Escape to cancel an edit causes DOM removal, the resulting `onBlur` fires with the old memoized closure — use a `ref` (not state) to synchronously flag the cancellation before the blur fires. This is the same pattern as `renameGroupEscapedRef` already in the same component.
   - Enter key is safe because React re-renders before blur fires when the input disappears, so the second `handleInlineSubmit` call sees `inlineEditActive=false` and exits early.
 ---
+
+## 2026-03-26 - UX audit & overhaul: Empty State
+- Redesigned EmptyState.tsx with clear visual hierarchy and per-action helper text
+- Added an icon+heading block at top (token/sparkle icon, "No tokens yet", brief subtitle)
+- Promoted "Create first token" to a two-line card with a description ("Define a color, spacing, or any design value")
+- Added "Or start with" section label and converted secondary buttons to two-line cards with descriptions
+- "Generate color scale" → "Build a 10-step palette from one base color"
+- "Use a preset" → "Start from a professionally designed token set"
+- "Paste tokens from JSON" → "Import from Tokens Studio or Style Dictionary"
+- Kept the "From primitives" section (conditionally rendered) for onGenerateSemanticTokens/onGenerateDarkTheme which are never passed from App.tsx but preserved for API compatibility
+- Files changed: `packages/figma-plugin/src/ui/components/EmptyState.tsx`
+- **Learnings for future iterations:**
+  - onGenerateSemanticTokens and onGenerateDarkTheme are defined in the interface but never passed from App.tsx — safe to keep for API compatibility but the section never renders in practice
+  - The "From primitives" section can be preserved as-is without visual redesign since it's invisible in production
+  - Two-line action cards (label + description subtext) give users enough context to choose without being overwhelming
+---
