@@ -7,6 +7,7 @@ import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEnt
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
 import { QuickStartDialog } from './QuickStartDialog';
+import { BatchEditor } from './BatchEditor';
 import { hexToRgb, rgbToLab, colorDeltaE, stableStringify } from '../shared/colorUtils';
 
 type GeneratorType = 'colorRamp' | 'typeScale' | 'spacingScale' | 'opacityScale' | 'borderRadiusScale' | 'zIndexScale' | 'customScale';
@@ -173,6 +174,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const [showBatchEditor, setShowBatchEditor] = useState(false);
   const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
   const [promoteBusy, setPromoteBusy] = useState(false);
   const [showScaffold, setShowScaffold] = useState(false);
@@ -264,6 +266,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         e.preventDefault();
         setSelectMode(false);
         setSelectedPaths(new Set());
+        setShowBatchEditor(false);
         return;
       }
       return;
@@ -1362,7 +1365,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                     >
                       <td className="px-2 py-1.5 font-mono text-[var(--color-figma-text)] truncate max-w-0" title={leaf.path}>{leaf.path}</td>
                       <td className="px-2 py-1.5">
-                        <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase ${TOKEN_TYPE_BADGE_CLASS[leaf.$type ?? ''] ?? 'token-type-string'}`}>{leaf.$type}</span>
+                        <span className={`px-1 py-0.5 rounded text-[8px] font-medium ${TOKEN_TYPE_BADGE_CLASS[leaf.$type ?? ''] ?? 'token-type-string'}`}>{leaf.$type}</span>
                       </td>
                       <td className="px-2 py-1.5 text-[var(--color-figma-text-secondary)] truncate max-w-0 font-mono" title={String(leaf.$value)}>
                         {typeof leaf.$value === 'object' ? JSON.stringify(leaf.$value) : String(leaf.$value ?? '')}
@@ -2534,7 +2537,7 @@ function TokenTreeNode({
         <button
           onClick={e => { e.stopPropagation(); onInlineSave?.(node.path, 'boolean', !node.$value); }}
           title="Click to toggle"
-          className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 cursor-pointer hover:text-[var(--color-figma-accent)] transition-colors"
+          className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 cursor-pointer hover:text-[var(--color-figma-accent)] transition-colors"
         >
           {formatValue(node.$type, displayValue)}
         </button>
@@ -2554,11 +2557,11 @@ function TokenTreeNode({
           }}
           onClick={e => e.stopPropagation()}
           autoFocus
-          className="text-[10px] text-[var(--color-figma-text)] shrink-0 w-[80px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none"
+          className="text-[11px] text-[var(--color-figma-text)] shrink-0 w-[96px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none"
         />
       ) : canInlineEdit && node.$type !== 'color' ? (
         <span
-          className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[80px] truncate cursor-text hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
+          className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate cursor-text hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
           title="Click to edit"
           onClick={e => {
             e.stopPropagation();
@@ -2569,7 +2572,7 @@ function TokenTreeNode({
           {formatValue(node.$type, displayValue)}
         </span>
       ) : (
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[80px] truncate">
+        <span className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate">
           {formatValue(node.$type, displayValue)}
         </span>
       )}

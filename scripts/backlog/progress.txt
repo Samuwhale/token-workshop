@@ -663,3 +663,15 @@
   - `DEFAULT_VALUE_FOR_TYPE` must be defined before any function that references it at call time — splitting handleTypeChange into applyTypeChange + handleTypeChange both after DEFAULT_VALUE_FOR_TYPE works correctly
   - State-derived disabled button labels (e.g., "No changes") are a simple, effective way to communicate why a button is inactive without tooltips or separate help text
 ---
+
+## 2026-03-26 - UI audit & overhaul: Token List
+- Increased color swatches from `w-4 h-4` (16px) to `w-5 h-5` (20px) across all ValuePreview cases (color, shadow, unresolved alias, fallback) and the inline editable color swatch button
+- Changed value text from `text-[10px]` to `text-[11px]` (matching name text size) — hierarchy now via color (secondary) not size; more readable especially for hex codes and numeric values
+- Removed `uppercase` from type badge class in both tree mode and table mode — token types like "color", "dimension", "typography" are cleaner lowercase and `text-[8px]` uppercase was very hard to read
+- Increased value truncation from `max-w-[80px]` to `max-w-[96px]` for more room to show values like `#ff5733` without truncation
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2435, ~L2474, ~L1365, ~L2537, ~L2557, ~L2561, ~L2572, ~L2800, ~L2806, ~L2839, ~L2891
+- **Learnings for future iterations:**
+  - Value text and name text at the same size (11px) with different colors (primary vs secondary) gives better readability than 11px vs 10px
+  - `uppercase` on `text-[8px]` badges makes them nearly illegible — always avoid that combination
+  - `w-5 h-5` (20px) swatches are much more useful for evaluating colors than `w-4 h-4` (16px) while still being compact
+---
