@@ -63,9 +63,11 @@ function renderTypographyTokens(tokens: FlatToken[]): string {
   return `
     <div class="token-list">
       ${tokens.map(t => {
-        const val = t.$value as any;
-        const style = typeof val === 'object' && val !== null
-          ? `font-family:${val.fontFamily ?? 'inherit'};font-size:${val.fontSize ?? 16}px;font-weight:${val.fontWeight ?? 400};line-height:${val.lineHeight ?? 1.5};letter-spacing:${val.letterSpacing ?? 0}px`
+        const val = typeof t.$value === 'object' && t.$value !== null
+          ? (t.$value as Record<string, unknown>)
+          : null;
+        const style = val
+          ? `font-family:${val['fontFamily'] ?? 'inherit'};font-size:${val['fontSize'] ?? 16}px;font-weight:${val['fontWeight'] ?? 400};line-height:${val['lineHeight'] ?? 1.5};letter-spacing:${val['letterSpacing'] ?? 0}px`
           : '';
         return `
           <div class="typo-row">
@@ -230,7 +232,7 @@ export async function docsRoutes(fastify: FastifyInstance) {
       path,
       $type: t.$type || 'string',
       $value: t.$value,
-      $description: (t as any).$description,
+      $description: t.$description,
     }));
     reply.header('Content-Type', 'text/html; charset=utf-8');
     return renderSetPage(set, flat);

@@ -412,6 +412,11 @@ export class TokenValidator {
       const tf = v.timingFunction;
       if (!Array.isArray(tf) || tf.length !== 4 || !tf.every((n) => typeof n === 'number')) {
         errors.push(`${path}.timingFunction: must be a cubicBezier [x1, y1, x2, y2]`);
+      } else {
+        const [x1, , x2] = tf as [number, number, number, number];
+        if (x1 < 0 || x1 > 1 || x2 < 0 || x2 > 1) {
+          errors.push(`${path}.timingFunction: cubic bezier x-values must be in [0, 1]`);
+        }
       }
     }
   }
@@ -429,6 +434,8 @@ export class TokenValidator {
       }
       if (!('color' in stop)) {
         errors.push(`${path}[${i}]: gradient stop missing "color"`);
+      } else if (!isReference(stop.color) && !isValidColor(stop.color)) {
+        errors.push(`${path}[${i}].color: invalid color in gradient stop`);
       }
       if (!('position' in stop)) {
         errors.push(`${path}[${i}]: gradient stop missing "position"`);
@@ -452,7 +459,7 @@ export class TokenValidator {
       const v = value as Record<string, unknown>;
       if (!('dashArray' in v)) {
         errors.push(`${path}: strokeStyle object missing "dashArray"`);
-      } else if (!Array.isArray(v.dashArray)) {
+      } else if (!Array.isArray(v.dashArray) || !v.dashArray.every((d: unknown) => isReference(d) || isDimensionLike(d))) {
         errors.push(`${path}.dashArray: must be an array of dimensions`);
       }
       if (!('lineCap' in v)) {

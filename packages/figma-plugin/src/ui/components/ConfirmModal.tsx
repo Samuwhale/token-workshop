@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface ConfirmModalProps {
   title: string;
@@ -20,10 +20,25 @@ export function ConfirmModal({
   onCancel,
 }: ConfirmModalProps) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => { mountedRef.current = false; };
+  }, []);
 
   const handleConfirm = async () => {
     setBusy(true);
-    try { await onConfirm(); } finally { setBusy(false); }
+    setError('');
+    try {
+      await onConfirm();
+    } catch (err) {
+      if (mountedRef.current) {
+        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      }
+    } finally {
+      if (mountedRef.current) setBusy(false);
+    }
   };
 
   useEffect(() => {
@@ -48,6 +63,9 @@ export function ConfirmModal({
             </p>
           )}
         </div>
+        {error && (
+          <p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)]">{error}</p>
+        )}
         <div className="px-4 pb-4 flex gap-2">
           <button
             onClick={onCancel}

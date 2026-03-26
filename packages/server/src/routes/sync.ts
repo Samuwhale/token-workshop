@@ -85,7 +85,8 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/sync/log — recent commits
   fastify.get<{ Querystring: { limit?: string } }>('/sync/log', async (request, reply) => {
     try {
-      const limit = request.query.limit ? parseInt(request.query.limit, 10) : 20;
+      const raw = parseInt(request.query.limit ?? '', 10);
+      const limit = isNaN(raw) || raw < 1 ? 20 : Math.min(raw, 100);
       const log = await fastify.gitSync.log(limit);
       return {
         commits: log.all.map(entry => ({

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { hexToLab, labToHex } from '../shared/colorUtils';
 
 // ---------------------------------------------------------------------------
@@ -116,6 +116,11 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
   const [steps, setSteps] = useState<5 | 7 | 9>(9);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
 
   const scale = useMemo(() => generateScale(baseHex, steps), [baseHex, steps]);
 
@@ -128,12 +133,15 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
     if (!scale.length || creating) return;
     setCreating(true);
     setError('');
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       const results = await Promise.all(scale.map(step =>
         fetch(`${serverUrl}/api/tokens/${activeSet}/${prefix}.${step.label}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $type: 'color', $value: step.hex }),
+          signal: controller.signal,
         })
       ));
       const failed = results.filter(r => !r.ok);
@@ -146,6 +154,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
       setCreating(false);
       onConfirm();
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setCreating(false);
     }

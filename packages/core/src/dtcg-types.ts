@@ -7,6 +7,8 @@
  * Spec: https://tr.designtokens.org/format/
  */
 
+import { REFERENCE_REGEX } from './constants.js';
+
 // ---------------------------------------------------------------------------
 // File-format interfaces
 // ---------------------------------------------------------------------------
@@ -53,7 +55,7 @@ export function isDTCGGroup(node: unknown): node is DTCGGroup {
 
 /** Returns `true` if `value` is a DTCG alias reference string (e.g. `"{a.b}"`). */
 export function isReference(value: unknown): value is string {
-  return typeof value === 'string' && /^\{[^}]+\}$/.test(value);
+  return typeof value === 'string' && REFERENCE_REGEX.test(value);
 }
 
 /**
@@ -65,7 +67,7 @@ export function isReference(value: unknown): value is string {
  * @throws if the string is not a valid reference.
  */
 export function parseReference(ref: string): string {
-  const match = ref.match(/^\{([^}]+)\}$/);
+  const match = ref.match(REFERENCE_REGEX);
   if (!match) throw new Error(`Invalid reference: ${ref}`);
   return match[1];
 }

@@ -18,7 +18,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return { name: set.name, tokens: set.tokens };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to get set', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to get set', detail: String(err) });
     }
   });
 
@@ -41,9 +41,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const set = await fastify.tokenStore.createSet(name, tokens as any);
-      reply.status(201).send({ name: set.name, tokens: set.tokens });
+      return reply.status(201).send({ name: set.name, tokens: set.tokens });
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to create set', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to create set', detail: String(err) });
     }
   });
 
@@ -94,7 +94,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return { deleted: true, name };
     } catch (err) {
-      reply.status(500).send({ error: 'Failed to delete set', detail: String(err) });
+      return reply.status(500).send({ error: 'Failed to delete set', detail: String(err) });
     }
   });
 };

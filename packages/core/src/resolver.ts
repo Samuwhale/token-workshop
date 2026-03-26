@@ -177,7 +177,7 @@ export class TokenResolver {
     const refs = new Set<string>();
 
     if (isReference(value)) {
-      refs.add(parseReference(value as string));
+      refs.add(parseReference(value));
       return refs;
     }
 
@@ -252,7 +252,7 @@ export class TokenResolver {
    */
   private resolveValue(value: unknown, contextPath: string): unknown {
     if (isReference(value)) {
-      const refPath = parseReference(value as string);
+      const refPath = parseReference(value);
       const resolved = this.resolved.get(refPath);
       if (!resolved) {
         throw new Error(
