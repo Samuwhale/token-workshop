@@ -190,7 +190,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 - [x] **UX audit & overhaul: Color Scale Generator** — Read the color scale generator component, research how colour scale tools work (Radix Colours, Tailwind palette, Palette.app), audit the base colour input, step selector, preview, prefix input, and generation flow, identify friction (is the L* value useful to show? is step selection clear?), then redesign: improve the scale preview (show swatches large enough to evaluate), make the naming convention obvious, and ensure the user feels confident in the output before confirming. `packages/plugin/src/components/ColorScaleGenerator.tsx`
 
-- [ ] **UX audit & overhaul: Scaffolding Wizard** — Read the scaffolding wizard and preset definitions, research how design system bootstrapping tools work (Tokens Studio presets, Supernova templates), audit the preset selection UI, customisation options, and confirmation flow, identify friction (are the presets self-explanatory? does the user know what tokens they'll get?), then redesign: add brief descriptions and token count previews per preset, improve the naming/prefix field UX, and make the outcome predictable before the user commits. `packages/plugin/src/components/ScaffoldingWizard.tsx`
+- [x] **UX audit & overhaul: Scaffolding Wizard** — Read the scaffolding wizard and preset definitions, research how design system bootstrapping tools work (Tokens Studio presets, Supernova templates), audit the preset selection UI, customisation options, and confirmation flow, identify friction (are the presets self-explanatory? does the user know what tokens they'll get?), then redesign: add brief descriptions and token count previews per preset, improve the naming/prefix field UX, and make the outcome predictable before the user commits. `packages/plugin/src/components/ScaffoldingWizard.tsx`
 
 ### UI
 
@@ -292,7 +292,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Undo / Redo Token Operations
 
-- [ ] **Flow audit & overhaul: Undo/Redo** — Trace the undo/redo flow (perform action → Cmd+Z undoes → Cmd+Shift+Z redoes) across token creation, editing, deletion, group rename, bulk delete, and find-and-replace. Identify what the undo history indicator looks like, how it communicates what will be undone, and how it handles operations that can't be undone (e.g., Figma variable sync). Ensure the toast/indicator is non-intrusive but always accessible. `packages/figma-plugin/src/ui/hooks/useUndo.ts` (replace with `useHistory.ts`)
+- [x] **Flow audit & overhaul: Undo/Redo** — Trace the undo/redo flow (perform action → Cmd+Z undoes → Cmd+Shift+Z redoes) across token creation, editing, deletion, group rename, bulk delete, and find-and-replace. Identify what the undo history indicator looks like, how it communicates what will be undone, and how it handles operations that can't be undone (e.g., Figma variable sync). Ensure the toast/indicator is non-intrusive but always accessible. `packages/figma-plugin/src/ui/hooks/useUndo.ts` (replace with `useHistory.ts`)
 
 ### Flow: View Token Dependencies Before Editing
 

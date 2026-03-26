@@ -21,6 +21,7 @@ export function useUndo() {
       return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
     });
     setFuture([]);
+    setDismissed(false);
   }, []);
 
   const executeUndo = useCallback(async () => {
@@ -52,9 +53,10 @@ export function useUndo() {
     });
   }, []);
 
+  const [dismissed, setDismissed] = useState(false);
+
   const dismissToast = useCallback(() => {
-    setPast([]);
-    setFuture([]);
+    setDismissed(true);
   }, []);
 
   useEffect(() => {
@@ -76,10 +78,11 @@ export function useUndo() {
     return () => window.removeEventListener('keydown', handler);
   }, [past, future, executeUndo, executeRedo]);
 
-  const toastVisible = past.length > 0 || future.length > 0;
-  const slot = past.length > 0 ? past[past.length - 1] : null;
+  const canUndo = past.length > 0;
   const canRedo = future.length > 0;
-  const redoSlot = future.length > 0 ? future[future.length - 1] : null;
+  const toastVisible = !dismissed && (canUndo || canRedo);
+  const slot = canUndo ? past[past.length - 1] : null;
+  const redoSlot = canRedo ? future[future.length - 1] : null;
 
-  return { toastVisible, slot, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount: past.length };
+  return { toastVisible, slot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount: past.length };
 }

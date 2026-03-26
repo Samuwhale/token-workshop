@@ -281,3 +281,17 @@
   - "Copy All" at the section header level is more discoverable than individual copy buttons inside expanded views
   - Small SVG icons alongside action text (copy, refresh, clear) significantly improve scannability
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Undo/Redo
+- Audited the undo/redo flow (Cmd+Z / Cmd+Shift+Z) across the UndoToast and useUndo hook
+- Fixed: toast disappeared after undoing all actions, making redo inaccessible (guard required `undoSlot` which is null when past is empty)
+- Fixed: dismiss button was destructive — cleared entire undo/redo history instead of just hiding the toast. Now uses a `dismissed` flag that resets on next pushUndo
+- Added keyboard shortcut hints (⌘Z / ⌘⇧Z) on Undo/Redo buttons via `<kbd>` elements
+- Made Undo/Redo buttons show as disabled (opacity-30) instead of hiding when unavailable
+- Improved description display: shows action count for multi-item history, falls back to redo description when no undo is available
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L55-87, `packages/figma-plugin/src/ui/components/UndoToast.tsx` (full rewrite), `packages/figma-plugin/src/ui/App.tsx` ~L134, ~L1315
+- **Learnings for future iterations:**
+  - `dismissed` state flag is better than clearing stacks for toast dismissal — preserves keyboard shortcut access to undo/redo even when toast is hidden
+  - Guard conditions like `toastVisible && undoSlot` can hide UI when only one direction (redo) is available — always guard on the union condition
+  - `disabled:opacity-30 disabled:cursor-default disabled:hover:bg-white/20` pattern for disabled buttons in inverted (dark-bg) toast contexts
+---

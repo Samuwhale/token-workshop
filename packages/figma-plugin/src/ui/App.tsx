@@ -131,7 +131,7 @@ export function App() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
-  const { toastVisible, slot: undoSlot, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo();
+  const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo();
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
@@ -1312,11 +1312,12 @@ export function App() {
       )}
 
       {/* Undo/redo toast */}
-      {toastVisible && undoSlot && (
+      {toastVisible && (
         <UndoToast
-          description={undoSlot.description}
+          description={undoSlot?.description ?? null}
           onUndo={executeUndo}
           onDismiss={dismissToast}
+          canUndo={canUndo}
           canRedo={canRedo}
           redoDescription={redoSlot?.description}
           onRedo={executeRedo}
