@@ -264,8 +264,48 @@ export interface TokenGenerator {
    * locked: false → one-time edit, cleared on next regeneration
    */
   overrides?: Record<string, { value: unknown; locked: boolean }>;
+  /**
+   * When present, the generator runs once per row using each row's input value
+   * as the source, writing to the set derived from `targetSetTemplate`.
+   */
+  inputTable?: InputTable;
+  /**
+   * Template for the target set name when `inputTable` is present.
+   * `{brand}` is replaced with each row's `brand` slug.
+   * e.g. "brands/{brand}" → "brands/berry", "brands/mango"
+   * Falls back to `targetSet` when absent.
+   */
+  targetSetTemplate?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Multi-brand input table
+// ---------------------------------------------------------------------------
+
+/** A single brand row in an InputTable. */
+export interface InputTableRow {
+  /** Slug used to substitute `{brand}` in `targetSetTemplate`, e.g. "berry". */
+  brand: string;
+  /**
+   * Named inputs for this row. The key matching `InputTable.inputKey` is used
+   * as the generator's source value (e.g. `{ brandColor: "#8B5CF6" }`).
+   */
+  inputs: Record<string, unknown>;
+}
+
+/**
+ * A table of brand rows. Each row runs the generator independently and writes
+ * to a brand-specific token set.
+ */
+export interface InputTable {
+  /**
+   * The column name whose value is used as the generator's source value for
+   * each brand row, e.g. "brandColor".
+   */
+  inputKey: string;
+  rows: InputTableRow[];
 }
 
 // ---------------------------------------------------------------------------

@@ -8,6 +8,11 @@ interface CreateBody {
   name?: string;
   config?: Record<string, unknown>;
   overrides?: Record<string, { value: unknown; locked: boolean }>;
+  inputTable?: {
+    inputKey: string;
+    rows: Array<{ brand: string; inputs: Record<string, unknown> }>;
+  };
+  targetSetTemplate?: string;
 }
 
 interface PreviewBody {
@@ -36,7 +41,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/generators — create a new generator and run it immediately
   fastify.post<{ Body: CreateBody }>('/generators', async (request, reply) => {
-    const { type, sourceToken, targetSet, targetGroup, name, config, overrides } = request.body ?? {} as CreateBody;
+    const { type, sourceToken, targetSet, targetGroup, name, config, overrides, inputTable, targetSetTemplate } = request.body ?? {} as CreateBody;
     if (!type || !targetSet || !targetGroup) {
       return reply.status(400).send({
         error: 'type, targetSet, and targetGroup are required',
@@ -51,6 +56,8 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         name: (name || (sourceToken ? `${sourceToken} ${type}` : type)) as string,
         config: (config ?? {}) as any,
         overrides,
+        inputTable: inputTable as any ?? undefined,
+        targetSetTemplate: targetSetTemplate ?? undefined,
       });
       // Run immediately so tokens exist right away
       await fastify.generatorService.run(generator.id, fastify.tokenStore);

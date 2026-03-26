@@ -91,9 +91,13 @@ export type {
   DarkModeInversionConfig,
   ResponsiveScaleStep,
   ResponsiveScaleConfig,
+  ContrastCheckStep,
+  ContrastCheckConfig,
   GeneratorConfig,
   TokenGenerator,
   GeneratedTokenResult,
+  InputTableRow,
+  InputTable,
 } from './generator-types.js';
 export {
   DEFAULT_COLOR_RAMP_CONFIG,
@@ -106,6 +110,7 @@ export {
   DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG,
   DEFAULT_DARK_MODE_INVERSION_CONFIG,
   DEFAULT_RESPONSIVE_SCALE_CONFIG,
+  DEFAULT_CONTRAST_CHECK_CONFIG,
 } from './generator-types.js';
 
 // Generator engine
@@ -120,5 +125,6 @@ export {
   runAccessibleColorPairGenerator,
   runDarkModeInversionGenerator,
   runResponsiveScaleGenerator,
+  runContrastCheckGenerator,
   applyOverrides,
 } from './generator-engine.js';

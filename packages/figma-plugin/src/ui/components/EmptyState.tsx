@@ -88,10 +88,10 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset,
                   <circle cx="9.5" cy="6" r="1.5" />
                   <circle cx="6" cy="2.5" r="1.5" />
                 </svg>
-                <span className="text-[11px] font-medium">Use a graph template</span>
+                <span className="text-[11px] font-medium">Generate tokens from template</span>
               </div>
               <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
-                Apply a pre-built token pipeline (color, spacing, type)
+                Color ramps, spacing scales, type scales — ready to customize
               </p>
             </button>
           )}

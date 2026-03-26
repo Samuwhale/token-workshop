@@ -14,10 +14,15 @@ import type {
   ZIndexScaleConfig,
   CustomScaleConfig,
   CustomScaleStep,
+  ContrastCheckConfig,
+  ContrastCheckStep,
   GeneratorConfig,
   GeneratedTokenResult,
   GeneratorTemplate,
+  InputTable,
+  InputTableRow,
 } from '../hooks/useGenerators';
+import { wcagContrast } from '../shared/colorUtils';
 
 // ---------------------------------------------------------------------------
 // Default configs
@@ -29,6 +34,12 @@ const DEFAULT_COLOR_RAMP_CONFIG: ColorRampConfig = {
   darkEnd: 8,
   chromaBoost: 1.0,
   includeSource: false,
+};
+
+const DEFAULT_CONTRAST_CHECK_CONFIG: ContrastCheckConfig = {
+  backgroundHex: '#ffffff',
+  steps: [],
+  levels: ['AA', 'AAA'],
 };
 
 const DEFAULT_TYPE_SCALE_CONFIG: TypeScaleConfig = {
@@ -253,6 +264,7 @@ function autoName(sourceTokenPath: string | undefined, type: GeneratorType): str
     borderRadiusScale: 'Border Radius Scale',
     zIndexScale: 'Z-Index Scale',
     customScale: 'Custom Scale',
+    contrastCheck: 'Contrast Check',
   };
   if (sourceTokenPath) return `${sourceTokenPath} ${typeLabels[type]}`;
   return typeLabels[type];
@@ -267,6 +279,7 @@ function defaultConfigForType(type: GeneratorType): GeneratorConfig {
     case 'borderRadiusScale': return { ...DEFAULT_BORDER_RADIUS_CONFIG, steps: DEFAULT_BORDER_RADIUS_CONFIG.steps.map(s => ({ ...s })) };
     case 'zIndexScale': return { steps: DEFAULT_Z_INDEX_CONFIG.steps.map(s => ({ ...s })) };
     case 'customScale': return { ...DEFAULT_CUSTOM_CONFIG, steps: DEFAULT_CUSTOM_CONFIG.steps.map(s => ({ ...s })) };
+    case 'contrastCheck': return { ...DEFAULT_CONTRAST_CHECK_CONFIG, steps: [] };
   }
 }
 
@@ -422,6 +435,47 @@ function GenericPreview({ tokens, overrides, onOverrideChange, onOverrideClear }
 }
 
 // ---------------------------------------------------------------------------
+// Contrast Check preview (standalone — no overrides)
+// ---------------------------------------------------------------------------
+
+const WCAG_AA_NORMAL = 4.5;
+const WCAG_AAA_NORMAL = 7;
+
+function ContrastCheckPreview({ tokens }: { tokens: GeneratedTokenResult[] }) {
+  if (tokens.length === 0) {
+    return (
+      <div className="text-[10px] text-[var(--color-figma-text-secondary)] text-center py-2">
+        Add colors in the config to see contrast results.
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-0.5">
+      {tokens.map(t => {
+        const ratio = typeof t.value === 'number' ? t.value : null;
+        const passAA = ratio !== null && ratio >= WCAG_AA_NORMAL;
+        const passAAA = ratio !== null && ratio >= WCAG_AAA_NORMAL;
+        return (
+          <div key={t.stepName} className="flex items-center gap-2 px-1 py-1 rounded">
+            {/* Color swatch — we get the hex from the step name mapping in config; use a neutral swatch */}
+            <span className="w-8 text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{t.stepName}</span>
+            <span className="flex-1 text-[9px] font-mono text-[var(--color-figma-text)]">
+              {ratio !== null ? ratio.toFixed(2) + ':1' : '—'}
+            </span>
+            <span className={`text-[8px] font-semibold px-1 py-0.5 rounded ${passAA ? 'bg-green-500/15 text-green-600' : 'bg-red-500/15 text-red-500'}`}>
+              AA{passAA ? ' ✓' : ' ✗'}
+            </span>
+            <span className={`text-[8px] font-semibold px-1 py-0.5 rounded ${passAAA ? 'bg-green-500/15 text-green-600' : 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'}`}>
+              AAA{passAAA ? ' ✓' : ' ✗'}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Override row + table
 // ---------------------------------------------------------------------------
 
@@ -503,6 +557,143 @@ function OverrideTable({ tokens, overrides, onOverrideChange, onOverrideClear }:
         </OverrideRow>
       ))}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Contrast Check config editor
+// ---------------------------------------------------------------------------
+
+function ContrastCheckConfigEditor({ config, onChange }: { config: ContrastCheckConfig; onChange: (c: ContrastCheckConfig) => void }) {
+  const bgColorInputRef = useRef<HTMLInputElement>(null);
+
+  const updateStep = (idx: number, patch: Partial<ContrastCheckStep>) => {
+    const steps = config.steps.map((s, i) => i === idx ? { ...s, ...patch } : s);
+    onChange({ ...config, steps });
+  };
+
+  const addStep = () => {
+    onChange({ ...config, steps: [...config.steps, { name: String(config.steps.length + 1), hex: '#000000' }] });
+  };
+
+  const removeStep = (idx: number) => {
+    onChange({ ...config, steps: config.steps.filter((_, i) => i !== idx) });
+  };
+
+  const toggleLevel = (level: 'AA' | 'AAA') => {
+    const levels = config.levels.includes(level)
+      ? config.levels.filter(l => l !== level)
+      : [...config.levels, level];
+    onChange({ ...config, levels });
+  };
+
+  const bgHex6 = config.backgroundHex?.slice(0, 7) || '#ffffff';
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Background color */}
+      <div>
+        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Background color</label>
+        <div className="flex items-center gap-2">
+          <button
+            className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0"
+            style={{ background: bgHex6 }}
+            onClick={() => bgColorInputRef.current?.click()}
+            title="Pick background color"
+          />
+          <input
+            ref={bgColorInputRef}
+            type="color"
+            className="sr-only"
+            key={bgHex6}
+            defaultValue={bgHex6}
+            onBlur={e => onChange({ ...config, backgroundHex: e.target.value })}
+          />
+          <input
+            type="text"
+            value={config.backgroundHex}
+            onChange={e => onChange({ ...config, backgroundHex: e.target.value })}
+            className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+            placeholder="#ffffff"
+          />
+        </div>
+        <div className="flex gap-2 mt-1.5">
+          <button onClick={() => onChange({ ...config, backgroundHex: '#ffffff' })}
+            className={`px-2 py-0.5 rounded text-[9px] border ${config.backgroundHex === '#ffffff' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+            White
+          </button>
+          <button onClick={() => onChange({ ...config, backgroundHex: '#000000' })}
+            className={`px-2 py-0.5 rounded text-[9px] border ${config.backgroundHex === '#000000' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+            Black
+          </button>
+        </div>
+      </div>
+
+      {/* WCAG levels */}
+      <div>
+        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Enforce levels</label>
+        <div className="flex gap-2">
+          {(['AA', 'AAA'] as const).map(level => (
+            <label key={level} className="flex items-center gap-1.5 cursor-pointer select-none">
+              <input type="checkbox" checked={config.levels.includes(level)} onChange={() => toggleLevel(level)}
+                className="accent-[var(--color-figma-accent)] w-3 h-3" />
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                {level} ({level === 'AA' ? '4.5:1' : '7:1'})
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Color steps */}
+      <div>
+        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Colors to check</label>
+        <div className="flex flex-col gap-1">
+          {config.steps.map((step, idx) => {
+            const ratio = wcagContrast(step.hex, config.backgroundHex);
+            const passAA = ratio !== null && ratio >= WCAG_AA_NORMAL;
+            return (
+              <div key={idx} className="flex items-center gap-1.5">
+                <ColorStepSwatch hex={step.hex} onHexChange={hex => updateStep(idx, { hex })} />
+                <input type="text" value={step.name} onChange={e => updateStep(idx, { name: e.target.value })}
+                  placeholder="name"
+                  className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
+                <input type="text" value={step.hex} onChange={e => updateStep(idx, { hex: e.target.value })}
+                  placeholder="#000000"
+                  className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
+                {ratio !== null && (
+                  <span className={`text-[8px] font-medium shrink-0 ${passAA ? 'text-green-600' : 'text-red-500'}`}>
+                    {ratio.toFixed(1)}
+                  </span>
+                )}
+                <button onClick={() => removeStep(idx)}
+                  className="shrink-0 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[12px] leading-none">×</button>
+              </div>
+            );
+          })}
+          <button onClick={addStep} className="text-[9px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">
+            + Add color
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ColorStepSwatch({ hex, onHexChange }: { hex: string; onHexChange: (hex: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const hex6 = hex?.slice(0, 7) || '#000000';
+  return (
+    <>
+      <button
+        className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0"
+        style={{ background: hex6 }}
+        onClick={() => ref.current?.click()}
+        title="Pick color"
+      />
+      <input ref={ref} type="color" className="sr-only" key={hex6} defaultValue={hex6}
+        onBlur={e => onHexChange(e.target.value)} />
+    </>
   );
 }
 
@@ -936,18 +1127,19 @@ const TYPE_LABELS: Record<GeneratorType, string> = {
   borderRadiusScale: 'Border Radius',
   zIndexScale: 'Z-Index',
   customScale: 'Custom',
+  contrastCheck: 'Contrast Check',
 };
 
 // Types that require a source token
 const SOURCE_REQUIRED_TYPES: GeneratorType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale'];
 // Types that work standalone (no source)
-const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale'];
+const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale', 'contrastCheck'];
 // Types that work either way
 const FLEXIBLE_TYPES: GeneratorType[] = ['customScale'];
 
 const ALL_TYPES: GeneratorType[] = [
   'colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale',
-  'opacityScale', 'zIndexScale', 'customScale',
+  'opacityScale', 'zIndexScale', 'customScale', 'contrastCheck',
 ];
 
 export function TokenGeneratorDialog({
@@ -1249,6 +1441,7 @@ export function TokenGeneratorDialog({
             {selectedType === 'borderRadiusScale' && <BorderRadiusConfigEditor config={currentConfig as BorderRadiusScaleConfig} onChange={cfg => handleConfigChange('borderRadiusScale', cfg)} />}
             {selectedType === 'zIndexScale' && <ZIndexConfigEditor config={currentConfig as ZIndexScaleConfig} onChange={cfg => handleConfigChange('zIndexScale', cfg)} />}
             {selectedType === 'customScale' && <CustomScaleConfigEditor config={currentConfig as CustomScaleConfig} onChange={cfg => handleConfigChange('customScale', cfg)} />}
+            {selectedType === 'contrastCheck' && <ContrastCheckConfigEditor config={currentConfig as ContrastCheckConfig} onChange={cfg => handleConfigChange('contrastCheck', cfg)} />}
           </div>
 
           {/* Preview */}
@@ -1278,7 +1471,14 @@ export function TokenGeneratorDialog({
               <div className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-1.5">{previewError}</div>
             )}
 
-            {!previewError && previewTokens.length > 0 && (
+            {/* Contrast check preview is always shown (even when 0 tokens, to guide the user) */}
+            {selectedType === 'contrastCheck' && (
+              <div className="border border-[var(--color-figma-border)] rounded p-2.5 bg-[var(--color-figma-bg-secondary)]">
+                <ContrastCheckPreview tokens={previewTokens} />
+              </div>
+            )}
+
+            {selectedType !== 'contrastCheck' && !previewError && previewTokens.length > 0 && (
               <div className="border border-[var(--color-figma-border)] rounded p-2.5 bg-[var(--color-figma-bg-secondary)]">
                 {selectedType === 'colorRamp' && (
                   <ColorSwatchPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} />
@@ -1298,7 +1498,7 @@ export function TokenGeneratorDialog({
               </div>
             )}
 
-            {!previewError && !previewLoading && previewTokens.length === 0 && (
+            {selectedType !== 'contrastCheck' && !previewError && !previewLoading && previewTokens.length === 0 && (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-2 bg-[var(--color-figma-bg-secondary)]">
                 No preview available.
               </div>

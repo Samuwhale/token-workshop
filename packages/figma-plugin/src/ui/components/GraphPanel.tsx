@@ -692,11 +692,24 @@ export function GraphPanel({
             </svg>
           </button>
         )}
-        <div>
-          <div className="text-[12px] font-medium text-[var(--color-figma-text)] mb-0.5">Graph templates</div>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-            Pre-built token pipelines. Pick a template to drop a generator graph into <span className="font-mono">{activeSet}</span>, ready to customize.
-          </p>
+        <div className="flex-1">
+          {!browsingTemplates ? (
+            <>
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">New graph</div>
+              </div>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+                Pick a template to generate tokens in <span className="font-mono">{activeSet}</span> — color ramps, spacing scales, type scales, and more.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="text-[12px] font-medium text-[var(--color-figma-text)] mb-0.5">Graph templates</div>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+                Pre-built token pipelines. Pick a template to drop a generator graph into <span className="font-mono">{activeSet}</span>, ready to customize.
+              </p>
+            </>
+          )}
         </div>
       </div>
 

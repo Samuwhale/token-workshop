@@ -1131,17 +1131,24 @@ export function App() {
         handler: () => { goToTokens(); setShowColorScaleGen(true); },
       },
       {
-        id: 'go-to-graph',
-        label: 'Go to Graph',
-        description: 'View generator pipeline and apply graph templates',
-        category: 'Navigation',
+        id: 'new-graph',
+        label: 'New graph',
+        description: 'Start a generator graph — generate color ramps, spacing scales, type scales, and more',
+        category: 'Generate',
+        handler: () => { setActiveTab('graph'); setOverflowPanel(null); },
+      },
+      {
+        id: 'open-graph',
+        label: 'Open graph',
+        description: 'View generator pipeline for the current set',
+        category: 'Generate',
         handler: () => { setActiveTab('graph'); setOverflowPanel(null); },
       },
       ...GRAPH_TEMPLATES.map(t => ({
         id: `graph-template-${t.id}`,
-        label: `Apply template: ${t.label}`,
-        description: t.description,
-        category: 'Graph',
+        label: `Generate ${t.label}`,
+        description: `Graph template — ${t.description}`,
+        category: 'Generate',
         handler: () => {
           setActiveTab('graph');
           setOverflowPanel(null);
@@ -1446,6 +1453,15 @@ export function App() {
               <button
                 role="menuitem"
                 onMouseDown={e => e.preventDefault()}
+                onClick={() => { setActiveSet(tabMenuOpen); setActiveTab('graph'); setOverflowPanel(null); setTabMenuOpen(null); }}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Generate tokens…
+              </button>
+              <div className="border-t border-[var(--color-figma-border)] my-1" />
+              <button
+                role="menuitem"
+                onMouseDown={e => e.preventDefault()}
                 onClick={() => openSetMetadata(tabMenuOpen)}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
@@ -1669,6 +1685,8 @@ export function App() {
                 className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[168px]"
                 style={{ top: tabMenuPos.y, left: tabMenuPos.x }}
               >
+                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { setActiveSet(tabMenuOpen); setActiveTab('graph'); setOverflowPanel(null); setTabMenuOpen(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Generate tokens…</button>
+                <div className="border-t border-[var(--color-figma-border)] my-1" />
                 <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => openSetMetadata(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Edit description</button>
                 <div className="border-t border-[var(--color-figma-border)] my-1" />
                 <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => startRename(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Rename</button>

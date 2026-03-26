@@ -13,6 +13,7 @@ import type {
   AccessibleColorPairConfig,
   DarkModeInversionConfig,
   ResponsiveScaleConfig,
+  ContrastCheckConfig,
   GeneratedTokenResult,
 } from './generator-types.js';
 import { hexToLab, labToHex } from './color-math.js';
@@ -374,6 +375,46 @@ export function runResponsiveScaleGenerator(
       path: `${targetGroup}.${step.name}`,
       type: 'dimension',
       value: { value: rounded, unit: config.unit || sourceValue.unit },
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Contrast Check
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute WCAG contrast ratio for each step color against the background.
+ *
+ * Outputs one `number` token per step containing the contrast ratio (e.g. 4.54).
+ * The `isOverridden` flag is set to true when the step fails AA (ratio < 4.5),
+ * so callers can use it as a failure indicator without an extra pass.
+ */
+export function runContrastCheckGenerator(
+  config: ContrastCheckConfig,
+  targetGroup: string,
+): GeneratedTokenResult[] {
+  const { backgroundHex, steps } = config;
+  const bgLum = wcagLuminance(backgroundHex);
+
+  return steps.map(step => {
+    const fgLum = wcagLuminance(step.hex);
+    let ratio: number | null = null;
+    if (fgLum !== null) {
+      const [lighter, darker] = fgLum > bgLum ? [fgLum, bgLum] : [bgLum, fgLum];
+      ratio = parseFloat(((lighter + 0.05) / (darker + 0.05)).toFixed(2));
+    }
+
+    const failsAA = ratio === null || ratio < 4.5;
+
+    return {
+      stepName: step.name,
+      path: `${targetGroup}.${step.name}`,
+      type: 'number',
+      value: ratio ?? 1,
+      // Re-use isOverridden as a "contrast failure" flag so the UI can show warnings
+      // without adding a new field to GeneratedTokenResult
+      isOverridden: failsAA,
     };
   });
 }

@@ -11,7 +11,8 @@ export type GeneratorType =
   | 'opacityScale'
   | 'borderRadiusScale'
   | 'zIndexScale'
-  | 'customScale';
+  | 'customScale'
+  | 'contrastCheck';
 
 export interface ColorRampConfig {
   steps: number[];
@@ -78,6 +79,17 @@ export interface CustomScaleConfig {
   roundTo: number;
 }
 
+export interface ContrastCheckStep {
+  name: string;
+  hex: string;
+}
+
+export interface ContrastCheckConfig {
+  backgroundHex: string;
+  steps: ContrastCheckStep[];
+  levels: ('AA' | 'AAA')[];
+}
+
 export type GeneratorConfig =
   | ColorRampConfig
   | TypeScaleConfig
@@ -85,11 +97,22 @@ export type GeneratorConfig =
   | OpacityScaleConfig
   | BorderRadiusScaleConfig
   | ZIndexScaleConfig
-  | CustomScaleConfig;
+  | CustomScaleConfig
+  | ContrastCheckConfig;
 
 export interface StepOverride {
   value: unknown;
   locked: boolean;
+}
+
+export interface InputTableRow {
+  brand: string;
+  inputs: Record<string, unknown>;
+}
+
+export interface InputTable {
+  inputKey: string;
+  rows: InputTableRow[];
 }
 
 export interface TokenGenerator {
@@ -101,6 +124,8 @@ export interface TokenGenerator {
   targetGroup: string;
   config: GeneratorConfig;
   overrides?: Record<string, StepOverride>;
+  inputTable?: InputTable;
+  targetSetTemplate?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -163,6 +188,11 @@ function computeDerivedPaths(generator: TokenGenerator): string[] {
     }
   } else if (type === 'customScale') {
     const cfg = config as CustomScaleConfig;
+    for (const step of cfg.steps) {
+      paths.push(`${targetGroup}.${step.name}`);
+    }
+  } else if (type === 'contrastCheck') {
+    const cfg = config as ContrastCheckConfig;
     for (const step of cfg.steps) {
       paths.push(`${targetGroup}.${step.name}`);
     }

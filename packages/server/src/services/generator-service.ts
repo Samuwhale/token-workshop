@@ -16,6 +16,7 @@ import {
   runAccessibleColorPairGenerator,
   runDarkModeInversionGenerator,
   runResponsiveScaleGenerator,
+  runContrastCheckGenerator,
   applyOverrides,
 } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
@@ -266,27 +267,87 @@ export class GeneratorService {
   ): Promise<GeneratedTokenResult[]> {
     this.runningGenerators.add(generator.id);
     try {
-      const results = await this.computeResults(generator, tokenStore);
-
-      // After writing, clear any non-locked overrides
-      const overrides = generator.overrides;
-      if (overrides) {
-        const cleaned: Record<string, { value: unknown; locked: boolean }> = {};
-        for (const [key, val] of Object.entries(overrides)) {
-          if (val.locked) cleaned[key] = val;
-        }
-        const hasRemaining = Object.keys(cleaned).length > 0;
-        if (Object.keys(cleaned).length !== Object.keys(overrides).length) {
-          await this.update(generator.id, {
-            overrides: hasRemaining ? cleaned : undefined,
-          });
-        }
+      if (generator.inputTable && generator.inputTable.rows.length > 0) {
+        return await this.executeGeneratorMultiBrand(generator, tokenStore);
       }
+      return await this.executeSingleBrand(generator, tokenStore, generator.targetSet);
+    } finally {
+      this.runningGenerators.delete(generator.id);
+    }
+  }
+
+  /** Original single-brand execution path. Writes to `effectiveTargetSet`. */
+  private async executeSingleBrand(
+    generator: TokenGenerator,
+    tokenStore: TokenStore,
+    effectiveTargetSet: string,
+    sourceValueOverride?: unknown,
+  ): Promise<GeneratedTokenResult[]> {
+    const results = sourceValueOverride !== undefined
+      ? await this.computeResultsWithValue(generator, sourceValueOverride)
+      : await this.computeResults(generator, tokenStore);
+
+    // Clear non-locked overrides after execution
+    const overrides = generator.overrides;
+    if (overrides) {
+      const cleaned: Record<string, { value: unknown; locked: boolean }> = {};
+      for (const [key, val] of Object.entries(overrides)) {
+        if (val.locked) cleaned[key] = val;
+      }
+      const hasRemaining = Object.keys(cleaned).length > 0;
+      if (Object.keys(cleaned).length !== Object.keys(overrides).length) {
+        await this.update(generator.id, {
+          overrides: hasRemaining ? cleaned : undefined,
+        });
+      }
+    }
+
+    const extensions = {
+      'com.tokenmanager.generator': {
+        generatorId: generator.id,
+        sourceToken: generator.sourceToken,
+      },
+    };
+    for (const result of results) {
+      const token = {
+        $type: result.type as any,
+        $value: result.value as any,
+        $extensions: extensions,
+      };
+      const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
+      if (existing) {
+        await tokenStore.updateToken(effectiveTargetSet, result.path, token);
+      } else {
+        await tokenStore.createToken(effectiveTargetSet, result.path, token);
+      }
+    }
+    return results;
+  }
+
+  /** Multi-brand path: runs once per row, writing to a brand-specific set. */
+  private async executeGeneratorMultiBrand(
+    generator: TokenGenerator,
+    tokenStore: TokenStore,
+  ): Promise<GeneratedTokenResult[]> {
+    const { inputTable, targetSetTemplate, targetSet } = generator;
+    const allResults: GeneratedTokenResult[] = [];
+
+    for (const row of inputTable!.rows) {
+      if (!row.brand.trim()) continue;
+      const sourceValue = row.inputs[inputTable!.inputKey];
+      if (sourceValue === undefined) continue;
+
+      const effectiveTargetSet = targetSetTemplate
+        ? targetSetTemplate.replace('{brand}', row.brand)
+        : targetSet;
+
+      const results = await this.computeResultsWithValue(generator, sourceValue);
 
       const extensions = {
         'com.tokenmanager.generator': {
           generatorId: generator.id,
           sourceToken: generator.sourceToken,
+          brand: row.brand,
         },
       };
       for (const result of results) {
@@ -295,17 +356,121 @@ export class GeneratorService {
           $value: result.value as any,
           $extensions: extensions,
         };
-        const existing = await tokenStore.getToken(generator.targetSet, result.path);
+        const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
         if (existing) {
-          await tokenStore.updateToken(generator.targetSet, result.path, token);
+          await tokenStore.updateToken(effectiveTargetSet, result.path, token);
         } else {
-          await tokenStore.createToken(generator.targetSet, result.path, token);
+          await tokenStore.createToken(effectiveTargetSet, result.path, token);
         }
       }
-      return results;
-    } finally {
-      this.runningGenerators.delete(generator.id);
+      allResults.push(...results);
     }
+
+    // Clear non-locked overrides after all brands run
+    const overrides = generator.overrides;
+    if (overrides) {
+      const cleaned: Record<string, { value: unknown; locked: boolean }> = {};
+      for (const [key, val] of Object.entries(overrides)) {
+        if (val.locked) cleaned[key] = val;
+      }
+      if (Object.keys(cleaned).length !== Object.keys(overrides).length) {
+        const hasRemaining = Object.keys(cleaned).length > 0;
+        await this.update(generator.id, {
+          overrides: hasRemaining ? cleaned : undefined,
+        });
+      }
+    }
+
+    return allResults;
+  }
+
+  /**
+   * Like computeResults but uses a pre-resolved source value directly,
+   * bypassing token-store lookup.
+   */
+  private async computeResultsWithValue(
+    generator: Pick<TokenGenerator, 'type' | 'sourceToken' | 'targetGroup' | 'config' | 'overrides'>,
+    resolvedValue: unknown,
+  ): Promise<GeneratedTokenResult[]> {
+    const { type, targetGroup, config } = generator;
+    let results: GeneratedTokenResult[];
+
+    switch (type) {
+      case 'colorRamp': {
+        const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
+        if (!hex) throw new Error(`Multi-brand input for colorRamp must be a color string`);
+        results = runColorRampGenerator(hex, config as any, targetGroup);
+        break;
+      }
+      case 'typeScale': {
+        const dim = resolvedValue as { value: number; unit: string } | null;
+        if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
+          throw new Error(`Multi-brand input for typeScale must be a dimension value`);
+        }
+        results = runTypeScaleGenerator(dim, config as any, targetGroup);
+        break;
+      }
+      case 'spacingScale': {
+        const dim = resolvedValue as { value: number; unit: string } | null;
+        if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
+          throw new Error(`Multi-brand input for spacingScale must be a dimension value`);
+        }
+        results = runSpacingScaleGenerator(dim, config as any, targetGroup);
+        break;
+      }
+      case 'opacityScale': {
+        results = runOpacityScaleGenerator(config as any, targetGroup);
+        break;
+      }
+      case 'borderRadiusScale': {
+        const dim = resolvedValue as { value: number; unit: string } | null;
+        if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
+          throw new Error(`Multi-brand input for borderRadiusScale must be a dimension value`);
+        }
+        results = runBorderRadiusScaleGenerator(dim, config as any, targetGroup);
+        break;
+      }
+      case 'zIndexScale': {
+        results = runZIndexScaleGenerator(config as any, targetGroup);
+        break;
+      }
+      case 'customScale': {
+        let base: number | undefined;
+        if (resolvedValue !== undefined) {
+          if (typeof resolvedValue === 'number') {
+            base = resolvedValue;
+          } else if (typeof resolvedValue === 'object' && resolvedValue !== null && 'value' in resolvedValue) {
+            base = (resolvedValue as { value: number }).value;
+          }
+        }
+        results = runCustomScaleGenerator(base, config as any, targetGroup);
+        break;
+      }
+      case 'accessibleColorPair': {
+        const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
+        if (!hex) throw new Error(`Multi-brand input for accessibleColorPair must be a color string`);
+        results = runAccessibleColorPairGenerator(hex, config as any, targetGroup);
+        break;
+      }
+      case 'darkModeInversion': {
+        const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
+        if (!hex) throw new Error(`Multi-brand input for darkModeInversion must be a color string`);
+        results = runDarkModeInversionGenerator(hex, config as any, targetGroup);
+        break;
+      }
+      case 'responsiveScale': {
+        const dim = resolvedValue as { value: number; unit: string } | null;
+        if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
+          throw new Error(`Multi-brand input for responsiveScale must be a dimension value`);
+        }
+        results = runResponsiveScaleGenerator(dim, config as any, targetGroup);
+        break;
+      }
+      default:
+        throw new Error(`Unknown generator type: ${(generator as any).type}`);
+    }
+
+    return applyOverrides(results, generator.overrides);
   }
 
   private async computeResults(
@@ -410,6 +575,10 @@ export class GeneratorService {
           throw new Error(`Source token "${sourceToken}" is not a dimension value`);
         }
         results = runResponsiveScaleGenerator(dim, config as any, targetGroup);
+        break;
+      }
+      case 'contrastCheck': {
+        results = runContrastCheckGenerator(config as any, targetGroup);
         break;
       }
       default:

@@ -63,6 +63,7 @@ interface TokenListProps {
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
+  onGenerateScaleFromGroup?: (groupPath: string, tokenType: string | null) => void;
   syncSnapshot?: Record<string, string>;
   generators?: TokenGenerator[];
   onRefreshGenerators?: () => void;
@@ -1841,6 +1842,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onSyncGroup={onSyncGroup}
                 onSyncGroupStyles={onSyncGroupStyles}
                 onSetGroupScopes={onSetGroupScopes}
+                onGenerateScaleFromGroup={onGenerateScaleFromGroup}
                 syncSnapshot={syncSnapshot}
                 cascadeDiff={cascadeDiff}
                 onFilterByType={setTypeFilter}
@@ -2461,6 +2463,7 @@ function TokenTreeNode({
   onSyncGroup,
   onSyncGroupStyles,
   onSetGroupScopes,
+  onGenerateScaleFromGroup,
   syncSnapshot,
   cascadeDiff,
   onFilterByType,
@@ -2507,6 +2510,7 @@ function TokenTreeNode({
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
+  onGenerateScaleFromGroup?: (groupPath: string, tokenType: string | null) => void;
   syncSnapshot?: Record<string, string>;
   cascadeDiff?: Record<string, { before: any; after: any }>;
   onFilterByType?: (type: string) => void;
@@ -2931,6 +2935,29 @@ function TokenTreeNode({
                 Create styles from group
               </button>
             )}
+            {onGenerateScaleFromGroup && (
+              <button
+                role="menuitem"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  setGroupMenuPos(null);
+                  // Detect the dominant token type from this group's leaves
+                  const prefix = node.path + '.';
+                  const types: Record<string, number> = {};
+                  for (const [path, entry] of Object.entries(allTokensFlat)) {
+                    if (path === node.path || path.startsWith(prefix)) {
+                      const t = entry.$type;
+                      if (t) types[t] = (types[t] ?? 0) + 1;
+                    }
+                  }
+                  const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+                  onGenerateScaleFromGroup(node.path, dominant);
+                }}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
+              >
+                Generate scale from this group…
+              </button>
+            )}
             <button
               role="menuitem"
               onMouseDown={e => e.preventDefault()}
@@ -2978,6 +3005,7 @@ function TokenTreeNode({
             onSyncGroup={onSyncGroup}
             onSyncGroupStyles={onSyncGroupStyles}
             onSetGroupScopes={onSetGroupScopes}
+            onGenerateScaleFromGroup={onGenerateScaleFromGroup}
             syncSnapshot={syncSnapshot}
             cascadeDiff={cascadeDiff}
             onFilterByType={onFilterByType}

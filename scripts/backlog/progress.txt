@@ -596,3 +596,15 @@
   - GRAPH_TEMPLATES is exported from GraphPanel.tsx so App.tsx can reference it for command palette entries without re-defining the data.
   - When adding a 4th tab, the tab bar starts feeling crowded. Checked: 4 tabs still fit in the existing 320px min-width window.
 ---
+
+## 2026-03-26 - Generator discoverability
+- Added "Generate tokens…" action at top of set context menu (both tab bar and sidebar variants), navigating to the Graph tab with that set active
+- Updated command palette: renamed "Go to Graph" → "New graph" + "Open graph" (two distinct commands), renamed graph template commands from "Apply template: X" → "Generate X", changed category from 'Navigation'/'Graph' to 'Generate', added keyword-rich descriptions so "generate", "graph", "scale" all surface graph commands via fuzzy match
+- Updated EmptyState button label from "Use a graph template" → "Generate tokens from template" with updated description copy
+- GraphPanel empty state (no generators) now shows "New graph" heading with generator-focused copy instead of the generic "Graph templates" label; browsingTemplates mode retains the original label
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1134, ~L1446, ~L1672; `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L91; `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L683
+- **Learnings for future iterations:**
+  - The fuzzy matcher in CommandPalette.tsx scores both `cmd.label` AND `cmd.description` — putting keywords in description is sufficient for searchability
+  - Two separate context menus exist for sets: tab-bar version (~L1438) and sidebar version (~L1664); both must be updated
+  - GraphPanel's empty state IS the template browser (generators.length === 0 && !browsingTemplates); distinguish with `browsingTemplates` flag for copy differentiation
+---
