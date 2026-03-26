@@ -411,7 +411,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                       ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5'
                       : issue.severity === 'warning'
                       ? 'border-[var(--color-figma-warning)] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10'
-                      : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+                      : 'border-[var(--color-figma-accent)]/50 text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
                   }`}>
                     {issue.severity === 'error' ? 'Error' : issue.severity === 'warning' ? 'Warn' : 'Info'}
                   </span>
@@ -451,16 +451,16 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
         <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
           Summary
         </div>
-        <div className="px-3 py-3 flex gap-6">
-          <div>
+        <div className="grid grid-cols-3 divide-x divide-[var(--color-figma-border)]">
+          <div className="px-3 py-3 text-center">
             <div className="text-[20px] font-semibold text-[var(--color-figma-text)]">{totalTokens}</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Total tokens</div>
           </div>
-          <div>
+          <div className="px-3 py-3 text-center">
             <div className="text-[20px] font-semibold text-[var(--color-figma-text)]">{stats.length}</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Sets</div>
           </div>
-          <div>
+          <div className="px-3 py-3 text-center">
             <div className="text-[20px] font-semibold text-[var(--color-figma-text)]">{sortedTypes.length}</div>
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Types</div>
           </div>
@@ -727,20 +727,20 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
         </div>
         {coverageResult && (
           <>
-            <div className="px-3 py-2 flex gap-4 border-b border-[var(--color-figma-border)]">
-              <div className="text-center">
+            <div className="grid grid-cols-4 divide-x divide-[var(--color-figma-border)] border-b border-[var(--color-figma-border)]">
+              <div className="px-2 py-3 text-center">
                 <div className="text-[16px] font-bold text-[var(--color-figma-text)]">{coverageResult.totalComponents}</div>
                 <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Total</div>
               </div>
-              <div className="text-center">
+              <div className="px-2 py-3 text-center">
                 <div className="text-[16px] font-bold text-[var(--color-figma-success)]">{coverageResult.tokenizedComponents}</div>
                 <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Tokenized</div>
               </div>
-              <div className="text-center">
+              <div className="px-2 py-3 text-center">
                 <div className="text-[16px] font-bold text-[var(--color-figma-warning)]">{coverageResult.untokenized.length}</div>
                 <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Untokenized</div>
               </div>
-              <div className="text-center flex-1">
+              <div className="px-2 py-3 text-center">
                 <div className="text-[16px] font-bold text-[var(--color-figma-text)]">
                   {coverageResult.totalComponents > 0
                     ? Math.round((coverageResult.tokenizedComponents / coverageResult.totalComponents) * 100)

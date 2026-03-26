@@ -204,3 +204,14 @@
   - Most chevron/SVG patterns were already in place from prior sessions; scan the whole file before assuming what needs fixing
   - `--color-figma-warning: #f2a20d` is the correct CSS var for amber/warning states — avoids dark-mode issues with hardcoded Tailwind `yellow-*`
 ---
+
+## 2026-03-26 - UI audit & overhaul: Analytics Panel
+- Applied three focused UI-layer fixes:
+  1. **Info severity badge colour**: Changed from plain grey (border-figma-border + text-secondary) to accent-coloured (border-accent/50 + text-accent + bg-accent/5), matching the error/warning badge pattern for consistent severity colour coding across all three levels
+  2. **Summary stat cards grid**: Converted `flex gap-6` to `grid grid-cols-3 divide-x` so all three stats (Total tokens / Sets / Types) share equal visual weight with clean dividers instead of free-floating numbers at irregular positions
+  3. **Coverage stats grid**: Same treatment — converted `flex gap-4` to `grid grid-cols-4 divide-x` with consistent `px-2 py-3 text-center` per cell, matching the Summary layout for visual consistency across stat sections
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L409, ~L454, ~L730
+- **Learnings for future iterations:**
+  - `grid grid-cols-N divide-x divide-[var(--color-figma-border)]` is the right pattern for equal-width stat grids — avoids the uneven spacing of `flex gap-N`
+  - Info severity (the quietest level) still benefits from a colour — using `accent` (typically blue) gives it identity without being alarming, completes the error→warning→info colour system
+---

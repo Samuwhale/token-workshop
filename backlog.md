@@ -272,7 +272,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Command Palette Usage
 
-- [ ] **Flow audit & overhaul: Command Palette** — Trace the command palette flow (⌘K → type → filter → select → action), read the palette command definitions, audit whether every action reachable via the palette is also reachable via the UI, identify friction (are commands named consistently? are keyboard shortcuts shown at the right moment?), then redesign: ensure command names use consistent verb-noun format, improve the no-results state, and add a discoverable hint in the UI that ⌘K exists. `packages/plugin/src/components/CommandPalette.tsx`
+- [~] **Flow audit & overhaul: Command Palette** — Trace the command palette flow (⌘K → type → filter → select → action), read the palette command definitions, audit whether every action reachable via the palette is also reachable via the UI, identify friction (are commands named consistently? are keyboard shortcuts shown at the right moment?), then redesign: ensure command names use consistent verb-noun format, improve the no-results state, and add a discoverable hint in the UI that ⌘K exists. `packages/plugin/src/components/CommandPalette.tsx`
 
 ### Flow: Switch Token Set
 
