@@ -320,6 +320,21 @@ export function App() {
   // Delete state
   const [deletingSet, setDeletingSet] = useState<string | null>(null);
 
+  // Merge state
+  const [mergingSet, setMergingSet] = useState<string | null>(null);
+  const [mergeTargetSet, setMergeTargetSet] = useState<string>('');
+  const [mergeConflicts, setMergeConflicts] = useState<Array<{ path: string; sourceValue: any; targetValue: any }>>([]);
+  const [mergeResolutions, setMergeResolutions] = useState<Record<string, 'source' | 'target'>>({});
+  const [mergeSrcFlat, setMergeSrcFlat] = useState<Record<string, any>>({});
+  const [mergeChecked, setMergeChecked] = useState(false);
+  const [mergeLoading, setMergeLoading] = useState(false);
+
+  // Split state
+  const [splittingSet, setSplittingSet] = useState<string | null>(null);
+  const [splitPreview, setSplitPreview] = useState<Array<{ key: string; newName: string; count: number }>>([]);
+  const [splitDeleteOriginal, setSplitDeleteOriginal] = useState(false);
+  const [splitLoading, setSplitLoading] = useState(false);
+
   // Group sync state
   const [syncGroupPending, setSyncGroupPending] = useState<{ groupPath: string; tokenCount: number } | null>(null);
 

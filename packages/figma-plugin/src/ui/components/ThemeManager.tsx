@@ -510,6 +510,18 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                 </div>
 
                 {/* Token set matrix */}
+                {sets.length > 0 && (
+                  <div className="flex items-center justify-end px-3 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                    <span className="font-medium text-[var(--color-figma-text-secondary)]">Off</span>
+                    <span>= not used</span>
+                    <span className="opacity-40">·</span>
+                    <span className="font-medium text-[var(--color-figma-accent)]">Base</span>
+                    <span>= foundation layer</span>
+                    <span className="opacity-40">·</span>
+                    <span className="font-medium text-[var(--color-figma-success)]">On</span>
+                    <span>= overrides base</span>
+                  </div>
+                )}
                 <div className="divide-y divide-[var(--color-figma-border)]">
                   {(themeSetOrders[theme.name] || sets).map(setName => {
                     const state = theme.sets[setName] || 'enabled';

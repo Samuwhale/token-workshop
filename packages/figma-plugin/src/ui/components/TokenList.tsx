@@ -78,6 +78,22 @@ type DeleteConfirm =
 // ---------------------------------------------------------------------------
 // hexToRgb, rgbToLab, colorDeltaE are imported from ../shared/colorUtils
 
+/** Find alias refs in JSON text that don't resolve to any known token path. */
+function validateJsonRefs(text: string, allTokensFlat: Record<string, any>): string[] {
+  const broken: string[] = [];
+  const seen = new Set<string>();
+  const re = /"\{([^}]+)\}"/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const ref = m[1];
+    if (!seen.has(ref) && !(ref in allTokensFlat)) {
+      seen.add(ref);
+      broken.push(ref);
+    }
+  }
+  return broken;
+}
+
 function valuesEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (typeof a !== typeof b) return false;
@@ -447,8 +463,44 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
-  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid'>('tree');
+  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid' | 'json'>('tree');
   const [showScopesCol, setShowScopesCol] = useState(false);
+
+  // JSON editor state
+  const [jsonText, setJsonText] = useState('');
+  const [jsonDirty, setJsonDirty] = useState(false);
+  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [jsonSaving, setJsonSaving] = useState(false);
+  const [jsonBrokenRefs, setJsonBrokenRefs] = useState<string[]>([]);
+  const jsonTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Load raw JSON when entering JSON view (or when setName changes in JSON view)
+  useEffect(() => {
+    if (viewMode !== 'json' || !connected || !serverUrl || !setName) return;
+    if (jsonDirty) return; // don't clobber unsaved edits
+    fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
+      .then(r => r.json())
+      .then(data => {
+        const text = JSON.stringify(data, null, 2);
+        setJsonText(text);
+        setJsonError(null);
+        setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
+      })
+      .catch(() => setJsonError('Failed to load JSON'));
+  }, [viewMode, setName, connected, serverUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync from list view → JSON when tokens change externally (not dirty)
+  useEffect(() => {
+    if (viewMode !== 'json' || jsonDirty || !connected || !serverUrl || !setName) return;
+    fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
+      .then(r => r.json())
+      .then(data => {
+        const text = JSON.stringify(data, null, 2);
+        setJsonText(text);
+        setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
+      })
+      .catch(() => {});
+  }, [tokens]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const boundTokenPaths = useMemo(() => {
     const paths = new Set<string>();
@@ -1301,15 +1353,15 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             >
               For selection
             </button>
-            {(['tree', 'table', 'grid', 'canvas'] as const).map(mode => (
+            {(['tree', 'table', 'grid', 'canvas', 'json'] as const).map(mode => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : mode === 'grid' ? 'Grid view — color swatch palette' : 'Canvas view — spatial token map'}
+                title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : mode === 'grid' ? 'Grid view — color swatch palette' : mode === 'canvas' ? 'Canvas view — spatial token map' : 'JSON editor — raw DTCG JSON'}
                 aria-pressed={viewMode === mode}
                 className={`px-2 py-0.5 rounded text-[10px] transition-colors border capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium border-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
               >
-                {mode}
+                {mode === 'json' ? '</>': mode}
               </button>
             ))}
             <div className={`ml-auto flex items-center gap-1 ${sortOrder !== 'default' ? 'text-[var(--color-figma-accent)]' : ''}`}>
@@ -1478,6 +1530,68 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             <p className="mt-2 text-[11px] font-medium">Select a layer to inspect</p>
             <p className="text-[10px] mt-0.5">Tokens bound to the selected layer will appear here</p>
           </div>
+        ) : viewMode === 'json' ? (
+          /* JSON editor — raw DTCG JSON, works for both empty and non-empty sets */
+          <div className="h-full flex flex-col">
+            <textarea
+              ref={jsonTextareaRef}
+              value={jsonText}
+              onChange={e => {
+                const val = e.target.value;
+                setJsonText(val);
+                setJsonDirty(true);
+                try {
+                  JSON.parse(val);
+                  setJsonError(null);
+                  setJsonBrokenRefs(validateJsonRefs(val, allTokensFlat));
+                } catch (err) {
+                  setJsonError(err instanceof Error ? err.message : 'Invalid JSON');
+                  setJsonBrokenRefs([]);
+                }
+              }}
+              placeholder={'{\n  "color": {\n    "primary": {\n      "$value": "#3b82f6",\n      "$type": "color"\n    }\n  }\n}'}
+              spellCheck={false}
+              className="flex-1 p-3 font-mono text-[10px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none resize-none leading-relaxed placeholder:text-[var(--color-figma-text-tertiary)]"
+              style={{ minHeight: 0 }}
+            />
+            <div className="shrink-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 flex flex-col gap-1">
+              {jsonError && (
+                <p className="text-[10px] text-[var(--color-figma-error)] font-mono leading-tight">{jsonError}</p>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">Paste DTCG JSON to import tokens</span>
+                <button
+                  onClick={async () => {
+                    if (jsonError || !jsonText.trim()) return;
+                    setJsonSaving(true);
+                    try {
+                      const parsed = JSON.parse(jsonText);
+                      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(parsed),
+                      });
+                      if (!res.ok) {
+                        const err = await res.json().catch(() => ({})) as { error?: string };
+                        setJsonError(err.error ?? 'Save failed');
+                      } else {
+                        setJsonDirty(false);
+                        onRefresh();
+                      }
+                    } catch {
+                      setJsonError('Invalid JSON — cannot save');
+                    } finally {
+                      setJsonSaving(false);
+                    }
+                  }}
+                  disabled={!!jsonError || jsonSaving || !connected || !jsonText.trim()}
+                  className="px-2 py-0.5 rounded text-[10px] transition-colors bg-[var(--color-figma-accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+                >
+                  {jsonSaving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
         ) : tokens.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -1622,6 +1736,98 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 })}
               </tbody>
             </table>
+          </div>
+        ) : viewMode === 'json' ? (
+          /* JSON editor view — raw DTCG JSON for the current set */
+          <div className="h-full flex flex-col">
+            <textarea
+              ref={jsonTextareaRef}
+              value={jsonText}
+              onChange={e => {
+                const val = e.target.value;
+                setJsonText(val);
+                setJsonDirty(true);
+                try {
+                  JSON.parse(val);
+                  setJsonError(null);
+                  setJsonBrokenRefs(validateJsonRefs(val, allTokensFlat));
+                } catch (err) {
+                  setJsonError(err instanceof Error ? err.message : 'Invalid JSON');
+                  setJsonBrokenRefs([]);
+                }
+              }}
+              spellCheck={false}
+              className="flex-1 p-3 font-mono text-[10px] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none resize-none leading-relaxed"
+              style={{ minHeight: 0 }}
+            />
+            <div className="shrink-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 flex flex-col gap-1">
+              {jsonError && (
+                <p className="text-[10px] text-[var(--color-figma-error)] font-mono leading-tight">{jsonError}</p>
+              )}
+              {jsonBrokenRefs.length > 0 && !jsonError && (
+                <div className="text-[10px] text-orange-500 flex flex-wrap gap-1 items-center">
+                  <span className="font-medium shrink-0">Broken refs:</span>
+                  {jsonBrokenRefs.map(r => (
+                    <span key={r} className="font-mono bg-orange-500/10 rounded px-1">{'{' + r + '}'}</span>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                  {jsonDirty ? 'Unsaved changes' : 'Up to date'}
+                </span>
+                <div className="flex gap-1">
+                  {jsonDirty && (
+                    <button
+                      onClick={() => {
+                        setJsonDirty(false);
+                        fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
+                          .then(r => r.json())
+                          .then(data => {
+                            const text = JSON.stringify(data, null, 2);
+                            setJsonText(text);
+                            setJsonError(null);
+                            setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
+                          })
+                          .catch(() => {});
+                      }}
+                      className="px-2 py-0.5 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    >
+                      Revert
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => {
+                      if (jsonError) return;
+                      setJsonSaving(true);
+                      try {
+                        const parsed = JSON.parse(jsonText);
+                        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(parsed),
+                        });
+                        if (!res.ok) {
+                          const err = await res.json().catch(() => ({})) as { error?: string };
+                          setJsonError(err.error ?? 'Save failed');
+                        } else {
+                          setJsonDirty(false);
+                          onRefresh();
+                        }
+                      } catch {
+                        setJsonError('Invalid JSON — cannot save');
+                      } finally {
+                        setJsonSaving(false);
+                      }
+                    }}
+                    disabled={!!jsonError || jsonSaving || !connected}
+                    className="px-2 py-0.5 rounded text-[10px] transition-colors bg-[var(--color-figma-accent)] text-white disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+                  >
+                    {jsonSaving ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         ) : displayedTokens.length === 0 && filtersActive ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">

@@ -79,7 +79,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
-- [ ] **Inline explanation of set statuses** — Tokens Studio's #1 onboarding complaint is that `source` vs. `enabled` vs. `disabled` is unexplained. Wherever set status toggles appear (theme management panel, theme switcher detail view), add persistent inline descriptions or tooltips: "Base = foundation layer, can be overridden", "On = active, overrides base sets", "Off = not used in this theme". First-time users should never have to guess.
+- [x] **Inline explanation of set statuses** — Tokens Studio's #1 onboarding complaint is that `source` vs. `enabled` vs. `disabled` is unexplained. Wherever set status toggles appear (theme management panel, theme switcher detail view), add persistent inline descriptions or tooltips: "Base = foundation layer, can be overridden", "On = active, overrides base sets", "Off = not used in this theme". First-time users should never have to guess.
 - [ ] **Persist active theme selection per file** — Store the currently active theme selection in Figma's `clientStorage` (keyed by file ID) so it survives plugin restarts. Tokens Studio has a known complaint that theme selections reset every session — solving this is a concrete advantage.
 
 ### UX

@@ -422,3 +422,11 @@
   - `collectGroupLeafTokens` returns `[]` for both "not found" and "empty group" — use `getObjectAtPath` to distinguish.
   - Empty groups (objects with no DTCG tokens) naturally persist in the JSON file after the server change; `buildTree` creates group nodes with `children: []` for them.
 ---
+
+## 2026-03-26 - Inline explanation of set statuses
+- Added a persistent legend strip above the token set matrix in each theme card showing: "Off = not used · Base = foundation layer · On = overrides base" with color-coded labels matching the button active-state colors
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L512
+- **Learnings for future iterations:**
+  - STATE_LABELS and STATE_DESCRIPTIONS were already defined at the top of ThemeManager.tsx and used as `title` tooltips on buttons — the gap was no *persistent* UI (tooltips require hover discovery)
+  - Theme switcher in App.tsx is a simple name-only dropdown; status explanations are only needed in ThemeManager where the toggles appear
+---

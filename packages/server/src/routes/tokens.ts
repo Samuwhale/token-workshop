@@ -168,6 +168,36 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // GET /api/tokens/:set/raw — get the raw nested DTCG token group for a set
+  fastify.get<{ Params: { set: string } }>('/tokens/:set/raw', async (request, reply) => {
+    const { set } = request.params;
+    const tokenSet = await fastify.tokenStore.getSet(set);
+    if (!tokenSet) {
+      return reply.status(404).send({ error: `Token set "${set}" not found` });
+    }
+    return tokenSet.tokens;
+  });
+
+  // PUT /api/tokens/:set — replace all tokens in a set with a new nested DTCG token group
+  fastify.put<{ Params: { set: string }; Body: Record<string, unknown> }>(
+    '/tokens/:set',
+    async (request, reply) => {
+      const { set } = request.params;
+      const body = request.body;
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return reply.status(400).send({ error: 'Request body must be a JSON object' });
+      }
+      try {
+        await fastify.tokenStore.replaceSetTokens(set, body as any);
+        return { set, replaced: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: 'Failed to replace token set', detail: msg });
+      }
+    },
+  );
+
   // GET /api/tokens/:set/* — get single token by path
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/*', async (request, reply) => {
     const { set } = request.params;
