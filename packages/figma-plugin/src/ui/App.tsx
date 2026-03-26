@@ -1078,6 +1078,7 @@ export function App() {
               onEdit={(path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }}
               onCreateNew={(initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType })}
               onRefresh={refreshAll}
+              onTokenCreated={(path) => setHighlightedToken(path)}
               lintViolations={lintViolations}
               onPushUndo={pushUndo}
               defaultCreateOpen={createFromEmpty}

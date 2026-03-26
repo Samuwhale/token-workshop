@@ -228,7 +228,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Create Token from Scratch
 
-- [~] **Flow audit & overhaul: Create Token from Scratch** — Trace every step of this flow end-to-end in the code (trigger → editor open → name/type/value entry → save → list update → undo), research how other token tools handle first-time token creation, identify every point of confusion or unnecessary friction, then redesign: ensure the creation trigger is always visible and labelled clearly, that the editor opens in a predictable location, that required fields are obvious, and that save confirmation is immediate and reassuring. `packages/plugin/src/components/TokenList.tsx`, `packages/plugin/src/components/TokenEditor.tsx`
+- [x] **Flow audit & overhaul: Create Token from Scratch** — Trace every step of this flow end-to-end in the code (trigger → editor open → name/type/value entry → save → list update → undo), research how other token tools handle first-time token creation, identify every point of confusion or unnecessary friction, then redesign: ensure the creation trigger is always visible and labelled clearly, that the editor opens in a predictable location, that required fields are obvious, and that save confirmation is immediate and reassuring. `packages/plugin/src/components/TokenList.tsx`, `packages/plugin/src/components/TokenEditor.tsx`
 
 ### Flow: Edit Token
 
@@ -280,7 +280,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Server Connection & Settings
 
-- [ ] **Flow audit & overhaul: Server Connection** — Trace the settings flow (open settings → enter URL → update → connection check → connected/failed), read the settings panel and connection service code, identify friction (is the URL field pre-filled or empty? is the error message on failure helpful?), then redesign: add a connection status indicator that is always visible in the app shell, improve error messages to be actionable ("Cannot reach server — check the URL or your network"), and make the retry action obvious. `packages/plugin/src/routes/SettingsPanel.tsx`, `packages/plugin/src/services/api-client.ts`
+- [~] **Flow audit & overhaul: Server Connection** — Trace the settings flow (open settings → enter URL → update → connection check → connected/failed), read the settings panel and connection service code, identify friction (is the URL field pre-filled or empty? is the error message on failure helpful?), then redesign: add a connection status indicator that is always visible in the app shell, improve error messages to be actionable ("Cannot reach server — check the URL or your network"), and make the retry action obvious. `packages/plugin/src/routes/SettingsPanel.tsx`, `packages/plugin/src/services/api-client.ts`
 
 ### Flow: Find and Replace Token Names
 

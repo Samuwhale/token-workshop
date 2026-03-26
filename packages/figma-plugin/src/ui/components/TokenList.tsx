@@ -83,6 +83,7 @@ interface TokenListProps {
   onCreateNew?: (initialPath?: string, initialType?: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
+  onTokenCreated?: (path: string) => void;
   defaultCreateOpen?: boolean;
   highlightedToken?: string | null;
   onNavigateToAlias?: (path: string) => void;
@@ -154,7 +155,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
@@ -679,10 +680,33 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         setCreateError((data as any).error || `Failed to create token (${res.status})`);
         return;
       }
+      const createdPath = trimmedPath;
+      const createdType = newTokenType;
+      const createdValue = getDefaultValue(newTokenType);
+      const capturedSet = effectiveSet;
+      const capturedUrl = serverUrl;
       setShowCreateForm(false);
       setNewTokenPath('');
       setSiblingPrefix(null);
       onRefresh();
+      onTokenCreated?.(createdPath);
+      if (onPushUndo) {
+        onPushUndo({
+          description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
+          restore: async () => {
+            await fetch(`${capturedUrl}/api/tokens/${capturedSet}/${createdPath}`, { method: 'DELETE' });
+            onRefresh();
+          },
+          redo: async () => {
+            await fetch(`${capturedUrl}/api/tokens/${capturedSet}/${createdPath}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ $type: createdType, $value: createdValue }),
+            });
+            onRefresh();
+          },
+        });
+      }
     } catch (err) {
       setCreateError('Network error — could not create token');
     }

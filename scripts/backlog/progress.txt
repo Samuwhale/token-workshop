@@ -447,3 +447,12 @@
   - The existing `highlightedToken` machinery in TokenList.tsx already handles scroll-and-highlight; the only missing piece was setting it on save close
   - Unsaved-changes dot pattern (small accent circle next to title) is universally understood (VS Code, Figma) — prefer it over changing button labels alone
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Create Token from Scratch
+- Audited the full create-token flow end-to-end. Key friction found: (1) no undo after quick create, (2) no auto-highlight/scroll to new token, (3) silent success (form just closes)
+- Fixed (1) and (2): added `onTokenCreated` prop to TokenList, wired it in App.tsx to `setHighlightedToken` so newly created tokens are highlighted/scrolled to immediately; added `onPushUndo` call in `handleCreate` with restore=DELETE and redo=re-POST
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L82-96, ~L158, ~L682-700; `packages/figma-plugin/src/ui/App.tsx` ~L1081
+- **Learnings for future iterations:**
+  - For creation undo, restore=DELETE + redo=re-POST with the captured default value mirrors the delete undo pattern perfectly
+  - `onTokenCreated` is called before `onPushUndo` so highlight fires on the next render cycle after `onRefresh`; this ordering avoids a race where the token isn't yet in the list when highlight tries to scroll
+---
