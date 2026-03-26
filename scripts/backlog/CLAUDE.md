@@ -1,61 +1,71 @@
 # Backlog Agent Instructions
 
 You are an autonomous UX improvement agent working through backlog.md.
+Codebase patterns are already injected into your context — no need to read a separate file.
 
-## Your Task
+---
 
-1. Read `scripts/backlog/progress.txt` — the **Codebase Patterns** section contains accumulated
-   learnings from previous runs. Read it before touching any files.
-2. Read `backlog.md` in the project root — including the Agent Workflow Instructions at the top.
-   Note: new items may have been appended mid-run from `backlog-inbox.md` — always re-read `backlog.md`
-   at the start of each iteration to see the latest state.
-3. Find all items marked `[ ]` (todo). Skip any currently marked `[~]` (in-progress by another run).
-4. Pick ONE item — prefer simpler, self-contained items unless a sequence demands otherwise.
-5. Follow the workflow in backlog.md exactly:
-   - Mark `[~]` as your **first file write**, before touching source files
-   - Assess complexity (simple vs complex)
-   - Implement the change
-   - Validate: run the build, confirm no new errors
-   - Mark `[x]` on success, `[!]` on failure with a progress note
+## Workflow (one item per session)
 
-## Quality Requirements
+1. **Read `backlog.md`** in the project root. Find all `[ ]` items. Skip any currently `[~]` (in-progress by another run).
+2. **Pick ONE item** — prefer simpler, self-contained items (single file, obviously scoped change).
+3. **Mark `[~]` first** — this is your very first file write, before touching any source file.
+4. **Assess complexity:**
+   - *Simple* (single file, change is obviously scoped): plan inline, execute, validate.
+   - *Complex* (multi-file, behaviour change, or unclear scope): dispatch a plan subagent, review the plan, then execute.
+5. **Implement** the change — minimal, focused, one concern only.
+6. **Validate:**
+   - Run `cd packages/figma-plugin && npm run build` — do NOT mark `[x]` without a passing build.
+   - If a UI class or markup was added, grep for it in the output.
+   - If validation fails: revert your source file changes, mark `[!]`, add a progress note.
+7. **Mark `[x]`** on success (or `[!]` on failure with a note).
+8. **Append to `scripts/backlog/progress.txt`** (see format below).
 
-- Run `npm run build` after every change — do NOT mark `[x]` without a passing build
-- Keep changes minimal and focused — one item, one concern
-- Follow existing code patterns
-- Do NOT refactor unrelated code
+---
 
-## Progress Report
+## Quality Rules
 
-After completing (or failing) one item, APPEND to `scripts/backlog/progress.txt`:
+- One item per session — stop after completing or failing one.
+- Prefer the smallest safe change. Do not refactor unrelated code.
+- If a backlog item references code that no longer exists, mark `[!]` and note "stale — code not found."
+- If an item is already implemented (stale), mark `[x]` with note "stale — already done."
+- Leave `[~]` with a progress note if the item is too large for one session.
+
+---
+
+## Progress Note Format
+
+Append to `scripts/backlog/progress.txt` after every item (success or failure):
 
 ```
-## [Date] - [backlog item title]
-- What was implemented
-- Files changed
+## YYYY-MM-DD - [backlog item title]
+- What was implemented (or what failed)
+- Files changed: `path/to/file.tsx` ~L<line>
 - **Learnings for future iterations:**
-  - Patterns discovered (e.g. "this component uses X for Y")
-  - Gotchas (e.g. "don't forget to update Z when changing W")
+  - Specific gotchas or patterns discovered
 ---
 ```
 
-If you discovered a **reusable pattern** future runs should know, also add it to the
-`## Codebase Patterns` section at the TOP of progress.txt. Only add patterns that are
-general and reusable — not item-specific details.
+If you discovered a **new reusable pattern** (something general that future sessions would benefit from knowing), also add it to `scripts/backlog/patterns.md`. Keep entries concise and general — not item-specific details.
+
+---
+
+## Progress Note for Leaving an Item In-Progress
+
+When leaving an item as `[~]` between sessions, add this inline comment in backlog.md:
+```
+<!-- progress: <date> | status: partial | done: … | remaining: … | blocker: … -->
+```
+
+---
 
 ## Stop Condition
 
 After completing (or failing) one item, check whether any `[ ]` items remain in backlog.md.
 
-If **no `[ ]` items remain**, reply with:
+If **none remain**, reply with:
+```
 <promise>COMPLETE</promise>
+```
 
-If items remain, end your response normally — the next iteration will pick up the next item.
-
-
-## Important
-
-- One item per iteration
-- Mark `[~]` before touching any source file
-- Never mark `[x]` without a passing build
-- Always append to progress.txt — it is the memory between sessions
+Otherwise, end your response normally — the next iteration picks up from here.

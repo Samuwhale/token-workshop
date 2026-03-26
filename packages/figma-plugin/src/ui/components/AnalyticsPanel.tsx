@@ -22,6 +22,7 @@ interface AnalyticsPanelProps {
   connected: boolean;
   validateKey?: number;
   onNavigateToToken?: (path: string, set: string) => void;
+  onValidationComplete?: (count: number) => void;
 }
 
 function countLeafNodes(group: Record<string, any>): { total: number; byType: Record<string, number> } {
@@ -44,18 +45,48 @@ function countLeafNodes(group: Record<string, any>): { total: number; byType: Re
   return { total, byType };
 }
 
-export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateToToken }: AnalyticsPanelProps) {
+function normalizeHex(hex: string): string {
+  const h = hex.replace('#', '').toLowerCase();
+  if (h.length === 3) return '#' + h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  if (h.length === 4) return '#' + h[0] + h[0] + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+  return '#' + h;
+}
+
+const TYPE_COLORS: Record<string, string> = {
+  color:      '#e85d4a',
+  dimension:  '#4a9ee8',
+  spacing:    '#5bc4a0',
+  typography: '#a77de8',
+  fontFamily: '#c47de8',
+  fontSize:   '#e8a77d',
+  fontWeight: '#7de8c4',
+  lineHeight: '#e8c47d',
+  number:     '#7db8e8',
+  string:     '#aae87d',
+  shadow:     '#e87dc4',
+  border:     '#e8e07d',
+};
+const TYPE_COLOR_FALLBACK = '#8888aa';
+
+export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateToToken, onValidationComplete }: AnalyticsPanelProps) {
   const [stats, setStats] = useState<SetStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [validateResults, setValidateResults] = useState<ValidationIssue[] | null>(null);
   const [validateLoading, setValidateLoading] = useState(false);
+  const [validateError, setValidateError] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
+  const [validationCopied, setValidationCopied] = useState(false);
   const [colorTokens, setColorTokens] = useState<{ path: string; hex: string }[]>([]);
   const [showContrastMatrix, setShowContrastMatrix] = useState(false);
   const [allColorTokens, setAllColorTokens] = useState<{ path: string; set: string; hex: string }[]>([]);
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [deduplicating, setDeduplicating] = useState<string | null>(null); // hex key being deduplicated
-  const [canonicalPick, setCanonicalPick] = useState<Record<string, string>>({}); // hex → chosen canonical path
+  const [canonicalPick, setCanonicalPick] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('analytics_canonicalPick');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  }); // hex → chosen canonical path
   const [reloadKey, setReloadKey] = useState(0);
   const [showScaleInspector, setShowScaleInspector] = useState(false);
 
@@ -70,24 +101,34 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [showCoverage, setShowCoverage] = useState(false);
   const coverageResolveRef = useRef<((data: any) => void) | null>(null);
 
+  useEffect(() => {
+    try { localStorage.setItem('analytics_canonicalPick', JSON.stringify(canonicalPick)); } catch { /* quota exceeded */ }
+  }, [canonicalPick]);
+
   const runValidate = useCallback(async () => {
     if (!connected) return;
     setValidateLoading(true);
+    setValidateError(null);
     try {
       const res = await fetch(`${serverUrl}/api/tokens/validate`, { method: 'POST' });
       if (res.ok) {
         const data = await res.json() as { issues: ValidationIssue[] };
-        setValidateResults(data.issues ?? []);
+        const issues = data.issues ?? [];
+        setValidateResults(issues);
+        onValidationComplete?.(issues.length);
       }
     } catch {
-      setValidateResults([]);
+      setValidateError('Validation failed — check server connection');
     } finally {
       setValidateLoading(false);
     }
   }, [serverUrl, connected]);
 
   useEffect(() => {
-    if (validateKey && validateKey > 0) runValidate();
+    if (validateKey && validateKey > 0 && !validateLoading) runValidate();
+    // validateLoading intentionally omitted from deps: re-running when loading
+    // finishes would trigger a redundant validation on the same validateKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [validateKey, runValidate]);
 
   // Listen for component-coverage-result from controller
@@ -156,7 +197,11 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
         })
       );
       setStats(results);
-      setColorTokens(allColors.slice(0, 16)); // cap for matrix performance
+      setColorTokens(
+        allColors
+          .slice(0, 16) // cap for matrix performance
+          .sort((a, b) => (hexToLuminance(a.hex) ?? 0) - (hexToLuminance(b.hex) ?? 0))
+      );
 
       // Build a unified flat map for alias resolution
       const unifiedFlat: Record<string, { $value: unknown; $type: string; set: string }> = {};
@@ -180,7 +225,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       for (const [p, e] of Object.entries(unifiedFlat)) {
         if (e.$type === 'color') {
           const hex = resolveHex(p);
-          if (hex) resolvedColors.push({ path: p, set: e.set, hex: hex.toLowerCase() });
+          if (hex) resolvedColors.push({ path: p, set: e.set, hex: normalizeHex(hex) });
         }
       }
       setAllColorTokens(resolvedColors);
@@ -218,6 +263,15 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
 
   const filteredIssues = validateResults
     ? (severityFilter === 'all' ? validateResults : validateResults.filter(i => i.severity === severityFilter))
+    : null;
+
+  const severityCounts = validateResults
+    ? {
+        all: validateResults.length,
+        error: validateResults.filter(i => i.severity === 'error').length,
+        warning: validateResults.filter(i => i.severity === 'warning').length,
+        info: validateResults.filter(i => i.severity === 'info').length,
+      }
     : null;
 
   // Detect color scales: groups of color tokens with numeric suffix under same parent
@@ -285,6 +339,13 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
         </button>
       </div>
 
+      {/* Validation error */}
+      {!validateLoading && validateError && (
+        <div className="text-[10px] text-[var(--color-figma-error)] px-1 py-1">
+          {validateError}
+        </div>
+      )}
+
       {/* Validation results */}
       {validateResults !== null && (
         <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
@@ -292,7 +353,30 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
               Validation — {validateResults.length} issue{validateResults.length !== 1 ? 's' : ''}
             </span>
-            <div className="flex gap-1">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  const lines: string[] = [`# Validation Report — ${validateResults.length} issue${validateResults.length !== 1 ? 's' : ''}\n`];
+                  for (const sev of ['error', 'warning', 'info'] as const) {
+                    const group = validateResults.filter(i => i.severity === sev);
+                    if (group.length === 0) continue;
+                    lines.push(`## ${sev.charAt(0).toUpperCase() + sev.slice(1)}s (${group.length})`);
+                    for (const issue of group) {
+                      lines.push(`- **${issue.path}** (set: ${issue.setName}): ${issue.message}${issue.suggestedFix ? ` — Fix: ${issue.suggestedFix}` : ''}`);
+                    }
+                    lines.push('');
+                  }
+                  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+                    setValidationCopied(true);
+                    setTimeout(() => setValidationCopied(false), 1500);
+                  });
+                }}
+                className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                title="Copy report as Markdown"
+              >
+                {validationCopied ? 'Copied!' : 'Copy MD'}
+              </button>
+              <span className="w-px h-3 bg-[var(--color-figma-border)]" aria-hidden="true" />
               {(['all', 'error', 'warning', 'info'] as const).map(f => (
                 <button
                   key={f}
@@ -303,7 +387,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                       : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
                   }`}
                 >
-                  {f}
+                  {severityCounts && f !== 'all' ? `${f} (${severityCounts[f]})` : f}
                 </button>
               ))}
             </div>
@@ -364,6 +448,19 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Types</div>
           </div>
         </div>
+        {sortedTypes.length > 0 && totalTokens > 0 && (
+          <div className="px-3 pb-3">
+            <div className="h-2 rounded-full overflow-hidden flex gap-px">
+              {sortedTypes.map(([type, count]) => (
+                <div
+                  key={type}
+                  style={{ width: `${(count / totalTokens) * 100}%`, backgroundColor: TYPE_COLORS[type] ?? TYPE_COLOR_FALLBACK }}
+                  title={`${type}: ${count}`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* By type */}
@@ -375,15 +472,16 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           <div className="divide-y divide-[var(--color-figma-border)]">
             {sortedTypes.map(([type, count]) => (
               <div key={type} className="flex items-center gap-3 px-3 py-2">
-                <div
-                  className="flex-1 h-1.5 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden"
-                >
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-20 truncate">{type}</span>
+                <div className="flex-1 h-1.5 rounded-full bg-[var(--color-figma-bg-hover)] overflow-hidden">
                   <div
-                    className="h-full rounded-full bg-[var(--color-figma-accent)]"
-                    style={{ width: `${Math.round((count / totalTokens) * 100)}%` }}
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.round((count / totalTokens) * 100)}%`,
+                      backgroundColor: TYPE_COLORS[type] ?? TYPE_COLOR_FALLBACK,
+                    }}
                   />
                 </div>
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-20 text-right truncate">{type}</span>
                 <span className="text-[11px] font-medium text-[var(--color-figma-text)] w-8 text-right">{count}</span>
               </div>
             ))}
@@ -433,7 +531,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           </button>
           {showContrastMatrix && (
             <div className="overflow-auto max-h-80 p-2">
-              <table className="text-[8px] border-collapse w-full">
+              <table className="text-[8px] border-collapse">
                 <thead>
                   <tr>
                     <th className="px-1 py-0.5 text-left text-[var(--color-figma-text-secondary)] font-normal sticky left-0 bg-[var(--color-figma-bg)]">FG \ BG</th>

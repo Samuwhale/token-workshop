@@ -234,6 +234,11 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
             </div>
           )}
 
+          {/* Invalid hex feedback */}
+          {scale.length === 0 && baseHex !== '' && (
+            <div className="text-[10px] text-[var(--color-figma-error)]">Invalid color — enter a valid hex value (e.g. #3b82f6)</div>
+          )}
+
           {/* Sparkline */}
           {scale.length > 1 && (
             <div>

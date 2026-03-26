@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import type { TokenMapEntry } from '../../shared/types';
+import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { hexToLuminance, wcagContrast } from '../shared/colorUtils';
 
 // ---------------------------------------------------------------------------
@@ -39,13 +40,33 @@ const FIGMA_SCOPES: Record<string, { label: string; value: string }[]> = {
   ],
 };
 
-function resolveColorValue(path: string, allTokensFlat: Record<string, TokenMapEntry>): string | null {
+function resolveColorValue(path: string, allTokensFlat: Record<string, TokenMapEntry>, visited = new Set<string>()): string | null {
+  if (visited.has(path)) return null;
+  visited.add(path);
   const entry = allTokensFlat[path];
   if (!entry || entry.$type !== 'color') return null;
   const v = entry.$value;
   return typeof v === 'string' && v.startsWith('{')
-    ? resolveColorValue(v.slice(1, -1), allTokensFlat)
+    ? resolveColorValue(v.slice(1, -1), allTokensFlat, visited)
     : typeof v === 'string' ? v : null;
+}
+
+function resolveAliasChain(
+  ref: string,
+  allTokensFlat: Record<string, TokenMapEntry>,
+  visited = new Set<string>()
+): { path: string; value: any; type: string }[] {
+  const path = ref.startsWith('{') && ref.endsWith('}') ? ref.slice(1, -1) : ref;
+  if (visited.has(path)) return [];
+  visited.add(path);
+  const entry = allTokensFlat[path];
+  if (!entry) return [{ path, value: undefined, type: 'unknown' }];
+  const v = entry.$value;
+  const current = { path, value: v, type: entry.$type as string };
+  if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
+    return [current, ...resolveAliasChain(v, allTokensFlat, visited)];
+  }
+  return [current];
 }
 
 interface TokenEditorProps {
@@ -68,12 +89,17 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const [aliasMode, setAliasMode] = useState(false);
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
+  const preAliasValueRef = useRef<any>(null);
   const [showContrast, setShowContrast] = useState(false);
   const [bgTokenPath, setBgTokenPath] = useState<string>('');
+  const [bgQuery, setBgQuery] = useState('');
+  const [bgSearchOpen, setBgSearchOpen] = useState(false);
+  const bgInputRef = useRef<HTMLInputElement>(null);
   const [scopes, setScopes] = useState<string[]>([]);
   const [showScopes, setShowScopes] = useState(false);
-  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[] } | null>(null);
+  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string } | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchToken = async () => {
@@ -94,6 +120,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           description: token?.$description || '',
           reference: ref,
           scopes: Array.isArray(savedScopes) ? savedScopes : [],
+          type: token?.$type || 'string',
         };
         if (typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}')) {
           setReference(token.$value);
@@ -116,12 +143,47 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
     if (!initialRef.current) return false;
     const init = initialRef.current;
     return (
+      tokenType !== init.type ||
       value !== init.value ||
       description !== init.description ||
       reference !== init.reference ||
       JSON.stringify(scopes) !== JSON.stringify(init.scopes)
     );
-  }, [value, description, reference, scopes]);
+  }, [tokenType, value, description, reference, scopes]);
+
+  const canSave = useMemo(() => {
+    if (tokenType === 'typography' && !aliasMode) {
+      const v = typeof value === 'object' && value !== null ? value : {};
+      const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
+      if (!family || String(family).trim() === '') return false;
+      const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
+      if (fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0) return false;
+    }
+    return true;
+  }, [tokenType, value, aliasMode]);
+
+  const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
+    color: '#000000',
+    dimension: { value: 0, unit: 'px' },
+    typography: {},
+    shadow: { x: 0, y: 0, blur: 4, spread: 0, color: '#000000', type: 'dropShadow' },
+    border: {},
+    number: 0,
+    string: '',
+    boolean: false,
+    gradient: { type: 'linear', stops: [] },
+    duration: 0,
+    fontFamily: '',
+  };
+
+  const handleTypeChange = (newType: string) => {
+    setTokenType(newType);
+    setValue(DEFAULT_VALUE_FOR_TYPE[newType] ?? '');
+    setScopes([]);
+    setReference('');
+    setAliasMode(false);
+    setShowAutocomplete(false);
+  };
 
   const handleBack = () => {
     if (isDirty) { setShowDiscardConfirm(true); } else { onBack(); }
@@ -194,15 +256,56 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{tokenPath}</div>
           <div className="text-[9px] text-[var(--color-figma-text-secondary)]">in {setName}</div>
         </div>
-        <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium uppercase token-type-${tokenType}`}>
-          {tokenType}
-        </span>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(tokenPath);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          }}
+          title="Copy token path"
+          className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
+        >
+          {copied ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          )}
+        </button>
+        {aliasMode && reference && tokenType === 'color' && (() => {
+          const refPath = reference.startsWith('{') && reference.endsWith('}') ? reference.slice(1, -1) : null;
+          const resolved = refPath ? resolveColorValue(refPath, allTokensFlat) : null;
+          if (!resolved) return null;
+          return (
+            <div
+              className="w-3.5 h-3.5 rounded-sm border border-white/50 ring-1 ring-[var(--color-figma-border)] shrink-0"
+              style={{ backgroundColor: resolved }}
+              title={resolved}
+              aria-hidden="true"
+            />
+          );
+        })()}
+        <select
+          value={tokenType}
+          onChange={e => handleTypeChange(e.target.value)}
+          title="Change token type"
+          className={`px-1.5 py-0.5 rounded text-[9px] font-medium uppercase cursor-pointer border-0 outline-none appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ''] ?? 'token-type-string'}`}
+          style={{ backgroundImage: 'none' }}
+        >
+          {Object.keys(TOKEN_TYPE_BADGE_CLASS).map(t => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
       </div>
 
       {/* Editor body */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
         {error && (
-          <div className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
+          <div className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] break-words max-h-16 overflow-auto">
             {error}
           </div>
         )}
@@ -218,9 +321,14 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                 const next = !aliasMode;
                 setAliasMode(next);
                 if (next) {
+                  preAliasValueRef.current = value;
                   if (!reference) setReference('{');
                   setTimeout(() => { refInputRef.current?.focus(); }, 0);
                 } else {
+                  if (preAliasValueRef.current !== null) {
+                    setValue(preAliasValueRef.current);
+                    preAliasValueRef.current = null;
+                  }
                   setReference('');
                   setShowAutocomplete(false);
                 }
@@ -272,10 +380,49 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
               )}
             </div>
           )}
+          {aliasMode && reference.startsWith('{') && reference.endsWith('}') && (() => {
+            const chain = resolveAliasChain(reference, allTokensFlat);
+            if (chain.length === 0) return null;
+            return (
+              <div className="mt-2 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-accent)]/5 px-2 py-1.5 flex flex-col gap-1">
+                <span className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase tracking-wide font-medium">Resolves to</span>
+                {chain.map((hop, i) => {
+                  const resolvedColor = hop.type === 'color' && typeof hop.value === 'string' && !hop.value.startsWith('{') ? hop.value : null;
+                  const isLast = i === chain.length - 1;
+                  return (
+                    <div key={hop.path} className="flex items-center gap-1.5 min-w-0">
+                      {i > 0 && <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">↳</span>}
+                      {resolvedColor && (
+                        <div
+                          className="w-3 h-3 rounded-sm border border-white/50 ring-1 ring-[var(--color-figma-border)] shrink-0"
+                          style={{ backgroundColor: resolvedColor }}
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span className={`text-[10px] font-mono truncate ${isLast ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                        {hop.path}
+                      </span>
+                      {isLast && hop.value === undefined && (
+                        <span className="ml-auto shrink-0 text-[9px] text-[var(--color-figma-error)]">not found</span>
+                      )}
+                      {isLast && hop.value !== undefined && typeof hop.value !== 'object' && !String(hop.value).startsWith('{') && !resolvedColor && (
+                        <span className="ml-auto shrink-0 text-[9px] text-[var(--color-figma-text-secondary)] truncate max-w-[80px]" title={String(hop.value)}>
+                          {String(hop.value)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
           {!aliasMode && reference && (
-            <p className="mt-1 text-[9px] text-[var(--color-figma-text-secondary)]">
-              Has reference: {reference}
-            </p>
+            <div className="mt-1 flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 border border-[var(--color-figma-accent)]/30">
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M1 4h2.5M4.5 4H7M5.5 2L7 4L5.5 6M2.5 2L1 4L2.5 6"/>
+              </svg>
+              <span className="text-[10px] text-[var(--color-figma-accent)] font-mono truncate">{reference}</span>
+            </div>
           )}
         </div>
 
@@ -321,16 +468,39 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                 <div className="p-3 flex flex-col gap-3">
                   <div>
                     <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Background color token</label>
-                    <select
-                      value={bgTokenPath}
-                      onChange={e => setBgTokenPath(e.target.value)}
-                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none"
-                    >
-                      <option value="">— select token —</option>
-                      {colorTokens.map(([p]) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <input
+                        ref={bgInputRef}
+                        type="text"
+                        value={bgSearchOpen ? bgQuery : bgTokenPath}
+                        onChange={e => { setBgQuery(e.target.value); setBgSearchOpen(true); }}
+                        onFocus={() => { setBgQuery(''); setBgSearchOpen(true); }}
+                        onBlur={() => setTimeout(() => setBgSearchOpen(false), 150)}
+                        placeholder="Search color tokens…"
+                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
+                      />
+                      {bgTokenPath && !bgSearchOpen && (
+                        <button
+                          onClick={() => { setBgTokenPath(''); setBgQuery(''); }}
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]"
+                          aria-label="Clear background token"
+                        >
+                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                          </svg>
+                        </button>
+                      )}
+                      {bgSearchOpen && (
+                        <AliasAutocomplete
+                          query={bgQuery}
+                          allTokensFlat={allTokensFlat}
+                          pathToSet={pathToSet}
+                          filterType="color"
+                          onSelect={path => { setBgTokenPath(path); setBgQuery(''); setBgSearchOpen(false); }}
+                          onClose={() => setBgSearchOpen(false)}
+                        />
+                      )}
+                    </div>
                   </div>
                   {ratio !== null ? (
                     <div className="flex flex-col gap-2">
@@ -375,7 +545,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             onChange={e => setDescription(e.target.value)}
             placeholder="Optional description"
             rows={2}
-            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] resize-none placeholder:text-[var(--color-figma-text-secondary)]/50"
+            className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] resize-none min-h-[48px] placeholder:text-[var(--color-figma-text-secondary)]/50"
           />
         </div>
       </div>
@@ -386,6 +556,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           <button
             type="button"
             onClick={() => setShowScopes(v => !v)}
+            title="Scopes control which Figma properties this variable is offered for"
             className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
           >
             <span>Figma variable scopes {scopes.length > 0 ? `(${scopes.length} selected)` : ''}</span>
@@ -447,7 +618,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         </button>
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !canSave || !isDirty}
           className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save'}
@@ -670,7 +841,7 @@ function ShadowEditor({ value, onChange }: { value: any; onChange: (v: any) => v
           <input
             type="color"
             value={(val.color || '#000000').slice(0, 7)}
-            onChange={e => update('color', e.target.value)}
+            onChange={e => update('color', e.target.value + (val.color?.length === 9 ? val.color.slice(7) : ''))}
             className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent"
           />
           <input
@@ -727,7 +898,7 @@ function BorderEditor({ value, onChange }: { value: any; onChange: (v: any) => v
           <input
             type="color"
             value={(val.color || '#000000').slice(0, 7)}
-            onChange={e => update('color', e.target.value)}
+            onChange={e => update('color', e.target.value + (val.color?.length === 9 ? val.color.slice(7) : ''))}
             className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent"
           />
           <input
@@ -1070,7 +1241,7 @@ function GradientStopRow({ stop, canRemove, allTokensFlat, pathToSet, onChange, 
             <input
               type="color"
               value={(stop.color || '#000000').slice(0, 7)}
-              onChange={e => onChange({ color: e.target.value })}
+              onChange={e => onChange({ color: e.target.value + (stop.color?.length === 9 ? stop.color.slice(7) : '') })}
               className="w-8 h-[26px] rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent shrink-0"
             />
             <input

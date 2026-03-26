@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
+import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 
 interface AliasAutocompleteProps {
   query: string; // text typed after '{'
@@ -95,7 +96,7 @@ export function AliasAutocomplete({
           <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate">{path}</span>
 
           {/* Type badge */}
-          <span className={`text-[8px] px-1 py-0.5 rounded font-medium uppercase shrink-0 token-type-${entry.$type}`}>
+          <span className={`text-[8px] px-1 py-0.5 rounded font-medium uppercase shrink-0 ${TOKEN_TYPE_BADGE_CLASS[entry.$type ?? ''] ?? 'token-type-string'}`}>
             {entry.$type}
           </span>
 

@@ -8,6 +8,8 @@ Started: Wed Mar 25 13:54:58 CET 2026
 - **Build command**: Run `cd packages/figma-plugin && npm run build` — the root `npm run build` fails due to missing package manager binary (turbo issue). The plugin build itself succeeds cleanly.
 - **Pre-existing duplicate title warning**: `TokenList.tsx` ~L1884–1886 has a duplicate `title` attribute on the type badge; this is pre-existing and not a blocker.
 - **Stale backlog references**: Some backlog items reference code that no longer exists (e.g., "Generate Semantic Tokens" greyed menu items). Skip and pick a different item if the code can't be found.
+- **ExportPanel `<pre>` already has max-h-48**: The `max-h-48` class was already present; the issue was `overflow-x-auto` only (no vertical scroll). Fix is to change to `overflow-auto`.
+- **SVG icon pattern in SyncPanel**: Uses `width="10/12" height="10/12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"`. Checkmark path: `M20 6L9 17l-5-5`. X path: `M18 6L6 18M6 6l12 12`.
 
 ---
 
@@ -163,6 +165,16 @@ Started: Wed Mar 25 13:54:58 CET 2026
   - This is a one-liner; no state changes needed
 ---
 
+## 2026-03-25 - Overflow menu has no separator before destructive actions
+
+- Added `<div className="border-t border-[var(--color-figma-border)] my-1" />` before the Delete button in the set tab context menu
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L779
+- **Learnings for future iterations:**
+  - The set tab menu already uses this exact separator pattern at L759 (between "Edit description" and "Rename") — reuse verbatim
+  - The menu is in the `{tabMenuOpen && ...}` block around L744; Delete is the last item
+
+---
+
 ## 2026-03-25 - Long branch names truncate with no tooltip
 
 - Added `title={status.branch || 'main'}` and `truncate max-w-[160px]` classes to the branch name `<span>` in SyncPanel
@@ -170,4 +182,909 @@ Started: Wed Mar 25 13:54:58 CET 2026
 - **Learnings for future iterations:**
   - The branch name is rendered in a flex row with a git-branch SVG icon — adding `max-w-[160px] truncate` ensures long names clip with ellipsis and the tooltip reveals the full name
   - This is a one-liner; no state changes needed
+---
+
+## 2026-03-25 - ErrorBoundary swallows `componentDidCatch`
+
+- Added `console.error('[ErrorBoundary]', error, info)` to the `componentDidCatch` body so caught errors are logged to console
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` L7
+- **Learnings for future iterations:**
+  - The ErrorBoundary is at L4–27; `componentDidCatch` was `(_error, _info) {}` (no-op with unused params)
+  - This appears in two places in backlog.md (L141 and L522 — a flat list and a per-screen list); mark both
+---
+
+## 2026-03-25 - Description textarea shrinks to near-zero when empty
+
+- Added `min-h-[48px]` to the description `<textarea>` className in TokenEditor — the textarea already had `rows={2}` and a placeholder but no explicit CSS floor
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L378
+- **Learnings for future iterations:**
+  - The textarea is at L373 inside the `{/* Description */}` block; `rows={2}` alone isn't always sufficient — add `min-h` as a Tailwind class
+  - The placeholder was already present ("Optional description"); no change needed there
+---
+
+## 2026-03-25 - File content `<pre>` has no max-height
+
+- Changed `overflow-x-auto` to `overflow-auto` on the file preview `<pre>` in ExportPanel — `max-h-48` was already present but vertical overflow was unbounded
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L379
+- **Learnings for future iterations:**
+  - The `<pre>` already had `max-h-48`; the bug was `overflow-x-auto` only (no vertical scroll). Fix: change to `overflow-auto`
+  - Always check whether a backlog fix is partially applied before implementing
+---
+
+## 2026-03-25 - Scopes section label has no explanation tooltip
+
+- Added `title="Scopes control which Figma properties this variable is offered for"` to the scopes toggle `<button>` in TokenEditor
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L386
+- **Learnings for future iterations:**
+  - The scopes label is a `<button>` (not a bare span), so `title` is added directly to the button element
+  - The backlog reference to ~L74 pointed to the state variable; the actual JSX is at ~L386
+  - The button already had a description paragraph inside (`Controls where this variable appears...`) that appears when expanded — the tooltip provides a faster hint without requiring expansion
+---
+
+## 2026-03-25 - Active tab lost on plugin reload if tab name no longer valid
+
+- Added membership check against the `TABS` array in the `localStorage` initializer for `activeTab`; falls back to `'tokens'` if stored value is absent from the array
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L107
+- **Learnings for future iterations:**
+  - The TABS array is defined at ~L99 as `const TABS = [...]` with `id` fields; use `TABS.some(t => t.id === stored)` for the guard
+  - `retryConnection` backlog item (App.tsx ~L527) is already wired — it IS called directly on the Retry button; that item is stale
+  - New set name Enter handler (App.tsx ~L796) is already implemented; that backlog item is also stale
+  - Convert-to-aliases confirm button (TokenList.tsx ~L1463) already has `disabled={promoteBusy || promoteRows.every(r => !r.accepted || !r.proposedAlias)}`; that item is stale too
+---
+
+## 2026-03-25 - Set name validation allows leading/trailing whitespace on rename
+
+- Added `.trimStart()` to the rename input's `onChange` handler so leading spaces are prevented from appearing in the input
+- Trailing spaces are already stripped by `handleRenameConfirm`'s `.trim()` call
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L691
+- **Learnings for future iterations:**
+  - Set names must match `^[a-zA-Z0-9_-]+$` (no spaces allowed), so trimming on change is safe and expected
+  - Using `trimStart()` (not full `.trim()`) on change avoids cursor-jump artifacts while still preventing leading-space accumulation
+---
+
+## 2026-03-25 - Validation fetch error is silent
+
+- Added `validateError` state to `AnalyticsPanel`; set it in the catch block with a user-friendly message; cleared on each new validate start
+- Added an error display `<div>` in the JSX between the validate button and validation results, shown when `!validateLoading && validateError`
+- The catch block no longer sets `validateResults` to `[]` on failure — error state is separate from results
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L51, ~L76, ~L293
+- **Learnings for future iterations:**
+  - The `runValidate` catch block previously called `setValidateResults([])`, which showed "0 issues found" on error — misleading. Separate error state is the right pattern
+  - Backdrop click in CommandPalette is already implemented (L104 has `onClick={onClose}` on the overlay div) — that backlog item is stale
+---
+
+## 2026-03-25 - New set row defaults to "disabled"
+
+- Changed `theme.sets[setName] || 'disabled'` to `theme.sets[setName] || 'enabled'` in the token set matrix render
+- When a token set has no explicit state entry in a theme (i.e., it was created after the theme), it now defaults to `enabled` instead of `disabled`
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L230
+- **Learnings for future iterations:**
+  - The fallback `|| 'disabled'` is the ONLY place that determines the initial state for sets not yet in `theme.sets`; changing this is sufficient
+  - The create-theme handler at ~L100 initializes ALL existing sets to `'disabled'` (intentional — you opt-in to sets when creating a new theme); that was not changed
+  - The display-only fallback does not persist to server; it only affects visual state until the user clicks to cycle the state
+---
+
+## 2026-03-25 - Long descriptions truncate with no tooltip
+
+- Added `title={cmd.description}` and `truncate` class to the description `<span>` in CommandPalette
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L152
+- **Learnings for future iterations:**
+  - The description span is conditionally rendered (`cmd.description && ...`) — add `title` directly on the span
+  - Adding `truncate` Tailwind class ensures long descriptions clip with ellipsis and the tooltip reveals the full text
+  - This is a true one-liner; no state changes needed
+---
+
+## 2026-03-25 - Long server error messages overflow the error container
+
+- Added `break-words max-h-16 overflow-auto` to the error display div in `TokenEditor`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L205
+- **Learnings for future iterations:**
+  - The error div is at L204 inside the `{error && (...)}` block; one-liner class addition
+  - "Theme creation name input doesn't auto-focus" (ThemeManager.tsx ~L235) is already implemented — the input has `autoFocus` at L291; skip that item as stale
+---
+
+## 2026-03-25 - Readiness check icons use raw text `✓` / `✗`
+
+- Replaced `{check.status === 'pass' ? '✓' : '✗'}` text characters with 10×10px SVG icons
+- Pass state: checkmark SVG path `M20 6L9 17l-5-5`; fail state: X SVG path `M18 6L6 18M6 6l12 12`
+- Both use `strokeWidth="2.5"` for visibility at small size, matching the rest of SyncPanel's SVG style
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L574
+- **Learnings for future iterations:**
+  - SyncPanel SVGs use `viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"`
+  - The color is inherited via `text-[var(--color-figma-success/error)]` on the parent `<span>` — no need to set stroke color explicitly
+---
+
+## 2026-03-25 - `onClose()` called before `cmd.handler()`
+
+- Swapped call order in `execute()`: now calls `cmd.handler()` first, then `onClose()`
+- This prevents a flash when a command handler opens a modal — the modal state is set before the palette unmounts, so both changes render in the same paint
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` L73
+- **Learnings for future iterations:**
+  - The fix is a simple 2-line swap; no state changes needed
+  - Empty state ("No commands match…") and backdrop click (`onClick={onClose}`) are ALREADY implemented — those backlog items are stale
+---
+
+## 2026-03-25 - Lint dot buttons lack a focus ring
+
+- Added `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:opacity-100` to the lint violation badge buttons in the token row
+- Each severity gets a matching ring color: error → `var(--color-figma-error)`, warning → `yellow-500`, info → `var(--color-figma-accent)`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1982
+- **Learnings for future iterations:**
+  - The lint buttons don't have `opacity-0` by default (they're always visible); `focus-visible:opacity-100` is still safe to add as a forward-compatible guard
+  - Ring color should match the severity color for visual consistency — use per-severity `focus-visible:ring-*` classes in the conditional
+---
+## 2026-03-25 - `resolveColorValue` infinite loops on circular aliases
+
+- Added a `visited = new Set<string>()` default parameter to `resolveColorValue`; on each recursive call the current path is added to the set, and a cycle is detected immediately by checking `visited.has(path)` at the top — returns `null` on cycle
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L42
+- **Learnings for future iterations:**
+  - The function signature becomes `resolveColorValue(path, allTokensFlat, visited = new Set<string>())` — the default value means call sites don't need updating
+  - Pattern: default-param visited set is idiomatic for TypeScript recursive cycle guards
+  - Items "Scopes section renders empty list for unsupported types" (already guarded at L384 with `{FIGMA_SCOPES[tokenType] && ...}`), "`initialRef` not reset after save" (stale — editor navigates away via `onBack()` on save so component unmounts), and "Source state visually identical to enabled" (stale — already uses distinct colors: accent for source, success for enabled) are all stale backlog items
+---
+
+## 2026-03-25 - Variable diff table has no column headers
+
+- Added a sticky header row above the scrollable var-diff rows in `SyncPanel.tsx` with three column labels: "Status", "Path", "Direction"
+- Header uses `bg-[var(--color-figma-bg-secondary)] sticky top-0` and `text-[9px] font-medium text-[var(--color-figma-text-secondary)]` matching the rest of SyncPanel's secondary text style
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L515
+- **Learnings for future iterations:**
+  - The var-diff rows are inside an IIFE block (`varRows.length > 0 && (() => { ... })()`); the header goes inside the returned fragment, before the scrollable div
+  - The status column uses a fixed `w-16` width to align with the status badge in data rows
+  - The backlog item said "Path, Local, and Figma columns" but the actual columns are Status/Path/Direction — use the actual column content, not the backlog description literally
+---
+
+## 2026-03-25 - Severity filter buttons don't show per-level counts
+
+- Added `severityCounts` derived object (`{ all, error, warning, info }`) from `validateResults` below the `filteredIssues` computation
+- Changed filter button label from `{f}` to `{severityCounts && f !== 'all' ? \`${f} (${severityCounts[f]})\` : f}` so each severity shows its count
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L222, ~L315
+- **Learnings for future iterations:**
+  - `validateResults` is null when no validation has been run; guard with `severityCounts && ...` to avoid errors
+  - The "all" button is left without a count to avoid redundancy with the header "N issues" label above
+---
+
+## 2026-03-25 - No keyboard shortcut to cycle tabs
+
+- Added `⌘1`–`⌘4` (and `Ctrl+1`–`Ctrl+4`) shortcuts to the global `keydown` handler to switch tabs
+- Implementation: `['1','2','3','4'].indexOf(e.key)` maps to `TABS[tabIndex].id`; uses the existing `setActiveTab()` wrapper that persists to localStorage
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L255 (keyboard shortcuts effect)
+- **Learnings for future iterations:**
+  - The handler checks `!e.shiftKey` to avoid conflicting with `⌘⇧V` (paste modal)
+  - `setActiveTab` is a wrapper around `setActiveTabState` that also persists to localStorage — use it, not `setActiveTabState` directly
+  - "Sync Page/Sync Selection appear when connected=false" is STALE — both buttons already have `connected &&` guards at ~L251 and ~L260
+  - "New set name Enter key doesn't submit" is STALE — already has `onKeyDown` Enter handler at ~L799
+  - "Set rename commits on blur" is STALE — `onBlur` calls `cancelRename`, not `handleRenameConfirm`
+  - "`retryConnection` not wired" is STALE — already wired at ~L575
+---
+
+## 2026-03-25 - Property group labels use ALL-CAPS at 8px
+
+- Removed `uppercase` and `tracking-wider` Tailwind classes from the property group label div; changed font size from `text-[8px]` to `text-[9px]`
+- The labels (Appearance, Size, Layout, etc.) are already Title Case in the `PROPERTY_GROUPS` constant — the `uppercase` CSS class was overriding them to all-caps
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L289
+- **Learnings for future iterations:**
+  - `PROPERTY_GROUPS` is defined in `packages/figma-plugin/src/shared/types.ts` with Title Case labels — no data change needed, only CSS
+  - The fix is purely class removal: drop `uppercase tracking-wider`, bump font size one step
+---
+
+## 2026-03-25 - `generateScale` returns `[]` silently on invalid hex
+
+- Added inline "Invalid color" error message below the sparkline/preview section in `ColorScaleGenerator`
+- Shows when `scale.length === 0 && baseHex !== ''` — i.e., user has typed something but it doesn't parse as valid hex
+- Files changed: `packages/figma-plugin/src/ui/components/ColorScaleGenerator.tsx` ~L237 (after sparkline guard)
+- **Learnings for future iterations:**
+  - `generateScale` already returns `[]` on invalid hex (calls `hexToLab` which returns null for bad input); no logic change needed, just add UI feedback
+  - The `stroke="red"` and `viewBox` sparkline issues mentioned in the backlog are already fixed (pre-existing); those items are stale
+  - `activeIdx` guard in CommandPalette is already present (`if (cmd) execute(cmd)`) — that backlog item is stale
+  - `retryConnection` is already wired at App.tsx ~L580 — stale
+  - Set rename `onBlur={cancelRename}` already cancels on blur (doesn't commit) — stale
+---
+
+## 2026-03-25 - `runValidate` fires again if `validateKey` increments while already loading
+- Added `!validateLoading` guard to the `useEffect` that watches `validateKey`. When `validateKey` increments while a validation fetch is already in-flight, the effect now exits early instead of launching a concurrent request.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L91
+- **Learnings for future iterations:**
+  - `validateLoading` was intentionally kept out of the effect's dependency array — adding it would cause the effect to re-run (triggering a redundant validation) when loading finishes. An eslint-disable comment was added with explanation.
+---
+
+## 2026-03-25 - Contrast matrix overflows the panel width
+- Removed `w-full` from the contrast matrix `<table>` element. The container already had `overflow-auto` (both axes), but `w-full` was forcing the table to compress into the panel width rather than expanding and scrolling. With `w-full` removed, the table sizes to its content and the container's scroll handles overflow.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L457
+- **Learnings for future iterations:**
+  - When a scrollable container holds a table with many columns, `w-full` on the table defeats horizontal overflow. Remove it so the table can expand past the container width and scroll.
+---
+
+## 2026-03-25 - `handleCreateToken` doesn't validate token path format
+- Added regex validation `/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$/` to `handleCreateToken` before the API call
+- Added `createError` state; cleared on input change and cancelCreate
+- Input border turns error color and inline error message appears below the input on invalid path
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L133, ~L173, ~L179, ~L413
+- **Learnings for future iterations:**
+  - Token path regex differs from set-name regex — paths allow dots as separators, set names don't
+  - Valid regex for token paths: `/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$/`
+---
+
+## 2026-03-25 - Find & Replace preview doesn't highlight the changed segment
+- In the preview card render (map callback), computed `matchStart`/`matchLen` from `frFind` (plain or regex) against each `oldPath`
+- Old path (strikethrough) now renders `<span className="bg-red-100/80 rounded-sm">` around the matched segment
+- New path renders `<span className="bg-green-100/80 rounded-sm">` around `frReplace` (non-regex mode only; regex new path shown unhighlighted since replacement text can differ from `frReplace` due to backreferences)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1377
+- **Learnings for future iterations:**
+  - Changed map arrow from `(row) => (JSX)` to `(row) => { const ...; return (JSX); }` to allow pre-JSX variable declarations
+  - `frReplace` search in `newPath` uses `newPath.indexOf(frReplace, matchStart)` to locate the replacement at the expected position; returns -1 if not found (no highlight fallback)
+  - Regex mode: only highlight old path (use `new RegExp(frFind).exec(oldPath)` without `g` flag to get first match position)
+---
+
+## 2026-03-25 - Color swatch is 12×12px and hard to see at small sizes
+- Changed swatch dimensions from `w-3 h-3` (12px) to `w-3.5 h-3.5` (14px) and added `ring-1 ring-white ring-inset` for a white inner border that supports transparency overlay.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L330
+- **Learnings for future iterations:**
+  - Tailwind's `ring-inset` + `ring-white` is the idiomatic way to add a white inner border for color swatches with transparent backgrounds (avoids box-shadow hacks).
+---
+
+## 2026-03-25 - Theme name uniqueness not validated
+- Added `createError` state to `ThemeManager`; `handleCreate` checks `themes.some(t => t.name === newThemeName.trim())` before POSTing. Shows an inline error message below the input with red border on conflict. Error clears on input change or cancel.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L36, ~L97, ~L285
+- **Learnings for future iterations:**
+  - Inline form errors are clearer than reusing the global `setError` banner — scoped feedback is better UX for create forms.
+  - `.trim()` before the uniqueness check prevents subtle duplicates from leading/trailing spaces.
+---
+
+## 2026-03-25 - Sync controls show below collapsed inspector
+- Wrapped the sync controls `<div>` with `{hasSelection && ...}` so the Sync Page and Sync Selection buttons are hidden when no layer is selected (inspector shows "Select a layer to inspect").
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L246
+- **Learnings for future iterations:**
+  - `hasSelection` is already computed in the component and used for the body — it's the right gate for any selection-dependent controls.
+  - The closing `</div>}` pattern (closing both JSX element and conditional in one line) is valid TSX and keeps the diff minimal.
+---
+
+## 2026-03-25 - Empty-theme message doesn't hide immediately after adding a set row
+- Optimistic state updates added to `handleCreate` and `executeDelete` in ThemeManager.tsx. After a successful API call, the theme is immediately added/removed from local `themes` state before `fetchThemes()` resolves, eliminating the flash of the empty-message between `setShowCreate(false)` and the async refresh settling.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L97, ~L124
+- **Learnings for future iterations:**
+  - The empty-message flash was caused by `setShowCreate(false)` running before the async refetch updated `themes`. The pattern: when an async refetch is triggered after a mutation, optimistically update the local state so the UI doesn't revert to its empty/stale state during the fetch.
+---
+
+## 2026-03-25 - Contrast matrix rows are in insertion order, not sorted by ratio
+- Sorted `colorTokens` by relative luminance (dark → light) at the point they are set in state, so the matrix clusters worst-contrast pairs (similar luminance = adjacent tokens) at the top-left and bottom-right corners.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L164
+- **Learnings for future iterations:**
+  - For an NxN matrix display, sorting by luminance is the standard convention; it doesn't produce a flat "pairs" list but makes worst-contrast combinations visually adjacent along the diagonal.
+  - `hexToLuminance` is already imported in AnalyticsPanel; no new import needed.
+---
+
+## 2026-03-25 - Group rename confirms on blur
+- Fixed: pressing Escape to cancel a group rename still triggered `onBlur → confirmGroupRename`, which would apply the renamed value if it had changed.
+- Added `renameGroupEscapedRef = useRef(false)` to track Escape presses synchronously.
+- Escape keydown now sets `renameGroupEscapedRef.current = true` before `setRenamingGroup(false)`.
+- `onBlur` handler checks the ref and skips `confirmGroupRename` if Escape was the cause.
+- Also marked two stale items done: "Mode toggles look identical" (separator already present at L779) and "Dimension token can save NaN" (StepperInput already uses `|| 0` fallback).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1614, ~L1765
+- **Learnings for future iterations:**
+  - React setState is async — onBlur fires after keydown before the state update takes effect. Use a ref (not state) to communicate between keydown and blur handlers when you need synchronous coordination.
+  - Check for `|| 0` fallbacks in number inputs before assuming NaN bugs are real.
+  - Check if separators are already in place before implementing "add separator" items.
+---
+
+## 2026-03-25 - `hex.slice(0, 7)` in shadow/gradient sub-color pickers strips alpha
+- Fixed alpha preservation in three sub-color pickers: `ShadowEditor` (~L675), `BorderEditor` (~L732), and gradient stop editor (~L1075). Each now re-appends the 2-char alpha suffix (`hex.slice(7)`) after the picker fires a 6-char color value.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L675, ~L732, ~L1075
+- **Learnings for future iterations:**
+  - The fix is always: `e.target.value + (currentColor?.length === 9 ? currentColor.slice(7) : '')` — extract alpha from the *current* value, not from the event.
+  - When the editor contains multiple sub-color pickers in separate components (ShadowEditor, BorderEditor, GradientStopEditor), each needs its own alpha preservation — they don't share state.
+---
+
+## 2026-03-25 - Set-state click fires on the label column too
+- Moved `onClick` from the full row `<div>` to only the state badge element; changed badge from `<span>` to `<button>` for correct semantics and accessibility. Removed `cursor-pointer` from the row div and added it to the button. Also added `hover:opacity-80 transition-opacity` affordance so the button signals interactivity. Updated tooltip text to mention "Click to cycle state".
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L241
+- **Learnings for future iterations:**
+  - When restricting a click target within a flex row, move both `onClick` and `cursor-pointer` from the container to the target element; the container's `hover:bg` can stay for row highlight.
+  - Changing a clickable `<span>` to a `<button>` is safe here — no style regressions since the badge class already provides visual shape.
+---
+
+## 2026-03-25 - Duplicate detection hashes by raw hex, not normalised hex
+- Added `normalizeHex()` helper that expands 3-char (#RGB) and 4-char (#RGBA) shorthand hex to full form and lowercases. Applied when storing entries in `allColorTokens` state, replacing bare `.toLowerCase()`.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L47, ~L199
+- **Learnings for future iterations:**
+  - `resolveHex` already validates format via regex (`/^#[0-9a-fA-F]{3,8}$/`) so 3/4-char shorthands do reach the storage step — normalization must happen at the push site, not earlier.
+  - The canonical hex key is used as a Map key AND as a React `key` prop and a CSS `background` value, so expanding to full form is safe for all three uses.
+---
+
+## 2026-03-26 - Typography token form doesn't require any sub-fields
+- Added `canSave` computed value in TokenEditor that returns false when tokenType is 'typography', aliasMode is off, and either fontFamily is empty/blank or fontSize value is missing/zero/NaN.
+- Save button now disabled when `!canSave || saving`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L128 (canSave memo), ~L463 (button disabled prop)
+- **Learnings for future iterations:**
+  - fontSize for typography is stored as `{ value: number, unit: string }` object, not a plain number — must check `v.fontSize?.value` not `v.fontSize` directly.
+  - aliasMode guard is important: when aliasMode is true the raw value is an alias reference string, not a structured object, so validation must be skipped.
+---
+
+## 2026-03-26 - No way to copy the token path from inside the editor
+- Added a clipboard icon button to the TokenEditor header, between the path text and the type badge. Clicking copies `tokenPath` to clipboard via `navigator.clipboard.writeText`. Button briefly shows a checkmark SVG for 1.5s after copy to confirm the action. Added `copied` state to track feedback.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L79, ~L210
+- **Learnings for future iterations:**
+  - Two stale items were found first: `coverageResolveRef` timeout (already had a 30s timeout) and `Branch list not refreshed after push/pull` (`fetchStatus()` already re-fetches branches on every action). Check the referenced code exists before implementing.
+  - Copy feedback pattern: `useState(false)` + `setTimeout(() => setCopied(false), 1500)` keeps the logic entirely local — no extra utilities needed.
+---
+
+## 2026-03-26 - `getTokenTypeForProperty` returns 'string' as a silent fallback for unknown properties
+- Added `process.env.NODE_ENV !== 'production'` guarded `console.warn` in the fallback branch of `getTokenTypeForProperty`
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L75
+- **Learnings for future iterations:**
+  - `process.env.NODE_ENV` is available in the Vite build and stripped at production build time — safe to use for dev-only warnings
+---
+
+## 2026-03-26 - Multi-select "Select all" count mismatches when filters are active
+- Added `displayedLeafPaths` useMemo (set of leaf paths from `displayedTokens`) and `handleSelectAll` callback that toggles between selecting all displayed leaves and deselecting all.
+- Updated select mode toolbar badge from "{N} selected" to "{N} of {Y} selected" so count is always scoped to visible tokens.
+- Added "Select all" / "Deselect all" toggle button to the toolbar.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L545, ~L749
+- **Learnings for future iterations:**
+  - `flattenLeafNodes` is a module-level function (L2420) usable directly inside the component body.
+  - `displayedTokens` (L281) is the already-filtered/sorted set — always use it as the scope for select-mode operations.
+---
+
+## 2026-03-26 - No export for validation report
+- Added "Copy MD" button to the validation results header in AnalyticsPanel. Button formats all issues as grouped Markdown (by severity: errors, warnings, info) with path, set name, message, and optional suggestedFix. Shows "Copied!" feedback for 1.5s after copy. A vertical divider separates it from the severity filter pills.
+- Also marked "Git diff conflicts array is always empty" as stale — already implemented at L633 of SyncPanel.tsx (diffView.conflicts already included in allFiles).
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L60 (state), ~L323 (header)
+- **Learnings for future iterations:**
+  - Check for stale backlog items before diving in — reading the relevant code first prevents wasted effort.
+  - `navigator.clipboard.writeText` works in the plugin iframe context for copy-to-clipboard.
+---
+
+## 2026-03-26 - "Source" state is visually identical to "enabled"
+- Added `ring-1 ring-inset ring-[var(--color-figma-accent)]/50` to the `source` state badge in both the legend and the per-row state button. This gives `source` a visible outline border while `enabled` remains a flat filled badge — a structural (not just color) distinction that works even for color-blind users.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L197, ~L248
+- **Learnings for future iterations:**
+  - `ring-1 ring-inset` is the cleanest way to add a badge outline in Tailwind without disrupting padding/layout, since it uses box-shadow rather than border.
+  - Both the legend and the interactive button need to be updated together — the legend is the spec, the button is the instance.
+---
+
+## 2026-03-26 - Find & Replace: empty "replace" field silently deletes path segments
+- Added an inline amber warning banner in the Find & Replace modal that appears when `frReplace === ''` and preview matches exist. The warning reads "⚠ Empty replacement will delete the matched segment from token paths. This may break alias references." The Rename button remains enabled (intentional empty-replace for segment removal is a valid use case), but the consequence is now clearly surfaced before the user acts.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1432
+- **Learnings for future iterations:**
+  - The warning is gated on `!frError` so it doesn't compete with existing error messages.
+  - Build passes with the pre-existing duplicate `title` lint warning on ~L1981–1983 — that's expected and unrelated.
+---
+
+## 2026-03-26 - Sort order resets to Default when switching sets
+- Changed sort order persistence from a shared `sessionStorage` key (`token-sort`) to per-set `localStorage` keys (`token-sort:<setName>`). Each set now independently remembers its sort order across sessions.
+- Replaced the `useState` initializer (which only ran once) with a `useEffect` on `setName` that reads from localStorage and updates state, ensuring the correct order is loaded when switching sets.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L174
+- **Learnings for future iterations:**
+  - Per-set state persistence pattern: use `useEffect([setName])` + `localStorage.getItem(`key:${setName}`)` rather than a `useState` initializer, so state reloads when the set changes mid-session.
+  - The expand-paths state in this file uses the same pattern (L105–117) as a reference.
+---
+
+## 2026-03-26 - Canonical pick for duplicate deduplication resets on navigation
+- Initialized `canonicalPick` state from `localStorage` via lazy initializer in `useState`; added a `useEffect` that writes back on every change.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L67
+- **Learnings for future iterations:**
+  - Lazy `useState` initializer (`useState(() => { ... })`) is the right pattern for reading from `localStorage` on mount without triggering extra renders.
+  - Wrap both read and write in try/catch to handle quota exceeded or sandboxed environments.
+---
+
+## 2026-03-26 - Token row hover actions shift layout
+- Replaced `{!selectMode && hovered && (<div ...>)}` with always-rendered container using `opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity`. The parent row already has the `group` Tailwind class, so `group-hover:` transitions work immediately.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2067
+- **Learnings for future iterations:**
+  - `pointer-events-none group-hover:pointer-events-auto` is the correct Tailwind pattern when toggling interactivity alongside visibility — prevents invisible buttons from receiving accidental clicks.
+  - The parent token row already had `group` on its className, so no additional markup was needed.
+---
+
+## 2026-03-26 - Variable diff "conflict" meaning is never explained
+- Added `catTitle` helper function returning plain-English tooltip text for each diff category (local-only, figma-only, conflict). Applied as `title` attribute on the status span in each variable diff row.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L507–525
+- **Learnings for future iterations:**
+  - Tooltip-only changes (adding `title` attributes) are the minimal way to explain status labels without adding visual weight; good fit when the label is already descriptive but the edge case (conflict) needs clarification.
+---
+
+## 2026-03-26 - Save button can be enabled on an untouched form
+- Added `!isDirty` to the save button's `disabled` condition: `disabled={saving || !canSave || !isDirty}`. The button now stays disabled until the user actually modifies a field.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L485
+- **Learnings for future iterations:**
+  - `isDirty` already returns `false` while the token is loading (before `initialRef.current` is set), so the single guard covers both the "loading" and "untouched" cases without extra state.
+---
+
+## 2026-03-26 - Filter state resets when switching sets
+- Migrated `typeFilter` from `sessionStorage` (shared across all sets) to `localStorage` keyed per-set (`token-type-filter:${setName}`). Added a `useEffect` that reloads the filter whenever `setName` changes, mirroring the existing `sortOrder` pattern. Updated `setTypeFilter` callback to write to the per-set localStorage key.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L194–216
+- **Learnings for future iterations:**
+  - The `sortOrder` per-set pattern (useEffect + localStorage keyed by setName) is the established approach for any per-set state — follow it exactly.
+  - `sessionStorage` keys with no set suffix are shared across all sets; migrating to `localStorage` with `:${setName}` suffix makes them per-set.
+---
+
+## 2026-03-26 - Switching alias mode off discards the previous raw value
+- Added `preAliasValueRef` to cache the raw `value` before entering alias mode. When toggling ON, the current `value` is cached. When toggling OFF, the cached value is restored via `setValue` and `reference` is cleared. This preserves the user's raw value (e.g. a hex color) when they try alias mode and change their mind.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L72, ~L255
+- **Learnings for future iterations:**
+  - The reference was already being cleared on alias toggle-off (`setReference('')` was already there from a prior fix). The missing piece was caching and restoring the raw `value`.
+  - For originally-alias tokens (value = `{...}`), toggling off now resets the value to the pre-alias cached value (which in that case is the alias string itself — acceptable since user can clear it manually).
+---
+
+## 2026-03-26 - Deleted token sets still appear in theme rows
+- Moved `sets` from ThemeManager's internal state to a required prop passed from App.tsx. Removed the `/api/sets` fetch inside `fetchThemes` and replaced `allSets` references with the `sets` prop. Added `sets` to the `useCallback` deps so themes+coverage re-compute whenever the sets list changes. In App.tsx, passed `sets={sets}` to `<ThemeManager>`.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L9–91, `packages/figma-plugin/src/ui/App.tsx` ~L960
+- **Learnings for future iterations:**
+  - Also marked "No confirmation before deleting a theme" [x] — already fully implemented via `deleteConfirm` state + `ConfirmModal` at ThemeManager ~L38, ~L122–136, ~L331.
+  - When a child component maintains its own copy of parent-owned state (like `sets`), the fix is to lift the state to the prop. ThemeManager no longer fetches sets independently; it reacts to the authoritative `sets` from `useTokens`.
+---
+
+## 2026-03-26 - Stats section shows plain-text counts with no visual distribution
+- Added `TYPE_COLORS` map (12 token types → distinct hex colours, with a fallback for unknown types)
+- Added a stacked proportional bar to the Summary section: each type gets a colour-coded slice proportional to its token count, shown as a single `h-2` rounded row below the headline numbers
+- Refactored the By Type row layout: moved the type label to the LEFT of the bar (was after it, requiring right-to-left reading), and each bar fill now uses the matching `TYPE_COLORS` colour instead of the uniform accent
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L47, ~L432, ~L455
+- **Learnings for future iterations:**
+  - The By Type bars already existed but had the label on the right — users had to read bar → label, which is unintuitive. Simple reorder (label left, bar right) dramatically improves scannability.
+  - A single `gap-px` stacked bar (`flex` row of zero-height divs with `backgroundColor` inline styles) is the simplest way to add a proportional type-distribution overview without introducing a chart library.
+---
+
+## 2026-03-26 - Deleting the active set leaves a stale set name in the UI
+- Exposed `setSets` from `useTokens` hook return value. In `handleDeleteSet`, immediately call `setSets(remaining)` after the DELETE resolves to optimistically remove the tab from the set bar before `refreshTokens` completes.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L77, `packages/figma-plugin/src/ui/App.tsx` ~L121, ~L387
+- **Learnings for future iterations:**
+  - `useTokens` is the single source of truth for `sets`; to optimistically update the tab bar, `setSets` must be returned from the hook so callers can splice state before the async refresh.
+  - The `refreshTokens` callback is stale-closed over `activeSet`; switching `activeSet` and calling `refreshTokens` in the same handler risks the callback using the old set. The effect-based re-run (triggered by the new `activeSet`) handles correctness; the optimistic `setSets` call handles UX immediacy.
+---
+
+## 2026-03-26 - Set tab ⋯ inconsistently visible
+- Moved opacity classes into the conditional ternary so active tabs have clean `opacity-100` and inactive tabs have `opacity-0 group-hover/settab:opacity-100`. Previously the active state had both `opacity-0` and `opacity-100` as siblings in the class string, relying on CSS cascade ordering to resolve correctly — a fragile implicit dependency.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L730
+- **Learnings for future iterations:**
+  - When toggling visibility with Tailwind opacity, never mix `opacity-0` as a base class with `opacity-100` as a conditional — put both states entirely in the ternary branch to make intent explicit and avoid CSS cascade ambiguity.
+---
+
+## 2026-03-26 - Set tab rename input clips text before the allowed max length
+- Removed the fixed `w-28` Tailwind class from the rename `<input>` and added a `size` attribute computed as `Math.max(set.length + 4, 10)`. This makes the input proportional to the set name being renamed, eliminating the clipping for longer names and the excess space for short ones.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L703
+- **Learnings for future iterations:**
+  - The HTML `size` attribute on `<input>` sets width in character units — a clean, no-JS-measurement alternative to `w-*` fixed widths when content length is known at render time.
+---
+
+## 2026-03-26 - Group hover delete causes accidental deletes
+- Replaced the hover-only delete button on group rows with a ⋯ (ellipsis) button that opens the existing group context menu. Added "Delete group" as a destructive menu item (with divider) at the bottom of that menu. Also resolved the companion UX item "Group actions invisible" — all group actions (rename, move, duplicate, scopes, sync, delete) are now accessible from the hover ⋯ button. The right-click context menu is unchanged.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1820 (button replacement), ~L1900 (new menu item)
+- **Learnings for future iterations:**
+  - `getBoundingClientRect()` on the trigger button gives reliable coordinates for positioning a dropdown menu; use `rect.left` + `rect.bottom + 2` for below-button placement.
+  - The group context menu already has a document-level click handler (L1659-1664) that closes it; calling `e.stopPropagation()` on the button click is not needed since the menu opens on the same click event — the document listener fires after.
+---
+
+## 2026-03-26 - Deleting the last token in a group leaves the group header until next refresh
+- Added optimistic `locallyDeletedPaths` state in `TokenList`. After a successful DELETE API call, the deleted path(s) are added to this set. `sortedTokens` memo applies `pruneDeletedPaths()` to strip them from the tree immediately, removing any now-empty group headers. The set is cleared by a `useEffect([tokens])` when the real server refresh arrives.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L83, ~L193, ~L511, ~L2395
+- **Learnings for future iterations:**
+  - `DeleteConfirm` discriminated union uses `type: 'bulk'` (not 'multi') for multi-select deletes; the `path` field is absent on `'bulk'`.
+  - Pattern: capture all fields from `deleteConfirm` into local variables BEFORE calling `setDeleteConfirm(null)`, since null-ing the state makes them inaccessible in the async continuation.
+  - Optimistic tree pruning function (`pruneDeletedPaths`) mirrors `filterByDuplicatePaths` but inverts the logic: skip nodes whose path is in the set, prune groups that become empty.
+---
+
+## 2026-03-26 - `setTabsOverflow` ResizeObserver may accumulate on rapid `sets` changes
+- Split the single combined effect (with `[sets]` dependency) into two:
+  1. A persistent effect with `[]` deps that installs exactly one ResizeObserver + scroll listener for the lifetime of the component.
+  2. A lightweight effect with `[sets]` deps that calls `setSetTabsOverflow` directly (no observer creation) whenever the tab list changes.
+- This guarantees only one ResizeObserver is ever alive at a time, regardless of how rapidly `sets` changes.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L292
+- **Learnings for future iterations:**
+  - When a ResizeObserver/scroll listener needs to respond to both DOM lifecycle AND data changes, separate the two concerns: one `useEffect(setup, [])` for the persistent observer, one `useEffect(check, [data])` for the data-driven re-check.
+  - The original pattern (combined `[sets]` dep) technically worked (React cleanup runs before next effect) but thrashed the observer on every sets reference change.
+---
+
+## 2026-03-26 - Token hover actions flicker at the cursor gap
+- Added a 100ms fade-out delay to the action buttons container so briefly exiting the group boundary doesn't immediately hide the buttons. Fade-in remains instant (delay-0 on group-hover).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2112
+- **Learnings for future iterations:**
+  - CSS `transition-delay` is the right fix for hover flicker on opacity-based show/hide: set a small delay on the non-hover state and `delay-0` on hover state. In Tailwind: `[transition-delay:100ms] group-hover:[transition-delay:0ms]`.
+  - The `pointer-events-none group-hover:pointer-events-auto` pattern is fine but can still flicker if the CSS hover is momentarily lost; the transition delay compensates without removing pointer-events protection on hidden buttons.
+---
+
+## 2026-03-26 - "Apply as Variables/Styles" has no post-apply count
+- Added `applyResult` state (`{ type: 'variables' | 'styles'; count: number } | null`) to track the last apply operation.
+- Both `handleApplyVariables` and `handleApplyStyles` now set `applyResult` with the count of flattened tokens and clear it after 3s.
+- A small "Applied N variables/styles" line in accent colour appears below the Apply buttons after each action and auto-dismisses.
+- Also marked "Use preset dropdown immediately closes" as [!] stale — the feature is now a ScaffoldingWizard modal with no outside-click close handler.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L82, ~L623, ~L1236
+- **Learnings for future iterations:**
+  - When counting tokens for post-apply feedback, `resolveFlat(flattenTokens(tokens))` is already computed in the handler — use that array's `.length` directly. No extra work needed.
+  - Two separate `setTimeout` calls (one for `applying`, one for `applyResult`) keep concerns separate and allow different display durations.
+---
+
+## 2026-03-26 - Three names for the same concept
+- Unified copy across all three aliasing actions to "Link to token" (singular) and "Link to tokens" (plural):
+  - Context menu button: "Extract to alias" → "Link to token"
+  - Single-token modal header: "Extract to alias" → "Link to token"
+  - Multi-select toolbar button: "Convert to aliases" → "Link to tokens"
+  - Bulk-action modal header: "Convert to Aliases" → "Link to tokens"
+  - Code comments (internal "Promote to Semantic") left unchanged — not user-facing
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L797, ~L1286, ~L1502, ~L2225
+- **Learnings for future iterations:**
+  - "Promote to Semantic" only appeared in code comments; no UI label needed updating
+---
+
+## 2026-03-26 - Type badge colour mapping is implicit inline logic
+
+- Added `TOKEN_TYPE_BADGE_CLASS` constant to `shared/types.ts` mapping all known token types to their CSS badge classes
+- Added CSS variables and badge classes for previously unstyled types: `gradient` (magenta), `duration` (cyan), `fontFamily` (indigo)
+- Updated all 5 badge usages across the codebase to use the constant with `?? 'token-type-string'` fallback
+- Files changed:
+  - `packages/figma-plugin/src/shared/types.ts` ~L27 (new constant)
+  - `packages/figma-plugin/src/ui/styles.css` ~L31, ~L68 (new CSS vars + classes)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L5, ~L1053, ~L2039
+  - `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L2, ~L283
+  - `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L2, ~L513
+  - `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L3, ~L232
+  - `packages/figma-plugin/src/ui/components/AliasAutocomplete.tsx` ~L2, ~L98
+- **Learnings for future iterations:**
+  - `gradient`, `duration`, `fontFamily` are valid token types in use but had no CSS badge classes — adding styles for them is a real visual fix, not just refactoring
+  - The constant lives in `shared/types.ts` alongside `TOKEN_PROPERTY_MAP`, making it easy for future type additions to find both places to update
+---
+
+## 2026-03-26 - "Read Variables" and "Read Styles" are equal-weight buttons
+- Made "Import from Figma Variables" a filled primary button (accent background, white text/icons) to visually distinguish it as the recommended action. "Import from Figma Styles" remains an outlined secondary card.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L162
+- **Learnings for future iterations:**
+  - Both import source buttons were already card-style (not simple text buttons); the fix was purely styling — swapping border+hover-bg for bg-accent+hover:opacity-90 on the primary card, and keeping white text/icon colors inside it.
+  - Use `bg-white/20` for icon wells inside filled primary cards so the swatch stays visible without hardcoding a color.
+---
+
+## 2026-03-26 - Loading state shows a generic spinner
+- Changed the loading message in ImportPanel to read "Reading variables from Figma…" or "Reading styles from Figma…" depending on the active `source` state value (already set before `setLoading(true)` in each handler).
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L207
+- **Learnings for future iterations:**
+  - The `source` state in ImportPanel is set synchronously before `setLoading(true)`, so it's safe to use in the loading render branch.
+---
+
+## 2026-03-26 - `syncSnapshot` comparison produces false positives for object-valued tokens
+- Added `stableStringify` to `colorUtils.ts` — recursively sorts object keys before serialising so key-insertion-order differences never produce different strings
+- Updated both comparison sites in `TokenList.tsx` (syncChangedCount + syncChanged) to use `stableStringify` instead of `JSON.stringify`
+- Updated snapshot-building in `App.tsx` (where `setSyncSnapshot` is called) to also use `stableStringify`, keeping serialiser consistent on both sides
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L1, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L10,318,1730, `packages/figma-plugin/src/ui/App.tsx` ~L51,202
+- **Learnings for future iterations:**
+  - The snapshot is stored in App.tsx but consumed in TokenList.tsx — both sides must use the same serialiser or comparisons are always wrong for object-valued tokens
+  - `stableStringify` is now exported from `colorUtils.ts` — prefer importing it over `JSON.stringify` anywhere token values need to be compared as strings
+---
+
+## 2026-03-26 - "Create sibling" only discoverable via right-click
+- Added a "Create sibling" button (+ icon) to the token row hover action bar, between the Edit and Delete buttons (with the separator), reusing the same parent-path logic already in the right-click context menu.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2172
+- **Learnings for future iterations:**
+  - The hover action bar pattern (`opacity-0 group-hover:opacity-100`) is at ~L2122. Adding buttons between Edit and the separator (~L2172) keeps destructive actions (delete) visually isolated after the separator.
+  - The "Create sibling" logic (`parentPath = node.path.substring(0, node.path.lastIndexOf('.'))`) is reused verbatim from the context menu — no new state needed.
+---
+
+## 2026-03-26 - Inspector max-height is hardcoded at 200px
+- Replaced `max-h-[200px]` with `max-h-[30vh]` on the inspector body scroll container so it scales proportionally with panel height instead of capping at a fixed 200px regardless of available space.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L285
+- **Learnings for future iterations:**
+  - Figma plugin panels can be resized by users; `vh`-based max-heights are a better default than fixed pixel caps for scroll containers.
+---
+
+## 2026-03-26 - Target set defaults to 'imported' regardless of existing sets
+- Initialized `targetSet` from `localStorage.getItem('importTargetSet')` with `'imported'` fallback
+- After sets fetch, if saved value not in list, fall back to `sets[0]` (or keep current if list is empty)
+- On user change (dropdown or new-set prompt), persist choice to `localStorage.setItem('importTargetSet', ...)`
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L22, ~L28, ~L244
+- **Learnings for future iterations:**
+  - `useState(() => localStorage.getItem(...) || fallback)` is the clean pattern for localStorage-initialized state
+  - Use functional `setTargetSet(prev => ...)` inside the fetch callback to avoid stale closure on current state
+---
+
+## 2026-03-26 - Read-variables message never arriving leaves the spinner running forever
+- Added a 15s timeout in `handleReadVariables` and `handleReadStyles` that sets an error message and clears `loading` if no sandbox response arrives. Timeout is cleared on message receipt (`variables-read` / `styles-read`) and on unmount via effect cleanup.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L26 (ref), ~L67 (startReadTimeout helper), ~L46 (message handler cleanup)
+- **Learnings for future iterations:**
+  - Pattern: use a `useRef<ReturnType<typeof setTimeout>>` for imperative timeouts; clear on both success path and unmount to avoid setState-after-unmount warnings.
+---
+
+## 2026-03-26 - No way to duplicate a single token
+- Added `handleDuplicateToken` in `TokenList` that reads token from `allTokensFlat`, computes a `-copy` (or `-copy-2`, etc.) path that doesn't conflict, then POSTs to the existing `/api/tokens/:set/:path` creation endpoint.
+- Added `onDuplicateToken` prop to `TokenTreeNode` interface, destructured it, wired it down in both the top-level render call and recursive child renders.
+- Added "Duplicate token" menu item to the token right-click context menu (before "Link to token").
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L424 (handler), ~L1135 (top-level prop), ~L1655 (interface), ~L1643 (destructure), ~L1994 (recursive child), ~L2230 (context menu item)
+- **Learnings for future iterations:**
+  - The existing POST `/api/tokens/:set/:path` endpoint handles token creation — no new server route needed for single-token operations that can be expressed as "create with a different path."
+  - Uniqueness check uses `allTokensFlat` which is already in scope; no extra fetch needed.
+  - `TokenMapEntry` only has `$value` and `$type` — `$description` is not available in `allTokensFlat` so it won't be copied, but that's acceptable.
+---
+
+## 2026-03-26 - Table mode renders full bottom action bar redundantly
+- In table mode, hid the "New Token / Use preset / Multi-select / Find & Replace" row by changing `{!showCreateForm && (` to `{!tableMode && !showCreateForm && (`. Apply as Variables/Styles remain visible in all modes.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1210
+- **Learnings for future iterations:**
+  - Table mode is a local `useState` in TokenList.tsx (L282); gating UI blocks with `!tableMode &&` is the pattern used elsewhere in the same file.
+---
+
+## 2026-03-26 - Group scope editor is a bottom sheet
+- Converted from bottom-sheet to centered modal by changing two CSS classes: `items-end` → `items-center` on the overlay div, `rounded-t` → `rounded` on the content div.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1066
+- **Learnings for future iterations:**
+  - Bottom-sheet → centered modal conversion is always just `items-end` → `items-center` on the overlay and `rounded-t` → `rounded` on the content panel.
+---
+
+## 2026-03-26 - Success has no token count
+- Added `successMessage` state to ImportPanel. After a successful import, shows an inline green banner "Imported N token(s) to 'setName'" in the source selection view. Cleared on next read operation. Figma notify already included the count; this adds the inline panel feedback.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L25, ~L84, ~L93, ~L152, ~L175
+- **Learnings for future iterations:**
+  - `--color-figma-success: #14ae5c` exists in styles.css — use it for all success states.
+  - Pattern: success message is shown where the source selection view reappears (after tokens/source reset), so it naturally appears after import completes.
+---
+
+## 2026-03-26 - Overflow menu closes on any outside click before an action is taken
+- Replaced `mousedown` outside-click close handler with a `keydown` Escape handler for the overflow menu. The menu now stays open through accidental near-misses and closes via Escape or an explicit action click.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L231
+- **Learnings for future iterations:**
+  - Outside-click-to-close uses `mousedown` (not `click`) so it fires before the target element's own handlers — this is the correct approach for context menus where you want close-before-action. Replacing it with Escape-only is appropriate when resilience to mis-clicks is the priority.
+---
+
+## 2026-03-26 - Analytics tab has no issue-count badge
+- Added `onValidationComplete` callback prop to `AnalyticsPanelProps`; fires with issue count after each validation run.
+- In App.tsx, added `analyticsIssueCount` state and wired it to the callback. The analytics tab now renders a red circular badge with the issue count when validation has run and count > 0, hidden while the analytics tab is active.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L20, ~L70, ~L114; `packages/figma-plugin/src/ui/App.tsx` ~L139, ~L610, ~L973
+- **Learnings for future iterations:**
+  - Badge is rendered inline in the tab button with `position: absolute` via Tailwind (`absolute -top-0.5 -right-0.5`); requires `relative` on the parent button.
+  - Count is hidden when the analytics tab is active (badge would be redundant inside the panel) and when no validation has been run yet (null state).
+---
+
+## 2026-03-26 - Variable diff "skip" rows may slip into the sync payload if state mutates mid-flight
+- Captured `varDirs` and `varRows` into local snapshot constants (`dirsSnapshot`, `rowsSnapshot`) at the very start of `applyVarDiff`, before any `setVarSyncing` or async operations. Downstream filter calls use the snapshots instead of the closure references.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L189
+- **Learnings for future iterations:**
+  - In `useCallback` async handlers, React closures already capture state at callback-creation time (last render), not at async-response time. The real value of explicit snapshots is defensive clarity: if someone later moves a filter after an `await`, the snapshot keeps the correct pre-async value.
+---
+
+## 2026-03-26 - Group header `top-0` sticky value causes overlap with deeply nested groups
+- Added `sticky` positioning to group header divs in `TokenTreeNode`. Each header now has `top: depth * 24px` and `zIndex: max(1, 10 - depth)`, so depth-0 headers stick at the top of the scroll container and deeper headers pin below their ancestors without overlapping. Added `bg-[var(--color-figma-bg)]` to ensure sticky headers occlude content scrolling beneath them.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1817
+- **Learnings for future iterations:**
+  - Group header row height is ~24px (`py-1` = 8px padding + ~16px for 11px text at default line-height). Use this constant as the `top` multiplier for nested sticky headers.
+  - Sticky headers must have an explicit non-transparent background (`bg-[var(--color-figma-bg)]`), otherwise content scrolls visibly through them.
+  - z-index must decrease with depth (`10 - depth`) so shallower (parent) headers always render on top of deeper (child) headers.
+---
+
+## 2026-03-26 - No "View token →" link after Create & bind
+- Added `onNavigateToToken?: (tokenPath: string) => void` prop to `SelectionInspector`
+- Added `createdTokenPath` state; on successful create, form clears and a success banner appears in its place
+- Banner shows a checkmark, the created token path (truncated with tooltip), a "View token →" link, and a dismiss button
+- "View token →" calls `onNavigateToToken(tokenPath)` then dismisses the banner; in App.tsx this wires to `setHighlightedToken`
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L135, ~L200, ~L392, `packages/figma-plugin/src/ui/App.tsx` ~L1003
+- **Learnings for future iterations:**
+  - `SelectionInspector` is only rendered when `activeTab === 'tokens'`, so highlighting via `setHighlightedToken` is sufficient (no tab switch needed)
+  - Success banner replaces the create form in-place rather than appending — avoids layout shift
+---
+
+## 2026-03-26 - Theme rename is impossible
+- Added inline rename UI to theme card headers in ThemeManager. A pencil icon button (opacity-0, revealed on card hover via `group` class) triggers an inline input replacing the name display. Save calls `PUT /api/themes/:name` with `{ name: newName }`. Validates uniqueness against existing themes. Cancel/Escape restores display mode. Error shown inline below the input.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L38 (state), ~L156 (handlers), ~L243 (card group class), ~L247 (header JSX)
+- **Learnings for future iterations:**
+  - Card-level `group` class needed for opacity-0/group-hover:opacity-100 reveal on child buttons inside the header.
+  - Inline rename state pattern: `renameTheme` (which card) + `renameValue` (input) + `renameError` — three small states, no context needed.
+---
+
+## 2026-03-26 - Switching source while previous read is in-flight corrupts the token list
+- Added `pendingSourceRef` (a `useRef<'variables' | 'styles' | null>`) to track which source response is currently expected. Set it in `handleReadVariables`/`handleReadStyles` before posting the message, and cleared it (set to `null`) on receipt. The `variables-read` and `styles-read` handlers now guard with `pendingSourceRef.current === 'variables'`/`'styles'` so stale responses from superseded requests are silently discarded.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L27, ~L52-64, ~L83, ~L94
+- **Learnings for future iterations:**
+  - Plugin sandbox messages are fire-and-forget with no correlation ID. A simple `pendingRef` tracking the last-requested source is sufficient to discard stale responses without any protocol change.
+---
+
+## 2026-03-26 - No type filter on the token preview list
+- Added a `typeFilter` state (`string | null`) to ImportPanel. When tokens arrive (from variables-read or styles-read), `typeFilter` resets to `null`. When the user clicks "Back", `typeFilter` also resets. Above the token list, pill buttons are rendered (only when there are 2+ distinct types): an "All" pill and one pill per unique type showing the count. Clicking a pill toggles the filter; clicking the active pill deactivates it. The token list maps over `typeFilter ? tokens.filter(t => t.$type === typeFilter) : tokens` inline. Selection (`selectedTokens`) still covers all tokens regardless of filter.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L26, ~L58, ~L65, ~L269, ~L304
+- **Learnings for future iterations:**
+  - Inline filter derivation (`(typeFilter ? tokens.filter(...) : tokens).map(...)`) is simpler than IIFE or a derived state variable when the filter is only used in one place.
+  - Pills that toggle on re-click (active → null) give better UX than requiring separate "clear" buttons.
+---
+
+## 2026-03-26 - Create-token form appends below the inspector body and pushes content off-screen
+- Added `&& !creatingFromProp` to the body condition in SelectionInspector.tsx so the create-token form replaces the inspector body instead of appending after it
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L291
+- **Learnings for future iterations:**
+  - Simple conditional guard (`&& !creatingFromProp`) is all that's needed to make one section replace another in a stacked layout
+---
+
+## 2026-03-26 - Token preview list is ungrouped
+- Replaced the flat token list in ImportPanel.tsx with a grouped renderer. When variables source is active, tokens are grouped by `collection` field; when styles source is active, tokens are grouped by `$type`. When only one group exists (e.g. after type filter is applied), falls back to flat rendering with no header. Each group header shows `selectedCount/total` for that group. The `renderRow` helper is extracted inline to avoid duplication between flat and grouped branches.
+- Also marked `selectedTokens` stale token item as `[x]` — `handleImport` already does `tokens.filter(t => selectedTokens.has(t.path))` which correctly re-derives from current tokens.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L341
+- **Learnings for future iterations:**
+  - ImportPanel `ImportToken` interface already has a `collection?: string` field populated from Figma variable collections — use it for grouping.
+  - IIFE pattern `{(() => { ... })()}` in JSX allows local variable declarations; use it when grouped/flat branching needs shared `renderRow` helper.
+---
+
+## 2026-03-26 - Color preview swatch not shown when alias resolves to a color
+- Added a 14×14px resolved-color swatch to the TokenEditor header when `aliasMode` is true and the reference resolves to a color. Swatch uses `resolveColorValue` (already in the file) to follow the alias chain, shows the final hex, and has a white/border ring for visibility against light and dark backgrounds.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L233
+- **Learnings for future iterations:**
+  - `resolveColorValue` is already in TokenEditor.tsx and handles full alias chains — no new utility needed.
+  - IIFE pattern `{aliasMode && reference && tokenType === 'color' && (() => { ... })()}` works cleanly for conditional header decoration without extracting a new component.
+---
+
+## 2026-03-26 - Alias token values show raw {other.token} with no resolved preview
+- Added alias detection (regex `/^\{.+\}$/`) in ImportPanel `renderRow` function
+- Alias tokens now show the target path as a secondary line: `→ other.token.path`
+- Native `title` tooltip shows resolved value when the chain resolves to a concrete value
+- Color swatch is suppressed for alias-typed color tokens (can't render `{token}` as a color)
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L356
+- **Learnings for future iterations:**
+  - Build a `Map<path, token>` from the tokens array before rendering rows for O(1) alias lookup
+  - Show alias target as a secondary line below the path (not just tooltip) for immediate visibility
+---
+
+## 2026-03-26 - Theme state cycling invisible
+- Replaced click-to-cycle button with a three-segment inline control (disabled / enabled / source). Each segment is always visible, active state is highlighted with its distinct color, inactive segments show on hover.
+- Renamed `handleToggleSet` to `handleSetState` accepting `targetState` directly instead of deriving `nextState` via cycling — cleaner API for the new segmented control.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L172, ~L309
+- **Learnings for future iterations:**
+  - When replacing a toggle/cycle pattern with a segmented control, update the handler signature to accept the target state directly rather than cycling logic.
+---
+
+## 2026-03-26 - Alias mode toggle doesn't communicate token's alias status
+- Added `resolveAliasChain` helper that walks the alias chain and returns each hop with path, value, and type
+- When `aliasMode` is true and reference is a complete `{path}` alias, shows an "Resolves to" chain panel below the input — each hop shows the token path with color swatch (if color), and the final hop shows the resolved value or "not found" in red
+- Upgraded the passive "Has reference: {ref}" text (when aliasMode is off) to a visible accent-colored callout with an alias icon, making the alias status immediately apparent
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L43, ~L329
+- **Learnings for future iterations:**
+  - The `resolveColorValue` helper already existed for color-specific resolution; `resolveAliasChain` generalises it for any type
+  - Chain display should show intermediate hops in muted style and the final hop in full-color text for clear visual weight
+---
+
+## 2026-03-26 - `fetchStatus` can race on rapid connect/disconnect
+- Added an `AbortController` ref (`fetchAbortRef`) to `SyncPanel.tsx`. Each `fetchStatus` call aborts the previous in-flight controller, passes the new `signal` to both `fetch()` calls, and suppresses `AbortError` in the catch block. The `useEffect` cleanup now also aborts on unmount.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L87
+- **Learnings for future iterations:**
+  - The cleanup function of the `useEffect` that calls `fetchStatus` is the right place to call `abort()` on unmount; the ref approach keeps it outside `useCallback` deps.
+  - Guard `setLoading(false)` with `if (!signal.aborted)` to avoid setting state on an unmounted/superseded fetch.
+---
+
+## 2026-03-26 - Non-repo state hides the remote URL field
+- Added an optional Remote URL input field in the `!status?.isRepo` early-return block. When provided, the URL is passed as `{ remoteUrl }` body to the existing `doAction('init')` call, letting users bootstrap with a remote in one step.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L408
+- **Learnings for future iterations:**
+  - The `remoteUrl` state already existed (populated when `data.remote` is present on a connected repo). Reusing it for the init form avoids adding a new state variable.
+---
+
+## 2026-03-26 - Multi-selection binding summary doesn't distinguish shared vs mixed
+- Added `mixedBindings` counter alongside existing `totalBindings` — iterates `ALL_BINDABLE_PROPERTIES` and counts props where `getBindingForProperty` returns `'mixed'`.
+- Updated the binding badge in the header: for single-node selection, shows the existing "N binding(s)" format; for multi-node selection, shows "N shared, M mixed" (omitting either part if zero).
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L153–168, ~L263
+- **Learnings for future iterations:**
+  - `getBindingForProperty` already returns `'mixed'` for properties that differ across selected nodes — no new logic needed, just count that signal.
+  - Badge label for multi-select uses `.filter(Boolean).join(', ')` to handle zero-shared or zero-mixed gracefully without extra conditionals.
+---
+
+## 2026-03-26 - No way to jump from a token row to its parent group
+- Added `data-group-path={node.path}` attribute to group header divs so they're queryable via DOM
+- Computed `parentGroupPath` (path without last segment) in the token row section
+- Added a hover-only breadcrumb button below token name showing `↑ parentGroupPath`
+- Clicking the breadcrumb calls `scrollIntoView` on the matching group header element
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1818, ~L2019, ~L2096
+- **Learnings for future iterations:**
+  - Group headers are already sticky (position: sticky) so `scrollIntoView` may snap to the correct position
+  - `data-group-path` attribute selector works fine with dot-separated paths (dots are only special in CSS class selectors, not attribute value selectors)
+  - The `opacity-0 group-hover:opacity-100` pattern is already established for hover-only UI — applying it to the breadcrumb keeps the row clean at rest
+---
+
+## 2026-03-26 - Token row right-click context menu has no keyboard equivalent
+- Added `tabIndex={0}` (or `-1` in select mode) to token row divs and a `handleRowKeyDown` handler that opens the context menu on `Space`/`Enter`, positioned below the row using `getBoundingClientRect()`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2019 (new handler), ~L2044 (tabIndex + onKeyDown props)
+- **Learnings for future iterations:**
+  - For keyboard-triggered context menus, use `e.currentTarget.getBoundingClientRect()` to position the menu at the element's bottom-left. Apply the same clamping logic as mouse events.
+  - Disable tabIndex in select mode (`tabIndex={selectMode ? -1 : 0}`) since checkboxes handle tab navigation there.
+---
+
+## 2026-03-26 - No "Push all / Pull all / Skip all" bulk action for variable diff rows
+- Added a bulk-action toolbar row between the column header and the scrollable diff list in the variable diff section. Three buttons — "Push all ↑", "Pull all ↓", "Skip all" — each call `setVarDirs` with all row paths mapped to the chosen action.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L547
+- **Learnings for future iterations:**
+  - Bulk actions over a `Record<string, value>` state: `Object.fromEntries(rows.map(r => [r.path, action]))` replaces the entire map cleanly.
+  - The sticky header row and the bulk toolbar are separate rows; the toolbar uses `bg-[var(--color-figma-bg)]` (not the secondary bg) to visually distinguish it from the column headers.
+---
+
+## 2026-03-26 - Readiness checks fire immediately on panel open with no CTA
+- Stale — already implemented. The "Publish Readiness" section already has a "Run Checks" button and no auto-run on panel open. The `runReadinessChecks` function is only invoked by the button click handler.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Before implementing a "Run Checks" button, grep for the function call to confirm it isn't already button-gated.
+---
+
+## 2026-03-26 - Contrast checker uses a <select> for background token
+- Replaced the native `<select>` in the contrast checker with a searchable input + AliasAutocomplete dropdown, filtered to color tokens only. Added `bgQuery`, `bgSearchOpen` state and `bgInputRef`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L94, ~L438
+- **Learnings for future iterations:**
+  - AliasAutocomplete accepts `filterType` to constrain results to a specific token type — useful beyond alias mode.
+  - For a "clear" button inside a text input, use `absolute right-1.5 top-1/2 -translate-y-1/2` positioning inside a `relative` wrapper.
+  - Show the selected path as the input value when the dropdown is closed; switch to the search query when open.
+---
+
+## 2026-03-26 - "Sync Selection" shows when bindings are already current
+- Added local `freshSyncResult` state that captures the sync result when it arrives and persists until the selection changes (keyed by node IDs via `prevNodeIdsRef`)
+- Fixed "Updated 0 bindings" message → shows "Up to date" when `updated === 0` and no missing tokens
+- Added a subtle `✓` badge that remains visible alongside the sync buttons after `syncResult` clears (3s timer), as long as the selection hasn't changed and there were no missing tokens
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L137, ~L151, ~L289
+- **Learnings for future iterations:**
+  - Freshness/recency indicators can live entirely in the child component — no need to hoist timer state to App.tsx. Capture the prop value with a local `useEffect` and clear on relevant selection changes.
+  - Use `prevNodeIdsRef` pattern to detect identity changes in arrays without including the array itself in effect deps.
+---
+
+## 2026-03-26 - Token type cannot be changed after creation
+- Replaced the static type badge `<span>` in the TokenEditor header with a `<select>` dropdown. All known token types from `TOKEN_TYPE_BADGE_CLASS` appear as options. On change, `handleTypeChange` resets value to a sensible default per type, clears scopes/reference/aliasMode to prevent stale state, and the existing `isDirty` logic was extended to detect type changes via the updated `initialRef` (added `type` field).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L100, ~L118, ~L141, ~L163, ~L267
+- **Learnings for future iterations:**
+  - `initialRef` pattern is used for dirty tracking — any new editable field must be captured there at load time and compared in `isDirty`.
+  - When resetting form state on a type switch, all dependent state (reference, aliasMode, showAutocomplete, scopes) must be cleared together to avoid stale cross-type artifacts.
+---
+
+## 2026-03-26 - "⚠ N uncovered" double-counts tokens whose alias chain crosses a disabled set
+- Replaced `flattenTokenPaths` (paths only) with `flattenTokenEntries` (path + value pairs).
+- Changed coverage computation to only consider active (source/enabled) set tokens in `allPaths`.
+  Disabled-set paths are no longer included, eliminating false positive "uncovered" counts.
+- Added alias chain resolution via `isResolved()`: a token is uncovered only if its `{alias.path}`
+  value cannot be fully resolved to a concrete value within the merged active-set value pool.
+  This catches broken alias chains (e.g., alias pointing to a token only in a disabled set).
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L17, ~L53–96
+- **Learnings for future iterations:**
+  - Token coverage checks that only track paths (not values) can't detect broken alias chains.
+    Always fetch `$value` alongside paths when computing alias-dependent coverage.
+  - Disabled sets should never contribute to `allPaths` — they're intentionally inactive.
+---
+
+## 2026-03-26 - Token paths with a literal dot in a segment are visually indistinguishable from nested groups
+- Added `formatDisplayPath(path, leafName)` helper: returns path with the leaf segment quoted if it contains a dot (e.g., `spacing."1.5"` instead of `spacing.1.5` in tooltips).
+- Added `nodeParentPath(nodePath, nodeName)` helper: computes parent path using the known `name` length instead of `lastIndexOf('.')`, which was wrong when segment names contained dots.
+- Fixed functional bugs in three places that used `lastIndexOf('.')` incorrectly:
+  - Group rename parent path (was computing wrong parent for groups named e.g. `1.5`)
+  - createSibling hover action (two instances in hover bar and context menu)
+- Fixed `parentGroupPath` computation in `TokenTreeNode` component for the "Jump to group" breadcrumb.
+- Updated token name tooltip to use `formatDisplayPath` so `spacing.1.5` → `spacing."1.5"`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L13, ~L1818, ~L2047, ~L2243, ~L2290, ~L2095
+- **Learnings for future iterations:**
+  - Never use `lastIndexOf('.')` to split a dot-separated path when segment names can themselves contain dots. Always use `node.name` (the raw key) to compute the parent path as `path.slice(0, path.length - name.length - 1)`.
+  - The `buildTree` function in `useTokens.ts` uses dots as separators but segment keys can contain dots too — this is a systemic ambiguity in the token path format.
+---
+
+## 2026-03-26 - Import silently overwrites tokens with matching paths
+- Added preflight conflict detection: before any mutations, fetch `GET /api/tokens/:set` to find which selected tokens already exist in the target set
+- If conflicts found, show inline skip/overwrite choice UI instead of the import button — user picks "Skip existing (import N new)" or "Overwrite all (N)"
+- If no conflicts (or set doesn't exist yet), proceed immediately with no extra confirmation step
+- Split `handleImport` into `handleImport` (preflight) + `executeImport(strategy)` (actual mutations)
+- Added `conflictPaths` and `checkingConflicts` states; both reset when user changes target set or selection
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L129–L175, ~L470–L510
+- **Learnings for future iterations:**
+  - Preflight pattern: fetch existing state → compare → show UI gate → then execute. Avoids modal fatigue since the conflict UI appears inline in the same footer bar.
+  - Set name must be `encodeURIComponent`-wrapped in the preflight fetch path (set names can contain spaces/dots).
+  - `GET /api/tokens/:set` returns `{ set, tokens: { "path": { $value, $type } } }` — use `Object.keys(data.tokens)` to get existing paths.
+---
+
+## 2026-03-26 - "Remove binding" has no undo
+- Added `onPushUndo` prop to `SelectionInspector`. In `handleRemoveBinding`, the current binding token path and resolved value are captured before posting the remove message. An undo slot is pushed via `onPushUndo` that re-sends `apply-to-selection` to restore the binding. Wired `pushUndo` from `useUndo` into `SelectionInspector` in `App.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L190, `packages/figma-plugin/src/ui/App.tsx` ~L1004
+- **Learnings for future iterations:**
+  - `useUndo` / `UndoToast` is already wired in `App.tsx`; components that need undo just need an `onPushUndo?: (slot: UndoSlot) => void` prop and the parent passes `pushUndo` down.
+  - `UndoSlot.restore` is `async () => Promise<void>` — fire-and-forget `postMessage` calls work fine inside it.
+---
+
+## 2026-03-26 - No drag-to-reorder set rows within a theme
+- Added HTML5 drag-and-drop reordering of set rows within each theme card in ThemeManager.
+- Per-theme ordered set list stored in `themeSetOrders` state (Record<string, string[]>), initialised from server key-insertion order on fetch.
+- Each set row is now `draggable` with a 6-dot grip handle SVG; drop target highlighted with accent border and background tint; dragged row fades to 40% opacity.
+- On drop, local order updates immediately then persists to server via POST (rebuilding the sets object in new key order so server preserves precedence).
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L45–L220
+- **Learnings for future iterations:**
+  - JS object key insertion order is preserved in modern engines and JSON serialisers — safe to use for encoding ordered precedence in a Record payload without schema changes.
+  - Don't overwrite existing `themeSetOrders` entries on re-fetch (would disrupt an active drag); guard with `if (!next[theme.name])`.
+  - `border-l-2 border-l-[var(--color-figma-accent)]` is a clean drop-zone indicator without layout shift.
+---
+
+## 2026-03-26 - Theme cards cannot be reordered
+- Added card-level drag-to-reorder for theme cards in ThemeManager. Order is persisted to `localStorage` under key `themeCardOrder` and reconciled with the server list on each fetch (preserving user order, appending new themes, removing deleted ones).
+- Added `themeOrder`, `cardDragInfo`, `cardDragOver` state; four new handlers (`handleCardDragStart/Over/Drop/End`); drag handle dots icon in the card header (reuses the same 6-dot SVG used by set rows).
+- Cards show `opacity-40` when being dragged; drop target shows accent border + ring. Card drag does not interfere with set-row drag because inner `draggable` elements intercept the event before it reaches the outer card.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L44-50, ~L55-62, ~L293-322, ~L356-372, ~L376-384
+- **Learnings for future iterations:**
+  - Nested `draggable` elements work correctly in HTML DnD: the innermost draggable intercepts the event so outer element's dragstart doesn't fire — no `stopPropagation` needed.
+  - Guard card-level dragover/drop with `if (!cardDragInfo)` so set-row drag events that bubble up are ignored by the card handlers.
+  - `localStorage` is a simple persistence layer for UI order preferences that don't need server round-trips.
 ---

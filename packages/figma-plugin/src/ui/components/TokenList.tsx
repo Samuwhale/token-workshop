@@ -2,17 +2,35 @@ import { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect, Fra
 import type { TokenNode } from '../hooks/useTokens';
 import { PropertyPicker } from './PropertyPicker';
 import { ConfirmModal } from './ConfirmModal';
-import { TOKEN_PROPERTY_MAP } from '../../shared/types';
+import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
 import { ScaffoldingWizard } from './ScaffoldingWizard';
-import { hexToRgb, rgbToLab, colorDeltaE } from '../shared/colorUtils';
+import { hexToRgb, rgbToLab, colorDeltaE, stableStringify } from '../shared/colorUtils';
 import type { LintViolation } from '../hooks/useLint';
 
 function countTokensInGroup(node: TokenNode): number {
   if (!node.isGroup) return 1;
   return (node.children ?? []).reduce((sum, c) => sum + countTokensInGroup(c), 0);
+}
+
+/**
+ * Returns a display path where the leaf segment is quoted if it contains a dot,
+ * making literal dots in segment names visually distinguishable from path separators.
+ * e.g. formatDisplayPath("spacing.1.5", "1.5") → 'spacing."1.5"'
+ */
+function formatDisplayPath(path: string, leafName: string): string {
+  if (!leafName.includes('.')) return path;
+  const parent = path.length > leafName.length ? path.slice(0, path.length - leafName.length - 1) : '';
+  const quoted = `"${leafName}"`;
+  return parent ? `${parent}.${quoted}` : quoted;
+}
+
+/** Returns the parent group path of a node, correctly handling dots in segment names. */
+function nodeParentPath(nodePath: string, nodeName: string): string {
+  if (nodePath.length <= nodeName.length) return '';
+  return nodePath.slice(0, nodePath.length - nodeName.length - 1);
 }
 
 type SortOrder = 'default' | 'alpha-asc' | 'alpha-desc' | 'by-type' | 'by-value' | 'by-usage';
@@ -79,7 +97,9 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [createError, setCreateError] = useState('');
   const [siblingPrefix, setSiblingPrefix] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
+  const [applyResult, setApplyResult] = useState<{ type: 'variables' | 'styles'; count: number } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
+  const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
@@ -170,34 +190,50 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     return () => document.removeEventListener('mousedown', handler);
   }, [moreFiltersOpen]);
 
-  // Sort order — persisted in sessionStorage (shared across sets)
-  const [sortOrder, setSortOrderState] = useState<SortOrder>(() => {
+  // Sort order — persisted in localStorage per-set so each set remembers its own order
+  const [sortOrder, setSortOrderState] = useState<SortOrder>('default');
+
+  useEffect(() => {
     try {
-      return (sessionStorage.getItem('token-sort') as SortOrder) || 'default';
+      const stored = localStorage.getItem(`token-sort:${setName}`) as SortOrder;
+      setSortOrderState(stored || 'default');
     } catch {
-      return 'default';
+      setSortOrderState('default');
     }
-  });
+  }, [setName]);
 
   const setSortOrder = useCallback((order: SortOrder) => {
     setSortOrderState(order);
     try {
-      sessionStorage.setItem('token-sort', order);
+      localStorage.setItem(`token-sort:${setName}`, order);
     } catch {}
-  }, []);
+  }, [setName]);
 
-  const sortedTokens = useMemo(() => sortTokenNodes(tokens, sortOrder), [tokens, sortOrder]);
+  // Clear optimistic deletions when the server response arrives with fresh tokens
+  useEffect(() => { setLocallyDeletedPaths(new Set()); }, [tokens]);
 
-  // Filters — persisted in sessionStorage (shared across sets)
+  const sortedTokens = useMemo(() => {
+    const sorted = sortTokenNodes(tokens, sortOrder);
+    return locallyDeletedPaths.size > 0 ? pruneDeletedPaths(sorted, locallyDeletedPaths) : sorted;
+  }, [tokens, sortOrder, locallyDeletedPaths]);
+
+  // Filters — search/ref persisted in sessionStorage (shared across sets);
+  // typeFilter persisted in localStorage per-set so each set remembers its own filter
   const [searchQuery, setSearchQueryState] = useState(() => {
     try { return sessionStorage.getItem('token-search') || ''; } catch { return ''; }
   });
-  const [typeFilter, setTypeFilterState] = useState(() => {
-    try { return sessionStorage.getItem('token-type-filter') || ''; } catch { return ''; }
-  });
+  const [typeFilter, setTypeFilterState] = useState<string>('');
   const [refFilter, setRefFilterState] = useState<'all' | 'aliases' | 'direct'>(() => {
     try { return (sessionStorage.getItem('token-ref-filter') as 'all' | 'aliases' | 'direct') || 'all'; } catch { return 'all'; }
   });
+
+  useEffect(() => {
+    try {
+      setTypeFilterState(localStorage.getItem(`token-type-filter:${setName}`) || '');
+    } catch {
+      setTypeFilterState('');
+    }
+  }, [setName]);
 
   const setSearchQuery = useCallback((v: string) => {
     setSearchQueryState(v);
@@ -205,8 +241,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   }, []);
   const setTypeFilter = useCallback((v: string) => {
     setTypeFilterState(v);
-    try { sessionStorage.setItem('token-type-filter', v); } catch {}
-  }, []);
+    try { localStorage.setItem(`token-type-filter:${setName}`, v); } catch {}
+  }, [setName]);
   const setRefFilter = useCallback((v: 'all' | 'aliases' | 'direct') => {
     setRefFilterState(v);
     try { sessionStorage.setItem('token-ref-filter', v); } catch {}
@@ -288,7 +324,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const syncChangedCount = useMemo(() => {
     if (!syncSnapshot) return 0;
     return Object.entries(allTokensFlat).filter(
-      ([path, token]) => path in syncSnapshot && syncSnapshot[path] !== JSON.stringify(token.$value)
+      ([path, token]) => path in syncSnapshot && syncSnapshot[path] !== stableStringify(token.$value)
     ).length;
   }, [syncSnapshot, allTokensFlat]);
 
@@ -413,6 +449,24 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     onRefresh();
   }, [connected, serverUrl, setName, onRefresh]);
 
+  const handleDuplicateToken = useCallback(async (path: string) => {
+    if (!connected) return;
+    const token = allTokensFlat[path];
+    if (!token) return;
+    const baseCopy = `${path}-copy`;
+    let newPath = baseCopy;
+    let i = 2;
+    while (allTokensFlat[newPath]) {
+      newPath = `${baseCopy}-${i++}`;
+    }
+    await fetch(`${serverUrl}/api/tokens/${setName}/${newPath}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ $type: token.$type, $value: token.$value }),
+    });
+    onRefresh();
+  }, [connected, serverUrl, setName, allTokensFlat, onRefresh]);
+
   const handleCreate = async () => {
     const trimmedPath = newTokenPath.trim();
     if (!trimmedPath) { setCreateError('Token path cannot be empty'); return; }
@@ -491,18 +545,30 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
       undoDescription = `Deleted ${deleteConfirm.paths.length} token${deleteConfirm.paths.length !== 1 ? 's' : ''}`;
     }
 
+    // Capture delete info before clearing state
+    const deletedType = deleteConfirm.type;
+    const deletedPath = deleteConfirm.type !== 'bulk' ? deleteConfirm.path : '';
+    const deletedPaths = deleteConfirm.type === 'bulk' ? deleteConfirm.paths : [];
+
     setDeleteConfirm(null);
     try {
-      if (deleteConfirm.type === 'token' || deleteConfirm.type === 'group') {
-        await fetch(`${serverUrl}/api/tokens/${setName}/${deleteConfirm.path}`, { method: 'DELETE' });
+      if (deletedType === 'token' || deletedType === 'group') {
+        await fetch(`${serverUrl}/api/tokens/${setName}/${deletedPath}`, { method: 'DELETE' });
       } else {
         await Promise.all(
-          deleteConfirm.paths.map(path =>
+          deletedPaths.map(path =>
             fetch(`${serverUrl}/api/tokens/${setName}/${path}`, { method: 'DELETE' })
           )
         );
         setSelectedPaths(new Set());
         setSelectMode(false);
+      }
+
+      // Optimistically remove deleted paths from the tree so empty group headers vanish immediately
+      if (deletedType === 'token' || deletedType === 'group') {
+        setLocallyDeletedPaths(new Set([deletedPath]));
+      } else {
+        setLocallyDeletedPaths(new Set(deletedPaths));
       }
 
       // Push undo slot after successful delete
@@ -540,6 +606,20 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
       else next.add(path);
       return next;
     });
+  };
+
+  const displayedLeafPaths = useMemo(
+    () => new Set(flattenLeafNodes(displayedTokens).map(n => n.path)),
+    [displayedTokens]
+  );
+
+  const handleSelectAll = () => {
+    const allSelected = [...displayedLeafPaths].every(p => selectedPaths.has(p));
+    if (allSelected) {
+      setSelectedPaths(new Set());
+    } else {
+      setSelectedPaths(new Set(displayedLeafPaths));
+    }
   };
 
   const flattenTokens = (nodes: TokenNode[]): any[] => {
@@ -580,14 +660,18 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     setApplying(true);
     const flat = resolveFlat(flattenTokens(tokens));
     parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens: flat } }, '*');
+    setApplyResult({ type: 'variables', count: flat.length });
     setTimeout(() => setApplying(false), 1500);
+    setTimeout(() => setApplyResult(null), 3000);
   };
 
   const handleApplyStyles = async () => {
     setApplying(true);
     const flat = resolveFlat(flattenTokens(tokens));
     parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens: flat } }, '*');
+    setApplyResult({ type: 'styles', count: flat.length });
     setTimeout(() => setApplying(false), 1500);
+    setTimeout(() => setApplyResult(null), 3000);
   };
 
   const frPreview = useMemo(() => {
@@ -732,15 +816,21 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         {selectMode && (
           <div className="flex items-center gap-2 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">
-              {selectedPaths.size} selected
+              {selectedPaths.size} of {displayedLeafPaths.size} selected
             </span>
+            <button
+              onClick={handleSelectAll}
+              className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            >
+              {[...displayedLeafPaths].every(p => selectedPaths.has(p)) && displayedLeafPaths.size > 0 ? 'Deselect all' : 'Select all'}
+            </button>
             {selectedPaths.size > 0 && (
               <>
                 <button
                   onClick={handleOpenPromoteModal}
                   className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
                 >
-                  Convert to aliases
+                  Link to tokens
                 </button>
                 <button
                   onClick={requestBulkDelete}
@@ -996,7 +1086,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                     >
                       <td className="px-2 py-1.5 font-mono text-[var(--color-figma-text)] truncate max-w-0" title={leaf.path}>{leaf.path}</td>
                       <td className="px-2 py-1.5">
-                        <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase token-type-${leaf.$type}`}>{leaf.$type}</span>
+                        <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase ${TOKEN_TYPE_BADGE_CLASS[leaf.$type ?? ''] ?? 'token-type-string'}`}>{leaf.$type}</span>
                       </td>
                       <td className="px-2 py-1.5 text-[var(--color-figma-text-secondary)] truncate max-w-0 font-mono" title={String(leaf.$value)}>
                         {typeof leaf.$value === 'object' ? JSON.stringify(leaf.$value) : String(leaf.$value ?? '')}
@@ -1060,6 +1150,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onRenameGroup={handleRenameGroup}
                 onRequestMoveGroup={handleRequestMoveGroup}
                 onDuplicateGroup={handleDuplicateGroup}
+                onDuplicateToken={handleDuplicateToken}
                 onExtractToAlias={handleOpenExtractToAlias}
                 inspectMode={inspectMode}
                 onHoverToken={handleHoverToken}
@@ -1134,7 +1225,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
       {/* Bottom actions */}
       <div className="p-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
-        {!showCreateForm && (
+        {!tableMode && !showCreateForm && (
           <div className="flex gap-1.5">
             <button
               onClick={() => setShowCreateForm(true)}
@@ -1190,6 +1281,11 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             Apply as Styles
           </button>
         </div>
+        {applyResult && (
+          <div className="text-[10px] text-[var(--color-figma-accent)] text-center">
+            Applied {applyResult.count} {applyResult.type === 'variables' ? 'variables' : 'styles'}
+          </div>
+        )}
       </div>
 
       {/* Scaffolding Wizard */}
@@ -1224,7 +1320,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col" style={{ maxHeight: '80vh' }}>
               <div className="p-4 border-b border-[var(--color-figma-border)]">
-                <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Extract to alias</div>
+                <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Link to token</div>
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 truncate">
                   <span className="font-mono text-[var(--color-figma-text)]">{extractToken.path}</span>
                 </div>
@@ -1374,18 +1470,47 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 <div className="flex flex-col gap-0.5">
                   <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">{frPreview.length} token{frPreview.length !== 1 ? 's' : ''} will change:</div>
                   <div className="flex flex-col gap-1 overflow-y-auto" style={{ maxHeight: '200px' }}>
-                    {frPreview.map(({ oldPath, newPath, conflict }) => (
-                      <div key={oldPath} className={`text-[10px] font-mono rounded px-2 py-1 ${conflict ? 'bg-red-50 border border-red-300 text-red-700' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
-                        <div className="truncate text-[var(--color-figma-text-secondary)] line-through">{oldPath}</div>
-                        <div className="truncate text-[var(--color-figma-text)]">{newPath}</div>
-                        {conflict && <div className="text-[9px] text-red-600 mt-0.5">⚠ conflicts with existing token — will be skipped</div>}
-                      </div>
-                    ))}
+                    {frPreview.map(({ oldPath, newPath, conflict }) => {
+                      // Locate the matched segment in oldPath for highlighting
+                      let matchStart = -1, matchLen = 0;
+                      if (frIsRegex) {
+                        try {
+                          const m = new RegExp(frFind).exec(oldPath);
+                          if (m) { matchStart = m.index; matchLen = m[0].length; }
+                        } catch {}
+                      } else {
+                        const idx = oldPath.indexOf(frFind);
+                        if (idx >= 0) { matchStart = idx; matchLen = frFind.length; }
+                      }
+                      const hi = matchStart >= 0;
+                      // For non-regex, also locate frReplace in newPath for green highlight
+                      const newIdx = (!frIsRegex && hi && frReplace !== '') ? newPath.indexOf(frReplace, matchStart) : -1;
+                      return (
+                        <div key={oldPath} className={`text-[10px] font-mono rounded px-2 py-1 ${conflict ? 'bg-red-50 border border-red-300 text-red-700' : 'bg-[var(--color-figma-bg-secondary)]'}`}>
+                          <div className="truncate text-[var(--color-figma-text-secondary)] line-through">
+                            {hi
+                              ? <>{oldPath.slice(0, matchStart)}<span className="bg-red-100/80 rounded-sm">{oldPath.slice(matchStart, matchStart + matchLen)}</span>{oldPath.slice(matchStart + matchLen)}</>
+                              : oldPath}
+                          </div>
+                          <div className="truncate text-[var(--color-figma-text)]">
+                            {newIdx >= 0
+                              ? <>{newPath.slice(0, newIdx)}<span className="bg-green-100/80 rounded-sm">{frReplace}</span>{newPath.slice(newIdx + frReplace.length)}</>
+                              : newPath}
+                          </div>
+                          {conflict && <div className="text-[9px] text-red-600 mt-0.5">⚠ conflicts with existing token — will be skipped</div>}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
               {frError && <div className="text-[10px] text-[var(--color-figma-error)]">{frError}</div>}
+              {!frError && frReplace === '' && frPreview.length > 0 && (
+                <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                  ⚠ Empty replacement will delete the matched segment from token paths. This may break alias references.
+                </div>
+              )}
             </div>
             <div className="flex gap-2 justify-end p-4 border-t border-[var(--color-figma-border)]">
               <button
@@ -1411,7 +1536,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-96 flex flex-col" style={{ maxHeight: '80vh' }}>
             <div className="p-4 border-b border-[var(--color-figma-border)]">
-              <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Convert to Aliases</div>
+              <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Link to tokens</div>
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Each token will be replaced with an alias reference to the matched primitive.</div>
             </div>
             <div className="flex flex-col gap-0 overflow-y-auto flex-1">
@@ -1533,6 +1658,7 @@ function TokenTreeNode({
   onRenameGroup,
   onRequestMoveGroup,
   onDuplicateGroup,
+  onDuplicateToken,
   onExtractToAlias,
   inspectMode,
   onHoverToken,
@@ -1563,6 +1689,7 @@ function TokenTreeNode({
   onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;
   onRequestMoveGroup?: (groupPath: string) => void;
   onDuplicateGroup?: (groupPath: string) => void;
+  onDuplicateToken?: (path: string) => void;
   onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
   inspectMode?: boolean;
   onHoverToken?: (path: string) => void;
@@ -1588,6 +1715,7 @@ function TokenTreeNode({
   const [renamingGroup, setRenamingGroup] = useState(false);
   const [renameGroupVal, setRenameGroupVal] = useState('');
   const renameGroupInputRef = useRef<HTMLInputElement>(null);
+  const renameGroupEscapedRef = useRef(false);
 
   useLayoutEffect(() => {
     if (renamingGroup && renameGroupInputRef.current) {
@@ -1629,7 +1757,7 @@ function TokenTreeNode({
 
   // Sync state indicator
   const syncChanged = !node.isGroup && syncSnapshot && node.path in syncSnapshot
-    && syncSnapshot[node.path] !== JSON.stringify(node.$value);
+    && syncSnapshot[node.path] !== stableStringify(node.$value);
 
   const handleCopyPath = () => {
     const cssVar = '--' + node.path.replace(/\./g, '-');
@@ -1691,8 +1819,7 @@ function TokenTreeNode({
       const newName = renameGroupVal.trim();
       setRenamingGroup(false);
       if (!newName || newName === node.name) return;
-      const lastDot = node.path.lastIndexOf('.');
-      const parentPath = lastDot >= 0 ? node.path.slice(0, lastDot) : '';
+      const parentPath = nodeParentPath(node.path, node.name);
       const newGroupPath = parentPath ? `${parentPath}.${newName}` : newName;
       onRenameGroup?.(node.path, newGroupPath);
     };
@@ -1704,8 +1831,9 @@ function TokenTreeNode({
           tabIndex={0}
           aria-expanded={isExpanded}
           aria-label={`Toggle group ${node.name}`}
-          className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group"
-          style={{ paddingLeft: `${depth * 16 + 8}px` }}
+          data-group-path={node.path}
+          className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group sticky bg-[var(--color-figma-bg)]"
+          style={{ paddingLeft: `${depth * 16 + 8}px`, top: `${depth * 24}px`, zIndex: Math.max(1, 10 - depth) }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
           onKeyDown={e => {
             if ((e.key === 'Enter' || e.key === ' ') && !renamingGroup) {
@@ -1739,9 +1867,12 @@ function TokenTreeNode({
               onChange={e => setRenameGroupVal(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter') confirmGroupRename();
-                if (e.key === 'Escape') setRenamingGroup(false);
+                if (e.key === 'Escape') { renameGroupEscapedRef.current = true; setRenamingGroup(false); }
               }}
-              onBlur={confirmGroupRename}
+              onBlur={() => {
+                if (!renameGroupEscapedRef.current) confirmGroupRename();
+                renameGroupEscapedRef.current = false;
+              }}
               onClick={e => e.stopPropagation()}
               className="flex-1 text-[11px] font-medium bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0"
             />
@@ -1755,12 +1886,19 @@ function TokenTreeNode({
           )}
           {!selectMode && !renamingGroup && (
             <button
-              onClick={(e) => { e.stopPropagation(); onDeleteGroup(node.path, node.name, leafCount); }}
-              title="Delete group"
-              className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] transition-opacity shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                setGroupMenuPos({
+                  x: Math.min(rect.left, window.innerWidth - 168),
+                  y: Math.min(rect.bottom + 2, window.innerHeight - 220),
+                });
+              }}
+              title="Group actions"
+              className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
               </svg>
             </button>
           )}
@@ -1834,6 +1972,17 @@ function TokenTreeNode({
                 Sync this group to Figma
               </button>
             )}
+            <button
+              role="menuitem"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                onDeleteGroup(node.path, node.name, leafCount);
+              }}
+              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors border-t border-[var(--color-figma-border)]"
+            >
+              Delete group
+            </button>
           </div>
         )}
 
@@ -1860,6 +2009,7 @@ function TokenTreeNode({
             onRenameGroup={onRenameGroup}
             onRequestMoveGroup={onRequestMoveGroup}
             onDuplicateGroup={onDuplicateGroup}
+            onDuplicateToken={onDuplicateToken}
             onExtractToAlias={onExtractToAlias}
             inspectMode={inspectMode}
             onHoverToken={onHoverToken}
@@ -1884,14 +2034,36 @@ function TokenTreeNode({
     });
   };
 
+  const handleRowKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (node.isGroup || selectMode) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      setContextMenuPos({
+        x: Math.min(rect.left, window.innerWidth - 168),
+        y: Math.min(rect.bottom, window.innerHeight - 280),
+      });
+    }
+  };
+
+  const parentGroupPath = node.path.length > node.name.length ? nodeParentPath(node.path, node.name) : null;
+
+  const handleJumpToGroup = (groupPath: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const el = document.querySelector<HTMLElement>(`[data-group-path="${groupPath}"]`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+
   return (
     <div ref={nodeRef}>
     <div
       className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
+      tabIndex={selectMode ? -1 : 0}
       onMouseEnter={() => { setHovered(true); if (inspectMode) onHoverToken?.(node.path); }}
       onMouseLeave={() => { setHovered(false); setShowPicker(false); }}
       onContextMenu={handleContextMenu}
+      onKeyDown={handleRowKeyDown}
     >
       {/* Checkbox for select mode */}
       {selectMode && (
@@ -1921,12 +2093,12 @@ function TokenTreeNode({
               className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0 cursor-default"
             />
           )}
-          <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={node.path}>{node.name}</span>
+          <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{node.name}</span>
           {node.$type && (
             <button
               onClick={e => { e.stopPropagation(); onFilterByType?.(node.$type!); }}
               title={`Filter by type: ${node.$type}`}
-              className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase token-type-${node.$type} cursor-pointer transition-opacity hover:opacity-70 hover:ring-1 hover:ring-current/40`}
+              className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase ${TOKEN_TYPE_BADGE_CLASS[node.$type ?? ''] ?? 'token-type-string'} cursor-pointer transition-opacity hover:opacity-70 hover:ring-1 hover:ring-current/40`}
               title={`Click to filter by ${node.$type}`}
             >
               {node.$type}
@@ -1947,6 +2119,15 @@ function TokenTreeNode({
         </div>
         {node.$description && (
           <div className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">{node.$description}</div>
+        )}
+        {parentGroupPath && (
+          <button
+            onClick={e => handleJumpToGroup(parentGroupPath, e)}
+            title={`Jump to group: ${parentGroupPath}`}
+            className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] truncate text-left transition-colors opacity-0 group-hover:opacity-100 leading-none mt-0.5"
+          >
+            ↑ {parentGroupPath}
+          </button>
         )}
       </div>
 
@@ -1979,12 +2160,12 @@ function TokenTreeNode({
                   onEdit(node.path);
                 }
               }}
-              className={`text-[8px] px-1 py-0.5 rounded border shrink-0 transition-colors ${
+              className={`text-[8px] px-1 py-0.5 rounded border shrink-0 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:opacity-100 ${
                 v.severity === 'error'
-                  ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10'
+                  ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 focus-visible:ring-[var(--color-figma-error)]'
                   : v.severity === 'warning'
-                  ? 'border-yellow-500 text-yellow-700 bg-yellow-50'
-                  : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
+                  ? 'border-yellow-500 text-yellow-700 bg-yellow-50 focus-visible:ring-yellow-500'
+                  : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] focus-visible:ring-[var(--color-figma-accent)]'
               }`}
             >
               {v.severity === 'error' ? '✕' : v.severity === 'warning' ? '⚠' : 'ℹ'}
@@ -2008,8 +2189,8 @@ function TokenTreeNode({
       )}
 
       {/* Actions (on hover, not in select mode) */}
-      {!selectMode && hovered && (
-        <div className="flex items-center gap-0.5 shrink-0">
+      {!selectMode && (
+        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity [transition-delay:100ms] group-hover:[transition-delay:0ms]">
           <button
             onClick={handleApplyToSelection}
             title="Apply to selection"
@@ -2059,6 +2240,17 @@ function TokenTreeNode({
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
           </button>
+          <button
+            onClick={() => {
+              onCreateSibling?.(nodeParentPath(node.path, node.name), node.$type || 'color');
+            }}
+            title="Create sibling token"
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </button>
           <div className="w-px h-3.5 bg-[var(--color-figma-border)] mx-0.5 shrink-0" aria-hidden="true" />
           <button
             onClick={() => onDelete(node.path)}
@@ -2095,13 +2287,20 @@ function TokenTreeNode({
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               setContextMenuPos(null);
-              const parentPath = node.path.includes('.')
-                ? node.path.substring(0, node.path.lastIndexOf('.'))
-                : '';
-              onCreateSibling?.(parentPath, node.$type || 'color');
+              onCreateSibling?.(nodeParentPath(node.path, node.name), node.$type || 'color');
             }}
           >
             Create sibling
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setContextMenuPos(null);
+              onDuplicateToken?.(node.path);
+            }}
+          >
+            Duplicate token
           </button>
           {!isAlias(node.$value) && (
             <button
@@ -2112,7 +2311,7 @@ function TokenTreeNode({
                 onExtractToAlias?.(node.path, node.$type, node.$value);
               }}
             >
-              Extract to alias
+              Link to token
             </button>
           )}
         </div>
@@ -2295,6 +2494,20 @@ function formatValue(type?: string, value?: any): string {
     return JSON.stringify(value).slice(0, 30);
   }
   return String(value);
+}
+
+function pruneDeletedPaths(nodes: TokenNode[], deletedPaths: Set<string>): TokenNode[] {
+  const result: TokenNode[] = [];
+  for (const node of nodes) {
+    if (deletedPaths.has(node.path)) continue;
+    if (node.isGroup) {
+      const children = pruneDeletedPaths(node.children ?? [], deletedPaths);
+      if (children.length > 0) result.push({ ...node, children });
+    } else {
+      result.push(node);
+    }
+  }
+  return result;
 }
 
 function filterByDuplicatePaths(nodes: TokenNode[], paths: Set<string>): TokenNode[] {

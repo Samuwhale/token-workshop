@@ -4,7 +4,7 @@ import type { ReactNode, ErrorInfo } from 'react';
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null };
   static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(_error: Error, _info: ErrorInfo) {}
+  componentDidCatch(error: Error, info: ErrorInfo) { console.error('[ErrorBoundary]', error, info); }
   render() {
     if (this.state.error) {
       return (
@@ -48,6 +48,7 @@ import { useUndo } from './hooks/useUndo';
 import { useLint } from './hooks/useLint';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
+import { stableStringify } from './shared/colorUtils';
 
 function useSyncBindings(serverUrl: string, connected: boolean) {
   const [syncing, setSyncing] = useState(false);
@@ -105,7 +106,10 @@ type OverflowPanel = 'import' | 'export' | 'settings' | null;
 
 export function App() {
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
-    try { return (localStorage.getItem('tm_active_tab') as Tab) || 'tokens'; } catch { return 'tokens'; }
+    try {
+      const stored = localStorage.getItem('tm_active_tab');
+      return (stored && TABS.some(t => t.id === stored) ? stored : 'tokens') as Tab;
+    } catch { return 'tokens'; }
   });
   const setActiveTab = (tab: Tab) => {
     try { localStorage.setItem('tm_active_tab', tab); } catch {}
@@ -115,7 +119,7 @@ export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; set: string } | null>(null);
   const { connected, serverUrl, updateServerUrl, retryConnection } = useServerConnection();
-  const { sets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, refreshTokens } = useTokens(serverUrl, connected);
+  const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, refreshTokens } = useTokens(serverUrl, connected);
   const { selectedNodes } = useSelection();
   const { syncing, syncProgress, syncResult, sync } = useSyncBindings(serverUrl, connected);
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
@@ -132,6 +136,7 @@ export function App() {
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
   const [validateKey, setValidateKey] = useState(0);
+  const [analyticsIssueCount, setAnalyticsIssueCount] = useState<number | null>(null);
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -195,7 +200,7 @@ export function App() {
         // Snapshot current allTokensFlat values as last-applied baseline
         const snap: Record<string, string> = {};
         for (const [path, entry] of Object.entries(allTokensFlat)) {
-          snap[path] = JSON.stringify(entry.$value);
+          snap[path] = stableStringify(entry.$value);
         }
         setSyncSnapshot(snap);
       }
@@ -224,16 +229,14 @@ export function App() {
     }
   }, [pathToSet, activeSet, setActiveSet]);
 
-  // Close overflow menu on outside click
+  // Close overflow menu on Escape key (not on outside click — accidental mis-clicks dismiss it)
   useEffect(() => {
     if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
   }, [menuOpen]);
 
   // Close set context menu on outside click
@@ -259,6 +262,11 @@ export function App() {
         e.preventDefault();
         setShowCommandPalette(v => !v);
       }
+      const tabIndex = ['1', '2', '3', '4'].indexOf(e.key);
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && tabIndex !== -1) {
+        e.preventDefault();
+        setActiveTab(TABS[tabIndex].id);
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
@@ -280,16 +288,22 @@ export function App() {
     }
   }, [creatingSet]);
 
-  // Detect horizontal overflow in set tab bar
+  // Detect horizontal overflow in set tab bar — persistent observer (only one alive at a time)
   useEffect(() => {
     const el = setTabsScrollRef.current;
     if (!el) return;
     const check = () => setSetTabsOverflow(el.scrollWidth > el.clientWidth);
-    check();
     el.addEventListener('scroll', check);
     const ro = new ResizeObserver(check);
     ro.observe(el);
     return () => { el.removeEventListener('scroll', check); ro.disconnect(); };
+  }, []);
+
+  // Re-check overflow whenever the set list changes (tabs added/removed/renamed)
+  useEffect(() => {
+    const el = setTabsScrollRef.current;
+    if (!el) return;
+    setSetTabsOverflow(el.scrollWidth > el.clientWidth);
   }, [sets]);
 
   const openSetMenu = (setName: string, e: React.MouseEvent) => {
@@ -375,8 +389,9 @@ export function App() {
       setDeletingSet(null);
       return;
     }
+    const remaining = sets.filter(s => s !== deletingSet);
+    setSets(remaining);
     if (activeSet === deletingSet) {
-      const remaining = sets.filter(s => s !== deletingSet);
       setActiveSet(remaining[0] ?? '');
     }
     setDeletingSet(null);
@@ -593,13 +608,18 @@ export function App() {
             role="tab"
             aria-selected={activeTab === tab.id && overflowPanel === null}
             onClick={() => { setActiveTab(tab.id); setOverflowPanel(null); }}
-            className={`px-3 py-2 text-[11px] font-medium transition-colors rounded-sm mx-0.5 my-1 ${
+            className={`relative px-3 py-2 text-[11px] font-medium transition-colors rounded-sm mx-0.5 my-1 ${
               activeTab === tab.id && overflowPanel === null
                 ? 'bg-[var(--color-figma-accent)] text-white'
                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
             }`}
           >
             {tab.label}
+            {tab.id === 'analytics' && analyticsIssueCount !== null && analyticsIssueCount > 0 && !(activeTab === 'analytics' && overflowPanel === null) && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white text-[9px] font-bold leading-[14px] text-center">
+                {analyticsIssueCount > 99 ? '99+' : analyticsIssueCount}
+              </span>
+            )}
           </button>
         ))}
 
@@ -685,13 +705,14 @@ export function App() {
                       <input
                         ref={renameInputRef}
                         value={renameValue}
-                        onChange={e => { setRenameValue(e.target.value); setRenameError(''); }}
+                        onChange={e => { setRenameValue(e.target.value.trimStart()); setRenameError(''); }}
                         onKeyDown={e => {
                           if (e.key === 'Enter') handleRenameConfirm();
                           if (e.key === 'Escape') cancelRename();
                         }}
                         onBlur={cancelRename}
-                        className="px-2 py-1 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none w-28"
+                        size={Math.max(set.length + 4, 10)}
+                        className="px-2 py-1 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
                         placeholder={set}
                       />
                     </div>
@@ -722,10 +743,10 @@ export function App() {
                       onClick={e => openSetMenu(set, e)}
                       onContextMenu={e => openSetMenu(set, e)}
                       title="Set options"
-                      className={`flex items-center justify-center px-1 py-1 rounded-r text-[10px] transition-colors opacity-0 group-hover/settab:opacity-100 ${
+                      className={`flex items-center justify-center px-1 py-1 rounded-r text-[10px] transition-colors ${
                         isActive
                           ? 'opacity-100 bg-[var(--color-figma-accent)] text-white/80 hover:text-white hover:bg-[var(--color-figma-accent-hover)]'
-                          : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                          : 'opacity-0 group-hover/settab:opacity-100 bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                       }`}
                     >
                       <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor">
@@ -773,6 +794,7 @@ export function App() {
               >
                 Duplicate
               </button>
+              <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
                 role="menuitem"
                 onMouseDown={e => e.preventDefault()}
@@ -948,7 +970,7 @@ export function App() {
             />
           )}
           {overflowPanel === null && activeTab === 'themes' && (
-            <ThemeManager serverUrl={serverUrl} connected={connected} />
+            <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} />
           )}
           {overflowPanel === null && activeTab === 'sync' && (
             <SyncPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} />
@@ -963,6 +985,7 @@ export function App() {
                 setActiveTab('tokens');
                 setPendingHighlight(path);
               }}
+              onValidationComplete={setAnalyticsIssueCount}
             />
           )}
         </div>
@@ -978,6 +1001,8 @@ export function App() {
             activeSet={activeSet}
             serverUrl={serverUrl}
             onTokenCreated={refreshTokens}
+            onNavigateToToken={setHighlightedToken}
+            onPushUndo={pushUndo}
           />
         )}
       </div>
@@ -1045,8 +1070,8 @@ export function App() {
 
       {/* Group Scope Editor */}
       {groupScopesPath && (
-        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
-          <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
               <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Set Figma Scopes</span>
               <button onClick={() => setGroupScopesPath(null)} title="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">

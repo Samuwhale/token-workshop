@@ -6,6 +6,7 @@ import {
 } from '../../shared/types';
 import type { BindableProperty, SelectionNodeInfo, NodeCapabilities, SyncCompleteMessage, TokenMapEntry } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
+import type { UndoSlot } from '../hooks/useUndo';
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -18,6 +19,8 @@ interface SelectionInspectorProps {
   activeSet: string;
   serverUrl: string;
   onTokenCreated: () => void;
+  onNavigateToToken?: (tokenPath: string) => void;
+  onPushUndo?: (slot: UndoSlot) => void;
 }
 
 function shouldShowGroup(condition: string | undefined, caps: NodeCapabilities): boolean {
@@ -72,6 +75,9 @@ function getTokenTypeForProperty(prop: BindableProperty): string {
   if (prop === 'typography') return 'typography';
   if (prop === 'shadow') return 'shadow';
   if (prop === 'visible') return 'boolean';
+  if (process.env.NODE_ENV !== 'production') {
+    console.warn(`[SelectionInspector] getTokenTypeForProperty: unhandled property "${prop}", falling back to "string"`);
+  }
   return 'string';
 }
 
@@ -128,12 +134,18 @@ export function SelectionInspector({
   activeSet,
   serverUrl,
   onTokenCreated,
+  onNavigateToToken,
+  onPushUndo,
 }: SelectionInspectorProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [creatingFromProp, setCreatingFromProp] = useState<BindableProperty | null>(null);
   const [newTokenName, setNewTokenName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [createdTokenPath, setCreatedTokenPath] = useState<string | null>(null);
+  const [freshSyncResult, setFreshSyncResult] = useState<SyncCompleteMessage | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const prevNodeIdsRef = useRef<string>('');
 
   const hasSelection = selectedNodes.length > 0;
   const caps = getMergedCapabilities(selectedNodes);
@@ -143,10 +155,30 @@ export function SelectionInspector({
     setCollapsed(!hasSelection);
   }, [hasSelection]);
 
+  // Capture sync result for freshness badge (outlives the 3s global clear)
+  useEffect(() => {
+    if (syncResult) setFreshSyncResult(syncResult);
+  }, [syncResult]);
+
+  // Clear freshness when the selected nodes change
+  useEffect(() => {
+    const ids = selectedNodes.map(n => n.id).join(',');
+    if (ids !== prevNodeIdsRef.current) {
+      prevNodeIdsRef.current = ids;
+      setFreshSyncResult(null);
+    }
+  }, [selectedNodes]);
+
   const totalBindings = hasSelection
     ? ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
         const b = getBindingForProperty(selectedNodes, prop);
         return sum + (b && b !== 'mixed' ? 1 : 0);
+      }, 0)
+    : 0;
+
+  const mixedBindings = hasSelection && selectedNodes.length > 1
+    ? ALL_BINDABLE_PROPERTIES.reduce((sum, prop) => {
+        return sum + (getBindingForProperty(selectedNodes, prop) === 'mixed' ? 1 : 0);
       }, 0)
     : 0;
 
@@ -158,7 +190,28 @@ export function SelectionInspector({
   }, [creatingFromProp]);
 
   const handleRemoveBinding = (prop: BindableProperty) => {
+    const binding = getBindingForProperty(selectedNodes, prop);
     parent.postMessage({ pluginMessage: { type: 'remove-binding', property: prop } }, '*');
+    if (binding && binding !== 'mixed' && onPushUndo) {
+      const entry = tokenMap[binding];
+      const tokenType = entry?.$type ?? getTokenTypeForProperty(prop);
+      const resolved = entry ? resolveTokenValue(entry.$value, entry.$type, tokenMap) : { value: null };
+      const resolvedValue = resolved.value;
+      onPushUndo({
+        description: `Removed binding "${binding}" from ${PROPERTY_LABELS[prop]}`,
+        restore: async () => {
+          parent.postMessage({
+            pluginMessage: {
+              type: 'apply-to-selection',
+              tokenPath: binding,
+              tokenType,
+              targetProperty: prop,
+              resolvedValue,
+            },
+          }, '*');
+        },
+      });
+    }
   };
 
   const openCreateFromProp = (prop: BindableProperty) => {
@@ -169,10 +222,17 @@ export function SelectionInspector({
   const cancelCreate = () => {
     setCreatingFromProp(null);
     setNewTokenName('');
+    setCreateError('');
+    setCreatedTokenPath(null);
   };
 
   const handleCreateToken = async () => {
     if (!creatingFromProp || !newTokenName.trim() || !connected || !activeSet) return;
+    const pathTrimmed = newTokenName.trim();
+    if (!/^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$/.test(pathTrimmed)) {
+      setCreateError('Path must be dot-separated segments of letters, numbers, - and _');
+      return;
+    }
     const currentValue = getCurrentValue(selectedNodes, creatingFromProp);
     const tokenType = getTokenTypeForProperty(creatingFromProp);
     const tokenValue = getTokenValueFromProp(creatingFromProp, currentValue);
@@ -195,7 +255,10 @@ export function SelectionInspector({
             resolvedValue: tokenValue,
           },
         }, '*');
-        cancelCreate();
+        setCreatingFromProp(null);
+        setNewTokenName('');
+        setCreateError('');
+        setCreatedTokenPath(tokenPath);
         onTokenCreated();
       }
     } finally {
@@ -228,26 +291,37 @@ export function SelectionInspector({
         <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate flex-1">
           {headerLabel}
         </span>
-        {totalBindings > 0 && (
+        {(totalBindings > 0 || mixedBindings > 0) && (
           <span className="text-[9px] text-[var(--color-figma-accent)] shrink-0">
-            {totalBindings} binding{totalBindings !== 1 ? 's' : ''}
+            {selectedNodes.length > 1
+              ? [
+                  totalBindings > 0 && `${totalBindings} shared`,
+                  mixedBindings > 0 && `${mixedBindings} mixed`,
+                ].filter(Boolean).join(', ')
+              : `${totalBindings} binding${totalBindings !== 1 ? 's' : ''}`
+            }
           </span>
         )}
       </button>
 
       {/* Sync controls */}
-      <div className="flex items-center gap-1 px-3 pb-1">
+      {hasSelection && <div className="flex items-center gap-1 px-3 pb-1">
         {syncing && syncProgress ? (
           <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
             Syncing... {syncProgress.processed}/{syncProgress.total}
           </span>
         ) : syncResult ? (
           <span className={`text-[9px] ${syncResult.missingTokens.length > 0 ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-success)]'}`}>
-            Updated {syncResult.updated} binding{syncResult.updated !== 1 ? 's' : ''}
-            {syncResult.missingTokens.length > 0 && ` (${syncResult.missingTokens.length} missing)`}
+            {syncResult.updated === 0 && syncResult.missingTokens.length === 0
+              ? 'Up to date'
+              : `Updated ${syncResult.updated} binding${syncResult.updated !== 1 ? 's' : ''}${syncResult.missingTokens.length > 0 ? ` (${syncResult.missingTokens.length} missing)` : ''}`
+            }
           </span>
         ) : (
           <>
+            {freshSyncResult && freshSyncResult.missingTokens.length === 0 && (
+              <span className="text-[9px] text-[var(--color-figma-success)] select-none" title="Bindings are up to date">✓</span>
+            )}
             {totalBindings > 0 && connected && (
               <button
                 onClick={(e) => { e.stopPropagation(); onSync('selection'); }}
@@ -268,11 +342,11 @@ export function SelectionInspector({
             )}
           </>
         )}
-      </div>
+      </div>}
 
       {/* Body */}
-      {!collapsed && hasSelection && (
-        <div className="overflow-y-auto max-h-[200px] px-1 pb-1">
+      {!collapsed && hasSelection && !creatingFromProp && (
+        <div className="overflow-y-auto max-h-[30vh] px-1 pb-1">
           {PROPERTY_GROUPS.map(group => {
             if (!shouldShowGroup(group.condition, caps)) return null;
 
@@ -286,7 +360,7 @@ export function SelectionInspector({
 
             return (
               <div key={group.label} className="mb-1">
-                <div className="px-2 py-0.5 text-[8px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] font-medium">
+                <div className="px-2 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)] font-medium">
                   {group.label}
                 </div>
                 {visibleProps.map(prop => {
@@ -320,11 +394,11 @@ export function SelectionInspector({
                       {/* Color swatch */}
                       {swatchColor ? (
                         <div
-                          className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                          className="w-3.5 h-3.5 rounded-sm border border-[var(--color-figma-border)] ring-1 ring-white ring-inset shrink-0"
                           style={{ backgroundColor: swatchColor }}
                         />
                       ) : (
-                        <div className="w-3 h-3 shrink-0" />
+                        <div className="w-3.5 h-3.5 shrink-0" />
                       )}
 
                       <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0 truncate">
@@ -378,6 +452,33 @@ export function SelectionInspector({
         </div>
       )}
 
+      {/* Create success banner */}
+      {createdTokenPath && (
+        <div className="border-t border-[var(--color-figma-border)] px-3 py-2 flex items-center gap-2 bg-[var(--color-figma-bg)]">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-success,#18a058)]" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+          <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate flex-1" title={createdTokenPath}>{createdTokenPath}</span>
+          {onNavigateToToken && (
+            <button
+              onClick={() => { onNavigateToToken(createdTokenPath); setCreatedTokenPath(null); }}
+              className="text-[9px] text-[var(--color-figma-accent)] hover:underline shrink-0"
+            >
+              View token →
+            </button>
+          )}
+          <button
+            onClick={() => setCreatedTokenPath(null)}
+            className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+            title="Dismiss"
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Create token form */}
       {creatingFromProp && (
         <div className="border-t border-[var(--color-figma-border)] px-3 py-2 flex flex-col gap-2 bg-[var(--color-figma-bg)]">
@@ -403,14 +504,15 @@ export function SelectionInspector({
             <input
               ref={nameInputRef}
               value={newTokenName}
-              onChange={e => setNewTokenName(e.target.value)}
+              onChange={e => { setNewTokenName(e.target.value); setCreateError(''); }}
               onKeyDown={e => {
                 if (e.key === 'Enter') handleCreateToken();
                 if (e.key === 'Escape') cancelCreate();
               }}
               placeholder="group.token-name"
-              className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+              className={`w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
             />
+            {createError && <div className="text-[9px] text-[var(--color-figma-error)]">{createError}</div>}
           </div>
           <div className="flex gap-1.5 justify-end">
             <button

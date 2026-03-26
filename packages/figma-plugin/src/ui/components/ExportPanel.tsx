@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 
 interface ExportPanelProps {
   serverUrl: string;
@@ -376,7 +377,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                       </button>
                       {expandedFile === file.path && (
                         <div className="border-t border-[var(--color-figma-border)]">
-                          <pre className="p-3 text-[10px] font-mono text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] overflow-x-auto max-h-48 whitespace-pre-wrap break-all">
+                          <pre className="p-3 text-[10px] font-mono text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] overflow-auto max-h-48 whitespace-pre-wrap break-all">
                             {file.content}
                           </pre>
                           <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -510,7 +511,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                                     }
                                     return null;
                                   })()}
-                                  <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase shrink-0 token-type-${variable.$type}`}>
+                                  <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase shrink-0 ${TOKEN_TYPE_BADGE_CLASS[variable.$type ?? ''] ?? 'token-type-string'}`}>
                                     {variable.$type}
                                   </span>
                                 </button>

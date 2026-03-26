@@ -71,8 +71,8 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
   }, [query]);
 
   const execute = (cmd: Command) => {
-    onClose();
     cmd.handler();
+    onClose();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -149,7 +149,7 @@ export function CommandPalette({ commands, onClose }: CommandPaletteProps) {
             >
               <span className="text-[11px] font-medium">{cmd.label}</span>
               {cmd.description && (
-                <span className={`text-[10px] ${idx === activeIdx ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                <span title={cmd.description} className={`text-[10px] truncate ${idx === activeIdx ? 'text-white/70' : 'text-[var(--color-figma-text-secondary)]'}`}>
                   {cmd.description}
                 </span>
               )}

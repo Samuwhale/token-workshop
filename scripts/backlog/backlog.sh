@@ -2,9 +2,10 @@
 # Backlog Runner - Long-running agent loop for backlog.md
 # Usage: ./backlog.sh [--tool amp|claude] [max_iterations]
 #
-# Each iteration is a fresh Claude session. Continuity is handled via documents:
-#   - backlog.md       task state ([ ] / [~] / [x] / [!])
-#   - progress.txt     codebase patterns + per-item learnings (injected into every session)
+# Continuity between sessions via two files:
+#   backlog.md      task state ([ ] / [~] / [x] / [!])
+#   patterns.md     reusable codebase patterns (injected into every session)
+#   progress.txt    full per-item log (human audit trail, not injected)
 
 set -e
 
@@ -31,10 +32,16 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKLOG_FILE="$PROJECT_ROOT/backlog.md"
 INBOX_FILE="$PROJECT_ROOT/backlog-inbox.md"
 STOP_FILE="$PROJECT_ROOT/backlog-stop"
+PATTERNS_FILE="$SCRIPT_DIR/patterns.md"
 PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
 
 if [ ! -f "$BACKLOG_FILE" ]; then
   echo "Error: backlog.md not found at $PROJECT_ROOT"
+  exit 1
+fi
+
+if [ ! -f "$PATTERNS_FILE" ]; then
+  echo "Error: patterns.md not found at $SCRIPT_DIR"
   exit 1
 fi
 
@@ -45,17 +52,23 @@ if [ ! -f "$PROGRESS_FILE" ]; then
   echo "---" >> "$PROGRESS_FILE"
 fi
 
-echo "Starting Backlog Runner - Tool: $TOOL - Max iterations: $MAX_ITERATIONS"
-echo "  To stop after the current iteration: touch $STOP_FILE"
+remaining() {
+  grep -cE '^\- \[ \]' "$BACKLOG_FILE" 2>/dev/null || echo 0
+}
+
+echo "Starting Backlog Runner — Tool: $TOOL — Max iterations: $MAX_ITERATIONS"
+echo "  Remaining items: $(remaining)"
+echo "  Stop signal:     touch $STOP_FILE"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
+  REMAINING=$(remaining)
   echo ""
   echo "==============================================================="
-  echo "  Backlog Iteration $i of $MAX_ITERATIONS ($TOOL)"
+  echo "  Iteration $i / $MAX_ITERATIONS  ($TOOL)  —  $REMAINING items remaining"
   echo "==============================================================="
 
   # Early exit: no [ ] items left
-  if ! grep -qE '^\- \[ \]' "$BACKLOG_FILE"; then
+  if [ "$REMAINING" -eq 0 ]; then
     echo ""
     echo "No remaining [ ] items in backlog.md. All done!"
     exit 0
@@ -64,23 +77,22 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   if [[ "$TOOL" == "amp" ]]; then
     OUTPUT=$(cat "$SCRIPT_DIR/CLAUDE.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
   else
-    # Fresh session every time. Progress.txt is appended to the system prompt
-    # so codebase patterns carry over without polluting the context window.
+    # Inject patterns.md (lean, stable) — not the full progress log
     OUTPUT=$(claude \
       --dangerously-skip-permissions \
       --print \
-      --append-system-prompt-file "$PROGRESS_FILE" \
+      --append-system-prompt-file "$PATTERNS_FILE" \
       < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
   fi
 
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
     echo ""
     echo "Backlog completed all tasks!"
-    echo "Completed at iteration $i of $MAX_ITERATIONS"
+    echo "Completed at iteration $i / $MAX_ITERATIONS"
     exit 0
   fi
 
-  # Drain inbox: if backlog-inbox.md has content, append it to backlog.md and clear it
+  # Drain inbox: if backlog-inbox.md has non-whitespace content, append to backlog.md and clear it
   if [ -f "$INBOX_FILE" ] && grep -qE '\S' "$INBOX_FILE" 2>/dev/null; then
     echo ""
     echo "--- Inbox has new items — appending to backlog.md ---"
@@ -90,15 +102,14 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     echo "--- Inbox drained ---"
   fi
 
-  # Print the last entry appended to progress.txt (header + bullet lines, no meta)
+  # Print last progress entry (header + bullet lines only)
   SUMMARY=$(awk '/^## /{found=1; buf=""} found && !/^---/{buf=buf"\n"$0} /^---$/ && found{last=buf; found=0} END{print last}' "$PROGRESS_FILE" | sed '/^[[:space:]]*$/d' | head -4)
   if [ -n "$SUMMARY" ]; then
     echo ""
     echo "$SUMMARY"
-  else
-    echo "Iteration $i complete."
   fi
-  # Graceful stop: if backlog-stop exists, exit cleanly
+
+  # Graceful stop
   if [ -f "$STOP_FILE" ]; then
     rm -f "$STOP_FILE"
     echo ""
@@ -110,6 +121,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 done
 
 echo ""
-echo "Backlog runner reached max iterations ($MAX_ITERATIONS) without completing."
-echo "Check backlog.md for current status."
+echo "Reached max iterations ($MAX_ITERATIONS) without completing."
+echo "  Remaining items: $(remaining)"
+echo "  Check backlog.md for current status."
 exit 1

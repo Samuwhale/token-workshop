@@ -29,6 +29,12 @@
   --token-badge-string-text: #f39c12;
   --token-badge-boolean-bg: #2ecc7133;
   --token-badge-boolean-text: #2ecc71;
+  --token-badge-gradient-bg: #e056fd33;
+  --token-badge-gradient-text: #e056fd;
+  --token-badge-duration-bg: #00cec933;
+  --token-badge-duration-text: #00cec9;
+  --token-badge-fontFamily-bg: #6c5ce733;
+  --token-badge-fontFamily-text: #6c5ce7;
 }
 
 body {
@@ -65,3 +71,6 @@ button:focus-visible {
 .token-type-number { background: var(--token-badge-number-bg); color: var(--token-badge-number-text); }
 .token-type-string { background: var(--token-badge-string-bg); color: var(--token-badge-string-text); }
 .token-type-boolean { background: var(--token-badge-boolean-bg); color: var(--token-badge-boolean-text); }
+.token-type-gradient { background: var(--token-badge-gradient-bg); color: var(--token-badge-gradient-text); }
+.token-type-duration { background: var(--token-badge-duration-bg); color: var(--token-badge-duration-text); }
+.token-type-fontFamily { background: var(--token-badge-fontFamily-bg); color: var(--token-badge-fontFamily-text); }

@@ -84,10 +84,18 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
   const [orphansDeleting, setOrphansDeleting] = useState(false);
   const orphansResolveRef = useRef<((count: number) => void) | null>(null);
 
+  const fetchAbortRef = useRef<AbortController | null>(null);
+
   const fetchStatus = useCallback(async () => {
+    // Cancel any in-flight request from a previous call
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    const { signal } = controller;
+
     if (!connected) { setLoading(false); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/sync/status`);
+      const res = await fetch(`${serverUrl}/api/sync/status`, { signal });
       if (res.ok) {
         const data = await res.json();
         setStatus(data);
@@ -96,20 +104,22 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
         setStatus({ isRepo: false, branch: null, remote: null, status: null });
       }
 
-      const branchRes = await fetch(`${serverUrl}/api/sync/branches`);
+      const branchRes = await fetch(`${serverUrl}/api/sync/branches`, { signal });
       if (branchRes.ok) {
         const branchData = await branchRes.json();
         setBranches(branchData.branches || []);
       }
     } catch (err) {
+      if ((err as Error).name === 'AbortError') return;
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
   }, [serverUrl, connected]);
 
   useEffect(() => {
     fetchStatus();
+    return () => { fetchAbortRef.current?.abort(); };
   }, [fetchStatus]);
 
   // Listen for variables-read and orphans-deleted responses from controller
@@ -187,11 +197,14 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
   }, [serverUrl, activeSet]);
 
   const applyVarDiff = useCallback(async () => {
+    // Snapshot state at invocation time so mid-flight mutations don't affect the payload.
+    const dirsSnapshot = varDirs;
+    const rowsSnapshot = varRows;
     setVarSyncing(true);
     setVarError(null);
     try {
-      const pushRows = varRows.filter(r => varDirs[r.path] === 'push');
-      const pullRows = varRows.filter(r => varDirs[r.path] === 'pull');
+      const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
+      const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
 
       if (pushRows.length > 0) {
         const tokens = pushRows.map(r => ({
@@ -394,12 +407,22 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
 
   if (!status?.isRepo) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-3">
+      <div className="flex flex-col items-center justify-center py-12 gap-4 px-6">
         <p className="text-[12px] text-[var(--color-figma-text-secondary)]">No Git repository initialized</p>
+        <div className="w-full flex flex-col gap-2">
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote URL (optional)</label>
+          <input
+            type="text"
+            value={remoteUrl}
+            onChange={e => setRemoteUrl(e.target.value)}
+            placeholder="https://github.com/org/repo.git"
+            className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+          />
+        </div>
         <button
-          onClick={() => doAction('init')}
+          onClick={() => doAction('init', remoteUrl ? { remoteUrl } : undefined)}
           disabled={actionLoading !== null}
-          className="px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+          className="w-full px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
         >
           {actionLoading === 'init' ? 'Initializing...' : 'Initialize Repository'}
         </button>
@@ -506,18 +529,39 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
           {varRows.length > 0 && (() => {
             const catLabel = (cat: VarDiffRow['cat']) =>
               cat === 'local-only' ? 'Local only ↑' : cat === 'figma-only' ? 'Figma only ↓' : '⚡ conflict';
+            const catTitle = (cat: VarDiffRow['cat']) =>
+              cat === 'local-only' ? 'This token exists locally but not in Figma. Push to add it to Figma.'
+              : cat === 'figma-only' ? 'This token exists in Figma but not locally. Pull to add it to your local set.'
+              : 'This token exists in both places but has different values. Choose push (keep local) or pull (keep Figma).';
             const catColor = (cat: VarDiffRow['cat']) =>
               cat === 'local-only' ? 'text-[var(--color-figma-success)]'
               : cat === 'figma-only' ? 'text-[var(--color-figma-accent)]'
               : 'text-yellow-600';
             return (
               <>
+                <div className="flex items-center gap-2 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] sticky top-0">
+                  <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] shrink-0 w-16">Status</span>
+                  <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] flex-1">Path</span>
+                  <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] shrink-0">Direction</span>
+                </div>
+                <div className="flex items-center gap-1 px-3 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] mr-1">Bulk:</span>
+                  {(['push', 'pull', 'skip'] as const).map(action => (
+                    <button
+                      key={action}
+                      onClick={() => setVarDirs(Object.fromEntries(varRows.map(r => [r.path, action])))}
+                      className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-hover)] capitalize"
+                    >
+                      {action === 'push' ? 'Push all ↑' : action === 'pull' ? 'Pull all ↓' : 'Skip all'}
+                    </button>
+                  ))}
+                </div>
                 <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
                   {varRows.map(row => {
                     const dir = varDirs[row.path] ?? 'push';
                     return (
                       <div key={row.path} className="flex items-center gap-2 px-3 py-1.5">
-                        <span className={`text-[9px] font-medium shrink-0 ${catColor(row.cat)}`}>{catLabel(row.cat)}</span>
+                        <span className={`text-[9px] font-medium shrink-0 ${catColor(row.cat)}`} title={catTitle(row.cat)}>{catLabel(row.cat)}</span>
                         <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={row.path}>{row.path}</span>
                         <select
                           value={dir}
@@ -571,8 +615,16 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
             <div className="divide-y divide-[var(--color-figma-border)]">
               {readinessChecks.map(check => (
                 <div key={check.id} className="flex items-center gap-2 px-3 py-2">
-                  <span className={`text-[10px] shrink-0 ${check.status === 'pass' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
-                    {check.status === 'pass' ? '✓' : '✗'}
+                  <span className={`shrink-0 ${check.status === 'pass' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-error)]'}`}>
+                    {check.status === 'pass' ? (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    ) : (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    )}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[10px] text-[var(--color-figma-text)]">{check.label}</div>

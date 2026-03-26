@@ -24,6 +24,22 @@ export const ALL_BINDABLE_PROPERTIES: BindableProperty[] = [
   'typography', 'shadow', 'visible',
 ];
 
+/** Maps each known token type to its CSS badge class defined in styles.css.
+ *  Add new types here AND in styles.css to keep badge styling in sync. */
+export const TOKEN_TYPE_BADGE_CLASS: Record<string, string> = {
+  color: 'token-type-color',
+  dimension: 'token-type-dimension',
+  typography: 'token-type-typography',
+  shadow: 'token-type-shadow',
+  border: 'token-type-border',
+  number: 'token-type-number',
+  string: 'token-type-string',
+  boolean: 'token-type-boolean',
+  gradient: 'token-type-gradient',
+  duration: 'token-type-duration',
+  fontFamily: 'token-type-fontFamily',
+};
+
 export const TOKEN_PROPERTY_MAP: Record<string, BindableProperty[]> = {
   color: ['fill', 'stroke'],
   dimension: ['width', 'height', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'itemSpacing', 'cornerRadius', 'strokeWeight'],

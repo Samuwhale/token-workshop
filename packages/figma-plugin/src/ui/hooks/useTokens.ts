@@ -74,7 +74,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
     refreshTokens();
   }, [refreshTokens]);
 
-  return { sets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, refreshTokens };
+  return { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, refreshTokens };
 }
 
 export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {
