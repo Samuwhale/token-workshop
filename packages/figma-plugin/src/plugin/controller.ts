@@ -652,6 +652,27 @@ async function applyTokenValue(node: SceneNode, property: string, value: any, to
     case 'visible':
       node.visible = Boolean(value);
       break;
+
+    case 'composition': {
+      // Map each property in the composition value to its inferred token type
+      const propTypeMap: Record<string, string> = {
+        fill: 'color', stroke: 'color',
+        width: 'dimension', height: 'dimension',
+        paddingTop: 'dimension', paddingRight: 'dimension',
+        paddingBottom: 'dimension', paddingLeft: 'dimension',
+        itemSpacing: 'dimension', cornerRadius: 'dimension', strokeWeight: 'dimension',
+        opacity: 'number',
+        visible: 'boolean',
+        typography: 'typography',
+        shadow: 'shadow',
+      };
+      const compVal = typeof value === 'object' && value !== null ? value : {};
+      for (const [prop, propVal] of Object.entries(compVal)) {
+        const propType = propTypeMap[prop] || 'string';
+        await applyTokenValue(node, prop, propVal, propType);
+      }
+      break;
+    }
   }
 }
 

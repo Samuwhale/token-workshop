@@ -98,6 +98,34 @@ function useSyncBindings(serverUrl: string, connected: boolean) {
 
 type Tab = 'tokens' | 'inspect' | 'publish';
 
+type FolderTreeNode = {
+  name: string;   // display name (first path segment, e.g. 'brands')
+  path: string;   // full folder key (e.g. 'brands')
+  sets: string[]; // full set names whose first segment matches this folder
+};
+
+// Builds a flat folder tree from set names that use '/' as a folder separator.
+// Sets without '/' are returned as plain strings (root-level sets).
+function buildSetFolderTree(sets: string[]): { roots: Array<string | FolderTreeNode> } {
+  const folderMap = new Map<string, FolderTreeNode>();
+  const roots: Array<string | FolderTreeNode> = [];
+  for (const set of sets) {
+    const slash = set.indexOf('/');
+    if (slash === -1) {
+      roots.push(set);
+    } else {
+      const folderName = set.slice(0, slash);
+      if (!folderMap.has(folderName)) {
+        const node: FolderTreeNode = { name: folderName, path: folderName, sets: [] };
+        folderMap.set(folderName, node);
+        roots.push(node);
+      }
+      folderMap.get(folderName)!.sets.push(set);
+    }
+  }
+  return { roots };
+}
+
 const TABS: { id: Tab; label: string }[] = [
   { id: 'tokens', label: 'Tokens' },
   { id: 'inspect', label: 'Inspect' },
@@ -318,6 +346,27 @@ export function App() {
   const setTabsScrollRef = useRef<HTMLDivElement>(null);
   const [setTabsOverflow, setSetTabsOverflow] = useState<{ left: boolean; right: boolean }>({ left: false, right: false });
 
+  // Sidebar mode: activate when any set has a '/' folder separator or there are many sets
+  const useSidebar = sets.some(s => s.includes('/')) || sets.length >= 7;
+  const sidebarTree = useMemo(() => buildSetFolderTree(sets), [sets]);
+
+  // Collapsed folders state (persisted to localStorage)
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('tm_collapsed_folders');
+      return new Set<string>(saved ? JSON.parse(saved) : []);
+    } catch { return new Set<string>(); }
+  });
+  const toggleFolder = useCallback((folderPath: string) => {
+    setCollapsedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folderPath)) next.delete(folderPath);
+      else next.add(folderPath);
+      try { localStorage.setItem('tm_collapsed_folders', JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     if (connected) {
       fetchAllTokensFlatWithSets(serverUrl).then(({ flat, pathToSet: pts }) => {
@@ -505,8 +554,8 @@ export function App() {
     if (!renamingSet) return;
     const newName = renameValue.trim();
     if (!newName || newName === renamingSet) { cancelRename(); return; }
-    if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
-      setRenameError('Only letters, numbers, - and _');
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(newName)) {
+      setRenameError('Use letters, numbers, - and _ (/ for folders)');
       return;
     }
     if (!connected) { cancelRename(); return; }
@@ -573,7 +622,7 @@ export function App() {
   const handleCreateSet = async () => {
     const name = newSetName.trim();
     if (!name) { setNewSetError('Name cannot be empty'); return; }
-    if (!/^[a-zA-Z0-9_-]+$/.test(name)) { setNewSetError('Only letters, numbers, - and _'); return; }
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(name)) { setNewSetError('Use letters, numbers, - and _ (/ for folders)'); return; }
     if (!connected) { setCreatingSet(false); return; }
     try {
       const res = await fetch(`${serverUrl}/api/sets`, {
@@ -1042,8 +1091,8 @@ export function App() {
         </div>
       </div>
 
-      {/* Set selector (for tokens tab) */}
-      {activeTab === 'tokens' && overflowPanel === null && sets.length > 0 && (
+      {/* Set selector (for tokens tab) — hidden when sidebar mode is active */}
+      {activeTab === 'tokens' && overflowPanel === null && sets.length > 0 && !useSidebar && (
         <>
         <div className="relative">
         <div ref={setTabsScrollRef} className="flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>

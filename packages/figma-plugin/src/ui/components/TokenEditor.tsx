@@ -254,6 +254,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
     gradient: { type: 'linear', stops: [] },
     duration: 0,
     fontFamily: '',
+    composition: {},
   };
 
   const applyTypeChange = (newType: string) => {
@@ -627,6 +628,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             {tokenType === 'strokeStyle' && <StrokeStyleEditor value={value} onChange={setValue} />}
             {tokenType === 'string' && <StringEditor value={value} onChange={setValue} />}
             {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
+            {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} />}
           </div>
         )}
 
@@ -1787,6 +1789,79 @@ function GradientStopRow({ stop, canRemove, allTokensFlat, pathToSet, onChange, 
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
         </button>
+      )}
+    </div>
+  );
+}
+
+const COMPOSITION_PROPERTIES = [
+  'fill', 'stroke', 'width', 'height',
+  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
+  'itemSpacing', 'cornerRadius', 'strokeWeight', 'opacity',
+  'typography', 'shadow', 'visible',
+];
+
+function CompositionEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const [newProp, setNewProp] = useState(COMPOSITION_PROPERTIES[0]);
+  const val = typeof value === 'object' && value !== null ? value : {};
+  const usedProps = Object.keys(val);
+  const unusedProps = COMPOSITION_PROPERTIES.filter(p => !usedProps.includes(p));
+
+  const update = (key: string, v: string) => onChange({ ...val, [key]: v });
+  const remove = (key: string) => {
+    const next = { ...val };
+    delete next[key];
+    onChange(next);
+  };
+  const addProp = () => {
+    const prop = newProp || unusedProps[0];
+    if (!prop || prop in val) return;
+    onChange({ ...val, [prop]: '' });
+    setNewProp(unusedProps.filter(p => p !== prop)[0] || '');
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {usedProps.length === 0 && (
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No properties yet — add one below.</p>
+      )}
+      {usedProps.map(prop => (
+        <div key={prop} className="flex items-center gap-1.5">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 w-24 truncate" title={prop}>{prop}</span>
+          <input
+            type="text"
+            value={typeof val[prop] === 'string' ? val[prop] : JSON.stringify(val[prop])}
+            onChange={e => update(prop, e.target.value)}
+            placeholder="{token.path} or value"
+            className={inputClass + ' flex-1'}
+          />
+          <button
+            type="button"
+            onClick={() => remove(prop)}
+            title={`Remove ${prop}`}
+            className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      ))}
+      {unusedProps.length > 0 && (
+        <div className="flex items-center gap-1.5 pt-1 border-t border-[var(--color-figma-border)]">
+          <select
+            value={newProp}
+            onChange={e => setNewProp(e.target.value)}
+            className={inputClass + ' flex-1'}
+          >
+            {unusedProps.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+          <button
+            type="button"
+            onClick={addProp}
+            className="px-2 py-1 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/30 shrink-0"
+          >+ Add</button>
+        </div>
       )}
     </div>
   );

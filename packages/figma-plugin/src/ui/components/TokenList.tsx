@@ -2413,6 +2413,35 @@ function TokenTreeNode({
 
   const handleApplyToSelection = (e: React.MouseEvent) => {
     if (!node.$type) return;
+
+    // Composition tokens apply all their properties at once
+    if (node.$type === 'composition') {
+      const rawVal = isAlias(node.$value)
+        ? resolveTokenValue(node.$value, 'composition', allTokensFlat).value
+        : node.$value;
+      const compObj = typeof rawVal === 'object' && rawVal !== null ? rawVal : {};
+      // Resolve each property value so the controller receives raw values, not references
+      const resolvedComp: Record<string, any> = {};
+      for (const [prop, propVal] of Object.entries(compObj)) {
+        if (isAlias(propVal)) {
+          const r = resolveTokenValue(propVal as string, 'unknown', allTokensFlat);
+          resolvedComp[prop] = r.error ? propVal : r.value;
+        } else {
+          resolvedComp[prop] = propVal;
+        }
+      }
+      parent.postMessage({
+        pluginMessage: {
+          type: 'apply-to-selection',
+          tokenPath: node.path,
+          tokenType: 'composition',
+          targetProperty: 'composition',
+          resolvedValue: resolvedComp,
+        },
+      }, '*');
+      return;
+    }
+
     const validProps = TOKEN_PROPERTY_MAP[node.$type];
     if (!validProps || validProps.length === 0) return;
 

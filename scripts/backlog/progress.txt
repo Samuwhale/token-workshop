@@ -383,3 +383,12 @@
   - The `showPreviewSplit` path is a separate render block — side panel for that case was intentionally left out (not in scope)
   - `editingToken?.path ?? highlightedToken` keeps the editing row highlighted for the full session instead of auto-clearing after 3 seconds
 ---
+
+## 2026-03-26 - Composition tokens
+- Added full composition token support: `CompositionValue` type in core, badge styling (pink, `token-type-composition`), `CompositionEditor` component (property list with add/remove rows), and apply-all-at-once logic wired through both UI and controller
+- Files changed: `packages/core/src/types.ts` ~L68, `packages/figma-plugin/src/shared/types.ts` ~L29, `packages/figma-plugin/src/ui/styles.css` ~L36, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L245 & ~L1797, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2414, `packages/figma-plugin/src/plugin/controller.ts` ~L654
+- **Learnings for future iterations:**
+  - The type dropdown in TokenEditor is driven by `Object.keys(TOKEN_TYPE_BADGE_CLASS)` — adding a type there AND adding badge CSS is all that's needed to surface it in the selector
+  - Composition apply flow: UI resolves each property's token references before sending, controller iterates the resolved object calling `applyTokenValue` per property with an inline `propTypeMap`
+  - `handleApplyToSelection` in TokenList checks `TOKEN_PROPERTY_MAP[type]` first — new token types with non-standard apply behavior need an early-return special case before that check
+---
