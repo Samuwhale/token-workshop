@@ -39,7 +39,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
-- [~] **Resolver crashes on malformed composite tokens** — `resolveValue()` in `packages/core/src/resolver.ts` recurses into nested objects and arrays without null guards on intermediate values. A composite token with an `undefined` field in its object value will throw at runtime. Add null checks before recursing into object/array values.
+- [x] **Resolver crashes on malformed composite tokens** — `resolveValue()` in `packages/core/src/resolver.ts` recurses into nested objects and arrays without null guards on intermediate values. A composite token with an `undefined` field in its object value will throw at runtime. Add null checks before recursing into object/array values.
 
 ### QoL
 
@@ -96,7 +96,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### Bugs
 
 - [x] **Missing `return` after error response in sync route** — In `packages/server/src/routes/sync.ts`, the catch block sends a 500 response but doesn't `return`, so execution continues and Fastify may attempt to send a second response. Add `return` before the `reply.status(500)` call.
-- [~] **Race condition: concurrent file watcher rebuilds** — In `packages/server/src/services/token-store.ts`, the `change`/`add`/`unlink` watcher handlers all call `rebuildFlatTokens()` without debouncing or locking. Rapid file-system events (e.g., an editor writing multiple files at once) trigger concurrent rebuilds, leaving the resolver in a partially stale state. Debounce the rebuild or use a rebuild queue.
+- [x] **Race condition: concurrent file watcher rebuilds** — In `packages/server/src/services/token-store.ts`, the `change`/`add`/`unlink` watcher handlers all call `rebuildFlatTokens()` without debouncing or locking. Rapid file-system events (e.g., an editor writing multiple files at once) trigger concurrent rebuilds, leaving the resolver in a partially stale state. Debounce the rebuild or use a rebuild queue.
 - [x] **File watcher errors silently halt updates** — The chokidar watcher in `token-store.ts` has no `error` event handler. If the watcher encounters a permission error or the watched directory is deleted, it stops firing events with no indication to the server or user.
 
 ### UX
@@ -168,7 +168,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [ ] **Resolver rebuilds full graph on every `updateToken()`** — `token-store.ts` calls `rebuildFlatTokens()` after every single token save, reconstructing the entire flat map and resolver. Bulk operations (rename group, move group) trigger O(n) rebuilds per token updated, resulting in O(n²) behavior. Batch or defer the rebuild until the operation is complete.
 - [ ] **`JSON.stringify` used for deep equality in `TokenList`** — `TokenList.tsx` uses `JSON.stringify(a) === JSON.stringify(b)` for diffing token structures. This is fragile (key order dependent) and slow for large composite tokens. Replace with a proper deep-equality check.
-- [ ] **No `fetch()` timeout in UI hooks** — `useTokens.ts` and other hooks make `fetch()` calls to the local server with no timeout or `AbortController`. If the server is slow or unreachable, the plugin UI hangs with no way to recover. Add a timeout and surface an error after a reasonable threshold.
+- [~] **No `fetch()` timeout in UI hooks** — `useTokens.ts` and other hooks make `fetch()` calls to the local server with no timeout or `AbortController`. If the server is slow or unreachable, the plugin UI hangs with no way to recover. Add a timeout and surface an error after a reasonable threshold.
 
 ### Correctness & Safety
 

@@ -31,9 +31,10 @@
 ---
 
 ## 2026-03-26 - `GeneratorTemplate` type exported from core but never used
-- Removed `GeneratorTemplate` from the export list in `packages/core/src/index.ts`; the interface remains in `generator-types.ts` for internal use by `GENERATOR_TEMPLATES`
-- The plugin intentionally avoids importing from `@tokenmanager/core` (see comment at top of `useGenerators.ts`) so the export was unreachable by design
-- Files changed: `packages/core/src/index.ts` ~L96
+- Removed `GeneratorTemplate` interface and `GENERATOR_TEMPLATES` const from `generator-types.ts`; also removed `GENERATOR_TEMPLATES` from re-exports in `index.ts`
+- Nothing in server or plugin imported these from `@tokenmanager/core`; the plugin has its own `GeneratorTemplate` in `useGenerators.ts` and `QUICK_START_TEMPLATES` in `QuickStartDialog.tsx`
+- Files changed: `packages/core/src/generator-types.ts` ~L270, `packages/core/src/index.ts` ~L108
 - **Learnings for future iterations:**
-  - Plugin has a deliberate "no import from core" policy — types in core that mirror plugin-side types are dead exports by design, not bugs
+  - Always check if a "remove unused export" item also requires removing the underlying definition, not just the re-export
+  - When an interface is only used by a const in the same file and both are dead code, both should be removed together
 ---

@@ -200,14 +200,18 @@ export class TokenResolver {
 
     if (Array.isArray(value)) {
       for (const item of value) {
-        for (const r of this.collectReferences(item)) refs.add(r);
+        if (item != null) {
+          for (const r of this.collectReferences(item)) refs.add(r);
+        }
       }
       return refs;
     }
 
     if (typeof value === 'object' && value !== null) {
       for (const v of Object.values(value)) {
-        for (const r of this.collectReferences(v)) refs.add(r);
+        if (v != null) {
+          for (const r of this.collectReferences(v)) refs.add(r);
+        }
       }
     }
 
@@ -323,13 +327,13 @@ export class TokenResolver {
     }
 
     if (Array.isArray(value)) {
-      return value.map((item) => this.resolveValue(item, contextPath));
+      return value.map((item) => (item != null ? this.resolveValue(item, contextPath) : item));
     }
 
     if (typeof value === 'object' && value !== null) {
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(value)) {
-        out[k] = this.resolveValue(v, contextPath);
+        out[k] = v != null ? this.resolveValue(v, contextPath) : v;
       }
       return out;
     }

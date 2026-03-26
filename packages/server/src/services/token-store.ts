@@ -19,6 +19,8 @@ export class TokenStore {
   private resolver: TokenResolver | null = null;
   private watcher: ReturnType<typeof watch> | null = null;
   private changeListeners: Set<(event: ChangeEvent) => void> = new Set();
+  private _rebuildDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private _pendingWatcherEvents: ChangeEvent[] = [];
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
@@ -64,6 +66,19 @@ export class TokenStore {
     this.sets.set(name, { name, tokens, filePath });
   }
 
+  private scheduleRebuild(event: ChangeEvent): void {
+    this._pendingWatcherEvents.push(event);
+    if (this._rebuildDebounceTimer !== null) {
+      clearTimeout(this._rebuildDebounceTimer);
+    }
+    this._rebuildDebounceTimer = setTimeout(() => {
+      this._rebuildDebounceTimer = null;
+      this.rebuildFlatTokens();
+      const events = this._pendingWatcherEvents.splice(0);
+      for (const ev of events) this.emit(ev);
+    }, 50);
+  }
+
   private startWatching(): void {
     this.watcher = watch(path.join(this.dir, '*.tokens.json'), {
       ignoreInitial: true,
@@ -75,8 +90,7 @@ export class TokenStore {
       await this.loadSet(filename).catch(err =>
         console.warn(`[TokenStore] Error reloading "${filename}":`, err),
       );
-      this.rebuildFlatTokens();
-      this.emit({ type: 'set-updated', setName: filename.replace('.tokens.json', '') });
+      this.scheduleRebuild({ type: 'set-updated', setName: filename.replace('.tokens.json', '') });
     });
 
     this.watcher.on('add', async (filePath) => {
@@ -84,16 +98,14 @@ export class TokenStore {
       await this.loadSet(filename).catch(err =>
         console.warn(`[TokenStore] Error loading new file "${filename}":`, err),
       );
-      this.rebuildFlatTokens();
-      this.emit({ type: 'set-added', setName: filename.replace('.tokens.json', '') });
+      this.scheduleRebuild({ type: 'set-added', setName: filename.replace('.tokens.json', '') });
     });
 
     this.watcher.on('unlink', (filePath) => {
       const filename = path.basename(filePath as string);
       const name = filename.replace('.tokens.json', '');
       this.sets.delete(name);
-      this.rebuildFlatTokens();
-      this.emit({ type: 'set-removed', setName: name });
+      this.scheduleRebuild({ type: 'set-removed', setName: name });
     });
 
     this.watcher.on('error', (err) => {
@@ -666,6 +678,10 @@ export class TokenStore {
   }
 
   async shutdown(): Promise<void> {
+    if (this._rebuildDebounceTimer !== null) {
+      clearTimeout(this._rebuildDebounceTimer);
+      this._rebuildDebounceTimer = null;
+    }
     await this.watcher?.close();
   }
 }

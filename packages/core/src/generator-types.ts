@@ -264,22 +264,6 @@ export interface GeneratedTokenResult {
 }
 
 // ---------------------------------------------------------------------------
-// Generator templates (replaces ScaffoldingWizard presets)
-// ---------------------------------------------------------------------------
-
-export interface GeneratorTemplate {
-  id: string;
-  label: string;
-  description: string;
-  /** Suggested group prefix, e.g. "spacing" or "borderRadius" */
-  defaultPrefix: string;
-  generatorType: GeneratorType;
-  config: GeneratorConfig;
-  /** Whether this template requires a source token to generate values */
-  requiresSource: boolean;
-}
-
-// ---------------------------------------------------------------------------
 // Default configurations (exported for use in UI)
 // ---------------------------------------------------------------------------
 
@@ -408,86 +392,3 @@ export const DEFAULT_RESPONSIVE_SCALE_CONFIG: ResponsiveScaleConfig = {
   unit: 'px',
 };
 
-export const GENERATOR_TEMPLATES: GeneratorTemplate[] = [
-  {
-    id: 'spacing',
-    label: 'Spacing scale',
-    description: 'Multiplier-based spacing scale derived from a base unit',
-    defaultPrefix: 'spacing',
-    generatorType: 'spacingScale',
-    requiresSource: true,
-    config: DEFAULT_SPACING_SCALE_CONFIG,
-  },
-  {
-    id: 'border-radius',
-    label: 'Border radius scale',
-    description: 'Rounded corner tokens from none to full, derived from a base radius',
-    defaultPrefix: 'borderRadius',
-    generatorType: 'borderRadiusScale',
-    requiresSource: true,
-    config: DEFAULT_BORDER_RADIUS_SCALE_CONFIG,
-  },
-  {
-    id: 'typography',
-    label: 'Typography scale',
-    description: 'Font size scale using a ratio, derived from a base font size',
-    defaultPrefix: 'fontSize',
-    generatorType: 'typeScale',
-    requiresSource: true,
-    config: DEFAULT_TYPE_SCALE_CONFIG,
-  },
-  {
-    id: 'z-index',
-    label: 'Z-index layers',
-    description: 'Semantic z-index layers (standalone, no source token needed)',
-    defaultPrefix: 'zIndex',
-    generatorType: 'zIndexScale',
-    requiresSource: false,
-    config: DEFAULT_Z_INDEX_SCALE_CONFIG,
-  },
-  {
-    id: 'opacity',
-    label: 'Opacity scale',
-    description: 'Full opacity ramp from 0–100% (standalone, no source token needed)',
-    defaultPrefix: 'opacity',
-    generatorType: 'opacityScale',
-    requiresSource: false,
-    config: DEFAULT_OPACITY_SCALE_CONFIG,
-  },
-  {
-    id: 'color-ramp',
-    label: 'Color ramp',
-    description: 'Perceptual 11-step color ramp derived from a source color token',
-    defaultPrefix: 'colors',
-    generatorType: 'colorRamp',
-    requiresSource: true,
-    config: DEFAULT_COLOR_RAMP_CONFIG,
-  },
-  {
-    id: 'accessible-color-pair',
-    label: 'Accessible color pair',
-    description: 'Auto-generates a WCAG AA-compliant foreground for a given background color token',
-    defaultPrefix: 'color',
-    generatorType: 'accessibleColorPair',
-    requiresSource: true,
-    config: DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG,
-  },
-  {
-    id: 'dark-mode-inversion',
-    label: 'Dark mode inversion',
-    description: 'L*-inverts a source color to produce its perceptual dark-mode equivalent',
-    defaultPrefix: 'color',
-    generatorType: 'darkModeInversion',
-    requiresSource: true,
-    config: DEFAULT_DARK_MODE_INVERSION_CONFIG,
-  },
-  {
-    id: 'responsive-scale',
-    label: 'Responsive scale',
-    description: 'Generates sm/base/md/lg/xl size variants from a base dimension token',
-    defaultPrefix: 'size',
-    generatorType: 'responsiveScale',
-    requiresSource: true,
-    config: DEFAULT_RESPONSIVE_SCALE_CONFIG,
-  },
-];
