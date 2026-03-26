@@ -324,3 +324,12 @@
   - The `colorInputRef` + `onBlur` pattern (documented in patterns.md) is now superseded by the `ColorPicker` popover for all color editing; the patterns.md entry should be updated if this pattern is removed everywhere.
   - For inline-edit pickers where each change fires `onChange` live, save should happen in `onClose` to avoid flooding the undo stack with intermediate states.
 ---
+
+## 2026-03-26 - Rename token with reference update
+- Added "Rename token" to the leaf token right-click context menu in `TokenTreeNode`. On commit, fetches dependent count via `GET /api/tokens/:set/dependents/*`. If N > 0, shows a ConfirmModal "N tokens reference this token. All references will be updated to '<new path>'." before executing. Rename POSTs to a new `/api/tokens/:set/tokens/rename` endpoint that moves the leaf token and calls `updateBulkAliasRefs` across all sets.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L160, L591, L1632, L1822, L2193, L2252, L2270, L2393, L2749, L3035; `packages/server/src/routes/tokens.ts` ~L129; `packages/server/src/services/token-store.ts` ~L486
+- **Learnings for future iterations:**
+  - `collectGroupLeafTokens` in token-store.ts returns `[]` when the path points to a leaf token (isDTCGToken check), so the existing `groups/rename` endpoint cannot rename individual leaf tokens. A dedicated `renameToken` method using `updateBulkAliasRefs` (exact path map) is needed.
+  - `updateAliasRefs` uses prefix matching `{path.` so it would miss exact-path aliases `{path}` for leaf tokens. `updateBulkAliasRefs` uses exact path matching and is correct for single-token renames.
+  - useCallback ordering matters: define `executeTokenRename` before `handleRenameToken` so it can be listed in the deps array.
+---
