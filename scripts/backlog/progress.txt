@@ -295,3 +295,16 @@
   - Guard conditions like `toastVisible && undoSlot` can hide UI when only one direction (redo) is available — always guard on the union condition
   - `disabled:opacity-30 disabled:cursor-default disabled:hover:bg-white/20` pattern for disabled buttons in inverted (dark-bg) toast contexts
 ---
+
+## 2026-03-26 - UX audit & overhaul: Scaffolding Wizard
+- Added token count badges (e.g. "11 tokens") to each template row so users know what they'll get before clicking
+- Added default prefix badges (e.g. `colors.*`) showing the output path for generated tokens
+- Added step name previews below each template description (e.g. "50 · 100 · 200 … 950") so users can see exactly which tokens will be created
+- Improved section headers: added helper text explaining "Pick a base token, then generate a scale from it" / "Ready to use — no source token needed"
+- Made chevron arrows only appear on hover (group-hover pattern) to reduce visual noise
+- Files changed: `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx` ~L139 (helpers), ~L349 (source templates), ~L390 (standalone templates), ~L346 (section headers)
+- **Learnings for future iterations:**
+  - The actual component is `QuickStartDialog.tsx`, not `ScaffoldingWizard.tsx` — backlog reference was stale
+  - Template configs use different step shapes (`name`, `value`, `exponent`, `multiplier`) depending on generator type — extract step names with fallback chain `s.name ?? s.value`
+  - `text-[var(--color-figma-text-tertiary)]` is available for ultra-low-emphasis text
+---
