@@ -484,6 +484,27 @@ export class TokenStore {
     return { renamedCount: leafTokens.length, aliasesUpdated };
   }
 
+  async renameToken(setName: string, oldPath: string, newPath: string): Promise<{ aliasesUpdated: number }> {
+    const set = this.sets.get(setName);
+    if (!set) throw new Error(`Set "${setName}" not found`);
+    const token = this.getTokenAtPath(set.tokens, oldPath);
+    if (!token) throw new Error(`Token "${oldPath}" not found in set "${setName}"`);
+    if (this.getTokenAtPath(set.tokens, newPath)) throw new Error(`Token "${newPath}" already exists`);
+    this.setTokenAtPath(set.tokens, newPath, token);
+    this.deleteTokenAtPath(set.tokens, oldPath);
+    await this.saveSet(setName);
+    const pathMap = new Map([[oldPath, newPath]]);
+    let aliasesUpdated = 0;
+    const setsToSave = new Set<string>();
+    for (const [sName, s] of this.sets) {
+      const changed = this.updateBulkAliasRefs(s.tokens, pathMap);
+      if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+    }
+    for (const sName of setsToSave) await this.saveSet(sName);
+    this.rebuildFlatTokens();
+    return { aliasesUpdated };
+  }
+
   async moveGroup(fromSet: string, groupPath: string, toSet: string): Promise<{ movedCount: number }> {
     if (fromSet === toSet) throw new Error('Source and target sets are the same');
     const source = this.sets.get(fromSet);

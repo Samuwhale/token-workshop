@@ -284,6 +284,17 @@
   - Virtual row height (VIRTUAL_ITEM_HEIGHT=28px) makes CSS expand-on-hover complex — a `title` attribute tooltip is the right approach for truncated text in a virtualized list
 ---
 
+## 2026-03-26 - "Create another" rapid-entry mode
+- Added `handleCreateAndNew` async function that POSTs the token then re-opens the form with the same group prefix and type pre-filled (clears name, value, description; keeps type; sets `siblingPrefix` to parent group)
+- Added "& New" button (secondary accent style, `flex-1`) next to the "Create" button; tooltip explains Shift+Enter shortcut
+- Updated all three form `onKeyDown` handlers (path, value, description inputs) to branch on `e.shiftKey` — Enter calls `handleCreate`, Shift+Enter calls `handleCreateAndNew`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L722 (handleCreateAndNew), ~L1634 (Shift+Enter handlers), ~L1680 (& New button)
+- **Learnings for future iterations:**
+  - The parent prefix extraction uses `nodeParentPath(path, path.split('.').pop()!)` — same helper used elsewhere in the file; handles dotted segment names correctly
+  - `siblingPrefix` state doubles as a "group label" banner in the form header; setting it to the parent prefix gives the user visual confirmation of which group they're adding to
+  - Three-button layout `[Create] [& New] [Cancel]` needs `gap-1.5` (down from `gap-2`) and `px-2` (down from `px-3`) on the two primary buttons to fit cleanly
+---
+
 ## 2026-03-26 - Rich color picker with color space support
 - `ColorPicker.tsx` was already fully implemented with HSL, LCH, P3, opacity slider, and Figma eyedropper. The work was wiring it up everywhere native `<input type="color">` was still used.
 - Added `ColorSwatchButton` helper component to `TokenEditor.tsx` (swatch button + `ColorPicker` popover) and used it to replace 4 native inputs: mix modifier, ShadowEditor, BorderEditor, GradientStopEditor.

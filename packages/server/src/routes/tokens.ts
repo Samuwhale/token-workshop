@@ -127,6 +127,27 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // POST /api/tokens/:set/tokens/rename — rename a single leaf token and update alias references
+  fastify.post<{ Params: { set: string }; Body: { oldPath: string; newPath: string } }>(
+    '/tokens/:set/tokens/rename',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { oldPath, newPath } = request.body ?? {};
+      if (!oldPath || !newPath) {
+        return reply.status(400).send({ error: 'oldPath and newPath are required' });
+      }
+      try {
+        const result = await fastify.tokenStore.renameToken(set, oldPath, newPath);
+        return result;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    },
+  );
+
   // GET /api/tokens/:set/* — get single token by path
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/*', async (request, reply) => {
     const { set } = request.params;

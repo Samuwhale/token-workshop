@@ -158,6 +158,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<{ type: 'variables' | 'styles'; count: number } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
+  const [renameTokenConfirm, setRenameTokenConfirm] = useState<{ oldPath: string; newPath: string; depCount: number } | null>(null);
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
@@ -587,6 +588,29 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     onRefresh();
   }, [connected, serverUrl, setName, onRefresh]);
 
+  const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
+    if (!connected) return;
+    const encodedPath = oldPath.split('.').map(encodeURIComponent).join('/');
+    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedPath}`);
+    const data = res.ok ? await res.json() as { count: number } : { count: 0 };
+    if (data.count > 0) {
+      setRenameTokenConfirm({ oldPath, newPath, depCount: data.count });
+    } else {
+      await executeTokenRename(oldPath, newPath);
+    }
+  }, [connected, serverUrl, setName]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const executeTokenRename = useCallback(async (oldPath: string, newPath: string) => {
+    if (!connected) return;
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ oldPath, newPath }),
+    });
+    setRenameTokenConfirm(null);
+    onRefresh();
+  }, [connected, serverUrl, setName, onRefresh]);
+
   const handleRequestMoveGroup = useCallback((groupPath: string) => {
     const otherSets = sets.filter(s => s !== setName);
     setMoveTargetSet(otherSets[0] ?? '');
@@ -696,6 +720,66 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
       setNewTokenValue('');
       setNewTokenDescription('');
       setSiblingPrefix(null);
+      onRefresh();
+      onTokenCreated?.(createdPath);
+      if (onPushUndo) {
+        onPushUndo({
+          description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
+          restore: async () => {
+            await fetch(`${capturedUrl}/api/tokens/${capturedSet}/${createdPath}`, { method: 'DELETE' });
+            onRefresh();
+          },
+          redo: async () => {
+            await fetch(`${capturedUrl}/api/tokens/${capturedSet}/${createdPath}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ $type: createdType, $value: createdValue }),
+            });
+            onRefresh();
+          },
+        });
+      }
+    } catch (err) {
+      setCreateError('Network error — could not create token');
+    }
+  };
+
+  const handleCreateAndNew = async () => {
+    const trimmedPath = newTokenPath.trim();
+    if (!trimmedPath) { setCreateError('Token path cannot be empty'); return; }
+    if (!connected) return;
+    setCreateError('');
+    const effectiveSet = setName || 'default';
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${effectiveSet}/${trimmedPath}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          $type: newTokenType,
+          $value: newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType),
+          ...(newTokenDescription.trim() ? { $description: newTokenDescription.trim() } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setCreateError((data as any).error || `Failed to create token (${res.status})`);
+        return;
+      }
+      const createdPath = trimmedPath;
+      const createdType = newTokenType;
+      const createdValue = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
+      const capturedSet = effectiveSet;
+      const capturedUrl = serverUrl;
+      // Compute parent prefix to pre-fill the next token in the same group
+      const prefix = createdPath.length > (createdPath.split('.').pop()?.length ?? 0) + 1
+        ? nodeParentPath(createdPath, createdPath.split('.').pop()!)
+        : null;
+      setSiblingPrefix(prefix ?? '');
+      setNewTokenPath(prefix ? prefix + '.' : '');
+      setNewTokenValue('');
+      setNewTokenDescription('');
+      setTypeAutoInferred(false);
+      setCreateError('');
       onRefresh();
       onTokenCreated?.(createdPath);
       if (onPushUndo) {
@@ -1567,7 +1651,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               value={newTokenPath}
               onChange={e => { setNewTokenPath(e.target.value); setCreateError(''); }}
               className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
-              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
               autoFocus
             />
             {createError && <p className="text-[10px] text-[var(--color-figma-error)]">{createError}</p>}
@@ -1587,7 +1671,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 }
               }}
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
-              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
             />
             <input
               type="text"
@@ -1595,7 +1679,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               value={newTokenDescription}
               onChange={e => setNewTokenDescription(e.target.value)}
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
-              onKeyDown={e => e.key === 'Enter' && handleCreate()}
+              onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
             />
             <select
               value={newTokenType}
@@ -1616,14 +1700,22 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               <option value="string">String</option>
               <option value="boolean">Boolean</option>
             </select>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               <button
                 onClick={handleCreate}
                 disabled={!newTokenPath.trim()}
-                title={!newTokenPath.trim() ? 'Enter a token name first' : undefined}
-                className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                title={!newTokenPath.trim() ? 'Enter a token name first' : 'Create token (Enter)'}
+                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
                 Create
+              </button>
+              <button
+                onClick={handleCreateAndNew}
+                disabled={!newTokenPath.trim()}
+                title={!newTokenPath.trim() ? 'Enter a token name first' : 'Create and start a new token in the same group (Shift+Enter)'}
+                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)] hover:text-white disabled:opacity-40 whitespace-nowrap"
+              >
+                & New
               </button>
               <button
                 onClick={() => { setShowCreateForm(false); setNewTokenPath(''); setNewTokenValue(''); setNewTokenDescription(''); setTypeAutoInferred(false); setSiblingPrefix(null); setCreateError(''); }}
@@ -1721,6 +1813,17 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           danger
           onConfirm={executeDelete}
           onCancel={() => setDeleteConfirm(null)}
+        />
+      )}
+
+      {/* Rename token confirmation modal */}
+      {renameTokenConfirm && (
+        <ConfirmModal
+          title={`Rename "${renameTokenConfirm.oldPath.split('.').pop()}"?`}
+          description={`${renameTokenConfirm.depCount} token${renameTokenConfirm.depCount !== 1 ? 's' : ''} reference this token. All references will be updated to "${renameTokenConfirm.newPath}".`}
+          confirmLabel="Rename and update references"
+          onConfirm={() => executeTokenRename(renameTokenConfirm.oldPath, renameTokenConfirm.newPath)}
+          onCancel={() => setRenameTokenConfirm(null)}
         />
       )}
 
@@ -2602,10 +2705,11 @@ function TokenTreeNode({
         <ValuePreview type={node.$type} value={displayValue} />
       )}
 
-      {/* Name and info */}
+      {/* Name and info — single-click applies (non-select mode), double-click edits */}
       <div
-        className="flex-1 min-w-0"
-        onClick={selectMode ? () => onToggleSelect(node.path) : undefined}
+        className={`flex-1 min-w-0${!selectMode ? ' cursor-pointer' : ''}`}
+        onClick={selectMode ? () => onToggleSelect(node.path) : (e) => { e.stopPropagation(); handleApplyToSelection(e); }}
+        onDoubleClick={!selectMode ? (e) => { e.stopPropagation(); onEdit(node.path); } : undefined}
         style={selectMode ? { cursor: 'pointer' } : undefined}
       >
         <div className="flex items-center gap-1.5">

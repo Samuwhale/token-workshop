@@ -1,6 +1,6 @@
 #!/bin/bash
 # Backlog Runner - Long-running agent loop for backlog.md
-# Usage: ./backlog.sh [--tool amp|claude] [max_iterations]
+# Usage: ./backlog.sh [--tool amp|claude] [--model <model-id>] [max_iterations]
 #
 # Concurrency-safe: multiple runners can operate on the same backlog
 # simultaneously. All backlog.md mutations are serialised by file locks
@@ -22,12 +22,15 @@ graceful_stop() {
 trap graceful_stop INT TERM
 
 TOOL="claude"
+MODEL="claude-sonnet-4-6"
 MAX_ITERATIONS=20
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --tool)    TOOL="$2"; shift 2 ;;
     --tool=*)  TOOL="${1#*=}"; shift ;;
+    --model)   MODEL="$2"; shift 2 ;;
+    --model=*) MODEL="${1#*=}"; shift ;;
     *)
       if [[ "$1" =~ ^[0-9]+$ ]]; then MAX_ITERATIONS="$1"; fi
       shift ;;
@@ -278,7 +281,7 @@ drain_inbox() {
 # JSON schema for structured agent output
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
-echo "Starting Backlog Runner — Tool: $TOOL — Max iterations: $MAX_ITERATIONS"
+echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iterations: $MAX_ITERATIONS"
 echo "  Remaining items: $(remaining)"
 echo "  Stop signal:     Ctrl+C  (or: touch $STOP_FILE)"
 
@@ -333,6 +336,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       --max-turns 100 \
       --output-format json \
       --json-schema "$JSON_SCHEMA" \
+      --model "$MODEL" \
       --fallback-model claude-haiku-4-5-20251001 \
       --append-system-prompt-file "$CONTEXT_FILE" \
       < "$SCRIPT_DIR/CLAUDE.md" > "$AGENT_TMP" 2>"$AGENT_ERR") &
