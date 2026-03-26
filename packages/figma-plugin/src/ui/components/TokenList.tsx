@@ -8,6 +8,7 @@ import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
 import { QuickStartDialog } from './QuickStartDialog';
 import { BatchEditor } from './BatchEditor';
+import { TokenCanvas } from './TokenCanvas';
 import { hexToRgb, rgbToLab, colorDeltaE, stableStringify } from '../shared/colorUtils';
 import { ValuePreview } from './ValuePreview';
 import type { SortOrder } from './tokenListUtils';
@@ -423,7 +424,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
-  const [tableMode, setTableMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas'>('tree');
   const [showScopesCol, setShowScopesCol] = useState(false);
 
   const boundTokenPaths = useMemo(() => {

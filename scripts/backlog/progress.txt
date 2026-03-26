@@ -763,3 +763,17 @@
 - **Learnings for future iterations:**
   - Always verify import paths when a previously-generated file builds cleanly in isolation — the relative depth from `src/ui/components/` to `src/shared/` is `../../`, not `../`.
 ---
+
+## 2026-03-26 - Token recipes: composable transformations
+- Added three new generator recipe types to the existing generator system:
+  - `accessibleColorPair`: takes a background color source token, outputs `background` + `foreground` tokens where foreground (black or white) is chosen for maximum WCAG contrast
+  - `darkModeInversion`: takes a color source token, outputs a single L*-inverted equivalent using CIELAB (100 - L*) with chroma preserved
+  - `responsiveScale`: takes a dimension source token, outputs sm/base/md/lg/xl steps using per-step multipliers (semantic counterpart to spacingScale)
+- All three integrate with the existing topological sort so they participate in chained generator pipelines
+- Added default configs and three new GENERATOR_TEMPLATES entries
+- Files changed: `packages/core/src/generator-types.ts` ~L155, `packages/core/src/generator-engine.ts` ~L262, `packages/core/src/index.ts` ~L76, `packages/server/src/services/generator-service.ts` ~L16
+- **Learnings for future iterations:**
+  - The server imports from `@tokenmanager/core`'s built dist — must run `npm run build` in core before `tsc --noEmit` in server will see new exports
+  - WCAG relative luminance = 0.2126R + 0.7152G + 0.0722B (linear) — always pick black or white since one always achieves ≥4.5:1 except for pure mid-grays
+  - L* inversion (100 - L*) in CIELAB is a clean perceptual dark-mode transform; OKLCH would give slightly better hue consistency but isn't in the codebase
+---

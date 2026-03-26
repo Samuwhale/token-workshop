@@ -56,6 +56,12 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'select-node':
       await selectNode(msg.nodeId);
       break;
+    case 'scan-canvas-heatmap':
+      await scanCanvasHeatmap();
+      break;
+    case 'select-heatmap-nodes':
+      await selectHeatmapNodes(msg.nodeIds);
+      break;
   }
 };
 
@@ -279,6 +285,98 @@ async function selectNode(nodeId: string) {
     }
   } catch (error) {
     // Silently ignore — node might not be accessible
+  }
+}
+
+// Scan all visual nodes on the current page for token/variable binding coverage
+async function scanCanvasHeatmap() {
+  try {
+    const CHECKABLE_FIGMA_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'itemSpacing'];
+    const VISUAL_TYPES = new Set(['FRAME', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE', 'RECTANGLE', 'ELLIPSE', 'POLYGON', 'STAR', 'VECTOR', 'LINE', 'TEXT']);
+
+    const nodes = figma.currentPage.findAll(n => VISUAL_TYPES.has(n.type));
+
+    type HeatmapStatus = 'green' | 'yellow' | 'red';
+    const result: { id: string; name: string; type: string; status: HeatmapStatus; boundCount: number; totalCheckable: number }[] = [];
+    let greenCount = 0, yellowCount = 0, redCount = 0;
+
+    for (const node of nodes) {
+      // Figma variable bindings
+      const figmaBound = (node as any).boundVariables || {};
+      const figmaBoundProps = new Set<string>(
+        Object.keys(figmaBound).filter(k => {
+          const v = figmaBound[k];
+          return v && (typeof v === 'object') && ('id' in v || (Array.isArray(v) && v.length > 0));
+        })
+      );
+
+      // Our plugin data bindings
+      let pluginBoundCount = 0;
+      for (const prop of ALL_BINDABLE_PROPERTIES) {
+        const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
+        if (val && val.trim()) pluginBoundCount++;
+      }
+
+      // Count applicable Figma properties that have non-empty values
+      let totalCheckable = 0;
+      let figmaBoundMatchCount = 0;
+      for (const prop of CHECKABLE_FIGMA_PROPS) {
+        if (prop in node) {
+          const val = (node as any)[prop];
+          const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
+          if (hasValue) {
+            totalCheckable++;
+            if (figmaBoundProps.has(prop)) figmaBoundMatchCount++;
+          }
+        }
+      }
+
+      const boundCount = figmaBoundMatchCount + pluginBoundCount;
+      let status: HeatmapStatus;
+      if (totalCheckable === 0 && pluginBoundCount === 0) {
+        status = 'red';
+        redCount++;
+      } else if (boundCount > 0 && boundCount >= totalCheckable) {
+        status = 'green';
+        greenCount++;
+      } else if (boundCount > 0) {
+        status = 'yellow';
+        yellowCount++;
+      } else {
+        status = 'red';
+        redCount++;
+      }
+
+      result.push({ id: node.id, name: node.name, type: node.type, status, boundCount, totalCheckable });
+    }
+
+    figma.ui.postMessage({
+      type: 'canvas-heatmap-result',
+      total: nodes.length,
+      green: greenCount,
+      yellow: yellowCount,
+      red: redCount,
+      nodes: result.slice(0, 300),
+    });
+  } catch (error) {
+    figma.ui.postMessage({ type: 'error', message: String(error) });
+  }
+}
+
+// Select nodes by ID and zoom to them
+async function selectHeatmapNodes(nodeIds: string[]) {
+  try {
+    const nodes: SceneNode[] = [];
+    for (const id of nodeIds) {
+      const node = await figma.getNodeByIdAsync(id);
+      if (node && 'parent' in node) nodes.push(node as SceneNode);
+    }
+    if (nodes.length > 0) {
+      figma.currentPage.selection = nodes;
+      figma.viewport.scrollAndZoomIntoView(nodes);
+    }
+  } catch {
+    // ignore — node might not be accessible
   }
 }
 

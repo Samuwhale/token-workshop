@@ -13,6 +13,9 @@ import {
   runBorderRadiusScaleGenerator,
   runZIndexScaleGenerator,
   runCustomScaleGenerator,
+  runAccessibleColorPairGenerator,
+  runDarkModeInversionGenerator,
+  runResponsiveScaleGenerator,
   applyOverrides,
 } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
@@ -317,6 +320,9 @@ export class GeneratorService {
       type === 'typeScale' ||
       type === 'spacingScale' ||
       type === 'borderRadiusScale' ||
+      type === 'accessibleColorPair' ||
+      type === 'darkModeInversion' ||
+      type === 'responsiveScale' ||
       (type === 'customScale' && !!sourceToken)
     );
 
@@ -384,6 +390,26 @@ export class GeneratorService {
           }
         }
         results = runCustomScaleGenerator(base, config as any, targetGroup);
+        break;
+      }
+      case 'accessibleColorPair': {
+        const hex = typeof resolved!.$value === 'string' ? resolved!.$value : null;
+        if (!hex) throw new Error(`Source token "${sourceToken}" is not a color string`);
+        results = runAccessibleColorPairGenerator(hex, config as any, targetGroup);
+        break;
+      }
+      case 'darkModeInversion': {
+        const hex = typeof resolved!.$value === 'string' ? resolved!.$value : null;
+        if (!hex) throw new Error(`Source token "${sourceToken}" is not a color string`);
+        results = runDarkModeInversionGenerator(hex, config as any, targetGroup);
+        break;
+      }
+      case 'responsiveScale': {
+        const dim = resolved!.$value as { value: number; unit: string } | null;
+        if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
+          throw new Error(`Source token "${sourceToken}" is not a dimension value`);
+        }
+        results = runResponsiveScaleGenerator(dim, config as any, targetGroup);
         break;
       }
       default:

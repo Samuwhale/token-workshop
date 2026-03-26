@@ -86,6 +86,10 @@ export type {
   ZIndexScaleConfig,
   CustomScaleStep,
   CustomScaleConfig,
+  AccessibleColorPairConfig,
+  DarkModeInversionConfig,
+  ResponsiveScaleStep,
+  ResponsiveScaleConfig,
   GeneratorConfig,
   TokenGenerator,
   GeneratedTokenResult,
@@ -99,6 +103,9 @@ export {
   DEFAULT_BORDER_RADIUS_SCALE_CONFIG,
   DEFAULT_Z_INDEX_SCALE_CONFIG,
   DEFAULT_CUSTOM_SCALE_CONFIG,
+  DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG,
+  DEFAULT_DARK_MODE_INVERSION_CONFIG,
+  DEFAULT_RESPONSIVE_SCALE_CONFIG,
   GENERATOR_TEMPLATES,
 } from './generator-types.js';
 
@@ -111,5 +118,8 @@ export {
   runBorderRadiusScaleGenerator,
   runZIndexScaleGenerator,
   runCustomScaleGenerator,
+  runAccessibleColorPairGenerator,
+  runDarkModeInversionGenerator,
+  runResponsiveScaleGenerator,
   applyOverrides,
 } from './generator-engine.js';

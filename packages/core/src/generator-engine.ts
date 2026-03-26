@@ -10,6 +10,9 @@ import type {
   BorderRadiusScaleConfig,
   ZIndexScaleConfig,
   CustomScaleConfig,
+  AccessibleColorPairConfig,
+  DarkModeInversionConfig,
+  ResponsiveScaleConfig,
   GeneratedTokenResult,
 } from './generator-types.js';
 import { hexToLab, labToHex } from './color-math.js';
@@ -255,6 +258,124 @@ export function runCustomScaleGenerator(
   }
 
   return results;
+}
+
+// ---------------------------------------------------------------------------
+// Accessible Color Pair
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute the WCAG relative luminance of a hex color.
+ * https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
+ */
+function wcagLuminance(hex: string): number {
+  const clean = hex.replace('#', '');
+  if (!/^[0-9a-fA-F]{6}/.test(clean)) return 0;
+  const toLinear = (c: number) =>
+    c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const r = toLinear(parseInt(clean.slice(0, 2), 16) / 255);
+  const g = toLinear(parseInt(clean.slice(2, 4), 16) / 255);
+  const b = toLinear(parseInt(clean.slice(4, 6), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * Generate a background + foreground color pair where the foreground meets
+ * the configured WCAG contrast level against the background.
+ *
+ * Foreground is chosen from black or white — whichever achieves the higher
+ * contrast ratio. Both are always valid for WCAG AA (4.5:1) and AAA (7:1)
+ * for the vast majority of background colors.
+ */
+export function runAccessibleColorPairGenerator(
+  sourceHex: string,
+  config: AccessibleColorPairConfig,
+  targetGroup: string,
+): GeneratedTokenResult[] {
+  const bgLum = wcagLuminance(sourceHex);
+
+  // Contrast against white: (1.0 + 0.05) / (bgLum + 0.05)
+  const contrastWithWhite = 1.05 / (bgLum + 0.05);
+  // Contrast against black: (bgLum + 0.05) / (0.0 + 0.05)
+  const contrastWithBlack = (bgLum + 0.05) / 0.05;
+
+  const foreground = contrastWithWhite >= contrastWithBlack ? '#ffffff' : '#000000';
+
+  return [
+    {
+      stepName: config.backgroundStep,
+      path: `${targetGroup}.${config.backgroundStep}`,
+      type: 'color',
+      value: sourceHex,
+    },
+    {
+      stepName: config.foregroundStep,
+      path: `${targetGroup}.${config.foregroundStep}`,
+      type: 'color',
+      value: foreground,
+    },
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// Dark Mode Inversion
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate a perceptual dark-mode equivalent of a source color by inverting
+ * its CIELAB L* value (100 - L*) while preserving hue and chroma.
+ *
+ * This produces a dark-mode color that is perceptually symmetric to the
+ * source: a light background becomes a dark background, a vibrant accent
+ * remains vibrant, etc.
+ */
+export function runDarkModeInversionGenerator(
+  sourceHex: string,
+  config: DarkModeInversionConfig,
+  targetGroup: string,
+): GeneratedTokenResult[] {
+  const lab = hexToLab(sourceHex);
+  if (!lab) return [];
+  const [L, a, b] = lab;
+
+  const invertedL = 100 - L;
+  const invertedHex = labToHex(invertedL, a * config.chromaBoost, b * config.chromaBoost);
+
+  return [{
+    stepName: config.stepName,
+    path: `${targetGroup}.${config.stepName}`,
+    type: 'color',
+    value: invertedHex,
+  }];
+}
+
+// ---------------------------------------------------------------------------
+// Responsive Scale
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate a set of responsive size tokens (sm/base/md/lg/xl) from a source
+ * dimension token. Each step value = `sourceValue × step.multiplier`.
+ *
+ * This is the semantic-naming counterpart to `spacingScale`: where a spacing
+ * scale uses numeric multipliers (0.5, 1, 2, …), a responsive scale uses
+ * intent-named steps (sm, base, md, lg, xl).
+ */
+export function runResponsiveScaleGenerator(
+  sourceValue: { value: number; unit: string },
+  config: ResponsiveScaleConfig,
+  targetGroup: string,
+): GeneratedTokenResult[] {
+  return config.steps.map(step => {
+    const raw = sourceValue.value * step.multiplier;
+    const rounded = parseFloat(raw.toFixed(4));
+    return {
+      stepName: step.name,
+      path: `${targetGroup}.${step.name}`,
+      type: 'dimension',
+      value: { value: rounded, unit: config.unit || sourceValue.unit },
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------

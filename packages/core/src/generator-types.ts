@@ -14,7 +14,10 @@ export type GeneratorType =
   | 'opacityScale'
   | 'borderRadiusScale'
   | 'zIndexScale'
-  | 'customScale';
+  | 'customScale'
+  | 'accessibleColorPair'
+  | 'darkModeInversion'
+  | 'responsiveScale';
 
 // ---------------------------------------------------------------------------
 // Color Ramp
@@ -153,6 +156,49 @@ export interface CustomScaleConfig {
 }
 
 // ---------------------------------------------------------------------------
+// Accessible Color Pair
+// ---------------------------------------------------------------------------
+
+export interface AccessibleColorPairConfig {
+  /** WCAG contrast level to target. Default: 'AA' (4.5:1 for normal text) */
+  contrastLevel: 'AA' | 'AAA';
+  /** Step name for the background output token. Default: 'background' */
+  backgroundStep: string;
+  /** Step name for the foreground output token. Default: 'foreground' */
+  foregroundStep: string;
+}
+
+// ---------------------------------------------------------------------------
+// Dark Mode Inversion
+// ---------------------------------------------------------------------------
+
+export interface DarkModeInversionConfig {
+  /** Step name for the inverted output token. Default: 'dark' */
+  stepName: string;
+  /**
+   * Chroma multiplier applied to the inverted color (0.1–2.0).
+   * 1.0 = preserve chroma exactly. Values > 1 boost saturation. Default: 1.0
+   */
+  chromaBoost: number;
+}
+
+// ---------------------------------------------------------------------------
+// Responsive Scale
+// ---------------------------------------------------------------------------
+
+export interface ResponsiveScaleStep {
+  /** Semantic size name, e.g. 'sm', 'base', 'lg' */
+  name: string;
+  /** Multiplier applied to the source dimension value to get this step's value */
+  multiplier: number;
+}
+
+export interface ResponsiveScaleConfig {
+  steps: ResponsiveScaleStep[];
+  unit: 'px' | 'rem';
+}
+
+// ---------------------------------------------------------------------------
 // Union
 // ---------------------------------------------------------------------------
 
@@ -163,7 +209,10 @@ export type GeneratorConfig =
   | OpacityScaleConfig
   | BorderRadiusScaleConfig
   | ZIndexScaleConfig
-  | CustomScaleConfig;
+  | CustomScaleConfig
+  | AccessibleColorPairConfig
+  | DarkModeInversionConfig
+  | ResponsiveScaleConfig;
 
 // ---------------------------------------------------------------------------
 // Generator definition
@@ -337,6 +386,28 @@ export const DEFAULT_CUSTOM_SCALE_CONFIG: CustomScaleConfig = {
 // Quick-start templates (replace ScaffoldingWizard presets)
 // ---------------------------------------------------------------------------
 
+export const DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG: AccessibleColorPairConfig = {
+  contrastLevel: 'AA',
+  backgroundStep: 'background',
+  foregroundStep: 'foreground',
+};
+
+export const DEFAULT_DARK_MODE_INVERSION_CONFIG: DarkModeInversionConfig = {
+  stepName: 'dark',
+  chromaBoost: 1.0,
+};
+
+export const DEFAULT_RESPONSIVE_SCALE_CONFIG: ResponsiveScaleConfig = {
+  steps: [
+    { name: 'sm',   multiplier: 0.75 },
+    { name: 'base', multiplier: 1.0  },
+    { name: 'md',   multiplier: 1.25 },
+    { name: 'lg',   multiplier: 1.5  },
+    { name: 'xl',   multiplier: 2.0  },
+  ],
+  unit: 'px',
+};
+
 export const GENERATOR_TEMPLATES: GeneratorTemplate[] = [
   {
     id: 'spacing',
@@ -391,5 +462,32 @@ export const GENERATOR_TEMPLATES: GeneratorTemplate[] = [
     generatorType: 'colorRamp',
     requiresSource: true,
     config: DEFAULT_COLOR_RAMP_CONFIG,
+  },
+  {
+    id: 'accessible-color-pair',
+    label: 'Accessible color pair',
+    description: 'Auto-generates a WCAG AA-compliant foreground for a given background color token',
+    defaultPrefix: 'color',
+    generatorType: 'accessibleColorPair',
+    requiresSource: true,
+    config: DEFAULT_ACCESSIBLE_COLOR_PAIR_CONFIG,
+  },
+  {
+    id: 'dark-mode-inversion',
+    label: 'Dark mode inversion',
+    description: 'L*-inverts a source color to produce its perceptual dark-mode equivalent',
+    defaultPrefix: 'color',
+    generatorType: 'darkModeInversion',
+    requiresSource: true,
+    config: DEFAULT_DARK_MODE_INVERSION_CONFIG,
+  },
+  {
+    id: 'responsive-scale',
+    label: 'Responsive scale',
+    description: 'Generates sm/base/md/lg/xl size variants from a base dimension token',
+    defaultPrefix: 'size',
+    generatorType: 'responsiveScale',
+    requiresSource: true,
+    config: DEFAULT_RESPONSIVE_SCALE_CONFIG,
   },
 ];
