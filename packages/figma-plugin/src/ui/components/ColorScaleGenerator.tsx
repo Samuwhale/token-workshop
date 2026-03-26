@@ -160,6 +160,9 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
     }
   };
 
+  const firstStep = scale[0]?.label ?? '100';
+  const lastStep = scale[scale.length - 1]?.label ?? '900';
+
   return (
     <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
       <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[85vh]">
@@ -174,19 +177,9 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-          {/* Inputs */}
+          {/* Inputs: color first (most important), then steps, then prefix */}
           <div className="flex flex-col gap-3">
-            <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Prefix (token namespace)</label>
-              <input
-                type="text"
-                value={prefix}
-                onChange={e => setPrefix(e.target.value.replace(/[^a-zA-Z0-9_.-]/g, ''))}
-                placeholder="e.g. brand, primary, neutral"
-                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
-              />
-            </div>
-
+            {/* Base color */}
             <div>
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Base color</label>
               <div className="flex gap-2 items-center">
@@ -206,6 +199,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
               </div>
             </div>
 
+            {/* Steps */}
             <div>
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
               <div className="flex gap-2">
@@ -220,41 +214,65 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
                 ))}
               </div>
             </div>
-          </div>
 
-          {/* Preview swatches */}
-          {scale.length > 0 && (
+            {/* Prefix */}
             <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">Preview</label>
-              <div className="flex gap-0.5 rounded overflow-hidden h-10">
-                {scale.map(step => (
-                  <div
-                    key={step.label}
-                    className="flex-1"
-                    style={{ background: step.hex }}
-                    title={`${prefix}.${step.label}: ${step.hex} (L*=${step.L.toFixed(0)})`}
-                  />
-                ))}
-              </div>
-              <div className="flex justify-between mt-0.5">
-                <span className="text-[8px] text-[var(--color-figma-text-secondary)]">{scale[0].label}</span>
-                <span className="text-[8px] text-[var(--color-figma-text-secondary)]">{scale[scale.length - 1].label}</span>
-              </div>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Token prefix</label>
+              <input
+                type="text"
+                value={prefix}
+                onChange={e => setPrefix(e.target.value.replace(/[^a-zA-Z0-9_.-]/g, ''))}
+                placeholder="e.g. brand, primary, neutral"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              />
+              {prefix && scale.length > 0 && (
+                <p className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)] font-mono">
+                  {prefix}.{firstStep} → {prefix}.{lastStep}
+                </p>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Invalid hex feedback */}
           {scale.length === 0 && baseHex !== '' && (
             <div className="text-[10px] text-[var(--color-figma-error)]">Invalid color — enter a valid hex value (e.g. #3b82f6)</div>
           )}
 
-          {/* Sparkline */}
-          {scale.length > 1 && (
+          {/* Preview swatches — taller cards with label + hex */}
+          {scale.length > 0 && (
             <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
-                Lightness curve (L*) — <span className="text-orange-500">●</span> uneven step
-              </label>
-              <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">Preview</label>
+              <div className="flex gap-0.5 rounded overflow-hidden">
+                {scale.map(step => (
+                  <div key={step.label} className="flex-1 flex flex-col min-w-0">
+                    <div
+                      className="h-12"
+                      style={{ background: step.hex }}
+                      title={`${prefix}.${step.label}: ${step.hex}`}
+                    />
+                    <div className="py-1 text-center bg-[var(--color-figma-bg-secondary)]">
+                      <div className="text-[8px] font-medium text-[var(--color-figma-text)] leading-tight">{step.label}</div>
+                      <div className="text-[7px] text-[var(--color-figma-text-secondary)] font-mono leading-tight truncate px-0.5">{step.hex}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* L* sparkline — collapsed by default (advanced detail) */}
+          {scale.length > 1 && (
+            <details className="group">
+              <summary className="text-[9px] text-[var(--color-figma-text-secondary)] cursor-pointer select-none list-none flex items-center gap-1 hover:text-[var(--color-figma-text)]">
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="transition-transform group-open:rotate-90 shrink-0">
+                  <path d="M2 1l4 3-4 3V1z" />
+                </svg>
+                Lightness curve (L*)
+              </summary>
+              <div className="mt-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+                <div className="text-[8px] text-[var(--color-figma-text-secondary)] mb-1">
+                  <span className="text-orange-500">●</span> marks uneven steps
+                </div>
                 <Sparkline steps={scale} />
                 <div className="flex justify-between mt-0.5">
                   {scale.map(s => (
@@ -262,7 +280,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
                   ))}
                 </div>
               </div>
-            </div>
+            </details>
           )}
 
           {/* Conflicts */}

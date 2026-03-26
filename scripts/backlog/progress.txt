@@ -165,3 +165,17 @@
   - The "From primitives" section can be preserved as-is without visual redesign since it's invisible in production
   - Two-line action cards (label + description subtext) give users enough context to choose without being overwhelming
 ---
+
+## 2026-03-26 - UX audit & overhaul: Color Scale Generator
+- Redesigned `ColorScaleGenerator.tsx` to reduce friction and improve confidence before confirming:
+  1. **Reordered form fields** — base color first (most important), then steps, then prefix
+  2. **Naming convention hint** — prefix field now shows `{prefix}.100 → {prefix}.900` as inline helper text so the token structure is immediately obvious
+  3. **Taller swatch preview** — swatches grow from `h-10` (40px bar) to `h-12` individual cards (48px swatch + label row) with step name and hex value visible below each swatch
+  4. **Collapsed L* sparkline** — moved inside a `<details>` element (collapsed by default) with a chevron toggle; it's advanced info that doesn't belong in the main scan path
+  5. **Label rename** — "Prefix (token namespace)" → "Token prefix" (less jargon)
+- Files changed: `packages/figma-plugin/src/ui/components/ColorScaleGenerator.tsx` ~L163
+- **Learnings for future iterations:**
+  - `<details>/<summary>` with `list-none` removes the default triangle; use a custom SVG chevron with `group-open:rotate-90` for consistent styling with the rest of the app
+  - When form inputs have a clear priority order (most-important first), reordering them reduces cognitive load without any additional code
+  - Inline helper text below inputs (showing the result format) is a lightweight way to make naming conventions obvious without tooltips
+---
