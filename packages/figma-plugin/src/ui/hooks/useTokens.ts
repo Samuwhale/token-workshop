@@ -98,6 +98,7 @@ export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<stri
 export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
   flat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
+  perSetFlat: Record<string, Record<string, TokenMapEntry>>;
 }> {
   const setsRes = await fetch(`${serverUrl}/api/sets`, { signal: AbortSignal.timeout(5000) });
   if (!setsRes.ok) throw new Error(`Failed to fetch sets: ${setsRes.statusText}`);
@@ -106,15 +107,19 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
 
   const flat: Record<string, TokenMapEntry> = {};
   const pathToSet: Record<string, string> = {};
+  const perSetFlat: Record<string, Record<string, TokenMapEntry>> = {};
 
   for (const setName of setNames) {
     const res = await fetch(`${serverUrl}/api/tokens/${setName}`, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) continue;
     const data = await res.json();
+    const setMap: Record<string, TokenMapEntry> = {};
+    flattenTokens(data.tokens || {}, '', setMap);
+    perSetFlat[setName] = setMap;
     flattenTokensWithSet(data.tokens || {}, '', setName, flat, pathToSet);
   }
 
-  return { flat, pathToSet };
+  return { flat, pathToSet, perSetFlat };
 }
 
 function flattenTokensWithSet(

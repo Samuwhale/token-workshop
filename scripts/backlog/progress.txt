@@ -461,3 +461,11 @@
   - `figma.clientStorage` is per-plugin (shared across files) unless keyed by `figma.fileKey` — always include the file key for per-file persistence.
   - The async round-trip pattern: UI sends request on mount → listens once for response → removes listener. Keep localStorage as a sync fallback to avoid blank initial state.
 ---
+
+## 2026-03-26 - Duplicate theme
+- Added `handleDuplicate` function that generates a unique `-copy` (or `-copy-2`, `-copy-3`, ...) name, POSTs the cloned sets config, and scrolls to the new card via `setNewlyCreatedTheme`. Added a copy icon button to the theme card header (between rename and delete), visible on hover.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L194 (handleDuplicate), ~L489 (duplicate button in card header)
+- **Learnings for future iterations:**
+  - Theme creation re-uses the same POST /api/themes endpoint with existing set statuses — no new API endpoint needed for duplicate
+  - `setNewlyCreatedTheme` triggers scroll-into-view for the new card, reuse this for any "create and focus" flow
+---

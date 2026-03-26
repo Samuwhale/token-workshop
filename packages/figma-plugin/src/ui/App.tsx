@@ -193,6 +193,7 @@ export function App() {
   const { syncing, syncProgress, syncResult, sync } = useSyncBindings(serverUrl, connected);
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
   const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
+  const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
   const [highlightedToken, setHighlightedToken] = useState<string | null>(null);
   const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
@@ -313,6 +314,35 @@ export function App() {
     return resolveAllAliases(merged);
   }, [activeTheme, themes, allTokensFlat, pathToSet]);
 
+  // Cascade diff: live diff of resolved values when dragging set tabs to reorder
+  const cascadeDiff = useMemo<Record<string, { before: any; after: any }> | null>(() => {
+    if (!dragSetName || !dragOverSetName || dragSetName === dragOverSetName) return null;
+    if (activeTheme) return null; // theme-aware cascade uses different merge logic
+    const fromIdx = sets.indexOf(dragSetName);
+    const toIdx = sets.indexOf(dragOverSetName);
+    if (fromIdx === -1 || toIdx === -1) return null;
+    const proposedOrder = [...sets];
+    proposedOrder.splice(fromIdx, 1);
+    proposedOrder.splice(toIdx, 0, dragSetName);
+    // Build proposed merged flat (last set wins, same as fetchAllTokensFlatWithSets)
+    const proposedRaw: Record<string, TokenMapEntry> = {};
+    for (const sn of proposedOrder) {
+      const setMap = perSetFlat[sn];
+      if (setMap) Object.assign(proposedRaw, setMap);
+    }
+    const proposedResolved = resolveAllAliases(proposedRaw);
+    const diff: Record<string, { before: any; after: any }> = {};
+    const allPaths = new Set([...Object.keys(allTokensFlat), ...Object.keys(proposedResolved)]);
+    for (const path of allPaths) {
+      const before = allTokensFlat[path]?.$value;
+      const after = proposedResolved[path]?.$value;
+      if (stableStringify(before) !== stableStringify(after)) {
+        diff[path] = { before, after };
+      }
+    }
+    return Object.keys(diff).length > 0 ? diff : null;
+  }, [dragSetName, dragOverSetName, sets, perSetFlat, allTokensFlat, activeTheme]);
+
   // Set context menu state
   const [tabMenuOpen, setTabMenuOpen] = useState<string | null>(null);
   const [tabMenuPos, setTabMenuPos] = useState({ x: 0, y: 0 });
@@ -398,9 +428,10 @@ export function App() {
 
   useEffect(() => {
     if (connected) {
-      fetchAllTokensFlatWithSets(serverUrl).then(({ flat, pathToSet: pts }) => {
+      fetchAllTokensFlatWithSets(serverUrl).then(({ flat, pathToSet: pts, perSetFlat: psf }) => {
         setAllTokensFlat(resolveAllAliases(flat));
         setPathToSet(pts);
+        setPerSetFlat(psf);
       }).catch(err => console.error('Failed to fetch tokens flat:', err));
     }
   }, [connected, serverUrl, tokens]);
@@ -1893,6 +1924,7 @@ export function App() {
                     derivedTokenPaths={derivedTokenPaths}
                     showIssuesOnly={showIssuesOnly}
                     onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
+                    cascadeDiff={cascadeDiff ?? undefined}
                   />
                 </div>
                 <div className="w-60 shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-col overflow-hidden">
@@ -1939,6 +1971,7 @@ export function App() {
                 derivedTokenPaths={derivedTokenPaths}
                 showIssuesOnly={showIssuesOnly}
                 onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
+                cascadeDiff={cascadeDiff ?? undefined}
               />
             )
           )}
@@ -1970,6 +2003,7 @@ export function App() {
                   derivedTokenPaths={derivedTokenPaths}
                   showIssuesOnly={showIssuesOnly}
                   onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
+                  cascadeDiff={cascadeDiff ?? undefined}
                 />
               </div>
               <div className="flex-1 min-h-0 overflow-hidden border-t border-[var(--color-figma-border)]">

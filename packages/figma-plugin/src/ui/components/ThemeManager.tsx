@@ -22,6 +22,7 @@ interface ThemeManagerProps {
   serverUrl: string;
   connected: boolean;
   sets: string[];
+  onThemesChange?: (themes: Theme[]) => void;
 }
 
 type CoverageMap = Record<string, { uncovered: string[] }>;
@@ -185,6 +186,30 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
       setNewThemeName('');
       setShowCreate(false);
       setNewlyCreatedTheme(trimmedName);
+      fetchThemes();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    }
+  };
+
+  const handleDuplicate = async (theme: Theme) => {
+    if (!connected) return;
+    // Generate unique name: "name-copy", "name-copy-2", "name-copy-3", ...
+    let candidateName = `${theme.name}-copy`;
+    let suffix = 2;
+    while (themes.some(t => t.name === candidateName)) {
+      candidateName = `${theme.name}-copy-${suffix}`;
+      suffix++;
+    }
+    try {
+      // Preserve the same sets object (same statuses and key order)
+      const dupSets = { ...theme.sets };
+      await fetch(`${serverUrl}/api/themes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: candidateName, sets: dupSets }),
+      });
+      setNewlyCreatedTheme(candidateName);
       fetchThemes();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -460,6 +485,16 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                               <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDuplicate(theme)}
+                            className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
+                            title="Duplicate theme"
+                          >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
                             </svg>
                           </button>
                         </div>

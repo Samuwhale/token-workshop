@@ -66,6 +66,7 @@ interface TokenListProps {
   derivedTokenPaths?: Set<string>;
   showIssuesOnly?: boolean;
   onToggleIssuesOnly?: () => void;
+  cascadeDiff?: Record<string, { before: any; after: any }>;
 }
 
 type DeleteConfirm =
@@ -156,7 +157,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths, showIssuesOnly, onToggleIssuesOnly }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths, showIssuesOnly, onToggleIssuesOnly, cascadeDiff }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
