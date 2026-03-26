@@ -756,3 +756,10 @@
   - Bare numeric dimension values need `px` appended; test with `^\d+(\.\d+)?$` before appending
   - Token naming conventions are unpredictable — use multi-fallback CSS chains like `var(--color-primary, var(--color-brand-500, var(--color-accent, #0066ff)))` for resilience
 ---
+
+## 2026-03-26 - Live preview surface
+- Item was already fully implemented (PreviewPanel.tsx with Colors/Type Scale/Buttons/Forms/Card templates, dark mode toggle, CSS custom property injection). Fixed broken import path: `'../shared/types'` → `'../../shared/types'` in PreviewPanel.tsx (file is in `src/ui/components/`, shared types are at `src/shared/types`).
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L2
+- **Learnings for future iterations:**
+  - Always verify import paths when a previously-generated file builds cleanly in isolation — the relative depth from `src/ui/components/` to `src/shared/` is `../../`, not `../`.
+---

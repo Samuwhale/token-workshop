@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { TokenMapEntry } from '../shared/types';
+import type { TokenMapEntry } from '../../shared/types';
 
 interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
