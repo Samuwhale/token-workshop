@@ -714,3 +714,14 @@
   - For before/after color comparison use `.slice(0, 7)` to strip alpha from 8-char hex before displaying swatches
   - Alias dependents have `entry.$value.startsWith('{')` — use this to distinguish direct-color vs alias rows
 ---
+
+## 2026-03-26 - Decompose TokenList.tsx into focused components
+- Extracted pre-existing `ValuePreview.tsx` and `tokenListUtils.ts` (already created but not integrated) into TokenList.tsx via imports
+- Removed 335 lines of inline duplicate definitions from TokenList.tsx: `ValuePreview`, `formatValue`, `pruneDeletedPaths`, `filterByDuplicatePaths`, `filterTokenNodes`, `sortTokenNodes`, `collectGroupPathsByDepth`, `collectAllGroupPaths`, `countLeaves`, `flattenLeafNodes`, `findLeafByPath`, `collectGroupLeaves`, `getDefaultValue`, `countTokensInGroup`, `formatDisplayPath`, `nodeParentPath`, `flattenVisible`, and `SortOrder` type
+- TokenList.tsx reduced from 3119 → 2784 lines
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1-19
+- **Learnings for future iterations:**
+  - The decompose task had partial prior work (ValuePreview.tsx and tokenListUtils.ts already existed as untracked files) — check git status before starting decompose tasks
+  - `jsx: "react-jsx"` in tsconfig means no explicit React import is needed in new .tsx files using JSX
+  - `isAlias` was still needed directly in TokenList.tsx (used in ~8 places) even after moving `filterTokenNodes` to utils — don't remove an import just because the function using it moved
+---

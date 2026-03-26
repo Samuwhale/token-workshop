@@ -948,7 +948,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                 <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
                   {dependents.map(dep => {
                     const entry = allTokensFlat[dep.path];
-                    const colorVal = entry?.$type === 'color' && typeof entry.$value === 'string' && !entry.$value.startsWith('{') ? entry.$value : null;
+                    // Resolve through alias chains so alias-color dependents also get a swatch
+                    const resolvedColor = entry?.$type === 'color' ? resolveColorValue(dep.path, allTokensFlat) : null;
 
                     // Before/after preview: when this is a color token being edited
                     // and the dependent is an alias (its value resolves through this token)
@@ -975,10 +976,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                               title="After"
                             />
                           </span>
-                        ) : colorVal ? (
+                        ) : resolvedColor ? (
                           <span
                             className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]"
-                            style={{ background: colorVal }}
+                            style={{ background: resolvedColor }}
                           />
                         ) : null}
                         <span
