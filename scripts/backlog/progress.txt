@@ -675,3 +675,18 @@
   - `uppercase` on `text-[8px]` badges makes them nearly illegible — always avoid that combination
   - `w-5 h-5` (20px) swatches are much more useful for evaluating colors than `w-4 h-4` (16px) while still being compact
 ---
+
+## 2026-03-26 - Multi-cursor batch editing
+- Created `BatchEditor.tsx` component with three context-aware operations: set description (all types), adjust opacity % (colors only), multiply by scalar (dimension/number only)
+- Added "Batch edit" toggle button to multi-select toolbar in `TokenList.tsx` — highlighted when active
+- BatchEditor renders as a compact panel below the multi-select toolbar, auto-hides when select mode exits
+- All operations support undo/redo via `onPushUndo` with before/after snapshots
+- PATCH calls run in parallel via `Promise.all` for performance
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` (new), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L9, ~L176, ~L266, ~L1100, ~L1129
+- **Learnings for future iterations:**
+  - Context-aware ops (show opacity only for all-color selections) are easy to derive from `allTokensFlat` — just check `entry.$type` across all selected paths
+  - `applyColorOpacity` must handle both `#RRGGBB` (6-char) and `#RRGGBBAA` (8-char) — always extract `hex.slice(0,6)` for the RGB part
+  - Dimension values can be objects `{value, unit}` OR strings `"16px"` — `scaleValue` must handle both shapes
+  - `showBatchEditor` state must be reset alongside `selectMode` / `selectedPaths` in all exit paths (Escape key and Cancel button)
+  - The `$description` field is a first-class PATCH field — server at `token-store.ts:287` handles it natively
+---

@@ -1099,26 +1099,45 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             {selectedPaths.size > 0 && (
               <>
                 <button
+                  onClick={() => setShowBatchEditor(v => !v)}
+                  className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${showBatchEditor ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                >
+                  Batch edit
+                </button>
+                <button
                   onClick={handleOpenPromoteModal}
-                  className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   Link to tokens
                 </button>
                 <button
                   onClick={requestBulkDelete}
-                  className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-error)] text-white hover:opacity-90 transition-opacity"
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   Delete {selectedPaths.size}
                 </button>
               </>
             )}
             <button
-              onClick={() => { setSelectMode(false); setSelectedPaths(new Set()); }}
+              onClick={() => { setSelectMode(false); setSelectedPaths(new Set()); setShowBatchEditor(false); }}
               className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               Cancel
             </button>
           </div>
+        )}
+
+        {/* Batch editor panel */}
+        {selectMode && showBatchEditor && selectedPaths.size > 0 && (
+          <BatchEditor
+            selectedPaths={selectedPaths}
+            allTokensFlat={allTokensFlat}
+            setName={setName}
+            serverUrl={serverUrl}
+            connected={connected}
+            onApply={onRefresh}
+            onPushUndo={onPushUndo}
+          />
         )}
 
         {/* Toolbar: expand/collapse + sort + inspect mode */}
