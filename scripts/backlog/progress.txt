@@ -89,3 +89,11 @@
 - **Learnings for future iterations:**
   - Item was already fully implemented (likely by a prior partial session). Check current file state before writing — the linter/hook auto-marks `[x]` when edits land, so the `[~]` marker may already reflect done work
 ---
+
+## 2026-03-26 - Recursive `invalidate()` risks stack overflow on deep dependency chains
+- Converted `invalidate()` in `TokenResolver` from recursive to iterative BFS using a queue
+- Files changed: `packages/core/src/resolver.ts` ~L116
+- **Learnings for future iterations:**
+  - The fix is straightforward: replace `this.invalidate(dep)` recursive call with a `queue.push(dep)` inside a `while (queue.length > 0)` loop
+  - The check `if (this.resolved.has(dep))` before enqueueing preserves the original behavior of only propagating to already-cached dependents
+---

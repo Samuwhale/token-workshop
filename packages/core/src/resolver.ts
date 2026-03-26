@@ -111,15 +111,20 @@ export class TokenResolver {
 
   /**
    * Invalidate a token and every downstream dependent so they will be
-   * re-resolved on next access.
+   * re-resolved on next access. Uses iterative BFS to avoid stack overflow
+   * on deep or circular dependency chains.
    */
   invalidate(path: string): void {
-    this.resolved.delete(path);
-    const deps = this.dependents.get(path);
-    if (deps) {
-      for (const dep of deps) {
-        if (this.resolved.has(dep)) {
-          this.invalidate(dep); // recurse into dependents
+    const queue: string[] = [path];
+    while (queue.length > 0) {
+      const current = queue.pop()!;
+      this.resolved.delete(current);
+      const deps = this.dependents.get(current);
+      if (deps) {
+        for (const dep of deps) {
+          if (this.resolved.has(dep)) {
+            queue.push(dep);
+          }
         }
       }
     }
