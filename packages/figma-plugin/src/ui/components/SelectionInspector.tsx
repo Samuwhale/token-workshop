@@ -661,7 +661,7 @@ export function SelectionInspector({
                               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                             </svg>
                             <span className="text-[9px] text-[var(--color-figma-accent)] font-medium flex-1">
-                              {isBound ? `Change binding for ${PROPERTY_LABELS[prop]}` : `Bind ${PROPERTY_LABELS[prop]}`}
+                              {isBound ? `Remap ${PROPERTY_LABELS[prop]}` : `Bind ${PROPERTY_LABELS[prop]}`}
                             </span>
                             <button
                               onClick={cancelBind}
@@ -673,6 +673,18 @@ export function SelectionInspector({
                               </svg>
                             </button>
                           </div>
+                          {isBound && binding && binding !== 'mixed' && (
+                            <div className="flex items-center gap-1.5 px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)]">
+                              {swatchColor && (
+                                <div className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: swatchColor }} />
+                              )}
+                              <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={binding as string}>{binding as string}</span>
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
+                                <path d="M5 12h14M12 5l7 7-7 7" />
+                              </svg>
+                              <span className="text-[8px] text-[var(--color-figma-text-secondary)] italic shrink-0">pick replacement</span>
+                            </div>
+                          )}
                           <div className="px-2 py-1.5 flex flex-col gap-1">
                             <input
                               autoFocus
@@ -707,11 +719,12 @@ export function SelectionInspector({
                                     resolvedValueDisplay = typeof v === 'object' && 'value' in v ? `${v.value}${v.unit}` : String(v);
                                   }
                                   const isSelected = idx === bindSelectedIndex;
+                                  const isCurrent = isBound && path === binding;
                                   return (
                                     <button
                                       key={path}
                                       onClick={() => handleBindToken(prop, path)}
-                                      className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'}`}
+                                      className={`flex items-center gap-1.5 px-1.5 py-1 rounded text-left transition-colors group/item ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : 'hover:bg-[var(--color-figma-accent)]/10'} ${isCurrent ? 'opacity-50' : ''}`}
                                     >
                                       {resolvedColorSwatch ? (
                                         <div
@@ -726,7 +739,10 @@ export function SelectionInspector({
                                       <span className={`text-[9px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>
                                         {path}
                                       </span>
-                                      {resolvedValueDisplay && (
+                                      {isCurrent && (
+                                        <span className="text-[7px] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] px-1 py-0.5 rounded shrink-0">current</span>
+                                      )}
+                                      {resolvedValueDisplay && !isCurrent && (
                                         <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 font-mono">
                                           {resolvedValueDisplay}
                                         </span>

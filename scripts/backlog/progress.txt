@@ -525,3 +525,11 @@
   - The recursive `collectDescendantsWithBindings` only collects children WITH bindings, but still recurses into all children — this avoids sending huge payloads while still catching deeply-nested bindings.
   - Splitting `selectedNodes` into `rootNodes` (depth 0) and `deepChildNodes` (depth 1+) lets existing single-selection editing logic stay untouched while the deep section is purely read-only.
 ---
+
+## 2026-03-26 - Remap token on selection
+- Enhanced the existing "Change binding" flow into a proper "Remap" UX: renamed button tooltip to "Remap to another token", updated picker title to "Remap <Property>", added a FROM row in the picker header showing the current binding path + color swatch + arrow + "pick replacement" label, pre-populated search with the parent group path on open (last `.`-separated segment stripped), and marked the current binding in the results list with a dimmed "current" badge.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L254-265 (openBindFromProp), ~L619 (button tooltip), ~L664 (picker title), ~L676-690 (FROM row), ~L721-756 (isCurrent badge)
+- **Learnings for future iterations:**
+  - The "Change binding" button already existed (`canChangeBind`) — remap was a UX enhancement on top of it, not a new flow.
+  - Pre-populating search with parent segment (lastIndexOf('.')) is acceptable as a heuristic for the search box even though it's flagged as structurally wrong for path parsing — different use case.
+---

@@ -116,7 +116,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### UX
 
 - [x] **Deep inspect for nested components** — Tokens Studio's Inspect panel can drill into component instances to show tokens applied on nested layers, not just the top-level selection. Ensure our inspector supports recursive inspection of component children with a "Deep inspect" toggle.
-- [~] **Remap token on selection** — Tokens Studio lets you remap a token binding on a selected layer to a different token (e.g., swap `color.brand.old` for `color.brand.new`) without detaching and re-applying. Add a "Remap" action in the inspector that shows the current binding and lets you pick a replacement token.
+- [x] **Remap token on selection** — Tokens Studio lets you remap a token binding on a selected layer to a different token (e.g., swap `color.brand.old` for `color.brand.new`) without detaching and re-applying. Add a "Remap" action in the inspector that shows the current binding and lets you pick a replacement token.
 - [~] **Bulk remap across selection** — When renaming or restructuring tokens, allow bulk-remapping all token bindings across the current selection (or page/document) from old paths to new paths. Tokens Studio supports this for migration workflows.
 
 ---
@@ -125,7 +125,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [ ] **Import from Figma Styles** — Add reverse-sync: pull existing Figma Color, Text, and Effect styles into the plugin as tokens. Tokens Studio supports this and it's the primary onboarding path for teams migrating from a styles-based workflow. Map style names to token paths (using `/` → `.` conversion) and style values to token values.
+- [~] **Import from Figma Styles** — Add reverse-sync: pull existing Figma Color, Text, and Effect styles into the plugin as tokens. Tokens Studio supports this and it's the primary onboarding path for teams migrating from a styles-based workflow. Map style names to token paths (using `/` → `.` conversion) and style values to token values.
 - [ ] **Import from Figma Variables** — Add reverse-sync: pull existing Figma Variables into the plugin as tokens. Map variable collections to token sets and variable modes to theme options. This is critical for teams that already have variables defined in Figma and want to adopt TokenManager without recreating everything manually.
 
 ---
