@@ -1299,11 +1299,9 @@ function ShadowEditor({ value, onChange }: { value: any; onChange: (v: any) => v
       <div>
         <div className={labelClass}>Color</div>
         <div className="flex gap-2 items-center">
-          <input
-            type="color"
-            value={(val.color || '#000000').slice(0, 7)}
-            onChange={e => update('color', e.target.value + (val.color?.length === 9 ? val.color.slice(7) : ''))}
-            className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent"
+          <ColorSwatchButton
+            color={val.color || '#000000'}
+            onChange={v => update('color', v)}
           />
           <input
             type="text"
@@ -1356,11 +1354,9 @@ function BorderEditor({ value, onChange }: { value: any; onChange: (v: any) => v
       <div>
         <div className={labelClass}>Color</div>
         <div className="flex gap-2 items-center">
-          <input
-            type="color"
-            value={(val.color || '#000000').slice(0, 7)}
-            onChange={e => update('color', e.target.value + (val.color?.length === 9 ? val.color.slice(7) : ''))}
-            className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent"
+          <ColorSwatchButton
+            color={val.color || '#000000'}
+            onChange={v => update('color', v)}
           />
           <input
             type="text"
@@ -1699,11 +1695,9 @@ function GradientStopRow({ stop, canRemove, allTokensFlat, pathToSet, onChange, 
           </>
         ) : (
           <div className="flex gap-1.5 items-center">
-            <input
-              type="color"
-              value={(stop.color || '#000000').slice(0, 7)}
-              onChange={e => onChange({ color: e.target.value + (stop.color?.length === 9 ? stop.color.slice(7) : '') })}
-              className="w-8 h-[26px] rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent shrink-0"
+            <ColorSwatchButton
+              color={stop.color || '#000000'}
+              onChange={v => onChange({ color: v })}
             />
             <input
               type="text"

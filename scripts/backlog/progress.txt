@@ -264,6 +264,16 @@
   - `usePointerDrag` with `setPointerCapture` gives smooth dragging even when cursor leaves the canvas bounds
 ---
 
+## 2026-03-26 - Group quick-add `+` button
+- Added a `+` button to group header rows that appears on hover alongside the existing three-dot menu
+- Clicking `+` calls `onCreateSibling(node.path, 'color')` which pre-fills the create form with `groupPath.` as the token path prefix
+- Button uses same hover visibility pattern (`opacity-0 group-hover/group:opacity-100`) as the three-dot menu; both buttons wrapped in a `<>` fragment
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2334
+- **Learnings for future iterations:**
+  - `onCreateSibling(node.path, type)` creates a token *inside* the group; `onCreateSibling(nodeParentPath(...), type)` creates a sibling — pass `node.path` for the group `+` button
+  - The `<>` fragment wrapper is necessary when adding a sibling button next to the existing single-button conditional block
+---
+
 ## 2026-03-26 - Token `$description` field
 - Added description input to the create token form (state `newTokenDescription`, included in POST body, cleared on create/cancel)
 - Added `title={node.$description}` to the truncated description div in the list view for hover-expand

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { hexToLab, labToHex } from '../shared/colorUtils';
+import { ColorPicker } from './ColorPicker';
 
 // ---------------------------------------------------------------------------
 // Scale generation
@@ -113,6 +114,7 @@ interface ColorScaleGeneratorProps {
 export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClose, onConfirm }: ColorScaleGeneratorProps) {
   const [prefix, setPrefix] = useState('color');
   const [baseHex, setBaseHex] = useState('#3b82f6');
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [steps, setSteps] = useState<5 | 7 | 9>(9);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -181,12 +183,23 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
           <div>
             <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Base color</label>
             <div className="flex gap-2 items-center">
-              <input
-                type="color"
-                value={baseHex.slice(0, 7)}
-                onChange={e => setBaseHex(e.target.value)}
-                className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent shrink-0"
-              />
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen(!pickerOpen)}
+                  className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer"
+                  style={{ backgroundColor: baseHex.slice(0, 7) }}
+                  title="Pick color"
+                  aria-label="Pick color"
+                />
+                {pickerOpen && (
+                  <ColorPicker
+                    value={baseHex}
+                    onChange={setBaseHex}
+                    onClose={() => setPickerOpen(false)}
+                  />
+                )}
+              </div>
               <input
                 type="text"
                 value={baseHex}
