@@ -183,3 +183,13 @@
   - Both TokenList and PreviewPanel use `h-full` with internal scrolling, so they naturally fill any flex container — just wrap them in `min-h-0 overflow-hidden` flex children
   - When converting an overflow panel to inline content, remove it from the OverflowPanel type union to get compile-time safety that no stale references remain
 ---
+
+## 2026-03-26 - Dual-value display for alias tokens
+- Added a new branch in the value text section for alias tokens: shows `refPath → resolvedValue` inline on the right side of the row
+- Uses `text-[10px]` with tertiary color for the ref path, an arrow SVG separator, and secondary+font-medium for the resolved value
+- `max-w-[180px]` with truncate on both path and value, full text in title tooltip
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2583
+- **Learnings for future iterations:**
+  - The value display area has 4 conditional branches (boolean toggle, inline edit, inline editable, plain); alias dual-display was inserted as a new branch before the inline-editable and plain branches
+  - `--color-figma-text-tertiary` is already defined in styles.css and used across several components — good for de-emphasized text
+---
