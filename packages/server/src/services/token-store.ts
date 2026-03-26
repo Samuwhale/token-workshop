@@ -197,6 +197,16 @@ export class TokenStore {
     return this.sets.get(name);
   }
 
+  /** Replace all tokens in a set with a new nested DTCG token group. */
+  async replaceSetTokens(name: string, tokens: TokenGroup): Promise<void> {
+    const set = this.sets.get(name);
+    if (!set) throw new Error(`Set "${name}" not found`);
+    set.tokens = tokens;
+    await this.saveSet(name);
+    this.rebuildFlatTokens();
+    this.emit({ type: 'token-updated', setName: name });
+  }
+
   async createSet(name: string, tokens?: TokenGroup): Promise<TokenSet> {
     const filename = `${name}.tokens.json`;
     const filePath = path.join(this.dir, filename);

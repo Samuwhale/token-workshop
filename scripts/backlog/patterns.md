@@ -25,3 +25,5 @@ Add new patterns here when discovered — keep entries general and reusable, not
 - **Sidebar layout alongside flex-col content**: Change the outer content wrapper from `flex flex-col` to `flex` (row), add sidebar as first child, wrap the remaining content (scroll div etc.) in a `flex-1 flex flex-col overflow-hidden` right-column div. The right-column takes `flex-1` and behaves identically to the original content area.
 - **Set name validation**: Allow `/` for folder hierarchy with regex `^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$` — prevents leading/trailing slashes and double slashes.
 - **Folder tree from flat names**: Parse `folder/set` names with `str.indexOf('/')` to build a `Map<folderName, FolderTreeNode>`. The `roots` array contains either plain `string` (unfoldered) or `FolderTreeNode` objects, preserving original order.
+
+- **Token API response format**: `GET /api/tokens/:set` must return `tokenSet.tokens` (nested DTCG JSON), NOT `getFlatTokensForSet` (flat path map). `buildTree` in `useTokens.ts` expects nested structure; flat input causes all tokens to appear as leaves with dotted names and groups never show. `fetchAllTokensFlat` handles both formats.

@@ -410,3 +410,15 @@
   - The type dropdown in TokenEditor is auto-built from `Object.keys(TOKEN_TYPE_BADGE_CLASS)` — adding to that map is sufficient to make it appear in the dropdown
   - For URL/image types, use `onError` to gracefully hide broken image tags
 ---
+
+## 2026-03-26 - Explicit group creation
+- Fixed `GET /api/tokens/:set` to return nested `tokenSet.tokens` instead of a flat path map (was preventing groups from ever appearing in the tree — `buildTree` in `useTokens.ts` expects nested structure).
+- Added `createGroup`, `getObjectAtPath`, `setGroupAtPath` to `TokenStore`; fixed `renameGroup`, `moveGroup`, `duplicateGroup` to handle empty groups instead of throwing.
+- Added `POST /api/tokens/:set/groups/create` route.
+- Added "New Group" button to TokenList toolbar; "New subgroup…" item to the group context menu; a small dialog (fixed overlay) for naming the group; empty groups are visually distinguished with `empty` italic label instead of `(0)`.
+- Files changed: `packages/server/src/services/token-store.ts` ~L655, `packages/server/src/routes/tokens.ts` ~L31, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L175, ~L652, ~L1775, ~L1885, ~L2275, ~L2580, ~L2620
+- **Learnings for future iterations:**
+  - The `GET /api/tokens/:set` route was returning a flat path map (`getFlatTokensForSet`) which made `buildTree` create flat leaves with dotted names — groups never appeared. The correct behavior is to return `tokenSet.tokens` (nested DTCG JSON). `fetchAllTokensFlat` in the client handles both flat and nested inputs, so this change is safe.
+  - `collectGroupLeafTokens` returns `[]` for both "not found" and "empty group" — use `getObjectAtPath` to distinguish.
+  - Empty groups (objects with no DTCG tokens) naturally persist in the JSON file after the server change; `buildTree` creates group nodes with `children: []` for them.
+---

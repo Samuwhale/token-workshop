@@ -175,6 +175,11 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [frError, setFrError] = useState('');
   const [frBusy, setFrBusy] = useState(false);
 
+  // New-group dialog: null = closed, string = parent path ('' = root level)
+  const [newGroupDialogParent, setNewGroupDialogParent] = useState<string | null>(null);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupError, setNewGroupError] = useState('');
+
   const generatorsBySource = useMemo(() => {
     const map = new Map<string, TokenGenerator[]>();
     for (const gen of generators ?? []) {
@@ -656,6 +661,25 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ groupPath }),
     });
+    onRefresh();
+  }, [connected, serverUrl, setName, onRefresh]);
+
+  const handleCreateGroup = useCallback(async (parent: string, name: string) => {
+    if (!connected || !name.trim()) return;
+    const groupPath = parent ? `${parent}.${name.trim()}` : name.trim();
+    const res = await fetch(`${serverUrl}/api/tokens/${setName}/groups/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupPath }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      setNewGroupError(data.error ?? 'Failed to create group');
+      return;
+    }
+    setNewGroupDialogParent(null);
+    setNewGroupName('');
+    setNewGroupError('');
     onRefresh();
   }, [connected, serverUrl, setName, onRefresh]);
 
@@ -1638,6 +1662,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 highlightedToken={highlightedToken ?? null}
                 onNavigateToAlias={onNavigateToAlias}
                 onCreateSibling={handleOpenCreateSibling}
+                onCreateGroup={(parentPath) => setNewGroupDialogParent(parentPath)}
                 onRenameGroup={handleRenameGroup}
                 onRequestMoveGroup={handleRequestMoveGroup}
                 onDuplicateGroup={handleDuplicateGroup}
@@ -1773,6 +1798,14 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               + New Token
             </button>
             <button
+              onClick={() => { setNewGroupDialogParent(''); setNewGroupName(''); setNewGroupError(''); }}
+              disabled={!connected}
+              title="Create an empty group to organize tokens"
+              className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+            >
+              New Group
+            </button>
+            <button
               onClick={() => setShowScaffold(true)}
               disabled={!connected}
               className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
@@ -1847,6 +1880,48 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           onConfirm={executeDelete}
           onCancel={() => setDeleteConfirm(null)}
         />
+      )}
+
+      {/* New group dialog */}
+      {newGroupDialogParent !== null && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">New group</div>
+            {newGroupDialogParent && (
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                Inside <span className="font-mono text-[var(--color-figma-text)]">{newGroupDialogParent}</span>
+              </div>
+            )}
+            <input
+              type="text"
+              placeholder={newGroupDialogParent ? 'subgroup-name' : 'group-name'}
+              value={newGroupName}
+              onChange={e => { setNewGroupName(e.target.value); setNewGroupError(''); }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleCreateGroup(newGroupDialogParent ?? '', newGroupName);
+                if (e.key === 'Escape') { setNewGroupDialogParent(null); setNewGroupName(''); setNewGroupError(''); }
+              }}
+              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${newGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+              autoFocus
+            />
+            {newGroupError && <p className="text-[10px] text-[var(--color-figma-error)]">{newGroupError}</p>}
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setNewGroupDialogParent(null); setNewGroupName(''); setNewGroupError(''); }}
+                className="px-3 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleCreateGroup(newGroupDialogParent ?? '', newGroupName)}
+                disabled={!newGroupName.trim()}
+                className="px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Rename token confirmation modal */}
@@ -2205,6 +2280,7 @@ function TokenTreeNode({
   highlightedToken,
   onNavigateToAlias,
   onCreateSibling,
+  onCreateGroup,
   onRenameGroup,
   onRequestMoveGroup,
   onDuplicateGroup,
@@ -2248,6 +2324,7 @@ function TokenTreeNode({
   highlightedToken: string | null;
   onNavigateToAlias?: (path: string) => void;
   onCreateSibling?: (groupPath: string, tokenType: string) => void;
+  onCreateGroup?: (parentGroupPath: string) => void;
   onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;
   onRequestMoveGroup?: (groupPath: string) => void;
   onDuplicateGroup?: (groupPath: string) => void;
@@ -2546,8 +2623,8 @@ function TokenTreeNode({
             <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{node.name}</span>
           )}
           {!renamingGroup && node.children && (
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-1 shrink-0">
-              ({leafCount})
+            <span className={`text-[9px] ml-1 shrink-0 ${leafCount === 0 ? 'text-[var(--color-figma-text-secondary)] opacity-50 italic' : 'text-[var(--color-figma-text-secondary)]'}`}>
+              {leafCount === 0 ? 'empty' : `(${leafCount})`}
             </span>
           )}
           {!selectMode && !renamingGroup && (
@@ -2591,6 +2668,19 @@ function TokenTreeNode({
             className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[160px]"
             style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
           >
+            {onCreateGroup && (
+              <button
+                role="menuitem"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  setGroupMenuPos(null);
+                  onCreateGroup(node.path);
+                }}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                New subgroup…
+              </button>
+            )}
             <button
               role="menuitem"
               onMouseDown={e => e.preventDefault()}
@@ -2686,6 +2776,7 @@ function TokenTreeNode({
             highlightedToken={highlightedToken}
             onNavigateToAlias={onNavigateToAlias}
             onCreateSibling={onCreateSibling}
+            onCreateGroup={onCreateGroup}
             onRenameGroup={onRenameGroup}
             onRequestMoveGroup={onRequestMoveGroup}
             onDuplicateGroup={onDuplicateGroup}
