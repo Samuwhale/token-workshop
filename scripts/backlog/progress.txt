@@ -283,3 +283,15 @@
   - The TokenEditor (full edit modal) already had $description support; the gap was only in the quick-create form and hover tooltip in the list
   - Virtual row height (VIRTUAL_ITEM_HEIGHT=28px) makes CSS expand-on-hover complex — a `title` attribute tooltip is the right approach for truncated text in a virtualized list
 ---
+
+## 2026-03-26 - Rich color picker with color space support
+- `ColorPicker.tsx` was already fully implemented with HSL, LCH, P3, opacity slider, and Figma eyedropper. The work was wiring it up everywhere native `<input type="color">` was still used.
+- Added `ColorSwatchButton` helper component to `TokenEditor.tsx` (swatch button + `ColorPicker` popover) and used it to replace 4 native inputs: mix modifier, ShadowEditor, BorderEditor, GradientStopEditor.
+- Added `ColorPicker` to `ColorScaleGenerator.tsx` with a `pickerOpen` state replacing the base color native input.
+- Replaced the `colorInputRef` + hidden `<input type="color">` + `onBlur` pattern in `TokenList.tsx` inline edit with `colorPickerOpen`/`pendingColor` state and `ColorPicker`; save is triggered on picker `onClose`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1067 (new component), ~L682, ~L1284, ~L1341, ~L1684; `packages/figma-plugin/src/ui/components/ColorScaleGenerator.tsx` ~L2, ~L116, ~L186; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L13, ~L2121, ~L2556
+- **Learnings for future iterations:**
+  - When a feature is described as "add X", always check if X already exists as a component — often the picker/widget is built but not fully wired up.
+  - The `colorInputRef` + `onBlur` pattern (documented in patterns.md) is now superseded by the `ColorPicker` popover for all color editing; the patterns.md entry should be updated if this pattern is removed everywhere.
+  - For inline-edit pickers where each change fires `onChange` live, save should happen in `onClose` to avoid flooding the undo stack with intermediate states.
+---

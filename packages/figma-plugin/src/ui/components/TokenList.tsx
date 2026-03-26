@@ -11,6 +11,7 @@ import { BatchEditor } from './BatchEditor';
 import { TokenCanvas } from './TokenCanvas';
 import { hexToRgb, rgbToLab, colorDeltaE, stableStringify } from '../shared/colorUtils';
 import { ValuePreview } from './ValuePreview';
+import { ColorPicker } from './ColorPicker';
 import type { SortOrder } from './tokenListUtils';
 import {
   countTokensInGroup, formatDisplayPath, nodeParentPath, flattenVisible,
@@ -2131,13 +2132,14 @@ function TokenTreeNode({
   const [hovered, setHovered] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState<{ top: number; left: number } | undefined>();
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [pendingColor, setPendingColor] = useState('');
   const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [chainExpanded, setChainExpanded] = useState(false);
   const [inlineEditActive, setInlineEditActive] = useState(false);
   const [inlineEditValue, setInlineEditValue] = useState('');
   const inlineEditEscapedRef = useRef(false);
-  const colorInputRef = useRef<HTMLInputElement>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
 
   // Group-specific state
@@ -2577,25 +2579,24 @@ function TokenTreeNode({
       {/* Value preview (resolve aliases for display) */}
       {canInlineEdit && node.$type === 'color' && typeof displayValue === 'string' ? (
         <>
-          <button
-            onClick={e => { e.stopPropagation(); colorInputRef.current?.click(); }}
-            title="Click to edit color"
-            className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
-            style={{ backgroundColor: displayValue }}
-          />
-          <input
-            ref={colorInputRef}
-            type="color"
-            key={typeof node.$value === 'string' ? node.$value.slice(0, 7) : '#000000'}
-            defaultValue={typeof node.$value === 'string' ? node.$value.slice(0, 7) : '#000000'}
-            className="sr-only"
-            onBlur={e => {
-              const alpha = typeof node.$value === 'string' && node.$value.length === 9 ? node.$value.slice(7) : '';
-              const newColor = e.target.value + alpha;
-              if (newColor !== node.$value) onInlineSave?.(node.path, 'color', newColor);
-            }}
-            onClick={e => e.stopPropagation()}
-          />
+          <div className="relative shrink-0">
+            <button
+              onClick={e => { e.stopPropagation(); setPendingColor(typeof node.$value === 'string' ? node.$value : '#000000'); setColorPickerOpen(true); }}
+              title="Click to edit color"
+              className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
+              style={{ backgroundColor: displayValue }}
+            />
+            {colorPickerOpen && (
+              <ColorPicker
+                value={pendingColor}
+                onChange={setPendingColor}
+                onClose={() => {
+                  setColorPickerOpen(false);
+                  if (pendingColor !== node.$value) onInlineSave?.(node.path, 'color', pendingColor);
+                }}
+              />
+            )}
+          </div>
         </>
       ) : (
         <ValuePreview type={node.$type} value={displayValue} />
