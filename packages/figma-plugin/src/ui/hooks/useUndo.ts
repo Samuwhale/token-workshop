@@ -1,52 +1,85 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 
 export interface UndoSlot {
   description: string;
   restore: () => Promise<void>;
+  redo?: () => Promise<void>;
 }
 
-export function useUndo() {
-  const [slot, setSlot] = useState<UndoSlot | null>(null);
-  const [toastVisible, setToastVisible] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+const MAX_HISTORY = 20;
 
-  const pushUndo = useCallback((newSlot: UndoSlot) => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setSlot(newSlot);
-    setToastVisible(true);
-    timerRef.current = setTimeout(() => setToastVisible(false), 8000);
+export function useUndo() {
+  // past[last] = most recent undoable action
+  const [past, setPast] = useState<UndoSlot[]>([]);
+  // future[last] = most recent redoable action (from an undo)
+  const [future, setFuture] = useState<UndoSlot[]>([]);
+  const executingRef = useRef(false);
+
+  const pushUndo = useCallback((slot: UndoSlot) => {
+    setPast(prev => {
+      const next = [...prev, slot];
+      return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
+    });
+    setFuture([]);
   }, []);
 
   const executeUndo = useCallback(async () => {
-    if (!slot) return;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setToastVisible(false);
-    const s = slot;
-    setSlot(null);
-    await s.restore();
-  }, [slot]);
+    if (executingRef.current) return;
+    setPast(prev => {
+      if (prev.length === 0) return prev;
+      const slot = prev[prev.length - 1];
+      const next = prev.slice(0, -1);
+      executingRef.current = true;
+      slot.restore().finally(() => { executingRef.current = false; });
+      if (slot.redo) {
+        setFuture(f => [...f, slot]);
+      }
+      return next;
+    });
+  }, []);
+
+  const executeRedo = useCallback(async () => {
+    if (executingRef.current) return;
+    setFuture(prev => {
+      if (prev.length === 0) return prev;
+      const slot = prev[prev.length - 1];
+      if (!slot.redo) return prev;
+      const next = prev.slice(0, -1);
+      executingRef.current = true;
+      slot.redo!().finally(() => { executingRef.current = false; });
+      setPast(p => [...p, slot]);
+      return next;
+    });
+  }, []);
 
   const dismissToast = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setToastVisible(false);
+    setPast([]);
+    setFuture([]);
   }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && slot) {
-        e.preventDefault();
-        executeUndo();
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key === 'z' && !e.shiftKey) {
+        if (past.length > 0) {
+          e.preventDefault();
+          executeUndo();
+        }
+      } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+        if (future.length > 0) {
+          e.preventDefault();
+          executeRedo();
+        }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [slot, executeUndo]);
+  }, [past, future, executeUndo, executeRedo]);
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+  const toastVisible = past.length > 0 || future.length > 0;
+  const slot = past.length > 0 ? past[past.length - 1] : null;
+  const canRedo = future.length > 0;
+  const redoSlot = future.length > 0 ? future[future.length - 1] : null;
 
-  return { toastVisible, slot, pushUndo, executeUndo, dismissToast };
+  return { toastVisible, slot, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount: past.length };
 }

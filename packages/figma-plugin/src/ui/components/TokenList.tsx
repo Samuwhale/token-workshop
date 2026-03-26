@@ -80,6 +80,7 @@ interface TokenListProps {
   selectedNodes: SelectionNodeInfo[];
   allTokensFlat: Record<string, TokenMapEntry>;
   onEdit: (path: string) => void;
+  onCreateNew?: (initialPath?: string, initialType?: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   defaultCreateOpen?: boolean;
@@ -122,7 +123,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
@@ -239,10 +240,10 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     // Don't handle shortcuts when typing in a form field
     if (isTyping) return;
 
-    // n: open create form
+    // n: open create form / drawer
     if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
-      setShowCreateForm(true);
+      if (onCreateNew) { onCreateNew(); } else { setShowCreateForm(true); }
       return;
     }
 
@@ -470,11 +471,15 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     : null;
 
   const handleOpenCreateSibling = useCallback((groupPath: string, tokenType: string) => {
+    if (onCreateNew) {
+      onCreateNew(groupPath ? groupPath + '.' : '', tokenType || 'color');
+      return;
+    }
     setSiblingPrefix(groupPath);
     setNewTokenPath(groupPath ? groupPath + '.' : '');
     setNewTokenType(tokenType || 'color');
     setShowCreateForm(true);
-  }, []);
+  }, [onCreateNew]);
 
   // Extract to alias state
   const [extractToken, setExtractToken] = useState<{ path: string; $type?: string; $value: any } | null>(null);
@@ -1387,7 +1392,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         {!tableMode && !showCreateForm && (
           <div className="flex gap-1.5">
             <button
-              onClick={() => setShowCreateForm(true)}
+              onClick={() => onCreateNew ? onCreateNew() : setShowCreateForm(true)}
               disabled={!connected}
               className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
             >

@@ -118,7 +118,7 @@ export function App() {
   };
   const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [editingToken, setEditingToken] = useState<{ path: string; set: string } | null>(null);
+  const [editingToken, setEditingToken] = useState<{ path: string; set: string; isCreate?: boolean; initialType?: string } | null>(null);
   const { connected, serverUrl, updateServerUrl, retryConnection } = useServerConnection();
   const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, refreshTokens } = useTokens(serverUrl, connected);
   const { selectedNodes } = useSelection();
@@ -131,7 +131,7 @@ export function App() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
-  const { toastVisible, slot: undoSlot, pushUndo, executeUndo, dismissToast } = useUndo();
+  const { toastVisible, slot: undoSlot, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo();
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
@@ -139,6 +139,7 @@ export function App() {
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
+  const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll]);
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const [validateKey, setValidateKey] = useState(0);
   const [analyticsIssueCount, setAnalyticsIssueCount] = useState<number | null>(null);
@@ -1031,16 +1032,16 @@ export function App() {
           )}
 
           {/* Main tab panels */}
-          {overflowPanel === null && activeTab === 'tokens' && !editingToken && tokens.length === 0 && !createFromEmpty && (
+          {overflowPanel === null && activeTab === 'tokens' && tokens.length === 0 && !createFromEmpty && !editingToken && (
             <EmptyState
               connected={connected}
-              onCreateToken={() => setCreateFromEmpty(true)}
+              onCreateToken={() => setEditingToken({ path: '', set: activeSet, isCreate: true })}
               onPasteJSON={() => setShowPasteModal(true)}
               onUsePreset={() => setShowScaffoldWizard(true)}
               onGenerateColorScale={() => setShowColorScaleGen(true)}
             />
           )}
-          {overflowPanel === null && activeTab === 'tokens' && !editingToken && (tokens.length > 0 || createFromEmpty) && (
+          {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && (
             <TokenList
               tokens={tokens}
               setName={activeSet}
@@ -1049,7 +1050,8 @@ export function App() {
               connected={connected}
               selectedNodes={selectedNodes}
               allTokensFlat={allTokensFlat}
-              onEdit={(path) => setEditingToken({ path, set: activeSet })}
+              onEdit={(path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }}
+              onCreateNew={(initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType })}
               onRefresh={refreshAll}
               lintViolations={lintViolations}
               onPushUndo={pushUndo}
@@ -1062,19 +1064,6 @@ export function App() {
               syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
               generators={generators}
               derivedTokenPaths={derivedTokenPaths}
-            />
-          )}
-          {overflowPanel === null && activeTab === 'tokens' && editingToken && (
-            <TokenEditor
-              tokenPath={editingToken.path}
-              setName={editingToken.set}
-              serverUrl={serverUrl}
-              onBack={() => { setEditingToken(null); refreshAll(); }}
-              allTokensFlat={allTokensFlat}
-              pathToSet={pathToSet}
-              generators={generators}
-              allSets={sets}
-              onRefreshGenerators={refreshGenerators}
             />
           )}
           {overflowPanel === null && activeTab === 'themes' && (
@@ -1115,6 +1104,36 @@ export function App() {
         )}
       </div>
       </ErrorBoundary>
+
+      {/* Token editor drawer */}
+      {editingToken && overflowPanel === null && activeTab === 'tokens' && (
+        <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
+          <div
+            className="absolute inset-0 bg-black/30 drawer-fade-in"
+            onClick={handleEditorClose}
+          />
+          <div className="relative bg-[var(--color-figma-bg)] rounded-t-xl shadow-2xl flex flex-col drawer-slide-up" style={{ height: '65%' }}>
+            <div className="flex justify-center pt-2 pb-1 shrink-0">
+              <div className="w-8 h-1 rounded-full bg-[var(--color-figma-border)]" />
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <TokenEditor
+                tokenPath={editingToken.path}
+                setName={editingToken.set}
+                serverUrl={serverUrl}
+                onBack={handleEditorClose}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                generators={generators}
+                allSets={sets}
+                onRefreshGenerators={refreshGenerators}
+                isCreateMode={editingToken.isCreate}
+                initialType={editingToken.initialType}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Set metadata editor */}
       {editingMetadataSet && (
@@ -1288,12 +1307,16 @@ export function App() {
         />
       )}
 
-      {/* Undo toast */}
+      {/* Undo/redo toast */}
       {toastVisible && undoSlot && (
         <UndoToast
           description={undoSlot.description}
           onUndo={executeUndo}
           onDismiss={dismissToast}
+          canRedo={canRedo}
+          redoDescription={redoSlot?.description}
+          onRedo={executeRedo}
+          undoCount={undoCount}
         />
       )}
     </div>

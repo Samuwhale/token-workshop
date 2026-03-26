@@ -105,7 +105,8 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     awk '/^## /{found=1; count++} found && count<=3{print} /^---$/ && found && count>=3{exit}' \
       "$PROGRESS_FILE" >> "$CONTEXT_FILE" 2>/dev/null || true
 
-    OUTPUT=$(claude \
+    AGENT_TMP=$(mktemp)
+    claude \
       --dangerously-skip-permissions \
       --print \
       --no-session-persistence \
@@ -114,16 +115,30 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       --json-schema "$JSON_SCHEMA" \
       --fallback-model claude-haiku-4-5-20251001 \
       --append-system-prompt-file "$CONTEXT_FILE" \
-      < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
+      < "$SCRIPT_DIR/CLAUDE.md" > "$AGENT_TMP" 2>/dev/null || true
 
     rm -f "$CONTEXT_FILE"
+    OUTPUT=$(cat "$AGENT_TMP")
+    rm -f "$AGENT_TMP"
+
+    # Human-readable agent summary
+    _S=$(echo "$OUTPUT" | jq -r '.structured_output.status // ""' 2>/dev/null || echo "")
+    _ITEM=$(echo "$OUTPUT" | jq -r '.structured_output.item // ""' 2>/dev/null || echo "")
+    _NOTE=$(echo "$OUTPUT" | jq -r '.structured_output.note // ""' 2>/dev/null || echo "")
+    _TURNS=$(echo "$OUTPUT" | jq -r '.num_turns // ""' 2>/dev/null || echo "")
+    _SECS=$(echo "$OUTPUT" | jq -r 'if .duration_ms then ((.duration_ms/1000)|floor|tostring)+"s" else "" end' 2>/dev/null || echo "")
+    _COST=$(echo "$OUTPUT" | jq -r 'if .total_cost_usd then "$"+(.total_cost_usd*100|round/100|tostring) else "" end' 2>/dev/null || echo "")
+    case "$_S" in done) _ICON="✓" ;; failed) _ICON="✗" ;; complete) _ICON="★" ;; *) _ICON="·" ;; esac
+    echo ""
+    if [ -n "$_ITEM" ]; then echo "  $_ICON $_S: $_ITEM"; else echo "  $_ICON ${_S:-unknown}"; fi
+    [ -n "$_NOTE" ] && echo "    $_NOTE"
+    _META="${_TURNS:+${_TURNS} turns}${_SECS:+ · ${_SECS}}${_COST:+ · ${_COST}}"
+    [ -n "$_META" ] && echo "    ${_META# · }"
   fi
   trap graceful_stop INT
 
   # Detect completion via structured JSON output
-  STATUS=$(echo "$OUTPUT" | jq -r \
-    'try (.result | if type == "string" then fromjson else . end | .status) catch ""' \
-    2>/dev/null || echo "")
+  STATUS=$(echo "$OUTPUT" | jq -r '.structured_output.status // ""' 2>/dev/null || echo "")
   if [ "$STATUS" = "complete" ]; then
     echo ""
     echo "Backlog completed all tasks!"
@@ -133,9 +148,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
   # Push after each completed or failed item
   if [ "$STATUS" = "done" ]; then
-    ITEM=$(echo "$OUTPUT" | jq -r \
-      'try (.result | if type == "string" then fromjson else . end | .item) catch ""' \
-      2>/dev/null || echo "backlog item")
+    ITEM=$(echo "$OUTPUT" | jq -r '.structured_output.item // "backlog item"' 2>/dev/null || echo "backlog item")
     if [ -n "$(git -C "$PROJECT_ROOT" status --porcelain 2>/dev/null)" ]; then
       echo ""
       echo "--- Pushing: $ITEM ---"

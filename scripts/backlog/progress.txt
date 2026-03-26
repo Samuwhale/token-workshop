@@ -64,3 +64,61 @@
   - `useLayoutEffect` (not `useEffect`) for scroll-to-highlighted prevents flash of wrong scroll position
   - Keyboard ↑/↓ navigation (`querySelectorAll('[data-token-path]')`) still works in virtual scroll since it only traverses visible DOM nodes — acceptable limitation for small navigation steps
 ---
+
+## 2026-03-26 - Full undo/redo stack
+- Replaced single-slot `useUndo` with a history stack (up to 20 entries) supporting both undo and redo
+- `UndoSlot` gains optional `redo?: () => Promise<void>` — existing callers unchanged, redo opt-in
+- `past[]` tracks undoable operations (newest at end), `future[]` tracks redoable operations after undo
+- `pushUndo` appends to past and clears future (as in standard undo models)
+- `executeUndo` pops from past, calls `slot.restore()`, pushes to future only if `slot.redo` exists
+- `executeRedo` pops from future, calls `slot.redo()`, pushes back to past
+- Keyboard: Cmd+Z = undo, Cmd+Shift+Z or Cmd+Y = redo
+- No auto-dismiss (removed 8-second timer); toast persists until dismissed or stack exhausted
+- `UndoToast` updated with optional Redo button and undo count badge (`[3] Delete token`)
+- `App.tsx` updated to destructure and pass new hook return values
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` (full rewrite), `packages/figma-plugin/src/ui/components/UndoToast.tsx`, `packages/figma-plugin/src/ui/App.tsx` ~L134, ~L1292
+- **Learnings for future iterations:**
+  - Functional `setState(prev => ...)` is essential when multiple state updates within one handler need to see the latest state
+  - `redo` is only pushed to future when `slot.redo` is defined — this lets existing single-action callers coexist without redo
+  - The `executingRef` guard prevents double-invocation if a key is held down
+---
+
+## 2026-03-26 - Visual diff in the token editor
+- Created `ValueDiff.tsx` component with type-specific before/after display: color swatches for color tokens, numeric delta (±n) for dimension/number tokens, font specimen for typography, generic text fallback for all other types
+- Component only renders when `JSON.stringify(before) !== JSON.stringify(after)` — no visual noise when nothing has changed
+- Imported and wired into `TokenEditor.tsx` inside the `{!reference && ...}` value block, between the "Value" label and the type-specific editor
+- Files changed: `packages/figma-plugin/src/ui/components/ValueDiff.tsx` (new), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L8, ~L468
+- **Learnings for future iterations:**
+  - `initialRef.current` is set once on load in useEffect and never mutated — safe to read in JSX during re-renders without causing stale closure issues
+  - `JSON.stringify` comparison is safe here because we compare the full value object (not token paths), and we only need visual diffing (not semantic equality)
+  - `color.slice(0, 7)` is needed to strip alpha from 8-char hex before passing to `backgroundColor` — browsers reject `#RRGGBBAA` in inline styles
+---
+
+## 2026-03-26 - Slide-over editor drawer (replace full-page navigation)
+- Replaced full-page TokenEditor navigation with a bottom-sheet drawer overlay (65% viewport height)
+- TokenList stays visible and scrollable behind a semi-transparent backdrop when editing a token
+- Drawer slides up from the bottom with a CSS keyframe animation (0.22s cubic-bezier) and the backdrop fades in
+- Backdrop click closes the drawer; Escape still works via TokenEditor's existing keydown handler
+- Token row is highlighted (setHighlightedToken) when editor opens so list scrolls to keep it visible
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L142, ~L1035, ~L1044, ~L1068, ~L1120; `packages/figma-plugin/src/ui/styles.css` ~L65
+- **Learnings for future iterations:**
+  - Use `fixed inset-0 z-40 flex flex-col justify-end` for a bottom-sheet overlay — no changes needed to the positioned children
+  - `rounded-t-xl` on the drawer panel gives the bottom-sheet card appearance
+  - CSS keyframe classes (e.g., `.drawer-slide-up`) are more reliable than Tailwind arbitrary animation values because Tailwind v4 may not generate them statically
+  - The TokenEditor's `h-full` requires a bounded parent; wrapping it in `flex-1 overflow-hidden` inside the drawer provides that bound
+  - The existing Escape keydown handler in TokenEditor bubbles up naturally — no second handler needed in App.tsx
+---
+
+## 2026-03-26 - Unified create+edit flow (one-step token creation)
+- Replaced the two-step create flow (inline form → default value → edit) with a unified editor drawer that opens directly for new tokens
+- Added `isCreateMode` and `initialType` props to `TokenEditor`: skips fetch, shows editable path input in header, uses POST instead of PATCH on save, shows "Create"/"Creating..." button labels
+- Value is initialized to type-appropriate defaults in create mode (e.g. `#000000` for color, `{value:0,unit:'px'}` for dimension)
+- Added `onCreateNew?: (initialPath?, initialType?) => void` prop to `TokenList`: "+ New Token" button and `n` shortcut call it if provided, `handleOpenCreateSibling` also routes through it with the prefilled group path
+- In App.tsx: `editingToken` state extended with optional `isCreate` and `initialType` fields; `onCreateNew` handler sets these and opens the drawer; `EmptyState`'s `onCreateToken` also routes through the new drawer
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L89, ~L107, ~L136, ~L240, ~L304, ~L318, ~L858; `packages/figma-plugin/src/ui/App.tsx` ~L121, ~L1035, ~L1053, ~L1120; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L82, ~L126, ~L244, ~L473, ~L1391
+- **Learnings for future iterations:**
+  - `useState(() => ...)` lazy initializer is needed to compute create-mode defaults from `initialType` since `DEFAULT_VALUE_FOR_TYPE` is defined after the state declarations
+  - `isDirty` returns `false` when `initialRef.current` is null (never populated in create mode) — this is desirable: cancel in create mode doesn't warn about unsaved changes
+  - The copy-path button needs `{!isCreateMode && <button>...</button>}` wrapping (with closing `}`) as JSX conditional — easy to miss the closing brace
+  - `handleEditorClose` already calls `refreshAll()` on close, so create mode gets a free list refresh after the token is created
+---

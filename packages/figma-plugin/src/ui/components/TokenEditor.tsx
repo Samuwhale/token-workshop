@@ -5,6 +5,7 @@ import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { hexToLuminance, wcagContrast, applyColorModifiers } from '../shared/colorUtils';
 import type { ColorModifierOp } from '../shared/colorUtils';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
+import { ValueDiff } from './ValueDiff';
 
 type GeneratorType = 'colorRamp' | 'typeScale' | 'spacingScale' | 'opacityScale' | 'borderRadiusScale' | 'zIndexScale' | 'customScale';
 
@@ -95,14 +96,29 @@ interface TokenEditorProps {
   generators?: TokenGenerator[];
   allSets?: string[];
   onRefreshGenerators?: () => void;
+  /** When true, the editor creates a new token instead of editing an existing one. */
+  isCreateMode?: boolean;
+  /** Initial token type for create mode. */
+  initialType?: string;
 }
 
-export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators }: TokenEditorProps) {
-  const [loading, setLoading] = useState(true);
+export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType }: TokenEditorProps) {
+  const [loading, setLoading] = useState(!isCreateMode);
+  // Editable path, only used in create mode
+  const [editPath, setEditPath] = useState(tokenPath);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tokenType, setTokenType] = useState('color');
-  const [value, setValue] = useState<any>('');
+  const [tokenType, setTokenType] = useState(initialType || 'color');
+  const [value, setValue] = useState<any>(() => {
+    if (!isCreateMode) return '';
+    const t = initialType || 'color';
+    if (t === 'color') return '#000000';
+    if (t === 'dimension') return { value: 0, unit: 'px' };
+    if (t === 'number' || t === 'duration') return 0;
+    if (t === 'boolean') return false;
+    if (t === 'shadow') return { x: 0, y: 0, blur: 4, spread: 0, color: '#000000', type: 'dropShadow' };
+    return '';
+  });
   const [description, setDescription] = useState('');
   const [reference, setReference] = useState('');
   const [aliasMode, setAliasMode] = useState(false);
@@ -127,6 +143,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
 
   useEffect(() => {
+    if (isCreateMode) return; // skip fetch in create mode
     const fetchToken = async () => {
       try {
         const res = await fetch(`${serverUrl}/api/tokens/${setName}/${tokenPath}`);
@@ -161,7 +178,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       }
     };
     fetchToken();
-  }, [serverUrl, setName, tokenPath]);
+  }, [serverUrl, setName, tokenPath, isCreateMode]);
 
   // Sync alias mode with loaded reference
   useEffect(() => {
@@ -233,6 +250,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   }, [onBack, isDirty, showDiscardConfirm, showAutocomplete]);
 
   const handleSave = async () => {
+    if (isCreateMode && !editPath.trim()) {
+      setError('Token path cannot be empty');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -246,16 +267,19 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       if (colorModifiers.length > 0) extensions.tokenmanager = { colorModifier: colorModifiers };
       if (Object.keys(extensions).length > 0) body.$extensions = extensions;
 
-      const res = await fetch(`${serverUrl}/api/tokens/${setName}/${tokenPath}`, {
-        method: 'PATCH',
+      const targetPath = isCreateMode ? editPath.trim() : tokenPath;
+      const method = isCreateMode ? 'POST' : 'PATCH';
+      const res = await fetch(`${serverUrl}/api/tokens/${setName}/${targetPath}`, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error((data as any).error || 'Failed to save token');
+        throw new Error((data as any).error || (isCreateMode ? 'Failed to create token' : 'Failed to save token'));
       }
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${tokenPath}" saved` } }, '*');
+      const label = isCreateMode ? 'created' : 'saved';
+      parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${targetPath}" ${label}` } }, '*');
       onBack();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -286,10 +310,21 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           </svg>
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{tokenPath}</div>
-          <div className="text-[9px] text-[var(--color-figma-text-secondary)]">in {setName}</div>
+          {isCreateMode ? (
+            <input
+              type="text"
+              value={editPath}
+              onChange={e => { setEditPath(e.target.value); setError(null); }}
+              placeholder="Token path (e.g. color.brand.500)"
+              autoFocus
+              className="w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)] outline-none pb-0.5 truncate"
+            />
+          ) : (
+            <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{tokenPath}</div>
+          )}
+          <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{isCreateMode ? 'new token' : `in ${setName}`}</div>
         </div>
-        <button
+        {!isCreateMode && <button
           onClick={() => {
             navigator.clipboard.writeText(tokenPath);
             setCopied(true);
@@ -308,7 +343,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
             </svg>
           )}
-        </button>
+        </button>}
         {aliasMode && reference && tokenType === 'color' && (() => {
           const refPath = reference.startsWith('{') && reference.endsWith('}') ? reference.slice(1, -1) : null;
           const resolved = refPath ? resolveColorValue(refPath, allTokensFlat) : null;
@@ -463,6 +498,9 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         {!reference && (
           <div className="flex flex-col gap-2">
             <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">Value</label>
+            {initialRef.current && JSON.stringify(value) !== JSON.stringify(initialRef.current.value) && (
+              <ValueDiff type={tokenType} before={initialRef.current.value} after={value} />
+            )}
             {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} />}
             {tokenType === 'dimension' && <DimensionEditor value={value} onChange={setValue} />}
             {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} />}
@@ -823,14 +861,14 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           onClick={handleBack}
           className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
         >
-          {isDirty ? 'Cancel' : 'Back'}
+          {isCreateMode ? 'Cancel' : (isDirty ? 'Cancel' : 'Back')}
         </button>
         <button
           onClick={handleSave}
-          disabled={saving || !canSave || !isDirty}
+          disabled={saving || !canSave || (!isCreateMode && !isDirty) || (isCreateMode && !editPath.trim())}
           className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? (isCreateMode ? 'Creating...' : 'Saving...') : (isCreateMode ? 'Create' : 'Save')}
         </button>
       </div>
 
