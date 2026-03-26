@@ -138,8 +138,8 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
       ));
       const failed = results.filter(r => !r.ok);
       if (failed.length > 0) {
-        const firstError = await failed[0].json().catch(() => ({}));
-        setError((firstError as any).error || `Failed to create ${failed.length} token(s)`);
+        const firstError = await failed[0].json().catch(() => ({})) as { error?: string };
+        setError(firstError.error || `Failed to create ${failed.length} token(s)`);
         setCreating(false);
         return;
       }

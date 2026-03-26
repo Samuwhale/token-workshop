@@ -188,7 +188,7 @@ export function App() {
       fetchAllTokensFlatWithSets(serverUrl).then(({ flat, pathToSet: pts }) => {
         setAllTokensFlat(resolveAllAliases(flat));
         setPathToSet(pts);
-      });
+      }).catch(err => console.error('Failed to fetch tokens flat:', err));
     }
   }, [connected, serverUrl, tokens]);
 
@@ -384,7 +384,8 @@ export function App() {
   const handleDeleteSet = async () => {
     if (!deletingSet || !connected) return;
     try {
-      await fetch(`${serverUrl}/api/sets/${deletingSet}`, { method: 'DELETE' });
+      const res = await fetch(`${serverUrl}/api/sets/${deletingSet}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Failed to delete set: ${res.statusText}`);
     } catch {
       setDeletingSet(null);
       return;

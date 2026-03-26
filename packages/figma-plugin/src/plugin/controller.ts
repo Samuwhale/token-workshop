@@ -318,6 +318,7 @@ async function readFigmaVariables() {
       const variable = await figma.variables.getVariableByIdAsync(varId);
       if (!variable) continue;
 
+      if (collection.modes.length === 0) continue;
       const modeId = collection.modes[0].modeId;
       const value = variable.valuesByMode[modeId];
 
@@ -473,7 +474,7 @@ async function applyTokenValue(node: SceneNode, property: string, value: any, to
     case 'opacity':
       if ('opacity' in node) {
         const num = typeof value === 'number' ? value : parseFloat(value);
-        (node as any).opacity = Math.max(0, Math.min(1, num));
+        if (!isNaN(num)) (node as any).opacity = Math.max(0, Math.min(1, num));
       }
       break;
 
@@ -482,7 +483,7 @@ async function applyTokenValue(node: SceneNode, property: string, value: any, to
         const textNode = node as TextNode;
         const val = value;
         try {
-          const family = Array.isArray(val.fontFamily) ? val.fontFamily[0] : (val.fontFamily || 'Inter');
+          const family = (Array.isArray(val.fontFamily) ? val.fontFamily[0] : val.fontFamily) || 'Inter';
           const style = val.fontWeight ? weightToFontStyle(val.fontWeight) : (val.fontStyle || 'Regular');
           await figma.loadFontAsync({ family, style });
           textNode.fontName = { family, style };

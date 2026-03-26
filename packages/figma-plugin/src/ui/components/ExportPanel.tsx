@@ -252,11 +252,14 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             body: JSON.stringify(token),
           });
           if (res.status === 409) {
-            await fetch(`${serverUrl}/api/tokens/${setName}/${variable.path}`, {
+            const patchRes = await fetch(`${serverUrl}/api/tokens/${setName}/${variable.path}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(token),
             });
+            if (!patchRes.ok) throw new Error(`Failed to update token ${variable.path}: ${patchRes.statusText}`);
+          } else if (!res.ok) {
+            throw new Error(`Failed to create token ${variable.path}: ${res.statusText}`);
           }
         }
       }

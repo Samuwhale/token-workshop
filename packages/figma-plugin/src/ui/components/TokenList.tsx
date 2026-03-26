@@ -2099,7 +2099,6 @@ function TokenTreeNode({
               onClick={e => { e.stopPropagation(); onFilterByType?.(node.$type!); }}
               title={`Filter by type: ${node.$type}`}
               className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase ${TOKEN_TYPE_BADGE_CLASS[node.$type ?? ''] ?? 'token-type-string'} cursor-pointer transition-opacity hover:opacity-70 hover:ring-1 hover:ring-current/40`}
-              title={`Click to filter by ${node.$type}`}
             >
               {node.$type}
             </button>

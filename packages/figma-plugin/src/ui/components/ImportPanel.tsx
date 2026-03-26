@@ -138,12 +138,15 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
     try {
       const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
 
-      // Ensure the set exists
-      await fetch(`${serverUrl}/api/sets`, {
+      // Ensure the set exists (409 = already exists, which is fine)
+      const setRes = await fetch(`${serverUrl}/api/sets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: targetSet }),
       });
+      if (!setRes.ok && setRes.status !== 409) {
+        throw new Error(`Failed to create set "${targetSet}": ${setRes.statusText}`);
+      }
 
       let imported = 0;
       for (const token of tokensToImport) {

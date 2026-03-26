@@ -189,7 +189,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           allFlatBySet[name] = flat;
           const { total, byType } = countLeafNodes(data.tokens || {});
           for (const [p, t] of Object.entries(flat)) {
-            if (t.$type === 'color' && typeof t.$value === 'string' && !t.$value.startsWith('{') && /^#[0-9a-fA-F]{3,8}$/.test(t.$value)) {
+            if (t.$type === 'color' && typeof t.$value === 'string' && !t.$value.startsWith('{') && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(t.$value)) {
               allColors.push({ path: p, hex: t.$value });
             }
           }
@@ -210,16 +210,17 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           unifiedFlat[p] = { ...t, set: s };
         }
       }
-      // Resolve color tokens (follow alias chains up to 10 hops)
-      const resolveHex = (path: string, depth = 0): string | null => {
-        if (depth > 10) return null;
+      // Resolve color tokens (follow alias chains, cycle-safe)
+      const resolveHex = (path: string, visited = new Set<string>()): string | null => {
+        if (visited.has(path)) return null;
+        visited.add(path);
         const entry = unifiedFlat[path];
         if (!entry || entry.$type !== 'color') return null;
         const v = entry.$value;
         if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
-          return resolveHex(v.slice(1, -1), depth + 1);
+          return resolveHex(v.slice(1, -1), visited);
         }
-        return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v) ? v : null;
+        return typeof v === 'string' && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v) ? v : null;
       };
       const resolvedColors: { path: string; set: string; hex: string }[] = [];
       for (const [p, e] of Object.entries(unifiedFlat)) {

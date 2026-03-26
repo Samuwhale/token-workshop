@@ -27,13 +27,14 @@ function fromLinear(c: number): number {
 // Hex parsing
 // ---------------------------------------------------------------------------
 
-export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+export function hexToRgb(hex: string): { r: number; g: number; b: number; a?: number } | null {
   const h = hex.replace('#', '');
   if (h.length !== 6 && h.length !== 8) return null;
   return {
     r: parseInt(h.slice(0, 2), 16) / 255,
     g: parseInt(h.slice(2, 4), 16) / 255,
     b: parseInt(h.slice(4, 6), 16) / 255,
+    ...(h.length === 8 && { a: parseInt(h.slice(6, 8), 16) / 255 }),
   };
 }
 
@@ -57,12 +58,12 @@ export function hexToLab(hex: string): [number, number, number] | null {
   const r = toLinear(parseInt(clean.slice(0, 2), 16) / 255);
   const g = toLinear(parseInt(clean.slice(2, 4), 16) / 255);
   const b = toLinear(parseInt(clean.slice(4, 6), 16) / 255);
-  const X = 0.4124 * r + 0.3576 * g + 0.1805 * b;
-  const Y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  const Z = 0.0193 * r + 0.1192 * g + 0.9505 * b;
+  // Use same matrix coefficients as rgbToLab for consistency
+  const X = (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047;
+  const Y = (0.2126729 * r + 0.7151522 * g + 0.0721750 * b) / 1.00000;
+  const Z = (0.0193339 * r + 0.1191920 * g + 0.9503041 * b) / 1.08883;
   const f = (t: number) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
-  const fx = f(X / 0.95047), fy = f(Y / 1.00000), fz = f(Z / 1.08883);
-  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+  return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
 }
 
 export function labToHex(L: number, a: number, b: number): string {

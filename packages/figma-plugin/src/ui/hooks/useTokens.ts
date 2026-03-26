@@ -79,6 +79,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
 
 export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {
   const setsRes = await fetch(`${serverUrl}/api/sets`);
+  if (!setsRes.ok) throw new Error(`Failed to fetch sets: ${setsRes.statusText}`);
   const setsData = await setsRes.json();
   const setNames: string[] = setsData.sets || [];
 
@@ -86,6 +87,7 @@ export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<stri
 
   for (const setName of setNames) {
     const res = await fetch(`${serverUrl}/api/tokens/${setName}`);
+    if (!res.ok) continue;
     const data = await res.json();
     flattenTokens(data.tokens || {}, '', map);
   }
@@ -98,6 +100,7 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
   pathToSet: Record<string, string>;
 }> {
   const setsRes = await fetch(`${serverUrl}/api/sets`);
+  if (!setsRes.ok) throw new Error(`Failed to fetch sets: ${setsRes.statusText}`);
   const setsData = await setsRes.json();
   const setNames: string[] = setsData.sets || [];
 
@@ -106,6 +109,7 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
 
   for (const setName of setNames) {
     const res = await fetch(`${serverUrl}/api/tokens/${setName}`);
+    if (!res.ok) continue;
     const data = await res.json();
     flattenTokensWithSet(data.tokens || {}, '', setName, flat, pathToSet);
   }

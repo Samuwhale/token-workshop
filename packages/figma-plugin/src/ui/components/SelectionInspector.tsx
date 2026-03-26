@@ -75,9 +75,7 @@ function getTokenTypeForProperty(prop: BindableProperty): string {
   if (prop === 'typography') return 'typography';
   if (prop === 'shadow') return 'shadow';
   if (prop === 'visible') return 'boolean';
-  if (process.env.NODE_ENV !== 'production') {
-    console.warn(`[SelectionInspector] getTokenTypeForProperty: unhandled property "${prop}", falling back to "string"`);
-  }
+  console.warn(`[SelectionInspector] getTokenTypeForProperty: unhandled property "${prop}", falling back to "string"`);
   return 'string';
 }
 
