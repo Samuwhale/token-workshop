@@ -411,3 +411,15 @@
   - Use `void handleConfirm()` (not `await`) when calling an async function from a sync keyboard handler to avoid unhandled promise lint warnings
   - A live path preview below a prefix/namespace field is very cheap to add and dramatically clarifies intent for path-composition fields
 ---
+
+## 2026-03-26 - UI audit & overhaul: Token Editor
+- Improved button hierarchy in footer: Cancel is now text-only (no background), Save is flex-1 with taller py-2 padding — clearer visual distinction between primary and secondary action
+- ColorEditor: replaced tiny `w-8 h-8` native `<input type="color">` with a styled `w-10 h-10` button swatch that triggers a hidden `sr-only` picker via ref — larger, more clickable, uses the codebase's inline color picker trigger pattern
+- StepperInput: replaced `▲`/`▼` text characters with SVG triangle chevrons — consistent with the codebase "never use ▶/▼ text characters" pattern
+- labelClass: bumped from `text-[9px]` to `text-[10px]` — sub-editor field labels are now more legible
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L898-899, ~L901-932, ~L956-970, ~L858-873
+- **Learnings for future iterations:**
+  - ColorEditor is a plain function component (no hooks) — can still use `useRef` since React allows hooks in any function component called as a component (not called as a plain function)
+  - The `sr-only` hidden input approach cleanly separates the visual swatch button from the native picker — avoids hacks like `opacity-0 absolute`
+  - StepperInput's `style={{ fontSize: 6 }}` can be removed when switching to SVG — the text size override was only needed for the unicode characters
+---

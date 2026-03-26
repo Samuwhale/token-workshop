@@ -856,17 +856,17 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       )}
 
       {/* Footer */}
-      <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+      <div className="flex items-center gap-2 px-3 py-2.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <button
           onClick={handleBack}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+          className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
         >
           {isCreateMode ? 'Cancel' : (isDirty ? 'Cancel' : 'Back')}
         </button>
         <button
           onClick={handleSave}
           disabled={saving || !canSave || (!isCreateMode && !isDirty) || (isCreateMode && !editPath.trim())}
-          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
+          className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? (isCreateMode ? 'Creating...' : 'Saving...') : (isCreateMode ? 'Create' : 'Save')}
         </button>
@@ -896,19 +896,30 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 // --- Sub-editors ---
 
 const inputClass = 'w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]';
-const labelClass = 'text-[9px] text-[var(--color-figma-text-secondary)] mb-0.5';
+const labelClass = 'text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5';
 
 function ColorEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const hex = typeof value === 'string' ? value : '#000000';
   // Preserve alpha suffix (#RRGGBBAA) when the color picker (which only supports #RRGGBB) changes
   const alpha = hex.length === 9 ? hex.slice(7) : '';
+  const pickerRef = useRef<HTMLInputElement>(null);
   return (
     <div className="flex gap-2 items-center">
+      <button
+        type="button"
+        onClick={() => pickerRef.current?.click()}
+        className="w-10 h-10 rounded border border-[var(--color-figma-border)] cursor-pointer shrink-0 overflow-hidden hover:ring-2 hover:ring-[var(--color-figma-accent)]/50 transition-shadow"
+        style={{ backgroundColor: hex.slice(0, 7) }}
+        title="Pick color"
+        aria-label="Pick color"
+      />
       <input
+        ref={pickerRef}
         type="color"
         value={hex.slice(0, 7)}
         onChange={e => onChange(e.target.value + alpha)}
-        className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent"
+        className="sr-only"
+        aria-hidden="true"
       />
       <input
         type="text"
@@ -958,15 +969,17 @@ function StepperInput({
           tabIndex={-1}
           onMouseDown={e => { e.preventDefault(); step(1); }}
           className="flex-1 px-0.5 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] leading-none"
-          style={{ fontSize: 6 }}
-        >▲</button>
+        >
+          <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor" aria-hidden="true"><path d="M0 5l3-4 3 4H0z"/></svg>
+        </button>
         <button
           type="button"
           tabIndex={-1}
           onMouseDown={e => { e.preventDefault(); step(-1); }}
           className="flex-1 px-0.5 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-t border-[var(--color-figma-border)] leading-none"
-          style={{ fontSize: 6 }}
-        >▼</button>
+        >
+          <svg width="6" height="6" viewBox="0 0 6 6" fill="currentColor" aria-hidden="true"><path d="M0 1l3 4 3-4H0z"/></svg>
+        </button>
       </div>
     </div>
   );

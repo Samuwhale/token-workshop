@@ -72,7 +72,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 - [ ] **UI audit & overhaul: Token List** — Read the token list and row components, audit the visual density, typography, colour swatch rendering, alias indicator styling, and type badges, then redesign: give each row a clear visual hierarchy (name primary, value secondary, type tertiary), make colour swatches larger and more legible, improve alias/reference indicators, and ensure the list feels scannable and calm rather than cluttered. `packages/plugin/src/components/TokenList.tsx`
 
-- [~] **UI audit & overhaul: Token Editor** — Read the editor layout, study how input fields, colour pickers, dropdowns, and action buttons are currently laid out, then redesign: improve the form layout so related fields are visually grouped, make the colour picker feel integrated rather than bolted on, improve button hierarchy (primary save, secondary cancel, destructive delete), and ensure the editor feels like a focused editing surface. `packages/plugin/src/components/TokenEditor.tsx`
+- [x] **UI audit & overhaul: Token Editor** — Read the editor layout, study how input fields, colour pickers, dropdowns, and action buttons are currently laid out, then redesign: improve the form layout so related fields are visually grouped, make the colour picker feel integrated rather than bolted on, improve button hierarchy (primary save, secondary cancel, destructive delete), and ensure the editor feels like a focused editing surface. `packages/plugin/src/components/TokenEditor.tsx`
 
 ---
 
@@ -284,7 +284,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Find and Replace Token Names
 
-- [ ] **Flow audit & overhaul: Find & Replace** — Trace the find & replace flow (trigger → search input → matches highlight → replacement input → preview renames → confirm → tokens renamed), read all find-replace UI and service code, identify friction (is the preview of renamed tokens clear enough to prevent mistakes?), then redesign: make the match preview legible (show old name → new name diffs), add a count of affected tokens before confirming, and ensure the action is undoable. `packages/plugin/src/components/FindReplace.tsx`
+- [~] **Flow audit & overhaul: Find & Replace** — Trace the find & replace flow (trigger → search input → matches highlight → replacement input → preview renames → confirm → tokens renamed), read all find-replace UI and service code, identify friction (is the preview of renamed tokens clear enough to prevent mistakes?), then redesign: make the match preview legible (show old name → new name diffs), add a count of affected tokens before confirming, and ensure the action is undoable. `packages/plugin/src/components/FindReplace.tsx`
 
 ### Flow: Inline Quick-Edit a Token Value
 
