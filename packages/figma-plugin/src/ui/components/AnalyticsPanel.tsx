@@ -378,17 +378,29 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
 
   return (
     <div className="flex flex-col gap-3 p-3">
-      {/* Validate button */}
+      {/* Validate header */}
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Token Analytics</span>
         <button
           onClick={runValidate}
           disabled={validateLoading || !connected}
-          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+          className={`text-[10px] px-2 py-1 rounded border transition-colors ${
+            resultsStale
+              ? 'border-[var(--color-figma-warning)] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10 hover:bg-[var(--color-figma-warning)]/20'
+              : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+          } disabled:opacity-40`}
         >
-          {validateLoading ? 'Validating…' : 'Validate All'}
+          {validateLoading ? 'Validating…' : resultsStale ? 'Re-validate' : 'Validate All'}
         </button>
       </div>
+
+      {/* Stale results hint */}
+      {resultsStale && validateResults !== null && !validateLoading && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-warning)]/30 bg-[var(--color-figma-warning)]/5 text-[10px] text-[var(--color-figma-text-secondary)]">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+          Results may be outdated — re-validate to check your fixes.
+        </div>
+      )}
 
       {/* Validation error */}
       {!validateLoading && validateError && (
@@ -399,7 +411,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
 
       {/* Validation results */}
       {validateResults !== null && (
-        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+        <div className={`rounded border overflow-hidden ${resultsStale ? 'border-[var(--color-figma-border)] opacity-70' : 'border-[var(--color-figma-border)]'}`}>
           <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
               Validation — {validateResults.length} issue{validateResults.length !== 1 ? 's' : ''}
@@ -444,48 +456,81 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             </div>
           </div>
           {filteredIssues && filteredIssues.length === 0 ? (
-            <div className="px-3 py-4 text-[11px] text-[var(--color-figma-text-secondary)] text-center">
-              {validateResults.length === 0 ? 'No issues found ✓' : 'No issues match filter'}
+            <div className="px-3 py-6 text-center">
+              {validateResults.length === 0 ? (
+                <>
+                  <div className="text-[16px] mb-1">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
+                  </div>
+                  <div className="text-[11px] font-medium text-[var(--color-figma-text)]">All tokens valid</div>
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">No broken references, type mismatches, or circular aliases.</div>
+                </>
+              ) : (
+                <div className="text-[11px] text-[var(--color-figma-text-secondary)]">No issues match this filter</div>
+              )}
             </div>
           ) : (
-            <div className="divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
-              {(filteredIssues ?? []).map((issue, i) => (
-                <div key={i} className="px-3 py-2 flex items-start gap-2">
-                  <span className={`text-[9px] px-1 py-0.5 rounded border shrink-0 mt-0.5 font-medium ${
-                    issue.severity === 'error'
-                      ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5'
-                      : issue.severity === 'warning'
-                      ? 'border-[var(--color-figma-warning)] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10'
-                      : 'border-[var(--color-figma-accent)]/50 text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
-                  }`}>
-                    {issue.severity === 'error' ? 'Error' : issue.severity === 'warning' ? 'Warn' : 'Info'}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-1.5 flex-wrap">
-                      <span className="text-[10px] text-[var(--color-figma-text)] font-medium font-mono truncate">{issue.path}</span>
-                      <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">{issue.setName}</span>
-                    </div>
-                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">{issue.message}</div>
-                    {issue.suggestedFix && (
-                      <div className="text-[9px] text-[var(--color-figma-accent)] mt-0.5 flex items-center gap-1">
-                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                        </svg>
-                        {issue.suggestedFix}
+            <div className="max-h-64 overflow-y-auto">
+              {issueGroups.map(group => {
+                const isCollapsed = collapsedRules.has(group.rule);
+                return (
+                  <div key={group.rule}>
+                    {/* Rule group header */}
+                    <button
+                      onClick={() => setCollapsedRules(prev => {
+                        const next = new Set(prev);
+                        if (next.has(group.rule)) next.delete(group.rule); else next.add(group.rule);
+                        return next;
+                      })}
+                      className="w-full flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]/50 border-y border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    >
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+                      <span className={`text-[9px] px-1 py-0.5 rounded border shrink-0 font-medium ${
+                        group.severity === 'error'
+                          ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5'
+                          : group.severity === 'warning'
+                          ? 'border-[var(--color-figma-warning)] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10'
+                          : 'border-[var(--color-figma-accent)]/50 text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
+                      }`}>
+                        {group.severity === 'error' ? 'Error' : group.severity === 'warning' ? 'Warn' : 'Info'}
+                      </span>
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 text-left">{group.label}</span>
+                      <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{group.issues.length}</span>
+                    </button>
+                    {/* Tip line */}
+                    {!isCollapsed && group.tip && (
+                      <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]/30 border-b border-[var(--color-figma-border)] flex items-center gap-1">
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-50"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                        {group.tip}
                       </div>
                     )}
+                    {/* Issue rows */}
+                    {!isCollapsed && group.issues.map((issue, i) => (
+                      <div key={i} className="px-3 py-1.5 flex items-center gap-2 border-b border-[var(--color-figma-border)] last:border-b-0">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-1.5 flex-wrap">
+                            <span className="text-[10px] text-[var(--color-figma-text)] font-medium font-mono truncate">{issue.path}</span>
+                            <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">{issue.setName}</span>
+                          </div>
+                          <div className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">{issue.message}</div>
+                        </div>
+                        {onNavigateToToken && (
+                          <button
+                            onClick={() => {
+                              setResultsStale(true);
+                              onNavigateToToken(issue.path, issue.setName);
+                            }}
+                            className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                            title="Go to token"
+                          >
+                            Go →
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  {onNavigateToToken && (
-                    <button
-                      onClick={() => onNavigateToToken(issue.path, issue.setName)}
-                      className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
-                      title="Go to token"
-                    >
-                      Go →
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

@@ -1,1 +1,0 @@
-- [HIGH] Fix plugin crash: `ReferenceError: Cannot access 'It' before initialization` — thrown during render in the bundled plugin code (`VM4092:40`), caught by ErrorBoundary. Likely a circular dependency or incorrect import order causing a `let`/`const` binding to be accessed before its initializer runs after bundling. Investigate bundle output and circular deps.

@@ -324,3 +324,17 @@
   - `setPendingHighlight` works across refresh cycles (waits for token data to load before highlighting) — use it for any post-creation navigation
   - Steps + prefix can share a row since steps is a fixed-width button group — saves vertical space for the preview
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Validate & Fix
+- Auto-validate on first Analytics tab visit (no more manual "Validate All" click required)
+- Grouped issues by rule type with collapsible sections, human-readable labels, and actionable tips per rule group
+- Added stale-results tracking: clicking "Go →" marks results as potentially outdated, shows a "Re-validate" banner when returning
+- Improved zero-issues success state with a checkmark icon and descriptive text
+- Added `RULE_LABELS` mapping for all validation and lint rules with plain-language labels and fix tips
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L55 (RULE_LABELS), ~L93 (state), ~L153 (auto-validate effect), ~L304 (issueGroups), ~L380 (render)
+- **Learnings for future iterations:**
+  - `validateAllTokens` (server) never sets `suggestedFix` — only `lintTokens` does. The UI `suggestedFix` render code was effectively dead code for the validate flow.
+  - `hasAutoValidated` ref prevents re-triggering auto-validate on every render cycle
+  - Issue grouping by `rule` field creates natural collapsible sections that reduce overwhelm compared to a flat severity-sorted list
+  - The `resultsStale` flag is a lightweight way to hint "you changed something, results may not reflect current state" without auto-re-validating (which could be slow)
+---

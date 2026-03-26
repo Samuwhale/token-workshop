@@ -88,7 +88,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### UI
 
-- [ ] **UI audit & overhaul: Theme Manager** — Read the theme manager layout, audit the visual design of theme cards, the matrix/table layout, and coverage indicators, then redesign: improve the theme card design, make the set assignment matrix readable at a glance (better column/row labels, clearer enabled/disabled/source states), and improve coverage gap visualisation. `packages/plugin/src/components/ThemeManager.tsx`
+- [~] **UI audit & overhaul: Theme Manager** — Read the theme manager layout, audit the visual design of theme cards, the matrix/table layout, and coverage indicators, then redesign: improve the theme card design, make the set assignment matrix readable at a glance (better column/row labels, clearer enabled/disabled/source states), and improve coverage gap visualisation. `packages/plugin/src/components/ThemeManager.tsx`
 
 ### QA
 
@@ -268,7 +268,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Validate and Fix Token Issues
 
-- [~] **Flow audit & overhaul: Validate & Fix** — Trace the validation flow (trigger → analytics view → issues listed → click issue → navigate to token → fix → re-validate), read the validator and analytics components, identify friction (is it clear how to trigger validation? is the issue list overwhelming? is "navigate to token" obvious?), then redesign: ensure validation runs automatically and the badge count is always current, make issue descriptions use plain language, and make the fix path (navigate → edit → re-validate) a smooth loop. `packages/plugin/src/components/AnalyticsPanel.tsx`, `packages/core/src/validator.ts`
+- [x] **Flow audit & overhaul: Validate & Fix** — Trace the validation flow (trigger → analytics view → issues listed → click issue → navigate to token → fix → re-validate), read the validator and analytics components, identify friction (is it clear how to trigger validation? is the issue list overwhelming? is "navigate to token" obvious?), then redesign: ensure validation runs automatically and the badge count is always current, make issue descriptions use plain language, and make the fix path (navigate → edit → re-validate) a smooth loop. `packages/plugin/src/components/AnalyticsPanel.tsx`, `packages/core/src/validator.ts`
 
 ### Flow: Command Palette Usage
 
@@ -305,3 +305,5 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 ### UX
 
 - [ ] **Holistic UX audit & redesign: Full plugin** — After the per-area and per-flow improvements are done, conduct a holistic review: read every component file, map the full interaction model, identify cross-cutting issues (inconsistent terminology across areas, inconsistent affordances for the same action type, missing undo coverage, no onboarding for first-time users, poor empty states, no progressive disclosure of advanced features), then produce and implement a coherent set of fixes that unify the experience. Audit: (1) terminology consistency — do we use the same words for the same concepts everywhere? (2) affordance consistency — do similar actions look and behave the same? (3) feedback coverage — does every destructive or slow action have appropriate feedback? (4) learnability — can a new user understand what the plugin does within 60 seconds? (5) error recovery — are all error states actionable? Implement fixes for every issue found. `packages/plugin/src/`
+
+- [HIGH] Fix plugin crash: `ReferenceError: Cannot access 'It' before initialization` — thrown during render in the bundled plugin code (`VM4092:40`), caught by ErrorBoundary. Likely a circular dependency or incorrect import order causing a `let`/`const` binding to be accessed before its initializer runs after bundling. Investigate bundle output and circular deps.
