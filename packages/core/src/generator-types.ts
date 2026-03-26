@@ -17,7 +17,8 @@ export type GeneratorType =
   | 'customScale'
   | 'accessibleColorPair'
   | 'darkModeInversion'
-  | 'responsiveScale';
+  | 'responsiveScale'
+  | 'contrastCheck';
 
 // ---------------------------------------------------------------------------
 // Color Ramp
@@ -199,6 +200,26 @@ export interface ResponsiveScaleConfig {
 }
 
 // ---------------------------------------------------------------------------
+// Contrast Check
+// ---------------------------------------------------------------------------
+
+export interface ContrastCheckStep {
+  /** Semantic name for this color (e.g. "50", "primary", "accent") */
+  name: string;
+  /** Hex color string to check as the foreground (or swatch) color */
+  hex: string;
+}
+
+export interface ContrastCheckConfig {
+  /** Background color to compute contrast against. Default: '#ffffff' */
+  backgroundHex: string;
+  /** Colors to check */
+  steps: ContrastCheckStep[];
+  /** Which WCAG levels to enforce (shown in preview and warnings). Default: ['AA', 'AAA'] */
+  levels: ('AA' | 'AAA')[];
+}
+
+// ---------------------------------------------------------------------------
 // Union
 // ---------------------------------------------------------------------------
 
@@ -212,7 +233,8 @@ export type GeneratorConfig =
   | CustomScaleConfig
   | AccessibleColorPairConfig
   | DarkModeInversionConfig
-  | ResponsiveScaleConfig;
+  | ResponsiveScaleConfig
+  | ContrastCheckConfig;
 
 // ---------------------------------------------------------------------------
 // Generator definition
@@ -390,5 +412,11 @@ export const DEFAULT_RESPONSIVE_SCALE_CONFIG: ResponsiveScaleConfig = {
     { name: 'xl',   multiplier: 2.0  },
   ],
   unit: 'px',
+};
+
+export const DEFAULT_CONTRAST_CHECK_CONFIG: ContrastCheckConfig = {
+  backgroundHex: '#ffffff',
+  steps: [],
+  levels: ['AA', 'AAA'],
 };
 

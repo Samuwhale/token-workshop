@@ -586,3 +586,13 @@
   - After remapBindings completes, calling `getSelection()` in the controller automatically refreshes the inspector without any extra UI wiring.
   - Pre-populating remap rows from `freshSyncResult.missingTokens` provides excellent UX: sync → see missing → remap → sync again.
 ---
+
+## 2026-03-26 - Graph templates library
+- Created `GraphPanel.tsx` with 4 graph templates: Material color palette, Tailwind spacing, Modular type scale, Full semantic color system. Each template creates a live generator + optional semantic alias tokens. Added a new "Graph" tab to `App.tsx` (between Inspect and Publish). Added 4 "Apply template: …" commands + "Go to Graph" navigation command to the command palette. Added "Use a graph template" button to `EmptyState`. The Graph tab shows template cards when empty, and a pipeline visualization (source → generator → output) when generators exist.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L20,100,130,210,1133,1965,1975, `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L1,76
+- **Learnings for future iterations:**
+  - No Graph/canvas-based node editor exists — "Graph view" was interpreted as a pipeline visualization (source → generator → output nodes) with template cards for onboarding, which is both practical and fits the plugin's panel-based UI.
+  - Semantic alias token creation uses POST /api/tokens/:set/:path with `{$type, $value: "{prefix.step}", $description}` — same API as SemanticMappingDialog.
+  - GRAPH_TEMPLATES is exported from GraphPanel.tsx so App.tsx can reference it for command palette entries without re-defining the data.
+  - When adding a 4th tab, the tab bar starts feeling crowded. Checked: 4 tabs still fit in the existing 320px min-width window.
+---

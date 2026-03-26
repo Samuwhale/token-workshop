@@ -5,11 +5,12 @@ interface EmptyStateProps {
   onPasteJSON: () => void;
   onUsePreset?: () => void;
   onGenerateColorScale?: () => void;
+  onGoToGraph?: () => void;
   onGenerateSemanticTokens?: () => void;
   onGenerateDarkTheme?: () => void;
 }
 
-export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset, onGenerateColorScale, onGenerateSemanticTokens, onGenerateDarkTheme }: EmptyStateProps) {
+export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset, onGenerateColorScale, onGoToGraph, onGenerateSemanticTokens, onGenerateDarkTheme }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-5 py-8 text-center gap-6">
       {/* Icon + heading */}
@@ -69,6 +70,28 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset,
               </div>
               <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
                 Build a 10-step palette from one base color
+              </p>
+            </button>
+          )}
+
+          {onGoToGraph && (
+            <button
+              onClick={onGoToGraph}
+              disabled={!connected}
+              title={connected ? undefined : 'Server offline'}
+              className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="2.5" cy="6" r="1.5" />
+                  <path d="M4 6h4" />
+                  <circle cx="9.5" cy="6" r="1.5" />
+                  <circle cx="6" cy="2.5" r="1.5" />
+                </svg>
+                <span className="text-[11px] font-medium">Use a graph template</span>
+              </div>
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
+                Apply a pre-built token pipeline (color, spacing, type)
               </p>
             </button>
           )}

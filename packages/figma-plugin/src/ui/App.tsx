@@ -98,7 +98,7 @@ function useSyncBindings(serverUrl: string, connected: boolean) {
   return { syncing, syncProgress: progress, syncResult: result, sync };
 }
 
-type Tab = 'tokens' | 'inspect' | 'publish';
+type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 
 type FolderTreeNode = {
   name: string;   // display name (first path segment, e.g. 'brands')
@@ -131,6 +131,7 @@ function buildSetFolderTree(sets: string[]): { roots: Array<string | FolderTreeN
 const TABS: { id: Tab; label: string }[] = [
   { id: 'tokens', label: 'Tokens' },
   { id: 'inspect', label: 'Inspect' },
+  { id: 'graph', label: 'Graph' },
   { id: 'publish', label: 'Publish' },
 ];
 
@@ -208,6 +209,7 @@ export function App() {
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
+  const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
@@ -1128,6 +1130,24 @@ export function App() {
         category: 'Tokens',
         handler: () => { goToTokens(); setShowColorScaleGen(true); },
       },
+      {
+        id: 'go-to-graph',
+        label: 'Go to Graph',
+        description: 'View generator pipeline and apply graph templates',
+        category: 'Navigation',
+        handler: () => { setActiveTab('graph'); setOverflowPanel(null); },
+      },
+      ...GRAPH_TEMPLATES.map(t => ({
+        id: `graph-template-${t.id}`,
+        label: `Apply template: ${t.label}`,
+        description: t.description,
+        category: 'Graph',
+        handler: () => {
+          setActiveTab('graph');
+          setOverflowPanel(null);
+          setPendingGraphTemplate(t.id);
+        },
+      })),
       ...sets.map(s => ({
         id: `switch-set-${s}`,
         label: `Switch to Set: ${s}`,
@@ -1933,6 +1953,7 @@ export function App() {
               onPasteJSON={() => setShowPasteModal(true)}
               onUsePreset={() => setShowScaffoldWizard(true)}
               onGenerateColorScale={() => setShowColorScaleGen(true)}
+              onGoToGraph={() => { setActiveTab('graph'); setOverflowPanel(null); }}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && !showPreviewSplit && (
@@ -2056,6 +2077,17 @@ export function App() {
                 <PreviewPanel allTokensFlat={allTokensFlat} />
               </div>
             </div>
+          )}
+          {overflowPanel === null && activeTab === 'graph' && (
+            <GraphPanel
+              serverUrl={serverUrl}
+              activeSet={activeSet}
+              generators={generators}
+              connected={connected}
+              onRefresh={() => { refreshAll(); refreshGenerators(); }}
+              pendingTemplateId={pendingGraphTemplate}
+              onApplyTemplate={() => setPendingGraphTemplate(null)}
+            />
           )}
           {overflowPanel === null && activeTab === 'inspect' && (
             <SelectionInspector
