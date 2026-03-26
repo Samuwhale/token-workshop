@@ -47,3 +47,12 @@
   - The debounce timer must be cleared in `shutdown()` to avoid timers firing after the watcher is closed.
   - Coalescing events into `_pendingWatcherEvents` ensures all SSE listeners still receive one event per changed file even when the rebuild is batched.
 ---
+
+## 2026-03-26 - Resolver crashes on malformed composite tokens
+- Added `v != null` guards before recursing in `resolveValue()` (object branch and array branch) and `collectReferences()` (object and array branches)
+- Nullish values in composite token fields are now preserved as-is without recursion, preventing unexpected runtime behavior
+- Files changed: `packages/core/src/resolver.ts` ~L326, L331, L202, L209
+- **Learnings for future iterations:**
+  - The existing code handled null at the outer level (`value !== null` check) but not on nested values inside composite objects/arrays — the guard needs to be applied at both levels
+  - `collectReferences` and `resolveValue` share the same composite-traversal structure, so null guards should be added to both in parallel
+---
