@@ -79,7 +79,7 @@ function valuesEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (typeof a !== typeof b) return false;
   if (typeof a === 'object' && a !== null && b !== null) {
-    return JSON.stringify(a) === JSON.stringify(b);
+    return stableStringify(a) === stableStringify(b);
   }
   return false;
 }

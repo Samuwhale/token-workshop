@@ -19,6 +19,12 @@ import type {
 } from './types.js';
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const MAX_RESOLVE_DEPTH = 32;
+
+// ---------------------------------------------------------------------------
 // Internal types
 // ---------------------------------------------------------------------------
 
@@ -291,7 +297,14 @@ export class TokenResolver {
    * with their numeric values and evaluate the arithmetic expression.
    * For composite objects/arrays, recurse into each field.
    */
-  private resolveValue(value: unknown, contextPath: string): unknown {
+  private resolveValue(value: unknown, contextPath: string, depth = 0): unknown {
+    if (depth > MAX_RESOLVE_DEPTH) {
+      throw new Error(
+        `Maximum nesting depth (${MAX_RESOLVE_DEPTH}) exceeded resolving token "${contextPath}". ` +
+          `The token value is nested too deeply or contains a circular structure.`,
+      );
+    }
+
     if (isReference(value)) {
       const refPath = parseReference(value);
       const resolved = this.resolved.get(refPath);
@@ -327,13 +340,13 @@ export class TokenResolver {
     }
 
     if (Array.isArray(value)) {
-      return value.map((item) => (item != null ? this.resolveValue(item, contextPath) : item));
+      return value.map((item) => (item != null ? this.resolveValue(item, contextPath, depth + 1) : item));
     }
 
     if (typeof value === 'object' && value !== null) {
       const out: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(value)) {
-        out[k] = v != null ? this.resolveValue(v, contextPath) : v;
+        out[k] = v != null ? this.resolveValue(v, contextPath, depth + 1) : v;
       }
       return out;
     }

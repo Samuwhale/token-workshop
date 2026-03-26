@@ -193,7 +193,7 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
     if (!connected) return;
     setLoading(true);
     try {
-      const res = await fetch(`${serverUrl}/api/generators`);
+      const res = await fetch(`${serverUrl}/api/generators`, { signal: AbortSignal.timeout(5000) });
       if (!res.ok) return;
       const data: TokenGenerator[] = await res.json();
       setGenerators(data);
@@ -240,6 +240,7 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(override),
+        signal: AbortSignal.timeout(5000),
       },
     );
     await fetchGenerators();
@@ -248,7 +249,7 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
   const clearStepOverride = useCallback(async (generatorId: string, stepName: string) => {
     await fetch(
       `${serverUrl}/api/generators/${generatorId}/steps/${encodeURIComponent(stepName)}/override`,
-      { method: 'DELETE' },
+      { method: 'DELETE', signal: AbortSignal.timeout(5000) },
     );
     await fetchGenerators();
   }, [serverUrl, fetchGenerators]);

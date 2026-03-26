@@ -56,3 +56,21 @@
   - The existing code handled null at the outer level (`value !== null` check) but not on nested values inside composite objects/arrays — the guard needs to be applied at both levels
   - `collectReferences` and `resolveValue` share the same composite-traversal structure, so null guards should be added to both in parallel
 ---
+
+## 2026-03-26 - `JSON.stringify` used for deep equality in `TokenList`
+- Replaced `JSON.stringify(a) === JSON.stringify(b)` with `stableStringify(a) === stableStringify(b)` in the `valuesEqual()` function — `stableStringify` was already imported on line 12
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L82
+- **Learnings for future iterations:**
+  - `stableStringify` was already imported and used elsewhere in the file (sync snapshot comparison) — check existing imports before adding new utilities
+  - The other `JSON.stringify` calls in the file (HTTP body serialization, session storage, display rendering) are all legitimate and should not be replaced
+---
+
+## 2026-03-26 - No `fetch()` timeout in UI hooks
+- Added `AbortSignal.timeout(5000)` to all bare `fetch()` calls in `useTokens.ts` and `useGenerators.ts`
+- Added `AbortController` + `AbortSignal.any([controller.signal, AbortSignal.timeout(5000)])` in `useLint.ts` so the debounced fetch is cancelled both on cleanup and on timeout
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L33, L45, L58, L81, L89, L102, L111; `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L196, L237, L249; `packages/figma-plugin/src/ui/hooks/useLint.ts` ~L26
+- **Learnings for future iterations:**
+  - `useServerConnection.ts` already used `AbortSignal.timeout(2000)` — follow the same pattern for data hooks but with a longer threshold (5s)
+  - `useLint.ts` needed `AbortController` (not just timeout) to cancel in-flight requests when the effect re-runs due to dependency changes; use `AbortSignal.any()` to combine cleanup-abort + timeout-abort
+  - `AbortSignal.any()` is available from TypeScript 5.3+ DOM lib — project uses TS 5.7, so no shim needed
+---
