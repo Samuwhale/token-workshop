@@ -510,3 +510,17 @@
   - Auto-expanding the first result with `setExpandedFile(flatFiles[0]?.path)` is a 1-line win after any "generate" action
   - Transient copy feedback (setTimeout reset) avoids needing a toast for per-item copy confirmations
 ---
+
+## 2026-03-26 - UX audit & overhaul: Selection Inspector
+- Added inline "bind existing token" search on unbound property rows: clicking the link icon opens a compact search panel below the row, filtered by compatible token types (uses TOKEN_PROPERTY_MAP for multi-type support — e.g. `stroke` accepts both `color` and `border` tokens, `cornerRadius` accepts both `dimension` and `number`)
+- Added "Go to token" arrow button on hover for bound property rows, calling `onNavigateToToken(binding)`
+- Moved the create-token form inline (under the specific property row) instead of replacing the entire property list — the list now stays visible in both create and bind modes
+- Both forms use mutual exclusion: opening bind cancels create and vice versa; selection change resets both
+- Bind action sends `apply-to-selection` message and pushes undo (restoring previous binding or removing if unbound)
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` (full rewrite, ~400 lines)
+- **Learnings for future iterations:**
+  - `TOKEN_PROPERTY_MAP` maps type→properties; reverse it with `Object.entries(...).filter(([,props]) => props.includes(prop))` to find all types compatible with a property
+  - Inline IIFE (`{(() => { ... })()}`) inside JSX is a clean pattern for complex conditional rendering within a map without extracting a helper component
+  - `autoFocus` on an input that renders conditionally is sufficient — no need for `useLayoutEffect` + ref for the bind panel
+  - `opacity-0 group-hover:opacity-100` on a wrapper div containing multiple action buttons is cleaner than per-button opacity classes
+---

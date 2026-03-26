@@ -3,6 +3,7 @@ import {
   PROPERTY_GROUPS,
   PROPERTY_LABELS,
   ALL_BINDABLE_PROPERTIES,
+  TOKEN_PROPERTY_MAP,
 } from '../../shared/types';
 import type { BindableProperty, SelectionNodeInfo, NodeCapabilities, SyncCompleteMessage, TokenMapEntry } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
@@ -79,6 +80,13 @@ function getTokenTypeForProperty(prop: BindableProperty): string {
   return 'string';
 }
 
+// Returns all token types that can bind to a given property (some props accept multiple types)
+function getCompatibleTokenTypes(prop: BindableProperty): string[] {
+  return Object.entries(TOKEN_PROPERTY_MAP)
+    .filter(([, props]) => (props as BindableProperty[]).includes(prop))
+    .map(([type]) => type);
+}
+
 function getTokenValueFromProp(prop: BindableProperty, currentValue: any): any {
   const type = getTokenTypeForProperty(prop);
   if (type === 'color') return typeof currentValue === 'string' ? currentValue : '#000000';
@@ -142,6 +150,11 @@ export function SelectionInspector({
   const [createError, setCreateError] = useState('');
   const [createdTokenPath, setCreatedTokenPath] = useState<string | null>(null);
   const [freshSyncResult, setFreshSyncResult] = useState<SyncCompleteMessage | null>(null);
+
+  // Inline bind-existing-token state
+  const [bindingFromProp, setBindingFromProp] = useState<BindableProperty | null>(null);
+  const [bindQuery, setBindQuery] = useState('');
+
   const nameInputRef = useRef<HTMLInputElement>(null);
   const prevNodeIdsRef = useRef<string>('');
 
@@ -158,12 +171,17 @@ export function SelectionInspector({
     if (syncResult) setFreshSyncResult(syncResult);
   }, [syncResult]);
 
-  // Clear freshness when the selected nodes change
+  // Clear freshness and cancel any open inline panels when the selected nodes change
   useEffect(() => {
     const ids = selectedNodes.map(n => n.id).join(',');
     if (ids !== prevNodeIdsRef.current) {
       prevNodeIdsRef.current = ids;
       setFreshSyncResult(null);
+      setBindingFromProp(null);
+      setBindQuery('');
+      setCreatingFromProp(null);
+      setNewTokenName('');
+      setCreateError('');
     }
   }, [selectedNodes]);
 
@@ -212,16 +230,67 @@ export function SelectionInspector({
     }
   };
 
-  const openCreateFromProp = (prop: BindableProperty) => {
-    setCreatingFromProp(prop);
-    setNewTokenName(SUGGESTED_NAMES[prop] || 'token.new-token');
-  };
-
   const cancelCreate = () => {
     setCreatingFromProp(null);
     setNewTokenName('');
     setCreateError('');
     setCreatedTokenPath(null);
+  };
+
+  const cancelBind = () => {
+    setBindingFromProp(null);
+    setBindQuery('');
+  };
+
+  const openCreateFromProp = (prop: BindableProperty) => {
+    cancelBind();
+    setCreatingFromProp(prop);
+    setNewTokenName(SUGGESTED_NAMES[prop] || 'token.new-token');
+  };
+
+  const openBindFromProp = (prop: BindableProperty) => {
+    cancelCreate();
+    setBindingFromProp(prop);
+    setBindQuery('');
+  };
+
+  const handleBindToken = (prop: BindableProperty, tokenPath: string) => {
+    const entry = tokenMap[tokenPath];
+    if (!entry) return;
+    const oldBinding = getBindingForProperty(selectedNodes, prop);
+    const resolved = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+    parent.postMessage({
+      pluginMessage: {
+        type: 'apply-to-selection',
+        tokenPath,
+        tokenType: entry.$type,
+        targetProperty: prop,
+        resolvedValue: resolved.value,
+      },
+    }, '*');
+    if (onPushUndo) {
+      onPushUndo({
+        description: `Bound "${tokenPath}" to ${PROPERTY_LABELS[prop]}`,
+        restore: async () => {
+          if (oldBinding && oldBinding !== 'mixed') {
+            const prevEntry = tokenMap[oldBinding];
+            const prevResolved = prevEntry ? resolveTokenValue(prevEntry.$value, prevEntry.$type, tokenMap) : { value: null };
+            parent.postMessage({
+              pluginMessage: {
+                type: 'apply-to-selection',
+                tokenPath: oldBinding,
+                tokenType: prevEntry?.$type ?? entry.$type,
+                targetProperty: prop,
+                resolvedValue: prevResolved.value,
+              },
+            }, '*');
+          } else {
+            parent.postMessage({ pluginMessage: { type: 'remove-binding', property: prop } }, '*');
+          }
+        },
+      });
+    }
+    cancelBind();
   };
 
   const handleCreateToken = async () => {
@@ -269,6 +338,8 @@ export function SelectionInspector({
     : selectedNodes.length === 1
     ? `${selectedNodes[0].name} (${selectedNodes[0].type})`
     : `${selectedNodes.length} layers selected`;
+
+  const hasAnyTokens = Object.keys(tokenMap).length > 0;
 
   return (
     <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col shrink-0">
@@ -348,8 +419,8 @@ export function SelectionInspector({
         )}
       </div>}
 
-      {/* Body */}
-      {!collapsed && hasSelection && !creatingFromProp && (
+      {/* Body — always visible when expanded and a layer is selected */}
+      {!collapsed && hasSelection && (
         <div className="overflow-y-auto max-h-[30vh] px-1 pb-1">
           {PROPERTY_GROUPS.map((group, groupIdx) => {
             if (!shouldShowGroup(group.condition, caps)) return null;
@@ -390,81 +461,263 @@ export function SelectionInspector({
                   const isBound = binding && binding !== 'mixed';
                   const isMixed = binding === 'mixed';
                   const isUnbound = !binding || isMixed;
-                  const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && activeSet;
+                  const isThisPropActive = creatingFromProp === prop || bindingFromProp === prop;
+                  const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && activeSet && !isThisPropActive;
+                  const canBind = !isBound && !isMixed && connected && hasAnyTokens && !isThisPropActive;
 
                   return (
-                    <div
-                      key={prop}
-                      className={`flex items-center gap-1.5 px-2 py-1 rounded group transition-colors ${
-                        isBound
-                          ? 'bg-[var(--color-figma-accent)]/5 hover:bg-[var(--color-figma-accent)]/10'
-                          : 'hover:bg-[var(--color-figma-bg-hover)]'
-                      }`}
-                    >
-                      {/* Color swatch */}
-                      {swatchColor ? (
-                        <div
-                          className="w-4 h-4 rounded border border-[var(--color-figma-border)] ring-1 ring-white/50 ring-inset shrink-0"
-                          style={{ backgroundColor: swatchColor }}
-                        />
-                      ) : (
-                        <div className="w-4 h-4 shrink-0" />
-                      )}
+                    <div key={prop}>
+                      {/* Property row */}
+                      <div
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded group transition-colors ${
+                          isBound
+                            ? 'bg-[var(--color-figma-accent)]/5 hover:bg-[var(--color-figma-accent)]/10'
+                            : isThisPropActive
+                            ? 'bg-[var(--color-figma-bg-hover)]'
+                            : 'hover:bg-[var(--color-figma-bg-hover)]'
+                        }`}
+                      >
+                        {/* Color swatch */}
+                        {swatchColor ? (
+                          <div
+                            className="w-4 h-4 rounded border border-[var(--color-figma-border)] ring-1 ring-white/50 ring-inset shrink-0"
+                            style={{ backgroundColor: swatchColor }}
+                          />
+                        ) : (
+                          <div className="w-4 h-4 shrink-0" />
+                        )}
 
-                      {/* Property name + value */}
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-[var(--color-figma-text)] font-medium w-[72px] shrink-0 truncate">
-                            {PROPERTY_LABELS[prop]}
-                          </span>
-                          {isBound ? (
-                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={resolvedDisplay ?? undefined}>
-                              {resolvedDisplay ?? formatCurrentValue(prop, value)}
+                        {/* Property name + value */}
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-[var(--color-figma-text)] font-medium w-[72px] shrink-0 truncate">
+                              {PROPERTY_LABELS[prop]}
                             </span>
-                          ) : isMixed ? (
-                            <span className="text-[10px] text-[var(--color-figma-warning,#f5a623)] italic">Mixed</span>
-                          ) : (
-                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
-                              {formatCurrentValue(prop, value)}
-                            </span>
+                            {isBound ? (
+                              <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={resolvedDisplay ?? undefined}>
+                                {resolvedDisplay ?? formatCurrentValue(prop, value)}
+                              </span>
+                            ) : isMixed ? (
+                              <span className="text-[10px] text-[var(--color-figma-warning,#f5a623)] italic">Mixed</span>
+                            ) : (
+                              <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
+                                {formatCurrentValue(prop, value)}
+                              </span>
+                            )}
+                          </div>
+                          {isBound && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
+                                <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                              </svg>
+                              <span className="text-[9px] text-[var(--color-figma-accent)] font-mono truncate" title={binding as string}>
+                                {binding as string}
+                              </span>
+                            </div>
                           )}
                         </div>
-                        {isBound && (
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
+
+                        {/* Actions — shown on hover (or always when this row is active) */}
+                        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {isBound && onNavigateToToken && (
+                            <button
+                              onClick={() => onNavigateToToken(binding as string)}
+                              title="Go to token"
+                              className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M5 12h14M12 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                          )}
+                          {isBound && (
+                            <button
+                              onClick={() => handleRemoveBinding(prop)}
+                              title="Remove binding"
+                              className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] transition-colors"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M18 6L6 18M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                          {canBind && (
+                            <button
+                              onClick={() => openBindFromProp(prop)}
+                              title="Bind existing token"
+                              className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                              </svg>
+                            </button>
+                          )}
+                          {hasExtractableValue && (
+                            <button
+                              onClick={() => openCreateFromProp(prop)}
+                              title="Create token from this value"
+                              className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M12 5v14M5 12h14" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Inline: bind existing token */}
+                      {bindingFromProp === prop && (
+                        <div className="mx-2 mb-1.5 rounded border border-[var(--color-figma-accent)]/30 bg-[var(--color-figma-bg)] overflow-hidden">
+                          <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-accent)]/5">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-accent)] shrink-0" aria-hidden="true">
                               <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
                             </svg>
-                            <span className="text-[9px] text-[var(--color-figma-accent)] font-mono truncate" title={binding as string}>
-                              {binding as string}
+                            <span className="text-[9px] text-[var(--color-figma-accent)] font-medium flex-1">
+                              Bind {PROPERTY_LABELS[prop]}
                             </span>
+                            <button
+                              onClick={cancelBind}
+                              className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                              title="Cancel"
+                            >
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                                <path d="M18 6L6 18M6 6l12 12" />
+                              </svg>
+                            </button>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Actions */}
-                      {isBound && (
-                        <button
-                          onClick={() => handleRemoveBinding(prop)}
-                          title="Remove binding"
-                          className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                        >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M18 6L6 18M6 6l12 12" />
-                          </svg>
-                        </button>
+                          <div className="px-2 py-1.5 flex flex-col gap-1">
+                            <input
+                              autoFocus
+                              value={bindQuery}
+                              onChange={e => setBindQuery(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Escape') cancelBind(); }}
+                              placeholder={`Search ${getCompatibleTokenTypes(prop).join(' / ')} tokens…`}
+                              className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+                            />
+                            {(() => {
+                              const compatibleTypes = getCompatibleTokenTypes(prop);
+                              const candidates = Object.entries(tokenMap)
+                                .filter(([, entry]) => compatibleTypes.includes(entry.$type))
+                                .filter(([path]) => !bindQuery || path.toLowerCase().includes(bindQuery.toLowerCase()))
+                                .slice(0, 8);
+                              if (candidates.length === 0) {
+                                return (
+                                  <div className="text-[9px] text-[var(--color-figma-text-secondary)] py-1 text-center">
+                                    {bindQuery ? 'No matching tokens' : `No ${compatibleTypes.join(' or ')} tokens in set`}
+                                  </div>
+                                );
+                              }
+                              return (
+                                <div className="max-h-[112px] overflow-y-auto flex flex-col gap-px">
+                                  {candidates.map(([path, entry]) => {
+                                    let resolvedColorSwatch: string | null = null;
+                                    if (entry.$type === 'color') {
+                                      const r = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+                                      if (typeof r.value === 'string' && r.value.startsWith('#')) resolvedColorSwatch = r.value;
+                                    }
+                                    return (
+                                      <button
+                                        key={path}
+                                        onClick={() => handleBindToken(prop, path)}
+                                        className="flex items-center gap-1.5 px-1.5 py-1 rounded text-left hover:bg-[var(--color-figma-accent)]/10 transition-colors group/item"
+                                      >
+                                        {resolvedColorSwatch ? (
+                                          <div
+                                            className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                                            style={{ backgroundColor: resolvedColorSwatch }}
+                                          />
+                                        ) : (
+                                          <div className="w-3 h-3 shrink-0 flex items-center justify-center">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
+                                          </div>
+                                        )}
+                                        <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate flex-1 group-hover/item:text-[var(--color-figma-accent)]">
+                                          {path}
+                                        </span>
+                                        <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
+                                          {entry.$type}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
                       )}
 
-                      {hasExtractableValue && (
-                        <button
-                          onClick={() => openCreateFromProp(prop)}
-                          title="Create token from this value"
-                          className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                        >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M12 5v14M5 12h14" />
-                          </svg>
-                        </button>
+                      {/* Inline: create token from value */}
+                      {creatingFromProp === prop && (
+                        <div className="mx-2 mb-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
+                          <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)]/50 bg-[var(--color-figma-bg-secondary)]">
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
+                              <path d="M12 5v14M5 12h14" />
+                            </svg>
+                            <span className="text-[9px] text-[var(--color-figma-text)] font-medium flex-1">
+                              Create token from {PROPERTY_LABELS[prop]}
+                            </span>
+                            <button
+                              onClick={cancelCreate}
+                              className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                              title="Cancel"
+                            >
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                                <path d="M18 6L6 18M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          <div className="px-2 py-1.5 flex flex-col gap-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Value:</span>
+                              {(prop === 'fill' || prop === 'stroke') &&
+                               typeof getCurrentValue(selectedNodes, prop) === 'string' &&
+                               getCurrentValue(selectedNodes, prop).startsWith('#') && (
+                                <div
+                                  className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
+                                  style={{ backgroundColor: getCurrentValue(selectedNodes, prop) }}
+                                />
+                              )}
+                              <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate">
+                                {formatTokenValuePreview(prop, getCurrentValue(selectedNodes, prop))}
+                              </span>
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                              <label className="text-[9px] text-[var(--color-figma-text-secondary)]">Token path (set: {activeSet})</label>
+                              <input
+                                ref={nameInputRef}
+                                value={newTokenName}
+                                onChange={e => { setNewTokenName(e.target.value); setCreateError(''); }}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') handleCreateToken();
+                                  if (e.key === 'Escape') cancelCreate();
+                                }}
+                                placeholder="group.token-name"
+                                className={`w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                              />
+                              {createError && <div className="text-[9px] text-[var(--color-figma-error)]">{createError}</div>}
+                            </div>
+                            <div className="flex gap-1.5 justify-end">
+                              <button
+                                onClick={cancelCreate}
+                                className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleCreateToken}
+                                disabled={!newTokenName.trim() || creating}
+                                className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+                              >
+                                {creating ? 'Creating…' : 'Create & bind'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
                   );
@@ -499,59 +752,6 @@ export function SelectionInspector({
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
-        </div>
-      )}
-
-      {/* Create token form */}
-      {creatingFromProp && (
-        <div className="border-t border-[var(--color-figma-border)] px-3 py-2 flex flex-col gap-2 bg-[var(--color-figma-bg)]">
-          <div className="text-[10px] font-medium text-[var(--color-figma-text)]">
-            Create token from {PROPERTY_LABELS[creatingFromProp]}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Value:</span>
-            {(creatingFromProp === 'fill' || creatingFromProp === 'stroke') &&
-             typeof getCurrentValue(selectedNodes, creatingFromProp) === 'string' &&
-             getCurrentValue(selectedNodes, creatingFromProp).startsWith('#') && (
-              <div
-                className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0"
-                style={{ backgroundColor: getCurrentValue(selectedNodes, creatingFromProp) }}
-              />
-            )}
-            <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate">
-              {formatTokenValuePreview(creatingFromProp, getCurrentValue(selectedNodes, creatingFromProp))}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[9px] text-[var(--color-figma-text-secondary)]">Token path (in set: {activeSet})</label>
-            <input
-              ref={nameInputRef}
-              value={newTokenName}
-              onChange={e => { setNewTokenName(e.target.value); setCreateError(''); }}
-              onKeyDown={e => {
-                if (e.key === 'Enter') handleCreateToken();
-                if (e.key === 'Escape') cancelCreate();
-              }}
-              placeholder="group.token-name"
-              className={`w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
-            />
-            {createError && <div className="text-[9px] text-[var(--color-figma-error)]">{createError}</div>}
-          </div>
-          <div className="flex gap-1.5 justify-end">
-            <button
-              onClick={cancelCreate}
-              className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreateToken}
-              disabled={!newTokenName.trim() || creating}
-              className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
-            >
-              {creating ? 'Creating…' : 'Create & bind'}
-            </button>
-          </div>
         </div>
       )}
     </div>

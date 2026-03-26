@@ -136,7 +136,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [~] **UX audit & overhaul: Selection Inspector** — Read the selection inspector and property picker components, research how property panels work in Figma plugins that bind variables/tokens (Variables panel, Tokens Studio), audit every step of selecting a node, seeing its properties, and binding a token to a property, identify friction (is it clear which properties are bindable? does the picker open in a sensible place? is binding feedback immediate?), then redesign: make the inspector feel like a natural extension of Figma's own inspector, improve the property list legibility, and make binding/unbinding feel snappy and obvious. `packages/plugin/src/components/SelectionInspector.tsx`
+- [x] **UX audit & overhaul: Selection Inspector** — Read the selection inspector and property picker components, research how property panels work in Figma plugins that bind variables/tokens (Variables panel, Tokens Studio), audit every step of selecting a node, seeing its properties, and binding a token to a property, identify friction (is it clear which properties are bindable? does the picker open in a sensible place? is binding feedback immediate?), then redesign: make the inspector feel like a natural extension of Figma's own inspector, improve the property list legibility, and make binding/unbinding feel snappy and obvious. `packages/plugin/src/components/SelectionInspector.tsx`
 
 ### UI
 
@@ -172,7 +172,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [ ] **UX audit & overhaul: Export** — Read the export panel code, research how design token export UIs work (Style Dictionary, Tokens Studio, Specify), audit the mode toggle (platforms vs figma-variables), platform selection, filtering, and download/copy flows, identify friction (is the output format understandable before export? is copy-to-clipboard obvious?), then redesign: improve mode and platform selection clarity, make format previews more useful, and streamline the path from "I want to export" to "I have my output". `packages/plugin/src/routes/ExportPanel.tsx`
+- [~] **UX audit & overhaul: Export** — Read the export panel code, research how design token export UIs work (Style Dictionary, Tokens Studio, Specify), audit the mode toggle (platforms vs figma-variables), platform selection, filtering, and download/copy flows, identify friction (is the output format understandable before export? is copy-to-clipboard obvious?), then redesign: improve mode and platform selection clarity, make format previews more useful, and streamline the path from "I want to export" to "I have my output". `packages/plugin/src/routes/ExportPanel.tsx`
 
 ### UI
 

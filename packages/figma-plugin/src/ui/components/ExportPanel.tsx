@@ -10,14 +10,15 @@ interface Platform {
   id: string;
   label: string;
   description: string;
+  example: string;
 }
 
 const PLATFORMS: Platform[] = [
-  { id: 'css', label: 'CSS', description: 'CSS custom properties' },
-  { id: 'dart', label: 'Dart', description: 'Flutter theme classes' },
-  { id: 'ios-swift', label: 'iOS Swift', description: 'UIKit / SwiftUI extensions' },
-  { id: 'android', label: 'Android', description: 'XML resources / Compose' },
-  { id: 'json', label: 'JSON', description: 'W3C DTCG format' },
+  { id: 'css', label: 'CSS', description: 'CSS custom properties', example: '--color-brand: #0066ff;' },
+  { id: 'dart', label: 'Dart', description: 'Flutter theme classes', example: 'static const colorBrand = Color(0xFF0066FF);' },
+  { id: 'ios-swift', label: 'iOS Swift', description: 'UIKit / SwiftUI extensions', example: 'static let colorBrand = UIColor(...)' },
+  { id: 'android', label: 'Android', description: 'XML resources / Compose', example: '<color name="color_brand">#0066FF</color>' },
+  { id: 'json', label: 'JSON', description: 'W3C DTCG format', example: '"color-brand": { "$type": "color", "$value": "#0066ff" }' },
 ];
 
 interface ExportedModeValue {
@@ -59,6 +60,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [figmaCollections, setFigmaCollections] = useState<ExportedCollection[]>([]);
   const [expandedCollection, setExpandedCollection] = useState<string | null>(null);
   const [expandedVar, setExpandedVar] = useState<string | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   // Listen for messages from the plugin sandbox
   useEffect(() => {
@@ -217,6 +219,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const handleCopyAll = () => {
     const json = buildDTCGJson();
     navigator.clipboard.writeText(json);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 1500);
     parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied all variables as DTCG JSON' } }, '*');
   };
 
@@ -368,8 +372,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         {/* Mode description */}
         <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed -mt-1">
           {mode === 'platforms'
-            ? 'Generate code files from your token server — CSS variables, Dart, Swift, Android XML, or W3C JSON.'
-            : 'Read variables directly from this Figma file and copy or import them into the token server.'}
+            ? 'Generate platform-specific code files from the token server — CSS variables, Dart, Swift, Android, or W3C JSON.'
+            : 'Read local variables from this Figma file, preview them, and copy as DTCG JSON or save to the token server.'}
         </div>
 
         {/* Platform export mode */}
@@ -380,9 +384,18 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
                   Target Platforms
                 </div>
-                <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
-                  {selected.size} selected
-                </div>
+                <button
+                  onClick={() => {
+                    if (selected.size === PLATFORMS.length) {
+                      setSelected(new Set());
+                    } else {
+                      setSelected(new Set(PLATFORMS.map(p => p.id)));
+                    }
+                  }}
+                  className="text-[9px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                >
+                  {selected.size === PLATFORMS.length ? 'Deselect all' : `Select all (${PLATFORMS.length})`}
+                </button>
               </div>
               <div className="flex flex-col gap-1">
                 {PLATFORMS.map(platform => {
@@ -390,13 +403,13 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   return (
                     <label
                       key={platform.id}
-                      className={`group flex items-center gap-2.5 px-3 py-2 rounded-md border cursor-pointer transition-all ${
+                      className={`group flex items-start gap-2.5 px-3 py-2 rounded-md border cursor-pointer transition-all ${
                         isSelected
                           ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
                           : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
                       }`}
                     >
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                         isSelected
                           ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
                           : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
@@ -416,6 +429,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{platform.label}</div>
                         <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{platform.description}</div>
+                        {isSelected && (
+                          <div className="mt-1 text-[8px] font-mono text-[var(--color-figma-text-tertiary)] truncate">
+                            {platform.example}
+                          </div>
+                        )}
                       </div>
                     </label>
                   );
@@ -429,16 +447,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
                     Generated Files
                   </div>
-                  <button
-                    onClick={handleCopyAllPlatformResults}
-                    className="flex items-center gap-1 text-[9px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <rect x="9" y="9" width="13" height="13" rx="2" />
-                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                    </svg>
-                    Copy All
-                  </button>
+                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                    {results.length} file{results.length !== 1 ? 's' : ''}
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1">
                   {results.map((file, i) => (
