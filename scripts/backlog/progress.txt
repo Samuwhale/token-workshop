@@ -675,3 +675,12 @@
   - When `@tokenmanager/core` src exports a new symbol, the dist files must be updated manually: add the implementation to `dist/dtcg-types.js` and add it to the export list in `dist/index.js`. The TS watch process doesn't always catch new exports.
   - Backlog items referencing old function names (e.g. `resolveColorValue`) may be partially stale — check current file state before planning the full consolidation.
 ---
+
+## 2026-03-26 - Resolver rebuilds full graph on every updateToken()
+- Added `_batchDepth` / `_pendingRebuild` batch guard to `TokenStore`. `rebuildFlatTokens()` now defers when `_batchDepth > 0` and flushes on `endBatch()`. Wrapped the per-result write loops in `executeGeneratorSingleBrand` and `executeGeneratorMultiBrand` with `beginBatch()` / `endBatch()` in try/finally.
+- Files changed: `packages/server/src/services/token-store.ts` ~L119, `packages/server/src/services/generator-service.ts` ~L311, ~L353
+- **Learnings for future iterations:**
+  - The generator service was the primary source of O(n) rebuilds — it calls updateToken()/createToken() once per generated token in a loop
+  - batch guard uses try/finally in callers so endBatch() is always called even on error
+  - renameGroup/moveGroup/bulkRename already did a single rebuildFlatTokens() at the end — they were not O(n²)
+---

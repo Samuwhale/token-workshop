@@ -166,7 +166,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Performance
 
-- [~] **Resolver rebuilds full graph on every `updateToken()`** — `token-store.ts` calls `rebuildFlatTokens()` after every single token save, reconstructing the entire flat map and resolver. Bulk operations (rename group, move group) trigger O(n) rebuilds per token updated, resulting in O(n²) behavior. Batch or defer the rebuild until the operation is complete.
+- [x] **Resolver rebuilds full graph on every `updateToken()`** — `token-store.ts` calls `rebuildFlatTokens()` after every single token save, reconstructing the entire flat map and resolver. Bulk operations (rename group, move group) trigger O(n) rebuilds per token updated, resulting in O(n²) behavior. Batch or defer the rebuild until the operation is complete.
 - [x] **`JSON.stringify` used for deep equality in `TokenList`** — `TokenList.tsx` uses `JSON.stringify(a) === JSON.stringify(b)` for diffing token structures. This is fragile (key order dependent) and slow for large composite tokens. Replace with a proper deep-equality check.
 - [x] **No `fetch()` timeout in UI hooks** — `useTokens.ts` and other hooks make `fetch()` calls to the local server with no timeout or `AbortController`. If the server is slow or unreachable, the plugin UI hangs with no way to recover. Add a timeout and surface an error after a reasonable threshold.
 
