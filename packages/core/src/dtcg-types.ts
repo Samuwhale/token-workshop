@@ -88,3 +88,73 @@ export function parseReference(ref: string): string {
   if (!match) throw new Error(`Invalid reference: ${ref}`);
   return match[1];
 }
+
+// ---------------------------------------------------------------------------
+// Reference resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve a `{path.to.token}` reference through a flat string-value map.
+ *
+ * Follows alias chains (`{path}` values) until a concrete string or a cycle.
+ * Returns `null` on cycle, missing path, or non-string value.
+ *
+ * @param pathOrRef  Bare path (`a.b.c`) or braced reference (`{a.b.c}`).
+ * @param flatMap    Path → value lookup (only string values are followed as aliases).
+ * @param visited    Cycle-detection set; omit on first call.
+ */
+export function resolveRefValue(
+  pathOrRef: string,
+  flatMap: Record<string, unknown>,
+  visited = new Set<string>(),
+): string | null {
+  const path =
+    pathOrRef.startsWith('{') && pathOrRef.endsWith('}')
+      ? pathOrRef.slice(1, -1)
+      : pathOrRef;
+  if (visited.has(path)) return null;
+  visited.add(path);
+  const val = flatMap[path];
+  if (typeof val === 'string' && val.startsWith('{') && val.endsWith('}')) {
+    return resolveRefValue(val, flatMap, visited);
+  }
+  return typeof val === 'string' ? val : null;
+}
+
+// ---------------------------------------------------------------------------
+// Flatten
+// ---------------------------------------------------------------------------
+
+/**
+ * Flatten a nested DTCG group into a `Map<dotPath, DTCGToken>`.
+ *
+ * Keys that start with `$` are treated as metadata and skipped.
+ * `$type` is inherited from parent groups per the DTCG spec — if a token has
+ * no `$type` of its own, the nearest ancestor group's `$type` is applied.
+ *
+ * @param group     The group (or file root) to flatten.
+ * @param prefix    Dot-path prefix accumulated by parent calls (omit on first call).
+ * @param parentType Inherited `$type` from an ancestor group (omit on first call).
+ */
+export function flattenTokenGroup(
+  group: DTCGGroup,
+  prefix = '',
+  parentType?: string,
+): Map<string, DTCGToken> {
+  const out = new Map<string, DTCGToken>();
+  const inheritedType = group.$type ?? parentType;
+  for (const [key, value] of Object.entries(group)) {
+    if (key.startsWith('$')) continue;
+    if (value === undefined || value === null) continue;
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (isDTCGToken(value)) {
+      const token = value as DTCGToken;
+      out.set(path, (!token.$type && inheritedType) ? { ...token, $type: inheritedType } : token);
+    } else if (typeof value === 'object' && !Array.isArray(value)) {
+      for (const [subPath, subToken] of flattenTokenGroup(value as DTCGGroup, path, inheritedType)) {
+        out.set(subPath, subToken);
+      }
+    }
+  }
+  return out;
+}

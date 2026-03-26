@@ -161,7 +161,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### Redundancy & Duplication
 
 - [x] **Duplicate `GeneratorType`/`TokenGenerator` interface in 3 components** — The same generator type and interface are defined inline in `TokenEditor.tsx`, `TokenList.tsx`, and `useGenerators.ts` instead of being imported from a shared module. Any change to the generator shape must be made in three places.
-- [~] **`flattenTokens` implemented 3+ times independently** — Token flattening logic exists separately in `token-store.ts` (`flattenTokens`), `useTokens.ts` (`flattenTokens`), and `PasteTokensModal.tsx` (`flattenDTCG`). These should share a single implementation from `@tokenmanager/core`.
+- [x] **`flattenTokens` implemented 3+ times independently** — Token flattening logic exists separately in `token-store.ts` (`flattenTokens`), `useTokens.ts` (`flattenTokens`), and `PasteTokensModal.tsx` (`flattenDTCG`). These should share a single implementation from `@tokenmanager/core`.
 - [~] **Reference resolution duplicated between client and server** — `resolveColorValue()` in `TokenEditor.tsx` and `resolveRef()` in `style-dict.ts` implement nearly identical reference-chasing logic. Consolidate into a shared utility.
 
 ### Performance

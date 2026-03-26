@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { flattenTokenGroup } from '@tokenmanager/core';
 
 // ---------------------------------------------------------------------------
 // Parsing
@@ -34,23 +35,14 @@ function inferType(value: string): { $type: string; $value: unknown } {
   return { $type: 'string', $value: trimmed };
 }
 
-function flattenDTCG(obj: Record<string, unknown>, prefix = ''): ParsedToken[] {
+function flattenDTCG(obj: Record<string, unknown>): ParsedToken[] {
   const results: ParsedToken[] = [];
-  for (const [key, val] of Object.entries(obj)) {
-    if (key.startsWith('$')) continue;
-    const fullPath = prefix ? `${prefix}.${key}` : key;
-    if (val && typeof val === 'object' && !Array.isArray(val)) {
-      const v = val as Record<string, unknown>;
-      if ('$value' in v) {
-        results.push({
-          path: fullPath,
-          $type: typeof v.$type === 'string' ? v.$type : 'string',
-          $value: v.$value,
-        });
-      } else {
-        results.push(...flattenDTCG(v as Record<string, unknown>, fullPath));
-      }
-    }
+  for (const [path, token] of flattenTokenGroup(obj as any)) {
+    results.push({
+      path,
+      $type: typeof token.$type === 'string' ? token.$type : 'string',
+      $value: token.$value,
+    });
   }
   return results;
 }

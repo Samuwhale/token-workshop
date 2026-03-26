@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { flattenTokenGroup } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 
 export interface TokenNode {
@@ -89,7 +90,9 @@ export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<stri
     const res = await fetch(`${serverUrl}/api/tokens/${setName}`, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) continue;
     const data = await res.json();
-    flattenTokens(data.tokens || {}, '', map);
+    for (const [path, token] of flattenTokenGroup(data.tokens || {})) {
+      map[path] = { $value: token.$value, $type: token.$type || 'unknown' };
+    }
   }
 
   return map;
@@ -114,31 +117,16 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
     if (!res.ok) continue;
     const data = await res.json();
     const setMap: Record<string, TokenMapEntry> = {};
-    flattenTokens(data.tokens || {}, '', setMap);
+    for (const [path, token] of flattenTokenGroup(data.tokens || {})) {
+      const entry: TokenMapEntry = { $value: token.$value, $type: token.$type || 'unknown' };
+      setMap[path] = entry;
+      flat[path] = entry;
+      if (!(path in pathToSet)) pathToSet[path] = setName; // first set wins
+    }
     perSetFlat[setName] = setMap;
-    flattenTokensWithSet(data.tokens || {}, '', setName, flat, pathToSet);
   }
 
   return { flat, pathToSet, perSetFlat };
-}
-
-function flattenTokensWithSet(
-  group: Record<string, any>,
-  prefix: string,
-  setName: string,
-  flat: Record<string, TokenMapEntry>,
-  pathToSet: Record<string, string>,
-) {
-  for (const [key, value] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (value && typeof value === 'object' && '$value' in value) {
-      flat[path] = { $value: value.$value, $type: value.$type || 'unknown' };
-      if (!(path in pathToSet)) pathToSet[path] = setName; // first set wins
-    } else if (value && typeof value === 'object') {
-      flattenTokensWithSet(value, path, setName, flat, pathToSet);
-    }
-  }
 }
 
 function countLeafNodes(group: Record<string, any>): number {
@@ -154,17 +142,6 @@ function countLeafNodes(group: Record<string, any>): number {
   return count;
 }
 
-function flattenTokens(group: Record<string, any>, prefix: string, out: Record<string, TokenMapEntry>) {
-  for (const [key, value] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (value && typeof value === 'object' && '$value' in value) {
-      out[path] = { $value: value.$value, $type: value.$type || 'unknown' };
-    } else if (value && typeof value === 'object') {
-      flattenTokens(value, path, out);
-    }
-  }
-}
 
 function buildTree(group: Record<string, any>, prefix = ''): TokenNode[] {
   const nodes: TokenNode[] = [];

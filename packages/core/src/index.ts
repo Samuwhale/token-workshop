@@ -57,6 +57,8 @@ export {
   isReference,
   isFormula,
   parseReference,
+  flattenTokenGroup,
+  resolveRefValue,
 } from './dtcg-types.js';
 
 // Expression evaluator

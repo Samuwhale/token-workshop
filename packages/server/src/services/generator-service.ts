@@ -308,18 +308,23 @@ export class GeneratorService {
         sourceToken: generator.sourceToken,
       },
     };
-    for (const result of results) {
-      const token = {
-        $type: result.type as any,
-        $value: result.value as any,
-        $extensions: extensions,
-      };
-      const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
-      if (existing) {
-        await tokenStore.updateToken(effectiveTargetSet, result.path, token);
-      } else {
-        await tokenStore.createToken(effectiveTargetSet, result.path, token);
+    tokenStore.beginBatch();
+    try {
+      for (const result of results) {
+        const token = {
+          $type: result.type as any,
+          $value: result.value as any,
+          $extensions: extensions,
+        };
+        const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
+        if (existing) {
+          await tokenStore.updateToken(effectiveTargetSet, result.path, token);
+        } else {
+          await tokenStore.createToken(effectiveTargetSet, result.path, token);
+        }
       }
+    } finally {
+      tokenStore.endBatch();
     }
     return results;
   }
@@ -350,18 +355,23 @@ export class GeneratorService {
           brand: row.brand,
         },
       };
-      for (const result of results) {
-        const token = {
-          $type: result.type as any,
-          $value: result.value as any,
-          $extensions: extensions,
-        };
-        const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
-        if (existing) {
-          await tokenStore.updateToken(effectiveTargetSet, result.path, token);
-        } else {
-          await tokenStore.createToken(effectiveTargetSet, result.path, token);
+      tokenStore.beginBatch();
+      try {
+        for (const result of results) {
+          const token = {
+            $type: result.type as any,
+            $value: result.value as any,
+            $extensions: extensions,
+          };
+          const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
+          if (existing) {
+            await tokenStore.updateToken(effectiveTargetSet, result.path, token);
+          } else {
+            await tokenStore.createToken(effectiveTargetSet, result.path, token);
+          }
         }
+      } finally {
+        tokenStore.endBatch();
       }
       allResults.push(...results);
     }

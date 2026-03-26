@@ -9,6 +9,7 @@ import {
   type TokenType,
   isDTCGToken,
   isFormula,
+  flattenTokenGroup,
   TokenResolver,
 } from '@tokenmanager/core';
 
@@ -21,6 +22,8 @@ export class TokenStore {
   private changeListeners: Set<(event: ChangeEvent) => void> = new Set();
   private _rebuildDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private _pendingWatcherEvents: ChangeEvent[] = [];
+  private _batchDepth = 0;
+  private _pendingRebuild = false;
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
@@ -114,11 +117,31 @@ export class TokenStore {
   }
 
   private rebuildFlatTokens(): void {
+    if (this._batchDepth > 0) {
+      this._pendingRebuild = true;
+      return;
+    }
+    this._pendingRebuild = false;
     this.flatTokens.clear();
     for (const [setName, set] of this.sets) {
-      this.flattenTokens(set.tokens, '', setName, this.flatTokens);
+      for (const [tokenPath, token] of flattenTokenGroup(set.tokens)) {
+        this.flatTokens.set(tokenPath, { token: token as Token, setName });
+      }
     }
     this.rebuildResolver();
+  }
+
+  /** Begin a batch operation — defers flat-token rebuilds until endBatch(). */
+  beginBatch(): void {
+    this._batchDepth++;
+  }
+
+  /** End a batch operation — flushes any deferred rebuild. */
+  endBatch(): void {
+    if (this._batchDepth > 0) this._batchDepth--;
+    if (this._batchDepth === 0 && this._pendingRebuild) {
+      this.rebuildFlatTokens();
+    }
   }
 
   private rebuildResolver(): void {
@@ -127,29 +150,6 @@ export class TokenStore {
       allTokens[tokenPath] = token;
     }
     this.resolver = new TokenResolver(allTokens, '__merged__');
-  }
-
-  private flattenTokens(
-    group: TokenGroup,
-    prefix: string,
-    setName: string,
-    out: Map<string, { token: Token; setName: string }>,
-    parentType?: TokenType,
-  ): void {
-    const inheritedType = (group.$type ?? parentType) as TokenType | undefined;
-    for (const [key, value] of Object.entries(group)) {
-      if (key.startsWith('$')) continue;
-      const fullPath = prefix ? `${prefix}.${key}` : key;
-      if (isDTCGToken(value)) {
-        const token = value as Token;
-        const effective = !token.$type && inheritedType
-          ? { ...token, $type: inheritedType }
-          : token;
-        out.set(fullPath, { token: effective, setName });
-      } else if (typeof value === 'object' && value !== null) {
-        this.flattenTokens(value as TokenGroup, fullPath, setName, out, inheritedType);
-      }
-    }
   }
 
   // ----- CRUD operations -----

@@ -655,3 +655,15 @@
   - contrastCheck is `STANDALONE_TYPES` (no source token from token store needed) — all color data lives in the config.
   - Warning badges in TokenGraph.tsx are computed client-side from the config (wcagContrast on config.steps[].hex vs config.backgroundHex) without a server round-trip.
 ---
+
+## 2026-03-26 - `flattenTokens` implemented 3+ times independently
+- Added `flattenTokenGroup(group, prefix?, parentType?): Map<string, DTCGToken>` to `packages/core/src/dtcg-types.ts` and exported it from `index.ts`. It handles DTCG `$type` inheritance from parent groups per spec.
+- Replaced server's private `flattenTokens` method with iteration over `flattenTokenGroup` in `token-store.ts` ~L116.
+- Replaced `flattenTokens` and `flattenTokensWithSet` local functions in `useTokens.ts` with `flattenTokenGroup` calls; both functions deleted.
+- Replaced `flattenDTCG` in `PasteTokensModal.tsx` with `flattenTokenGroup` call.
+- Files changed: `packages/core/src/dtcg-types.ts` ~L93, `packages/core/src/index.ts` ~L55, `packages/server/src/services/token-store.ts` ~L116, `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L2, `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L2
+- **Learnings for future iterations:**
+  - `packages/core` has pre-existing circular TypeScript errors in `types.ts` (`CompositionValue`/`TokenValue`) that prevent `tsc` from running. A TypeScript watch process auto-compiled the dist files instead. When editing core, update src — the dist will be regenerated automatically.
+  - There was already a `dist/flatten.js` file in core (from a deleted `flatten.ts` source) with a different `flattenTokenGroup` signature (returns array, not Map). The new implementation in `dtcg-types.ts` has a different output format (Map).
+  - The `dist/index.js` is the authoritative file the figma-plugin build reads; it must export any new symbols from core.
+---

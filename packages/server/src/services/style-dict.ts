@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import type { TokenGroup } from '@tokenmanager/core';
-import { REFERENCE_GLOBAL_REGEX } from '@tokenmanager/core';
+import { REFERENCE_GLOBAL_REGEX, resolveRefValue } from '@tokenmanager/core';
 
 export type ExportPlatform = 'css' | 'dart' | 'ios-swift' | 'android' | 'json';
 
