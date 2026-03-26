@@ -793,3 +793,14 @@
   - The "grouped + flat filter" pattern (show by status groups by default, click legend to filter flat) works well for heatmap-style UIs where the "red" group is most actionable
   - `select-heatmap-nodes` bulk-selects by ID array — limit node list to 300 to avoid giant selection messages
 ---
+
+## 2026-03-26 - Token canvas: spatial 2D visualization
+- Created `TokenCanvas.tsx` with SVG-based 2D color canvas (hue × lightness), dimension scale ladder, typography specimens, and simple grids for number/boolean/string tokens. Added a third "Canvas" view mode button alongside Tree and Table in the TokenList toolbar.
+- Replaced `tableMode: boolean` state with `viewMode: 'tree' | 'table' | 'canvas'` to cleanly support 3 modes.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenCanvas.tsx` (new), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L11, ~L427, ~L300-307, ~L805-806, ~L1138-1148, ~L1311-1316, ~L1500
+- **Learnings for future iterations:**
+  - Replace boolean toggles with string literals (`'tree' | 'table' | 'canvas'`) from the start — avoids ad-hoc secondary booleans.
+  - For the color 2D canvas, hue bucket collision (`Math.round(hue / 8) * 8`) with a 3-column X jitter keeps dots readable without complex force-directed layout.
+  - Alias tokens (SVG dashed ring) are detectable via `isAlias(tok.$value)` — already exported from `resolveAlias.ts`.
+  - Achromatic colors (saturation < 8%) should get their own strip on the right — placing them at `hue=0` bunches them with true reds.
+---
