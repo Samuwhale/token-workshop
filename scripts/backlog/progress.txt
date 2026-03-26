@@ -65,6 +65,14 @@
   - The other `JSON.stringify` calls in the file (HTTP body serialization, session storage, display rendering) are all legitimate and should not be replaced
 ---
 
+## 2026-03-26 - Unbounded recursion in `resolveValue()`
+- Added `MAX_RESOLVE_DEPTH = 32` constant and a `depth` parameter to `resolveValue()`. Throws a descriptive error when depth exceeds the limit. Both recursive call sites (array and object branches) now pass `depth + 1`.
+- Files changed: `packages/core/src/resolver.ts` ~L25, L300, L340, L342
+- **Learnings for future iterations:**
+  - The fix is non-invasive: default `depth = 0` means all existing callers (`dfsResolve`) need no changes
+  - Depth limit applies to structural nesting depth within a single token's value — not the alias chain depth, which is already guarded by cycle detection
+---
+
 ## 2026-03-26 - No `fetch()` timeout in UI hooks
 - Added `AbortSignal.timeout(5000)` to all bare `fetch()` calls in `useTokens.ts` and `useGenerators.ts`
 - Added `AbortController` + `AbortSignal.any([controller.signal, AbortSignal.timeout(5000)])` in `useLint.ts` so the debounced fetch is cancelled both on cleanup and on timeout
@@ -73,4 +81,11 @@
   - `useServerConnection.ts` already used `AbortSignal.timeout(2000)` — follow the same pattern for data hooks but with a longer threshold (5s)
   - `useLint.ts` needed `AbortController` (not just timeout) to cancel in-flight requests when the effect re-runs due to dependency changes; use `AbortSignal.any()` to combine cleanup-abort + timeout-abort
   - `AbortSignal.any()` is available from TypeScript 5.3+ DOM lib — project uses TS 5.7, so no shim needed
+---
+
+## 2026-03-26 - Unbounded recursion in `resolveValue()`
+- Already implemented: `MAX_RESOLVE_DEPTH = 32` constant added, depth guard at start of `resolveValue()`, and `depth + 1` passed in all recursive calls
+- Files changed: `packages/core/src/resolver.ts` ~L25, L300–L306, L343, L349
+- **Learnings for future iterations:**
+  - Item was already fully implemented (likely by a prior partial session). Check current file state before writing — the linter/hook auto-marks `[x]` when edits land, so the `[~]` marker may already reflect done work
 ---
