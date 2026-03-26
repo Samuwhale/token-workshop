@@ -172,3 +172,14 @@
   - When removing a tab, check: Tab type, TABS array, command palette commands, overflow menu, tab content rendering, any `setActiveTab('old-tab')` calls, and localStorage fallback logic (which already handles unknown stored values gracefully)
   - PublishPanel as a thin wrapper with internal sub-tabs avoids refactoring 1800+ lines of existing SyncPanel/ExportPanel code
 ---
+
+## 2026-03-26 - Preview as split-view toggle
+- Converted Preview from an overflow panel to a split-view toggle on the Tokens tab
+- The eye icon button now toggles `showPreviewSplit` state instead of `setOverflowPanel('preview')`
+- When active, a flex column splits the content area 50/50: TokenList on top, PreviewPanel on bottom (each independently scrollable)
+- Removed `'preview'` from the OverflowPanel type union and deleted the old overflow panel preview block
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L107 (type), ~L159 (state), ~L872-887 (button), ~L1432-1461 (split view), ~L1520-1537 (removed)
+- **Learnings for future iterations:**
+  - Both TokenList and PreviewPanel use `h-full` with internal scrolling, so they naturally fill any flex container — just wrap them in `min-h-0 overflow-hidden` flex children
+  - When converting an overflow panel to inline content, remove it from the OverflowPanel type union to get compile-time safety that no stale references remain
+---

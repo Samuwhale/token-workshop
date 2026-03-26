@@ -191,6 +191,7 @@ export function App() {
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const [validateKey, setValidateKey] = useState(0);
   const [analyticsIssueCount, setAnalyticsIssueCount] = useState<number | null>(null);
+  const [showIssuesOnly, setShowIssuesOnly] = useState(false);
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -760,10 +761,10 @@ export function App() {
       },
       {
         id: 'analytics',
-        label: 'Open Analytics',
-        description: 'View validation issues and token statistics',
-        category: 'Navigation',
-        handler: () => openOverflowPanel('analytics'),
+        label: 'Filter Validation Issues',
+        description: 'Show only tokens with lint violations',
+        category: 'Tokens',
+        handler: () => { setShowIssuesOnly(v => !v); setActiveTab('tokens'); setOverflowPanel(null); },
       },
       {
         id: 'validate',
@@ -847,24 +848,24 @@ export function App() {
           </button>
         ))}
 
-        {/* Analytics toggle */}
+        {/* Issues filter toggle */}
         <button
-          onClick={() => setOverflowPanel(overflowPanel === 'analytics' ? null : 'analytics')}
+          onClick={() => { setShowIssuesOnly(v => !v); if (overflowPanel === 'analytics') setOverflowPanel(null); if (activeTab !== 'tokens') setActiveTab('tokens'); }}
           className={`relative flex items-center justify-center w-7 h-7 ml-auto mr-0.5 my-1 rounded transition-colors ${
-            overflowPanel === 'analytics'
+            showIssuesOnly
               ? 'bg-[var(--color-figma-accent)] text-white'
               : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
           }`}
-          title="Analytics: validation issues and token statistics"
-          aria-label="Toggle analytics panel"
-          aria-pressed={overflowPanel === 'analytics'}
+          title="Filter tokens with validation issues"
+          aria-label="Toggle validation issues filter"
+          aria-pressed={showIssuesOnly}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 20V10M18 20V4M6 20v-4"/>
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
           </svg>
-          {analyticsIssueCount !== null && analyticsIssueCount > 0 && overflowPanel !== 'analytics' && (
+          {lintViolations.length > 0 && !showIssuesOnly && (
             <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white text-[9px] font-bold leading-[14px] text-center">
-              {analyticsIssueCount > 99 ? '99+' : analyticsIssueCount}
+              {lintViolations.length > 99 ? '99+' : lintViolations.length}
             </span>
           )}
         </button>
@@ -963,6 +964,13 @@ export function App() {
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Import
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => { openOverflowPanel('analytics'); setMenuOpen(false); }}
+                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Analytics
               </button>
               <div className="border-t border-[var(--color-figma-border)]" />
               <button
@@ -1393,7 +1401,7 @@ export function App() {
               onGenerateColorScale={() => setShowColorScaleGen(true)}
             />
           )}
-          {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && (
+          {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && !showPreviewSplit && (
             <TokenList
               tokens={tokens}
               setName={activeSet}
@@ -1417,7 +1425,44 @@ export function App() {
               syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
               generators={generators}
               derivedTokenPaths={derivedTokenPaths}
+              showIssuesOnly={showIssuesOnly}
+              onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
             />
+          )}
+          {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && showPreviewSplit && (
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <TokenList
+                  tokens={tokens}
+                  setName={activeSet}
+                  sets={sets}
+                  serverUrl={serverUrl}
+                  connected={connected}
+                  selectedNodes={selectedNodes}
+                  allTokensFlat={themedAllTokensFlat}
+                  onEdit={(path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }}
+                  onCreateNew={(initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType })}
+                  onRefresh={refreshAll}
+                  onTokenCreated={(path) => setHighlightedToken(path)}
+                  lintViolations={lintViolations}
+                  onPushUndo={pushUndo}
+                  defaultCreateOpen={createFromEmpty}
+                  highlightedToken={highlightedToken}
+                  onNavigateToAlias={handleNavigateToAlias}
+                  onClearHighlight={() => setHighlightedToken(null)}
+                  onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
+                  onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
+                  syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
+                  generators={generators}
+                  derivedTokenPaths={derivedTokenPaths}
+                  showIssuesOnly={showIssuesOnly}
+                  onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
+                />
+              </div>
+              <div className="flex-1 min-h-0 overflow-hidden border-t border-[var(--color-figma-border)]">
+                <PreviewPanel allTokensFlat={allTokensFlat} />
+              </div>
+            </div>
           )}
           {overflowPanel === null && activeTab === 'inspect' && (
             <SelectionInspector
@@ -1442,7 +1487,7 @@ export function App() {
             <PublishPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} />
           )}
 
-          {/* Overflow panels for analytics, preview, themes */}
+          {/* Overflow panels for analytics, themes */}
           {overflowPanel === 'analytics' && (
             <>
               <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -1470,24 +1515,6 @@ export function App() {
                 }}
                 onValidationComplete={setAnalyticsIssueCount}
               />
-            </>
-          )}
-          {overflowPanel === 'preview' && (
-            <>
-              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <button
-                  onClick={() => setOverflowPanel(null)}
-                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                  aria-label="Back"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6.5 2L3.5 5l3 3"/>
-                  </svg>
-                  Back
-                </button>
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Preview</span>
-              </div>
-              <PreviewPanel allTokensFlat={allTokensFlat} />
             </>
           )}
           {overflowPanel === 'themes' && (

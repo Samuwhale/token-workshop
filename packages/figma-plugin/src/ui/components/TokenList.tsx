@@ -63,6 +63,8 @@ interface TokenListProps {
   syncSnapshot?: Record<string, string>;
   generators?: TokenGenerator[];
   derivedTokenPaths?: Set<string>;
+  showIssuesOnly?: boolean;
+  onToggleIssuesOnly?: () => void;
 }
 
 type DeleteConfirm =
@@ -124,7 +126,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths, showIssuesOnly, onToggleIssuesOnly }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
@@ -372,7 +374,14 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     try { sessionStorage.setItem('token-duplicates', v ? '1' : '0'); } catch {}
   }, []);
 
-  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates;
+  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly;
+
+  // Compute paths with lint violations for issues-only filter
+  const lintPaths = useMemo(() => {
+    const paths = new Set<string>();
+    for (const v of lintViolations) paths.add(v.path);
+    return paths;
+  }, [lintViolations]);
 
   // Compute duplicate value info from all tokens in the current set
   const { duplicateValuePaths, duplicateCounts } = useMemo(() => {
@@ -433,9 +442,10 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const displayedTokens = useMemo(() => {
     let result = filtersActive ? filterTokenNodes(sortedTokens, searchQuery, typeFilter, refFilter) : sortedTokens;
     if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
+    if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
     if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
     return result;
-  }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, inspectMode, selectedNodes.length, boundTokenPaths]);
+  }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths]);
 
   // Flat list of visible nodes for virtual scrolling (respects expand/collapse state)
   const flatItems = useMemo(
@@ -466,7 +476,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     setTypeFilter('');
     setRefFilter('all');
     setShowDuplicates(false);
-  }, [setSearchQuery, setTypeFilter, setRefFilter, setShowDuplicates]);
+    if (showIssuesOnly && onToggleIssuesOnly) onToggleIssuesOnly();
+  }, [setSearchQuery, setTypeFilter, setRefFilter, setShowDuplicates, showIssuesOnly, onToggleIssuesOnly]);
 
   // Merge capabilities from all selected nodes for the property picker
   const selectionCapabilities: NodeCapabilities | null = selectedNodes.length > 0
@@ -1221,6 +1232,16 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 className="shrink-0 px-1.5 py-1 rounded border text-[10px] whitespace-nowrap transition-colors border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10"
               >
                 Dups ✕
+              </button>
+            )}
+            {/* Issues filter — only when active */}
+            {showIssuesOnly && (
+              <button
+                onClick={onToggleIssuesOnly}
+                title="Clear issues filter"
+                className="shrink-0 px-1.5 py-1 rounded border text-[10px] whitespace-nowrap transition-colors border-red-500 text-red-500 bg-red-500/10"
+              >
+                Issues{lintViolations.length > 0 ? ` (${lintViolations.length})` : ''} ✕
               </button>
             )}
             {/* More filters button — expands other filters */}
@@ -2557,6 +2578,15 @@ function TokenTreeNode({
           autoFocus
           className="text-[11px] text-[var(--color-figma-text)] shrink-0 w-[96px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none"
         />
+      ) : isAlias(node.$value) && !isBrokenAlias ? (
+        <span
+          className="inline-flex items-center gap-1 text-[10px] shrink-0 max-w-[180px] truncate"
+          title={`${(node.$value as string).slice(1, -1)} → ${formatValue(node.$type, displayValue)}`}
+        >
+          <span className="text-[var(--color-figma-text-tertiary)] truncate">{(node.$value as string).slice(1, -1)}</span>
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><path d="M1 4h6M5 2l2 2-2 2"/></svg>
+          <span className="text-[var(--color-figma-text-secondary)] font-medium truncate">{formatValue(node.$type, displayValue)}</span>
+        </span>
       ) : canInlineEdit && node.$type !== 'color' ? (
         <span
           className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate cursor-text hover:underline hover:decoration-dotted hover:text-[var(--color-figma-text)]"
