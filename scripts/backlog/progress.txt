@@ -637,3 +637,11 @@
   - `computeResultsWithValue` mirrors the switch in `computeResults` but takes a pre-resolved value; a future refactor could extract both into a shared static dispatch helper.
   - Multi-brand preview is intentionally disabled (shows "Preview unavailable in multi-brand mode.") — implementing it would require the server to return per-brand results.
 ---
+
+## 2026-03-26 - Duplicate GeneratorType/TokenGenerator interface in 3 components
+- Removed local `GeneratorType` and `TokenGenerator` definitions from `TokenEditor.tsx` and `TokenList.tsx`, replacing them with `import type { GeneratorType, TokenGenerator } from '../hooks/useGenerators'`. The authoritative definitions already existed in `useGenerators.ts` with exports.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L12, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L24
+- **Learnings for future iterations:**
+  - The local definitions in TokenEditor/TokenList were slightly stale (missing `contrastCheck` type, missing optional fields). Importing from the hook picks up the fuller type automatically.
+  - `useGenerators.ts` is the canonical source for generator-related types — always import from there.
+---
