@@ -658,28 +658,30 @@ export function App() {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Connection status */}
-      <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] ${connected ? 'bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)]/5 text-[var(--color-figma-text-secondary)]' : 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'}`}>
-        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} />
-        <span className="flex-1">{connected ? `Connected \u2014 ${serverUrl}` : checking ? 'Connecting\u2026' : `Cannot reach ${serverUrl} \u2014 read-only mode`}</span>
-        {!connected && !checking && (
-          <>
-            <button
-              onClick={retryConnection}
-              className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
-            >
-              Retry
-            </button>
-            <span className="opacity-40">·</span>
-            <button
-              onClick={() => { setOverflowPanel('settings'); setConnectResult(null); }}
-              className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
-            >
-              Change URL
-            </button>
-          </>
-        )}
-      </div>
+      {/* Connection status — only shown when not connected */}
+      {!connected && (
+        <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] ${checking ? 'bg-[var(--color-figma-text-secondary)]/5 text-[var(--color-figma-text-secondary)]' : 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'}`}>
+          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} />
+          <span className="flex-1">{checking ? 'Connecting\u2026' : `Cannot reach ${serverUrl} \u2014 read-only mode`}</span>
+          {!checking && (
+            <>
+              <button
+                onClick={retryConnection}
+                className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
+              >
+                Retry
+              </button>
+              <span className="opacity-40">·</span>
+              <button
+                onClick={() => { setOverflowPanel('settings'); setConnectResult(null); }}
+                className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
+              >
+                Change URL
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Tab bar */}
       <div className="flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]" role="tablist">
@@ -722,8 +724,8 @@ export function App() {
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setMenuOpen(v => !v)}
-            className={`flex items-center justify-center w-7 h-7 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors ${menuOpen ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
-            title="More actions"
+            className={`relative flex items-center justify-center w-7 h-7 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors ${menuOpen ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
+            title={connected ? 'More actions' : 'More actions (server disconnected)'}
             aria-label="More actions"
             aria-haspopup="menu"
             aria-expanded={menuOpen}
@@ -733,6 +735,9 @@ export function App() {
               <circle cx="6" cy="6" r="1.2" />
               <circle cx="6" cy="10" r="1.2" />
             </svg>
+            {!connected && !checking && (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[var(--color-figma-error)] border border-[var(--color-figma-bg)]" aria-hidden="true" />
+            )}
           </button>
 
           {menuOpen && (
@@ -762,9 +767,10 @@ export function App() {
               <button
                 role="menuitem"
                 onClick={() => openOverflowPanel('settings')}
-                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors flex items-center gap-2"
               >
-                Server Settings
+                <span className="flex-1">Server Settings</span>
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} aria-hidden="true" />
               </button>
             </div>
           )}
@@ -993,7 +999,7 @@ export function App() {
                 </div>
                 <div className="p-3 flex flex-col gap-2">
                   <div>
-                    <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Server URL</label>
+                    <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Local server URL</label>
                     <input
                       type="text"
                       value={serverUrlInput}
@@ -1009,8 +1015,8 @@ export function App() {
                       placeholder="http://localhost:9400"
                       className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
                     />
-                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 opacity-70">
-                      The local server started by <span className="font-mono">npm start</span> in the TokenManager directory.
+                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
+                      Run <span className="font-mono">npm start</span> in the TokenManager directory, then press Enter or click Save &amp; Connect.
                     </p>
                   </div>
                   {connectResult === 'ok' && (

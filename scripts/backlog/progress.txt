@@ -473,3 +473,15 @@
   - "Save & Connect" is a better label than "Save" when saving triggers a network action with a result
   - Inline result feedback (success/fail message below the button) is more immediate than relying on the global status banner
 ---
+
+## 2026-03-26 - UX audit & overhaul: Settings
+- Collapsed connection banner when connected (was always shown, wasting ~28px; now only shown when disconnected or checking)
+- Added red dot badge on overflow menu (three-dot) button when server is disconnected — always-visible status indicator without opening settings
+- Added connection status dot to "Server Settings" overflow menu item so status is visible before opening the panel
+- Improved URL field label ("Server URL" → "Local server URL") and helper text to be more actionable ("Run npm start... then press Enter or click Save & Connect")
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L662, ~L723, ~L762, ~L996
+- **Learnings for future iterations:**
+  - The connection banner was already implemented but always-visible — hiding it on success is the UX fix, not adding a new banner
+  - Badge dots on icon buttons (`absolute top-1 right-1 w-2 h-2 rounded-full`) with a `border border-[bg]` halo are the right pattern for notification indicators on icon buttons
+  - The overflow menu items support `flex items-center gap-2` layout for adding trailing status indicators
+---

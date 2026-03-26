@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import type { GeneratorTemplate, GeneratedTokenResult } from '../hooks/useGenerators';
+import type { GeneratorTemplate } from '../hooks/useGenerators';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
-import { SemanticMappingDialog } from './SemanticMappingDialog';
 
 // ---------------------------------------------------------------------------
 // Quick-start templates (mirrors GENERATOR_TEMPLATES from core)
@@ -233,8 +232,7 @@ export interface QuickStartDialogProps {
   activeSet: string;
   allSets: string[];
   onClose: () => void;
-  onConfirm: () => void;
-  onGenerateDarkTheme?: () => void;
+  onConfirm: (firstPath?: string) => void;
 }
 
 export function QuickStartDialog({
@@ -243,31 +241,11 @@ export function QuickStartDialog({
   allSets,
   onClose,
   onConfirm,
-  onGenerateDarkTheme,
 }: QuickStartDialogProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<GeneratorTemplate | null>(null);
-  const [justCreated, setJustCreated] = useState(false);
-  const [showSemanticMapping, setShowSemanticMapping] = useState(false);
-  const [lastCreatedTokens, setLastCreatedTokens] = useState<GeneratedTokenResult[]>([]);
-  const [lastCreatedGroup, setLastCreatedGroup] = useState('');
-  const [lastCreatedSet, setLastCreatedSet] = useState('');
-  const [lastCreatedType, setLastCreatedType] = useState('');
-
-  if (showSemanticMapping && lastCreatedTokens.length > 0) {
-    return (
-      <SemanticMappingDialog
-        serverUrl={serverUrl}
-        generatedTokens={lastCreatedTokens}
-        generatorType={lastCreatedType}
-        targetGroup={lastCreatedGroup}
-        targetSet={lastCreatedSet}
-        onClose={() => { setShowSemanticMapping(false); onClose(); }}
-        onCreated={() => { setShowSemanticMapping(false); onClose(); }}
-      />
-    );
-  }
 
   if (selectedTemplate) {
+    const stepNames = getTemplateStepNames(selectedTemplate);
     return (
       <TokenGeneratorDialog
         serverUrl={serverUrl}
@@ -275,60 +253,14 @@ export function QuickStartDialog({
         allSets={allSets}
         template={selectedTemplate}
         onClose={() => setSelectedTemplate(null)}
-        onSaved={() => {
-          setSelectedTemplate(null);
-          setJustCreated(true);
-          onConfirm();
+        onSaved={(info) => {
+          const firstStep = stepNames[0];
+          const firstPath = info?.targetGroup && firstStep
+            ? `${info.targetGroup}.${firstStep}`
+            : undefined;
+          onConfirm(firstPath);
         }}
       />
-    );
-  }
-
-  if (justCreated) {
-    return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col">
-          <div className="p-4 border-b border-[var(--color-figma-border)]">
-            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Generator created!</div>
-          </div>
-          <div className="flex flex-col items-center gap-4 p-6 text-center">
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 10l4.5 4.5L16 6" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-[12px] font-medium text-[var(--color-figma-text)]">Tokens generated in <span className="font-mono">{activeSet}</span></p>
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-                Tokens will automatically update whenever the source token changes.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 w-full">
-              <button
-                onClick={() => setShowSemanticMapping(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 10V7l4-6 4 6v3H8V8H4v2H2z" />
-                </svg>
-                <span className="flex-1 text-left">Generate Semantic Tokens</span>
-              </button>
-              <button
-                onClick={() => { onGenerateDarkTheme?.(); onClose(); }}
-                className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10 6.5A4.5 4.5 0 0 1 4.5 1a4.5 4.5 0 1 0 5.5 5.5z" />
-                </svg>
-                <span className="flex-1 text-left">Generate Dark Theme</span>
-              </button>
-              <button onClick={onClose} className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     );
   }
 

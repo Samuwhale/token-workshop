@@ -925,7 +925,7 @@ export interface TokenGeneratorDialogProps {
   /** Pre-fill from a quick-start template */
   template?: GeneratorTemplate;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (info?: { targetGroup: string }) => void;
 }
 
 const TYPE_LABELS: Record<GeneratorType, string> = {
@@ -1146,7 +1146,7 @@ export function TokenGeneratorDialog({
         setSaving(false);
         return;
       }
-      onSaved();
+      onSaved({ targetGroup: targetGroup.trim() });
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setSaving(false);
@@ -1169,8 +1169,8 @@ export function TokenGeneratorDialog({
         generatorType={selectedType}
         targetGroup={savedTargetGroup}
         targetSet={targetSet}
-        onClose={() => { setShowSemanticMapping(false); onSaved(); }}
-        onCreated={() => { setShowSemanticMapping(false); onSaved(); }}
+        onClose={() => { setShowSemanticMapping(false); onSaved({ targetGroup: savedTargetGroup }); }}
+        onCreated={() => { setShowSemanticMapping(false); onSaved({ targetGroup: savedTargetGroup }); }}
       />
     );
   }
