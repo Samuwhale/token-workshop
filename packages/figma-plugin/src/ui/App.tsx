@@ -194,6 +194,17 @@ export function App() {
   const [showIssuesOnly, setShowIssuesOnly] = useState(false);
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
   const menuRef = useRef<HTMLDivElement>(null);
+  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+  const useSidePanel = windowWidth > 480
+    && !!editingToken
+    && overflowPanel === null
+    && activeTab === 'tokens'
+    && (tokens.length > 0 || createFromEmpty);
 
   // Theme switcher state
   const [themes, setThemes] = useState<{ name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> }[]>([]);
@@ -1463,32 +1474,82 @@ export function App() {
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && !showPreviewSplit && (
-            <TokenList
-              tokens={tokens}
-              setName={activeSet}
-              sets={sets}
-              serverUrl={serverUrl}
-              connected={connected}
-              selectedNodes={selectedNodes}
-              allTokensFlat={themedAllTokensFlat}
-              onEdit={(path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }}
-              onCreateNew={(initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType })}
-              onRefresh={refreshAll}
-              onTokenCreated={(path) => setHighlightedToken(path)}
-              lintViolations={lintViolations}
-              onPushUndo={pushUndo}
-              defaultCreateOpen={createFromEmpty}
-              highlightedToken={highlightedToken}
-              onNavigateToAlias={handleNavigateToAlias}
-              onClearHighlight={() => setHighlightedToken(null)}
-              onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
-              onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
-              syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
-              generators={generators}
-              derivedTokenPaths={derivedTokenPaths}
-              showIssuesOnly={showIssuesOnly}
-              onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
-            />
+            useSidePanel ? (
+              <div className="flex h-full overflow-hidden">
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <TokenList
+                    tokens={tokens}
+                    setName={activeSet}
+                    sets={sets}
+                    serverUrl={serverUrl}
+                    connected={connected}
+                    selectedNodes={selectedNodes}
+                    allTokensFlat={themedAllTokensFlat}
+                    onEdit={(path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }}
+                    onCreateNew={(initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType })}
+                    onRefresh={refreshAll}
+                    onTokenCreated={(path) => setHighlightedToken(path)}
+                    lintViolations={lintViolations}
+                    onPushUndo={pushUndo}
+                    defaultCreateOpen={createFromEmpty}
+                    highlightedToken={editingToken?.path ?? highlightedToken}
+                    onNavigateToAlias={handleNavigateToAlias}
+                    onClearHighlight={() => setHighlightedToken(null)}
+                    onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
+                    onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
+                    syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
+                    generators={generators}
+                    derivedTokenPaths={derivedTokenPaths}
+                    showIssuesOnly={showIssuesOnly}
+                    onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
+                  />
+                </div>
+                <div className="w-60 shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-col overflow-hidden">
+                  <TokenEditor
+                    tokenPath={editingToken.path}
+                    setName={editingToken.set}
+                    serverUrl={serverUrl}
+                    onBack={handleEditorClose}
+                    allTokensFlat={allTokensFlat}
+                    pathToSet={pathToSet}
+                    generators={generators}
+                    allSets={sets}
+                    onRefreshGenerators={refreshGenerators}
+                    isCreateMode={editingToken.isCreate}
+                    initialType={editingToken.initialType}
+                    onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
+                    onSaved={handleEditorSave}
+                  />
+                </div>
+              </div>
+            ) : (
+              <TokenList
+                tokens={tokens}
+                setName={activeSet}
+                sets={sets}
+                serverUrl={serverUrl}
+                connected={connected}
+                selectedNodes={selectedNodes}
+                allTokensFlat={themedAllTokensFlat}
+                onEdit={(path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }}
+                onCreateNew={(initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType })}
+                onRefresh={refreshAll}
+                onTokenCreated={(path) => setHighlightedToken(path)}
+                lintViolations={lintViolations}
+                onPushUndo={pushUndo}
+                defaultCreateOpen={createFromEmpty}
+                highlightedToken={highlightedToken}
+                onNavigateToAlias={handleNavigateToAlias}
+                onClearHighlight={() => setHighlightedToken(null)}
+                onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
+                onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
+                syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
+                generators={generators}
+                derivedTokenPaths={derivedTokenPaths}
+                showIssuesOnly={showIssuesOnly}
+                onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
+              />
+            )
           )}
           {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && showPreviewSplit && (
             <div className="flex flex-col h-full overflow-hidden">
@@ -1600,8 +1661,8 @@ export function App() {
       </div>
       </ErrorBoundary>
 
-      {/* Token editor drawer */}
-      {editingToken && overflowPanel === null && activeTab === 'tokens' && (
+      {/* Token editor drawer (narrow windows only; wide windows use side panel) */}
+      {editingToken && overflowPanel === null && activeTab === 'tokens' && !useSidePanel && (
         <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
           <div
             className="absolute inset-0 bg-black/30 drawer-fade-in"

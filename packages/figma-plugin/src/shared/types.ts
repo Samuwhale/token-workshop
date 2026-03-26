@@ -38,6 +38,7 @@ export const TOKEN_TYPE_BADGE_CLASS: Record<string, string> = {
   gradient: 'token-type-gradient',
   duration: 'token-type-duration',
   fontFamily: 'token-type-fontFamily',
+  composition: 'token-type-composition',
 };
 
 export const TOKEN_PROPERTY_MAP: Record<string, BindableProperty[]> = {

@@ -374,3 +374,12 @@
   - `aliasMode` must be reset explicitly: it's derived from whether `reference` is set, but it's tracked as separate state — set it to `!!init.reference` when reverting
   - The Revert button sits between Cancel and Save in the footer; no spacing changes needed since the footer already uses `gap-2`
 ---
+
+## 2026-03-26 - Token editor as contextual side panel
+- Added responsive side panel layout: when window width >480px and a token is being edited, the editor renders as a right-side panel (w-60 = 240px) alongside the token list, instead of covering it with a bottom drawer. Narrow windows fall back to the existing drawer. The editing token stays persistently highlighted in the list via `editingToken?.path ?? highlightedToken`.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L196 (windowWidth state + useSidePanel), ~L1478 (side panel layout in non-split TokenList block), ~L1660 (drawer condition guard)
+- **Learnings for future iterations:**
+  - Guard `useSidePanel` with `(tokens.length > 0 || createFromEmpty)` to avoid the side panel hiding the editor when there are no tokens (first-token-create flow)
+  - The `showPreviewSplit` path is a separate render block — side panel for that case was intentionally left out (not in scope)
+  - `editingToken?.path ?? highlightedToken` keeps the editing row highlighted for the full session instead of auto-clearing after 3 seconds
+---

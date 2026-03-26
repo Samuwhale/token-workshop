@@ -65,6 +65,13 @@ export type TransitionValue = {
   timingFunction: CubicBezierValue;
 };
 
+/**
+ * A composition token value — an object mapping bindable property names
+ * (e.g. "fill", "cornerRadius", "paddingTop") to token references or
+ * direct values. When applied, all properties are set at once.
+ */
+export type CompositionValue = Record<string, TokenValue | string>;
+
 // ---------------------------------------------------------------------------
 // Union of all possible token values
 // ---------------------------------------------------------------------------
@@ -83,6 +90,7 @@ export type TokenValue =
   | TypographyValue
   | BorderValue
   | TransitionValue
+  | CompositionValue
   | string
   | number
   | boolean;
