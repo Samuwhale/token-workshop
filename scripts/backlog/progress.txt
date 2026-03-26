@@ -123,3 +123,12 @@
   - The existing `copiedWhat` state is for the inline hover buttons; context menu copy actions are fire-and-forget
   - Divider uses `border-t border-[var(--color-figma-border)]` inside a `div` with `my-1` — consistent with the menu container's existing border color
 ---
+
+## 2026-03-26 - Theme switcher in the Tokens tab toolbar
+- Added theme dropdown to the Tokens tab toolbar (below the set tabs row). Shows all themes from `$themes.json`, persists selection to localStorage (`tm_active_theme`). Selecting a theme computes a merged `allTokensFlat` using the theme's source/enabled set config and passes it to TokenList for alias resolution. "None" clears the theme. "Manage themes..." navigates to the Themes tab.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L200 (state + fetch + useMemo for theme resolution), ~L1087 (theme dropdown UI), ~L1356 (pass `themedAllTokensFlat` to TokenList)
+- **Learnings for future iterations:**
+  - `pathToSet` (already computed in App.tsx) maps each token path to its owning set — essential for theme resolution without re-fetching per-set data
+  - Theme resolution order: source sets first (base), then enabled sets (override) — mirrors ThemeManager.tsx logic
+  - The dropdown uses `mousedown` outside-click handler (not `click`) so it closes when clicking other buttons without triggering them first
+---

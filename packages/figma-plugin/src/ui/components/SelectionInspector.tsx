@@ -143,7 +143,6 @@ export function SelectionInspector({
   onNavigateToToken,
   onPushUndo,
 }: SelectionInspectorProps) {
-  const [collapsed, setCollapsed] = useState(false);
   const [creatingFromProp, setCreatingFromProp] = useState<BindableProperty | null>(null);
   const [newTokenName, setNewTokenName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -162,11 +161,6 @@ export function SelectionInspector({
 
   const hasSelection = selectedNodes.length > 0;
   const caps = getMergedCapabilities(selectedNodes);
-
-  // Auto-expand when a layer is selected; auto-collapse when deselected
-  useEffect(() => {
-    setCollapsed(!hasSelection);
-  }, [hasSelection]);
 
   // Capture sync result for freshness badge (outlives the 3s global clear)
   useEffect(() => {
@@ -348,23 +342,38 @@ export function SelectionInspector({
 
   const hasAnyTokens = Object.keys(tokenMap).length > 0;
 
-  return (
-    <div className="border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col shrink-0">
-      {/* Header */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        aria-label={collapsed ? 'Expand selection inspector' : 'Collapse selection inspector'}
-        className="flex items-center gap-1.5 px-3 py-1.5 w-full text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-      >
-        <svg
-          width="8"
-          height="8"
-          viewBox="0 0 8 8"
-          className={`transition-transform shrink-0 ${collapsed || !hasSelection ? '' : 'rotate-90'}`}
-          fill="currentColor"
-        >
-          <path d="M2 1l4 3-4 3V1z" />
+  // No selection — full empty state
+  if (!hasSelection) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] opacity-40" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18M9 21V9" />
         </svg>
+        <div>
+          <p className="text-[11px] font-medium text-[var(--color-figma-text)]">No layer selected</p>
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
+            Select a layer on the canvas to inspect its token bindings.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if there are any visible properties (bindings or current values)
+  const hasVisibleProperties = PROPERTY_GROUPS.some(group => {
+    if (!shouldShowGroup(group.condition, caps)) return false;
+    return group.properties.some(prop => {
+      const binding = getBindingForProperty(selectedNodes, prop);
+      const value = getCurrentValue(selectedNodes, prop);
+      return binding || value !== undefined;
+    });
+  });
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Header bar */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
         <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate flex-1">
           {headerLabel}
         </span>
@@ -385,10 +394,10 @@ export function SelectionInspector({
             )}
           </span>
         )}
-      </button>
+      </div>
 
       {/* Sync controls */}
-      {hasSelection && <div className="flex items-center gap-1 px-3 pb-1">
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0">
         {syncing && syncProgress ? (
           <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
             Syncing... {syncProgress.processed}/{syncProgress.total}
@@ -425,11 +434,19 @@ export function SelectionInspector({
             )}
           </>
         )}
-      </div>}
+      </div>
 
-      {/* Body — always visible when expanded and a layer is selected */}
-      {!collapsed && hasSelection && (
-        <div className="overflow-y-auto max-h-[30vh] px-1 pb-1">
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-1 pb-1">
+        {!hasVisibleProperties && totalBindings === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+            <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">No tokens applied</p>
+            <p className="text-[9px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+              Apply tokens from the Tokens tab to see bindings here.
+            </p>
+          </div>
+        ) : (
+          <div>
           {PROPERTY_GROUPS.map((group, groupIdx) => {
             if (!shouldShowGroup(group.condition, caps)) return null;
 
@@ -772,8 +789,9 @@ export function SelectionInspector({
               </div>
             );
           })}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Create success banner */}
       {createdTokenPath && (
@@ -787,7 +805,7 @@ export function SelectionInspector({
               onClick={() => { onNavigateToToken(createdTokenPath); setCreatedTokenPath(null); }}
               className="text-[9px] text-[var(--color-figma-accent)] hover:underline shrink-0"
             >
-              View token →
+              Go to token →
             </button>
           )}
           <button

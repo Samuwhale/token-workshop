@@ -97,17 +97,15 @@ function useSyncBindings(serverUrl: string, connected: boolean) {
   return { syncing, syncProgress: progress, syncResult: result, sync };
 }
 
-type Tab = 'tokens' | 'themes' | 'sync' | 'analytics' | 'preview';
+type Tab = 'tokens' | 'inspect' | 'publish';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'tokens', label: 'Tokens' },
-  { id: 'themes', label: 'Themes' },
-  { id: 'sync', label: 'Sync' },
-  { id: 'analytics', label: 'Analytics' },
-  { id: 'preview', label: 'Preview' },
+  { id: 'inspect', label: 'Inspect' },
+  { id: 'publish', label: 'Publish' },
 ];
 
-type OverflowPanel = 'import' | 'export' | 'settings' | 'heatmap' | null;
+type OverflowPanel = 'import' | 'export' | 'settings' | 'heatmap' | 'analytics' | 'preview' | 'themes' | null;
 
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 400;
@@ -196,6 +194,71 @@ export function App() {
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Theme switcher state
+  const [themes, setThemes] = useState<{ name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> }[]>([]);
+  const [activeTheme, setActiveThemeState] = useState<string | null>(() => {
+    try { return localStorage.getItem('tm_active_theme') || null; } catch { return null; }
+  });
+  const setActiveTheme = (name: string | null) => {
+    try {
+      if (name) localStorage.setItem('tm_active_theme', name);
+      else localStorage.removeItem('tm_active_theme');
+    } catch {}
+    setActiveThemeState(name);
+  };
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
+  const themeDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch themes
+  useEffect(() => {
+    if (!connected) return;
+    fetch(`${serverUrl}/api/themes`, { signal: AbortSignal.timeout(5000) })
+      .then(r => r.json())
+      .then(data => {
+        const all: ThemeEntry[] = data.themes || [];
+        setThemes(all);
+        // Clear active theme if it was deleted
+        if (activeTheme && !all.some(t => t.name === activeTheme)) setActiveTheme(null);
+      })
+      .catch(() => {});
+  }, [connected, serverUrl, tokens]);
+
+  // Close theme dropdown on outside click
+  useEffect(() => {
+    if (!themeDropdownOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (themeDropdownRef.current && !themeDropdownRef.current.contains(e.target as Node)) setThemeDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [themeDropdownOpen]);
+
+  // Compute theme-resolved allTokensFlat when a theme is active
+  const themedAllTokensFlat = useMemo(() => {
+    if (!activeTheme) return allTokensFlat;
+    const theme = themes.find(t => t.name === activeTheme);
+    if (!theme) return allTokensFlat;
+    // We need per-set tokens. allTokensFlat merges all sets, but pathToSet tells us which set owns each token.
+    // For theme resolution: start with source sets (base), then layer enabled sets (overrides).
+    // Tokens from disabled sets are excluded from resolution.
+    const merged: Record<string, TokenMapEntry> = {};
+    // Source sets first
+    for (const [setName, status] of Object.entries(theme.sets)) {
+      if (status !== 'source') continue;
+      for (const [path, entry] of Object.entries(allTokensFlat)) {
+        if (pathToSet[path] === setName) merged[path] = entry;
+      }
+    }
+    // Enabled sets override
+    for (const [setName, status] of Object.entries(theme.sets)) {
+      if (status !== 'enabled') continue;
+      for (const [path, entry] of Object.entries(allTokensFlat)) {
+        if (pathToSet[path] === setName) merged[path] = entry;
+      }
+    }
+    return resolveAllAliases(merged);
+  }, [activeTheme, themes, allTokensFlat, pathToSet]);
+
   // Set context menu state
   const [tabMenuOpen, setTabMenuOpen] = useState<string | null>(null);
   const [tabMenuPos, setTabMenuPos] = useState({ x: 0, y: 0 });
@@ -237,7 +300,7 @@ export function App() {
   const [newSetError, setNewSetError] = useState('');
   const newSetInputRef = useRef<HTMLInputElement>(null);
   const setTabsScrollRef = useRef<HTMLDivElement>(null);
-  const [setTabsOverflow, setSetTabsOverflow] = useState(false);
+  const [setTabsOverflow, setSetTabsOverflow] = useState<{ left: boolean; right: boolean }>({ left: false, right: false });
 
   useEffect(() => {
     if (connected) {
@@ -337,8 +400,8 @@ export function App() {
         e.preventDefault();
         setShowCommandPalette(v => !v);
       }
-      const tabIndex = ['1', '2', '3', '4'].indexOf(e.key);
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && tabIndex !== -1) {
+      const tabIndex = ['1', '2', '3', '4', '5', '6'].indexOf(e.key);
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && tabIndex !== -1 && tabIndex < TABS.length) {
         e.preventDefault();
         setActiveTab(TABS[tabIndex].id);
       }
@@ -363,23 +426,34 @@ export function App() {
     }
   }, [creatingSet]);
 
-  // Detect horizontal overflow in set tab bar — persistent observer (only one alive at a time)
-  useEffect(() => {
+  // Detect horizontal overflow in set tab bar — track left & right independently
+  const checkSetTabsOverflow = useCallback(() => {
     const el = setTabsScrollRef.current;
     if (!el) return;
-    const check = () => setSetTabsOverflow(el.scrollWidth > el.clientWidth);
-    el.addEventListener('scroll', check);
-    const ro = new ResizeObserver(check);
-    ro.observe(el);
-    return () => { el.removeEventListener('scroll', check); ro.disconnect(); };
+    const hasOverflow = el.scrollWidth > el.clientWidth;
+    setSetTabsOverflow({
+      left: hasOverflow && el.scrollLeft > 2,
+      right: hasOverflow && el.scrollLeft < el.scrollWidth - el.clientWidth - 2,
+    });
   }, []);
 
-  // Re-check overflow whenever the set list changes (tabs added/removed/renamed)
   useEffect(() => {
     const el = setTabsScrollRef.current;
     if (!el) return;
-    setSetTabsOverflow(el.scrollWidth > el.clientWidth);
-  }, [sets]);
+    el.addEventListener('scroll', checkSetTabsOverflow);
+    const ro = new ResizeObserver(checkSetTabsOverflow);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', checkSetTabsOverflow); ro.disconnect(); };
+  }, [checkSetTabsOverflow]);
+
+  // Re-check overflow whenever the set list changes (tabs added/removed/renamed)
+  useEffect(() => { checkSetTabsOverflow(); }, [sets, checkSetTabsOverflow]);
+
+  const scrollSetTabs = useCallback((direction: 'left' | 'right') => {
+    const el = setTabsScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction === 'left' ? -120 : 120, behavior: 'smooth' });
+  }, []);
 
   // Scroll active set tab into view whenever activeSet changes
   useEffect(() => {
@@ -869,7 +943,7 @@ export function App() {
       {/* Set selector (for tokens tab) */}
       {activeTab === 'tokens' && overflowPanel === null && sets.length > 0 && (
         <div className="relative">
-        <div ref={setTabsScrollRef} className="flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto">
+        <div ref={setTabsScrollRef} className="flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
           {sets.map(set => {
             const isActive = activeSet === set;
             const isRenaming = renamingSet === set;
@@ -1014,6 +1088,58 @@ export function App() {
         {setTabsOverflow && (
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--color-figma-bg-secondary)] to-transparent pointer-events-none" aria-hidden="true" />
         )}
+        </div>
+      )}
+
+      {/* Theme switcher (for tokens tab) */}
+      {activeTab === 'tokens' && overflowPanel === null && themes.length > 0 && (
+        <div className="flex items-center gap-2 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">Theme:</span>
+          <div ref={themeDropdownRef} className="relative">
+            <button
+              onClick={() => setThemeDropdownOpen(o => !o)}
+              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] transition-colors ${
+                activeTheme
+                  ? 'bg-[var(--color-figma-accent)] text-white font-medium'
+                  : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)]'
+              }`}
+            >
+              {activeTheme || 'None'}
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={themeDropdownOpen ? 'rotate-180' : ''}>
+                <path d="M1 3l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+            {themeDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[140px]">
+                <button
+                  onClick={() => { setActiveTheme(null); setThemeDropdownOpen(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
+                    !activeTheme ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
+                  }`}
+                >
+                  None
+                </button>
+                {themes.map(t => (
+                  <button
+                    key={t.name}
+                    onClick={() => { setActiveTheme(t.name); setThemeDropdownOpen(false); }}
+                    className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
+                      activeTheme === t.name ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
+                    }`}
+                  >
+                    {t.name}
+                  </button>
+                ))}
+                <div className="border-t border-[var(--color-figma-border)] my-1" />
+                <button
+                  onClick={() => { setActiveTab('themes'); setThemeDropdownOpen(false); }}
+                  className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  Manage themes...
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1234,7 +1360,7 @@ export function App() {
               serverUrl={serverUrl}
               connected={connected}
               selectedNodes={selectedNodes}
-              allTokensFlat={allTokensFlat}
+              allTokensFlat={themedAllTokensFlat}
               onEdit={(path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }}
               onCreateNew={(initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType })}
               onRefresh={refreshAll}
@@ -1250,6 +1376,25 @@ export function App() {
               syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
               generators={generators}
               derivedTokenPaths={derivedTokenPaths}
+            />
+          )}
+          {overflowPanel === null && activeTab === 'inspect' && (
+            <SelectionInspector
+              selectedNodes={selectedNodes}
+              tokenMap={allTokensFlat}
+              onSync={sync}
+              syncing={syncing}
+              syncProgress={syncProgress}
+              syncResult={syncResult}
+              connected={connected}
+              activeSet={activeSet}
+              serverUrl={serverUrl}
+              onTokenCreated={refreshTokens}
+              onNavigateToToken={(path) => {
+                setHighlightedToken(path);
+                setActiveTab('tokens');
+              }}
+              onPushUndo={pushUndo}
             />
           )}
           {overflowPanel === null && activeTab === 'themes' && (
@@ -1275,22 +1420,6 @@ export function App() {
             <PreviewPanel allTokensFlat={allTokensFlat} />
           )}
         </div>
-        {overflowPanel === null && activeTab === 'tokens' && (
-          <SelectionInspector
-            selectedNodes={selectedNodes}
-            tokenMap={allTokensFlat}
-            onSync={sync}
-            syncing={syncing}
-            syncProgress={syncProgress}
-            syncResult={syncResult}
-            connected={connected}
-            activeSet={activeSet}
-            serverUrl={serverUrl}
-            onTokenCreated={refreshTokens}
-            onNavigateToToken={setHighlightedToken}
-            onPushUndo={pushUndo}
-          />
-        )}
       </div>
       </ErrorBoundary>
 
