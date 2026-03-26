@@ -17,7 +17,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
-- [~] ~~**Set tabs overflow strategy**~~ — *Superseded by "Set folder organization" below.* Horizontal set tabs work well for moderate counts but will break at 10+ sets. Add horizontal scrolling with fade indicators, or collapse to a dropdown after a threshold.
+- [x] ~~**Set tabs overflow strategy**~~ — *Superseded by "Set folder organization" below.* Horizontal set tabs work well for moderate counts but will break at 10+ sets. Add horizontal scrolling with fade indicators, or collapse to a dropdown after a threshold.
 
 ### UX
 
@@ -27,7 +27,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [~] **Promote SelectionInspector to its own tab** — The inspector is currently a collapsible bottom panel within the Tokens tab. This buries the most important Figma integration feature. Promote it to a top-level "Inspect" tab (like Tokens Studio) so the workflow is: select layer on canvas → switch to Inspect tab → see all token bindings → remap/apply. The inspector should show: all bound tokens grouped by property, resolved values, remap action, "go to token" navigation, and a "no tokens applied" empty state with a hint to apply from the Tokens tab.
 
-- [ ] **Merge Sync + Export into a "Publish" tab** — Sync (Figma variables, Git) and Export (CSS, JSON, etc.) are both "push tokens outward." Merge them into a single "Publish" tab with sections: Figma Variables, Figma Styles, Git, and File Export. This reduces tab count and groups related actions. The current Sync tab's "readiness checks" become a pre-publish validation gate shown at the top of Publish.
+- [~] **Merge Sync + Export into a "Publish" tab** — Sync (Figma variables, Git) and Export (CSS, JSON, etc.) are both "push tokens outward." Merge them into a single "Publish" tab with sections: Figma Variables, Figma Styles, Git, and File Export. This reduces tab count and groups related actions. The current Sync tab's "readiness checks" become a pre-publish validation gate shown at the top of Publish.
 
 - [ ] **Inline analytics as a toolbar toggle** — The Analytics tab is mostly a summary of lint violations that are already shown as inline badges in the token list. Replace the dedicated tab with a toolbar toggle button (e.g., filter icon with issue count badge) that, when active, filters the token list to show only tokens with validation issues. Keep the color contrast matrix and duplicate detection as panels accessible from this filtered view or from the overflow menu. This removes a tab while making the data more actionable (you see the problem tokens *in context*, not on a separate screen).
 

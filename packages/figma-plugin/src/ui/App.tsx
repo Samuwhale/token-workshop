@@ -3,8 +3,7 @@ import type { ReactNode, ErrorInfo } from 'react';
 import { TokenList } from './components/TokenList';
 import { TokenEditor } from './components/TokenEditor';
 import { ThemeManager } from './components/ThemeManager';
-import { SyncPanel } from './components/SyncPanel';
-import { ExportPanel } from './components/ExportPanel';
+import { PublishPanel } from './components/PublishPanel';
 import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { SelectionInspector } from './components/SelectionInspector';
@@ -738,32 +737,39 @@ export function App() {
         handler: () => openOverflowPanel('settings'),
       },
       {
-        id: 'themes',
-        label: 'Go to Themes',
-        description: 'Manage design themes and set assignments',
+        id: 'inspect',
+        label: 'Go to Inspect',
+        description: 'Inspect token bindings on selected layers',
         category: 'Navigation',
-        handler: () => setActiveTab('themes'),
+        handler: () => setActiveTab('inspect'),
       },
       {
-        id: 'sync',
-        label: 'Go to Sync',
-        description: 'Sync tokens to Figma variables',
+        id: 'themes',
+        label: 'Open Themes',
+        description: 'Manage design themes and set assignments',
         category: 'Navigation',
-        handler: () => setActiveTab('sync'),
+        handler: () => openOverflowPanel('themes'),
+      },
+      {
+        id: 'publish',
+        label: 'Go to Publish',
+        description: 'Sync tokens to Figma and export',
+        category: 'Navigation',
+        handler: () => { setActiveTab('publish'); setOverflowPanel(null); },
       },
       {
         id: 'analytics',
-        label: 'Go to Analytics',
+        label: 'Open Analytics',
         description: 'View validation issues and token statistics',
         category: 'Navigation',
-        handler: () => setActiveTab('analytics'),
+        handler: () => openOverflowPanel('analytics'),
       },
       {
         id: 'validate',
         label: 'Validate All Tokens',
         description: 'Run cross-set validation for broken references, circular refs, and more',
         category: 'Tokens',
-        handler: () => { setActiveTab('analytics'); setValidateKey(k => k + 1); },
+        handler: () => { openOverflowPanel('analytics'); setValidateKey(k => k + 1); },
       },
       {
         id: 'generate-color-scale',
@@ -834,18 +840,56 @@ export function App() {
             }`}
           >
             {tab.label}
-            {tab.id === 'analytics' && analyticsIssueCount !== null && analyticsIssueCount > 0 && !(activeTab === 'analytics' && overflowPanel === null) && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white text-[9px] font-bold leading-[14px] text-center">
-                {analyticsIssueCount > 99 ? '99+' : analyticsIssueCount}
-              </span>
+            {tab.id === 'inspect' && selectedNodes.length > 0 && !(activeTab === 'inspect' && overflowPanel === null) && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-figma-accent)] border border-[var(--color-figma-bg)]" aria-label="Layer selected" />
             )}
           </button>
         ))}
 
+        {/* Analytics toggle */}
+        <button
+          onClick={() => setOverflowPanel(overflowPanel === 'analytics' ? null : 'analytics')}
+          className={`relative flex items-center justify-center w-7 h-7 ml-auto mr-0.5 my-1 rounded transition-colors ${
+            overflowPanel === 'analytics'
+              ? 'bg-[var(--color-figma-accent)] text-white'
+              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+          }`}
+          title="Analytics: validation issues and token statistics"
+          aria-label="Toggle analytics panel"
+          aria-pressed={overflowPanel === 'analytics'}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 20V10M18 20V4M6 20v-4"/>
+          </svg>
+          {analyticsIssueCount !== null && analyticsIssueCount > 0 && overflowPanel !== 'analytics' && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white text-[9px] font-bold leading-[14px] text-center">
+              {analyticsIssueCount > 99 ? '99+' : analyticsIssueCount}
+            </span>
+          )}
+        </button>
+
+        {/* Preview toggle */}
+        <button
+          onClick={() => setOverflowPanel(overflowPanel === 'preview' ? null : 'preview')}
+          className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
+            overflowPanel === 'preview'
+              ? 'bg-[var(--color-figma-accent)] text-white'
+              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+          }`}
+          title="Preview: live token preview"
+          aria-label="Toggle preview panel"
+          aria-pressed={overflowPanel === 'preview'}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+
         {/* Command palette trigger */}
         <button
           onClick={() => setShowCommandPalette(v => !v)}
-          className="ml-auto flex items-center gap-1 px-2 py-1 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors text-[10px]"
+          className="flex items-center gap-1 px-2 py-1 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors text-[10px]"
           title="Command palette (⌘K)"
           aria-label="Open command palette"
         >
@@ -1085,8 +1129,29 @@ export function App() {
             </button>
           )}
         </div>
-        {setTabsOverflow && (
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--color-figma-bg-secondary)] to-transparent pointer-events-none" aria-hidden="true" />
+        {setTabsOverflow.left && (
+          <>
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[var(--color-figma-bg-secondary)] to-transparent pointer-events-none z-[1]" aria-hidden="true" />
+            <button
+              onClick={() => scrollSetTabs('left')}
+              className="absolute left-0 top-0 bottom-0 w-5 flex items-center justify-center z-[2] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+              aria-label="Scroll tabs left"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M6 1L2 4l4 3V1z" /></svg>
+            </button>
+          </>
+        )}
+        {setTabsOverflow.right && (
+          <>
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[var(--color-figma-bg-secondary)] to-transparent pointer-events-none z-[1]" aria-hidden="true" />
+            <button
+              onClick={() => scrollSetTabs('right')}
+              className="absolute right-0 top-0 bottom-0 w-5 flex items-center justify-center z-[2] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+              aria-label="Scroll tabs right"
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3V1z" /></svg>
+            </button>
+          </>
         )}
         </div>
       )}
@@ -1132,7 +1197,7 @@ export function App() {
                 ))}
                 <div className="border-t border-[var(--color-figma-border)] my-1" />
                 <button
-                  onClick={() => { setActiveTab('themes'); setThemeDropdownOpen(false); }}
+                  onClick={() => { setOverflowPanel('themes'); setThemeDropdownOpen(false); }}
                   className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   Manage themes...
@@ -1397,27 +1462,75 @@ export function App() {
               onPushUndo={pushUndo}
             />
           )}
-          {overflowPanel === null && activeTab === 'themes' && (
-            <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} />
+          {overflowPanel === null && activeTab === 'publish' && (
+            <PublishPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} />
           )}
-          {overflowPanel === null && activeTab === 'sync' && (
-            <SyncPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} />
+
+          {/* Overflow panels for analytics, preview, themes */}
+          {overflowPanel === 'analytics' && (
+            <>
+              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <button
+                  onClick={() => setOverflowPanel(null)}
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  aria-label="Back"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6.5 2L3.5 5l3 3"/>
+                  </svg>
+                  Back
+                </button>
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Analytics</span>
+              </div>
+              <AnalyticsPanel
+                serverUrl={serverUrl}
+                connected={connected}
+                validateKey={validateKey}
+                onNavigateToToken={(path, set) => {
+                  setActiveSet(set);
+                  setOverflowPanel(null);
+                  setActiveTab('tokens');
+                  setPendingHighlight(path);
+                }}
+                onValidationComplete={setAnalyticsIssueCount}
+              />
+            </>
           )}
-          {overflowPanel === null && activeTab === 'analytics' && (
-            <AnalyticsPanel
-              serverUrl={serverUrl}
-              connected={connected}
-              validateKey={validateKey}
-              onNavigateToToken={(path, set) => {
-                setActiveSet(set);
-                setActiveTab('tokens');
-                setPendingHighlight(path);
-              }}
-              onValidationComplete={setAnalyticsIssueCount}
-            />
+          {overflowPanel === 'preview' && (
+            <>
+              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <button
+                  onClick={() => setOverflowPanel(null)}
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  aria-label="Back"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6.5 2L3.5 5l3 3"/>
+                  </svg>
+                  Back
+                </button>
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Preview</span>
+              </div>
+              <PreviewPanel allTokensFlat={allTokensFlat} />
+            </>
           )}
-          {overflowPanel === null && activeTab === 'preview' && (
-            <PreviewPanel allTokensFlat={allTokensFlat} />
+          {overflowPanel === 'themes' && (
+            <>
+              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <button
+                  onClick={() => setOverflowPanel(null)}
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  aria-label="Back"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6.5 2L3.5 5l3 3"/>
+                  </svg>
+                  Back
+                </button>
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Themes</span>
+              </div>
+              <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} />
+            </>
           )}
         </div>
       </div>

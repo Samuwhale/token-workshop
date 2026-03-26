@@ -132,3 +132,12 @@
   - Theme resolution order: source sets first (base), then enabled sets (override) — mirrors ThemeManager.tsx logic
   - The dropdown uses `mousedown` outside-click handler (not `click`) so it closes when clicking other buttons without triggering them first
 ---
+
+## 2026-03-26 - Set tabs overflow strategy
+- Upgraded set tab bar overflow handling: single boolean → `{ left, right }` state tracking; added left + right fade gradients and clickable scroll arrow buttons; hidden native scrollbar via `scrollbarWidth: 'none'`
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L303 (state), ~L433-457 (overflow detection + scroll helper), ~L983 (scrollbar hide), ~L1123-1148 (fade + arrow buttons)
+- **Learnings for future iterations:**
+  - The file is frequently modified by linters between reads — always re-read the exact lines before each edit
+  - `scrollbarWidth: 'none'` (CSS standard) is sufficient for Figma plugin WebView (Chromium); no need for `::-webkit-scrollbar` hack
+  - 2px threshold in overflow detection avoids sub-pixel false positives at scroll edges
+---
