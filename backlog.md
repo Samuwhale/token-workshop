@@ -72,7 +72,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 - [ ] **UI audit & overhaul: Token List** — Read the token list and row components, audit the visual density, typography, colour swatch rendering, alias indicator styling, and type badges, then redesign: give each row a clear visual hierarchy (name primary, value secondary, type tertiary), make colour swatches larger and more legible, improve alias/reference indicators, and ensure the list feels scannable and calm rather than cluttered. `packages/plugin/src/components/TokenList.tsx`
 
-- [ ] **UI audit & overhaul: Token Editor** — Read the editor layout, study how input fields, colour pickers, dropdowns, and action buttons are currently laid out, then redesign: improve the form layout so related fields are visually grouped, make the colour picker feel integrated rather than bolted on, improve button hierarchy (primary save, secondary cancel, destructive delete), and ensure the editor feels like a focused editing surface. `packages/plugin/src/components/TokenEditor.tsx`
+- [~] **UI audit & overhaul: Token Editor** — Read the editor layout, study how input fields, colour pickers, dropdowns, and action buttons are currently laid out, then redesign: improve the form layout so related fields are visually grouped, make the colour picker feel integrated rather than bolted on, improve button hierarchy (primary save, secondary cancel, destructive delete), and ensure the editor feels like a focused editing surface. `packages/plugin/src/components/TokenEditor.tsx`
 
 ---
 
@@ -244,7 +244,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Paste Tokens from JSON/Text
 
-- [ ] **Flow audit & overhaul: Paste Tokens** — Trace the paste flow (trigger → modal open → paste text → parse → preview → group path → target set → confirm), identify friction (is multi-format parsing communicated? is the group path field confusing?), then redesign: make format auto-detection visible to the user, improve the parsed preview legibility, and reduce the steps between pasting and confirming. `packages/plugin/src/components/PasteTokensModal.tsx`
+- [x] **Flow audit & overhaul: Paste Tokens** — Trace the paste flow (trigger → modal open → paste text → parse → preview → group path → target set → confirm), identify friction (is multi-format parsing communicated? is the group path field confusing?), then redesign: make format auto-detection visible to the user, improve the parsed preview legibility, and reduce the steps between pasting and confirming. `packages/plugin/src/components/PasteTokensModal.tsx`
 
 ### Flow: Import Tokens
 

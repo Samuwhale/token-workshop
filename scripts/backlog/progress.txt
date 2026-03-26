@@ -398,3 +398,16 @@
   - `madge --circular --extensions ts,tsx src/` is the right command for circular dep detection in this codebase
   - The minified variable name in a crash report (`It`, `Jt`, etc.) changes each build — don't rely on it to identify the root cause; focus on structural issues instead
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Paste Tokens
+- Added Cmd+Enter keyboard shortcut to confirm the paste (prevents needing to click the button)
+- Added live prefix path preview below the Group Prefix input (shows first resulting token path, e.g. `→ brand.colors.red …`)
+- Added "overwrite" label to per-row conflict checkboxes so their purpose is clear
+- Improved button label: now shows "All conflicts skipped" when there are conflicts but none are checked for overwrite (vs the generic "No tokens to import")
+- Added `title="⌘↵ to confirm"` tooltip on the confirm button when it's active
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L240, ~L296, ~L371, ~L407
+- **Learnings for future iterations:**
+  - `handleKeyDown` on the modal wrapper receives all keyboard events via bubbling — Cmd+Enter confirm works from any focused element inside the modal
+  - Use `void handleConfirm()` (not `await`) when calling an async function from a sync keyboard handler to avoid unhandled promise lint warnings
+  - A live path preview below a prefix/namespace field is very cheap to add and dramatically clarifies intent for path-composition fields
+---

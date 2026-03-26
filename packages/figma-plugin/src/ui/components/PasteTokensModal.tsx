@@ -239,6 +239,10 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      void handleConfirm();
+    }
   };
 
   return (
@@ -294,17 +298,25 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
           </div>
 
           {/* Group prefix */}
-          <div className="flex items-center gap-2">
-            <label className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
-              Group prefix
-            </label>
-            <input
-              type="text"
-              className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
-              placeholder="e.g. brand.colors (optional)"
-              value={prefix}
-              onChange={e => setPrefix(e.target.value)}
-            />
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">
+                Group prefix
+              </label>
+              <input
+                type="text"
+                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/50"
+                placeholder="e.g. brand.colors (optional)"
+                value={prefix}
+                onChange={e => setPrefix(e.target.value)}
+              />
+            </div>
+            {prefix.trim() && prefixedTokens.length > 0 && (
+              <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate pl-1">
+                → <span className="text-[var(--color-figma-text)]">{prefixedTokens[0].path}</span>
+                {prefixedTokens.length > 1 && <span> …</span>}
+              </div>
+            )}
           </div>
 
           {errors.length > 0 && (
@@ -381,6 +393,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
                       }}
                       className="accent-[var(--color-figma-accent)]"
                     />
+                    <span className="text-[9px] text-[var(--color-figma-text-secondary)]">overwrite</span>
                   </label>
                 )}
               </div>
@@ -402,12 +415,15 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
           <button
             onClick={handleConfirm}
             disabled={confirmCount === 0 || busy}
+            title={confirmCount > 0 ? '⌘↵ to confirm' : undefined}
             className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
           >
             {busy
               ? 'Saving…'
+              : confirmCount === 0 && conflicts.length > 0
+              ? 'All conflicts skipped'
               : confirmCount === 0
-              ? 'No tokens to import'
+              ? 'Nothing to import'
               : toUpdate.length > 0
               ? `Create ${toCreate.length} · Update ${toUpdate.length}`
               : `Create ${toCreate.length}`}
