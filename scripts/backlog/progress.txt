@@ -15,3 +15,10 @@
 - **Learnings for future iterations:**
   - The previous `[~]` item (Missing return in sync route) was already fixed — all catch blocks used `return reply.status(500).send(...)`. Marked stale/done.
 ---
+
+## 2026-03-26 - File watcher errors silently halt updates
+- Added `.on('error', ...)` handler to the chokidar watcher in `startWatching()` that logs errors to stderr via `console.error`
+- Files changed: `packages/server/src/services/token-store.ts` ~L98
+- **Learnings for future iterations:**
+  - Chokidar's error event fires for permission errors, deleted watch directories, and OS-level inotify limits — the handler should at minimum log so operators can diagnose silent watcher death
+---
