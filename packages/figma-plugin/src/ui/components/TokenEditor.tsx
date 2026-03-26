@@ -8,20 +8,7 @@ import { ColorPicker } from './ColorPicker';
 import type { ColorModifierOp } from '../shared/colorUtils';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { ValueDiff } from './ValueDiff';
-
-type GeneratorType = 'colorRamp' | 'typeScale' | 'spacingScale' | 'opacityScale' | 'borderRadiusScale' | 'zIndexScale' | 'customScale';
-
-interface TokenGenerator {
-  id: string;
-  type: GeneratorType;
-  name: string;
-  sourceToken?: string;
-  targetSet: string;
-  targetGroup: string;
-  config: any;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { GeneratorType, TokenGenerator } from '../hooks/useGenerators';
 
 // ---------------------------------------------------------------------------
 // Figma variable scopes by token type

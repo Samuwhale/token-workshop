@@ -20,20 +20,7 @@ import {
   sortTokenNodes, collectGroupPathsByDepth, collectAllGroupPaths, countLeaves,
   flattenLeafNodes, findLeafByPath, collectGroupLeaves, getDefaultValue,
 } from './tokenListUtils';
-
-type GeneratorType = 'colorRamp' | 'typeScale' | 'spacingScale' | 'opacityScale' | 'borderRadiusScale' | 'zIndexScale' | 'customScale';
-
-interface TokenGenerator {
-  id: string;
-  type: GeneratorType;
-  name: string;
-  sourceToken?: string;
-  targetSet: string;
-  targetGroup: string;
-  config: any;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { GeneratorType, TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 
 // ---------------------------------------------------------------------------

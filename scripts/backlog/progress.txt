@@ -628,3 +628,12 @@
   - Restore-on-mount requires a separate `useEffect([], [])` that fires once; putting it inside `toggleExpand` would require the state value at mount time.
   - The existing resize infrastructure (controller.ts `case 'resize'` + `figma.ui.resize()`) handles this with zero controller changes needed.
 ---
+
+## 2026-03-26 - Multi-brand graph inputs
+- Implemented full multi-brand input table: `InputTable`/`InputTableRow` types, `inputTable` + `targetSetTemplate` fields on `TokenGenerator`, server-side multi-brand execution loop (one run per row → brand-specific set), and `InputTableEditor` UI in the generator config panel with Enable/Disable toggle, editable brand rows, and template field.
+- Files changed: `packages/core/src/generator-types.ts` ~L266, `packages/core/src/index.ts` ~L98, `packages/server/src/services/generator-service.ts` ~L264, `packages/server/src/routes/generators.ts` ~L3, `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L103, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L1144
+- **Learnings for future iterations:**
+  - The `useGenerators.ts` hook defines all generator types inline (not imported from `@tokenmanager/core`) — always mirror new types there too.
+  - `computeResultsWithValue` mirrors the switch in `computeResults` but takes a pre-resolved value; a future refactor could extract both into a shared static dispatch helper.
+  - Multi-brand preview is intentionally disabled (shows "Preview unavailable in multi-brand mode.") — implementing it would require the server to return per-brand results.
+---
