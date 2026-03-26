@@ -7,6 +7,7 @@
 # Backlog Inbox
 
 Add items here while backlog.sh is running. They will be triaged at the end of each iteration:
+
 - `- [HIGH] item title…` or `- [P0] item title…` — inserted before the first `[ ]` item (picked next by the agent).
 - All other items are appended to the bottom.
 
@@ -18,10 +19,24 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
+- [ ] **Set tabs overflow strategy** — Horizontal set tabs work well for moderate counts but will break at 10+ sets. Add horizontal scrolling with fade indicators, or collapse to a dropdown after a threshold. Tokens Studio uses a vertical sidebar which scales better for many sets — our horizontal approach is cleaner for typical projects but needs a graceful overflow.
+
 ### UX
 
 - [!] **UX audit & overhaul: App Shell** — Read the full app shell code, study how Figma plugin shells are conventionally structured (tab bars, overflow menus, resize handles), audit every interaction point (tab switching, overflow menu, resize, connection state), then rewrite the shell UX: improve tab labelling and iconography, ensure the active state is unmistakeable, make overflow actions discoverable, and surface connection status in a non-intrusive but always-visible way. `packages/plugin/src/components/AppShell.tsx`
 <!-- stale — AppShell.tsx does not exist; app shell is in App.tsx -->
+
+- [ ] **IA restructure: reduce to 3 primary tabs** — The current 5-tab layout (Tokens, Themes, Sync, Analytics, Preview) fragments the core workflow across too many screens. Restructure to 3 primary tabs: **Tokens** (the workspace — token list, set picker, theme switcher, inline preview), **Inspect** (selection inspector, promoted from bottom panel), **Publish** (sync + export, merged). Move Analytics into a toolbar toggle/panel within the Tokens tab (lint badges are already inline — the separate tab mostly duplicates that). Move Preview into a split-view or toggle within the Tokens tab. Move Theme management into a panel accessible from the theme switcher (not a separate top-level tab). Import/Export/Settings stay in the overflow menu. This matches the mental model: "I work with tokens" → "I check what's applied" → "I push to Figma/Git".
+
+- [ ] **Theme switcher in the Tokens tab toolbar** — Currently switching the active theme requires navigating to the Themes tab. Add a theme dropdown/pill bar to the Tokens tab toolbar (next to the set tabs). Selecting a theme immediately resolves all tokens under that theme's set configuration, so you can see how `semantic.bg` resolves under "light" vs "dark" without leaving the token list. Theme *management* (create/edit/delete) opens from a "Manage themes..." link in the dropdown. This is the single highest-impact flow improvement — it makes theme-aware token browsing zero-friction.
+
+- [ ] **Promote SelectionInspector to its own tab** — The inspector is currently a collapsible bottom panel within the Tokens tab. This buries the most important Figma integration feature. Promote it to a top-level "Inspect" tab (like Tokens Studio) so the workflow is: select layer on canvas → switch to Inspect tab → see all token bindings → remap/apply. The inspector should show: all bound tokens grouped by property, resolved values, remap action, "go to token" navigation, and a "no tokens applied" empty state with a hint to apply from the Tokens tab.
+
+- [ ] **Merge Sync + Export into a "Publish" tab** — Sync (Figma variables, Git) and Export (CSS, JSON, etc.) are both "push tokens outward." Merge them into a single "Publish" tab with sections: Figma Variables, Figma Styles, Git, and File Export. This reduces tab count and groups related actions. The current Sync tab's "readiness checks" become a pre-publish validation gate shown at the top of Publish.
+
+- [ ] **Inline analytics as a toolbar toggle** — The Analytics tab is mostly a summary of lint violations that are already shown as inline badges in the token list. Replace the dedicated tab with a toolbar toggle button (e.g., filter icon with issue count badge) that, when active, filters the token list to show only tokens with validation issues. Keep the color contrast matrix and duplicate detection as panels accessible from this filtered view or from the overflow menu. This removes a tab while making the data more actionable (you see the problem tokens *in context*, not on a separate screen).
+
+- [ ] **Preview as split-view toggle** — The Preview tab shows live UI components rendered with token CSS variables, but it's disconnected from the token list. Replace the dedicated tab with a split-view toggle on the Tokens tab: when active, the bottom half shows the preview pane while the top half shows the token list. Editing a token inline immediately updates the preview below. This makes the preview useful as a *feedback loop* during editing, not just a read-only report.
 
 ### UI
 
@@ -34,50 +49,36 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
+- [ ] **Resolver crashes on malformed composite tokens** — `resolveValue()` in `packages/core/src/resolver.ts` recurses into nested objects and arrays without null guards on intermediate values. A composite token with an `undefined` field in its object value will throw at runtime. Add null checks before recursing into object/array values.
+
 ### QoL
 
-- [x] **Decompose TokenList.tsx into focused components** — The current `TokenList.tsx` is 2720 lines containing the list container, tree nodes, value previews, all filter/sort logic, the create form, find-and-replace, promote-to-semantic, extract-to-alias, move-group, and dozens of helpers. Extract into: `TokenRow.tsx` (individual token row), `TokenGroupRow.tsx` (group header), `ValuePreview.tsx`, `TokenFilters.tsx` (search/type/ref/sort controls), `TokenBulkActions.tsx` (multi-select toolbar). This is prerequisite for all other token list improvements. `packages/figma-plugin/src/ui/components/TokenList.tsx`
-
-- [x] **Virtual scrolling for large token sets** — The token list currently renders all tokens with no virtualisation. Load a set with 500+ tokens and scroll performance degrades significantly. Implement a simple virtual scroll (only render visible rows + overscan) without a heavy library dependency. This is especially important once inline editing adds more interactive elements per row. `packages/figma-plugin/src/ui/components/TokenList.tsx`
-
-- [x] **Full undo/redo stack** — `useUndo.ts` stores exactly one `UndoSlot` with an 8-second auto-dismiss toast and no redo. Replace with `useHistory.ts`: a stack with a cursor supporting Cmd+Z (undo) and Cmd+Shift+Z (redo), no auto-dismiss, and a persistent history of the last N operations. On the server side, add a ring buffer of mutations in `TokenStore` with before/after snapshots so undo can restore state reliably across reloads. `packages/figma-plugin/src/ui/hooks/useUndo.ts`, `packages/server/src/services/token-store.ts`
-
-- [x] **Keyboard navigation in the token list** — Currently impossible to navigate the token list by keyboard. Add focused-row state and a keydown handler: ↑/↓ to move focus between rows, `Enter` to open the editor, `Space` to toggle selection in multi-select mode, `N` to open the create drawer, `/` to focus search, `E` to edit focused token, `Cmd+D` to duplicate, `Delete` to delete with confirmation, `Escape` to close drawer/deselect. `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- [ ] **Dual-value display for alias tokens** — When a token is an alias, the row currently shows the reference badge and resolved value separately. Improve this: show a compact `{ref.path} → resolved` inline on the right side of the row so both the raw reference and computed value are always visible at a glance, without needing to click or hover. This is one of Tokens Studio's best UX patterns.
+- [ ] **Hover tooltip with full resolution chain** — On hover over any alias token row, show a tooltip with the full resolution chain (e.g., `semantic.bg → color.neutral.100 → #F5F5F5`) so designers can debug alias depth without clicking into the editor.
+- [ ] **Rich color picker with color space support** — The color picker is currently a native HTML `<input type="color">` which only supports hex in sRGB. Replace with a custom color picker that supports HSL, LCH, and P3 color spaces, shows numeric inputs for each channel, and includes an opacity slider. LCH is particularly important since our generators already use CIELAB math — the picker should speak the same language. Consider also adding an eyedropper button that samples colors from the Figma canvas via the plugin API.
+- [ ] **Copy token path (raw dot-notation)** — Currently only "Copy CSS variable name" is available (e.g., `--color-primary-500`). Add "Copy token path" to copy the raw dot-notation path (e.g., `color.primary.500`) and "Copy as JSON" to copy the full token definition as a JSON snippet. Tokens Studio has both.
+- [ ] **Expand/collapse all groups** — No global toggle exists. Add "Expand all" / "Collapse all" buttons to the toolbar (or keyboard shortcut). Essential when navigating large sets.
+- [ ] **Color swatch grid view for color tokens** — Tokens Studio offers a grid/swatch view for color tokens that shows them as a compact grid of color chips rather than a vertical list. Add a grid view option (toggle alongside tree/table/canvas) that renders color tokens as a visual palette. Useful for at-a-glance review of color systems.
+- [ ] **Math expressions in token values** — Tokens Studio supports `{space.base} * 2` syntax in token values, enabling computed values from references. Add expression evaluation for numeric token types (dimension, number, duration) so users can write `{spacing.base} * 1.5` and have it resolve to the computed value.
+- [ ] **Auto-type inference on value input** — When creating a token, if the user types `#FF0000` before selecting a type, auto-suggest "color". If they type `16px`, auto-suggest "dimension". Reduces a decision point during rapid token creation.
+- [ ] **Rename token with reference update** — When renaming a token (path change), prompt the user: "N tokens reference this one. Update their references?" and bulk-update all alias paths that pointed to the old name. Tokens Studio does this; without it, renaming breaks aliases silently.
 
 ### UX
 
-- [x] **UX audit & overhaul: Token List** — Read the token list component and all child row/group components, study design-token-tool UX patterns (Tokens Studio, Style Dictionary UI, Theo), identify every friction point (how you find a token, how groups expand/collapse, what clicking a row does, how the set switcher works), then redesign the interactions: make clicking a token predictably open the editor, add visible affordances for drag-to-reorder, improve group headers, ensure the empty state guides the user clearly, and make search/filter immediately accessible. `packages/plugin/src/components/TokenList.tsx`
-<!-- stale — path is packages/plugin/... (does not exist); actual file is packages/figma-plugin/src/ui/components/TokenList.tsx. All primary goals addressed by completed items: editor drawer (click-to-edit), keyboard nav (/search shortcut), inline editing, UI audit overhaul (group headers), empty state UX audit. Drag-to-reorder: feature not implemented (no backend ordering), so affordances N/A. -->
-
-- [x] **UX audit & overhaul: Token Editor** — Read the token editor and all type-specific input components, research how professional design tools handle token/variable editing (Figma's own variable editor, Tokens Studio), map every user action (name editing, type switching, value input, alias autocomplete, scope selection, save/cancel), identify friction (unclear save triggers, alias UX, type-switch side-effects), then redesign: make save/discard obvious, improve alias autocomplete discoverability, ensure type switching doesn't silently corrupt values, and add inline validation feedback. `packages/plugin/src/components/TokenEditor.tsx`
-
-- [x] **UX audit & overhaul: Empty State** — Read the empty state component and all quick-action buttons, research how best-in-class empty states work (Figma's own empty states, Linear, Notion), audit the current layout and quick actions (create token, generate colour scale, paste JSON, use presets, generate semantic tokens, generate dark theme), identify friction (is it clear what to do first? are six options overwhelming?), then redesign: establish a clear visual hierarchy that guides new users to the most common first action, add brief helper text per action, and make the empty state feel welcoming rather than blank. `packages/plugin/src/components/EmptyState.tsx`
-
-- [x] **Slide-over editor drawer (replace full-page navigation)** — Editing any token currently swaps the entire view to `TokenEditor`, losing all list context. The user must click Back to return, then find their place. Replace this with a bottom-sheet drawer (60% of viewport height) that slides up over the token list, keeping the list visible and scrollable above it. The drawer is dismissible via swipe-down, Escape, or a close button. The list auto-scrolls to keep the edited token visible above the drawer. Reuse all existing `TokenEditor` sub-components inside the drawer container. `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/components/TokenEditor.tsx`
-
-- [x] **Unified create+edit flow (one-step token creation)** — Creating a token currently requires two separate steps: fill path+type form → Create (produces a placeholder default value) → click Edit → navigate away from list → set actual value. Eliminate the round-trip by replacing the bottom create form with the same editor drawer, pre-populated for a new token: path input with autocomplete for existing group prefixes, type selector as a compact pill bar, and the full type-specific value editor immediately visible below. One Save click creates the token with the real value. `packages/figma-plugin/src/ui/components/TokenList.tsx` (lines 1198-1253), new `TokenCreateDrawer.tsx`
-
-- [x] **Inline quick-edit for simple token types** — For simple value types, clicking the value in the token list should edit it in place without opening the drawer. Color: clicking the swatch opens a popover color picker. Dimension/number: clicking the value makes it an inline input with stepper arrows. String: inline text input. Boolean: clicking toggles the value directly. Complex types (typography, shadow, gradient, border) open the drawer as normal. `packages/figma-plugin/src/ui/components/TokenList.tsx`, new `InlineColorPicker.tsx`, `InlineValueEditor.tsx`
-
-- [x] **Visual diff in the token editor** — When editing a token value, show the previous value alongside the new value with a visual before/after comparison: side-by-side color swatches for colors, old → new with delta for dimensions, before/after specimen for typography. This prevents silent overwrites and helps the user evaluate the change before saving. `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, new `ValueDiff.tsx`
-
-- [x] **Token dependency graph and impact analysis** — Before editing or deleting a token, show a reverse-dependency summary: "This token is referenced by 12 tokens across 3 sets." For color changes, show before/after swatches for every dependent token. For deletions, show the full orphan tree with all affected alias paths. Neither Tokens Studio nor Supaltokens warns you before you silently break alias chains. Add `GET /api/tokens/dependents/:path` on the server (reverse-index the alias graph from the existing resolver) and surface it in the editor drawer as a collapsible section. `packages/server/src/services/token-store.ts`, `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, new `DependencyGraph.tsx`
-
-- [x] **Multi-cursor batch editing** — Extend the existing multi-select mode with a batch editor panel. When multiple tokens are selected, allow editing them simultaneously: batch-adjust opacity on multiple colors, multiply all spacing values by a scalar, add a description to all tokens in a group. This is more powerful than the current "promote to semantic" bulk op, which only handles alias matching. New `BatchEditor.tsx` component, surfaced in the multi-select toolbar. `packages/figma-plugin/src/ui/components/TokenList.tsx`
-
-- [x] **Token canvas: spatial 2D visualization** — Add a third view mode alongside tree and table. A 2D SVG canvas positions tokens spatially by type: colors arranged by hue/lightness, dimensions as a scale ladder, typography tokens as a type specimen grid, aliases drawn as directed arrows between nodes. Click to edit, drag to reposition. Particularly powerful for discovering duplicate colors, finding gaps in spacing scales, and understanding alias network topology. New `TokenCanvas.tsx` with SVG rendering; add as a third toggle in the view controls toolbar. `packages/figma-plugin/src/ui/components/TokenList.tsx`
-
-- [x] **Live preview surface** — Add a built-in preview panel that renders a small set of UI components (button, card, input, text block) using current token values as CSS custom properties. Edit any token and the preview updates in real time with no configuration. Pre-built templates: Button States, Form Fields, Type Scale, Color Palette, Card Layout. Theme switching between light/dark previews if themes are configured. Add as a new tab or floating overlay panel. New `PreviewPanel.tsx`
-
-- [x] **Token recipes: composable transformations** — Extend the generator system (which already supports chained generators via topological sort in `generator-service.ts`) with higher-level recipes: "Accessible Color Pair" (takes a background color, auto-generates a WCAG AA-compliant foreground, links them), "Dark Mode Inversion" (takes a color group, generates dark-mode equivalents via L* inversion in OKLCH), "Responsive Scale" (takes a base dimension, generates `sm`/`md`/`lg`/`xl` variants). Recipes are composable pipelines — output of one feeds input of another. `packages/core/src/generator-engine.ts`, `packages/core/src/generator-types.ts`, `packages/server/src/services/generator-service.ts`
-
-- [x] **Figma canvas heatmap: token adoption overlay** — Add an overlay mode (toggle in the plugin header) that highlights every element on the active Figma canvas by token coverage: green (all applicable properties bound to tokens), yellow (partially bound), red (no bindings). Clicking a highlighted element shows which properties are bound and which are "naked". Turns TokenManager from a token management tool into a token adoption tool. Implementation: scan canvas bindings in the plugin controller, send results to the UI for overlay rendering. `packages/figma-plugin/src/plugin/controller.ts`
+- [ ] **Apply-to-layer discoverability** — The apply-to-selection button exists but is a tiny 10px arrow icon that's easy to miss. Make the apply action more prominent: enlarge the hit target, add a tooltip, and consider making left-click on the token row itself apply (with edit moving to double-click or a dedicated button). This is the #1 daily workflow for designers — it should be the most obvious interaction.
+- [ ] **"Create another" rapid-entry mode** — After creating a token, the form closes and the user must manually re-trigger it. Add a "Create & New" button (or Shift+Enter) that saves the current token and immediately re-opens the create form with the same group prefix and type pre-filled. For bootstrapping a design system (e.g., adding 20 color primitives), this eliminates half the clicks.
+- [ ] **Drag-to-move tokens between groups** — Moving tokens between groups currently requires Find & Replace on paths. Add drag-and-drop for individual tokens or multi-selected tokens to move them into a different group (updating the path prefix). This is a basic expectation for tree-based UIs.
+- [ ] **Explicit group creation** — Groups can only be created implicitly by naming a token with a dotted path. Add a "New group" action (context menu on group header or set level) that creates a named group node in the tree, so users can establish structure before populating with tokens. Empty groups should be visually distinguished but persistent.
+- [ ] **Duplicate token set** — Sets cannot be cloned. Add a "Duplicate set" action to the set context menu that copies all tokens into a new set with a suffix (e.g., "primitives-copy"). Essential for creating dark/light variants from a base set.
+- [ ] **Reorder sets** — No drag-to-reorder for set tabs. Set order matters for cascading resolution (later sets override earlier ones). Add drag-to-reorder on set tabs with a visual indicator of precedence direction.
+- [ ] **Set folder organization** — Tokens Studio supports `/` in set names to create a folder hierarchy in the sidebar (e.g., `brands/berry`, `themes/light`). Add support for folder-grouped sets as a collapsible sidebar that replaces the horizontal tab bar when set count exceeds a threshold (~6-8 sets). The horizontal toolbar is already crowded with the theme switcher (see App Shell IA restructure), so a vertical sidebar with folder nesting is the right solution at scale. This supersedes the set tabs overflow strategy item.
+- [ ] **Delete token from editor** — Delete is only available from the token list. Add a "Delete token" action (with confirmation) to the editor drawer so users don't have to close the editor, find the token in the list, and right-click to delete.
+- [ ] **Revert to saved in editor** — No way to discard unsaved changes in the editor drawer. Add a "Revert" or "Discard changes" button that resets the editor to the last saved state.
+- [ ] **Token editor as contextual side panel** — The current bottom drawer at 65% height obscures the token list, breaking context. When the plugin window is wide enough (>480px), show the editor as a right-side panel instead, so the token list remains visible and scrollable on the left. The list should highlight and scroll to the token being edited. For narrow windows, fall back to the current drawer. This keeps the user oriented in the token hierarchy while editing.
+- [ ] **Composition tokens** — Tokens Studio Pro has a "composition" token type that bundles multiple property tokens into one (e.g., a "card" token with fill, borderRadius, padding, spacing all defined together). When applied, all properties are set at once. Add a composition type that lets users define a token whose value is an object mapping property names to other token references, and apply all properties in one action.
+- [ ] **Asset tokens (URL/image)** — Tokens Studio supports an "asset" token type that holds a URL pointing to an image. When applied to a layer, the plugin fetches the image and sets it as an image fill. Useful for logos, icons, and brand assets that vary by theme. Add an asset type with URL input and image preview in the editor.
 
 ### UI
-
-- [x] **UI audit & overhaul: Token List** — Read the token list and row components, audit the visual density, typography, colour swatch rendering, alias indicator styling, and type badges, then redesign: give each row a clear visual hierarchy (name primary, value secondary, type tertiary), make colour swatches larger and more legible, improve alias/reference indicators, and ensure the list feels scannable and calm rather than cluttered. `packages/plugin/src/components/TokenList.tsx`
-
-- [x] **UI audit & overhaul: Token Editor** — Read the editor layout, study how input fields, colour pickers, dropdowns, and action buttons are currently laid out, then redesign: improve the form layout so related fields are visually grouped, make the colour picker feel integrated rather than bolted on, improve button hierarchy (primary save, secondary cancel, destructive delete), and ensure the editor feels like a focused editing surface. `packages/plugin/src/components/TokenEditor.tsx`
 
 ---
 
@@ -87,13 +88,17 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
+- [ ] **Inline explanation of set statuses** — Tokens Studio's #1 onboarding complaint is that `source` vs. `enabled` vs. `disabled` is unexplained. Wherever set status toggles appear (theme management panel, theme switcher detail view), add persistent inline descriptions or tooltips: "Base = foundation layer, can be overridden", "On = active, overrides base sets", "Off = not used in this theme". First-time users should never have to guess.
+- [ ] **Persist active theme selection per file** — Store the currently active theme selection in Figma's `clientStorage` (keyed by file ID) so it survives plugin restarts. Tokens Studio has a known complaint that theme selections reset every session — solving this is a concrete advantage.
+
 ### UX
 
-- [x] **UX audit & overhaul: Theme Manager** — Read the theme manager and all its sub-components (theme cards, set assignment matrix, coverage view), research how theming UIs work in comparable tools (Tokens Studio multi-theme, Figma modes), audit every interaction (create theme, assign sets, reorder, view coverage, delete), identify confusion points (the set assignment matrix is particularly dense), then redesign: simplify the set assignment UI, make coverage gaps immediately visible, and ensure theme CRUD operations feel natural. `packages/plugin/src/components/ThemeManager.tsx`
+- [ ] **Multi-dimensional theme model** — Add support for theme groups (dimensions) with options, matching Tokens Studio's Group/Option model. A theme group represents one axis of variation (e.g., "Color Mode", "Brand", "Density"), and each group has mutually exclusive options (e.g., "Light"/"Dark"). Multiple groups can be active simultaneously, creating a matrix of combinations. This maps cleanly to Figma Variable Collections (groups) and Modes (options). Without this, enterprise design systems with multiple theming dimensions (brand × mode × density) require flat theme duplication. This is the single largest capability gap vs. Tokens Studio.
+- [ ] **Theme live preview during editing** — When editing a theme's set configuration (toggling sets on/off/base), there's no immediate feedback on how tokens resolve under that configuration. With the theme switcher in the toolbar (see App Shell), switching *existing* themes already updates the token list. But when *editing* a theme's set assignments, the token list and split-view preview should update in real-time as you toggle sets, so designers can experiment with set combinations without save-and-check cycles.
+- [ ] **Duplicate theme** — No way to clone an existing theme as a starting point. Add a "Duplicate" action to the theme card that copies all set statuses and ordering into a new theme with a "-copy" suffix. Essential when creating variants (e.g., "dark-high-contrast" from "dark").
+- [ ] **Compare themes side-by-side** — No way to see how two themes differ. Add a comparison view that shows tokens with differing resolved values between two selected themes, highlighting what changes. Useful for auditing light/dark or brand variants.
 
 ### UI
-
-- [x] **UI audit & overhaul: Theme Manager** — Read the theme manager layout, audit the visual design of theme cards, the matrix/table layout, and coverage indicators, then redesign: improve the theme card design, make the set assignment matrix readable at a glance (better column/row labels, clearer enabled/disabled/source states), and improve coverage gap visualisation. `packages/plugin/src/components/ThemeManager.tsx`
 
 ### QA
 
@@ -103,11 +108,16 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
+- [ ] **Missing `return` after error response in sync route** — In `packages/server/src/routes/sync.ts`, the catch block sends a 500 response but doesn't `return`, so execution continues and Fastify may attempt to send a second response. Add `return` before the `reply.status(500)` call.
+- [ ] **Race condition: concurrent file watcher rebuilds** — In `packages/server/src/services/token-store.ts`, the `change`/`add`/`unlink` watcher handlers all call `rebuildFlatTokens()` without debouncing or locking. Rapid file-system events (e.g., an editor writing multiple files at once) trigger concurrent rebuilds, leaving the resolver in a partially stale state. Debounce the rebuild or use a rebuild queue.
+- [ ] **File watcher errors silently halt updates** — The chokidar watcher in `token-store.ts` has no `error` event handler. If the watcher encounters a permission error or the watched directory is deleted, it stops firing events with no indication to the server or user.
+
 ### QoL
 
 ### UX
 
-- [x] **UX audit & overhaul: Sync Panel** — Read the sync panel and diff viewer components, research how git-adjacent sync UIs work in design tools (Supernova, Specify, Tokens Studio), audit the readiness checks UI, the diff viewer (local-only/figma-only/conflict display), and the sync trigger flow, identify confusion points (what does "sync" actually do? what is the scope?), then redesign: make the sync action and its consequences crystal clear before the user commits, improve the diff view readability, and make readiness check failures actionable. `packages/plugin/src/components/SyncPanel.tsx`
+- [ ] **Create Figma Styles from tokens** — Currently only Figma Variables are supported. Add the ability to create/update Figma Styles (Color, Text, Effect) from tokens. Many teams use styles alongside variables, and Tokens Studio supports both targets.
+- [ ] **Batch create variables/styles from group** — Tokens Studio has "Create variables from group" and "Create styles from group" in the group right-click context menu. Add these actions so users can bulk-publish an entire group (e.g., all `colors.brand.*` tokens) to Figma in one click, rather than syncing the entire set.
 
 ### QA
 
@@ -121,11 +131,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [x] **UX audit & overhaul: Analytics Panel** — Read the analytics panel, validation issue list, and set statistics components, research how linting/validation UIs work in developer tools (ESLint output, design linters), audit how issues are displayed and how users navigate from an issue to the affected token, identify friction (is it clear what an issue means? is the fix obvious?), then redesign: improve issue grouping and severity visual hierarchy, make "navigate to token" and "auto-fix" actions prominent, and ensure the stats view communicates coverage at a glance. `packages/plugin/src/components/AnalyticsPanel.tsx`
-
 ### UI
-
-- [x] **UI audit & overhaul: Analytics Panel** — Read the analytics layout, audit the visual design of issue rows, severity badges, set statistics cards, and coverage charts, then redesign: use consistent severity colour coding, improve stat card layout, and ensure the panel feels informational rather than alarming. `packages/plugin/src/components/AnalyticsPanel.tsx`
 
 ### QA
 
@@ -139,11 +145,11 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [x] **UX audit & overhaul: Selection Inspector** — Read the selection inspector and property picker components, research how property panels work in Figma plugins that bind variables/tokens (Variables panel, Tokens Studio), audit every step of selecting a node, seeing its properties, and binding a token to a property, identify friction (is it clear which properties are bindable? does the picker open in a sensible place? is binding feedback immediate?), then redesign: make the inspector feel like a natural extension of Figma's own inspector, improve the property list legibility, and make binding/unbinding feel snappy and obvious. `packages/plugin/src/components/SelectionInspector.tsx`
+- [ ] **Deep inspect for nested components** — Tokens Studio's Inspect panel can drill into component instances to show tokens applied on nested layers, not just the top-level selection. Ensure our inspector supports recursive inspection of component children with a "Deep inspect" toggle.
+- [ ] **Remap token on selection** — Tokens Studio lets you remap a token binding on a selected layer to a different token (e.g., swap `color.brand.old` for `color.brand.new`) without detaching and re-applying. Add a "Remap" action in the inspector that shows the current binding and lets you pick a replacement token.
+- [ ] **Bulk remap across selection** — When renaming or restructuring tokens, allow bulk-remapping all token bindings across the current selection (or page/document) from old paths to new paths. Tokens Studio supports this for migration workflows.
 
 ### UI
-
-- [x] **UI audit & overhaul: Selection Inspector** — Read the inspector layout and property row components, audit visual design (property name + current value + binding indicator layout), then redesign: improve the property row density and readability, make bound vs unbound states visually distinct, and ensure the inspector doesn't feel overwhelming when a node has many properties. `packages/plugin/src/components/SelectionInspector.tsx`
 
 ### QA
 
@@ -157,9 +163,8 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [x] **UX audit & overhaul: Import** — Read the import panel and all sub-components, research how import/migration UIs work (Tokens Studio import, Figma's own import flows), audit the full import flow (source selection → load → filter → conflict check → target set → confirm), identify friction (is the conflict UI understandable? is the progress state clear?), then redesign: reduce the number of steps if possible, make conflicts visually obvious with clear resolution options, and ensure the user always knows what will happen before they commit. `packages/plugin/src/routes/ImportPanel.tsx`
-
-- [x] **UX audit & overhaul: Paste Tokens** — Read the paste tokens modal and its parser logic, research how paste/import modals work in comparable tools, audit the full flow (paste text → parse → see preview → set group path → confirm), identify friction (is multi-format support communicated clearly? is type inference visible to the user?), then redesign: improve format hints and examples, make the parsed preview more readable, and reduce cognitive load of the group path field. `packages/plugin/src/components/PasteTokensModal.tsx`
+- [ ] **Import from Figma Styles** — Add reverse-sync: pull existing Figma Color, Text, and Effect styles into the plugin as tokens. Tokens Studio supports this and it's the primary onboarding path for teams migrating from a styles-based workflow. Map style names to token paths (using `/` → `.` conversion) and style values to token values.
+- [ ] **Import from Figma Variables** — Add reverse-sync: pull existing Figma Variables into the plugin as tokens. Map variable collections to token sets and variable modes to theme options. This is critical for teams that already have variables defined in Figma and want to adopt TokenManager without recreating everything manually.
 
 ### UI
 
@@ -175,11 +180,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [x] **UX audit & overhaul: Export** — Read the export panel code, research how design token export UIs work (Style Dictionary, Tokens Studio, Specify), audit the mode toggle (platforms vs figma-variables), platform selection, filtering, and download/copy flows, identify friction (is the output format understandable before export? is copy-to-clipboard obvious?), then redesign: improve mode and platform selection clarity, make format previews more useful, and streamline the path from "I want to export" to "I have my output". `packages/plugin/src/routes/ExportPanel.tsx`
-
 ### UI
-
-- [x] **UI audit & overhaul: Export** — Read the export layout, audit visual design of the mode toggle, platform selector, filter controls, and output preview area, then redesign: improve the visual hierarchy so the user's eye is drawn first to selecting the target and then to the output. `packages/plugin/src/routes/ExportPanel.tsx`
 
 ### QA
 
@@ -189,13 +190,15 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
+- [ ] **Division by zero in formula evaluator** — `parseMulDiv()` in `packages/core/src/eval-expr.ts` performs division without checking for a zero divisor, silently producing `Infinity` or `NaN` values that get written as token values. Add a check and return an error when the right-hand side of `/` resolves to zero.
+- [ ] **Color modifier `mix` silently no-ops on invalid color** — In `packages/core/src/color-modifier.ts`, the `mix` case calls `hexToLab()` and silently `break`s if either color is invalid. The token gets no modifier applied with no error or warning. Surface a validation error to the caller instead of silently skipping.
+
 ### QoL
 
 ### UX
 
-- [x] **UX audit & overhaul: Color Scale Generator** — Read the color scale generator component, research how colour scale tools work (Radix Colours, Tailwind palette, Palette.app), audit the base colour input, step selector, preview, prefix input, and generation flow, identify friction (is the L* value useful to show? is step selection clear?), then redesign: improve the scale preview (show swatches large enough to evaluate), make the naming convention obvious, and ensure the user feels confident in the output before confirming. `packages/plugin/src/components/ColorScaleGenerator.tsx`
-
-- [x] **UX audit & overhaul: Scaffolding Wizard** — Read the scaffolding wizard and preset definitions, research how design system bootstrapping tools work (Tokens Studio presets, Supernova templates), audit the preset selection UI, customisation options, and confirmation flow, identify friction (are the presets self-explanatory? does the user know what tokens they'll get?), then redesign: add brief descriptions and token count previews per preset, improve the naming/prefix field UX, and make the outcome predictable before the user commits. `packages/plugin/src/components/ScaffoldingWizard.tsx`
+- [ ] **Generator discoverability** — Generators are one of our strongest advantages over Tokens Studio (which has no scale generators at all), but they're only reachable from inside the token editor drawer. Surface generators prominently: add a "Generate" action to the set context menu, show a "Generate tokens from template" CTA in empty set states, and add generator entries to the command palette. Users should encounter generators naturally, not have to already know they exist.
+- [ ] **Generator quick-start from group context menu** — When right-clicking a token group (e.g., `colors.brand`), offer "Generate scale from this group" which pre-fills the generator dialog with the group path as target and auto-detects a suitable generator type from the existing tokens' types.
 
 ### UI
 
@@ -207,9 +210,9 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
-### UX
+- [ ] **Surface generators in command palette** — Add all generator types (color ramp, type scale, spacing scale, etc.) as command palette actions. Typing "generate" or "scale" should surface them immediately. This makes the generator feature discoverable through the primary power-user navigation path.
 
-- [x] **Token-specific commands and fuzzy token search in command palette** — Add token-aware commands to the palette: "Create token", "Edit [token name]", "Go to [token name]", "Copy CSS var for [token name]". Add a fuzzy token search mode: typing `>color.brand` filters all tokens by path and jumps directly to the match. Add a recent actions section and category headers with keyboard shortcut hints. `packages/figma-plugin/src/ui/components/CommandPalette.tsx`, `packages/figma-plugin/src/ui/App.tsx`
+### UX
 
 ### UI
 
@@ -221,11 +224,9 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
+- [ ] **Second screen / detached window** — Tokens Studio Pro offers a "Second Screen" mode that opens the plugin in a detached, resizable window. This gives more screen real estate for token management. Investigate Figma's plugin API for detached window support and add this if feasible.
+
 ### UX
-
-- [x] **UX audit & overhaul: Settings** — Read the settings panel and connection service code, research how Figma plugin settings panels are typically designed, audit the current settings (server URL, connection status, retry), identify friction (is the URL field labelled well? is the connection state obvious? what happens on failure?), then redesign: improve labelling and helper text, make connection success/failure states unmistakeable with actionable error messages, and ensure connection status is surfaced in the app shell so users don't have to open settings to know if they're connected. `packages/plugin/src/routes/SettingsPanel.tsx`, `packages/plugin/src/services/api-client.ts`
-
-- [x] **Add "Clear All Data" action** — Research the current data persistence model (what is stored, where, how it's keyed in Figma plugin storage), then add a clearly labelled "Danger Zone" section to the Settings panel with a single "Clear all data" button that wipes all tokens, themes, sets, and plugin state after a confirmation dialog. The confirmation should require the user to type "DELETE" or similar to prevent accidents. This is a critical escape hatch for users who are stuck or want to start over — make it easy to find, but hard to trigger accidentally. `packages/plugin/src/routes/SettingsPanel.tsx`, `packages/plugin/src/services/storage.ts`
 
 ---
 
@@ -233,84 +234,67 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Flow: Create Token from Scratch
 
-- [x] **Flow audit & overhaul: Create Token from Scratch** — Trace every step of this flow end-to-end in the code (trigger → editor open → name/type/value entry → save → list update → undo), research how other token tools handle first-time token creation, identify every point of confusion or unnecessary friction, then redesign: ensure the creation trigger is always visible and labelled clearly, that the editor opens in a predictable location, that required fields are obvious, and that save confirmation is immediate and reassuring. `packages/plugin/src/components/TokenList.tsx`, `packages/plugin/src/components/TokenEditor.tsx`
-
 ### Flow: Edit Token
-
-- [x] **Flow audit & overhaul: Edit Token** — Trace the token editing flow (click token → editor opens → make change → save/discard → list updates), identify friction (is it obvious how to save? can you accidentally discard changes? does the editor close predictably?), then redesign: make the save/discard affordance unambiguous, add unsaved-changes protection, and ensure the editor closes and the list scrolls to the edited token on save. `packages/plugin/src/components/TokenEditor.tsx`, `packages/plugin/src/components/TokenList.tsx`
 
 ### Flow: Generate Color Scale
 
-- [x] **Flow audit & overhaul: Generate Color Scale** — Trace the flow (trigger → generator open → colour input → step select → prefix → preview → confirm → tokens appear), identify friction (is real-time preview working? is the group prefix field necessary at this step?), then redesign: prioritise the preview—make it the dominant element—and reduce required inputs to the essential minimum. `packages/plugin/src/components/ColorScaleGenerator.tsx`
-
 ### Flow: Create Tokens via Presets
-
-- [x] **Flow audit & overhaul: Preset Token Creation** — Trace the full preset flow (trigger → wizard open → preset select → customise → confirm → tokens appear), identify friction points (is it clear the wizard creates real tokens? is the customisation step necessary or confusing?), then redesign: streamline the flow to the minimum necessary steps, add visual feedback as tokens are created, and ensure the user lands back in the token list with the new tokens visible and highlighted. `packages/plugin/src/components/ScaffoldingWizard.tsx`, `packages/plugin/src/components/TokenList.tsx`
 
 ### Flow: Paste Tokens from JSON/Text
 
-- [x] **Flow audit & overhaul: Paste Tokens** — Trace the paste flow (trigger → modal open → paste text → parse → preview → group path → target set → confirm), identify friction (is multi-format parsing communicated? is the group path field confusing?), then redesign: make format auto-detection visible to the user, improve the parsed preview legibility, and reduce the steps between pasting and confirming. `packages/plugin/src/components/PasteTokensModal.tsx`
-
 ### Flow: Import Tokens
-
-- [x] **Flow audit & overhaul: Import Tokens** — Trace the full import flow (trigger → panel open → source select → load → filter → conflict check → target set → confirm → result), read all import service code to understand what happens at each step, identify friction (how long does "load" take? are conflicts explained clearly?), then redesign: add loading states and progress indicators where missing, make conflict resolution self-explanatory, and compress unnecessary steps. `packages/plugin/src/routes/ImportPanel.tsx`, `packages/plugin/src/services/import-service.ts`
 
 ### Flow: Export Tokens
 
-- [x] **Flow audit & overhaul: Export Tokens** — Trace the full export flow (trigger → panel open → mode select → platform/format select → filter → generate → download/copy), identify friction (is the mode toggle self-explanatory? is the output preview useful before downloading?), then redesign: improve mode and platform selection clarity, add a more useful output preview, and make download vs copy-to-clipboard equally discoverable. `packages/plugin/src/routes/ExportPanel.tsx`
-
 ### Flow: Create and Manage Themes
-
-- [x] **Flow audit & overhaul: Theme Management** — Trace the full theme lifecycle (create → assign sets → reorder → view coverage → edit → delete), read all theme manager and theme service code, identify friction (is the set assignment matrix intuitive? is coverage gap surfacing helpful or confusing?), then redesign: simplify the create flow, make set assignment feel like a simple toggle rather than a matrix form, and ensure theme deletion has appropriate friction (confirmation) without being annoying. `packages/plugin/src/components/ThemeManager.tsx`
 
 ### Flow: Sync Design Tokens to Figma
 
-- [x] **Flow audit & overhaul: Sync to Figma** — Trace the full sync flow (open sync panel → view readiness → fix issues → select scope → trigger sync → progress → result), read all sync service and diff viewer code, research how comparable sync UIs communicate consequences (what changes, how many variables, potential overwrites), identify friction (are readiness failures clearly actionable? is scope selection confusing?), then redesign: make the pre-sync state crystal clear (what will change and why), improve readiness check copy to be actionable, and make progress/result feedback satisfying and informative. `packages/plugin/src/components/SyncPanel.tsx`, `packages/plugin/src/services/sync-service.ts`
-
 ### Flow: Bind Token to Figma Node Property
-
-- [x] **Flow audit & overhaul: Token Binding** — Trace the property binding flow (select node → inspector shows properties → click property → picker opens → select token → binding applied), read all selection inspector and property picker code, identify friction (is it clear which properties are bindable? does the picker show too many/few options? is the binding result visible immediately?), then redesign: make bindable properties visually distinct from read-only ones, improve the picker search so the right token is easy to find, and make the post-binding state feel satisfying and complete. `packages/plugin/src/components/SelectionInspector.tsx`, `packages/plugin/src/components/PropertyPicker.tsx`
 
 ### Flow: Validate and Fix Token Issues
 
-- [x] **Flow audit & overhaul: Validate & Fix** — Trace the validation flow (trigger → analytics view → issues listed → click issue → navigate to token → fix → re-validate), read the validator and analytics components, identify friction (is it clear how to trigger validation? is the issue list overwhelming? is "navigate to token" obvious?), then redesign: ensure validation runs automatically and the badge count is always current, make issue descriptions use plain language, and make the fix path (navigate → edit → re-validate) a smooth loop. `packages/plugin/src/components/AnalyticsPanel.tsx`, `packages/core/src/validator.ts`
-
 ### Flow: Command Palette Usage
-
-- [x] **Flow audit & overhaul: Command Palette** — Trace the command palette flow (⌘K → type → filter → select → action), read the palette command definitions, audit whether every action reachable via the palette is also reachable via the UI, identify friction (are commands named consistently? are keyboard shortcuts shown at the right moment?), then redesign: ensure command names use consistent verb-noun format, improve the no-results state, and add a discoverable hint in the UI that ⌘K exists. `packages/plugin/src/components/CommandPalette.tsx`
 
 ### Flow: Switch Token Set
 
-- [x] **Flow audit & overhaul: Switch Token Set** — Trace the set switching flow (set tab click → list reloads → set metadata), read the set tab and set context code, identify friction (is it clear which set is active? is the context menu on set tabs discoverable?), then redesign: make the active set tab unmistakeable, add a visible affordance for right-click/long-press context menu, and ensure switching sets is instant with no loading jank. `packages/plugin/src/components/SetTabs.tsx`, `packages/plugin/src/components/TokenList.tsx`
-
 ### Flow: Server Connection & Settings
-
-- [x] **Flow audit & overhaul: Server Connection** — Trace the settings flow (open settings → enter URL → update → connection check → connected/failed), read the settings panel and connection service code, identify friction (is the URL field pre-filled or empty? is the error message on failure helpful?), then redesign: add a connection status indicator that is always visible in the app shell, improve error messages to be actionable ("Cannot reach server — check the URL or your network"), and make the retry action obvious. `packages/plugin/src/routes/SettingsPanel.tsx`, `packages/plugin/src/services/api-client.ts`
 
 ### Flow: Find and Replace Token Names
 
-- [x] **Flow audit & overhaul: Find & Replace** — Trace the find & replace flow (trigger → search input → matches highlight → replacement input → preview renames → confirm → tokens renamed), read all find-replace UI and service code, identify friction (is the preview of renamed tokens clear enough to prevent mistakes?), then redesign: make the match preview legible (show old name → new name diffs), add a count of affected tokens before confirming, and ensure the action is undoable. `packages/plugin/src/components/FindReplace.tsx`
-
 ### Flow: Inline Quick-Edit a Token Value
-
-- [x] **Flow audit & overhaul: Inline Quick-Edit** — Trace the new inline editing flow for simple types (click color swatch → popover picker appears → change color → auto-save; click dimension value → inline input appears → type value → blur to save). Identify edge cases: what happens if the user clicks a different token while a picker is open? what if the new value is invalid? Ensure the inline edit state is visually distinct from the read state, that auto-save is immediate (not deferred), and that escape cancels cleanly. `packages/figma-plugin/src/ui/components/TokenList.tsx`, `InlineColorPicker.tsx`, `InlineValueEditor.tsx`
 
 ### Flow: Undo / Redo Token Operations
 
-- [x] **Flow audit & overhaul: Undo/Redo** — Trace the undo/redo flow (perform action → Cmd+Z undoes → Cmd+Shift+Z redoes) across token creation, editing, deletion, group rename, bulk delete, and find-and-replace. Identify what the undo history indicator looks like, how it communicates what will be undone, and how it handles operations that can't be undone (e.g., Figma variable sync). Ensure the toast/indicator is non-intrusive but always accessible. `packages/figma-plugin/src/ui/hooks/useUndo.ts` (replace with `useHistory.ts`)
-
 ### Flow: View Token Dependencies Before Editing
 
-- [x] **Flow audit & overhaul: Dependency Impact** — Trace the flow: user opens editor drawer for a token → dependency section shows N dependents → user expands it → sees before/after previews → edits value → saves. Ensure the dependency fetch is fast (or cached), that the section is collapsed by default and doesn't dominate the editor, and that the before/after previews are legible at small sizes. `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `DependencyGraph.tsx`
+---
+
+## Code Quality
+
+### Bugs
+
+### Redundancy & Duplication
+
+- [ ] **Duplicate `GeneratorType`/`TokenGenerator` interface in 3 components** — The same generator type and interface are defined inline in `TokenEditor.tsx`, `TokenList.tsx`, and `useGenerators.ts` instead of being imported from a shared module. Any change to the generator shape must be made in three places.
+- [ ] **`flattenTokens` implemented 3+ times independently** — Token flattening logic exists separately in `token-store.ts` (`flattenTokens`), `useTokens.ts` (`flattenTokens`), and `PasteTokensModal.tsx` (`flattenDTCG`). These should share a single implementation from `@tokenmanager/core`.
+- [ ] **Reference resolution duplicated between client and server** — `resolveColorValue()` in `TokenEditor.tsx` and `resolveRef()` in `style-dict.ts` implement nearly identical reference-chasing logic. Consolidate into a shared utility.
+
+### Performance
+
+- [ ] **Resolver rebuilds full graph on every `updateToken()`** — `token-store.ts` calls `rebuildFlatTokens()` after every single token save, reconstructing the entire flat map and resolver. Bulk operations (rename group, move group) trigger O(n) rebuilds per token updated, resulting in O(n²) behavior. Batch or defer the rebuild until the operation is complete.
+- [ ] **`JSON.stringify` used for deep equality in `TokenList`** — `TokenList.tsx` uses `JSON.stringify(a) === JSON.stringify(b)` for diffing token structures. This is fragile (key order dependent) and slow for large composite tokens. Replace with a proper deep-equality check.
+- [ ] **No `fetch()` timeout in UI hooks** — `useTokens.ts` and other hooks make `fetch()` calls to the local server with no timeout or `AbortController`. If the server is slow or unreachable, the plugin UI hangs with no way to recover. Add a timeout and surface an error after a reasonable threshold.
+
+### Correctness & Safety
+
+- [ ] **Unbounded recursion in `resolveValue()`** — `resolver.ts` recurses into nested objects and arrays without a depth limit. A pathologically nested token (or circular structure that slips through cycle detection) can overflow the call stack. Add a max-depth guard.
+- [ ] **Recursive `invalidate()` risks stack overflow on deep dependency chains** — `resolver.ts` `invalidate()` calls itself recursively through the dependent graph. For deep chains this is fine in practice, but if a circular dependency escapes detection the recursion is infinite. Convert to an iterative BFS/DFS approach.
+- [ ] **`body as any` in token route handlers bypasses type validation** — `packages/server/src/routes/tokens.ts` casts request bodies to `any` before passing them to `createToken`/`updateToken`. Malformed token payloads (missing `$type`, wrong `$value` shape) are accepted and written to disk. Add runtime validation (e.g., a Zod schema) at the route boundary.
+- [ ] **`GeneratorTemplate` type exported from core but never used** — `packages/core/src/generator-types.ts` exports `GeneratorTemplate` but no file in the codebase imports it. Either integrate it into the generator pipeline or remove it.
 
 ---
 
 ## Global
 
 ### UX
-
-- [~] **Holistic UX audit & redesign: Full plugin** — After the per-area and per-flow improvements are done, conduct a holistic review: read every component file, map the full interaction model, identify cross-cutting issues (inconsistent terminology across areas, inconsistent affordances for the same action type, missing undo coverage, no onboarding for first-time users, poor empty states, no progressive disclosure of advanced features), then produce and implement a coherent set of fixes that unify the experience. Audit: (1) terminology consistency — do we use the same words for the same concepts everywhere? (2) affordance consistency — do similar actions look and behave the same? (3) feedback coverage — does every destructive or slow action have appropriate feedback? (4) learnability — can a new user understand what the plugin does within 60 seconds? (5) error recovery — are all error states actionable? Implement fixes for every issue found. `packages/plugin/src/`
-
-- [x] Fix plugin crash: `ReferenceError: Cannot access 'It' before initialization` — thrown during render in the bundled plugin code (`VM4092:40`), caught by ErrorBoundary. Likely a circular dependency or incorrect import order causing a `let`/`const` binding to be accessed before its initializer runs after bundling. Investigate bundle output and circular deps.
-
-- **Codebase health review** — Do a full sweep of the codebase to surface bugs, code smells, redundancies, inefficiencies, and dead code. For each area (plugin, server, shared packages), read the source, identify issues, and add each distinct finding as its own backlog item in the appropriate section of backlog.md (Bugs, QoL, or a new Code Quality section as needed).

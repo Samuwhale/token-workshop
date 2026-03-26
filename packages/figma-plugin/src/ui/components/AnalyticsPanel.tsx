@@ -55,9 +55,9 @@ function normalizeHex(hex: string): string {
 /** Human-friendly rule labels & descriptions for validation issues */
 const RULE_LABELS: Record<string, { label: string; tip: string }> = {
   'missing-type':       { label: 'Missing type',       tip: 'Add a $type to make the token spec-compliant' },
-  'broken-alias':       { label: 'Broken reference',   tip: 'The referenced token doesn\'t exist — update or remove the alias' },
-  'circular-reference': { label: 'Circular reference',  tip: 'Break the alias loop so the token can resolve' },
-  'max-alias-depth':    { label: 'Deep alias chain',   tip: 'Shorten the chain by pointing closer to the source token' },
+  'broken-alias':       { label: 'Broken reference',   tip: 'The referenced token doesn\'t exist — update or remove the reference' },
+  'circular-reference': { label: 'Circular reference',  tip: 'Break the reference loop so the token can resolve' },
+  'max-alias-depth':    { label: 'Deep reference chain',   tip: 'Shorten the chain by pointing closer to the source token' },
   'type-mismatch':      { label: 'Type / value mismatch', tip: 'The value doesn\'t match the declared $type' },
   // lint rules (shown when linting is wired to the same list)
   'no-raw-color':        { label: 'Raw color value',    tip: 'Extract the color to a primitive token and reference it' },
@@ -463,7 +463,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>
                   </div>
                   <div className="text-[11px] font-medium text-[var(--color-figma-text)]">All tokens valid</div>
-                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">No broken references, type mismatches, or circular aliases.</div>
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">No broken references, type mismatches, or circular references.</div>
                 </>
               ) : (
                 <div className="text-[11px] text-[var(--color-figma-text-secondary)]">No issues match this filter</div>
@@ -482,6 +482,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                         if (next.has(group.rule)) next.delete(group.rule); else next.add(group.rule);
                         return next;
                       })}
+                      aria-label={isCollapsed ? `Expand ${group.rule}` : `Collapse ${group.rule}`}
                       className="w-full flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]/50 border-y border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                     >
                       <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
@@ -736,7 +737,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                       onClick={() => handleDeduplicate(hex, canonicalToken, others)}
                       className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
                     >
-                      {isDeduplying ? 'Deduplicating…' : `Deduplicate (${others.length} → alias)`}
+                      {isDeduplying ? 'Deduplicating…' : `Deduplicate (${others.length} → reference)`}
                     </button>
                   </div>
                 );

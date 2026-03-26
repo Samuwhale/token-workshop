@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { AliasAutocomplete } from './AliasAutocomplete';
+import { ConfirmModal } from './ConfirmModal';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { hexToLuminance, wcagContrast, applyColorModifiers } from '../shared/colorUtils';
@@ -345,9 +346,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         <button
           onClick={handleBack}
+          aria-label="Back"
           className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
         </button>
@@ -1005,23 +1007,15 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 
       {/* Discard confirmation */}
       {showDiscardConfirm && (
-        <div className="mx-3 mb-2 p-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px]">
-          <p className="text-[var(--color-figma-text)] mb-2">Discard unsaved changes?</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowDiscardConfirm(false)}
-              className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-            >
-              Keep editing
-            </button>
-            <button
-              onClick={onBack}
-              className="flex-1 px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600"
-            >
-              Discard
-            </button>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Discard unsaved changes?"
+          description="Your edits have not been saved and will be lost."
+          confirmLabel="Discard"
+          cancelLabel="Keep editing"
+          danger
+          onConfirm={onBack}
+          onCancel={() => setShowDiscardConfirm(false)}
+        />
       )}
 
       {/* Footer */}
@@ -1030,7 +1024,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           onClick={handleBack}
           className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
         >
-          {isCreateMode ? 'Cancel' : (isDirty ? 'Cancel' : 'Back')}
+          {isDirty || isCreateMode ? 'Cancel' : 'Close'}
         </button>
         <button
           onClick={handleSave}
@@ -1038,7 +1032,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving
-            ? (isCreateMode ? 'Creating...' : 'Saving...')
+            ? (isCreateMode ? 'Creating…' : 'Saving…')
             : (!canSave
               ? 'Complete required fields'
               : (!isCreateMode && !isDirty ? 'No changes' : (isCreateMode ? 'Create' : 'Save changes')))}
@@ -1708,7 +1702,7 @@ function GradientStopRow({ stop, canRemove, allTokensFlat, pathToSet, onChange, 
       <button
         type="button"
         onClick={toggleAliasMode}
-        title={aliasMode ? 'Switch to raw color' : 'Switch to alias mode'}
+        title={aliasMode ? 'Switch to raw color' : 'Switch to reference mode'}
         className={`p-1.5 rounded border transition-colors shrink-0 ${aliasMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
       >
         <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -1719,9 +1713,11 @@ function GradientStopRow({ stop, canRemove, allTokensFlat, pathToSet, onChange, 
         <button
           type="button"
           onClick={onRemove}
+          title="Remove color stop"
+          aria-label="Remove color stop"
           className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
         >
-          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
         </button>

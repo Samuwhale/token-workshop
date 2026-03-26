@@ -109,6 +109,44 @@ const TABS: { id: Tab; label: string }[] = [
 
 type OverflowPanel = 'import' | 'export' | 'settings' | 'heatmap' | null;
 
+const MIN_WIDTH = 320;
+const MIN_HEIGHT = 400;
+const MAX_WIDTH = 900;
+const MAX_HEIGHT = 900;
+
+function useWindowResize() {
+  const dragState = useRef<{ startX: number; startY: number; startW: number; startH: number } | null>(null);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragState.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: window.innerWidth,
+      startH: window.innerHeight,
+    };
+
+    const onMove = (ev: MouseEvent) => {
+      if (!dragState.current) return;
+      const { startX, startY, startW, startH } = dragState.current;
+      const w = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startW + (ev.clientX - startX)));
+      const h = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startH + (ev.clientY - startY)));
+      parent.postMessage({ pluginMessage: { type: 'resize', width: Math.round(w), height: Math.round(h) } }, '*');
+    };
+
+    const onUp = () => {
+      dragState.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, []);
+
+  return onMouseDown;
+}
+
 export function App() {
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
     try {
@@ -137,6 +175,7 @@ export function App() {
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo();
+  const onResizeHandleMouseDown = useWindowResize();
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
@@ -648,7 +687,7 @@ export function App() {
       {
         id: 'validate',
         label: 'Validate All Tokens',
-        description: 'Run cross-set validation for broken aliases, circular refs, and more',
+        description: 'Run cross-set validation for broken references, circular refs, and more',
         category: 'Tokens',
         handler: () => { setActiveTab('analytics'); setValidateKey(k => k + 1); },
       },
@@ -680,7 +719,7 @@ export function App() {
   }, [allTokensFlat]);
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="relative flex flex-col h-screen">
       {/* Connection status — only shown when not connected */}
       {!connected && (
         <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] ${checking ? 'bg-[var(--color-figma-text-secondary)]/5 text-[var(--color-figma-text-secondary)]' : 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'}`}>
@@ -1472,6 +1511,13 @@ export function App() {
           undoCount={undoCount}
         />
       )}
+
+      {/* Resize handle */}
+      <div
+        onMouseDown={onResizeHandleMouseDown}
+        className="absolute bottom-0 right-0 w-3 h-3 cursor-nwse-resize z-50"
+        style={{ touchAction: 'none' }}
+      />
     </div>
   );
 }

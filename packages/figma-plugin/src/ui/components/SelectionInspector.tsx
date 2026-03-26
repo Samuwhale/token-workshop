@@ -353,6 +353,7 @@ export function SelectionInspector({
       {/* Header */}
       <button
         onClick={() => setCollapsed(!collapsed)}
+        aria-label={collapsed ? 'Expand selection inspector' : 'Collapse selection inspector'}
         className="flex items-center gap-1.5 px-3 py-1.5 w-full text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
       >
         <svg

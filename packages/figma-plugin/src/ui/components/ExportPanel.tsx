@@ -557,7 +557,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                     Read Variables from this File
                   </div>
                   <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[200px]">
-                    Reads all local variable collections and alias references. Then copy as DTCG JSON or save directly to your token server.
+                    Reads all local variable collections and references. Then copy as DTCG JSON or save directly to your token server.
                   </div>
                 </div>
               </div>
@@ -758,7 +758,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               disabled={selected.size === 0 || exporting}
               className="flex-1 px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
             >
-              {exporting ? 'Exporting...' : 'Re-export'}
+              {exporting ? 'Exporting…' : 'Re-export'}
             </button>
           </div>
         )}
@@ -768,7 +768,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             disabled={selected.size === 0 || exporting}
             className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
           >
-            {exporting ? 'Exporting...' : selected.size === 0 ? 'Select a platform to export' : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
+            {exporting ? 'Exporting…' : selected.size === 0 ? 'Select a platform to export' : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
           </button>
         )}
         {mode === 'figma-variables' && figmaCollections.length === 0 && !figmaLoading && (
@@ -808,7 +808,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
               title="Create or update tokens in your local token server from these Figma variables"
             >
-              {exporting ? 'Saving...' : 'Save to Token Server'}
+              {exporting ? 'Saving…' : 'Save to Token Server'}
             </button>
           </>
         )}

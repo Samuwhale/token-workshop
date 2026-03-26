@@ -175,7 +175,7 @@ export function SemanticMappingDialog({
         const body = {
           $type: tokenType,
           $value: `{${targetGroup}.${mapping.step}}`,
-          $description: `Semantic alias for ${targetGroup}.${mapping.step}`,
+          $description: `Semantic reference for ${targetGroup}.${mapping.step}`,
         };
         // POST /api/tokens/:set/* creates the token; PATCH if it already exists (409)
         const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${fullPath}`, {
@@ -218,11 +218,11 @@ export function SemanticMappingDialog({
           <div>
             <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Create Semantic Tokens</span>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
-              Alias tokens that point to <span className="font-mono">{targetGroup}</span>
+              Reference tokens that point to <span className="font-mono">{targetGroup}</span>
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
 
@@ -340,7 +340,7 @@ export function SemanticMappingDialog({
           >
             {saving
               ? 'Creating…'
-              : `Create ${mappings.filter(m => m.semantic.trim()).length} alias${mappings.filter(m => m.semantic.trim()).length !== 1 ? 'es' : ''}`
+              : `Create ${mappings.filter(m => m.semantic.trim()).length} reference${mappings.filter(m => m.semantic.trim()).length !== 1 ? 's' : ''}`
             }
           </button>
         </div>

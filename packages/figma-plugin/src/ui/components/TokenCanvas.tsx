@@ -286,7 +286,7 @@ export function TokenCanvas({ tokens, allTokensFlat, onEdit }: TokenCanvasProps)
                 <div className="font-mono truncate font-medium">{hoveredDot.path}</div>
                 <div className="opacity-50 font-mono">{hoveredDot.hex.slice(0, 7)}</div>
                 {hoveredDot.isRef && (
-                  <div className="opacity-60 italic mt-0.5">alias</div>
+                  <div className="opacity-60 italic mt-0.5">reference</div>
                 )}
               </div>
             )}

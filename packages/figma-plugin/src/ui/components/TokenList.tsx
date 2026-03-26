@@ -295,17 +295,6 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     return () => clearTimeout(timer);
   }, [highlightedToken, onClearHighlight]);
 
-  // Scroll virtual list to bring the highlighted token into view
-  useLayoutEffect(() => {
-    if (!highlightedToken || viewMode !== 'tree' || !virtualListRef.current) return;
-    const idx = flatItems.findIndex(item => item.node.path === highlightedToken);
-    if (idx < 0) return;
-    const containerH = virtualListRef.current.clientHeight;
-    const targetScrollTop = Math.max(0, idx * VIRTUAL_ITEM_HEIGHT - containerH / 2 + VIRTUAL_ITEM_HEIGHT / 2);
-    virtualListRef.current.scrollTop = targetScrollTop;
-    setVirtualScrollTop(targetScrollTop);
-  }, [highlightedToken, flatItems, viewMode]);
-
   useEffect(() => {
     if (!moreFiltersOpen) return;
     const handler = (e: MouseEvent) => {
@@ -447,6 +436,23 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
     return result;
   }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, inspectMode, selectedNodes.length, boundTokenPaths]);
+
+  // Flat list of visible nodes for virtual scrolling (respects expand/collapse state)
+  const flatItems = useMemo(
+    () => (viewMode !== 'tree' ? [] : flattenVisible(displayedTokens, expandedPaths)),
+    [displayedTokens, expandedPaths, viewMode]
+  );
+
+  // Scroll virtual list to bring the highlighted token into view
+  useLayoutEffect(() => {
+    if (!highlightedToken || viewMode !== 'tree' || !virtualListRef.current) return;
+    const idx = flatItems.findIndex(item => item.node.path === highlightedToken);
+    if (idx < 0) return;
+    const containerH = virtualListRef.current.clientHeight;
+    const targetScrollTop = Math.max(0, idx * VIRTUAL_ITEM_HEIGHT - containerH / 2 + VIRTUAL_ITEM_HEIGHT / 2);
+    virtualListRef.current.scrollTop = targetScrollTop;
+    setVirtualScrollTop(targetScrollTop);
+  }, [highlightedToken, flatItems, viewMode]);
 
   const syncChangedCount = useMemo(() => {
     if (!syncSnapshot) return 0;
@@ -800,12 +806,6 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     [displayedTokens]
   );
 
-  // Flat list of visible nodes for virtual scrolling (respects expand/collapse state)
-  const flatItems = useMemo(
-    () => (viewMode !== 'tree' ? [] : flattenVisible(displayedTokens, expandedPaths)),
-    [displayedTokens, expandedPaths, viewMode]
-  );
-
   const handleSelectAll = () => {
     const allSelected = [...displayedLeafPaths].every(p => selectedPaths.has(p));
     if (allSelected) {
@@ -1023,7 +1023,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     return {
       title: `Delete ${paths.length} token${paths.length !== 1 ? 's' : ''}?`,
       description: orphanCount > 0
-        ? `${orphanCount} other token${orphanCount !== 1 ? 's' : ''} alias these and will become broken references.`
+        ? `${orphanCount} other token${orphanCount !== 1 ? 's' : ''} reference these and will become broken.`
         : undefined,
       confirmLabel: `Delete ${paths.length} token${paths.length !== 1 ? 's' : ''}`,
     };
@@ -1209,7 +1209,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 className="shrink-0 px-1 py-1 rounded border text-[10px] outline-none cursor-pointer border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10"
               >
                 <option value="all">All refs</option>
-                <option value="aliases">Aliases only</option>
+                <option value="aliases">References only</option>
                 <option value="direct">Direct only</option>
               </select>
             )}
@@ -1242,7 +1242,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                   <div role="menu" className="absolute right-0 top-full mt-0.5 z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg flex flex-col py-1 min-w-[140px]">
                     {refFilter === 'all' && (
                       <>
-                        <button role="menuitem" onClick={() => { setRefFilter('aliases'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Aliases only</button>
+                        <button role="menuitem" onClick={() => { setRefFilter('aliases'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">References only</button>
                         <button role="menuitem" onClick={() => { setRefFilter('direct'); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Direct values only</button>
                       </>
                     )}
@@ -1491,6 +1491,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               <button
                 onClick={handleCreate}
                 disabled={!newTokenPath.trim()}
+                title={!newTokenPath.trim() ? 'Enter a token name first' : undefined}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
                 Create
@@ -1594,7 +1595,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         />
       )}
 
-      {/* Extract to alias modal */}
+      {/* Extract to reference modal */}
       {extractToken && (() => {
         const candidateTokens = Object.entries(allTokensFlat)
           .filter(([path, t]) => path !== extractToken.path && t.$type === extractToken.$type && !isAlias(t.$value))
@@ -1792,7 +1793,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               {frError && <div className="text-[10px] text-[var(--color-figma-error)]">{frError}</div>}
               {!frError && frReplace === '' && frPreview.length > 0 && (
                 <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
-                  ⚠ Empty replacement will delete the matched segment from token paths. This may break alias references.
+                  ⚠ Empty replacement will delete the matched segment from token paths. This may break references.
                 </div>
               )}
             </div>
@@ -1821,7 +1822,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-96 flex flex-col" style={{ maxHeight: '80vh' }}>
             <div className="p-4 border-b border-[var(--color-figma-border)]">
               <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Link to tokens</div>
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Each token will be replaced with an alias reference to the matched primitive.</div>
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Each token will be replaced with a reference to the matched primitive.</div>
             </div>
             <div className="flex flex-col gap-0 overflow-y-auto flex-1">
               {promoteRows.length === 0 && (
@@ -2506,7 +2507,7 @@ function TokenTreeNode({
             <button
               onClick={handleAliasClick}
               className={`flex items-center gap-0.5 px-1 py-0.5 rounded border text-[8px] transition-colors ${isBrokenAlias ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 cursor-default' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
-              title={isBrokenAlias ? `Broken alias — ${resolveResult?.error}` : `Navigate to ${node.$value}`}
+              title={isBrokenAlias ? `Broken reference — ${resolveResult?.error}` : `Navigate to ${node.$value}`}
             >
               <span>{(node.$value as string).slice(1, -1)}</span>
               <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -2619,7 +2620,7 @@ function TokenTreeNode({
       {showChainBadge && (
         <button
           onClick={e => { e.stopPropagation(); setChainExpanded(v => !v); }}
-          title={chainExpanded ? 'Collapse alias chain' : `${aliasChain.length} hops: ${node.path} → ${aliasChain.join(' → ')}`}
+          title={chainExpanded ? 'Collapse reference chain' : `${aliasChain.length} hops: ${node.path} → ${aliasChain.join(' → ')}`}
           className={`text-[8px] px-1 py-0.5 rounded border shrink-0 transition-colors ${chainExpanded ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
         >
           {aliasChain.length} hops

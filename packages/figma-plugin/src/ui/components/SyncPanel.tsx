@@ -126,28 +126,6 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
     return () => { fetchAbortRef.current?.abort(); };
   }, [fetchStatus]);
 
-  // Auto-run var diff when the panel loads (so users see the state immediately)
-  useEffect(() => {
-    if (connected && activeSet) computeVarDiff();
-  }, [connected, activeSet, computeVarDiff]);
-
-  // Listen for variables-read and orphans-deleted responses from controller
-  useEffect(() => {
-    const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'variables-read' && varReadResolveRef.current) {
-        varReadResolveRef.current(msg.tokens ?? []);
-        varReadResolveRef.current = null;
-      }
-      if (msg?.type === 'orphans-deleted' && orphansResolveRef.current) {
-        orphansResolveRef.current(msg.count ?? 0);
-        orphansResolveRef.current = null;
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
-
   const computeVarDiff = useCallback(async () => {
     if (!activeSet) return;
     setVarLoading(true);
@@ -206,6 +184,28 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       setVarLoading(false);
     }
   }, [serverUrl, activeSet]);
+
+  // Auto-run var diff when the panel loads (so users see the state immediately)
+  useEffect(() => {
+    if (connected && activeSet) computeVarDiff();
+  }, [connected, activeSet, computeVarDiff]);
+
+  // Listen for variables-read and orphans-deleted responses from controller
+  useEffect(() => {
+    const handler = (ev: MessageEvent) => {
+      const msg = ev.data?.pluginMessage;
+      if (msg?.type === 'variables-read' && varReadResolveRef.current) {
+        varReadResolveRef.current(msg.tokens ?? []);
+        varReadResolveRef.current = null;
+      }
+      if (msg?.type === 'orphans-deleted' && orphansResolveRef.current) {
+        orphansResolveRef.current(msg.count ?? 0);
+        orphansResolveRef.current = null;
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const applyVarDiff = useCallback(async () => {
     const dirsSnapshot = varDirs;
@@ -429,7 +429,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
           disabled={actionLoading !== null}
           className="w-full px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
         >
-          {actionLoading === 'init' ? 'Initializing...' : 'Initialize Repository'}
+          {actionLoading === 'init' ? 'Initializing…' : 'Initialize Repository'}
         </button>
       </div>
     );
@@ -638,7 +638,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
           <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mt-2">
             <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Publish readiness</span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Publish Readiness</span>
                 {readinessFails > 0 && (
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] font-medium">{readinessFails} issue{readinessFails !== 1 ? 's' : ''}</span>
                 )}

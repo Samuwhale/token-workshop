@@ -576,7 +576,7 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                     <div className="text-[10px] font-medium text-[var(--color-figma-warning)] mb-1">
                       Missing values ({coverage[theme.name].uncovered.length})
                     </div>
-                    <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have alias references that can't be resolved. Set a set containing them to "Base" or "On".</p>
+                    <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can't be resolved. Set a set containing them to "Base" or "On".</p>
                     <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
                       {coverage[theme.name].uncovered.map(p => (
                         <div key={p} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate">{p}</div>

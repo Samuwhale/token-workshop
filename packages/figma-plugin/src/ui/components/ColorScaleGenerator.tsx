@@ -169,8 +169,8 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
           <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Generate Color Scale</span>
-          <button onClick={onClose} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
@@ -305,6 +305,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
           <button
             onClick={handleCreate}
             disabled={creating || !prefix || scale.length === 0 || conflicts.length > 0}
+            title={!prefix ? 'Enter a prefix first' : conflicts.length > 0 ? 'Resolve naming conflicts first' : scale.length === 0 ? 'Add scale steps first' : undefined}
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
           >
             {creating ? 'Creating…' : `Create ${scale.length} tokens`}
