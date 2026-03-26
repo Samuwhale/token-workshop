@@ -104,7 +104,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'publish', label: 'Publish' },
 ];
 
-type OverflowPanel = 'import' | 'export' | 'settings' | 'heatmap' | 'analytics' | 'preview' | 'themes' | null;
+type OverflowPanel = 'import' | 'settings' | 'heatmap' | 'analytics' | 'themes' | null;
 
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 400;
@@ -156,6 +156,7 @@ export function App() {
     setActiveTabState(tab);
   };
   const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
+  const [showPreviewSplit, setShowPreviewSplit] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; set: string; isCreate?: boolean; initialType?: string } | null>(null);
   const { connected, checking, serverUrl, updateServerUrlAndConnect, retryConnection } = useServerConnection();
@@ -868,17 +869,17 @@ export function App() {
           )}
         </button>
 
-        {/* Preview toggle */}
+        {/* Preview split-view toggle */}
         <button
-          onClick={() => setOverflowPanel(overflowPanel === 'preview' ? null : 'preview')}
+          onClick={() => { setShowPreviewSplit(v => !v); setOverflowPanel(null); }}
           className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
-            overflowPanel === 'preview'
+            showPreviewSplit
               ? 'bg-[var(--color-figma-accent)] text-white'
               : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
           }`}
-          title="Preview: live token preview"
-          aria-label="Toggle preview panel"
-          aria-pressed={overflowPanel === 'preview'}
+          title="Preview: split-view with live token preview"
+          aria-label="Toggle preview split view"
+          aria-pressed={showPreviewSplit}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -962,13 +963,6 @@ export function App() {
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Import
-              </button>
-              <button
-                role="menuitem"
-                onClick={() => openOverflowPanel('export')}
-                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Export
               </button>
               <div className="border-t border-[var(--color-figma-border)]" />
               <button
@@ -1233,24 +1227,6 @@ export function App() {
                 connected={connected}
                 onImported={refreshTokens}
               />
-            </>
-          )}
-          {overflowPanel === 'export' && (
-            <>
-              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <button
-                  onClick={() => setOverflowPanel(null)}
-                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                  aria-label="Back"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6.5 2L3.5 5l3 3"/>
-                  </svg>
-                  Back
-                </button>
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Export</span>
-              </div>
-              <ExportPanel serverUrl={serverUrl} connected={connected} />
             </>
           )}
           {overflowPanel === 'settings' && (

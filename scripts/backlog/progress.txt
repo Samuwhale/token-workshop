@@ -156,3 +156,19 @@
   - The collapsible state (`collapsed`) and auto-expand/collapse effects can be removed entirely when the component becomes a full tab — the tab switch itself replaces the expand/collapse interaction
   - Tab type union and TABS array must both be updated together, plus keyboard shortcuts array and command palette entries
 ---
+
+## 2026-03-26 - IA restructure: reduce to 3 primary tabs
+- Restructured from 6 tabs (Tokens, Inspect, Themes, Sync, Analytics, Preview) to 3 primary tabs (Tokens, Inspect, Publish)
+- Created `PublishPanel` component with sub-tabs for Sync and Export
+- Moved Analytics and Preview into toolbar toggle buttons (overflow panels with back navigation)
+- Moved ThemeManager into overflow panel accessible from "Manage themes..." in theme dropdown
+- Removed Export from overflow menu (now in Publish tab)
+- Updated command palette commands: themes/analytics open as overflow panels, sync→publish tab
+- Analytics badge moved from tab bar to toolbar analytics button
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L100-107 (Tab type + TABS), ~L830-890 (toolbar buttons), ~L745-775 (commands), ~L960-970 (menu), ~L1230-1250 (export panel removed), ~L1455-1520 (new overflow panels)
+- New file: `packages/figma-plugin/src/ui/components/PublishPanel.tsx`
+- **Learnings for future iterations:**
+  - The existing OverflowPanel mechanism is the ideal way to promote secondary views without creating new tabs — just add variants to the union type and follow the back-button pattern
+  - When removing a tab, check: Tab type, TABS array, command palette commands, overflow menu, tab content rendering, any `setActiveTab('old-tab')` calls, and localStorage fallback logic (which already handles unknown stored values gracefully)
+  - PublishPanel as a thin wrapper with internal sub-tabs avoids refactoring 1800+ lines of existing SyncPanel/ExportPanel code
+---
