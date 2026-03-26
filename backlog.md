@@ -173,7 +173,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### Correctness & Safety
 
 - [x] **Unbounded recursion in `resolveValue()`** — `resolver.ts` recurses into nested objects and arrays without a depth limit. A pathologically nested token (or circular structure that slips through cycle detection) can overflow the call stack. Add a max-depth guard.
-- [ ] **Recursive `invalidate()` risks stack overflow on deep dependency chains** — `resolver.ts` `invalidate()` calls itself recursively through the dependent graph. For deep chains this is fine in practice, but if a circular dependency escapes detection the recursion is infinite. Convert to an iterative BFS/DFS approach.
+- [~] **Recursive `invalidate()` risks stack overflow on deep dependency chains** — `resolver.ts` `invalidate()` calls itself recursively through the dependent graph. For deep chains this is fine in practice, but if a circular dependency escapes detection the recursion is infinite. Convert to an iterative BFS/DFS approach.
 - [ ] **`body as any` in token route handlers bypasses type validation** — `packages/server/src/routes/tokens.ts` casts request bodies to `any` before passing them to `createToken`/`updateToken`. Malformed token payloads (missing `$type`, wrong `$value` shape) are accepted and written to disk. Add runtime validation (e.g., a Zod schema) at the route boundary.
 - [x] **`GeneratorTemplate` type exported from core but never used** — `packages/core/src/generator-types.ts` exports `GeneratorTemplate` but no file in the codebase imports it. Either integrate it into the generator pipeline or remove it.
 
