@@ -2432,7 +2432,7 @@ function TokenTreeNode({
           <button
             onClick={e => { e.stopPropagation(); colorInputRef.current?.click(); }}
             title="Click to edit color"
-            className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
+            className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
             style={{ backgroundColor: displayValue }}
           />
           <input
@@ -2471,7 +2471,7 @@ function TokenTreeNode({
             <button
               onClick={e => { e.stopPropagation(); onFilterByType?.(node.$type!); }}
               title={`Filter by type: ${node.$type}`}
-              className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase ${TOKEN_TYPE_BADGE_CLASS[node.$type ?? ''] ?? 'token-type-string'} cursor-pointer transition-opacity hover:opacity-70 hover:ring-1 hover:ring-current/40`}
+              className={`px-1 py-0.5 rounded text-[8px] font-medium ${TOKEN_TYPE_BADGE_CLASS[node.$type ?? ''] ?? 'token-type-string'} cursor-pointer transition-opacity hover:opacity-70 hover:ring-1 hover:ring-current/40`}
             >
               {node.$type}
             </button>
@@ -2797,13 +2797,13 @@ function TokenTreeNode({
 function ValuePreview({ type, value }: { type?: string; value?: any }) {
   // Unresolved alias — degrade gracefully
   if (typeof value === 'string' && value.startsWith('{')) {
-    return <div className="w-4 h-4 shrink-0" />;
+    return <div className="w-5 h-5 shrink-0" />;
   }
 
   if (type === 'color' && typeof value === 'string') {
     return (
       <div
-        className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0"
+        className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0"
         style={{ backgroundColor: value }}
       />
     );
@@ -2836,7 +2836,7 @@ function ValuePreview({ type, value }: { type?: string; value?: any }) {
       const s = typeof spread === 'object' ? `${spread.value}${spread.unit}` : (spread ?? '0px');
       return (
         <div
-          className="w-4 h-4 rounded shrink-0 bg-[var(--color-figma-bg)]"
+          className="w-5 h-5 rounded shrink-0 bg-[var(--color-figma-bg)]"
           style={{ boxShadow: `${ox} ${oy} ${b} ${s} ${color}` }}
         />
       );
@@ -2888,7 +2888,7 @@ function ValuePreview({ type, value }: { type?: string; value?: any }) {
     }
   }
 
-  return <div className="w-4 h-4 shrink-0" />;
+  return <div className="w-5 h-5 shrink-0" />;
 }
 
 function formatValue(type?: string, value?: any): string {

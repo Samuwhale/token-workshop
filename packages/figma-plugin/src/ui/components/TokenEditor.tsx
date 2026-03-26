@@ -461,6 +461,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             </button>
           </div>
           {aliasMode && (
+            <>
             <div className="relative">
               <input
                 ref={refInputRef}
@@ -498,6 +499,12 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                 />
               )}
             </div>
+            {!showAutocomplete && !reference && (
+              <p className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)]">
+                Type <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">{'{'}</code> to search and select a token
+              </p>
+            )}
+            </>
           )}
           {aliasMode && reference.startsWith('{') && reference.endsWith('}') && (() => {
             const chain = resolveAliasChain(reference, allTokensFlat);
@@ -548,7 +555,12 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         {/* Type-specific editor */}
         {!reference && (
           <div className="flex flex-col gap-2">
-            <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">Value</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">Value</label>
+              {!canSave && tokenType === 'typography' && (
+                <span className="text-[9px] text-[var(--color-figma-error)]">Font family and size required</span>
+              )}
+            </div>
             {initialRef.current && JSON.stringify(value) !== JSON.stringify(initialRef.current.value) && (
               <ValueDiff type={tokenType} before={initialRef.current.value} after={value} />
             )}
@@ -919,7 +931,11 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           disabled={saving || !canSave || (!isCreateMode && !isDirty) || (isCreateMode && !editPath.trim())}
           className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {saving ? (isCreateMode ? 'Creating...' : 'Saving...') : (isCreateMode ? 'Create' : 'Save')}
+          {saving
+            ? (isCreateMode ? 'Creating...' : 'Saving...')
+            : (!canSave
+              ? 'Complete required fields'
+              : (!isCreateMode && !isDirty ? 'No changes' : (isCreateMode ? 'Create' : 'Save changes')))}
         </button>
       </div>
 

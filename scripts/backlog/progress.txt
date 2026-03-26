@@ -651,3 +651,15 @@
   - Post-binding feedback pattern: `cancelBind()` → `setLastBoundProp(prop)` → `setTimeout(clear, 1500)`. Place the success indicator outside the `opacity-40` hover wrapper so it shows at full opacity.
   - Enter-to-select-first is the standard omnibar pattern — change `bindSelectedIndex >= 0` guard to `bindCandidates.length > 0` with `bindSelectedIndex >= 0 ? candidates[idx] : candidates[0]` fallback
 ---
+
+## 2026-03-26 - UX audit & overhaul: Token Editor
+- Added type-switch confirmation: switching token type when the current value is non-default now shows an amber confirmation banner ("Switch to X? This will reset the current value.") with Keep/Switch buttons instead of silently resetting
+- Added alias autocomplete hint: when alias mode is active and reference is empty, a hint shows "Type { to search and select a token"
+- Updated save button label: disabled-due-to-no-changes state now shows "No changes" instead of a greyed-out "Save"; invalid state shows "Complete required fields"
+- Added typography inline validation: when token type is typography and required fields (font family, font size) are missing, a "Font family and size required" error appears next to the Value section header
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L144, ~L232, ~L420, ~L490, ~L570, ~L940
+- **Learnings for future iterations:**
+  - Two sibling JSX elements inside a `&&` short-circuit expression must be wrapped in a React fragment `<>...</>` or it will fail to compile
+  - `DEFAULT_VALUE_FOR_TYPE` must be defined before any function that references it at call time — splitting handleTypeChange into applyTypeChange + handleTypeChange both after DEFAULT_VALUE_FOR_TYPE works correctly
+  - State-derived disabled button labels (e.g., "No changes") are a simple, effective way to communicate why a button is inactive without tooltips or separate help text
+---
