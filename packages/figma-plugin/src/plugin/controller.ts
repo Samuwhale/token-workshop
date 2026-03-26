@@ -62,6 +62,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'select-heatmap-nodes':
       await selectHeatmapNodes(msg.nodeIds);
       break;
+    case 'eyedropper':
+      sampleSelectionColor();
+      break;
   }
 };
 

@@ -4,6 +4,7 @@ import { ConfirmModal } from './ConfirmModal';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { hexToLuminance, wcagContrast, applyColorModifiers } from '../shared/colorUtils';
+import { ColorPicker } from './ColorPicker';
 import type { ColorModifierOp } from '../shared/colorUtils';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { ValueDiff } from './ValueDiff';
@@ -1067,26 +1068,16 @@ const labelClass = 'text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5'
 
 function ColorEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   const hex = typeof value === 'string' ? value : '#000000';
-  // Preserve alpha suffix (#RRGGBBAA) when the color picker (which only supports #RRGGBB) changes
-  const alpha = hex.length === 9 ? hex.slice(7) : '';
-  const pickerRef = useRef<HTMLInputElement>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   return (
-    <div className="flex gap-2 items-center">
+    <div className="relative flex gap-2 items-center">
       <button
         type="button"
-        onClick={() => pickerRef.current?.click()}
+        onClick={() => setPickerOpen(!pickerOpen)}
         className="w-10 h-10 rounded border border-[var(--color-figma-border)] cursor-pointer shrink-0 overflow-hidden hover:ring-2 hover:ring-[var(--color-figma-accent)]/50 transition-shadow"
         style={{ backgroundColor: hex.slice(0, 7) }}
         title="Pick color"
         aria-label="Pick color"
-      />
-      <input
-        ref={pickerRef}
-        type="color"
-        value={hex.slice(0, 7)}
-        onChange={e => onChange(e.target.value + alpha)}
-        className="sr-only"
-        aria-hidden="true"
       />
       <input
         type="text"
@@ -1095,6 +1086,13 @@ function ColorEditor({ value, onChange }: { value: any; onChange: (v: any) => vo
         placeholder="#000000"
         className={inputClass}
       />
+      {pickerOpen && (
+        <ColorPicker
+          value={hex}
+          onChange={onChange}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </div>
   );
 }

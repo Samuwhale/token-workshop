@@ -82,6 +82,130 @@ export function labToHex(L: number, a: number, b: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// RGB ↔ Hex
+// ---------------------------------------------------------------------------
+
+export function rgbToHex(r: number, g: number, b: number): string {
+  const h = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, '0');
+  return `#${h(r)}${h(g)}${h(b)}`;
+}
+
+// ---------------------------------------------------------------------------
+// HSL conversions
+// ---------------------------------------------------------------------------
+
+/** sRGB (0-1 each) → HSL. H in 0-360, S/L in 0-100. */
+export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l: l * 100 };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h = 0;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (max === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return { h: h * 360, s: s * 100, l: l * 100 };
+}
+
+/** HSL (H 0-360, S 0-100, L 0-100) → sRGB (0-1 each). */
+export function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+  const S = s / 100, L = l / 100;
+  if (S === 0) return { r: L, g: L, b: L };
+  const hue2rgb = (p: number, q: number, t: number) => {
+    if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  const q = L < 0.5 ? L * (1 + S) : L + S - L * S;
+  const p = 2 * L - q;
+  const H = h / 360;
+  return { r: hue2rgb(p, q, H + 1 / 3), g: hue2rgb(p, q, H), b: hue2rgb(p, q, H - 1 / 3) };
+}
+
+export function hexToHsl(hex: string): { h: number; s: number; l: number } | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  return rgbToHsl(rgb.r, rgb.g, rgb.b);
+}
+
+export function hslToHex(h: number, s: number, l: number): string {
+  const { r, g, b } = hslToRgb(h, s, l);
+  return rgbToHex(r, g, b);
+}
+
+// ---------------------------------------------------------------------------
+// LCH (Cylindrical CIELAB) conversions
+// ---------------------------------------------------------------------------
+
+/** CIELAB → LCH. L 0-100, C 0-~150, H 0-360. */
+export function labToLch(L: number, a: number, b: number): { L: number; C: number; H: number } {
+  const C = Math.sqrt(a * a + b * b);
+  let H = (Math.atan2(b, a) * 180) / Math.PI;
+  if (H < 0) H += 360;
+  return { L, C, H };
+}
+
+/** LCH → CIELAB. */
+export function lchToLab(L: number, C: number, H: number): { L: number; a: number; b: number } {
+  const rad = (H * Math.PI) / 180;
+  return { L, a: C * Math.cos(rad), b: C * Math.sin(rad) };
+}
+
+export function hexToLch(hex: string): { L: number; C: number; H: number } | null {
+  const lab = hexToLab(hex);
+  if (!lab) return null;
+  return labToLch(lab[0], lab[1], lab[2]);
+}
+
+export function lchToHex(L: number, C: number, H: number): string {
+  const { L: lL, a, b } = lchToLab(L, C, H);
+  return labToHex(lL, a, b);
+}
+
+// ---------------------------------------------------------------------------
+// Display P3 conversions (through XYZ D65)
+// ---------------------------------------------------------------------------
+
+/** sRGB (0-1 gamma) → Display P3 (0-1 gamma). Values outside 0-1 = out of P3 gamut. */
+export function srgbToP3(r: number, g: number, b: number): { r: number; g: number; b: number } {
+  // sRGB linear → XYZ D65
+  const R = toLinear(r), G = toLinear(g), B = toLinear(b);
+  const X = 0.4124564 * R + 0.3575761 * G + 0.1804375 * B;
+  const Y = 0.2126729 * R + 0.7151522 * G + 0.0721750 * B;
+  const Z = 0.0193339 * R + 0.1191920 * G + 0.9503041 * B;
+  // XYZ D65 → Display P3 linear (inverse of P3-to-XYZ matrix)
+  const pr =  2.4934969 * X - 0.9313836 * Y - 0.4027108 * Z;
+  const pg = -0.8294890 * X + 1.7626641 * Y + 0.0236247 * Z;
+  const pb =  0.0358458 * X - 0.0761724 * Y + 0.9568845 * Z;
+  // P3 uses the same transfer function as sRGB
+  return { r: fromLinear(pr), g: fromLinear(pg), b: fromLinear(pb) };
+}
+
+/** Display P3 (0-1 gamma) → sRGB (0-1 gamma). Values outside 0-1 = out of sRGB gamut. */
+export function p3ToSrgb(r: number, g: number, b: number): { r: number; g: number; b: number } {
+  // P3 linear (same transfer function as sRGB)
+  const R = toLinear(r), G = toLinear(g), B = toLinear(b);
+  // P3 linear → XYZ D65
+  const X = 0.4865709 * R + 0.2656677 * G + 0.1982173 * B;
+  const Y = 0.2289746 * R + 0.6917385 * G + 0.0792869 * B;
+  const Z = 0.0000000 * R + 0.0451134 * G + 1.0439444 * B;
+  // XYZ D65 → sRGB linear
+  const sr = fromLinear( 3.2406 * X - 1.5372 * Y - 0.4986 * Z);
+  const sg = fromLinear(-0.9689 * X + 1.8758 * Y + 0.0415 * Z);
+  const sb = fromLinear( 0.0557 * X - 0.2040 * Y + 1.0570 * Z);
+  return { r: sr, g: sg, b: sb };
+}
+
+/** Check if a P3 color (0-1 each) is within sRGB gamut. */
+export function isP3InSrgbGamut(pr: number, pg: number, pb: number): boolean {
+  const { r, g, b } = p3ToSrgb(pr, pg, pb);
+  return r >= -0.001 && r <= 1.001 && g >= -0.001 && g <= 1.001 && b >= -0.001 && b <= 1.001;
+}
+
+// ---------------------------------------------------------------------------
 // Derived helpers
 // ---------------------------------------------------------------------------
 

@@ -136,6 +136,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     setNewTokenTypeState(t);
     try { sessionStorage.setItem('tm_last_token_type', t); } catch {}
   };
+  const [newTokenValue, setNewTokenValue] = useState('');
+  const [typeAutoInferred, setTypeAutoInferred] = useState(false);
   const [createError, setCreateError] = useState('');
   const [siblingPrefix, setSiblingPrefix] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);

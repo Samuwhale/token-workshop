@@ -227,3 +227,11 @@
   - The row container already has `relative` positioning, making absolute tooltip placement straightforward
   - `hovered` state is already tracked per-row via `onMouseEnter`/`onMouseLeave` — no new state needed
 ---
+
+## 2026-03-26 - Math expressions in token values
+- Already fully implemented: `isFormula()` in `dtcg-types.ts` detects formula strings, `resolveValue()` in `resolver.ts` substitutes `{ref}` with numeric values via `extractNumeric()` and evaluates via `evalExpr()`, formula preserved in `$extensions.tokenmanager.formula`
+- Comprehensive tests exist in `resolver.test.ts` covering simple formulas, multi-ref, parentheses, metadata, dependency chains, and error cases
+- Files changed: none
+- **Learnings for future iterations:**
+  - Always check existing implementation before starting work — this feature was built as part of the core resolver architecture, not as a separate addition
+---
