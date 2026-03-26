@@ -44,6 +44,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'sync-bindings':
       await syncBindings(msg.tokenMap, msg.scope);
       break;
+    case 'remap-bindings':
+      await remapBindings(msg.remapMap, msg.scope);
+      break;
     case 'highlight-layer-by-token':
       await highlightLayersByToken(msg.tokenPath);
       break;
@@ -1090,6 +1093,59 @@ async function highlightLayersByToken(tokenPath: string) {
     figma.currentPage.selection = nodes as SceneNode[];
     figma.viewport.scrollAndZoomIntoView(nodes as SceneNode[]);
   }
+}
+
+// Remap stored binding paths from old token paths to new token paths.
+// Does NOT re-apply visual values — run sync-bindings afterward to repaint.
+async function remapBindings(remapMap: Record<string, string>, scope: 'selection' | 'page') {
+  const entries = Object.entries(remapMap).filter(([oldPath, newPath]) => oldPath && newPath && oldPath !== newPath);
+  if (entries.length === 0) {
+    figma.ui.postMessage({ type: 'remap-complete', updatedBindings: 0, updatedNodes: 0 });
+    return;
+  }
+
+  // Collect nodes to scan
+  let nodes: SceneNode[];
+  if (scope === 'selection') {
+    // Include the selected nodes AND all their descendants
+    const roots = [...figma.currentPage.selection];
+    const all: SceneNode[] = [];
+    for (const root of roots) {
+      all.push(root);
+      if ('findAll' in root) {
+        (root as FrameNode).findAll(() => true).forEach(n => all.push(n));
+      }
+    }
+    nodes = all;
+  } else {
+    nodes = figma.currentPage.findAll(() => true);
+  }
+
+  let updatedBindings = 0;
+  let updatedNodes = 0;
+
+  for (const node of nodes) {
+    let nodeUpdated = false;
+    for (const prop of ALL_BINDABLE_PROPERTIES) {
+      const current = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
+      if (!current) continue;
+      const next = remapMap[current];
+      if (next) {
+        node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, prop, next);
+        updatedBindings++;
+        nodeUpdated = true;
+      }
+    }
+    if (nodeUpdated) updatedNodes++;
+  }
+
+  figma.ui.postMessage({ type: 'remap-complete', updatedBindings, updatedNodes });
+
+  const label = `Remapped ${updatedBindings} binding${updatedBindings !== 1 ? 's' : ''} across ${updatedNodes} layer${updatedNodes !== 1 ? 's' : ''}`;
+  figma.notify(updatedBindings > 0 ? label : 'No matching bindings found');
+
+  // Refresh selection so the inspector shows updated paths
+  await getSelection();
 }
 
 // Sync all bindings on the page or selection with latest token values

@@ -577,3 +577,12 @@
   - The 'graph' branch must come BEFORE the `tokens.length === 0` guard (same as 'json') so it shows even when no tokens exist
   - `onRefreshGenerators` needed as a new optional prop on `TokenListProps` — `onRefresh` alone only refreshes tokens, not the generators list
 ---
+
+## 2026-03-26 - Bulk remap across selection
+- Implemented a "Remap Bindings" panel in the Inspect tab. A "Remap" button in the sync controls bar opens a collapsible panel with old→new path rows, a scope toggle (Selection/Page), and an Execute button. Pre-populates from `missingTokens` in the last sync result (so after a sync that shows missing tokens, Remap opens pre-filled with those stale paths). `remapBindings()` in controller.ts walks all nodes in selection (including descendants) or entire page, rewrites matching `SharedPluginData` binding paths, then calls `getSelection()` so the inspector immediately reflects updated paths.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L157, `packages/figma-plugin/src/plugin/controller.ts` ~L48 and ~L1095, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L158, ~L182, ~L296, ~L508
+- **Learnings for future iterations:**
+  - For scope=selection, use `'findAll' in node` guard before calling `.findAll()` since not all SceneNode subtypes have children. Cast to `FrameNode` (or any `ChildrenMixin`) is sufficient.
+  - After remapBindings completes, calling `getSelection()` in the controller automatically refreshes the inspector without any extra UI wiring.
+  - Pre-populating remap rows from `freshSyncResult.missingTokens` provides excellent UX: sync → see missing → remap → sync again.
+---

@@ -157,6 +157,13 @@ export function SelectionInspector({
   const [lastBoundProp, setLastBoundProp] = useState<BindableProperty | null>(null);
   const [deepInspect, setDeepInspect] = useState(false);
 
+  // Remap bindings state
+  const [showRemapPanel, setShowRemapPanel] = useState(false);
+  const [remapRows, setRemapRows] = useState<{ from: string; to: string }[]>([{ from: '', to: '' }]);
+  const [remapScope, setRemapScope] = useState<'selection' | 'page'>('page');
+  const [remapRunning, setRemapRunning] = useState(false);
+  const [remapResult, setRemapResult] = useState<{ updatedBindings: number; updatedNodes: number } | null>(null);
+
   const nameInputRef = useRef<HTMLInputElement>(null);
   const prevNodeIdsRef = useRef<string>('');
 
@@ -172,6 +179,19 @@ export function SelectionInspector({
     if (syncResult) setFreshSyncResult(syncResult);
   }, [syncResult]);
 
+  // Listen for remap-complete messages from the plugin controller
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const msg = event.data?.pluginMessage;
+      if (msg?.type === 'remap-complete') {
+        setRemapRunning(false);
+        setRemapResult({ updatedBindings: msg.updatedBindings, updatedNodes: msg.updatedNodes });
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
   // Clear freshness and cancel any open inline panels when the selected nodes change
   useEffect(() => {
     const ids = rootNodes.map(n => n.id).join(',');
@@ -184,6 +204,7 @@ export function SelectionInspector({
       setCreatingFromProp(null);
       setNewTokenName('');
       setCreateError('');
+      setRemapResult(null);
     }
   }, [selectedNodes]);
 
@@ -243,6 +264,28 @@ export function SelectionInspector({
     setBindingFromProp(null);
     setBindQuery('');
     setBindSelectedIndex(-1);
+  };
+
+  const openRemapPanel = (prefill?: string[]) => {
+    const rows = prefill && prefill.length > 0
+      ? prefill.map(p => ({ from: p, to: '' }))
+      : [{ from: '', to: '' }];
+    setRemapRows(rows);
+    setRemapResult(null);
+    setShowRemapPanel(true);
+  };
+
+  const handleRemap = () => {
+    const validEntries: Record<string, string> = {};
+    for (const row of remapRows) {
+      if (row.from.trim() && row.to.trim() && row.from.trim() !== row.to.trim()) {
+        validEntries[row.from.trim()] = row.to.trim();
+      }
+    }
+    if (Object.keys(validEntries).length === 0) return;
+    setRemapRunning(true);
+    setRemapResult(null);
+    parent.postMessage({ pluginMessage: { type: 'remap-bindings', remapMap: validEntries, scope: remapScope } }, '*');
   };
 
   const openCreateFromProp = (prop: BindableProperty) => {
@@ -462,7 +505,105 @@ export function SelectionInspector({
             )}
           </>
         )}
+        {/* Remap bindings button — always visible, useful after token rename */}
+        <button
+          onClick={() => {
+            if (showRemapPanel) {
+              setShowRemapPanel(false);
+            } else {
+              openRemapPanel(freshSyncResult?.missingTokens ?? []);
+            }
+          }}
+          title="Bulk-remap token binding paths (useful after renaming tokens)"
+          className={`ml-auto text-[9px] px-1.5 py-0.5 rounded transition-colors ${
+            showRemapPanel
+              ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
+              : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+          }`}
+        >
+          Remap
+        </button>
       </div>
+
+      {/* Remap bindings panel */}
+      {showRemapPanel && (
+        <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 shrink-0">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[9px] font-semibold text-[var(--color-figma-text)] uppercase tracking-wide">Remap Bindings</span>
+            <div className="flex items-center gap-1">
+              {/* Scope toggle */}
+              <button
+                onClick={() => setRemapScope(s => s === 'selection' ? 'page' : 'selection')}
+                className="text-[8px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors"
+                title="Toggle scope between selection (including children) and entire page"
+              >
+                {remapScope === 'selection' ? 'Selection' : 'Page'}
+              </button>
+            </div>
+          </div>
+
+          {/* Mapping rows */}
+          <div className="flex flex-col gap-1 mb-1.5">
+            {remapRows.map((row, idx) => (
+              <div key={idx} className="flex items-center gap-1">
+                <input
+                  type="text"
+                  value={row.from}
+                  onChange={e => setRemapRows(rows => rows.map((r, i) => i === idx ? { ...r, from: e.target.value } : r))}
+                  placeholder="old.token.path"
+                  className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[9px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                />
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+                <input
+                  type="text"
+                  value={row.to}
+                  onChange={e => setRemapRows(rows => rows.map((r, i) => i === idx ? { ...r, to: e.target.value } : r))}
+                  placeholder="new.token.path"
+                  className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[9px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                />
+                {remapRows.length > 1 && (
+                  <button
+                    onClick={() => setRemapRows(rows => rows.filter((_, i) => i !== idx))}
+                    className="shrink-0 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    title="Remove row"
+                  >
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setRemapRows(rows => [...rows, { from: '', to: '' }])}
+              className="text-[9px] text-[var(--color-figma-accent)] hover:underline"
+            >
+              + Add row
+            </button>
+            <div className="flex items-center gap-1.5">
+              {remapResult && (
+                <span className={`text-[9px] ${remapResult.updatedBindings > 0 ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                  {remapResult.updatedBindings > 0
+                    ? `${remapResult.updatedBindings} binding${remapResult.updatedBindings !== 1 ? 's' : ''} remapped`
+                    : 'No matches found'}
+                </span>
+              )}
+              <button
+                onClick={handleRemap}
+                disabled={remapRunning || remapRows.every(r => !r.from.trim() || !r.to.trim())}
+                className="text-[9px] px-2 py-0.5 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+              >
+                {remapRunning ? 'Remapping…' : 'Remap'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-1 pb-1">

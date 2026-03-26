@@ -18,6 +18,7 @@ import { CommandPalette } from './components/CommandPalette';
 import type { Command, TokenEntry } from './components/CommandPalette';
 import { PreviewPanel } from './components/PreviewPanel';
 import { HeatmapPanel } from './components/HeatmapPanel';
+import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
 import type { HeatmapResult } from './components/HeatmapPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';

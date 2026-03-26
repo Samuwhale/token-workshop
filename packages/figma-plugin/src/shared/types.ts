@@ -161,3 +161,16 @@ export interface SyncCompleteMessage {
   errors: number;
   missingTokens: string[];
 }
+
+export interface RemapBindingsMessage {
+  type: 'remap-bindings';
+  /** Map of old token path → new token path */
+  remapMap: Record<string, string>;
+  scope: 'selection' | 'page';
+}
+
+export interface RemapCompleteMessage {
+  type: 'remap-complete';
+  updatedBindings: number;
+  updatedNodes: number;
+}
