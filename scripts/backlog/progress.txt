@@ -256,3 +256,28 @@
   - `bg-[var(--accent)]/5` provides a subtle but effective tint for "active" rows without overwhelming
   - Group separators with `border-t border-[...]/50` and conditional `groupIdx > 0` avoids a top border on the first group
 ---
+
+## 2026-03-26 - UI audit & overhaul: Export
+- Redesigned mode toggle from bordered button pair to segmented control with icons (code brackets for platforms, grid for Figma variables) and pill-on-surface active state with shadow
+- Custom checkbox styling: replaced native checkboxes with styled 16px squares that fill with accent color + white checkmark when selected, with group-hover border transition
+- Hid native checkbox with `sr-only`, made the whole label the click target
+- Added "X selected" counter next to "Target Platforms" section header
+- Added "Copy All" button in Generated Files section header for bulk copy of all platform results
+- Added line count indicator in expanded file footer
+- Copy buttons now have clipboard SVG icons alongside text
+- Improved Figma variables empty state: added icon in a rounded container, title + description layout, constrained description width
+- Added loading spinner animation for Figma variable reading state
+- Refresh/Clear links upgraded to icon+text buttons with hover background for better hit targets
+- Moved chevron to left side of collection headers for better visual scanning
+- Added mode badge for multi-mode collections in the collection header row
+- Error banner now has an X-circle icon for visual weight
+- Disconnected state now shows an eye-slash icon above the message
+- Rounded corners upgraded from `rounded` to `rounded-md` throughout for consistency
+- Added `transition-colors` to all interactive elements
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` (full rewrite)
+- **Learnings for future iterations:**
+  - Segmented controls (bg-secondary container + bg + shadow-sm active pill) feel more native than bordered toggle buttons in Figma plugin UI
+  - Custom checkbox with `sr-only` input + styled div is more flexible than `accent-[var(--color)]` on native checkboxes
+  - "Copy All" at the section header level is more discoverable than individual copy buttons inside expanded views
+  - Small SVG icons alongside action text (copy, refresh, clear) significantly improve scannability
+---
