@@ -29,3 +29,11 @@
 - **Learnings for future iterations:**
   - Chokidar's error event fires for permission errors, deleted watch directories, and OS-level inotify limits — the handler should at minimum log so operators can diagnose silent watcher death
 ---
+
+## 2026-03-26 - `GeneratorTemplate` type exported from core but never used
+- Removed `GeneratorTemplate` from the export list in `packages/core/src/index.ts`; the interface remains in `generator-types.ts` for internal use by `GENERATOR_TEMPLATES`
+- The plugin intentionally avoids importing from `@tokenmanager/core` (see comment at top of `useGenerators.ts`) so the export was unreachable by design
+- Files changed: `packages/core/src/index.ts` ~L96
+- **Learnings for future iterations:**
+  - Plugin has a deliberate "no import from core" policy — types in core that mirror plugin-side types are dead exports by design, not bugs
+---

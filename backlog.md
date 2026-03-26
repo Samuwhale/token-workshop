@@ -96,7 +96,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### Bugs
 
 - [x] **Missing `return` after error response in sync route** — In `packages/server/src/routes/sync.ts`, the catch block sends a 500 response but doesn't `return`, so execution continues and Fastify may attempt to send a second response. Add `return` before the `reply.status(500)` call.
-- [ ] **Race condition: concurrent file watcher rebuilds** — In `packages/server/src/services/token-store.ts`, the `change`/`add`/`unlink` watcher handlers all call `rebuildFlatTokens()` without debouncing or locking. Rapid file-system events (e.g., an editor writing multiple files at once) trigger concurrent rebuilds, leaving the resolver in a partially stale state. Debounce the rebuild or use a rebuild queue.
+- [~] **Race condition: concurrent file watcher rebuilds** — In `packages/server/src/services/token-store.ts`, the `change`/`add`/`unlink` watcher handlers all call `rebuildFlatTokens()` without debouncing or locking. Rapid file-system events (e.g., an editor writing multiple files at once) trigger concurrent rebuilds, leaving the resolver in a partially stale state. Debounce the rebuild or use a rebuild queue.
 - [x] **File watcher errors silently halt updates** — The chokidar watcher in `token-store.ts` has no `error` event handler. If the watcher encounters a permission error or the watched directory is deleted, it stops firing events with no indication to the server or user.
 
 ### UX
@@ -175,5 +175,5 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [ ] **Unbounded recursion in `resolveValue()`** — `resolver.ts` recurses into nested objects and arrays without a depth limit. A pathologically nested token (or circular structure that slips through cycle detection) can overflow the call stack. Add a max-depth guard.
 - [ ] **Recursive `invalidate()` risks stack overflow on deep dependency chains** — `resolver.ts` `invalidate()` calls itself recursively through the dependent graph. For deep chains this is fine in practice, but if a circular dependency escapes detection the recursion is infinite. Convert to an iterative BFS/DFS approach.
 - [ ] **`body as any` in token route handlers bypasses type validation** — `packages/server/src/routes/tokens.ts` casts request bodies to `any` before passing them to `createToken`/`updateToken`. Malformed token payloads (missing `$type`, wrong `$value` shape) are accepted and written to disk. Add runtime validation (e.g., a Zod schema) at the route boundary.
-- [~] **`GeneratorTemplate` type exported from core but never used** — `packages/core/src/generator-types.ts` exports `GeneratorTemplate` but no file in the codebase imports it. Either integrate it into the generator pipeline or remove it.
+- [x] **`GeneratorTemplate` type exported from core but never used** — `packages/core/src/generator-types.ts` exports `GeneratorTemplate` but no file in the codebase imports it. Either integrate it into the generator pipeline or remove it.
 
