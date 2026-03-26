@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
-import type { TokenGenerator } from '../hooks/useGenerators';
+import type { TokenGenerator, ContrastCheckConfig } from '../hooks/useGenerators';
+import { wcagContrast } from '../shared/colorUtils';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 
 // ---------------------------------------------------------------------------
@@ -34,12 +35,24 @@ const TYPE_LABELS: Record<string, string> = {
   borderRadiusScale: 'Border Radius',
   zIndexScale: 'Z-Index',
   customScale: 'Custom Scale',
+  contrastCheck: 'Contrast Check',
 };
 
 function getStepCount(gen: TokenGenerator): number {
   const config = gen.config as any;
   if (Array.isArray(config.steps)) return config.steps.length;
   return 0;
+}
+
+/** Returns the number of contrast-check steps that fail WCAG AA (< 4.5:1). */
+function getContrastFailCount(gen: TokenGenerator): number {
+  if (gen.type !== 'contrastCheck') return 0;
+  const cfg = gen.config as ContrastCheckConfig;
+  if (!cfg?.steps?.length) return 0;
+  return cfg.steps.filter(s => {
+    const ratio = wcagContrast(s.hex, cfg.backgroundHex);
+    return ratio === null || ratio < 4.5;
+  }).length;
 }
 
 /** Cubic bezier path from (x1,y1) to (x2,y2) with horizontal control handles */
@@ -271,6 +284,7 @@ export function TokenGraph({
             const rowY = TOP_PAD + i * ROW_H;
             const stepCount = getStepCount(gen);
             const isDeleting = deletingId === gen.id;
+            const contrastFailCount = getContrastFailCount(gen);
 
             return (
               <div

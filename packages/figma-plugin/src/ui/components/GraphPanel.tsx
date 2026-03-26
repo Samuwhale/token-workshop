@@ -329,15 +329,17 @@ function ApplyForm({
   serverUrl,
   onBack,
   onApplied,
+  initialPrefix,
 }: {
   template: GraphTemplate;
   activeSet: string;
   serverUrl: string;
   onBack: () => void;
   onApplied: () => void;
+  initialPrefix?: string;
 }) {
   const [sourceToken, setSourceToken] = useState('');
-  const [prefix, setPrefix] = useState(template.defaultPrefix);
+  const [prefix, setPrefix] = useState(initialPrefix ?? template.defaultPrefix);
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
 
@@ -585,6 +587,16 @@ export interface GraphPanelProps {
   onRefresh: () => void;
   onApplyTemplate?: (templateId: string) => void;
   pendingTemplateId?: string | null;
+  pendingGroupPath?: string | null;
+  pendingGroupTokenType?: string | null;
+  onClearPendingGroup?: () => void;
+}
+
+/** Map a DTCG token $type to the best-fit template id. */
+function templateIdForTokenType(tokenType: string | null | undefined): string {
+  if (tokenType === 'color') return 'material-color';
+  if (tokenType === 'dimension') return 'tailwind-spacing';
+  return 'modular-type-scale';
 }
 
 export function GraphPanel({
@@ -595,12 +607,17 @@ export function GraphPanel({
   onRefresh,
   onApplyTemplate,
   pendingTemplateId,
+  pendingGroupPath,
+  pendingGroupTokenType,
+  onClearPendingGroup,
 }: GraphPanelProps) {
   const setGenerators = generators.filter(g => g.targetSet === activeSet);
 
-  const initialTemplate = pendingTemplateId
-    ? (GRAPH_TEMPLATES.find(t => t.id === pendingTemplateId) ?? null)
-    : null;
+  const initialTemplate = pendingGroupPath
+    ? (GRAPH_TEMPLATES.find(t => t.id === templateIdForTokenType(pendingGroupTokenType)) ?? GRAPH_TEMPLATES[0] ?? null)
+    : pendingTemplateId
+      ? (GRAPH_TEMPLATES.find(t => t.id === pendingTemplateId) ?? null)
+      : null;
 
   const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(initialTemplate);
   const [browsingTemplates, setBrowsingTemplates] = useState(false);
@@ -616,6 +633,7 @@ export function GraphPanel({
     setSelectedTemplate(null);
     setBrowsingTemplates(false);
     if (onApplyTemplate) onApplyTemplate('');
+    if (onClearPendingGroup) onClearPendingGroup();
     onRefresh();
   };
 
@@ -623,6 +641,7 @@ export function GraphPanel({
     setSelectedTemplate(null);
     setBrowsingTemplates(false);
     if (onApplyTemplate) onApplyTemplate('');
+    if (onClearPendingGroup) onClearPendingGroup();
   };
 
   // Configuration form
@@ -634,6 +653,7 @@ export function GraphPanel({
         serverUrl={serverUrl}
         onBack={handleBack}
         onApplied={handleApplied}
+        initialPrefix={pendingGroupPath ?? undefined}
       />
     );
   }

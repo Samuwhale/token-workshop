@@ -206,10 +206,26 @@ export function App() {
   const [clearing, setClearing] = useState(false);
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo();
   const onResizeHandleMouseDown = useWindowResize();
+  const [isExpanded, setIsExpanded] = useState(() => {
+    try { return localStorage.getItem('tm_expanded') === '1'; } catch { return false; }
+  });
+  const toggleExpand = useCallback(() => {
+    const next = !isExpanded;
+    setIsExpanded(next);
+    try { localStorage.setItem('tm_expanded', next ? '1' : '0'); } catch {}
+    parent.postMessage({ pluginMessage: { type: 'resize', width: next ? MAX_WIDTH : 400, height: next ? MAX_HEIGHT : 600 } }, '*');
+  }, [isExpanded]);
+  useEffect(() => {
+    if (isExpanded) {
+      parent.postMessage({ pluginMessage: { type: 'resize', width: MAX_WIDTH, height: MAX_HEIGHT } }, '*');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
   const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
+  const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
@@ -1277,6 +1293,29 @@ export function App() {
           <span className="opacity-50">⌘K</span>
         </button>
 
+        {/* Second screen / expand toggle */}
+        <button
+          onClick={toggleExpand}
+          className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
+            isExpanded
+              ? 'text-[var(--color-figma-text)] bg-[var(--color-figma-bg-hover)]'
+              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+          }`}
+          title={isExpanded ? 'Restore window size' : 'Expand to second screen'}
+          aria-label={isExpanded ? 'Restore window size' : 'Expand to second screen'}
+          aria-pressed={isExpanded}
+        >
+          {isExpanded ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+            </svg>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+          )}
+        </button>
+
         {/* Heatmap toggle */}
         <button
           onClick={() => {
@@ -1999,6 +2038,7 @@ export function App() {
                     onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
                     onSyncGroupStyles={(groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount })}
                     onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
+                    onGenerateScaleFromGroup={(groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }}
                     syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                     generators={generators}
                     onRefreshGenerators={refreshGenerators}
@@ -2048,6 +2088,7 @@ export function App() {
                 onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
                 onSyncGroupStyles={(groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount })}
                 onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
+                onGenerateScaleFromGroup={(groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }}
                 syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                 generators={generators}
                 onRefreshGenerators={refreshGenerators}
@@ -2082,6 +2123,7 @@ export function App() {
                   onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
                   onSyncGroupStyles={(groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount })}
                   onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
+                  onGenerateScaleFromGroup={(groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }}
                   syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                   generators={generators}
                   onRefreshGenerators={refreshGenerators}
@@ -2105,6 +2147,9 @@ export function App() {
               onRefresh={() => { refreshAll(); refreshGenerators(); }}
               pendingTemplateId={pendingGraphTemplate}
               onApplyTemplate={() => setPendingGraphTemplate(null)}
+              pendingGroupPath={pendingGraphFromGroup?.groupPath ?? null}
+              pendingGroupTokenType={pendingGraphFromGroup?.tokenType ?? null}
+              onClearPendingGroup={() => setPendingGraphFromGroup(null)}
             />
           )}
           {overflowPanel === null && activeTab === 'inspect' && (

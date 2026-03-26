@@ -441,7 +441,12 @@ function GenericPreview({ tokens, overrides, onOverrideChange, onOverrideClear }
 const WCAG_AA_NORMAL = 4.5;
 const WCAG_AAA_NORMAL = 7;
 
-function ContrastCheckPreview({ tokens }: { tokens: GeneratedTokenResult[] }) {
+function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedTokenResult[]; config?: ContrastCheckConfig }) {
+  const hexByName: Record<string, string> = {};
+  if (config) {
+    for (const s of config.steps) hexByName[s.name] = s.hex;
+  }
+
   if (tokens.length === 0) {
     return (
       <div className="text-[10px] text-[var(--color-figma-text-secondary)] text-center py-2">
@@ -449,24 +454,50 @@ function ContrastCheckPreview({ tokens }: { tokens: GeneratedTokenResult[] }) {
       </div>
     );
   }
+
+  const failCount = tokens.filter(t => (t.value as number) < WCAG_AA_NORMAL).length;
+
   return (
     <div className="flex flex-col gap-0.5">
+      {failCount > 0 ? (
+        <div className="flex items-center gap-1.5 px-1 py-1 mb-1 rounded bg-amber-500/10 border border-amber-500/20">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-600 shrink-0" aria-hidden="true">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span className="text-[9px] text-amber-700 font-medium">
+            {failCount} step{failCount !== 1 ? 's' : ''} fail{failCount === 1 ? 's' : ''} AA
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5 px-1 py-1 mb-1 rounded bg-green-500/10 border border-green-500/20">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 shrink-0" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5"/>
+          </svg>
+          <span className="text-[9px] text-green-700 font-medium">All steps pass AA</span>
+        </div>
+      )}
       {tokens.map(t => {
         const ratio = typeof t.value === 'number' ? t.value : null;
         const passAA = ratio !== null && ratio >= WCAG_AA_NORMAL;
         const passAAA = ratio !== null && ratio >= WCAG_AAA_NORMAL;
+        const hex = hexByName[t.stepName];
         return (
-          <div key={t.stepName} className="flex items-center gap-2 px-1 py-1 rounded">
-            {/* Color swatch — we get the hex from the step name mapping in config; use a neutral swatch */}
-            <span className="w-8 text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{t.stepName}</span>
+          <div key={t.stepName} className={`flex items-center gap-2 px-1 py-0.5 rounded ${!passAA ? 'bg-amber-500/5' : ''}`}>
+            {hex ? (
+              <span className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: hex }} />
+            ) : (
+              <span className="w-4 h-4 shrink-0" />
+            )}
+            <span className="w-10 text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{t.stepName}</span>
             <span className="flex-1 text-[9px] font-mono text-[var(--color-figma-text)]">
               {ratio !== null ? ratio.toFixed(2) + ':1' : '—'}
             </span>
-            <span className={`text-[8px] font-semibold px-1 py-0.5 rounded ${passAA ? 'bg-green-500/15 text-green-600' : 'bg-red-500/15 text-red-500'}`}>
-              AA{passAA ? ' ✓' : ' ✗'}
+            <span className={`text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${passAA ? 'bg-green-500/15 text-green-600' : 'bg-red-500/15 text-red-500'}`}>
+              AA
             </span>
-            <span className={`text-[8px] font-semibold px-1 py-0.5 rounded ${passAAA ? 'bg-green-500/15 text-green-600' : 'bg-[var(--color-figma-text-tertiary)]/15 text-[var(--color-figma-text-secondary)]'}`}>
-              AAA{passAAA ? ' ✓' : ' ✗'}
+            <span className={`text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${passAAA ? 'bg-green-500/15 text-green-600' : 'bg-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+              AAA
             </span>
           </div>
         );
@@ -1142,6 +1173,73 @@ const ALL_TYPES: GeneratorType[] = [
   'opacityScale', 'zIndexScale', 'customScale', 'contrastCheck',
 ];
 
+// ---------------------------------------------------------------------------
+// InputTableEditor sub-component
+// ---------------------------------------------------------------------------
+
+function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t: InputTable) => void }) {
+  const updateInputKey = (key: string) => onChange({ ...table, inputKey: key });
+
+  const updateRow = (idx: number, patch: Partial<InputTableRow>) =>
+    onChange({ ...table, rows: table.rows.map((r, i) => i === idx ? { ...r, ...patch } : r) });
+
+  const updateRowInput = (rowIdx: number, value: string) => {
+    const row = table.rows[rowIdx];
+    updateRow(rowIdx, { inputs: { ...row.inputs, [table.inputKey]: value } });
+  };
+
+  const addRow = () =>
+    onChange({ ...table, rows: [...table.rows, { brand: '', inputs: { [table.inputKey]: '' } }] });
+
+  const removeRow = (idx: number) =>
+    onChange({ ...table, rows: table.rows.filter((_, i) => i !== idx) });
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div>
+        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Input column name</label>
+        <input
+          value={table.inputKey}
+          onChange={e => updateInputKey(e.target.value)}
+          placeholder="brandColor"
+          className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+        />
+      </div>
+      <div className="flex flex-col gap-1">
+        <div className="flex gap-1.5 px-0.5">
+          <span className="w-24 text-[9px] text-[var(--color-figma-text-secondary)]">Brand</span>
+          <span className="flex-1 text-[9px] text-[var(--color-figma-text-secondary)]">{table.inputKey || 'value'}</span>
+          <span className="w-5" />
+        </div>
+        {table.rows.map((row, i) => (
+          <div key={i} className="flex gap-1.5 items-center">
+            <input
+              value={row.brand}
+              onChange={e => updateRow(i, { brand: e.target.value })}
+              placeholder="berry"
+              className="w-24 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+            />
+            <input
+              value={String(row.inputs[table.inputKey] ?? '')}
+              onChange={e => updateRowInput(i, e.target.value)}
+              placeholder="#8B5CF6"
+              className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+            />
+            <button
+              onClick={() => removeRow(i)}
+              className="w-5 text-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[12px] shrink-0 leading-none"
+            >×</button>
+          </div>
+        ))}
+        <button
+          onClick={addRow}
+          className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5"
+        >+ Add brand</button>
+      </div>
+    </div>
+  );
+}
+
 export function TokenGeneratorDialog({
   serverUrl,
   sourceTokenPath,
@@ -1200,6 +1298,15 @@ export function TokenGeneratorDialog({
     existingGenerator?.overrides ?? {}
   );
 
+  // Multi-brand input table state
+  const [inputTable, setInputTable] = useState<InputTable | undefined>(
+    existingGenerator?.inputTable ?? undefined
+  );
+  const [targetSetTemplate, setTargetSetTemplate] = useState<string>(
+    existingGenerator?.targetSetTemplate ?? 'brands/{brand}'
+  );
+  const isMultiBrand = Boolean(inputTable);
+
   // Preview state
   const [previewTokens, setPreviewTokens] = useState<GeneratedTokenResult[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -1227,6 +1334,11 @@ export function TokenGeneratorDialog({
   const hasSource = Boolean(sourceTokenPath);
 
   const fetchPreview = useCallback(() => {
+    if (isMultiBrand) {
+      setPreviewTokens([]);
+      setPreviewError('');
+      return;
+    }
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(async () => {
       abortRef.current?.abort();
@@ -1265,7 +1377,7 @@ export function TokenGeneratorDialog({
         setPreviewLoading(false);
       }
     }, 300);
-  }, [serverUrl, selectedType, sourceTokenPath, targetGroup, targetSet, configs, pendingOverrides]);
+  }, [serverUrl, selectedType, sourceTokenPath, targetGroup, targetSet, configs, pendingOverrides, isMultiBrand]);
 
   useEffect(() => {
     fetchPreview();
@@ -1297,18 +1409,23 @@ export function TokenGeneratorDialog({
   const handleSave = async () => {
     if (!targetGroup.trim()) { setSaveError('Target group is required.'); return; }
     if (!name.trim()) { setSaveError('Generator name is required.'); return; }
-    if (typeNeedsSource && !hasSource) { setSaveError('This generator type requires a source token.'); return; }
+    if (!isMultiBrand && typeNeedsSource && !hasSource) { setSaveError('This generator type requires a source token.'); return; }
+    if (isMultiBrand && inputTable) {
+      if (!targetSetTemplate.trim()) { setSaveError('Target set template is required for multi-brand mode.'); return; }
+      if (inputTable.rows.some(r => !r.brand.trim())) { setSaveError('All brand rows must have a non-empty brand name.'); return; }
+    }
     setSaving(true);
     setSaveError('');
     try {
       const body = {
         type: selectedType,
         name: name.trim(),
-        sourceToken: sourceTokenPath || undefined,
+        sourceToken: isMultiBrand ? undefined : (sourceTokenPath || undefined),
         targetSet,
         targetGroup: targetGroup.trim(),
         config: configs[selectedType],
         overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
+        ...(isMultiBrand && inputTable ? { inputTable, targetSetTemplate: targetSetTemplate.trim() } : {}),
       };
       let res: Response;
       if (isEditing && existingGenerator) {
@@ -1474,7 +1591,7 @@ export function TokenGeneratorDialog({
             {/* Contrast check preview is always shown (even when 0 tokens, to guide the user) */}
             {selectedType === 'contrastCheck' && (
               <div className="border border-[var(--color-figma-border)] rounded p-2.5 bg-[var(--color-figma-bg-secondary)]">
-                <ContrastCheckPreview tokens={previewTokens} />
+                <ContrastCheckPreview tokens={previewTokens} config={currentConfig as ContrastCheckConfig} />
               </div>
             )}
 

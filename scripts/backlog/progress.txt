@@ -608,3 +608,13 @@
   - Two separate context menus exist for sets: tab-bar version (~L1438) and sidebar version (~L1664); both must be updated
   - GraphPanel's empty state IS the template browser (generators.length === 0 && !browsingTemplates); distinguish with `browsingTemplates` flag for copy differentiation
 ---
+
+## 2026-03-26 - Generator quick-start from group context menu
+- Added "Generate scale from this group…" menu item to the token group right-click context menu. Clicking it detects the dominant token `$type` from the group's leaves (using `allTokensFlat`), switches to the Graph tab, and opens `ApplyForm` with the group path pre-populated as the target prefix and the best-fit template auto-selected (color→material-color, dimension→tailwind-spacing, other→modular-type-scale).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L63, ~L2507, ~L2460, ~L2934, ~L1843, ~L2978; `packages/figma-plugin/src/ui/App.tsx` ~L212, ~L2001, ~L2050, ~L2085, ~L2110; `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L326, ~L580, ~L601
+- **Learnings for future iterations:**
+  - Type detection for groups: iterate `allTokensFlat` (which is already in scope in TokenTreeNode) filtering by prefix `node.path + '.'` — no need to call `collectGroupLeaves` separately.
+  - `ApplyForm` initializes `prefix` from `useState(template.defaultPrefix)` — override it with an `initialPrefix` prop to pre-populate from context.
+  - `GraphPanel` initial template selection happens via `useState` on first render — pass a computed `initialTemplate` based on group token type rather than relying on `pendingTemplateId`.
+  - Remember to call `onClearPendingGroup` in both `handleApplied` and `handleBack` to reset the group context state in App.tsx.
+---
