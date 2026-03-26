@@ -1,6 +1,14 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-26 - Import from Figma Styles
+- Already implemented: `ImportPanel.tsx` has full UI for both "Import from Figma Variables" and "Import from Figma Styles" (paint/color, text/typography, effect/shadow). `controller.ts` has `readFigmaStyles()` reading all 3 style types with `/` → `.` path conversion. `App.tsx` renders `ImportPanel` in the overflow panel.
+- Files changed: none
+- **Learnings for future iterations:**
+  - The Import tab lives as an overflow panel in App.tsx (not a top-level tab), accessible via the overflow menu
+  - Style name `/` separators are converted to `.` for token paths — matches the backlog's requirement of "/ → . conversion"
+---
+
 ## 2026-03-26 - Merge Sync + Export into a "Publish" tab
 - Already implemented: PublishPanel.tsx (1298 lines) covers all four sections (Figma Variables, Figma Styles, Git, File Export) with readiness checks at the top. App.tsx tab type is `'tokens' | 'inspect' | 'publish'` — no separate sync/export tabs exist.
 - Files changed: none
