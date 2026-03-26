@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-26 - Merge Sync + Export into a "Publish" tab
+- Already implemented: PublishPanel.tsx (1298 lines) covers all four sections (Figma Variables, Figma Styles, Git, File Export) with readiness checks at the top. App.tsx tab type is `'tokens' | 'inspect' | 'publish'` — no separate sync/export tabs exist.
+- Files changed: none
+- **Learnings for future iterations:**
+  - PublishPanel.tsx is the canonical publish surface — SyncPanel.tsx and ExportPanel.tsx still exist as files but are no longer imported anywhere
+---
+
 ## 2026-03-26 - Auto-type inference on value input
 - Already implemented: `inferTypeFromValue()` at `TokenList.tsx:121` infers color/dimension/duration/boolean/number from value patterns, wired to onChange at ~L1577, with accent border visual feedback on the type dropdown at ~L1591
 - Files changed: none
