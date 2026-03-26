@@ -6,3 +6,5 @@ dist/
 .DS_Store
 tokens/
 .claude/settings.local.json
+.backlog.lock/
+.backlog-git.lock/
