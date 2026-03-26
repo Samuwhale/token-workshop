@@ -88,7 +88,7 @@ function valuesEqual(a: unknown, b: unknown): boolean {
 }
 
 /** Types that can be edited inline in the list row (without opening the drawer). */
-const INLINE_SIMPLE_TYPES = new Set(['color', 'dimension', 'number', 'string', 'boolean', 'fontFamily', 'fontWeight', 'duration']);
+const INLINE_SIMPLE_TYPES = new Set(['color', 'dimension', 'number', 'string', 'boolean', 'fontFamily', 'fontWeight', 'duration', 'asset']);
 
 /** Get a human-editable string representation of a token value for the inline input. */
 function getEditableString(type: string | undefined, value: any): string {

@@ -392,3 +392,21 @@
   - Composition apply flow: UI resolves each property's token references before sending, controller iterates the resolved object calling `applyTokenValue` per property with an inline `propTypeMap`
   - `handleApplyToSelection` in TokenList checks `TOKEN_PROPERTY_MAP[type]` first — new token types with non-standard apply behavior need an early-return special case before that check
 ---
+
+## 2026-03-26 - Set folder organization
+- Added `buildSetFolderTree` helper + `FolderTreeNode` type at module level in App.tsx. Added `useSidebar` (derived: sets.length ≥ 7 OR any set contains `/`), `sidebarTree` (memoized), `collapsedFolders` (Set<string> persisted to localStorage), and `toggleFolder` callback. Horizontal tabs now hidden when `useSidebar` is true. New collapsible vertical sidebar (128px wide) replaces the tabs; renders folder headers (chevron + uppercase name) with collapsible set lists underneath, plus root-level sets. Context menu and Add Set creation moved into sidebar. Restructured the content area from `flex flex-col` to `flex` (row) so sidebar and content column sit side-by-side. Theme switcher moved inside the right-column div (still shown at top of content area). Set name/rename validation updated to allow `/` (folder separator) via regex `^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$`.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L99 (types/helpers), ~L347 (state), ~L557 (rename validation), ~L625 (create validation), ~L1094 (tabs condition), ~L1282 (content restructure)
+- **Learnings for future iterations:**
+  - When adding a sidebar alongside an existing flex-col content area, change the outer wrapper to `flex` (row) and add a new `flex-1 flex flex-col overflow-hidden` wrapper for the right column — avoids duplicating content.
+  - Theme switcher moved from standalone top-level position to inside the right-column wrapper; it now renders in both sidebar and non-sidebar modes from the same location.
+  - The context menu uses `fixed` positioning so it can be rendered inside the sidebar without z-index issues.
+---
+
+## 2026-03-26 - Asset tokens (URL/image)
+- Added `asset` as a new token type: URL string value with URL input and image preview in the editor. Includes inline editing in the token list.
+- Files changed: `packages/core/src/constants.ts` ~L36, `packages/figma-plugin/src/ui/styles.css` ~L39+L95, `packages/figma-plugin/src/shared/types.ts` ~L41, `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L265, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L632+L1485, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L91, `packages/figma-plugin/src/ui/components/ValuePreview.tsx` ~L95
+- **Learnings for future iterations:**
+  - Adding a new simple (string-based) token type requires changes in 7 files: constants, styles.css (CSS vars + badge class), shared/types.ts (badge map), tokenListUtils (default value), TokenEditor (editor component + switch case), TokenList (INLINE_SIMPLE_TYPES), ValuePreview (thumbnail preview)
+  - The type dropdown in TokenEditor is auto-built from `Object.keys(TOKEN_TYPE_BADGE_CLASS)` — adding to that map is sufficient to make it appear in the dropdown
+  - For URL/image types, use `onError` to gracefully hide broken image tags
+---

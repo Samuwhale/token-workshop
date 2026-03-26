@@ -28,8 +28,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     if (!tokenSet) {
       return reply.status(404).send({ error: `Token set "${set}" not found` });
     }
-    const flat = await fastify.tokenStore.getFlatTokensForSet(set);
-    return { set: set, tokens: flat };
+    return { set: set, tokens: tokenSet.tokens };
   });
 
   // POST /api/tokens/:set/groups/rename — rename a group (updates all token paths and alias refs)
@@ -88,6 +87,27 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    },
+  );
+
+  // POST /api/tokens/:set/groups/create — create an empty group at a path
+  fastify.post<{ Params: { set: string }; Body: { groupPath: string } }>(
+    '/tokens/:set/groups/create',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { groupPath } = request.body ?? {};
+      if (!groupPath) {
+        return reply.status(400).send({ error: 'groupPath is required' });
+      }
+      try {
+        await fastify.tokenStore.createGroup(set, groupPath);
+        return reply.status(201).send({ groupPath, set });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
         return reply.status(500).send({ error: msg });
       }
     },

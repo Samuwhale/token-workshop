@@ -629,6 +629,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             {tokenType === 'string' && <StringEditor value={value} onChange={setValue} />}
             {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
             {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} />}
+            {tokenType === 'asset' && <AssetEditor value={value} onChange={setValue} />}
           </div>
         )}
 
@@ -1480,6 +1481,33 @@ function StringEditor({ value, onChange }: { value: any; onChange: (v: any) => v
       placeholder="Enter value"
       className={inputClass}
     />
+  );
+}
+
+function AssetEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const url = typeof value === 'string' ? value : '';
+  const isValidUrl = url.length > 0 && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:'));
+  return (
+    <div className="flex flex-col gap-2">
+      <input
+        type="url"
+        value={url}
+        onChange={e => onChange(e.target.value)}
+        placeholder="https://example.com/image.png"
+        className={inputClass}
+      />
+      {isValidUrl && (
+        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden bg-[var(--color-figma-bg-secondary)] flex items-center justify-center" style={{ minHeight: '80px', maxHeight: '160px' }}>
+          <img
+            src={url}
+            alt="Asset preview"
+            className="max-w-full max-h-40 object-contain"
+            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; (e.currentTarget.nextSibling as HTMLElement | null)?.removeAttribute('hidden'); }}
+          />
+          <span hidden className="text-[10px] text-[var(--color-figma-text-secondary)] p-2">Unable to load image</span>
+        </div>
+      )}
+    </div>
   );
 }
 

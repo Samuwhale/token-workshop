@@ -39,6 +39,7 @@ export const TOKEN_TYPE_BADGE_CLASS: Record<string, string> = {
   duration: 'token-type-duration',
   fontFamily: 'token-type-fontFamily',
   composition: 'token-type-composition',
+  asset: 'token-type-asset',
 };
 
 export const TOKEN_PROPERTY_MAP: Record<string, BindableProperty[]> = {

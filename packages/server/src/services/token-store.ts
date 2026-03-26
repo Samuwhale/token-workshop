@@ -474,7 +474,16 @@ export class TokenStore {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
     const leafTokens = this.collectGroupLeafTokens(set.tokens, oldGroupPath);
-    if (leafTokens.length === 0) throw new Error(`Group "${oldGroupPath}" not found or is empty`);
+    if (leafTokens.length === 0) {
+      const groupObj = this.getObjectAtPath(set.tokens, oldGroupPath);
+      if (!groupObj) throw new Error(`Group "${oldGroupPath}" not found`);
+      if (this.pathExistsAt(set.tokens, newGroupPath)) throw new Error(`Path "${newGroupPath}" already exists`);
+      this.setGroupAtPath(set.tokens, newGroupPath, groupObj);
+      this.deleteTokenAtPath(set.tokens, oldGroupPath);
+      await this.saveSet(setName);
+      this.rebuildFlatTokens();
+      return { renamedCount: 0, aliasesUpdated: 0 };
+    }
     for (const { relativePath } of leafTokens) {
       const newPath = `${newGroupPath}.${relativePath}`;
       if (this.getTokenAtPath(set.tokens, newPath)) {
@@ -525,7 +534,16 @@ export class TokenStore {
     const target = this.sets.get(toSet);
     if (!target) throw new Error(`Set "${toSet}" not found`);
     const leafTokens = this.collectGroupLeafTokens(source.tokens, groupPath);
-    if (leafTokens.length === 0) throw new Error(`Group "${groupPath}" not found or is empty`);
+    if (leafTokens.length === 0) {
+      const groupObj = this.getObjectAtPath(source.tokens, groupPath);
+      if (!groupObj) throw new Error(`Group "${groupPath}" not found`);
+      this.setGroupAtPath(target.tokens, groupPath, groupObj);
+      this.deleteTokenAtPath(source.tokens, groupPath);
+      await this.saveSet(fromSet);
+      await this.saveSet(toSet);
+      this.rebuildFlatTokens();
+      return { movedCount: 0 };
+    }
     for (const { relativePath, token } of leafTokens) {
       this.setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, token);
     }
@@ -540,7 +558,23 @@ export class TokenStore {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
     const leafTokens = this.collectGroupLeafTokens(set.tokens, groupPath);
-    if (leafTokens.length === 0) throw new Error(`Group "${groupPath}" not found or is empty`);
+    if (leafTokens.length === 0) {
+      const groupObj = this.getObjectAtPath(set.tokens, groupPath);
+      if (!groupObj) throw new Error(`Group "${groupPath}" not found`);
+      const lastDot0 = groupPath.lastIndexOf('.');
+      const parentPath0 = lastDot0 >= 0 ? groupPath.slice(0, lastDot0) : '';
+      const baseName0 = lastDot0 >= 0 ? groupPath.slice(lastDot0 + 1) : groupPath;
+      const makeNewPath0 = (suffix: string) => parentPath0 ? `${parentPath0}.${suffix}` : suffix;
+      let newEmptyPath = makeNewPath0(`${baseName0}-copy`);
+      let attempt0 = 2;
+      while (this.pathExistsAt(set.tokens, newEmptyPath)) {
+        newEmptyPath = makeNewPath0(`${baseName0}-copy-${attempt0++}`);
+      }
+      this.setGroupAtPath(set.tokens, newEmptyPath, JSON.parse(JSON.stringify(groupObj)));
+      await this.saveSet(setName);
+      this.rebuildFlatTokens();
+      return { newGroupPath: newEmptyPath, count: 0 };
+    }
     const lastDot = groupPath.lastIndexOf('.');
     const parentPath = lastDot >= 0 ? groupPath.slice(0, lastDot) : '';
     const baseName = lastDot >= 0 ? groupPath.slice(lastDot + 1) : groupPath;
@@ -651,6 +685,42 @@ export class TokenStore {
   }
 
   // ----- Path helpers -----
+
+  // ----- Group creation -----
+
+  async createGroup(setName: string, groupPath: string): Promise<void> {
+    const set = this.sets.get(setName);
+    if (!set) throw new Error(`Set "${setName}" not found`);
+    if (this.pathExistsAt(set.tokens, groupPath)) {
+      throw new Error(`Path "${groupPath}" already exists`);
+    }
+    this.setGroupAtPath(set.tokens, groupPath, {});
+    await this.saveSet(setName);
+    this.rebuildFlatTokens();
+    this.emit({ type: 'token-updated', setName });
+  }
+
+  private getObjectAtPath(tokens: TokenGroup, path: string): Record<string, any> | undefined {
+    const parts = path.split('.');
+    let current: any = tokens;
+    for (const part of parts) {
+      if (!current || typeof current !== 'object') return undefined;
+      current = current[part];
+    }
+    return (current && typeof current === 'object' && !isDTCGToken(current)) ? current : undefined;
+  }
+
+  private setGroupAtPath(tokens: TokenGroup, path: string, group: Record<string, any>): void {
+    const parts = path.split('.');
+    let current: any = tokens;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!current[parts[i]] || isDTCGToken(current[parts[i]])) {
+        current[parts[i]] = {};
+      }
+      current = current[parts[i]];
+    }
+    current[parts[parts.length - 1]] = group;
+  }
 
   private getTokenAtPath(group: TokenGroup, tokenPath: string): Token | undefined {
     const parts = tokenPath.split('.');

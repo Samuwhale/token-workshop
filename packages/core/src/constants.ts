@@ -34,6 +34,7 @@ export const TOKEN_TYPES = {
   TEXT_TRANSFORM: 'textTransform',
   CUSTOM: 'custom',
   COMPOSITION: 'composition',
+  ASSET: 'asset',
 } as const;
 
 /** Set of all valid token type strings for quick membership checks. */

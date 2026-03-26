@@ -263,6 +263,7 @@ export function getDefaultValue(type: string): any {
     case 'number': return 0;
     case 'string': return '';
     case 'boolean': return false;
+    case 'asset': return '';
     default: return '';
   }
 }

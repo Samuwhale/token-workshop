@@ -1279,62 +1279,208 @@ export function App() {
         </>
       )}
 
-      {/* Theme switcher (for tokens tab) */}
-      {activeTab === 'tokens' && overflowPanel === null && themes.length > 0 && (
-        <div className="flex items-center gap-2 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">Theme:</span>
-          <div ref={themeDropdownRef} className="relative">
-            <button
-              onClick={() => setThemeDropdownOpen(o => !o)}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] transition-colors ${
-                activeTheme
-                  ? 'bg-[var(--color-figma-accent)] text-white font-medium'
-                  : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)]'
-              }`}
-            >
-              {activeTheme || 'None'}
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={themeDropdownOpen ? 'rotate-180' : ''}>
-                <path d="M1 3l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
-            {themeDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[140px]">
-                <button
-                  onClick={() => { setActiveTheme(null); setThemeDropdownOpen(false); }}
-                  className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
-                    !activeTheme ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
-                  }`}
-                >
-                  None
-                </button>
-                {themes.map(t => (
-                  <button
-                    key={t.name}
-                    onClick={() => { setActiveTheme(t.name); setThemeDropdownOpen(false); }}
-                    className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
-                      activeTheme === t.name ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
-                    }`}
-                  >
-                    {t.name}
-                  </button>
-                ))}
+      {/* Content — outer wrapper is flex-row so the set sidebar can sit alongside the content column */}
+      <ErrorBoundary>
+      <div className="flex-1 flex overflow-hidden">
+
+        {/* Set sidebar — shown when sets have folder structure (/) or count ≥ 7 */}
+        {activeTab === 'tokens' && overflowPanel === null && useSidebar && (
+          <aside className="w-[128px] shrink-0 border-r border-[var(--color-figma-border)] flex flex-col bg-[var(--color-figma-bg-secondary)] overflow-hidden">
+            <div className="flex-1 overflow-y-auto py-0.5" style={{ scrollbarWidth: 'none' }}>
+              {sidebarTree.roots.map(item => {
+                if (typeof item === 'string') {
+                  // Root-level (unfoldered) set
+                  const set = item;
+                  return (
+                    <div key={set} className="relative">
+                      {renamingSet === set ? (
+                        <div className="px-1 py-0.5">
+                          <input
+                            ref={renameInputRef}
+                            value={renameValue}
+                            onChange={e => { setRenameValue(e.target.value.trimStart()); setRenameError(''); }}
+                            onKeyDown={e => { if (e.key === 'Enter') handleRenameConfirm(); if (e.key === 'Escape') cancelRename(); }}
+                            onBlur={cancelRename}
+                            className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
+                          />
+                          {renameError && <span className="block text-[9px] text-red-500 px-1">{renameError}</span>}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setActiveSet(set)}
+                          onContextMenu={e => openSetMenu(set, e)}
+                          title={setDescriptions[set] || set}
+                          data-active-set={activeSet === set}
+                          className={`w-full flex items-center justify-between pl-2 pr-1 py-1 text-[10px] text-left transition-colors ${
+                            activeSet === set
+                              ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium'
+                              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                          }`}
+                        >
+                          <span className="truncate flex-1">{set}</span>
+                          {setTokenCounts[set] !== undefined && (
+                            <span className={`text-[9px] shrink-0 ml-1 ${activeSet === set ? 'opacity-60' : 'text-[var(--color-figma-text-tertiary)]'}`}>{setTokenCounts[set]}</span>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                }
+                // Folder node
+                const folder = item as FolderTreeNode;
+                const isCollapsed = collapsedFolders.has(folder.path);
+                return (
+                  <div key={folder.path}>
+                    <button
+                      onClick={() => toggleFolder(folder.path)}
+                      className="w-full flex items-center gap-1 px-2 py-0.5 text-[9px] font-semibold text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] uppercase tracking-wider transition-colors"
+                    >
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}><path d="M2 1l4 3-4 3V1z" /></svg>
+                      <span className="truncate">{folder.name}</span>
+                    </button>
+                    {!isCollapsed && folder.sets.map(set => {
+                      const leaf = set.slice(folder.path.length + 1);
+                      return (
+                        <div key={set} className="relative">
+                          {renamingSet === set ? (
+                            <div className="pl-4 pr-1 py-0.5">
+                              <input
+                                ref={renameInputRef}
+                                value={renameValue}
+                                onChange={e => { setRenameValue(e.target.value.trimStart()); setRenameError(''); }}
+                                onKeyDown={e => { if (e.key === 'Enter') handleRenameConfirm(); if (e.key === 'Escape') cancelRename(); }}
+                                onBlur={cancelRename}
+                                className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
+                              />
+                              {renameError && <span className="block text-[9px] text-red-500 px-1">{renameError}</span>}
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setActiveSet(set)}
+                              onContextMenu={e => openSetMenu(set, e)}
+                              title={setDescriptions[set] || leaf}
+                              data-active-set={activeSet === set}
+                              className={`w-full flex items-center justify-between pl-5 pr-1 py-1 text-[10px] text-left transition-colors ${
+                                activeSet === set
+                                  ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium'
+                                  : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                              }`}
+                            >
+                              <span className="truncate flex-1">{leaf}</span>
+                              {setTokenCounts[set] !== undefined && (
+                                <span className={`text-[9px] shrink-0 ml-1 ${activeSet === set ? 'opacity-60' : 'text-[var(--color-figma-text-tertiary)]'}`}>{setTokenCounts[set]}</span>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Context menu (sidebar mode) */}
+            {tabMenuOpen && (
+              <div
+                ref={tabMenuRef}
+                role="menu"
+                className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[168px]"
+                style={{ top: tabMenuPos.y, left: tabMenuPos.x }}
+              >
+                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => openSetMetadata(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Edit description</button>
                 <div className="border-t border-[var(--color-figma-border)] my-1" />
-                <button
-                  onClick={() => { setOverflowPanel('themes'); setThemeDropdownOpen(false); }}
-                  className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                >
-                  Manage themes...
-                </button>
+                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => startRename(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Rename</button>
+                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => handleDuplicateSet(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Duplicate</button>
+                <div className="border-t border-[var(--color-figma-border)] my-1" />
+                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { setDeletingSet(tabMenuOpen); setTabMenuOpen(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Delete</button>
               </div>
             )}
-          </div>
-        </div>
-      )}
 
-      {/* Content */}
-      <ErrorBoundary>
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
+            {/* Add Set */}
+            <div className="shrink-0 border-t border-[var(--color-figma-border)] p-1">
+              {creatingSet ? (
+                <div className="flex flex-col gap-0.5">
+                  <input
+                    ref={newSetInputRef}
+                    value={newSetName}
+                    onChange={e => { setNewSetName(e.target.value); setNewSetError(''); }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleCreateSet();
+                      if (e.key === 'Escape') { setCreatingSet(false); setNewSetName(''); setNewSetError(''); }
+                    }}
+                    onBlur={() => { if (!newSetName.trim()) { setCreatingSet(false); setNewSetName(''); setNewSetError(''); } }}
+                    placeholder="name or folder/name"
+                    className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
+                  />
+                  {newSetError && <span className="text-[9px] text-red-500">{newSetError}</span>}
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setCreatingSet(true); setNewSetName(''); setNewSetError(''); }}
+                  className="w-full px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] text-left"
+                >
+                  + Add Set
+                </button>
+              )}
+            </div>
+          </aside>
+        )}
+
+        {/* Main content column */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Theme switcher (for tokens tab) */}
+          {activeTab === 'tokens' && overflowPanel === null && themes.length > 0 && (
+            <div className="flex shrink-0 items-center gap-2 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">Theme:</span>
+              <div ref={themeDropdownRef} className="relative">
+                <button
+                  onClick={() => setThemeDropdownOpen(o => !o)}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] transition-colors ${
+                    activeTheme
+                      ? 'bg-[var(--color-figma-accent)] text-white font-medium'
+                      : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)]'
+                  }`}
+                >
+                  {activeTheme || 'None'}
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={themeDropdownOpen ? 'rotate-180' : ''}>
+                    <path d="M1 3l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                {themeDropdownOpen && (
+                  <div className="absolute top-full left-0 mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[140px]">
+                    <button
+                      onClick={() => { setActiveTheme(null); setThemeDropdownOpen(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
+                        !activeTheme ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
+                      }`}
+                    >
+                      None
+                    </button>
+                    {themes.map(t => (
+                      <button
+                        key={t.name}
+                        onClick={() => { setActiveTheme(t.name); setThemeDropdownOpen(false); }}
+                        className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
+                          activeTheme === t.name ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
+                        }`}
+                      >
+                        {t.name}
+                      </button>
+                    ))}
+                    <div className="border-t border-[var(--color-figma-border)] my-1" />
+                    <button
+                      onClick={() => { setOverflowPanel('themes'); setThemeDropdownOpen(false); }}
+                      className="w-full text-left px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    >
+                      Manage themes...
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          <div className="flex-1 overflow-y-auto">
           {/* Overflow panels */}
           {overflowPanel === 'import' && (
             <>
@@ -1706,6 +1852,7 @@ export function App() {
               <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} />
             </>
           )}
+          </div>
         </div>
       </div>
       </ErrorBoundary>

@@ -92,5 +92,13 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
     }
   }
 
+  if (type === 'asset' && typeof value === 'string' && value.length > 0) {
+    return (
+      <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0 overflow-hidden bg-[var(--color-figma-bg-secondary)]">
+        <img src={value} alt="" className="w-full h-full object-cover" aria-hidden="true" />
+      </div>
+    );
+  }
+
   return <div className="w-5 h-5 shrink-0" />;
 }

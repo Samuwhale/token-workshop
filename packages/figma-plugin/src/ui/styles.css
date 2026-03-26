@@ -37,6 +37,8 @@
   --token-badge-fontFamily-text: #6c5ce7;
   --token-badge-composition-bg: #fd79a833;
   --token-badge-composition-text: #fd79a8;
+  --token-badge-asset-bg: #55efc433;
+  --token-badge-asset-text: #00b894;
 }
 
 body {
@@ -93,3 +95,4 @@ button:focus-visible {
 .token-type-duration { background: var(--token-badge-duration-bg); color: var(--token-badge-duration-text); }
 .token-type-fontFamily { background: var(--token-badge-fontFamily-bg); color: var(--token-badge-fontFamily-text); }
 .token-type-composition { background: var(--token-badge-composition-bg); color: var(--token-badge-composition-text); }
+.token-type-asset { background: var(--token-badge-asset-bg); color: var(--token-badge-asset-text); }
