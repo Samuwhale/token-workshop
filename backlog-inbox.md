@@ -1,1 +1,0 @@
-- **Codebase health review** — Do a full sweep of the codebase to surface bugs, code smells, redundancies, inefficiencies, and dead code. For each area (plugin, server, shared packages), read the source, identify issues, and add each distinct finding as its own backlog item in the appropriate section of backlog.md (Bugs, QoL, or a new Code Quality section as needed).

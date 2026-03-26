@@ -743,3 +743,16 @@
   - When a backlog item's stated goals are fully covered by a collection of other completed items, mark as done rather than treating it as a standalone audit — avoid duplicate work
   - Drag affordances should only be added when the underlying drag/reorder feature exists; adding visual affordances for a non-functional feature misleads users
 ---
+
+## 2026-03-26 - Live preview surface
+- Created `PreviewPanel.tsx` with 5 templates: Colors (swatch grid grouped by prefix), Type Scale (font-size tokens rendered at their size), Buttons (primary/secondary/destructive states), Forms (inputs with label/error/disabled states), Card (card with image placeholder + CTA)
+- All templates receive tokens as CSS custom properties via `style={cssVars}` on the container — aliases auto-resolve via CSS cascade since `{path.here}` values are converted to `var(--path-here)`
+- Dark/light mode toggle switches container background and text colors independently of tokens
+- Added `'preview'` to the `Tab` type and `TABS` array in `App.tsx`; panel receives `allTokensFlat` prop
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L18, ~L97, ~L1159
+- **Learnings for future iterations:**
+  - CSS cascade is the right alias resolution strategy — convert `{path.here}` to `var(--path-here)` and set all vars on a parent container; the browser resolves chains automatically
+  - Tokens with `$type: "fontSizes"` vs `"fontSize"` vs `"fontsize"` vary across projects — check all three spellings
+  - Bare numeric dimension values need `px` appended; test with `^\d+(\.\d+)?$` before appending
+  - Token naming conventions are unpredictable — use multi-fallback CSS chains like `var(--color-primary, var(--color-brand-500, var(--color-accent, #0066ff)))` for resilience
+---

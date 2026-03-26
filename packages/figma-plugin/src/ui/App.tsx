@@ -16,6 +16,7 @@ import { QuickStartDialog } from './components/QuickStartDialog';
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { Command, TokenEntry } from './components/CommandPalette';
+import { PreviewPanel } from './components/PreviewPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
@@ -94,13 +95,14 @@ function useSyncBindings(serverUrl: string, connected: boolean) {
   return { syncing, syncProgress: progress, syncResult: result, sync };
 }
 
-type Tab = 'tokens' | 'themes' | 'sync' | 'analytics';
+type Tab = 'tokens' | 'themes' | 'sync' | 'analytics' | 'preview';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'tokens', label: 'Tokens' },
   { id: 'themes', label: 'Themes' },
   { id: 'sync', label: 'Sync' },
   { id: 'analytics', label: 'Analytics' },
+  { id: 'preview', label: 'Preview' },
 ];
 
 type OverflowPanel = 'import' | 'export' | 'settings' | null;
@@ -1156,6 +1158,9 @@ export function App() {
               }}
               onValidationComplete={setAnalyticsIssueCount}
             />
+          )}
+          {overflowPanel === null && activeTab === 'preview' && (
+            <PreviewPanel allTokensFlat={allTokensFlat} />
           )}
         </div>
         {overflowPanel === null && activeTab === 'tokens' && (
