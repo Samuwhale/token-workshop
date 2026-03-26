@@ -324,7 +324,10 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
           {!isTokenMode && !sections && (
             <>
               {filteredCommands.length === 0 && (
-                <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">No commands match "{query}"</div>
+                <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
+                  <div>No commands match &ldquo;{query}&rdquo;</div>
+                  <div className="mt-1 text-[10px] opacity-70">Try <kbd className="font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1">&gt;</kbd> to search tokens by path</div>
+                </div>
               )}
               {filteredCommands.map((cmd, idx) => (
                 <button
@@ -361,14 +364,14 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
             <>
               <span>↑↓ navigate</span>
               <span>↵ go to token</span>
-              {onCopyTokenCssVar && <span>CSS copy var</span>}
+              {onCopyTokenCssVar && <span>click CSS to copy var</span>}
               <span>ESC close</span>
             </>
           ) : (
             <>
               <span>↑↓ navigate</span>
               <span>↵ select</span>
-              <span>&gt; token search</span>
+              <span>type &gt; to search tokens</span>
               <span>ESC close</span>
             </>
           )}

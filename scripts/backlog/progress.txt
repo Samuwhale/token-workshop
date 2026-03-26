@@ -215,3 +215,17 @@
   - `grid grid-cols-N divide-x divide-[var(--color-figma-border)]` is the right pattern for equal-width stat grids — avoids the uneven spacing of `flex gap-N`
   - Info severity (the quietest level) still benefits from a colour — using `accent` (typically blue) gives it identity without being alarming, completes the error→warning→info colour system
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Command Palette
+- Audited all command definitions and the CommandPalette component
+- Fixed command label inconsistencies: "Import" → "Import Tokens", "Export" → "Export Tokens", "Find & Replace (names)" → "Find & Replace Names", "Switch to set:" → "Switch to Set:", "Switch to Themes/Sync/Analytics" → "Go to Themes/Sync/Analytics", "Server Settings" → "Open Settings"
+- Added descriptions to all navigation commands (Themes, Sync, Analytics) and Settings
+- Improved no-results empty state: now shows "Try > to search tokens by path" hint when no commands match
+- Clarified footer hints: "CSS copy var" → "click CSS to copy var"; "> token search" → "type > to search tokens"
+- Confirmed ⌘K hint already present in app header (button with ⌘K label)
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L562, `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L326, ~L370
+- **Learnings for future iterations:**
+  - Command names should use consistent verb-noun format; navigation commands use "Go to X" not "Switch to X"
+  - No-results states are a great place to guide users toward adjacent features (token search mode)
+  - Footer hints using natural language ("type > to search tokens") are more readable than symbolic shorthand ("> token search")
+---
