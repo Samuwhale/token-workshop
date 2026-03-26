@@ -238,3 +238,21 @@
   - Format detection badge positioned `absolute bottom-2 right-2` inside a `relative` wrapper on the textarea works well without disturbing layout
   - Color type badge coloring: use Tailwind literal classes (not dynamic `text-${color}-600`) to avoid purge issues
 ---
+
+## 2026-03-26 - UI audit & overhaul: Selection Inspector
+- Redesigned property rows with bound vs unbound visual distinction: bound rows get accent-tinted background, unbound rows stay neutral
+- Changed property row to two-line layout for bound properties: top line shows property name + resolved value, bottom line shows linked token path with chain icon
+- Upgraded group headers: semibold uppercase with tracking, added top border separators between groups
+- Enlarged color swatches from 14px to 16px with improved ring styling
+- Replaced tiny "bound" text badge with a chain-link icon + token path on a second line
+- Upgraded header binding count badges to pill-style with distinct colors (accent for bound, warning for mixed)
+- Enlarged action button hit targets from 8px to 10px icons with larger padding
+- Made property names use font-medium for better visual hierarchy
+- Added "Mixed" state styling with warning color and italic text
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L347, ~L292
+- **Learnings for future iterations:**
+  - Bound rows benefit from a two-line layout: property+value on line 1, token path on line 2 — avoids cramming `path → value` into one truncated line
+  - Chain-link SVG icon (`M10 13a5 5 0 007.54.54l3-3...`) is a good universal "linked/bound" indicator
+  - `bg-[var(--accent)]/5` provides a subtle but effective tint for "active" rows without overwhelming
+  - Group separators with `border-t border-[...]/50` and conditional `groupIdx > 0` avoids a top border on the first group
+---

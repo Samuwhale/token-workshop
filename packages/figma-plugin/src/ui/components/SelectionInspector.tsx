@@ -290,14 +290,20 @@ export function SelectionInspector({
           {headerLabel}
         </span>
         {(totalBindings > 0 || mixedBindings > 0) && (
-          <span className="text-[9px] text-[var(--color-figma-accent)] shrink-0">
-            {selectedNodes.length > 1
-              ? [
-                  totalBindings > 0 && `${totalBindings} shared`,
-                  mixedBindings > 0 && `${mixedBindings} mixed`,
-                ].filter(Boolean).join(', ')
-              : `${totalBindings} binding${totalBindings !== 1 ? 's' : ''}`
-            }
+          <span className="text-[9px] shrink-0 flex items-center gap-1">
+            {totalBindings > 0 && (
+              <span className="bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
+                {selectedNodes.length > 1
+                  ? `${totalBindings} shared`
+                  : `${totalBindings} bound`
+                }
+              </span>
+            )}
+            {mixedBindings > 0 && (
+              <span className="bg-[var(--color-figma-warning,#f5a623)]/15 text-[var(--color-figma-warning,#f5a623)] px-1.5 py-0.5 rounded-full font-medium">
+                {mixedBindings} mixed
+              </span>
+            )}
           </span>
         )}
       </button>
@@ -345,7 +351,7 @@ export function SelectionInspector({
       {/* Body */}
       {!collapsed && hasSelection && !creatingFromProp && (
         <div className="overflow-y-auto max-h-[30vh] px-1 pb-1">
-          {PROPERTY_GROUPS.map(group => {
+          {PROPERTY_GROUPS.map((group, groupIdx) => {
             if (!shouldShowGroup(group.condition, caps)) return null;
 
             const visibleProps = group.properties.filter(prop => {
@@ -357,8 +363,8 @@ export function SelectionInspector({
             if (visibleProps.length === 0) return null;
 
             return (
-              <div key={group.label} className="mb-1">
-                <div className="px-2 py-0.5 text-[9px] text-[var(--color-figma-text-secondary)] font-medium">
+              <div key={group.label} className={groupIdx > 0 ? 'mt-1 pt-1 border-t border-[var(--color-figma-border)]/50' : ''}>
+                <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide">
                   {group.label}
                 </div>
                 {visibleProps.map(prop => {
@@ -381,50 +387,69 @@ export function SelectionInspector({
                   }
 
                   const swatchColor = resolvedColor ?? ((prop === 'fill' || prop === 'stroke') && typeof value === 'string' && value.startsWith('#') ? value : null);
-                  const isUnbound = !binding || binding === 'mixed';
+                  const isBound = binding && binding !== 'mixed';
+                  const isMixed = binding === 'mixed';
+                  const isUnbound = !binding || isMixed;
                   const hasExtractableValue = value !== undefined && value !== null && connected && isUnbound && activeSet;
 
                   return (
                     <div
                       key={prop}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded hover:bg-[var(--color-figma-bg-hover)] group"
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded group transition-colors ${
+                        isBound
+                          ? 'bg-[var(--color-figma-accent)]/5 hover:bg-[var(--color-figma-accent)]/10'
+                          : 'hover:bg-[var(--color-figma-bg-hover)]'
+                      }`}
                     >
                       {/* Color swatch */}
                       {swatchColor ? (
                         <div
-                          className="w-3.5 h-3.5 rounded-sm border border-[var(--color-figma-border)] ring-1 ring-white ring-inset shrink-0"
+                          className="w-4 h-4 rounded border border-[var(--color-figma-border)] ring-1 ring-white/50 ring-inset shrink-0"
                           style={{ backgroundColor: swatchColor }}
                         />
                       ) : (
-                        <div className="w-3.5 h-3.5 shrink-0" />
+                        <div className="w-4 h-4 shrink-0" />
                       )}
 
-                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0 truncate">
-                        {PROPERTY_LABELS[prop]}
-                      </span>
+                      {/* Property name + value */}
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-[var(--color-figma-text)] font-medium w-[72px] shrink-0 truncate">
+                            {PROPERTY_LABELS[prop]}
+                          </span>
+                          {isBound ? (
+                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={resolvedDisplay ?? undefined}>
+                              {resolvedDisplay ?? formatCurrentValue(prop, value)}
+                            </span>
+                          ) : isMixed ? (
+                            <span className="text-[10px] text-[var(--color-figma-warning,#f5a623)] italic">Mixed</span>
+                          ) : (
+                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
+                              {formatCurrentValue(prop, value)}
+                            </span>
+                          )}
+                        </div>
+                        {isBound && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
+                              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
+                              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
+                            </svg>
+                            <span className="text-[9px] text-[var(--color-figma-accent)] font-mono truncate" title={binding as string}>
+                              {binding as string}
+                            </span>
+                          </div>
+                        )}
+                      </div>
 
-                      <span className="text-[10px] text-[var(--color-figma-text)] truncate flex-1" title={resolvedDisplay ?? undefined}>
-                        {binding === 'mixed'
-                          ? 'Mixed'
-                          : binding
-                            ? resolvedDisplay ? `${binding} → ${resolvedDisplay}` : binding
-                            : formatCurrentValue(prop, value)
-                        }
-                      </span>
-
-                      {binding && binding !== 'mixed' && (
-                        <span className="text-[8px] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 px-1 py-0.5 rounded shrink-0">
-                          bound
-                        </span>
-                      )}
-
-                      {binding && binding !== 'mixed' && (
+                      {/* Actions */}
+                      {isBound && (
                         <button
                           onClick={() => handleRemoveBinding(prop)}
                           title="Remove binding"
-                          className="p-0.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] opacity-0 group-hover:opacity-100 transition-all shrink-0"
                         >
-                          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                             <path d="M18 6L6 18M6 6l12 12" />
                           </svg>
                         </button>
@@ -434,10 +459,10 @@ export function SelectionInspector({
                         <button
                           onClick={() => openCreateFromProp(prop)}
                           title="Create token from this value"
-                          className="p-0.5 rounded text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0 hover:bg-[var(--color-figma-accent)]/10"
+                          className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 opacity-0 group-hover:opacity-100 transition-all shrink-0"
                         >
-                          <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor">
-                            <path d="M5 1v8M1 5h8" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round"/>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14" />
                           </svg>
                         </button>
                       )}

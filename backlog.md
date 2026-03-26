@@ -138,7 +138,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### UI
 
-- [ ] **UI audit & overhaul: Selection Inspector** — Read the inspector layout and property row components, audit visual design (property name + current value + binding indicator layout), then redesign: improve the property row density and readability, make bound vs unbound states visually distinct, and ensure the inspector doesn't feel overwhelming when a node has many properties. `packages/plugin/src/components/SelectionInspector.tsx`
+- [x] **UI audit & overhaul: Selection Inspector** — Read the inspector layout and property row components, audit visual design (property name + current value + binding indicator layout), then redesign: improve the property row density and readability, make bound vs unbound states visually distinct, and ensure the inspector doesn't feel overwhelming when a node has many properties. `packages/plugin/src/components/SelectionInspector.tsx`
 
 ### QA
 
@@ -174,7 +174,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### UI
 
-- [~] **UI audit & overhaul: Export** — Read the export layout, audit visual design of the mode toggle, platform selector, filter controls, and output preview area, then redesign: improve the visual hierarchy so the user's eye is drawn first to selecting the target and then to the output. `packages/plugin/src/routes/ExportPanel.tsx`
+- [x] **UI audit & overhaul: Export** — Read the export layout, audit visual design of the mode toggle, platform selector, filter controls, and output preview area, then redesign: improve the visual hierarchy so the user's eye is drawn first to selecting the target and then to the output. `packages/plugin/src/routes/ExportPanel.tsx`
 
 ### QA
 

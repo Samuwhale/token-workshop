@@ -201,6 +201,12 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied all variables as DTCG JSON' } }, '*');
   };
 
+  const handleCopyAllPlatformResults = () => {
+    const allContent = results.map(f => `/* ${f.platform}: ${f.path} */\n${f.content}`).join('\n\n');
+    navigator.clipboard.writeText(allContent);
+    parent.postMessage({ pluginMessage: { type: 'notify', message: `Copied ${results.length} file(s) to clipboard` } }, '*');
+  };
+
   const handleSaveToServer = async () => {
     if (!connected) return;
     setExporting(true);
@@ -281,42 +287,62 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
   if (!connected) {
     return (
-      <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
-        Connect to server to export tokens
+      <div className="flex flex-col items-center justify-center py-12 gap-2">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <line x1="1" y1="1" x2="23" y2="23" />
+        </svg>
+        <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
+          Connect to server to export tokens
+        </div>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-4">
         {error && (
-          <div className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
+          <div className="flex items-start gap-2 px-2.5 py-2 rounded-md bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
             {error}
           </div>
         )}
 
-        {/* Mode toggle */}
-        <div className="flex rounded border border-[var(--color-figma-border)] overflow-hidden">
+        {/* Mode toggle — segmented control with icons */}
+        <div className="flex rounded-md bg-[var(--color-figma-bg-secondary)] p-0.5 gap-0.5">
           <button
             onClick={() => setMode('platforms')}
-            className={`flex-1 px-2 py-1.5 text-[10px] font-medium transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[10px] font-medium transition-all ${
               mode === 'platforms'
-                ? 'bg-[var(--color-figma-accent)] text-white'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
+                : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
             }`}
           >
-            Export to Platforms
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16" />
+            </svg>
+            Platforms
           </button>
           <button
             onClick={() => setMode('figma-variables')}
-            className={`flex-1 px-2 py-1.5 text-[10px] font-medium transition-colors ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[10px] font-medium transition-all ${
               mode === 'figma-variables'
-                ? 'bg-[var(--color-figma-accent)] text-white'
-                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
+                : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
             }`}
           >
-            Export Figma Variables
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+            </svg>
+            Figma Variables
           </button>
         </div>
 
@@ -324,55 +350,86 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         {mode === 'platforms' && (
           <>
             <div>
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-2">
-                Select Platforms
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                  Target Platforms
+                </div>
+                <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                  {selected.size} selected
+                </div>
               </div>
               <div className="flex flex-col gap-1">
-                {PLATFORMS.map(platform => (
-                  <label
-                    key={platform.id}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded border cursor-pointer transition-colors ${
-                      selected.has(platform.id)
-                        ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
-                        : 'border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)]'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected.has(platform.id)}
-                      onChange={() => togglePlatform(platform.id)}
-                      className="accent-[var(--color-figma-accent)]"
-                    />
-                    <div className="flex-1">
-                      <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{platform.label}</div>
-                      <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{platform.description}</div>
-                    </div>
-                  </label>
-                ))}
+                {PLATFORMS.map(platform => {
+                  const isSelected = selected.has(platform.id);
+                  return (
+                    <label
+                      key={platform.id}
+                      className={`group flex items-center gap-2.5 px-3 py-2 rounded-md border cursor-pointer transition-all ${
+                        isSelected
+                          ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
+                          : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
+                      }`}
+                    >
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                        isSelected
+                          ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
+                          : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
+                      }`}>
+                        {isSelected && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M20 6L9 17l-5-5" />
+                          </svg>
+                        )}
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => togglePlatform(platform.id)}
+                        className="sr-only"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{platform.label}</div>
+                        <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{platform.description}</div>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 
             {results.length > 0 && (
               <div>
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-2">
-                  Generated Files
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                    Generated Files
+                  </div>
+                  <button
+                    onClick={handleCopyAllPlatformResults}
+                    className="flex items-center gap-1 text-[9px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="9" y="9" width="13" height="13" rx="2" />
+                      <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                    </svg>
+                    Copy All
+                  </button>
                 </div>
                 <div className="flex flex-col gap-1">
                   {results.map((file, i) => (
-                    <div key={i} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+                    <div key={i} className="rounded-md border border-[var(--color-figma-border)] overflow-hidden">
                       <button
                         onClick={() => setExpandedFile(expandedFile === file.path ? null : file.path)}
                         className="w-full flex items-center justify-between px-3 py-2 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium uppercase">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px] font-medium uppercase shrink-0">
                             {file.platform}
                           </span>
-                          <span className="text-[11px] text-[var(--color-figma-text)]">{file.path}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text)] font-mono truncate">{file.path}</span>
                         </div>
                         <svg
                           width="8" height="8" viewBox="0 0 8 8"
-                          className={`transition-transform ${expandedFile === file.path ? 'rotate-90' : ''}`}
+                          className={`transition-transform shrink-0 ml-2 ${expandedFile === file.path ? 'rotate-90' : ''}`}
                           fill="currentColor"
                         >
                           <path d="M2 1l4 3-4 3V1z" />
@@ -383,15 +440,22 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                           <pre className="p-3 text-[10px] font-mono text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] overflow-auto max-h-48 whitespace-pre-wrap break-all">
                             {file.content}
                           </pre>
-                          <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                          <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+                            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                              {file.content.split('\n').length} lines
+                            </span>
                             <button
                               onClick={() => {
                                 navigator.clipboard.writeText(file.content);
                                 parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied to clipboard' } }, '*');
                               }}
-                              className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                              className="flex items-center gap-1 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
                             >
-                              Copy to clipboard
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <rect x="9" y="9" width="13" height="13" rx="2" />
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                              </svg>
+                              Copy
                             </button>
                           </div>
                         </div>
@@ -408,67 +472,114 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         {mode === 'figma-variables' && (
           <>
             {figmaLoading && (
-              <div className="flex items-center justify-center py-8 text-[var(--color-figma-text-secondary)] text-[11px]">
-                Reading Figma variables...
+              <div className="flex flex-col items-center justify-center py-10 gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-accent)] animate-spin" aria-hidden="true">
+                  <path d="M21 12a9 9 0 11-6.219-8.56" />
+                </svg>
+                <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
+                  Reading Figma variables...
+                </div>
               </div>
             )}
 
             {!figmaLoading && figmaCollections.length === 0 && (
-              <div className="flex flex-col items-center gap-3 py-6">
-                <div className="text-[11px] text-[var(--color-figma-text-secondary)] text-center">
-                  Export all local variables from this Figma file,<br />
-                  including alias references between variables.
+              <div className="flex flex-col items-center gap-3 py-8">
+                <div className="w-10 h-10 rounded-lg bg-[var(--color-figma-bg-secondary)] flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <div className="text-[11px] text-[var(--color-figma-text)] font-medium mb-1">
+                    Export Figma Variables
+                  </div>
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[200px]">
+                    Read all local variables from this file, including alias references between variables.
+                  </div>
                 </div>
                 <button
                   onClick={handleExportFigmaVariables}
-                  className="px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+                  className="px-4 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
                 >
-                  Read Figma Variables
+                  Read Variables
                 </button>
               </div>
             )}
 
             {!figmaLoading && figmaCollections.length > 0 && (
               <>
-                {/* Summary */}
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                  {figmaCollections.length} Collection{figmaCollections.length !== 1 ? 's' : ''} &middot;{' '}
-                  {figmaCollections.reduce((sum, c) => sum + c.variables.length, 0)} Variables
+                {/* Summary bar */}
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
+                    {figmaCollections.length} collection{figmaCollections.length !== 1 ? 's' : ''} &middot;{' '}
+                    {figmaCollections.reduce((sum, c) => sum + c.variables.length, 0)} variables
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={handleExportFigmaVariables}
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M23 4v6h-6M1 20v-6h6" />
+                        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                      </svg>
+                      Refresh
+                    </button>
+                    <button
+                      onClick={() => { setFigmaCollections([]); }}
+                      className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                      Clear
+                    </button>
+                  </div>
                 </div>
 
                 {/* Collection list */}
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   {figmaCollections.map(collection => (
-                    <div key={collection.name} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+                    <div key={collection.name} className="rounded-md border border-[var(--color-figma-border)] overflow-hidden">
                       <button
                         onClick={() => setExpandedCollection(
                           expandedCollection === collection.name ? null : collection.name
                         )}
                         className="w-full flex items-center justify-between px-3 py-2 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-medium text-[var(--color-figma-text)]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <svg
+                            width="8" height="8" viewBox="0 0 8 8"
+                            className={`transition-transform shrink-0 ${expandedCollection === collection.name ? 'rotate-90' : ''}`}
+                            fill="currentColor"
+                          >
+                            <path d="M2 1l4 3-4 3V1z" />
+                          </svg>
+                          <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">
                             {collection.name}
                           </span>
-                          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                            {collection.variables.length} var{collection.variables.length !== 1 ? 's' : ''}
-                            {collection.modes.length > 1 && ` \u00b7 ${collection.modes.length} modes`}
-                          </span>
                         </div>
-                        <svg
-                          width="8" height="8" viewBox="0 0 8 8"
-                          className={`transition-transform ${expandedCollection === collection.name ? 'rotate-90' : ''}`}
-                          fill="currentColor"
-                        >
-                          <path d="M2 1l4 3-4 3V1z" />
-                        </svg>
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                            {collection.variables.length} var{collection.variables.length !== 1 ? 's' : ''}
+                          </span>
+                          {collection.modes.length > 1 && (
+                            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[8px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
+                              {collection.modes.length} modes
+                            </span>
+                          )}
+                        </div>
                       </button>
 
                       {expandedCollection === collection.name && (
                         <div className="border-t border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)] max-h-64 overflow-y-auto">
                           {/* Mode headers */}
                           {collection.modes.length > 1 && (
-                            <div className="flex gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]">
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]">
                               <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium">Modes:</div>
                               {collection.modes.map(m => (
                                 <span key={m} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] text-[8px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
@@ -568,35 +679,19 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                     </div>
                   ))}
                 </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleExportFigmaVariables}
-                    className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                  >
-                    Refresh
-                  </button>
-                  <button
-                    onClick={() => { setFigmaCollections([]); }}
-                    className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline"
-                  >
-                    Clear
-                  </button>
-                </div>
               </>
             )}
           </>
         )}
       </div>
 
-      {/* Action buttons */}
+      {/* Sticky action footer */}
       <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
         {mode === 'platforms' && (
           <button
             onClick={handleExport}
             disabled={selected.size === 0 || exporting}
-            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
           >
             {exporting ? 'Exporting...' : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
           </button>
@@ -605,14 +700,14 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           <>
             <button
               onClick={handleCopyAll}
-              className="w-full px-3 py-2 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5"
+              className="w-full px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
             >
               Copy as DTCG JSON
             </button>
             <button
               onClick={handleSaveToServer}
               disabled={exporting}
-              className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+              className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
             >
               {exporting ? 'Saving...' : 'Save to Token Server'}
             </button>
