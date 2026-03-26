@@ -154,7 +154,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 - [ ] **UX audit & overhaul: Import** — Read the import panel and all sub-components, research how import/migration UIs work (Tokens Studio import, Figma's own import flows), audit the full import flow (source selection → load → filter → conflict check → target set → confirm), identify friction (is the conflict UI understandable? is the progress state clear?), then redesign: reduce the number of steps if possible, make conflicts visually obvious with clear resolution options, and ensure the user always knows what will happen before they commit. `packages/plugin/src/routes/ImportPanel.tsx`
 
-- [~] **UX audit & overhaul: Paste Tokens** — Read the paste tokens modal and its parser logic, research how paste/import modals work in comparable tools, audit the full flow (paste text → parse → see preview → set group path → confirm), identify friction (is multi-format support communicated clearly? is type inference visible to the user?), then redesign: improve format hints and examples, make the parsed preview more readable, and reduce cognitive load of the group path field. `packages/plugin/src/components/PasteTokensModal.tsx`
+- [x] **UX audit & overhaul: Paste Tokens** — Read the paste tokens modal and its parser logic, research how paste/import modals work in comparable tools, audit the full flow (paste text → parse → see preview → set group path → confirm), identify friction (is multi-format support communicated clearly? is type inference visible to the user?), then redesign: improve format hints and examples, make the parsed preview more readable, and reduce cognitive load of the group path field. `packages/plugin/src/components/PasteTokensModal.tsx`
 
 ### UI
 
@@ -174,7 +174,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### UI
 
-- [ ] **UI audit & overhaul: Export** — Read the export layout, audit visual design of the mode toggle, platform selector, filter controls, and output preview area, then redesign: improve the visual hierarchy so the user's eye is drawn first to selecting the target and then to the output. `packages/plugin/src/routes/ExportPanel.tsx`
+- [~] **UI audit & overhaul: Export** — Read the export layout, audit visual design of the mode toggle, platform selector, filter controls, and output preview area, then redesign: improve the visual hierarchy so the user's eye is drawn first to selecting the target and then to the output. `packages/plugin/src/routes/ExportPanel.tsx`
 
 ### QA
 

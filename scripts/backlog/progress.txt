@@ -229,3 +229,12 @@
   - No-results states are a great place to guide users toward adjacent features (token search mode)
   - Footer hints using natural language ("type > to search tokens") are more readable than symbolic shorthand ("> token search")
 ---
+
+## 2026-03-26 - UX audit & overhaul: Paste Tokens
+- Redesigned PasteTokensModal with: always-visible format hint bar (DTCG/name:value), format auto-detection badge on textarea, optional group prefix input field, conflict summary bar with counts (+N new · N conflicts · N skipped), "overwrite all" toggle at summary level, per-row overwrite checkbox synced with overwrite-all state, color swatches for color token values, type badges with type-specific colors, clearer skip/overwrite status badges, contextual confirm button ("Create N · Update N" vs "Create N"), Escape key to close
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` (full rewrite)
+- **Learnings for future iterations:**
+  - The `overwriteAll` toggle and per-row checkboxes need to stay in sync — update `overwriteAll` when individual rows are toggled (check if all conflicts are now checked)
+  - Format detection badge positioned `absolute bottom-2 right-2` inside a `relative` wrapper on the textarea works well without disturbing layout
+  - Color type badge coloring: use Tailwind literal classes (not dynamic `text-${color}-600`) to avoid purge issues
+---
