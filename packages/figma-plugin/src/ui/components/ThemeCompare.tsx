@@ -3,28 +3,46 @@ import type { TokenMapEntry } from '../../shared/types';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/colorUtils';
 
-type ThemeEntry = { name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> };
+type ThemeOption = { name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> };
+type ThemeDimension = { id: string; name: string; options: ThemeOption[] };
 
 interface ThemeCompareProps {
-  themes: ThemeEntry[];
+  dimensions: ThemeDimension[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
 }
 
-function resolveForTheme(
-  theme: ThemeEntry | null,
+// Flat list of all options across all dimensions for the compare selectors
+type FlatOption = { label: string; key: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> };
+
+function buildFlatOptions(dimensions: ThemeDimension[]): FlatOption[] {
+  const result: FlatOption[] = [];
+  for (const dim of dimensions) {
+    for (const opt of dim.options) {
+      result.push({
+        label: dimensions.length > 1 ? `${dim.name} / ${opt.name}` : opt.name,
+        key: `${dim.id}:${opt.name}`,
+        sets: opt.sets,
+      });
+    }
+  }
+  return result;
+}
+
+function resolveForOption(
+  option: FlatOption | null,
   allTokensFlat: Record<string, TokenMapEntry>,
   pathToSet: Record<string, string>,
 ): Record<string, TokenMapEntry> {
-  if (!theme) return resolveAllAliases(allTokensFlat);
+  if (!option) return resolveAllAliases(allTokensFlat);
   const merged: Record<string, TokenMapEntry> = {};
-  for (const [setName, status] of Object.entries(theme.sets)) {
+  for (const [setName, status] of Object.entries(option.sets)) {
     if (status !== 'source') continue;
     for (const [path, entry] of Object.entries(allTokensFlat)) {
       if (pathToSet[path] === setName) merged[path] = entry;
     }
   }
-  for (const [setName, status] of Object.entries(theme.sets)) {
+  for (const [setName, status] of Object.entries(option.sets)) {
     if (status !== 'enabled') continue;
     for (const [path, entry] of Object.entries(allTokensFlat)) {
       if (pathToSet[path] === setName) merged[path] = entry;
@@ -61,22 +79,24 @@ function ColorSwatch({ hex }: { hex: string }) {
   );
 }
 
-export function ThemeCompare({ themes, allTokensFlat, pathToSet }: ThemeCompareProps) {
-  const [themeA, setThemeA] = useState<string>('');
-  const [themeB, setThemeB] = useState<string>('');
+export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeCompareProps) {
+  const [optionKeyA, setOptionKeyA] = useState<string>('');
+  const [optionKeyB, setOptionKeyB] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
+  const flatOptions = useMemo(() => buildFlatOptions(dimensions), [dimensions]);
+
   const resolvedA = useMemo(() => {
-    if (!themeA) return null;
-    const t = themes.find(t => t.name === themeA) ?? null;
-    return resolveForTheme(t, allTokensFlat, pathToSet);
-  }, [themeA, themes, allTokensFlat, pathToSet]);
+    if (!optionKeyA) return null;
+    const opt = flatOptions.find(o => o.key === optionKeyA) ?? null;
+    return resolveForOption(opt, allTokensFlat, pathToSet);
+  }, [optionKeyA, flatOptions, allTokensFlat, pathToSet]);
 
   const resolvedB = useMemo(() => {
-    if (!themeB) return null;
-    const t = themes.find(t => t.name === themeB) ?? null;
-    return resolveForTheme(t, allTokensFlat, pathToSet);
-  }, [themeB, themes, allTokensFlat, pathToSet]);
+    if (!optionKeyB) return null;
+    const opt = flatOptions.find(o => o.key === optionKeyB) ?? null;
+    return resolveForOption(opt, allTokensFlat, pathToSet);
+  }, [optionKeyB, flatOptions, allTokensFlat, pathToSet]);
 
   const diffs = useMemo(() => {
     if (!resolvedA || !resolvedB) return [];
@@ -114,7 +134,7 @@ export function ThemeCompare({ themes, allTokensFlat, pathToSet }: ThemeCompareP
     return diffs.filter(d => d.type === typeFilter);
   }, [diffs, typeFilter]);
 
-  const canCompare = themeA && themeB && themeA !== themeB;
+  const canCompare = optionKeyA && optionKeyB && optionKeyA !== optionKeyB;
 
   return (
     <div className="flex flex-col h-full">
@@ -123,26 +143,26 @@ export function ThemeCompare({ themes, allTokensFlat, pathToSet }: ThemeCompareP
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">A</span>
           <select
-            value={themeA}
-            onChange={e => setThemeA(e.target.value)}
+            value={optionKeyA}
+            onChange={e => setOptionKeyA(e.target.value)}
             className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
           >
-            <option value="">Select a theme…</option>
-            {themes.map(t => (
-              <option key={t.name} value={t.name}>{t.name}</option>
+            <option value="">Select a theme option…</option>
+            {flatOptions.map(o => (
+              <option key={o.key} value={o.key}>{o.label}</option>
             ))}
           </select>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">B</span>
           <select
-            value={themeB}
-            onChange={e => setThemeB(e.target.value)}
+            value={optionKeyB}
+            onChange={e => setOptionKeyB(e.target.value)}
             className="flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none cursor-pointer"
           >
-            <option value="">Select a theme…</option>
-            {themes.map(t => (
-              <option key={t.name} value={t.name}>{t.name}</option>
+            <option value="">Select a theme option…</option>
+            {flatOptions.map(o => (
+              <option key={o.key} value={o.key}>{o.label}</option>
             ))}
           </select>
         </div>
@@ -152,9 +172,9 @@ export function ThemeCompare({ themes, allTokensFlat, pathToSet }: ThemeCompareP
       {!canCompare ? (
         <div className="flex-1 flex items-center justify-center">
           <p className="text-[10px] text-[var(--color-figma-text-tertiary)] text-center px-4">
-            {themes.length < 2
-              ? 'You need at least two themes to compare.'
-              : 'Select two different themes above to see how they differ.'}
+            {flatOptions.length < 2
+              ? 'You need at least two theme options to compare.'
+              : 'Select two different options above to see how they differ.'}
           </p>
         </div>
       ) : diffs.length === 0 ? (

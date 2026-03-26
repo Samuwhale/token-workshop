@@ -31,6 +31,17 @@ interface VarDiffRow {
   figmaType?: string;
 }
 
+interface StyleDiffRow {
+  path: string;
+  cat: 'local-only' | 'figma-only' | 'conflict';
+  localValue?: string;   // display string
+  figmaValue?: string;   // display string
+  localRaw?: any;        // raw value for API/plugin
+  figmaRaw?: any;        // raw value for API/plugin
+  localType?: string;
+  figmaType?: string;
+}
+
 interface ReadinessCheck {
   id: string;
   label: string;
@@ -77,6 +88,44 @@ function flattenForVarDiff(
 
 function truncateValue(v: string, max = 24): string {
   return v.length > max ? v.slice(0, max) + '\u2026' : v;
+}
+
+const STYLE_TYPES = ['color', 'typography', 'shadow'] as const;
+
+function flattenForStyleDiff(
+  group: Record<string, any>,
+  prefix = ''
+): { path: string; value: any; type: string }[] {
+  const result: { path: string; value: any; type: string }[] = [];
+  for (const [key, val] of Object.entries(group)) {
+    if (key.startsWith('$')) continue;
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (val && typeof val === 'object' && '$value' in val) {
+      const type = String(val.$type ?? 'string');
+      if ((STYLE_TYPES as readonly string[]).includes(type)) {
+        result.push({ path, value: val.$value, type });
+      }
+    } else if (val && typeof val === 'object') {
+      result.push(...flattenForStyleDiff(val, path));
+    }
+  }
+  return result;
+}
+
+function summarizeStyleValue(value: any, type: string): string {
+  if (type === 'color') return String(value);
+  if (type === 'typography' && value && typeof value === 'object') {
+    const family = Array.isArray(value.fontFamily) ? value.fontFamily[0] : value.fontFamily;
+    const size = typeof value.fontSize === 'object'
+      ? `${value.fontSize.value}${value.fontSize.unit}`
+      : String(value.fontSize ?? '');
+    return `${family ?? ''}${size ? ' ' + size : ''}`.trim() || JSON.stringify(value).slice(0, 28);
+  }
+  if (type === 'shadow') {
+    const arr = Array.isArray(value) ? value : [value];
+    return arr.map((s: any) => s?.color ?? '').join(', ').slice(0, 28);
+  }
+  return JSON.stringify(value).slice(0, 28);
 }
 
 /* ── Collapsible section wrapper ─────────────────────────────────────────── */
@@ -139,6 +188,15 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
   const [varError, setVarError] = useState<string | null>(null);
   const [varChecked, setVarChecked] = useState(false);
   const varReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
+
+  // ── Style sync state ──
+  const [styleRows, setStyleRows] = useState<StyleDiffRow[]>([]);
+  const [styleDirs, setStyleDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
+  const [styleLoading, setStyleLoading] = useState(false);
+  const [styleSyncing, setStyleSyncing] = useState(false);
+  const [styleError, setStyleError] = useState<string | null>(null);
+  const [styleChecked, setStyleChecked] = useState(false);
+  const styleReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
 
   // ── Readiness state ──
   const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
@@ -325,6 +383,10 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
         varReadResolveRef.current(msg.tokens ?? []);
         varReadResolveRef.current = null;
       }
+      if (msg?.type === 'styles-read' && styleReadResolveRef.current) {
+        styleReadResolveRef.current(msg.tokens ?? []);
+        styleReadResolveRef.current = null;
+      }
       if (msg?.type === 'orphans-deleted' && orphansResolveRef.current) {
         orphansResolveRef.current(msg.count ?? 0);
         orphansResolveRef.current = null;
@@ -372,6 +434,106 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
       setVarSyncing(false);
     }
   }, [serverUrl, activeSet, varRows, varDirs]);
+
+  /* ── Style sync callbacks ──────────────────────────────────────────────── */
+
+  const computeStyleDiff = useCallback(async () => {
+    if (!activeSet) return;
+    setStyleLoading(true);
+    setStyleError(null);
+    setStyleChecked(false);
+    try {
+      const figmaTokens: any[] = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          styleReadResolveRef.current = null;
+          reject(new Error('Figma read timed out \u2014 is the plugin running?'));
+        }, 10000);
+        styleReadResolveRef.current = (tokens) => {
+          clearTimeout(timeout);
+          resolve(tokens);
+        };
+        parent.postMessage({ pluginMessage: { type: 'read-styles' } }, '*');
+      });
+
+      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      if (!res.ok) throw new Error('Could not fetch local tokens');
+      const data = await res.json();
+      const localFlat = flattenForStyleDiff(data.tokens || {});
+
+      const figmaMap = new Map<string, { raw: any; type: string }>(
+        figmaTokens.map(t => [t.path, { raw: t.$value, type: String(t.$type ?? 'string') }])
+      );
+      const localMap = new Map<string, { raw: any; type: string }>(
+        localFlat.map(t => [t.path, { raw: t.value, type: t.type }])
+      );
+
+      const rows: StyleDiffRow[] = [];
+      for (const [path, local] of localMap) {
+        const figmaEntry = figmaMap.get(path);
+        if (!figmaEntry) {
+          rows.push({ path, cat: 'local-only', localRaw: local.raw, localValue: summarizeStyleValue(local.raw, local.type), localType: local.type });
+        } else if (JSON.stringify(figmaEntry.raw) !== JSON.stringify(local.raw)) {
+          rows.push({ path, cat: 'conflict', localRaw: local.raw, figmaRaw: figmaEntry.raw, localValue: summarizeStyleValue(local.raw, local.type), figmaValue: summarizeStyleValue(figmaEntry.raw, figmaEntry.type), localType: local.type, figmaType: figmaEntry.type });
+        }
+      }
+      for (const [path, figmaEntry] of figmaMap) {
+        if (!localMap.has(path)) {
+          rows.push({ path, cat: 'figma-only', figmaRaw: figmaEntry.raw, figmaValue: summarizeStyleValue(figmaEntry.raw, figmaEntry.type), figmaType: figmaEntry.type });
+        }
+      }
+
+      setStyleRows(rows);
+      setStyleChecked(true);
+      const dirs: Record<string, 'push' | 'pull' | 'skip'> = {};
+      for (const r of rows) {
+        dirs[r.path] = r.cat === 'figma-only' ? 'pull' : 'push';
+      }
+      setStyleDirs(dirs);
+    } catch (err) {
+      setStyleError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
+      setStyleLoading(false);
+    }
+  }, [serverUrl, activeSet]);
+
+  const applyStyleDiff = useCallback(async () => {
+    const dirsSnapshot = styleDirs;
+    const rowsSnapshot = styleRows;
+    setStyleSyncing(true);
+    setStyleError(null);
+    try {
+      const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
+      const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
+
+      if (pushRows.length > 0) {
+        const tokens = pushRows.map(r => ({
+          path: r.path,
+          $type: r.localType ?? 'string',
+          $value: r.localRaw,
+        }));
+        parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
+      }
+
+      if (pullRows.length > 0) {
+        await Promise.all(pullRows.map(r =>
+          fetch(`${serverUrl}/api/tokens/${activeSet}/${r.path}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaRaw }),
+          })
+        ));
+      }
+
+      setStyleRows([]);
+      setStyleDirs({});
+      setStyleChecked(true);
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Style sync applied' } }, '*');
+    } catch (err) {
+      setStyleError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    } finally {
+      setStyleSyncing(false);
+    }
+  }, [serverUrl, activeSet, styleRows, styleDirs]);
 
   /* ── Readiness callbacks ───────────────────────────────────────────────── */
 
@@ -531,6 +693,9 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
   const varSyncCount = Object.values(varDirs).filter(d => d !== 'skip').length;
   const varPushCount = Object.values(varDirs).filter(d => d === 'push').length;
   const varPullCount = Object.values(varDirs).filter(d => d === 'pull').length;
+  const styleSyncCount = Object.values(styleDirs).filter(d => d !== 'skip').length;
+  const stylePushCount = Object.values(styleDirs).filter(d => d === 'push').length;
+  const stylePullCount = Object.values(styleDirs).filter(d => d === 'pull').length;
   const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
   const readinessPasses = readinessChecks.filter(c => c.status === 'pass').length;
 
@@ -758,15 +923,116 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
           title="Figma Styles"
           open={openSections.has('figma-styles')}
           onToggle={() => toggleSection('figma-styles')}
+          badge={
+            styleChecked && styleRows.length === 0
+              ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
+              : styleRows.length > 0
+                ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{styleRows.length} differ</span>
+                : null
+          }
         >
-          <div className="px-3 py-6 text-center">
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-              Figma Styles publishing is not yet available.
-            </div>
-            <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-1">
-              This section will allow pushing tokens to Figma text styles, color styles, and effect styles.
-            </div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] px-3 py-2">
+            Sync color, text, and effect styles between local tokens and Figma styles.
           </div>
+
+          <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between border-t border-[var(--color-figma-border)]">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Style differences</span>
+            <button
+              onClick={computeStyleDiff}
+              disabled={styleLoading || !activeSet}
+              className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+            >
+              {styleLoading ? 'Checking\u2026' : styleChecked ? 'Re-check' : 'Compare'}
+            </button>
+          </div>
+
+          {styleError && (
+            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{styleError}</div>
+          )}
+
+          {styleRows.length > 0 && (() => {
+            const localOnly = styleRows.filter(r => r.cat === 'local-only');
+            const figmaOnly = styleRows.filter(r => r.cat === 'figma-only');
+            const conflicts = styleRows.filter(r => r.cat === 'conflict');
+
+            return (
+              <>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] mr-0.5">Select all:</span>
+                  {(['push', 'pull', 'skip'] as const).map(action => (
+                    <button
+                      key={action}
+                      onClick={() => setStyleDirs(Object.fromEntries(styleRows.map(r => [r.path, action])))}
+                      className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
+                    >
+                      {action === 'push' ? '\u2191 Push all' : action === 'pull' ? '\u2193 Pull all' : 'Skip all'}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="divide-y divide-[var(--color-figma-border)] max-h-52 overflow-y-auto">
+                  {localOnly.length > 0 && (
+                    <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
+                      <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">Local only \u2014 not yet in Figma ({localOnly.length})</span>
+                    </div>
+                  )}
+                  {localOnly.map(row => (
+                    <VarDiffRowItem key={row.path} row={row} dir={styleDirs[row.path] ?? 'push'} onChange={d => setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
+                  ))}
+                  {figmaOnly.length > 0 && (
+                    <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
+                      <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">Figma only \u2014 not in local files ({figmaOnly.length})</span>
+                    </div>
+                  )}
+                  {figmaOnly.map(row => (
+                    <VarDiffRowItem key={row.path} row={row} dir={styleDirs[row.path] ?? 'pull'} onChange={d => setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
+                  ))}
+                  {conflicts.length > 0 && (
+                    <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
+                      <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">Values differ \u2014 choose which to keep ({conflicts.length})</span>
+                    </div>
+                  )}
+                  {conflicts.map(row => (
+                    <VarDiffRowItem key={row.path} row={row} dir={styleDirs[row.path] ?? 'push'} onChange={d => setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
+                  ))}
+                </div>
+
+                <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                    {styleSyncCount === 0
+                      ? 'Nothing to apply \u2014 all skipped'
+                      : [
+                          stylePushCount > 0 ? `\u2191 ${stylePushCount} to Figma` : null,
+                          stylePullCount > 0 ? `\u2193 ${stylePullCount} to local` : null,
+                        ].filter(Boolean).join(' \u00b7 ')
+                    }
+                  </span>
+                  <button
+                    onClick={applyStyleDiff}
+                    disabled={styleSyncing || styleSyncCount === 0}
+                    className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                  >
+                    {styleSyncing ? 'Syncing\u2026' : `Apply ${styleSyncCount > 0 ? styleSyncCount + ' change' + (styleSyncCount !== 1 ? 's' : '') : ''}`}
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+
+          {!styleLoading && !styleError && (
+            styleChecked && styleRows.length === 0 ? (
+              <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Local tokens match Figma styles.
+              </div>
+            ) : !styleChecked && styleRows.length === 0 ? (
+              <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which color, text, and effect styles differ.
+              </div>
+            ) : null
+          )}
         </Section>
 
         {/* ── Section: Git ─────────────────────────────────────────────── */}

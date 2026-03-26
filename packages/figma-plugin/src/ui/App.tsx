@@ -236,89 +236,100 @@ export function App() {
     && activeTab === 'tokens'
     && (tokens.length > 0 || createFromEmpty);
 
-  // Theme switcher state
-  const [themes, setThemes] = useState<{ name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> }[]>([]);
-  const [activeTheme, setActiveThemeState] = useState<string | null>(() => {
-    try { return localStorage.getItem('tm_active_theme') || null; } catch { return null; }
+  // Theme switcher state (multi-dimensional)
+  type ThemeOption = { name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> };
+  type ThemeDimension = { id: string; name: string; options: ThemeOption[] };
+  const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
+  const [activeThemes, setActiveThemesState] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('tm_active_themes') || '{}'); } catch { return {}; }
   });
-  const setActiveTheme = (name: string | null) => {
-    try {
-      if (name) localStorage.setItem('tm_active_theme', name);
-      else localStorage.removeItem('tm_active_theme');
-    } catch {}
-    parent.postMessage({ pluginMessage: { type: 'set-active-theme', theme: name } }, '*');
-    setActiveThemeState(name);
+  const setActiveThemes = (map: Record<string, string>) => {
+    try { localStorage.setItem('tm_active_themes', JSON.stringify(map)); } catch {}
+    parent.postMessage({ pluginMessage: { type: 'set-active-themes', themes: map } }, '*');
+    setActiveThemesState(map);
   };
-  // Load per-file active theme from clientStorage on mount
+  // Load per-file active themes from clientStorage on mount
   useEffect(() => {
-    parent.postMessage({ pluginMessage: { type: 'get-active-theme' } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'get-active-themes' } }, '*');
     const handler = (e: MessageEvent) => {
       const msg = e.data?.pluginMessage;
-      if (msg?.type === 'active-theme-loaded') {
-        setActiveThemeState(msg.theme);
+      if (msg?.type === 'active-themes-loaded') {
+        setActiveThemesState(msg.themes ?? {});
         window.removeEventListener('message', handler);
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
-  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
-  const themeDropdownRef = useRef<HTMLDivElement>(null);
+  const [openDimDropdown, setOpenDimDropdown] = useState<string | null>(null);
+  const dimDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch themes
+  // Fetch dimensions
   useEffect(() => {
     if (!connected) return;
     fetch(`${serverUrl}/api/themes`, { signal: AbortSignal.timeout(5000) })
       .then(r => r.json())
       .then(data => {
-        const all: ThemeEntry[] = data.themes || [];
-        setThemes(all);
-        // Clear active theme if it was deleted
-        if (activeTheme && !all.some(t => t.name === activeTheme)) setActiveTheme(null);
+        const all: ThemeDimension[] = data.dimensions || [];
+        setDimensions(all);
+        // Remove active entries whose dimension or option no longer exists
+        setActiveThemesState(prev => {
+          const next: Record<string, string> = {};
+          for (const dim of all) {
+            if (prev[dim.id] && dim.options.some(o => o.name === prev[dim.id])) {
+              next[dim.id] = prev[dim.id];
+            }
+          }
+          return next;
+        });
       })
       .catch(() => {});
   }, [connected, serverUrl, tokens]);
 
-  // Close theme dropdown on outside click
+  // Close dimension dropdown on outside click
   useEffect(() => {
-    if (!themeDropdownOpen) return;
+    if (!openDimDropdown) return;
     const handler = (e: MouseEvent) => {
-      if (themeDropdownRef.current && !themeDropdownRef.current.contains(e.target as Node)) setThemeDropdownOpen(false);
+      if (dimDropdownRef.current && !dimDropdownRef.current.contains(e.target as Node)) setOpenDimDropdown(null);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [themeDropdownOpen]);
+  }, [openDimDropdown]);
 
-  // Compute theme-resolved allTokensFlat when a theme is active
+  // Compute theme-resolved allTokensFlat from all active dimension options
   const themedAllTokensFlat = useMemo(() => {
-    if (!activeTheme) return allTokensFlat;
-    const theme = themes.find(t => t.name === activeTheme);
-    if (!theme) return allTokensFlat;
-    // We need per-set tokens. allTokensFlat merges all sets, but pathToSet tells us which set owns each token.
-    // For theme resolution: start with source sets (base), then layer enabled sets (overrides).
-    // Tokens from disabled sets are excluded from resolution.
+    const activeEntries = Object.keys(activeThemes);
+    if (activeEntries.length === 0) return allTokensFlat;
     const merged: Record<string, TokenMapEntry> = {};
-    // Source sets first
-    for (const [setName, status] of Object.entries(theme.sets)) {
-      if (status !== 'source') continue;
-      for (const [path, entry] of Object.entries(allTokensFlat)) {
-        if (pathToSet[path] === setName) merged[path] = entry;
+    // Iterate dimensions in order; for each, apply the active option's source then enabled sets
+    for (const dim of dimensions) {
+      const activeOptionName = activeThemes[dim.id];
+      if (!activeOptionName) continue;
+      const option = dim.options.find(o => o.name === activeOptionName);
+      if (!option) continue;
+      // Source sets first (foundation layer)
+      for (const [setName, status] of Object.entries(option.sets)) {
+        if (status !== 'source') continue;
+        for (const [path, entry] of Object.entries(allTokensFlat)) {
+          if (pathToSet[path] === setName) merged[path] = entry;
+        }
+      }
+      // Enabled sets override
+      for (const [setName, status] of Object.entries(option.sets)) {
+        if (status !== 'enabled') continue;
+        for (const [path, entry] of Object.entries(allTokensFlat)) {
+          if (pathToSet[path] === setName) merged[path] = entry;
+        }
       }
     }
-    // Enabled sets override
-    for (const [setName, status] of Object.entries(theme.sets)) {
-      if (status !== 'enabled') continue;
-      for (const [path, entry] of Object.entries(allTokensFlat)) {
-        if (pathToSet[path] === setName) merged[path] = entry;
-      }
-    }
+    if (Object.keys(merged).length === 0) return allTokensFlat;
     return resolveAllAliases(merged);
-  }, [activeTheme, themes, allTokensFlat, pathToSet]);
+  }, [activeThemes, dimensions, allTokensFlat, pathToSet]);
 
   // Cascade diff: live diff of resolved values when dragging set tabs to reorder
   const cascadeDiff = useMemo<Record<string, { before: any; after: any }> | null>(() => {
     if (!dragSetName || !dragOverSetName || dragSetName === dragOverSetName) return null;
-    if (activeTheme) return null; // theme-aware cascade uses different merge logic
+    if (Object.keys(activeThemes).length > 0) return null; // theme-aware cascade uses different merge logic
     const fromIdx = sets.indexOf(dragSetName);
     const toIdx = sets.indexOf(dragOverSetName);
     if (fromIdx === -1 || toIdx === -1) return null;
@@ -382,6 +393,7 @@ export function App() {
 
   // Group sync state
   const [syncGroupPending, setSyncGroupPending] = useState<{ groupPath: string; tokenCount: number } | null>(null);
+  const [syncGroupStylesPending, setSyncGroupStylesPending] = useState<{ groupPath: string; tokenCount: number } | null>(null);
 
   // Group scope state
   const [groupScopesPath, setGroupScopesPath] = useState<string | null>(null);
@@ -742,6 +754,26 @@ export function App() {
       console.error('Failed to sync group to Figma:', err);
     }
   }, [syncGroupPending, connected, serverUrl]);
+
+  const handleSyncGroupStyles = useCallback(async () => {
+    if (!syncGroupStylesPending || !connected) return;
+    const { groupPath } = syncGroupStylesPending;
+    setSyncGroupStylesPending(null);
+    try {
+      const rawMap = await fetchAllTokensFlat(serverUrl);
+      const resolved = resolveAllAliases(rawMap);
+      const prefix = groupPath + '.';
+      const tokens: { path: string; $type: string; $value: any }[] = [];
+      for (const [path, entry] of Object.entries(resolved)) {
+        if (path === groupPath || path.startsWith(prefix)) {
+          tokens.push({ path, $type: entry.$type, $value: entry.$value });
+        }
+      }
+      parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
+    } catch (err) {
+      console.error('Failed to create styles from group:', err);
+    }
+  }, [syncGroupStylesPending, connected, serverUrl]);
 
   const handleApplyGroupScopes = useCallback(async () => {
     if (!groupScopesPath || !connected) return;
@@ -1925,6 +1957,7 @@ export function App() {
                     onNavigateToAlias={handleNavigateToAlias}
                     onClearHighlight={() => setHighlightedToken(null)}
                     onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
+                    onSyncGroupStyles={(groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount })}
                     onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
                     syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
                     generators={generators}
@@ -2196,11 +2229,22 @@ export function App() {
       {/* Sync group to Figma confirmation */}
       {syncGroupPending && (
         <ConfirmModal
-          title={`Sync "${syncGroupPending.groupPath}" to Figma?`}
-          description={`This will apply ${syncGroupPending.tokenCount} token${syncGroupPending.tokenCount !== 1 ? 's' : ''} from this group to all matching Figma nodes on the page.`}
-          confirmLabel="Sync group"
+          title={`Create variables from "${syncGroupPending.groupPath}"?`}
+          description={`This will create or update ${syncGroupPending.tokenCount} Figma variable${syncGroupPending.tokenCount !== 1 ? 's' : ''} from this group.`}
+          confirmLabel="Create variables"
           onConfirm={handleSyncGroup}
           onCancel={() => setSyncGroupPending(null)}
+        />
+      )}
+
+      {/* Create styles from group confirmation */}
+      {syncGroupStylesPending && (
+        <ConfirmModal
+          title={`Create styles from "${syncGroupStylesPending.groupPath}"?`}
+          description={`This will create or update ${syncGroupStylesPending.tokenCount} Figma style${syncGroupStylesPending.tokenCount !== 1 ? 's' : ''} from this group.`}
+          confirmLabel="Create styles"
+          onConfirm={handleSyncGroupStyles}
+          onCancel={() => setSyncGroupStylesPending(null)}
         />
       )}
 

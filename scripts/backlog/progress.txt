@@ -497,3 +497,13 @@
   - Theme resolution logic (source→enabled merge + resolveAllAliases) is duplicated in ThemeCompare; could be extracted as a shared utility if more consumers appear.
   - OverflowPanel type and its rendering block are the two places to touch when adding a new panel — keep them in sync.
 ---
+
+## 2026-03-26 - Create Figma Styles from tokens
+- Implemented full Figma Styles sync section in PublishPanel replacing the "not yet available" stub. Wires up the existing plugin-side `read-styles`/`apply-styles`/`readFigmaStyles`/`applyStyles` code with a diff UI matching the Variables section. Supports compare, push (local→Figma), pull (Figma→local), and skip per-row for color, typography, and shadow token types.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L33, L82, L165, L375, L438, L695, L830
+- **Learnings for future iterations:**
+  - Plugin-side style apply/read was already fully implemented in controller.ts; only the UI was missing.
+  - Style values are complex objects (typography, shadow), not strings — need `summarizeStyleValue()` for display and keep `localRaw`/`figmaRaw` fields for actual API/plugin calls.
+  - Compare by `JSON.stringify` for complex values to detect changes correctly.
+  - `VarDiffRowItem` reuses cleanly for StyleDiffRow since both expose `localValue`/`figmaValue` as display strings.
+---

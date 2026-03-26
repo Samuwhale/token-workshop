@@ -60,6 +60,7 @@ interface TokenListProps {
   onClearHighlight?: () => void;
   lintViolations?: LintViolation[];
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
+  onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   syncSnapshot?: Record<string, string>;
   generators?: TokenGenerator[];
@@ -157,7 +158,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths, showIssuesOnly, onToggleIssuesOnly, cascadeDiff }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSyncGroupStyles, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths, showIssuesOnly, onToggleIssuesOnly, cascadeDiff }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
@@ -1819,6 +1820,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 lintViolations={lintViolations.filter(v => v.path === node.path)}
                 onExtractToAliasForLint={(path, $type, $value) => handleOpenExtractToAlias(path, $type, $value)}
                 onSyncGroup={onSyncGroup}
+                onSyncGroupStyles={onSyncGroupStyles}
                 onSetGroupScopes={onSetGroupScopes}
                 syncSnapshot={syncSnapshot}
                 cascadeDiff={cascadeDiff}
@@ -2438,6 +2440,7 @@ function TokenTreeNode({
   lintViolations = [],
   onExtractToAliasForLint,
   onSyncGroup,
+  onSyncGroupStyles,
   onSetGroupScopes,
   syncSnapshot,
   cascadeDiff,
@@ -2483,6 +2486,7 @@ function TokenTreeNode({
   lintViolations?: LintViolation[];
   onExtractToAliasForLint?: (path: string, $type?: string, $value?: any) => void;
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
+  onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   syncSnapshot?: Record<string, string>;
   cascadeDiff?: Record<string, { before: any; after: any }>;
@@ -2891,7 +2895,21 @@ function TokenTreeNode({
                 }}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
               >
-                Sync this group to Figma
+                Create variables from group
+              </button>
+            )}
+            {onSyncGroupStyles && (
+              <button
+                role="menuitem"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => {
+                  setGroupMenuPos(null);
+                  const count = node.children ? countTokensInGroup(node) : 0;
+                  onSyncGroupStyles(node.path, count);
+                }}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Create styles from group
               </button>
             )}
             <button
@@ -2939,6 +2957,7 @@ function TokenTreeNode({
             lintViolations={lintViolations.filter(v => v.path === child.path)}
             onExtractToAliasForLint={onExtractToAliasForLint}
             onSyncGroup={onSyncGroup}
+            onSyncGroupStyles={onSyncGroupStyles}
             onSetGroupScopes={onSetGroupScopes}
             syncSnapshot={syncSnapshot}
             cascadeDiff={cascadeDiff}
