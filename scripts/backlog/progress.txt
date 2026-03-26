@@ -217,3 +217,13 @@
   - Alias color values need one level of resolution: check if `$value` starts with `{` and look up in `allTokensFlat`
   - `nodeParentPath(path, name)` is the safe way to get parent group path (handles dotted segment names)
 ---
+
+## 2026-03-26 - Hover tooltip with full resolution chain
+- Added a styled hover tooltip on alias token rows showing the full resolution chain (e.g., `semantic.bg → color.neutral.100 → #F5F5F5`)
+- Tooltip appears absolutely positioned below the row on hover, using existing `hovered` state and `resolveResult.chain`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2143 (chain label computation), ~L2879 (tooltip element)
+- **Learnings for future iterations:**
+  - `resolveResult.chain` contains intermediate alias paths but not the starting token path or final value — prepend `node.path` and append `formatValue(...)` to build the full display chain
+  - The row container already has `relative` positioning, making absolute tooltip placement straightforward
+  - `hovered` state is already tracked per-row via `onMouseEnter`/`onMouseLeave` — no new state needed
+---
