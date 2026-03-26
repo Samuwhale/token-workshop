@@ -453,3 +453,11 @@
   - `viewMode === 'json'` must be checked BEFORE the `tokens.length === 0` guard in the ternary chain so the editor is accessible on empty sets (paste-to-import use case).
   - Hide the filter bar when `viewMode === 'json'` — search/type filters are irrelevant in the raw JSON view.
 ---
+
+## 2026-03-26 - Persist active theme selection per file
+- Added `get-active-theme` and `set-active-theme` message handlers in controller.ts using `figma.clientStorage` keyed by `figma.fileKey`. On mount, App.tsx sends `get-active-theme` and listens for `active-theme-loaded` to hydrate per-file state; `setActiveTheme` now also posts `set-active-theme` to persist to clientStorage. localStorage retained as fast initial-frame fallback.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L65, `packages/figma-plugin/src/ui/App.tsx` ~L242
+- **Learnings for future iterations:**
+  - `figma.clientStorage` is per-plugin (shared across files) unless keyed by `figma.fileKey` — always include the file key for per-file persistence.
+  - The async round-trip pattern: UI sends request on mount → listens once for response → removes listener. Keep localStorage as a sync fallback to avoid blank initial state.
+---

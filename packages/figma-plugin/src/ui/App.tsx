@@ -244,8 +244,22 @@ export function App() {
       if (name) localStorage.setItem('tm_active_theme', name);
       else localStorage.removeItem('tm_active_theme');
     } catch {}
+    parent.postMessage({ pluginMessage: { type: 'set-active-theme', theme: name } }, '*');
     setActiveThemeState(name);
   };
+  // Load per-file active theme from clientStorage on mount
+  useEffect(() => {
+    parent.postMessage({ pluginMessage: { type: 'get-active-theme' } }, '*');
+    const handler = (e: MessageEvent) => {
+      const msg = e.data?.pluginMessage;
+      if (msg?.type === 'active-theme-loaded') {
+        setActiveThemeState(msg.theme);
+        window.removeEventListener('message', handler);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
   const [themeDropdownOpen, setThemeDropdownOpen] = useState(false);
   const themeDropdownRef = useRef<HTMLDivElement>(null);
 

@@ -65,6 +65,21 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'eyedropper':
       sampleSelectionColor();
       break;
+    case 'get-active-theme': {
+      const key = `active-theme:${figma.fileKey ?? 'default'}`;
+      const theme = await figma.clientStorage.getAsync(key);
+      figma.ui.postMessage({ type: 'active-theme-loaded', theme: theme ?? null });
+      break;
+    }
+    case 'set-active-theme': {
+      const key = `active-theme:${figma.fileKey ?? 'default'}`;
+      if (msg.theme) {
+        await figma.clientStorage.setAsync(key, msg.theme);
+      } else {
+        await figma.clientStorage.deleteAsync(key);
+      }
+      break;
+    }
   }
 };
 
