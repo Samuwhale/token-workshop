@@ -193,3 +193,15 @@
   - The value display area has 4 conditional branches (boolean toggle, inline edit, inline editable, plain); alias dual-display was inserted as a new branch before the inline-editable and plain branches
   - `--color-figma-text-tertiary` is already defined in styles.css and used across several components — good for de-emphasized text
 ---
+
+## 2026-03-26 - Inline analytics as a toolbar toggle
+- Replaced the Analytics toolbar button (which opened an overflow panel) with a toggle that filters the token list to show only tokens with lint violations
+- Changed icon from bar chart to warning triangle; badge now uses `lintViolations.length` directly (always available) instead of `analyticsIssueCount` (only set when panel was open)
+- Added "Issues (N) ✕" chip in filter bar when active, integrated with clearFilters
+- Moved full Analytics panel access to the overflow (⋮) menu
+- Updated command palette "Open Analytics" → "Filter Validation Issues"
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L192,851-870,762-766,968-975,1419-1420; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L65-66,129,377,383-387,444,474-475,1229-1237
+- **Learnings for future iterations:**
+  - `analyticsIssueCount` was lazily populated (only when AnalyticsPanel rendered) — `lintViolations` from `useLint` is always available and better for toolbar badges
+  - `filterByDuplicatePaths` is a generic "keep only paths in Set" filter — reusable for any path-based filtering, not just duplicates
+---
