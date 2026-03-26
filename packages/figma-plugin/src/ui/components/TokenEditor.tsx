@@ -2,7 +2,23 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
-import { hexToLuminance, wcagContrast } from '../shared/colorUtils';
+import { hexToLuminance, wcagContrast, applyColorModifiers } from '../shared/colorUtils';
+import type { ColorModifierOp } from '../shared/colorUtils';
+import { TokenGeneratorDialog } from './TokenGeneratorDialog';
+
+type GeneratorType = 'colorRamp' | 'typeScale' | 'spacingScale' | 'opacityScale' | 'borderRadiusScale' | 'zIndexScale' | 'customScale';
+
+interface TokenGenerator {
+  id: string;
+  type: GeneratorType;
+  name: string;
+  sourceToken?: string;
+  targetSet: string;
+  targetGroup: string;
+  config: any;
+  createdAt: string;
+  updatedAt: string;
+}
 
 // ---------------------------------------------------------------------------
 // Figma variable scopes by token type
@@ -76,9 +92,12 @@ interface TokenEditorProps {
   onBack: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
+  generators?: TokenGenerator[];
+  allSets?: string[];
+  onRefreshGenerators?: () => void;
 }
 
-export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {} }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators }: TokenEditorProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,9 +116,15 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const bgInputRef = useRef<HTMLInputElement>(null);
   const [scopes, setScopes] = useState<string[]>([]);
   const [showScopes, setShowScopes] = useState(false);
-  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string } | null>(null);
+  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[] } | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showGeneratorDialog, setShowGeneratorDialog] = useState(false);
+  const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
+  const [showModifiers, setShowModifiers] = useState(false);
+
+  const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
+  const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
 
   useEffect(() => {
     const fetchToken = async () => {
@@ -113,6 +138,9 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         setDescription(token?.$description || '');
         const savedScopes = token?.$extensions?.['com.figma.scopes'] ?? token?.$scopes;
         setScopes(Array.isArray(savedScopes) ? savedScopes : []);
+        const savedModifiers = token?.$extensions?.tokenmanager?.colorModifier;
+        const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? savedModifiers : [];
+        setColorModifiers(loadedModifiers);
         const ref = typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}') ? token.$value : '';
         if (ref) setReference(ref);
         initialRef.current = {
@@ -121,6 +149,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           reference: ref,
           scopes: Array.isArray(savedScopes) ? savedScopes : [],
           type: token?.$type || 'string',
+          colorModifiers: loadedModifiers,
         };
         if (typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}')) {
           setReference(token.$value);
@@ -147,9 +176,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       value !== init.value ||
       description !== init.description ||
       reference !== init.reference ||
-      JSON.stringify(scopes) !== JSON.stringify(init.scopes)
+      JSON.stringify(scopes) !== JSON.stringify(init.scopes) ||
+      JSON.stringify(colorModifiers) !== JSON.stringify(init.colorModifiers)
     );
-  }, [tokenType, value, description, reference, scopes]);
+  }, [tokenType, value, description, reference, scopes, colorModifiers]);
 
   const canSave = useMemo(() => {
     if (tokenType === 'typography' && !aliasMode) {
@@ -211,7 +241,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         $value: reference || value,
       };
       if (description) body.$description = description;
-      if (scopes.length > 0) body.$extensions = { 'com.figma.scopes': scopes };
+      const extensions: Record<string, any> = {};
+      if (scopes.length > 0) extensions['com.figma.scopes'] = scopes;
+      if (colorModifiers.length > 0) extensions.tokenmanager = { colorModifier: colorModifiers };
+      if (Object.keys(extensions).length > 0) body.$extensions = extensions;
 
       const res = await fetch(`${serverUrl}/api/tokens/${setName}/${tokenPath}`, {
         method: 'PATCH',
@@ -446,6 +479,122 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           </div>
         )}
 
+        {/* Color modifiers — only when aliasing a color */}
+        {tokenType === 'color' && aliasMode && reference.startsWith('{') && reference.endsWith('}') && (() => {
+          const refPath = reference.slice(1, -1);
+          const baseHex = resolveColorValue(refPath, allTokensFlat);
+          const previewHex = baseHex && colorModifiers.length > 0 ? applyColorModifiers(baseHex, colorModifiers) : baseHex;
+          return (
+            <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+              <button
+                onClick={() => setShowModifiers(v => !v)}
+                className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+              >
+                <span>Color modifiers {colorModifiers.length > 0 ? `(${colorModifiers.length})` : ''}</span>
+                <div className="flex items-center gap-1.5">
+                  {previewHex && (
+                    <div className="w-3 h-3 rounded-sm border border-white/50 ring-1 ring-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: previewHex }} aria-hidden="true" />
+                  )}
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showModifiers ? 'rotate-180' : ''}`}>
+                    <path d="M2 3.5l3 3 3-3"/>
+                  </svg>
+                </div>
+              </button>
+              {showModifiers && (
+                <div className="p-3 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
+                  {colorModifiers.length === 0 && (
+                    <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No modifiers — add one below.</p>
+                  )}
+                  {colorModifiers.map((mod, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <select
+                        value={mod.type}
+                        onChange={e => {
+                          const type = e.target.value as ColorModifierOp['type'];
+                          setColorModifiers(prev => prev.map((m, idx) => {
+                            if (idx !== i) return m;
+                            if (type === 'mix') return { type, color: '#888888', ratio: 0.5 };
+                            if (type === 'alpha') return { type, amount: 0.5 };
+                            return { type, amount: 20 };
+                          }));
+                        }}
+                        className="px-1 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+                      >
+                        <option value="lighten">Lighten</option>
+                        <option value="darken">Darken</option>
+                        <option value="alpha">Alpha</option>
+                        <option value="mix">Mix</option>
+                      </select>
+                      {(mod.type === 'lighten' || mod.type === 'darken') && (
+                        <>
+                          <input
+                            type="range"
+                            min={0} max={100} step={1}
+                            value={mod.amount}
+                            onChange={e => setColorModifiers(prev => prev.map((m, idx) => idx === i ? { ...m, amount: Number(e.target.value) } : m))}
+                            className="flex-1"
+                          />
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{mod.amount}</span>
+                        </>
+                      )}
+                      {mod.type === 'alpha' && (
+                        <>
+                          <input
+                            type="range"
+                            min={0} max={1} step={0.01}
+                            value={mod.amount}
+                            onChange={e => setColorModifiers(prev => prev.map((m, idx) => idx === i ? { ...m, amount: Number(e.target.value) } : m))}
+                            className="flex-1"
+                          />
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(mod.amount * 100)}%</span>
+                        </>
+                      )}
+                      {mod.type === 'mix' && (
+                        <>
+                          <input
+                            type="color"
+                            value={mod.color.slice(0, 7)}
+                            onChange={e => setColorModifiers(prev => prev.map((m, idx) => idx === i ? { ...m, color: e.target.value } : m))}
+                            className="w-6 h-6 rounded border border-[var(--color-figma-border)] cursor-pointer bg-transparent shrink-0"
+                          />
+                          <input
+                            type="range"
+                            min={0} max={1} step={0.01}
+                            value={mod.ratio}
+                            onChange={e => setColorModifiers(prev => prev.map((m, idx) => idx === i ? { ...m, ratio: Number(e.target.value) } : m))}
+                            className="flex-1"
+                          />
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(mod.ratio * 100)}%</span>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setColorModifiers(prev => prev.filter((_, idx) => idx !== i))}
+                        className="shrink-0 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
+                        aria-label="Remove modifier"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 3l6 6M9 3l-6 6"/></svg>
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => setColorModifiers(prev => [...prev, { type: 'lighten', amount: 20 }])}
+                    className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left"
+                  >
+                    + Add modifier
+                  </button>
+                  {baseHex && colorModifiers.length > 0 && previewHex && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex-1 h-5 rounded border border-[var(--color-figma-border)]" style={{ backgroundColor: baseHex }} title={`Base: ${baseHex}`} />
+                      <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-figma-text-secondary)] shrink-0"><path d="M2 6h8M7 3l3 3-3 3"/></svg>
+                      <div className="flex-1 h-5 rounded border border-[var(--color-figma-border)]" style={{ backgroundColor: previewHex }} title={`Modified: ${previewHex}`} />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Contrast checker (color tokens only) */}
         {tokenType === 'color' && (
           <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
@@ -587,6 +736,66 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         </div>
       )}
 
+      {/* Generator groups */}
+      {canBeGeneratorSource && !aliasMode && (
+        <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+          <button
+            onClick={() => setShowGeneratorDialog(true)}
+            className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="5" cy="2" r="1.5"/>
+                <circle cx="2" cy="8" r="1.5"/>
+                <circle cx="8" cy="8" r="1.5"/>
+                <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5"/>
+              </svg>
+              {existingGeneratorsForToken.length > 0
+                ? `Derived groups (${existingGeneratorsForToken.length})`
+                : 'Derived groups'}
+            </span>
+            {existingGeneratorsForToken.length === 0 ? (
+              <span className="text-[9px] text-[var(--color-figma-accent)]">+ Create</span>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M7 2L3 5l4 3"/>
+              </svg>
+            )}
+          </button>
+          {existingGeneratorsForToken.length > 0 && (
+            <div className="px-3 py-2 flex flex-col gap-1.5 border-t border-[var(--color-figma-border)]">
+              {existingGeneratorsForToken.map(gen => (
+                <div key={gen.id} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-medium uppercase ${
+                      gen.type === 'colorRamp' ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' :
+                      gen.type === 'typeScale' ? 'bg-purple-500/15 text-purple-600' :
+                      gen.type === 'spacingScale' ? 'bg-green-500/15 text-green-600' :
+                      'bg-orange-500/15 text-orange-600'
+                    }`}>
+                      {gen.type === 'colorRamp' ? 'Ramp' : gen.type === 'typeScale' ? 'Scale' : gen.type === 'spacingScale' ? 'Spacing' : 'Opacity'}
+                    </span>
+                    <span className="text-[10px] text-[var(--color-figma-text)] truncate">{gen.targetGroup}</span>
+                  </div>
+                  <button
+                    onClick={e => { e.stopPropagation(); setShowGeneratorDialog(true); }}
+                    className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
+                  >
+                    Edit
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setShowGeneratorDialog(true)}
+                className="mt-0.5 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors text-left"
+              >
+                + Add another group
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Discard confirmation */}
       {showDiscardConfirm && (
         <div className="mx-3 mb-2 p-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px]">
@@ -624,6 +833,24 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           {saving ? 'Saving...' : 'Save'}
         </button>
       </div>
+
+      {/* Token Generator Dialog */}
+      {showGeneratorDialog && (
+        <TokenGeneratorDialog
+          serverUrl={serverUrl}
+          sourceTokenPath={tokenPath}
+          sourceTokenType={tokenType}
+          sourceTokenValue={aliasMode ? null : value}
+          allSets={allSets}
+          activeSet={setName}
+          existingGenerator={existingGeneratorsForToken[0]}
+          onClose={() => setShowGeneratorDialog(false)}
+          onSaved={() => {
+            setShowGeneratorDialog(false);
+            onRefreshGenerators?.();
+          }}
+        />
+      )}
     </div>
   );
 }

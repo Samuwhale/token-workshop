@@ -314,6 +314,69 @@ describe('TokenValidator', () => {
     it('rejects unknown keywords', () => {
       expectInvalid(validator.validate(makeToken('zigzag', 'strokeStyle'), 'ss'), 'unknown strokeStyle');
     });
+
+    it('rejects object form with invalid lineCap', () => {
+      expectInvalid(
+        validator.validate(
+          makeToken({ dashArray: [{ value: 2, unit: 'px' }], lineCap: 'flat' }, 'strokeStyle'),
+          'ss',
+        ),
+        'lineCap',
+      );
+    });
+
+    it('rejects object form missing dashArray', () => {
+      expectInvalid(
+        validator.validate(makeToken({ lineCap: 'round' }, 'strokeStyle'), 'ss'),
+        'dashArray',
+      );
+    });
+  });
+
+  describe('lineHeight / letterSpacing / fontStyle / textDecoration / textTransform', () => {
+    it('accepts lineHeight as number', () => {
+      expectValid(validator.validate(makeToken(1.5, 'lineHeight'), 'lh'));
+    });
+
+    it('accepts lineHeight as dimension', () => {
+      expectValid(validator.validate(makeToken({ value: 24, unit: 'px' }, 'lineHeight'), 'lh'));
+    });
+
+    it('rejects lineHeight as string', () => {
+      expectInvalid(validator.validate(makeToken('1.5', 'lineHeight'), 'lh'), 'lineHeight');
+    });
+
+    it('accepts letterSpacing as dimension', () => {
+      expectValid(validator.validate(makeToken({ value: 0.5, unit: 'px' }, 'letterSpacing'), 'ls'));
+    });
+
+    it('rejects letterSpacing as bare number', () => {
+      expectInvalid(validator.validate(makeToken(0.5, 'letterSpacing'), 'ls'), 'dimension');
+    });
+
+    it('accepts fontStyle as string', () => {
+      expectValid(validator.validate(makeToken('italic', 'fontStyle'), 'fs'));
+    });
+
+    it('rejects fontStyle as non-string', () => {
+      expectInvalid(validator.validate(makeToken(1, 'fontStyle'), 'fs'), 'fontStyle');
+    });
+
+    it('accepts textDecoration as string', () => {
+      expectValid(validator.validate(makeToken('underline', 'textDecoration'), 'td'));
+    });
+
+    it('rejects textDecoration as non-string', () => {
+      expectInvalid(validator.validate(makeToken(true, 'textDecoration'), 'td'), 'textDecoration');
+    });
+
+    it('accepts textTransform as string', () => {
+      expectValid(validator.validate(makeToken('uppercase', 'textTransform'), 'tt'));
+    });
+
+    it('rejects textTransform as non-string', () => {
+      expectInvalid(validator.validate(makeToken(42, 'textTransform'), 'tt'), 'textTransform');
+    });
   });
 
   describe('boolean / string / percentage / link', () => {

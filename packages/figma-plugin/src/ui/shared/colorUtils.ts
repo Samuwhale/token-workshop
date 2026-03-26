@@ -125,3 +125,43 @@ export function wcagContrast(hex1: string, hex2: string): number | null {
   const [lighter, darker] = l1 > l2 ? [l1, l2] : [l2, l1];
   return (lighter + 0.05) / (darker + 0.05);
 }
+
+// ---------------------------------------------------------------------------
+// Color modifiers (mirrors packages/core/src/color-modifier.ts)
+// ---------------------------------------------------------------------------
+
+export type ColorModifierOp =
+  | { type: 'lighten'; amount: number }
+  | { type: 'darken'; amount: number }
+  | { type: 'alpha'; amount: number }
+  | { type: 'mix'; color: string; ratio: number };
+
+export function applyColorModifiers(hex: string, modifiers: ColorModifierOp[]): string {
+  let current = hex;
+  for (const mod of modifiers) {
+    if (mod.type === 'lighten' || mod.type === 'darken') {
+      const lab = hexToLab(current.slice(0, 7));
+      if (!lab) continue;
+      const [L, a, b] = lab;
+      const newL = Math.max(0, Math.min(100, mod.type === 'lighten' ? L + mod.amount : L - mod.amount));
+      const base = labToHex(newL, a, b);
+      // preserve alpha if present
+      current = current.length === 9 ? base + current.slice(7) : base;
+    } else if (mod.type === 'alpha') {
+      const alpha = Math.round(Math.max(0, Math.min(1, mod.amount)) * 255);
+      current = current.slice(0, 7) + alpha.toString(16).padStart(2, '0');
+    } else if (mod.type === 'mix') {
+      const labA = hexToLab(current.slice(0, 7));
+      const labB = hexToLab(mod.color.slice(0, 7));
+      if (!labA || !labB) continue;
+      const t = Math.max(0, Math.min(1, mod.ratio));
+      const mixed = labToHex(
+        labA[0] * (1 - t) + labB[0] * t,
+        labA[1] * (1 - t) + labB[1] * t,
+        labA[2] * (1 - t) + labB[2] * t,
+      );
+      current = current.length === 9 ? mixed + current.slice(7) : mixed;
+    }
+  }
+  return current;
+}

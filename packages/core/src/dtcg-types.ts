@@ -7,7 +7,7 @@
  * Spec: https://tr.designtokens.org/format/
  */
 
-import { REFERENCE_REGEX } from './constants.js';
+import { REFERENCE_REGEX, REFERENCE_GLOBAL_REGEX } from './constants.js';
 
 // ---------------------------------------------------------------------------
 // File-format interfaces
@@ -56,6 +56,23 @@ export function isDTCGGroup(node: unknown): node is DTCGGroup {
 /** Returns `true` if `value` is a DTCG alias reference string (e.g. `"{a.b}"`). */
 export function isReference(value: unknown): value is string {
   return typeof value === 'string' && REFERENCE_REGEX.test(value);
+}
+
+/**
+ * Returns `true` if `value` is a formula string — a string containing at least
+ * one `{ref}` plus arithmetic operators outside of braces.
+ *
+ * Formula examples: `"{spacing.base} * 2"`, `"{a} + {b} / 3"`
+ * NOT formulas: `"{a.b}"` (pure alias — use `isReference` for that)
+ */
+export function isFormula(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  if (REFERENCE_REGEX.test(value)) return false; // pure alias
+  // Must contain at least one {ref}
+  if (!value.match(REFERENCE_GLOBAL_REGEX)) return false;
+  // Must have at least one math operator outside of braces
+  const withoutRefs = value.replace(REFERENCE_GLOBAL_REGEX, '');
+  return /[+\-*/^()]/.test(withoutRefs);
 }
 
 /**

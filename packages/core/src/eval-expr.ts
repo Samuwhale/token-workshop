@@ -1,0 +1,109 @@
+/**
+ * Safe arithmetic expression evaluator.
+ *
+ * Supports: +, -, *, /, ** (power), unary -, parentheses.
+ * Variables are pre-substituted before parsing.
+ * Does NOT use eval() or new Function().
+ */
+export function evalExpr(expr: string): number {
+  const tokens: string[] = [];
+  let i = 0;
+  const src = expr.replace(/\s+/g, '');
+
+  // Tokenize into numbers and operators
+  while (i < src.length) {
+    if (/\d/.test(src[i]) || (src[i] === '.' && i + 1 < src.length && /\d/.test(src[i + 1]))) {
+      let num = '';
+      while (i < src.length && /[\d.]/.test(src[i])) num += src[i++];
+      tokens.push(num);
+    } else if ('+-*/^()'.includes(src[i])) {
+      tokens.push(src[i++]);
+    } else {
+      throw new Error(`Unexpected character in formula: ${src[i]}`);
+    }
+  }
+
+  let pos = 0;
+
+  function peek(): string | undefined { return tokens[pos]; }
+  function consume(): string { return tokens[pos++]; }
+
+  function parseExpr(): number { return parseAddSub(); }
+
+  function parseAddSub(): number {
+    let left = parseMulDiv();
+    while (peek() === '+' || peek() === '-') {
+      const op = consume();
+      const right = parseMulDiv();
+      left = op === '+' ? left + right : left - right;
+    }
+    return left;
+  }
+
+  function parseMulDiv(): number {
+    let left = parsePow();
+    while (peek() === '*' || peek() === '/') {
+      const op = consume();
+      // Handle ** (two consecutive *)
+      if (op === '*' && peek() === '*') {
+        consume();
+        const exp = parsePow();
+        left = Math.pow(left, exp);
+      } else {
+        const right = parsePow();
+        left = op === '*' ? left * right : left / right;
+      }
+    }
+    return left;
+  }
+
+  function parsePow(): number {
+    return parseUnary();
+  }
+
+  function parseUnary(): number {
+    if (peek() === '-') {
+      consume();
+      return -parsePrimary();
+    }
+    if (peek() === '+') {
+      consume();
+      return parsePrimary();
+    }
+    return parsePrimary();
+  }
+
+  function parsePrimary(): number {
+    const t = peek();
+    if (t === '(') {
+      consume();
+      const val = parseExpr();
+      if (peek() !== ')') throw new Error('Expected )');
+      consume();
+      return val;
+    }
+    if (t !== undefined && /^-?\d*\.?\d+$/.test(t)) {
+      consume();
+      return parseFloat(t);
+    }
+    throw new Error(`Unexpected token: ${t}`);
+  }
+
+  const result = parseExpr();
+  if (pos !== tokens.length) throw new Error('Unexpected tokens after expression');
+  return result;
+}
+
+/**
+ * Substitute named variables in a formula string with their numeric values.
+ * Unknown variables are replaced with 0.
+ */
+export function substituteVars(
+  formula: string,
+  vars: Record<string, number>,
+): string {
+  return formula.replace(/\b(base|index|multiplier|prev)\b/g, (match) => {
+    if (match in vars) return String(vars[match]);
+    return '0';
+  });
+}

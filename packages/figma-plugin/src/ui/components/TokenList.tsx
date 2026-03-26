@@ -6,8 +6,22 @@ import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
-import { ScaffoldingWizard } from './ScaffoldingWizard';
+import { QuickStartDialog } from './QuickStartDialog';
 import { hexToRgb, rgbToLab, colorDeltaE, stableStringify } from '../shared/colorUtils';
+
+type GeneratorType = 'colorRamp' | 'typeScale' | 'spacingScale' | 'opacityScale' | 'borderRadiusScale' | 'zIndexScale' | 'customScale';
+
+interface TokenGenerator {
+  id: string;
+  type: GeneratorType;
+  name: string;
+  sourceToken?: string;
+  targetSet: string;
+  targetGroup: string;
+  config: any;
+  createdAt: string;
+  updatedAt: string;
+}
 import type { LintViolation } from '../hooks/useLint';
 
 function countTokensInGroup(node: TokenNode): number {
@@ -54,6 +68,8 @@ interface TokenListProps {
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   syncSnapshot?: Record<string, string>;
+  generators?: TokenGenerator[];
+  derivedTokenPaths?: Set<string>;
 }
 
 type DeleteConfirm =
@@ -84,7 +100,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onRefresh, onPushUndo, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSetGroupScopes, syncSnapshot, generators, derivedTokenPaths }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
@@ -111,6 +127,17 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [frIsRegex, setFrIsRegex] = useState(false);
   const [frError, setFrError] = useState('');
   const [frBusy, setFrBusy] = useState(false);
+
+  const generatorsBySource = useMemo(() => {
+    const map = new Map<string, TokenGenerator[]>();
+    for (const gen of generators ?? []) {
+      if (!gen.sourceToken) continue;
+      const arr = map.get(gen.sourceToken) ?? [];
+      arr.push(gen);
+      map.set(gen.sourceToken, arr);
+    }
+    return map;
+  }, [generators]);
 
   // Expand/collapse state — persisted in sessionStorage per set
   const setNameRef = useRef(setName);
@@ -1160,6 +1187,8 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
                 onSetGroupScopes={onSetGroupScopes}
                 syncSnapshot={syncSnapshot}
                 onFilterByType={setTypeFilter}
+                generatorsBySource={generatorsBySource}
+                derivedTokenPaths={derivedTokenPaths}
               />
             ))}
           </div>
@@ -1288,11 +1317,12 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         )}
       </div>
 
-      {/* Scaffolding Wizard */}
+      {/* Quick Start Dialog */}
       {showScaffold && (
-        <ScaffoldingWizard
+        <QuickStartDialog
           serverUrl={serverUrl}
           activeSet={setName}
+          allSets={sets}
           onClose={() => setShowScaffold(false)}
           onConfirm={() => { setShowScaffold(false); onRefresh(); }}
         />
@@ -1668,6 +1698,8 @@ function TokenTreeNode({
   onSetGroupScopes,
   syncSnapshot,
   onFilterByType,
+  generatorsBySource,
+  derivedTokenPaths,
 }: {
   node: TokenNode;
   depth: number;
@@ -1699,6 +1731,8 @@ function TokenTreeNode({
   onSetGroupScopes?: (groupPath: string) => void;
   syncSnapshot?: Record<string, string>;
   onFilterByType?: (type: string) => void;
+  generatorsBySource?: Map<string, TokenGenerator[]>;
+  derivedTokenPaths?: Set<string>;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -2019,6 +2053,8 @@ function TokenTreeNode({
             onSetGroupScopes={onSetGroupScopes}
             syncSnapshot={syncSnapshot}
             onFilterByType={onFilterByType}
+            generatorsBySource={generatorsBySource}
+            derivedTokenPaths={derivedTokenPaths}
           />
         ))}
       </div>
@@ -2102,6 +2138,32 @@ function TokenTreeNode({
             >
               {node.$type}
             </button>
+          )}
+          {/* Generator source indicator */}
+          {generatorsBySource?.has(node.path) && (
+            <span
+              title={`Source for ${generatorsBySource.get(node.path)!.length} derived group${generatorsBySource.get(node.path)!.length !== 1 ? 's' : ''}`}
+              className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] shrink-0 cursor-default"
+            >
+              <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <circle cx="5" cy="2" r="1.5"/>
+                <circle cx="2" cy="8" r="1.5"/>
+                <circle cx="8" cy="8" r="1.5"/>
+                <path d="M5 3.5V6M5 6L2 6.5M5 6L8 6.5"/>
+              </svg>
+              {generatorsBySource.get(node.path)!.length}
+            </span>
+          )}
+          {/* Derived token indicator */}
+          {derivedTokenPaths?.has(node.path) && !generatorsBySource?.has(node.path) && (
+            <span
+              title="Auto-generated by a token generator"
+              className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-medium bg-[var(--color-figma-text-secondary)]/10 text-[var(--color-figma-text-secondary)] shrink-0 cursor-default"
+            >
+              <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <path d="M2 2l6 6M8 2l-3 3-3 3"/>
+              </svg>
+            </span>
           )}
           {isAlias(node.$value) && (
             <button

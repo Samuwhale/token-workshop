@@ -6,8 +6,11 @@
  * detection (white = unvisited, gray = in-progress, black = done).
  */
 
-import { isReference, parseReference } from './dtcg-types.js';
-import { TOKEN_TYPES } from './constants.js';
+import { isReference, isFormula, parseReference } from './dtcg-types.js';
+import { TOKEN_TYPES, REFERENCE_GLOBAL_REGEX } from './constants.js';
+import { evalExpr } from './eval-expr.js';
+import { applyColorModifiers } from './color-modifier.js';
+import type { ColorModifierOp } from './types.js';
 import type {
   Token,
   TokenType,
@@ -181,6 +184,15 @@ export class TokenResolver {
       return refs;
     }
 
+    // Extract all {ref} tokens from formula strings
+    if (typeof value === 'string' && isFormula(value)) {
+      const matches = value.matchAll(new RegExp(REFERENCE_GLOBAL_REGEX.source, 'g'));
+      for (const m of matches) {
+        refs.add(m[1]);
+      }
+      return refs;
+    }
+
     if (Array.isArray(value)) {
       for (const item of value) {
         for (const r of this.collectReferences(item)) refs.add(r);
@@ -225,15 +237,34 @@ export class TokenResolver {
     }
 
     // All deps are resolved — resolve this token
-    const resolvedValue = this.resolveValue(token.$value, path);
+    let resolvedValue = this.resolveValue(token.$value, path);
     const $type = this.resolveType(token, path);
+
+    // Apply color modifiers if present
+    const tokenmanagerExt = token.$extensions?.tokenmanager as Record<string, unknown> | undefined;
+    const modifiers = tokenmanagerExt?.colorModifier;
+    if (Array.isArray(modifiers) && $type === 'color' && typeof resolvedValue === 'string') {
+      resolvedValue = applyColorModifiers(resolvedValue, modifiers as ColorModifierOp[]);
+    }
+
+    // Store formula metadata in $extensions so export can output calc() expressions
+    const isFormulaToken = typeof token.$value === 'string' && isFormula(token.$value);
+    const extensions = isFormulaToken
+      ? {
+          ...token.$extensions,
+          tokenmanager: {
+            ...(tokenmanagerExt ?? {}),
+            formula: token.$value,
+          },
+        }
+      : token.$extensions;
 
     this.resolved.set(path, {
       path,
       $type,
       $value: resolvedValue as TokenValue,
       $description: token.$description,
-      $extensions: token.$extensions,
+      $extensions: extensions,
       rawValue: token.$value,
       setName: this.setName,
     });
@@ -247,8 +278,9 @@ export class TokenResolver {
 
   /**
    * Recursively resolve a value. If it is a reference, return the resolved
-   * value of the referenced token. For composite objects/arrays, recurse
-   * into each field.
+   * value of the referenced token. For formula strings, substitute all refs
+   * with their numeric values and evaluate the arithmetic expression.
+   * For composite objects/arrays, recurse into each field.
    */
   private resolveValue(value: unknown, contextPath: string): unknown {
     if (isReference(value)) {
@@ -261,6 +293,28 @@ export class TokenResolver {
         );
       }
       return resolved.$value;
+    }
+
+    // Formula evaluation: substitute all {ref} tokens with their numeric values
+    if (typeof value === 'string' && isFormula(value)) {
+      const substituted = value.replace(new RegExp(REFERENCE_GLOBAL_REGEX.source, 'g'), (_match, refPath: string) => {
+        const resolved = this.resolved.get(refPath);
+        if (!resolved) {
+          throw new Error(
+            `Unresolved reference "{${refPath}}" in formula at "${contextPath}". ` +
+              `Token "${refPath}" could not be found or resolved.`,
+          );
+        }
+        const num = this.extractNumeric(resolved.$value);
+        if (num === null) {
+          throw new Error(
+            `Reference "{${refPath}}" in formula at "${contextPath}" does not resolve to a number. ` +
+              `Got: ${JSON.stringify(resolved.$value)}`,
+          );
+        }
+        return String(num);
+      });
+      return evalExpr(substituted);
     }
 
     if (Array.isArray(value)) {
@@ -276,6 +330,19 @@ export class TokenResolver {
     }
 
     return value;
+  }
+
+  /**
+   * Extract a numeric value from a resolved token value.
+   * Handles raw numbers and dimension objects { value: number, unit: string }.
+   */
+  private extractNumeric(value: unknown): number | null {
+    if (typeof value === 'number') return value;
+    if (typeof value === 'object' && value !== null && 'value' in value) {
+      const v = (value as { value: unknown }).value;
+      return typeof v === 'number' ? v : null;
+    }
+    return null;
   }
 
   /**

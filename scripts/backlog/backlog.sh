@@ -56,6 +56,16 @@ remaining() {
   grep -cE '^\- \[ \]' "$BACKLOG_FILE" 2>/dev/null || echo 0
 }
 
+# Recover stale [~] items from crashed previous sessions
+STALE=$(grep -cE '^\- \[~\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+if [ "$STALE" -gt 0 ]; then
+  echo "WARNING: $STALE stale [~] item(s) from a previous crashed session — resetting to [ ]"
+  sed -i '' 's/^\(- \)\[~\]/\1[ ]/g' "$BACKLOG_FILE"
+fi
+
+# JSON schema for structured agent output
+JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed","complete"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
+
 echo "Starting Backlog Runner — Tool: $TOOL — Max iterations: $MAX_ITERATIONS"
 echo "  Remaining items: $(remaining)"
 echo "  Stop signal:     touch $STOP_FILE"
@@ -77,15 +87,32 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   if [[ "$TOOL" == "amp" ]]; then
     OUTPUT=$(cat "$SCRIPT_DIR/CLAUDE.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
   else
-    # Inject patterns.md (lean, stable) — not the full progress log
+    # Build context file: patterns + last 3 progress entries (agents learn from recent failures)
+    CONTEXT_FILE=$(mktemp)
+    cat "$PATTERNS_FILE" > "$CONTEXT_FILE"
+    printf '\n\n## Recent session log:\n' >> "$CONTEXT_FILE"
+    awk '/^## /{found=1; count++} found && count<=3{print} /^---$/ && found && count>=3{exit}' \
+      "$PROGRESS_FILE" >> "$CONTEXT_FILE" 2>/dev/null || true
+
     OUTPUT=$(claude \
       --dangerously-skip-permissions \
       --print \
-      --append-system-prompt-file "$PATTERNS_FILE" \
+      --no-session-persistence \
+      --max-turns 100 \
+      --output-format json \
+      --json-schema "$JSON_SCHEMA" \
+      --fallback-model claude-haiku-4-5-20251001 \
+      --append-system-prompt-file "$CONTEXT_FILE" \
       < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
+
+    rm -f "$CONTEXT_FILE"
   fi
 
-  if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
+  # Detect completion via structured JSON output
+  STATUS=$(echo "$OUTPUT" | jq -r \
+    'try (.result | if type == "string" then fromjson else . end | .status) catch ""' \
+    2>/dev/null || echo "")
+  if [ "$STATUS" = "complete" ]; then
     echo ""
     echo "Backlog completed all tasks!"
     echo "Completed at iteration $i / $MAX_ITERATIONS"

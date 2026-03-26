@@ -37,7 +37,7 @@ import { UndoToast } from './components/UndoToast';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmptyState } from './components/EmptyState';
 import { PasteTokensModal } from './components/PasteTokensModal';
-import { ScaffoldingWizard } from './components/ScaffoldingWizard';
+import { QuickStartDialog } from './components/QuickStartDialog';
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { Command } from './components/CommandPalette';
@@ -46,6 +46,7 @@ import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hoo
 import { useSelection } from './hooks/useSelection';
 import { useUndo } from './hooks/useUndo';
 import { useLint } from './hooks/useLint';
+import { useGenerators } from './hooks/useGenerators';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
 import { stableStringify } from './shared/colorUtils';
@@ -135,6 +136,7 @@ export function App() {
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
+  const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const [validateKey, setValidateKey] = useState(0);
   const [analyticsIssueCount, setAnalyticsIssueCount] = useState<number | null>(null);
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
@@ -958,6 +960,8 @@ export function App() {
               onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
               onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
               syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
+              generators={generators}
+              derivedTokenPaths={derivedTokenPaths}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && editingToken && (
@@ -968,6 +972,9 @@ export function App() {
               onBack={() => { setEditingToken(null); refreshAll(); }}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
+              generators={generators}
+              allSets={sets}
+              onRefreshGenerators={refreshGenerators}
             />
           )}
           {overflowPanel === null && activeTab === 'themes' && (
@@ -1131,11 +1138,12 @@ export function App() {
         />
       )}
 
-      {/* Scaffolding Wizard (from empty state) */}
+      {/* Quick Start Dialog (from empty state) */}
       {showScaffoldWizard && (
-        <ScaffoldingWizard
+        <QuickStartDialog
           serverUrl={serverUrl}
           activeSet={activeSet}
+          allSets={sets}
           onClose={() => setShowScaffoldWizard(false)}
           onConfirm={() => { refreshAll(); }}
         />

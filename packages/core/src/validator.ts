@@ -7,7 +7,7 @@
  */
 
 import { TOKEN_TYPES, FONT_WEIGHT_NAMES, STROKE_STYLE_KEYWORDS } from './constants.js';
-import { isReference, isDTCGToken, isDTCGGroup } from './dtcg-types.js';
+import { isReference, isFormula, isDTCGToken, isDTCGGroup } from './dtcg-types.js';
 import type {
   Token,
   TokenGroup,
@@ -102,8 +102,8 @@ export class TokenValidator {
     const errors: string[] = [];
     const value = token.$value;
 
-    // Skip references — they will be validated during resolution
-    if (isReference(value)) {
+    // Skip references and formulas — they are validated during resolution
+    if (isReference(value) || isFormula(value)) {
       return { path, valid: true, errors };
     }
 

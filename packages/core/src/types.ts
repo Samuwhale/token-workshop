@@ -153,6 +153,20 @@ export interface ThemesFile {
 }
 
 // ---------------------------------------------------------------------------
+// Color Modifiers
+// ---------------------------------------------------------------------------
+
+/**
+ * A single color modifier operation stored in `$extensions.tokenmanager.colorModifier`.
+ * Operations are applied in order using CIELAB math.
+ */
+export type ColorModifierOp =
+  | { type: 'lighten'; amount: number }       // L* += amount (0-100 scale)
+  | { type: 'darken'; amount: number }        // L* -= amount
+  | { type: 'alpha'; amount: number }         // set alpha channel (0-1)
+  | { type: 'mix'; color: string; ratio: number }; // Lab interpolate at ratio
+
+// ---------------------------------------------------------------------------
 // Resolved Token (post-alias resolution)
 // ---------------------------------------------------------------------------
 

@@ -8,6 +8,7 @@ import {
   type ResolvedToken,
   type TokenType,
   isDTCGToken,
+  isFormula,
   TokenResolver,
 } from '@tokenmanager/core';
 
@@ -243,6 +244,8 @@ export class TokenStore {
     if (!/^[a-zA-Z0-9_-]+$/.test(setName)) {
       throw new Error(`Invalid set name "${setName}". Only alphanumeric characters, dashes, and underscores are allowed.`);
     }
+    // Auto-persist formula metadata so Style Dictionary export can output calc()
+    token = this.enrichFormulaExtension(token);
     let set = this.sets.get(setName);
     if (!set) {
       set = await this.createSet(setName);
@@ -250,6 +253,7 @@ export class TokenStore {
     this.setTokenAtPath(set.tokens, tokenPath, token);
     await this.saveSet(setName);
     this.rebuildFlatTokens();
+    this.emit({ type: 'token-updated', setName, tokenPath });
   }
 
   async updateToken(setName: string, tokenPath: string, token: Partial<Token>): Promise<void> {
@@ -257,6 +261,13 @@ export class TokenStore {
     if (!set) throw new Error(`Set "${setName}" not found`);
     const existing = this.getTokenAtPath(set.tokens, tokenPath);
     if (!existing) throw new Error(`Token "${tokenPath}" not found in set "${setName}"`);
+    // Auto-persist formula metadata so Style Dictionary export can output calc()
+    if ('$value' in token && token.$value !== undefined) {
+      const enriched = this.enrichFormulaExtension({ $value: token.$value, $extensions: token.$extensions ?? existing.$extensions });
+      if (enriched.$extensions !== (token.$extensions ?? existing.$extensions)) {
+        token = { ...token, $extensions: enriched.$extensions };
+      }
+    }
     // Replace known token fields explicitly so stale properties don't persist.
     // A partial update only touches keys that are present in the incoming object.
     if ('$value' in token) existing.$value = token.$value!;
@@ -265,6 +276,7 @@ export class TokenStore {
     if ('$extensions' in token) existing.$extensions = token.$extensions;
     await this.saveSet(setName);
     this.rebuildFlatTokens();
+    this.emit({ type: 'token-updated', setName, tokenPath });
   }
 
   async deleteToken(setName: string, tokenPath: string): Promise<boolean> {
@@ -543,6 +555,27 @@ export class TokenStore {
 
     this.rebuildFlatTokens();
     return { renamed: filteredRenames.length, skipped, aliasesUpdated };
+  }
+
+  // ----- Formula metadata -----
+
+  /**
+   * If a token's $value is a formula string, ensure $extensions.tokenmanager.formula
+   * is set so Style Dictionary can output calc() expressions at export time.
+   */
+  private enrichFormulaExtension(token: Pick<Token, '$value' | '$extensions'>): Token {
+    if (typeof token.$value === 'string' && isFormula(token.$value)) {
+      const existing = token.$extensions;
+      const tm = (existing?.tokenmanager as Record<string, unknown> | undefined) ?? {};
+      return {
+        ...token,
+        $extensions: {
+          ...existing,
+          tokenmanager: { ...tm, formula: token.$value },
+        },
+      } as Token;
+    }
+    return token as Token;
   }
 
   // ----- Path helpers -----

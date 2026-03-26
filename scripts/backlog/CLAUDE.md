@@ -63,9 +63,8 @@ When leaving an item as `[~]` between sessions, add this inline comment in backl
 
 After completing (or failing) one item, check whether any `[ ]` items remain in backlog.md.
 
-If **none remain**, reply with:
-```
-<promise>COMPLETE</promise>
-```
+End every session with a JSON object as your **final message** — no text before or after it:
 
-Otherwise, end your response normally — the next iteration picks up from here.
+- Item succeeded: `{"status":"done","item":"<item title>","note":"<one-line summary>"}`
+- Item failed: `{"status":"failed","item":"<item title>","note":"<reason>"}`
+- No `[ ]` items remain: `{"status":"complete"}`

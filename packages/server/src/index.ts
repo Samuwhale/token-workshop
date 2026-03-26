@@ -18,6 +18,8 @@ import { lintRoutes } from './routes/lint.js';
 import { docsRoutes } from './routes/docs.js';
 import { TokenStore } from './services/token-store.js';
 import { GitSync } from './services/git-sync.js';
+import { GeneratorService } from './services/generator-service.js';
+import { generatorRoutes } from './routes/generators.js';
 
 export interface ServerConfig {
   tokenDir: string;
@@ -39,9 +41,22 @@ export async function startServer(config: ServerConfig) {
 
   const gitSync = new GitSync(config.tokenDir);
 
+  const generatorService = new GeneratorService(config.tokenDir);
+  await generatorService.initialize();
+
   // Decorate fastify with services
   fastify.decorate('tokenStore', tokenStore);
   fastify.decorate('gitSync', gitSync);
+  fastify.decorate('generatorService', generatorService);
+
+  // Auto-run generators when a source token is updated
+  tokenStore.onChange((event) => {
+    if (event.type === 'token-updated' && event.tokenPath) {
+      generatorService
+        .runForSourceToken(event.tokenPath, tokenStore)
+        .catch(err => console.warn('[Generator] Auto-run failed:', err));
+    }
+  });
 
   // Ensure the file watcher is closed on server shutdown
   fastify.addHook('onClose', async () => {
@@ -57,6 +72,7 @@ export async function startServer(config: ServerConfig) {
   await fastify.register(exportRoutes, { prefix: '/api' });
   await fastify.register(sseRoutes, { prefix: '/api' });
   await fastify.register(lintRoutes, { prefix: '/api', tokenDir: config.tokenDir });
+  await fastify.register(generatorRoutes, { prefix: '/api' });
   await fastify.register(docsRoutes);
 
   try {
@@ -76,5 +92,6 @@ declare module 'fastify' {
   interface FastifyInstance {
     tokenStore: TokenStore;
     gitSync: GitSync;
+    generatorService: GeneratorService;
   }
 }

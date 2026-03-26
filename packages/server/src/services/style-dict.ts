@@ -3,6 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import type { TokenGroup } from '@tokenmanager/core';
+import { REFERENCE_GLOBAL_REGEX } from '@tokenmanager/core';
 
 export type ExportPlatform = 'css' | 'dart' | 'ios-swift' | 'android' | 'json';
 
@@ -121,6 +122,38 @@ function resolveGradientStopAliases(merged: Record<string, any>): Record<string,
   return processObj(merged);
 }
 
+/**
+ * Walk a merged DTCG token tree and replace formula tokens' $value with
+ * a CSS calc() expression. Only used when building the CSS platform.
+ *
+ * Example: a token with $value=16 and $extensions.tokenmanager.formula="{spacing.base} * 2"
+ * becomes $value="calc(var(--spacing-base) * 2)".
+ */
+function injectFormulaCalc(obj: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val && typeof val === 'object' && !Array.isArray(val)) {
+      if ('$value' in val) {
+        // Check for formula metadata
+        const formula = val.$extensions?.tokenmanager?.formula;
+        if (typeof formula === 'string') {
+          const cssFormula = formula.replace(REFERENCE_GLOBAL_REGEX, (_m: string, refPath: string) => {
+            return `var(--${refPath.replace(/\./g, '-')})`;
+          });
+          result[key] = { ...val, $value: `calc(${cssFormula})` };
+        } else {
+          result[key] = val;
+        }
+      } else {
+        result[key] = injectFormulaCalc(val);
+      }
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
 export async function exportTokens(
   tokens: Record<string, TokenGroup>,
   platforms: ExportPlatform[],
@@ -142,6 +175,12 @@ export async function exportTokens(
   const resolvedMerged = resolveGradientStopAliases(merged);
   await fs.writeFile(tokenFile, JSON.stringify(resolvedMerged, null, 2));
 
+  // For CSS exports: create a separate token file where formula tokens have
+  // their $value replaced with a calc() expression.
+  const cssTokenFile = path.join(tmpDir, 'tokens-css.json');
+  const cssOptimized = injectFormulaCalc(resolvedMerged);
+  await fs.writeFile(cssTokenFile, JSON.stringify(cssOptimized, null, 2));
+
   const results: ExportResult[] = [];
 
   for (const platform of platforms) {
@@ -151,9 +190,12 @@ export async function exportTokens(
     const buildPath = path.join(tmpDir, config.buildPath);
     await fs.mkdir(buildPath, { recursive: true });
 
+    // Use the CSS-optimized file (formula → calc()) for the CSS platform
+    const sourceFile = platform === 'css' ? cssTokenFile : tokenFile;
+
     try {
       const sd = new StyleDictionary({
-        source: [tokenFile],
+        source: [sourceFile],
         platforms: {
           [platform]: {
             ...config,

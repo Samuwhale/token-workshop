@@ -326,30 +326,97 @@ describe('TokenResolver', () => {
     });
   });
 
-  describe('gradient stop alias resolution', () => {
-    it('resolves alias references in gradient stop colors', () => {
+  describe('formula resolution', () => {
+    it('evaluates a simple formula with a single reference', () => {
       const tokens: Record<string, Token> = {
-        'colors.blue': makeToken('#0000ff', 'color'),
-        'colors.white': makeToken('#ffffff', 'color'),
-        'gradient.primary': makeToken(
-          [
-            { color: '{colors.blue}', position: 0 },
-            { color: '{colors.white}', position: 1 },
-          ],
-          'gradient',
-        ),
+        'spacing.base': makeToken(8, 'number'),
+        'spacing.lg': makeToken('{spacing.base} * 2', 'number'),
       };
 
       const resolver = new TokenResolver(tokens);
-      const result = resolver.resolve('gradient.primary');
+      const result = resolver.resolve('spacing.lg');
 
-      const stops = result.$value as Array<{ color: string; position: number }>;
-      expect(stops[0].color).toBe('#0000ff');
-      expect(stops[1].color).toBe('#ffffff');
-      expect(stops[0].position).toBe(0);
-      expect(stops[1].position).toBe(1);
+      expect(result.$value).toBe(16);
     });
 
+    it('evaluates a formula with two references', () => {
+      const tokens: Record<string, Token> = {
+        'a': makeToken(10, 'number'),
+        'b': makeToken(5, 'number'),
+        'c': makeToken('{a} + {b}', 'number'),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      expect(resolver.resolve('c').$value).toBe(15);
+    });
+
+    it('extracts numeric value from a dimension token', () => {
+      const tokens: Record<string, Token> = {
+        'spacing.base': makeToken({ value: 8, unit: 'px' }, 'dimension'),
+        'spacing.lg': makeToken('{spacing.base} * 2', 'dimension'),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      expect(resolver.resolve('spacing.lg').$value).toBe(16);
+    });
+
+    it('handles parentheses in formulas', () => {
+      const tokens: Record<string, Token> = {
+        'a': makeToken(6, 'number'),
+        'b': makeToken(4, 'number'),
+        'result': makeToken('({a} + {b}) / 2', 'number'),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      expect(resolver.resolve('result').$value).toBe(5);
+    });
+
+    it('stores the formula in $extensions.tokenmanager.formula', () => {
+      const tokens: Record<string, Token> = {
+        'base': makeToken(10, 'number'),
+        'derived': makeToken('{base} * 3', 'number'),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      const result = resolver.resolve('derived');
+      const ext = result.$extensions as Record<string, unknown> | undefined;
+      expect((ext?.tokenmanager as any)?.formula).toBe('{base} * 3');
+    });
+
+    it('includes formula refs in the dependency graph', () => {
+      const tokens: Record<string, Token> = {
+        'base': makeToken(4, 'number'),
+        'derived': makeToken('{base} * 3', 'number'),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      resolver.resolveAll();
+      resolver.updateToken('base', makeToken(10, 'number'));
+      expect(resolver.resolve('derived').$value).toBe(30);
+    });
+
+    it('throws when a formula references a non-numeric token', () => {
+      const tokens: Record<string, Token> = {
+        'clr': makeToken('#ff0000', 'color'),
+        'bad': makeToken('{clr} * 2', 'number'),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      expect(() => resolver.resolve('bad')).toThrow(/does not resolve to a number/);
+    });
+
+    it('throws on a cycle involving formula tokens', () => {
+      const tokens: Record<string, Token> = {
+        'a': makeToken('{b} * 2', 'number'),
+        'b': makeToken('{a} + 1', 'number'),
+      };
+
+      const resolver = new TokenResolver(tokens);
+      expect(() => resolver.resolve('a')).toThrow(/[Cc]ircular/);
+    });
+  });
+
+  describe('gradient stop alias resolution', () => {
     it('resolves chained alias in gradient stop color', () => {
       const tokens: Record<string, Token> = {
         'primitives.blue': makeToken('#0000ff', 'color'),

@@ -19,6 +19,7 @@ export type { DimensionUnit, StrokeStyleKeyword } from './constants.js';
 
 // Types
 export type {
+  ColorModifierOp,
   ColorValue,
   DimensionValue,
   FontFamilyValue,
@@ -53,8 +54,16 @@ export {
   isDTCGToken,
   isDTCGGroup,
   isReference,
+  isFormula,
   parseReference,
 } from './dtcg-types.js';
+
+// Expression evaluator
+export { evalExpr, substituteVars } from './eval-expr.js';
+
+// Color math & modifiers
+export { hexToLab, labToHex } from './color-math.js';
+export { applyColorModifiers } from './color-modifier.js';
 
 // Resolver
 export { TokenResolver } from './resolver.js';
@@ -62,3 +71,45 @@ export { TokenResolver } from './resolver.js';
 // Validator
 export { TokenValidator } from './validator.js';
 export type { ValidationResult } from './validator.js';
+
+// Generator types & engine
+export type {
+  GeneratorType,
+  ColorRampConfig,
+  TypeScaleStep,
+  TypeScaleConfig,
+  SpacingStep,
+  SpacingScaleConfig,
+  OpacityScaleConfig,
+  BorderRadiusStep,
+  BorderRadiusScaleConfig,
+  ZIndexScaleConfig,
+  CustomScaleStep,
+  CustomScaleConfig,
+  GeneratorConfig,
+  TokenGenerator,
+  GeneratedTokenResult,
+  GeneratorTemplate,
+} from './generator-types.js';
+export {
+  DEFAULT_COLOR_RAMP_CONFIG,
+  DEFAULT_TYPE_SCALE_CONFIG,
+  DEFAULT_SPACING_SCALE_CONFIG,
+  DEFAULT_OPACITY_SCALE_CONFIG,
+  DEFAULT_BORDER_RADIUS_SCALE_CONFIG,
+  DEFAULT_Z_INDEX_SCALE_CONFIG,
+  DEFAULT_CUSTOM_SCALE_CONFIG,
+  GENERATOR_TEMPLATES,
+} from './generator-types.js';
+
+// Generator engine
+export {
+  runColorRampGenerator,
+  runTypeScaleGenerator,
+  runSpacingScaleGenerator,
+  runOpacityScaleGenerator,
+  runBorderRadiusScaleGenerator,
+  runZIndexScaleGenerator,
+  runCustomScaleGenerator,
+  applyOverrides,
+} from './generator-engine.js';
