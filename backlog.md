@@ -7,7 +7,7 @@
 # Backlog Inbox
 
 Add items here while backlog.sh is running. They will be triaged at the end of each iteration:
-- Items tagged `[HIGH]` or `[P0]` are inserted before the first `[ ]` item in the queue (picked next).
+- `- [HIGH] item title…` or `- [P0] item title…` — inserted before the first `[ ]` item (picked next by the agent).
 - All other items are appended to the bottom.
 
 ---
@@ -86,7 +86,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [ ] **UX audit & overhaul: Theme Manager** — Read the theme manager and all its sub-components (theme cards, set assignment matrix, coverage view), research how theming UIs work in comparable tools (Tokens Studio multi-theme, Figma modes), audit every interaction (create theme, assign sets, reorder, view coverage, delete), identify confusion points (the set assignment matrix is particularly dense), then redesign: simplify the set assignment UI, make coverage gaps immediately visible, and ensure theme CRUD operations feel natural. `packages/plugin/src/components/ThemeManager.tsx`
+- [x] **UX audit & overhaul: Theme Manager** — Read the theme manager and all its sub-components (theme cards, set assignment matrix, coverage view), research how theming UIs work in comparable tools (Tokens Studio multi-theme, Figma modes), audit every interaction (create theme, assign sets, reorder, view coverage, delete), identify confusion points (the set assignment matrix is particularly dense), then redesign: simplify the set assignment UI, make coverage gaps immediately visible, and ensure theme CRUD operations feel natural. `packages/plugin/src/components/ThemeManager.tsx`
 
 ### UI
 

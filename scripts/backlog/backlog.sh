@@ -159,31 +159,33 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   fi
 
   # Drain inbox: if backlog-inbox.md has non-whitespace content, triage into backlog.md.
-  # Uses a lockfile to prevent duplicate appends when multiple backlog.sh instances run concurrently.
-  # HIGH/P0 items are inserted into the ## Global / ### Bugs section (top-priority landing zone).
-  # All other items are appended to the bottom of backlog.md.
-  INBOX_LOCK="$PROJECT_ROOT/.backlog-inbox.lock"
-  (
-    flock -x 200
+  # Uses atomic mkdir as a lock (portable, no dependencies) to prevent duplicate appends
+  # when multiple backlog.sh instances run concurrently.
+  # HIGH/P0 items are normalised to `- [ ] [HIGH] …` and inserted before the first [ ] item
+  # so they are picked up by the agent on the next iteration. Other items append to the bottom.
+  INBOX_LOCKDIR="$PROJECT_ROOT/.backlog-inbox.lock"
+  if mkdir "$INBOX_LOCKDIR" 2>/dev/null; then
     if [ -f "$INBOX_FILE" ] && grep -qE '\S' "$INBOX_FILE" 2>/dev/null; then
       echo ""
       echo "--- Inbox has new items — triaging into backlog.md ---"
 
-      HIGH_ITEMS=$(grep -E '^\- \[(HIGH|P0)\]' "$INBOX_FILE" 2>/dev/null || true)
-      OTHER_ITEMS=$(grep -vE '^\- \[(HIGH|P0)\]' "$INBOX_FILE" 2>/dev/null || true)
+      # Normalise priority items: `- [HIGH] …` → `- [ ] [HIGH] …` so they carry a [ ] marker
+      # and are visible to all existing grep patterns (remaining(), agent item scan, etc.)
+      sed -i '' 's/^- \[\(HIGH\|P0\)\] /- [ ] [\1] /' "$INBOX_FILE"
 
-      # HIGH/P0 items: insert before the first [ ] item in the Global Bugs section,
-      # or fall back to appending before the first [ ] item anywhere in the file.
+      HIGH_ITEMS=$(grep -E '^\- \[ \] \[(HIGH|P0)\]' "$INBOX_FILE" 2>/dev/null || true)
+      OTHER_ITEMS=$(grep -vE '^\- \[ \] \[(HIGH|P0)\]' "$INBOX_FILE" 2>/dev/null || true)
+
+      # HIGH/P0: insert before the first [ ] item so the agent picks them next
       if [ -n "$HIGH_ITEMS" ]; then
         FIRST_TODO_LINE=$(grep -n '^\- \[ \]' "$BACKLOG_FILE" | head -1 | cut -d: -f1)
         if [ -n "$FIRST_TODO_LINE" ]; then
           INSERT_AT=$((FIRST_TODO_LINE - 1))
           HEAD=$(head -n "$INSERT_AT" "$BACKLOG_FILE")
           TAIL=$(tail -n +"$FIRST_TODO_LINE" "$BACKLOG_FILE")
-          printf '%s\n%s\n%s\n' "$HEAD" "$HIGH_ITEMS" "$TAIL" > "$BACKLOG_FILE"
+          printf '%s\n%s\n%s' "$HEAD" "$HIGH_ITEMS" "$TAIL" > "$BACKLOG_FILE"
           echo "  → $(echo "$HIGH_ITEMS" | wc -l | tr -d ' ') HIGH/P0 item(s) inserted at top of queue (line $FIRST_TODO_LINE)"
         else
-          # No existing [ ] items — just append
           echo "" >> "$BACKLOG_FILE"
           echo "$HIGH_ITEMS" >> "$BACKLOG_FILE"
           echo "  → HIGH/P0 item(s) appended (no existing [ ] items found)"
@@ -200,7 +202,10 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       truncate -s 0 "$INBOX_FILE"
       echo "--- Inbox drained ---"
     fi
-  ) 200>"$INBOX_LOCK"
+    rmdir "$INBOX_LOCKDIR"
+  else
+    echo "  (inbox drain skipped — another instance holds the lock)"
+  fi
 
   # Print last progress entry (header + bullet lines only)
   SUMMARY=$(awk '/^## /{found=1; buf=""} found && !/^---/{buf=buf"\n"$0} /^---$/ && found{last=buf; found=0} END{print last}' "$PROGRESS_FILE" | sed '/^[[:space:]]*$/d' | head -4)

@@ -27,6 +27,8 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
+  const [newSetInputVisible, setNewSetInputVisible] = useState(false);
+  const [newSetDraft, setNewSetDraft] = useState('');
   const readTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSourceRef = useRef<'variables' | 'styles' | null>(null);
 
@@ -38,7 +40,6 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
       .then(data => {
         const fetchedSets: string[] = data.sets || [];
         setSets(fetchedSets);
-        // If current targetSet isn't in the list, default to first existing set
         setTargetSet(prev => {
           if (fetchedSets.includes(prev)) return prev;
           return fetchedSets[0] ?? prev;
@@ -130,6 +131,28 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
     }
   };
 
+  const commitNewSet = () => {
+    const name = newSetDraft.trim();
+    if (!name) return;
+    setTargetSet(name);
+    localStorage.setItem('importTargetSet', name);
+    setConflictPaths(null);
+    setNewSetInputVisible(false);
+    setNewSetDraft('');
+  };
+
+  const cancelNewSet = () => {
+    setNewSetInputVisible(false);
+    setNewSetDraft('');
+  };
+
+  const handleBack = () => {
+    setTokens([]);
+    setSource(null);
+    setTypeFilter(null);
+    setConflictPaths(null);
+  };
+
   const executeImport = async (strategy: 'skip' | 'overwrite') => {
     setImporting(true);
     setConflictPaths(null);
@@ -138,7 +161,6 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
     try {
       const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
 
-      // Ensure the set exists (409 = already exists, which is fine)
       const setRes = await fetch(`${serverUrl}/api/sets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,7 +186,6 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
             });
             imported++;
           }
-          // strategy === 'skip': leave existing token unchanged
         } else {
           imported++;
         }
@@ -200,7 +221,6 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
           return;
         }
       }
-      // No conflicts (or set doesn't exist yet) — proceed immediately
       await executeImport('overwrite');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -225,14 +245,9 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
             {error}
           </div>
         )}
-        {successMessage && !error && (
-          <div className="px-2 py-1.5 rounded bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)] text-[10px]">
-            {successMessage}
-          </div>
-        )}
 
         {/* Source selection */}
-        {tokens.length === 0 && !loading && (
+        {tokens.length === 0 && !loading && !successMessage && (
           <div className="flex flex-col gap-2">
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-1">
               Import Source
@@ -278,9 +293,29 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
           </div>
         )}
 
+        {/* Success state */}
+        {tokens.length === 0 && !loading && successMessage && (
+          <div className="flex flex-col items-center justify-center gap-2 py-10">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="9" stroke="var(--color-figma-success)" strokeWidth="1.5" />
+              <path d="M6 10l3 3 5-5" stroke="var(--color-figma-success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div className="text-[11px] text-[var(--color-figma-success)] font-medium text-center">{successMessage}</div>
+            <button
+              onClick={() => setSuccessMessage(null)}
+              className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline"
+            >
+              Import more
+            </button>
+          </div>
+        )}
+
         {/* Loading */}
         {loading && (
-          <div className="flex items-center justify-center py-8 text-[var(--color-figma-text-secondary)] text-[11px]">
+          <div className="flex items-center justify-center gap-2 py-8 text-[var(--color-figma-text-secondary)] text-[11px]">
+            <svg className="animate-spin shrink-0" width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" />
+            </svg>
             {source === 'variables' ? 'Reading variables from Figma\u2026' : 'Reading styles from Figma\u2026'}
           </div>
         )}
@@ -288,56 +323,33 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
         {/* Preview */}
         {tokens.length > 0 && !loading && (
           <>
+            {/* Back row */}
+            <div className="flex items-center gap-2 pb-1 border-b border-[var(--color-figma-border)]">
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 5l3 3" />
+                </svg>
+                Back
+              </button>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">
+                {source === 'variables' ? 'Figma Variables' : 'Figma Styles'}
+              </span>
+            </div>
+
+            {/* Preview header */}
             <div className="flex items-center justify-between">
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
                 Preview ({selectedTokens.size}/{tokens.length} selected)
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={toggleAll}
-                  className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
-                >
-                  {selectedTokens.size === tokens.length ? 'Deselect all' : 'Select all'}
-                </button>
-                <button
-                  onClick={() => { setTokens([]); setSource(null); setTypeFilter(null); }}
-                  className="text-[10px] text-[var(--color-figma-text-secondary)] hover:underline"
-                >
-                  Back
-                </button>
-              </div>
-            </div>
-
-            {/* Target set */}
-            <div>
-              <div className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1">Target token set</div>
-              <div className="flex gap-2">
-                <select
-                  value={sets.includes(targetSet) ? targetSet : '__new__'}
-                  onChange={e => {
-                    setConflictPaths(null);
-                    if (e.target.value === '__new__') {
-                      const name = prompt('New set name:');
-                      if (name) {
-                        setTargetSet(name);
-                        localStorage.setItem('importTargetSet', name);
-                      }
-                    } else {
-                      setTargetSet(e.target.value);
-                      localStorage.setItem('importTargetSet', e.target.value);
-                    }
-                  }}
-                  className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none"
-                >
-                  {sets.map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                  {!sets.includes(targetSet) && targetSet && (
-                    <option value={targetSet}>{targetSet} (new)</option>
-                  )}
-                  <option value="__new__">+ New set...</option>
-                </select>
-              </div>
+              <button
+                onClick={toggleAll}
+                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+              >
+                {selectedTokens.size === tokens.length ? 'Deselect all' : 'Select all'}
+              </button>
             </div>
 
             {/* Type filter pills */}
@@ -391,14 +403,13 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
               const groups = [...groupMap.entries()];
               const useGroups = groups.length > 1;
 
-              // Build a path→token map for alias resolution
               const tokensByPath = new Map(tokens.map(t => [t.path, t]));
               const resolveAlias = (value: any, depth = 0): string | null => {
                 if (depth > 10 || typeof value !== 'string') return null;
                 const match = value.match(/^\{(.+)\}$/);
                 if (!match) return null;
                 const target = tokensByPath.get(match[1]);
-                if (!target) return match[1]; // unresolved — show path
+                if (!target) return match[1];
                 if (typeof target.$value === 'string' && /^\{.+\}$/.test(target.$value)) {
                   return resolveAlias(target.$value, depth + 1) ?? String(target.$value);
                 }
@@ -416,37 +427,37 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
                   : undefined;
 
                 return (
-                <label
-                  key={token.path}
-                  title={tooltipText}
-                  className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors ${
-                    selectedTokens.has(token.path) ? 'bg-[var(--color-figma-accent)]/5' : 'hover:bg-[var(--color-figma-bg-hover)]'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedTokens.has(token.path)}
-                    onChange={() => toggleToken(token.path)}
-                    className="accent-[var(--color-figma-accent)]"
-                  />
-                  {token.$type === 'color' && typeof token.$value === 'string' && !isAlias && (
-                    <div
-                      className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
-                      style={{ backgroundColor: token.$value }}
+                  <label
+                    key={token.path}
+                    title={tooltipText}
+                    className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors ${
+                      selectedTokens.has(token.path) ? 'bg-[var(--color-figma-accent)]/5' : 'hover:bg-[var(--color-figma-bg-hover)]'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedTokens.has(token.path)}
+                      onChange={() => toggleToken(token.path)}
+                      className="accent-[var(--color-figma-accent)]"
                     />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[10px] text-[var(--color-figma-text)] truncate">{token.path}</div>
-                    {isAlias && (
-                      <div className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">
-                        → <span className="font-mono">{aliasTarget}</span>
-                      </div>
+                    {token.$type === 'color' && typeof token.$value === 'string' && !isAlias && (
+                      <div
+                        className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
+                        style={{ backgroundColor: token.$value }}
+                      />
                     )}
-                  </div>
-                  <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase shrink-0 ${TOKEN_TYPE_BADGE_CLASS[token.$type ?? ''] ?? 'token-type-string'}`}>
-                    {token.$type}
-                  </span>
-                </label>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] text-[var(--color-figma-text)] truncate">{token.path}</div>
+                      {isAlias && (
+                        <div className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">
+                          → <span className="font-mono">{aliasTarget}</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className={`px-1 py-0.5 rounded text-[8px] font-medium uppercase shrink-0 ${TOKEN_TYPE_BADGE_CLASS[token.$type ?? ''] ?? 'token-type-string'}`}>
+                      {token.$type}
+                    </span>
+                  </label>
                 );
               };
 
@@ -482,14 +493,76 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
         )}
       </div>
 
-      {/* Import button / conflict resolution */}
+      {/* Footer: set selector + action button (visible when preview is active) */}
       {tokens.length > 0 && !loading && (
-        <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+        <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-2">
+
+          {/* Target set row — always visible in footer */}
+          {newSetInputVisible ? (
+            <div className="flex gap-1.5">
+              <input
+                autoFocus
+                type="text"
+                value={newSetDraft}
+                onChange={e => setNewSetDraft(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') commitNewSet();
+                  if (e.key === 'Escape') cancelNewSet();
+                }}
+                placeholder="New set name…"
+                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] outline-none"
+              />
+              <button
+                onClick={commitNewSet}
+                className="px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90"
+              >
+                Create
+              </button>
+              <button
+                onClick={cancelNewSet}
+                className="px-2 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <label className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">To</label>
+              <select
+                value={sets.includes(targetSet) ? targetSet : targetSet}
+                onChange={e => {
+                  setConflictPaths(null);
+                  if (e.target.value === '__new__') {
+                    setNewSetInputVisible(true);
+                  } else {
+                    setTargetSet(e.target.value);
+                    localStorage.setItem('importTargetSet', e.target.value);
+                  }
+                }}
+                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none"
+              >
+                {sets.map(s => <option key={s} value={s}>{s}</option>)}
+                {!sets.includes(targetSet) && targetSet && (
+                  <option value={targetSet}>{targetSet} (new)</option>
+                )}
+                <option value="__new__">+ New set…</option>
+              </select>
+            </div>
+          )}
+
+          {/* Action row */}
           {conflictPaths !== null && conflictPaths.length > 0 ? (
             <div className="flex flex-col gap-1.5">
               <div className="text-[10px] text-[var(--color-figma-text)]">
                 <span className="font-medium">{conflictPaths.length} token{conflictPaths.length !== 1 ? 's' : ''}</span>{' '}
                 already exist in &ldquo;{targetSet}&rdquo;. How should conflicts be handled?
+              </div>
+              <div className="max-h-[72px] overflow-y-auto rounded border border-[var(--color-figma-warning,#f59e0b)]/30 bg-[var(--color-figma-warning,#f59e0b)]/5 divide-y divide-[var(--color-figma-border)]">
+                {conflictPaths.map(path => (
+                  <div key={path} className="px-2 py-1 text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                    {path}
+                  </div>
+                ))}
               </div>
               <div className="flex gap-2">
                 <button
@@ -497,14 +570,14 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
                   disabled={importing}
                   className="flex-1 px-2 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
                 >
-                  {importing ? 'Importing…' : `Skip existing · import ${selectedTokens.size - conflictPaths.length} new`}
+                  {importing ? 'Importing…' : 'Keep existing'}
                 </button>
                 <button
                   onClick={() => executeImport('overwrite')}
                   disabled={importing}
                   className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
                 >
-                  {importing ? 'Importing…' : `Overwrite all · ${selectedTokens.size}`}
+                  {importing ? 'Importing…' : 'Overwrite conflicts'}
                 </button>
               </div>
               <button

@@ -541,3 +541,15 @@
   - `autoFocus` on an input that renders conditionally is sufficient — no need for `useLayoutEffect` + ref for the bind panel
   - `opacity-0 group-hover:opacity-100` on a wrapper div containing multiple action buttons is cleaner than per-button opacity classes
 ---
+
+## 2026-03-26 - UX audit & overhaul: Theme Manager
+- Added optimistic state updates in `handleSetState` — set state buttons now flip instantly without waiting for the server, with error rollback if the API call fails
+- Removed the top-level state legend row (wasted ~28px; button titles already explain each state)
+- Added inline "Create your first theme" CTA button in the empty state body (the footer button was invisible when no themes existed)
+- Added actionable guidance text in the coverage gap panel: "Enable a set that defines these tokens, or add them to an active set."
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L222, ~L368, ~L362, ~L528
+- **Learnings for future iterations:**
+  - Optimistic updates for toggle/state controls: capture `previousState` before the update, apply immediately, rollback in the `catch` block — never skip the rollback
+  - Top-level legends/keys for UI states can often be replaced by descriptive `title` attributes on the elements themselves, saving vertical space
+  - Empty states should always contain their own primary CTA — don't rely on a sticky footer button that may not be visible
+---

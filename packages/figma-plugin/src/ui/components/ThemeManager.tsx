@@ -223,7 +223,10 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
     const theme = themes.find(t => t.name === themeName);
     if (!theme) return;
 
-    const updatedSets = { ...theme.sets, [setName]: targetState };
+    const updatedSets = { ...theme.sets, [setName]: targetState as 'enabled' | 'disabled' | 'source' };
+    const previousThemes = themes;
+    // Optimistic update — flip the button immediately without waiting for the server.
+    setThemes(prev => prev.map(t => t.name === themeName ? { ...t, sets: updatedSets } : t));
     try {
       await fetch(`${serverUrl}/api/themes`, {
         method: 'POST',
@@ -232,6 +235,7 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
       });
       fetchThemes();
     } catch (err) {
+      setThemes(previousThemes); // revert on error
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     }
   };
@@ -362,25 +366,15 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
           <div className="flex flex-col items-center justify-center py-8 text-[var(--color-figma-text-secondary)] text-center px-4">
             <p className="text-[12px] font-medium text-[var(--color-figma-text)]">No themes configured</p>
             <p className="text-[10px] mt-1.5 leading-relaxed">Themes let you switch between token sets — for example, light and dark modes. Each theme enables a different combination of sets, making it easy to publish multi-mode Figma variables.</p>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="mt-4 px-4 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+            >
+              Create your first theme
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {/* State legend */}
-            <div className="flex items-center gap-3 px-1 pb-1 text-[9px] text-[var(--color-figma-text-secondary)]">
-              <span className="font-medium">Set states:</span>
-              <span className="flex items-center gap-1">
-                <span className="px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] ring-1 ring-inset ring-[var(--color-figma-accent)]/50">source</span>
-                <span>base set</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]">enabled</span>
-                <span>overrides source</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="px-1.5 py-0.5 rounded font-medium bg-[var(--color-figma-border)]/30 text-[var(--color-figma-text-secondary)]">disabled</span>
-                <span>not used</span>
-              </span>
-            </div>
             {(themeOrder.length > 0 ? themeOrder.map(n => themes.find(t => t.name === n)).filter((t): t is Theme => !!t) : themes).map(theme => (
               <div
                 key={theme.name}
@@ -531,9 +525,10 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                 {/* Uncovered tokens list */}
                 {expandedCoverage === theme.name && coverage[theme.name]?.uncovered.length > 0 && (
                   <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/10 px-3 py-2">
-                    <div className="text-[10px] font-medium text-[var(--color-figma-warning)] mb-1.5">
-                      Unresolved tokens in active sets ({coverage[theme.name].uncovered.length})
+                    <div className="text-[10px] font-medium text-[var(--color-figma-warning)] mb-1">
+                      Unresolved tokens ({coverage[theme.name].uncovered.length})
                     </div>
+                    <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">Enable a set that defines these tokens, or add them to an active set.</p>
                     <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
                       {coverage[theme.name].uncovered.map(p => (
                         <div key={p} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate">{p}</div>
