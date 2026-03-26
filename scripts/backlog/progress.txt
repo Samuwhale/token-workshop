@@ -205,3 +205,15 @@
   - `analyticsIssueCount` was lazily populated (only when AnalyticsPanel rendered) — `lintViolations` from `useLint` is always available and better for toolbar badges
   - `filterByDuplicatePaths` is a generic "keep only paths in Set" filter — reusable for any path-based filtering, not just duplicates
 ---
+
+## 2026-03-26 - Color swatch grid view for color tokens
+- Added `'grid'` to the `viewMode` union type and a "Grid" toggle button in the toolbar
+- Grid view filters `displayedTokens` to color-type leaves, groups them by parent path, and renders each group as a responsive CSS grid of square color swatches
+- Each swatch shows the resolved color (with alias dereferencing via `allTokensFlat`), the token name below, and opens the edit drawer on click
+- Empty state shown when no color tokens match current filters
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L425, L1150, L1337
+- **Learnings for future iterations:**
+  - `flattenLeafNodes(displayedTokens)` respects all active filters (search, type, etc.) — no need to re-filter
+  - Alias color values need one level of resolution: check if `$value` starts with `{` and look up in `allTokensFlat`
+  - `nodeParentPath(path, name)` is the safe way to get parent group path (handles dotted segment names)
+---

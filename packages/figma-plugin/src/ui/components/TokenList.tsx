@@ -422,7 +422,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
-  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas'>('tree');
+  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid'>('tree');
   const [showScopesCol, setShowScopesCol] = useState(false);
 
   const boundTokenPaths = useMemo(() => {
@@ -1147,11 +1147,11 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             >
               For selection
             </button>
-            {(['tree', 'table', 'canvas'] as const).map(mode => (
+            {(['tree', 'table', 'grid', 'canvas'] as const).map(mode => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
-                title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : 'Canvas view — spatial token map'}
+                title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : mode === 'grid' ? 'Grid view — color swatch palette' : 'Canvas view — spatial token map'}
                 aria-pressed={viewMode === mode}
                 className={`px-2 py-0.5 rounded text-[10px] transition-colors border capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium border-[var(--color-figma-accent)]/40' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
               >
@@ -1340,6 +1340,68 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
             allTokensFlat={allTokensFlat}
             onEdit={onEdit}
           />
+        ) : viewMode === 'grid' ? (
+          /* Grid view — color swatch palette */
+          (() => {
+            const leaves = flattenLeafNodes(displayedTokens);
+            const colorLeaves = leaves.filter(l => l.$type === 'color');
+            if (colorLeaves.length === 0) {
+              return (
+                <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <rect x="2" y="2" width="20" height="20" rx="3" />
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M2 12h4M18 12h4M12 2v4M12 18v4" />
+                  </svg>
+                  <p className="mt-2 text-[11px] font-medium">No color tokens to display</p>
+                  <p className="text-[10px] mt-0.5">Grid view shows color tokens as swatches</p>
+                </div>
+              );
+            }
+            // Group color leaves by their parent path
+            const groups = new Map<string, typeof colorLeaves>();
+            for (const leaf of colorLeaves) {
+              const parent = nodeParentPath(leaf.path, leaf.name);
+              const key = parent || '(root)';
+              if (!groups.has(key)) groups.set(key, []);
+              groups.get(key)!.push(leaf);
+            }
+            return (
+              <div className="p-2 space-y-3">
+                {[...groups.entries()].map(([groupPath, groupLeaves]) => (
+                  <div key={groupPath}>
+                    <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1 px-0.5 truncate" title={groupPath}>
+                      {groupPath === '(root)' ? 'Ungrouped' : groupPath}
+                    </div>
+                    <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))' }}>
+                      {groupLeaves.map(leaf => {
+                        const resolved = typeof leaf.$value === 'string' && leaf.$value.startsWith('{')
+                          ? allTokensFlat[leaf.$value.slice(1, -1)]?.$value
+                          : leaf.$value;
+                        const colorStr = typeof resolved === 'string' ? resolved : '#ccc';
+                        return (
+                          <button
+                            key={leaf.path}
+                            onClick={() => onEdit(leaf.path)}
+                            title={`${formatDisplayPath(leaf.path, leaf.name)}\n${colorStr}`}
+                            className="group flex flex-col items-center gap-0.5 rounded transition-colors hover:bg-[var(--color-figma-bg-hover)] p-0.5"
+                          >
+                            <div
+                              className="w-full aspect-square rounded border border-[var(--color-figma-border)] group-hover:ring-1 group-hover:ring-[var(--color-figma-accent)]/50 transition-shadow"
+                              style={{ backgroundColor: colorStr }}
+                            />
+                            <span className="text-[8px] text-[var(--color-figma-text-secondary)] truncate w-full text-center leading-tight">
+                              {leaf.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()
         ) : viewMode === 'table' ? (
           /* Table view */
           <div className="overflow-auto flex-1">
@@ -2078,6 +2140,11 @@ function TokenTreeNode({
   const showChainBadge = aliasChain.length >= 2;
   const isBrokenAlias = isAlias(node.$value) && !!resolveResult?.error;
 
+  // Full resolution chain label for alias hover tooltip
+  const aliasChainLabel = isAlias(node.$value) && !isBrokenAlias
+    ? [node.path, ...aliasChain, formatValue(node.$type, displayValue)].join(' → ')
+    : null;
+
   // Inline quick-edit eligibility
   const canInlineEdit = !node.isGroup && !isAlias(node.$value) && !!node.$type
     && INLINE_SIMPLE_TYPES.has(node.$type) && !!onInlineSave;
@@ -2806,6 +2873,21 @@ function TokenTreeNode({
           >
             Copy as JSON
           </button>
+        </div>
+      )}
+
+      {/* Alias resolution chain tooltip — visible on row hover */}
+      {hovered && aliasChainLabel && (
+        <div className="absolute left-4 right-4 top-full z-20 pointer-events-none" style={{ marginTop: '-2px' }}>
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded shadow-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[9px] font-mono text-[var(--color-figma-text-secondary)] whitespace-nowrap max-w-full overflow-hidden">
+            {[node.path, ...aliasChain].map((seg, i, arr) => (
+              <Fragment key={i}>
+                <span className={i === 0 ? 'text-[var(--color-figma-accent)]' : ''}>{seg}</span>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><path d="M1 4h6M4 1l3 3-3 3"/></svg>
+              </Fragment>
+            ))}
+            <span className="text-[var(--color-figma-text)] font-medium">{formatValue(node.$type, displayValue)}</span>
+          </div>
         </div>
       )}
     </div>
