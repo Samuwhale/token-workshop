@@ -586,3 +586,16 @@
   - "Newly created" state (one-time hint) is a lightweight way to guide users through next steps without a full onboarding flow
   - `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` via a ref callback works cleanly for post-create scroll
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Import Tokens
+- Fixed misleading "Checking…" label: now shows "Checking for conflicts…" vs "Importing N/M…" distinctly
+- Added `importProgress` state to show real-time count during token import (e.g. "Importing 23/47…")
+- Improved conflict resolution button labels: "Keep existing" → "Skip conflicts", "Overwrite conflicts" → "Overwrite all"
+- Renamed "Cancel" in conflict state to "Revise selection" (clarifies it returns to selection, not cancels the whole flow)
+- Added conflict summary context: "4 conflicts, 23 new — how should conflicts be handled?" so users understand the full picture
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L29, ~L156, ~L554
+- **Learnings for future iterations:**
+  - When two async operations share a loading state, always use distinct label text — "Checking for conflicts…" vs "Importing…" tells users exactly where they are in the flow
+  - Progress state pattern: `{ done: number; total: number } | null` — set to null before and after the loop, update inside loop after each item
+  - "Cancel" in a sub-step (like conflict resolution) should say what it actually does — "Revise selection" signals returning to the previous step, not aborting the whole task
+---

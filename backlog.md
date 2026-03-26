@@ -250,7 +250,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Flow: Import Tokens
 
-- [~] **Flow audit & overhaul: Import Tokens** — Trace the full import flow (trigger → panel open → source select → load → filter → conflict check → target set → confirm → result), read all import service code to understand what happens at each step, identify friction (how long does "load" take? are conflicts explained clearly?), then redesign: add loading states and progress indicators where missing, make conflict resolution self-explanatory, and compress unnecessary steps. `packages/plugin/src/routes/ImportPanel.tsx`, `packages/plugin/src/services/import-service.ts`
+- [x] **Flow audit & overhaul: Import Tokens** — Trace the full import flow (trigger → panel open → source select → load → filter → conflict check → target set → confirm → result), read all import service code to understand what happens at each step, identify friction (how long does "load" take? are conflicts explained clearly?), then redesign: add loading states and progress indicators where missing, make conflict resolution self-explanatory, and compress unnecessary steps. `packages/plugin/src/routes/ImportPanel.tsx`, `packages/plugin/src/services/import-service.ts`
 
 ### Flow: Export Tokens
 
