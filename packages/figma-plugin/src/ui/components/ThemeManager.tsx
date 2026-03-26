@@ -442,10 +442,10 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                       {coverage[theme.name]?.uncovered.length > 0 && (
                         <button
                           onClick={() => setExpandedCoverage(expandedCoverage === theme.name ? null : theme.name)}
-                          className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-yellow-100 text-yellow-800 border border-yellow-300 hover:bg-yellow-200 transition-colors"
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/40 hover:bg-[var(--color-figma-warning)]/25 transition-colors"
                           title={`${coverage[theme.name].uncovered.length} tokens have no value in active sets`}
                         >
-                          ⚠ {coverage[theme.name].uncovered.length} without value
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {coverage[theme.name].uncovered.length} unresolved
                         </button>
                       )}
                     </div>
@@ -497,7 +497,7 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                             <circle cx="2" cy="10" r="1"/><circle cx="6" cy="10" r="1"/>
                           </svg>
                         </span>
-                        <span className="text-[11px] text-[var(--color-figma-text)] flex-1">{setName}</span>
+                        <span className="text-[11px] text-[var(--color-figma-text)] flex-1 truncate" title={setName}>{setName}</span>
                         <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[9px] font-medium">
                           {(['disabled', 'enabled', 'source'] as const).map(s => (
                             <button
@@ -509,7 +509,7 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
                                     ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]'
                                     : s === 'enabled'
                                     ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]'
-                                    : 'bg-[var(--color-figma-border)]/40 text-[var(--color-figma-text-secondary)]'
+                                    : 'bg-[var(--color-figma-border)]/60 text-[var(--color-figma-text)]'
                                   : 'text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
                               }`}
                               title={
@@ -530,13 +530,13 @@ export function ThemeManager({ serverUrl, connected, sets }: ThemeManagerProps) 
 
                 {/* Uncovered tokens list */}
                 {expandedCoverage === theme.name && coverage[theme.name]?.uncovered.length > 0 && (
-                  <div className="border-t border-yellow-200 bg-yellow-50 px-3 py-2">
-                    <div className="text-[10px] font-medium text-yellow-800 mb-1.5">
-                      Tokens with no value in active sets ({coverage[theme.name].uncovered.length})
+                  <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/10 px-3 py-2">
+                    <div className="text-[10px] font-medium text-[var(--color-figma-warning)] mb-1.5">
+                      Unresolved tokens in active sets ({coverage[theme.name].uncovered.length})
                     </div>
                     <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
                       {coverage[theme.name].uncovered.map(p => (
-                        <div key={p} className="text-[9px] text-yellow-700 font-mono truncate">{p}</div>
+                        <div key={p} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate">{p}</div>
                       ))}
                     </div>
                   </div>

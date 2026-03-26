@@ -338,3 +338,18 @@
   - Issue grouping by `rule` field creates natural collapsible sections that reduce overwhelm compared to a flat severity-sorted list
   - The `resultsStale` flag is a lightweight way to hint "you changed something, results may not reflect current state" without auto-re-validating (which could be slow)
 ---
+
+## 2026-03-26 - UI audit & overhaul: Theme Manager
+- Replaced all hardcoded Tailwind yellow classes with CSS variable `--color-figma-warning`
+- Replaced `⚠` text character with SVG warning triangle icon in coverage badge
+- Updated coverage badge label from "without value" to "unresolved" (more precise)
+- Improved `disabled` active state button: `/40 text-secondary` → `/60 text-[var(--color-figma-text)]` for clearer visual distinction from inactive
+- Added `truncate` + `title={setName}` to set name span for long-name hover tooltips
+- Updated expanded coverage section header text to "Unresolved tokens in active sets"
+- Token path items in expanded section now use `text-[var(--color-figma-text-secondary)]` instead of hardcoded yellow
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L443–543
+- **Learnings for future iterations:**
+  - `--color-figma-warning: #f2a20d` CSS variable exists for amber/warning states — always prefer over Tailwind yellow-* classes
+  - Tailwind opacity modifiers (e.g. `bg-[var(--color-figma-warning)]/15`) work correctly with CSS variables in this codebase
+  - Hardcoded yellow Tailwind classes break in dark mode contexts; always audit for `yellow-*`, `amber-*`, `orange-*` in plugin UI code
+---

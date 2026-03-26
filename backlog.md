@@ -88,7 +88,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### UI
 
-- [~] **UI audit & overhaul: Theme Manager** — Read the theme manager layout, audit the visual design of theme cards, the matrix/table layout, and coverage indicators, then redesign: improve the theme card design, make the set assignment matrix readable at a glance (better column/row labels, clearer enabled/disabled/source states), and improve coverage gap visualisation. `packages/plugin/src/components/ThemeManager.tsx`
+- [x] **UI audit & overhaul: Theme Manager** — Read the theme manager layout, audit the visual design of theme cards, the matrix/table layout, and coverage indicators, then redesign: improve the theme card design, make the set assignment matrix readable at a glance (better column/row labels, clearer enabled/disabled/source states), and improve coverage gap visualisation. `packages/plugin/src/components/ThemeManager.tsx`
 
 ### QA
 
@@ -102,7 +102,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### UX
 
-- [ ] **UX audit & overhaul: Sync Panel** — Read the sync panel and diff viewer components, research how git-adjacent sync UIs work in design tools (Supernova, Specify, Tokens Studio), audit the readiness checks UI, the diff viewer (local-only/figma-only/conflict display), and the sync trigger flow, identify confusion points (what does "sync" actually do? what is the scope?), then redesign: make the sync action and its consequences crystal clear before the user commits, improve the diff view readability, and make readiness check failures actionable. `packages/plugin/src/components/SyncPanel.tsx`
+- [~] **UX audit & overhaul: Sync Panel** — Read the sync panel and diff viewer components, research how git-adjacent sync UIs work in design tools (Supernova, Specify, Tokens Studio), audit the readiness checks UI, the diff viewer (local-only/figma-only/conflict display), and the sync trigger flow, identify confusion points (what does "sync" actually do? what is the scope?), then redesign: make the sync action and its consequences crystal clear before the user commits, improve the diff view readability, and make readiness check failures actionable. `packages/plugin/src/components/SyncPanel.tsx`
 
 ### QA
 
