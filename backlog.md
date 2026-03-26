@@ -240,7 +240,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Create Tokens via Presets
 
-- [ ] **Flow audit & overhaul: Preset Token Creation** — Trace the full preset flow (trigger → wizard open → preset select → customise → confirm → tokens appear), identify friction points (is it clear the wizard creates real tokens? is the customisation step necessary or confusing?), then redesign: streamline the flow to the minimum necessary steps, add visual feedback as tokens are created, and ensure the user lands back in the token list with the new tokens visible and highlighted. `packages/plugin/src/components/ScaffoldingWizard.tsx`, `packages/plugin/src/components/TokenList.tsx`
+- [~] **Flow audit & overhaul: Preset Token Creation** — Trace the full preset flow (trigger → wizard open → preset select → customise → confirm → tokens appear), identify friction points (is it clear the wizard creates real tokens? is the customisation step necessary or confusing?), then redesign: streamline the flow to the minimum necessary steps, add visual feedback as tokens are created, and ensure the user lands back in the token list with the new tokens visible and highlighted. `packages/plugin/src/components/ScaffoldingWizard.tsx`, `packages/plugin/src/components/TokenList.tsx`
 
 ### Flow: Paste Tokens from JSON/Text
 
@@ -280,7 +280,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### Flow: Server Connection & Settings
 
-- [~] **Flow audit & overhaul: Server Connection** — Trace the settings flow (open settings → enter URL → update → connection check → connected/failed), read the settings panel and connection service code, identify friction (is the URL field pre-filled or empty? is the error message on failure helpful?), then redesign: add a connection status indicator that is always visible in the app shell, improve error messages to be actionable ("Cannot reach server — check the URL or your network"), and make the retry action obvious. `packages/plugin/src/routes/SettingsPanel.tsx`, `packages/plugin/src/services/api-client.ts`
+- [x] **Flow audit & overhaul: Server Connection** — Trace the settings flow (open settings → enter URL → update → connection check → connected/failed), read the settings panel and connection service code, identify friction (is the URL field pre-filled or empty? is the error message on failure helpful?), then redesign: add a connection status indicator that is always visible in the app shell, improve error messages to be actionable ("Cannot reach server — check the URL or your network"), and make the retry action obvious. `packages/plugin/src/routes/SettingsPanel.tsx`, `packages/plugin/src/services/api-client.ts`
 
 ### Flow: Find and Replace Token Names
 

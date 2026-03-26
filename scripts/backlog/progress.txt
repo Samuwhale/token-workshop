@@ -456,3 +456,20 @@
   - For creation undo, restore=DELETE + redo=re-POST with the captured default value mirrors the delete undo pattern perfectly
   - `onTokenCreated` is called before `onPushUndo` so highlight fires on the next render cycle after `onRefresh`; this ordering avoids a race where the token isn't yet in the list when highlight tries to scroll
 ---
+
+## 2026-03-26 - Flow audit & overhaul: Server Connection
+- Overhauled settings panel and connection status UX:
+  - Top banner now shows the actual server URL in both connected ("Connected — http://...") and disconnected ("Cannot reach http://... — read-only mode") states; "Settings" link renamed to "Change URL"
+  - Added a `checking` state to `useServerConnection` that pulses the status dot during connection checks
+  - Added `updateServerUrlAndConnect(url)` to hook — saves URL then immediately tests connectivity and returns result (replaces silent `updateServerUrl` call)
+  - Settings panel header now shows inline connection badge (Connected/Checking/Disconnected) with colored dot alongside the "Server" section label
+  - URL field has a label + helper text ("The local server started by `npm start`…")
+  - "Save" button renamed to "Save & Connect" and shows "Connecting…" while checking
+  - After save, shows inline success (green checkmark "Connected successfully") or failure with actionable copy ("Cannot reach server — Check the URL above, then make sure the server is running")
+  - Enter key in URL field also triggers save+connect
+- Files changed: `packages/figma-plugin/src/ui/hooks/useServerConnection.ts` (whole file), `packages/figma-plugin/src/ui/App.tsx` ~L122, ~L131, ~L661, ~L970
+- **Learnings for future iterations:**
+  - Expose `checking` state from connection hooks so the UI can show a loading indicator during the 2 s timeout
+  - "Save & Connect" is a better label than "Save" when saving triggers a network action with a result
+  - Inline result feedback (success/fail message below the button) is more immediate than relying on the global status banner
+---

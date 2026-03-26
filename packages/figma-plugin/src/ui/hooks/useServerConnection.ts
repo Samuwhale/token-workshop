@@ -5,6 +5,7 @@ const STORAGE_KEY = 'tokenmanager_server_url';
 
 export function useServerConnection() {
   const [connected, setConnected] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [serverUrl, setServerUrl] = useState(() => {
     try {
       return localStorage.getItem(STORAGE_KEY) || DEFAULT_URL;
@@ -24,14 +25,31 @@ export function useServerConnection() {
     setServerUrl(url);
   }, []);
 
-  const retryConnection = useCallback(async () => {
+  const checkConnection = useCallback(async (url: string): Promise<boolean> => {
     try {
-      const res = await fetch(`${serverUrlRef.current}/api/health`, { signal: AbortSignal.timeout(2000) });
-      setConnected(res.ok);
+      const res = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(2000) });
+      return res.ok;
     } catch {
-      setConnected(false);
+      return false;
     }
   }, []);
+
+  const retryConnection = useCallback(async () => {
+    setChecking(true);
+    const ok = await checkConnection(serverUrlRef.current);
+    setConnected(ok);
+    setChecking(false);
+  }, [checkConnection]);
+
+  /** Save a new URL and immediately test connectivity. Returns the result. */
+  const updateServerUrlAndConnect = useCallback(async (url: string): Promise<boolean> => {
+    updateServerUrl(url);
+    setChecking(true);
+    const ok = await checkConnection(url);
+    setConnected(ok);
+    setChecking(false);
+    return ok;
+  }, [updateServerUrl, checkConnection]);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,5 +72,5 @@ export function useServerConnection() {
     };
   }, [serverUrl]);
 
-  return { connected, serverUrl, updateServerUrl, retryConnection };
+  return { connected, checking, serverUrl, updateServerUrl, updateServerUrlAndConnect, retryConnection };
 }

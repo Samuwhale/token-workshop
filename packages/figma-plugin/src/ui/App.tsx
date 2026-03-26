@@ -119,7 +119,7 @@ export function App() {
   const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; set: string; isCreate?: boolean; initialType?: string } | null>(null);
-  const { connected, serverUrl, updateServerUrl, retryConnection } = useServerConnection();
+  const { connected, checking, serverUrl, updateServerUrlAndConnect, retryConnection } = useServerConnection();
   const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, refreshTokens } = useTokens(serverUrl, connected);
   const { selectedNodes } = useSelection();
   const { syncing, syncProgress, syncResult, sync } = useSyncBindings(serverUrl, connected);
@@ -128,6 +128,7 @@ export function App() {
   const [highlightedToken, setHighlightedToken] = useState<string | null>(null);
   const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
+  const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
@@ -658,10 +659,10 @@ export function App() {
   return (
     <div className="flex flex-col h-screen">
       {/* Connection status */}
-      <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] ${connected ? 'bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]' : 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'}`}>
-        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-[var(--color-figma-success)]' : 'bg-[var(--color-figma-error)]'}`} />
-        <span className="flex-1">{connected ? 'Connected to server' : 'Server offline \u2014 read-only mode'}</span>
-        {!connected && (
+      <div className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] ${connected ? 'bg-[var(--color-figma-success)]/10 text-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)]/5 text-[var(--color-figma-text-secondary)]' : 'bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)]'}`}>
+        <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} />
+        <span className="flex-1">{connected ? `Connected \u2014 ${serverUrl}` : checking ? 'Connecting\u2026' : `Cannot reach ${serverUrl} \u2014 read-only mode`}</span>
+        {!connected && !checking && (
           <>
             <button
               onClick={retryConnection}
@@ -671,10 +672,10 @@ export function App() {
             </button>
             <span className="opacity-40">·</span>
             <button
-              onClick={() => setOverflowPanel('settings')}
+              onClick={() => { setOverflowPanel('settings'); setConnectResult(null); }}
               className="underline underline-offset-2 hover:opacity-70 transition-opacity shrink-0"
             >
-              Settings
+              Change URL
             </button>
           </>
         )}
@@ -983,23 +984,62 @@ export function App() {
               </div>
             <div className="flex flex-col gap-3 p-3">
               <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-                  Server URL
+                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Server</span>
+                  <span className={`flex items-center gap-1 text-[10px] font-medium ${connected ? 'text-[var(--color-figma-success)]' : checking ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full inline-block ${connected ? 'bg-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} />
+                    {connected ? 'Connected' : checking ? 'Checking…' : 'Disconnected'}
+                  </span>
                 </div>
                 <div className="p-3 flex flex-col gap-2">
-                  <input
-                    type="text"
-                    value={serverUrlInput}
-                    onChange={e => setServerUrlInput(e.target.value)}
-                    onFocus={e => e.target.select()}
-                    placeholder="http://localhost:9400"
-                    className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
-                  />
+                  <div>
+                    <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Server URL</label>
+                    <input
+                      type="text"
+                      value={serverUrlInput}
+                      onChange={e => { setServerUrlInput(e.target.value); setConnectResult(null); }}
+                      onFocus={e => e.target.select()}
+                      onKeyDown={async e => {
+                        if (e.key === 'Enter') {
+                          const url = serverUrlInput.trim() || 'http://localhost:9400';
+                          const ok = await updateServerUrlAndConnect(url);
+                          setConnectResult(ok ? 'ok' : 'fail');
+                        }
+                      }}
+                      placeholder="http://localhost:9400"
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                    />
+                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 opacity-70">
+                      The local server started by <span className="font-mono">npm start</span> in the TokenManager directory.
+                    </p>
+                  </div>
+                  {connectResult === 'ok' && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+                      Connected successfully
+                    </div>
+                  )}
+                  {connectResult === 'fail' && (
+                    <div className="text-[10px] text-[var(--color-figma-error)]">
+                      <div className="flex items-center gap-1.5 font-medium mb-0.5">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                        Cannot reach server
+                      </div>
+                      <p className="text-[var(--color-figma-text-secondary)] leading-relaxed">
+                        Check the URL above, then make sure the server is running (<span className="font-mono">npm start</span>).
+                      </p>
+                    </div>
+                  )}
                   <button
-                    onClick={() => updateServerUrl(serverUrlInput.trim() || 'http://localhost:9400')}
-                    className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+                    onClick={async () => {
+                      const url = serverUrlInput.trim() || 'http://localhost:9400';
+                      const ok = await updateServerUrlAndConnect(url);
+                      setConnectResult(ok ? 'ok' : 'fail');
+                    }}
+                    disabled={checking}
+                    className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-opacity"
                   >
-                    Save
+                    {checking ? 'Connecting…' : 'Save & Connect'}
                   </button>
                 </div>
               </div>
