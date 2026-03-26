@@ -1,4 +1,14 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { TOKEN_TYPE_VALUES, type Token } from '@tokenmanager/core';
+
+function validateTokenBody(body: unknown): body is Partial<Token> {
+  if (typeof body !== 'object' || body === null) return false;
+  const b = body as Record<string, unknown>;
+  if ('$type' in b && b.$type !== undefined && !TOKEN_TYPE_VALUES.has(b.$type as string)) return false;
+  if ('$description' in b && b.$description !== undefined && typeof b.$description !== 'string') return false;
+  if ('$extensions' in b && b.$extensions !== undefined && (typeof b.$extensions !== 'object' || b.$extensions === null || Array.isArray(b.$extensions))) return false;
+  return true;
+}
 
 export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/tokens/resolved — get all resolved tokens
@@ -153,6 +163,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!body || body.$value === undefined) {
         return reply.status(400).send({ error: 'Token must have a $value property' });
       }
+      if (!validateTokenBody(body)) {
+        return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
+      }
 
       try {
         // Check if token already exists
@@ -161,7 +174,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.status(409).send({ error: `Token "${tokenPath}" already exists in set "${set}"` });
         }
 
-        await fastify.tokenStore.createToken(set, tokenPath, body as any);
+        await fastify.tokenStore.createToken(set, tokenPath, body as Token);
         return reply.status(201).send({ path: tokenPath, set, token: body });
       } catch (err) {
         return reply.status(500).send({ error: 'Failed to create token', detail: String(err) });
@@ -179,8 +192,13 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'Token path is required' });
       }
 
+      const body = request.body;
+      if (!validateTokenBody(body)) {
+        return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
+      }
+
       try {
-        await fastify.tokenStore.updateToken(set, tokenPath, request.body as any);
+        await fastify.tokenStore.updateToken(set, tokenPath, body);
         const updated = await fastify.tokenStore.getToken(set, tokenPath);
         return { path: tokenPath, set, token: updated };
       } catch (err) {

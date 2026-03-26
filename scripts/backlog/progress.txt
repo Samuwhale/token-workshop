@@ -97,3 +97,11 @@
   - The fix is straightforward: replace `this.invalidate(dep)` recursive call with a `queue.push(dep)` inside a `while (queue.length > 0)` loop
   - The check `if (this.resolved.has(dep))` before enqueueing preserves the original behavior of only propagating to already-cached dependents
 ---
+
+## 2026-03-26 - `body as any` in token route handlers bypasses type validation
+- Added `validateTokenBody()` runtime guard in `tokens.ts` that checks `$type` is a valid DTCG type (using `TOKEN_TYPE_VALUES` from core) and that `$description`/`$extensions` match expected shapes. Returns 400 on invalid payloads. Replaced both `as any` casts: POST uses `body as Token`, PATCH uses the validated `body` directly.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L1, L145, L175
+- **Learnings for future iterations:**
+  - `TOKEN_TYPE_VALUES` (a `Set<string>`) is already exported from `@tokenmanager/core` — use it for type membership checks rather than duplicating the list
+  - No Zod dependency needed; a small inline guard is cleaner and avoids a new dep
+---

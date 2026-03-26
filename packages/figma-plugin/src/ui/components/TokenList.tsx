@@ -2753,6 +2753,29 @@ function TokenTreeNode({
               Link to token
             </button>
           )}
+          <div className="my-1 border-t border-[var(--color-figma-border)]" />
+          <button
+            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              navigator.clipboard.writeText(node.path).catch(() => {});
+              setContextMenuPos(null);
+            }}
+          >
+            Copy token path
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              const entry: Record<string, unknown> = { $value: node.$value, $type: node.$type };
+              if (node.$description) entry.$description = node.$description;
+              navigator.clipboard.writeText(JSON.stringify(entry, null, 2)).catch(() => {});
+              setContextMenuPos(null);
+            }}
+          >
+            Copy as JSON
+          </button>
         </div>
       )}
     </div>
