@@ -193,3 +193,14 @@
   - Issue rows with path + message + setName benefit from inlining setName next to path (subdued) rather than a third standalone row
   - `[...arr].sort()` is needed before sorting (don't mutate state directly in render)
 ---
+
+## 2026-03-26 - UI audit & overhaul: Analytics Panel
+- Replaced all hardcoded Tailwind yellow-* colours with `--color-figma-warning` CSS var: warning severity badge, contrast matrix AA cells/legend
+- Replaced `⚠` emoji warning icon in Duplicate Colors header with SVG triangle, changed `className="text-yellow-600"` to inline `stroke="var(--color-figma-warning)"`
+- Replaced `⚠ Uneven lightness steps detected` emoji+red-500 text with SVG icon + `text-[var(--color-figma-warning)]`
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L413, ~L577-578, ~L589, ~L606, ~L703
+- **Learnings for future iterations:**
+  - The UX audit item for Analytics Panel was already completed by a parallel session (auto-marked [x]) — pick the UI audit item independently
+  - Most chevron/SVG patterns were already in place from prior sessions; scan the whole file before assuming what needs fixing
+  - `--color-figma-warning: #f2a20d` is the correct CSS var for amber/warning states — avoids dark-mode issues with hardcoded Tailwind `yellow-*`
+---

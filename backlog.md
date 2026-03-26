@@ -120,7 +120,7 @@ Add items here while backlog.sh is running. They will be appended to the relevan
 
 ### UI
 
-- [~] **UI audit & overhaul: Analytics Panel** — Read the analytics layout, audit the visual design of issue rows, severity badges, set statistics cards, and coverage charts, then redesign: use consistent severity colour coding, improve stat card layout, and ensure the panel feels informational rather than alarming. `packages/plugin/src/components/AnalyticsPanel.tsx`
+- [x] **UI audit & overhaul: Analytics Panel** — Read the analytics layout, audit the visual design of issue rows, severity badges, set statistics cards, and coverage charts, then redesign: use consistent severity colour coding, improve stat card layout, and ensure the panel feels informational rather than alarming. `packages/plugin/src/components/AnalyticsPanel.tsx`
 
 ### QA
 
