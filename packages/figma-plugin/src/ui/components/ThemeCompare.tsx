@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
@@ -142,6 +142,48 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
 
   const canCompare = optionKeyA && optionKeyB && optionKeyA !== optionKeyB;
 
+  const labelA = flatOptions.find(o => o.key === optionKeyA)?.label ?? 'A';
+  const labelB = flatOptions.find(o => o.key === optionKeyB)?.label ?? 'B';
+
+  const [copyFeedback, setCopyFeedback] = useState(false);
+
+  const buildTsv = useCallback((rows: typeof filteredDiffs) => {
+    const header = ['Token Path', 'Type', labelA, labelB].join('\t');
+    const lines = rows.map(d =>
+      [d.path, d.type, formatValue(d.valueA, d.type), formatValue(d.valueB, d.type)].join('\t')
+    );
+    return [header, ...lines].join('\n');
+  }, [filteredDiffs, labelA, labelB]);
+
+  const handleCopy = useCallback(() => {
+    const text = buildTsv(filteredDiffs);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 1500);
+    });
+  }, [buildTsv, filteredDiffs]);
+
+  const handleExportCsv = useCallback(() => {
+    const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const header = [labelA, labelB, 'Token Path', 'Type'].map(escape).join(',');
+    const lines = filteredDiffs.map(d =>
+      [
+        escape(formatValue(d.valueA, d.type)),
+        escape(formatValue(d.valueB, d.type)),
+        escape(d.path),
+        escape(d.type),
+      ].join(',')
+    );
+    const csv = [header, ...lines].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `theme-compare-${labelA.replace(/\W+/g, '_')}-vs-${labelB.replace(/\W+/g, '_')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filteredDiffs, labelA, labelB]);
+
   return (
     <div className="flex flex-col h-full">
       {/* Theme selectors */}
@@ -207,6 +249,21 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
                 : `${filteredDiffs.length} of ${diffs.length}`}
             </span>
             <div className="ml-auto flex items-center gap-1">
+              <button
+                onClick={handleCopy}
+                title="Copy diff as tab-separated text"
+                className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                {copyFeedback ? 'Copied!' : 'Copy'}
+              </button>
+              <button
+                onClick={handleExportCsv}
+                title="Export diff as CSV"
+                className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                CSV
+              </button>
+              <span className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5" />
               <button
                 onClick={() => setTypeFilter('all')}
                 className={`px-1.5 py-0.5 rounded text-[9px] transition-colors ${

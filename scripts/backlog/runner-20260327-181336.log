@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 ===============================================================
   Claimed: ThemeCompare: No export or copy of diff results — users can see which tokens differ between two theme options but cannot copy or export the comparison, making it hard to share with teammates or create tickets from it
   Worktree: /tmp/backlog-60772-khXdg4
+
+  ✓ done: ThemeCompare: No export or copy of diff results
+    Added Copy (clipboard TSV) and Export CSV (file download) buttons to the summary bar; both respect the active type filter and use the option labels as column headers.
+    10 turns · 65s · $0.26
+
+--- Merging: ThemeCompare: No export or copy of diff results ---
+Already up to date.

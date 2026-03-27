@@ -302,3 +302,12 @@
   - When merging themed overrides, always seed the result with "unowned" tokens first — any set not referenced by any dimension should be treated as a global base layer.
   - The `themedSets` set must include sets from ALL options across ALL dimensions (not just active ones) to avoid leaking inactive-option sets into the base layer.
 ---
+
+## 2026-03-27 - ThemeCompare: No export or copy of diff results
+- Added Copy and Export CSV buttons to the summary/filter bar in ThemeCompare. "Copy" writes the visible diff rows as tab-separated text (with option labels as column headers) to the clipboard, with a brief "Copied!" feedback label. "CSV" triggers a file download named `theme-compare-<A>-vs-<B>.csv`. Both act on the currently filtered rows (respects the active type filter). A thin separator between the export buttons and the filter pills keeps the bar organized.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L138 (labelA/labelB, copyFeedback, buildTsv, handleCopy, handleExportCsv), ~L238 (Copy + CSV buttons + separator in summary bar)
+- **Learnings for future iterations:**
+  - `navigator.clipboard.writeText` is available in Figma plugin UI context — no special bridge needed.
+  - TSV (tab-separated) is the most paste-friendly format for spreadsheets; CSV is more portable for file exports.
+  - A small `w-px h-3` separator `<span>` visually groups export buttons vs filter pills without needing a wrapper div.
+---

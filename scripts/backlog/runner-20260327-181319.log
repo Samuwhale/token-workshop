@@ -16,3 +16,21 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons ---
 Already up to date.
+[main b824c86] chore(backlog): done – ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons
+ 11 files changed, 302 insertions(+), 8 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260327-181313.log
+ create mode 100644 scripts/backlog/runner-20260327-181317.log
+ create mode 100644 scripts/backlog/runner-20260327-181319.log
+ create mode 100644 scripts/backlog/runner-20260327-181336.log
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - `themedAllTokensFlat` drops tokens outside themed sets
+- Added a base layer pass before applying themed sets: collect all set names referenced by any dimension option into `themedSets`, then seed `merged` with every token whose set is NOT in `themedSets`. The existing source→enabled overlay logic then applies on top, so unthemed tokens are always included as a foundation.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L94 (themedAllTokensFlat useMemo)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  31 items remaining
+===============================================================
+  Claimed: `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up
+  Worktree: /tmp/backlog-59883-lpsjjB

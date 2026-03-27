@@ -47,7 +47,7 @@
 
 ### UX
 
-- [~] ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons
+- [x] ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons
 - [~] ThemeCompare: No export or copy of diff results — users can see which tokens differ between two theme options but cannot copy or export the comparison, making it hard to share with teammates or create tickets from it
 
 ---
@@ -56,7 +56,7 @@
 
 ### Bugs
 
-- [ ] `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up
+- [~] `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up
 - [ ] `applyTextStyle` does not call `loadFontAsync` before setting font properties — Figma will throw if the font is not already loaded; the `applyTokenValue` path correctly loads fonts, but the style-creation path does not
 - [ ] Git sync `commit` always stages all files with `git add .` — stages ALL untracked/modified files in the token directory (including non-token files) even when the user only changed a single token; no way to commit selectively
 
