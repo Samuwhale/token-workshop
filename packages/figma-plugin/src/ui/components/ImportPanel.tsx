@@ -68,6 +68,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
   const [newSetInputVisible, setNewSetInputVisible] = useState(false);
   const [newSetDraft, setNewSetDraft] = useState('');
+  const [newSetError, setNewSetError] = useState<string | null>(null);
   const readTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSourceRef = useRef<'variables' | 'styles' | null>(null);
   const correlationIdRef = useRef<string | null>(null);
@@ -321,7 +322,12 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
 
   const commitNewSet = () => {
     const name = newSetDraft.trim();
-    if (!name) return;
+    if (!name) { setNewSetError('Name cannot be empty'); return; }
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(name)) {
+      setNewSetError('Use letters, numbers, - and _ (/ for folders)');
+      return;
+    }
+    setNewSetError(null);
     setTargetSet(name);
     lsSet(STORAGE_KEYS.IMPORT_TARGET_SET, name);
     setConflictPaths(null);
@@ -332,6 +338,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const cancelNewSet = () => {
     setNewSetInputVisible(false);
     setNewSetDraft('');
+    setNewSetError(null);
   };
 
   const executeImport = async (strategy: 'skip' | 'overwrite') => {
@@ -779,31 +786,34 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
 
           {/* Target set row */}
           {newSetInputVisible ? (
-            <div className="flex gap-1.5">
-              <input
-                autoFocus
-                type="text"
-                value={newSetDraft}
-                onChange={e => setNewSetDraft(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') commitNewSet();
-                  if (e.key === 'Escape') cancelNewSet();
-                }}
-                placeholder="New set name…"
-                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] outline-none"
-              />
-              <button
-                onClick={commitNewSet}
-                className="px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90"
-              >
-                Create
-              </button>
-              <button
-                onClick={cancelNewSet}
-                className="px-2 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)]"
-              >
-                Cancel
-              </button>
+            <div className="flex flex-col gap-1">
+              <div className="flex gap-1.5">
+                <input
+                  autoFocus
+                  type="text"
+                  value={newSetDraft}
+                  onChange={e => { setNewSetDraft(e.target.value); setNewSetError(null); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') commitNewSet();
+                    if (e.key === 'Escape') cancelNewSet();
+                  }}
+                  placeholder="New set name…"
+                  className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] outline-none"
+                />
+                <button
+                  onClick={commitNewSet}
+                  className="px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90"
+                >
+                  Create
+                </button>
+                <button
+                  onClick={cancelNewSet}
+                  className="px-2 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)]"
+                >
+                  Cancel
+                </button>
+              </div>
+              {newSetError && <p className="text-[10px] text-[var(--color-figma-text-danger)]">{newSetError}</p>}
             </div>
           ) : (
             <div className="flex flex-col gap-1">

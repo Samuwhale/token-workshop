@@ -45,3 +45,12 @@
 - Found 7 items — written to backlog-inbox.md
 - Notable: `deleteToken` and `deleteTokensByGeneratorId` are the only mutation methods that don't emit SSE change events — all other CRUD operations do. Also `moveToken`/`moveGroup` can silently overwrite tokens in the target set.
 ---
+
+## 2026-03-27 - ImportPanel: commitNewSet performs no validation on the new set name
+- Added set name validation to `commitNewSet` using the same regex already used in App.tsx: `^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$`
+- Added `newSetError` state; shows inline error message below the input when name is empty or contains invalid characters
+- Error clears on typing or cancel
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L71 (state), ~L325 (validation), ~L336 (cancel reset), ~L794 (onChange clear), ~L789-819 (error display)
+- **Learnings for future iterations:**
+  - The set name regex `^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$` is used in at least 3 places (App.tsx rename, App.tsx create, ImportPanel create) — could be extracted to a shared constant if more usages appear
+---
