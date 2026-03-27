@@ -33,3 +33,10 @@ Current branch main is up to date.
 ===============================================================
   Claimed: [HIGH] `deleteTokensByGeneratorId` emits no SSE change event — after bulk-deleting generator-tagged tokens (token-store.ts:511-534), no `this.emit()` call is made, so clients won't refresh after generator output is cleaned up
   Worktree: /tmp/backlog-44614-WnUIW7
+
+  ✓ done: deleteTokensByGeneratorId emits no SSE change event
+    stale — already done. Commit 6390bf6 added this.emit({ type: 'token-updated', setName }) after bulk deletion at token-store.ts:586-591.
+    6 turns · 41s · $0.19
+
+--- Merging: deleteTokensByGeneratorId emits no SSE change event ---
+Already up to date.

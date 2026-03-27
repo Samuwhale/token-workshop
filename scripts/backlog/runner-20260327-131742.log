@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: ThemeManager handleSetState doesn't check res.ok ---
 Already up to date.
+[main 3b3e006] chore(backlog): done – ThemeManager handleSetState doesn't check res.ok
+ 5 files changed, 33 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - ThemeManager `handleSetState` doesn't check `res.ok`
+- Already implemented: `handleSetState` (L302-331) checks `res.ok` at L320, rolls back optimistic state via `previousDimensions` at L321, parses server error body at L322, and displays it via `setError` at L323. The catch block at L327-330 also rolls back and shows network errors.
+- Files changed: none (stale item)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  16 items remaining
+===============================================================
+  Claimed: [HIGH] `moveToken` silently overwrites target — `moveToken` (token-store.ts:785) calls `setTokenAtPath` without checking if a token already exists at that path in the target set; if one does, it is silently overwritten with no error or warning
+  Worktree: /tmp/backlog-44348-OgcKZI
