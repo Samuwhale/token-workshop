@@ -306,3 +306,9 @@ Already up to date.
 ===============================================================
   Claimed: ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded — unclear what was partially imported
   Worktree: /tmp/backlog-98901-sN6pJk
+
+  ✓ done: ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded — unclear what was partially imported
+    Added succeededImportCount state; partial failure panel now shows "✓ X succeeded  ✗ Y failed" header before listing failed token paths
+    15 turns · 106s · $0.32
+
+--- Merging: ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded — unclear what was partially imported ---

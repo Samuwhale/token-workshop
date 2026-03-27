@@ -78,8 +78,8 @@
 
 ### UX
 
-- [~] ImportPanel JSON parse failure shows generic "Could not parse JSON file" with no detail about the syntax error location or what went wrong
-- [ ] ImportPanel "Import from Figma Variables" gives no guidance about prerequisites — the only feedback is a 15-second timeout error if the plugin isn't set up correctly
+- [x] ImportPanel JSON parse failure shows generic "Could not parse JSON file" with no detail about the syntax error location or what went wrong
+- [~] ImportPanel "Import from Figma Variables" gives no guidance about prerequisites — the only feedback is a 15-second timeout error if the plugin isn't set up correctly
 - [ ] No import preview — users can't review what will be created/overwritten before committing
 - [ ] No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options
 - [ ] No drag-and-drop file upload — the file input is click-only with no dropzone affordance

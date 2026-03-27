@@ -292,3 +292,17 @@ Already up to date.
 
 --- Merging: ImportPanel JSON parse failure shows generic "Could not parse JSON file" with no detail about the syntax error location or what went wrong ---
 Already up to date.
+[main 9430d99] chore(backlog): done – ImportPanel JSON parse failure shows generic "Could not parse JSON file" with no detail about the syntax error location or what went wrong
+ 5 files changed, 34 insertions(+), 5 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - ImportPanel JSON parse failure shows generic "Could not parse JSON file" with no detail about the syntax error location or what went wrong
+- Changed the catch block in `handleJsonFileChange` to capture the thrown error and append its message to the user-facing error string. `JSON.parse` throws a `SyntaxError` whose `.message` already includes position info (e.g., "Unexpected token } in JSON at position 42"), so surfacing it directly gives the user actionable detail.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L216
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  33 items remaining
+===============================================================
+  Claimed: ImportPanel "Import from Figma Variables" gives no guidance about prerequisites — the only feedback is a 15-second timeout error if the plugin isn't set up correctly
+  Worktree: /tmp/backlog-97510-RHFfBA

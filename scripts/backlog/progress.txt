@@ -292,3 +292,11 @@
   - `JSON.parse` SyntaxError messages include position/token info in V8 and JavaScriptCore — no need for a custom parser to get useful diagnostics.
   - Pattern: `catch (err) { const detail = err instanceof SyntaxError ? err.message : String(err); }` is a safe way to surface parse errors without leaking unexpected error types as raw objects.
 ---
+
+## 2026-03-27 - No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
+- Added a "Clear all" button in the SelectionInspector sync controls toolbar, visible when `totalBindings > 0`. Clicking it sends `clear-all-bindings` to the plugin, which iterates `ALL_BINDABLE_PROPERTIES` and calls `setSharedPluginData(..., '')` for each. Supports undo: snapshots all non-mixed bindings before clearing and re-applies them via `apply-to-selection` messages on restore.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L134 (new ClearAllBindingsMessage), `packages/figma-plugin/src/plugin/controller.ts` ~L44 (case handler) and ~L877 (clearAllBindings function), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L287 (handleClearAllBindings) and ~L608 (Clear all button)
+- **Learnings for future iterations:**
+  - For bulk undo of N property operations, snapshot all N bindings into a closure array before posting the message, then restore them with N sequential `apply-to-selection` posts in the undo handler.
+  - "Clear all" button should only be shown when `totalBindings > 0` — no point displaying it for nodes with no bindings.
+---

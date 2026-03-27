@@ -42,6 +42,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'remove-binding':
       await removeBinding(msg.property);
       break;
+    case 'clear-all-bindings':
+      await clearAllBindings();
+      break;
     case 'sync-bindings':
       await syncBindings(msg.tokenMap, msg.scope);
       break;
@@ -870,6 +873,26 @@ async function removeBinding(property: string) {
   }
   if (errors.length > 0) {
     figma.notify(`Failed to remove binding: ${errors[0]}`, { error: true });
+  }
+  await getSelection();
+}
+
+// Remove all token bindings from selected nodes
+async function clearAllBindings() {
+  const selection = figma.currentPage.selection;
+  const errors: string[] = [];
+  for (const node of selection) {
+    for (const prop of ALL_BINDABLE_PROPERTIES) {
+      try {
+        node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, prop, '');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!errors.includes(msg)) errors.push(msg);
+      }
+    }
+  }
+  if (errors.length > 0) {
+    figma.notify(`Failed to clear some bindings: ${errors[0]}`, { error: true });
   }
   await getSelection();
 }

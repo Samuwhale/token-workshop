@@ -312,3 +312,10 @@ Already up to date.
 ===============================================================
   Claimed: No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
   Worktree: /tmp/backlog-97955-z9PWiD
+
+  ✓ done: No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
+    Added "Clear all" button in SelectionInspector toolbar (visible when totalBindings > 0) that sends clear-all-bindings message; plugin iterates ALL_BINDABLE_PROPERTIES and clears each; full undo support captures pre-clear state
+    30 turns · 187s · $0.69
+
+--- Merging: No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one ---
+Already up to date.

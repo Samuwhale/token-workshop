@@ -348,6 +348,39 @@ export function SelectionInspector({
     }
   };
 
+  const handleClearAllBindings = () => {
+    // Snapshot all current bindings for undo
+    const boundProps: Array<{ prop: BindableProperty; tokenPath: string; tokenType: string; resolvedValue: any }> = [];
+    for (const prop of ALL_BINDABLE_PROPERTIES) {
+      const binding = getBindingForProperty(rootNodes, prop);
+      if (binding && binding !== 'mixed') {
+        const entry = tokenMap[binding];
+        const tokenType = entry?.$type ?? getTokenTypeForProperty(prop);
+        const resolved = entry ? resolveTokenValue(entry.$value, entry.$type, tokenMap) : { value: null };
+        boundProps.push({ prop, tokenPath: binding, tokenType, resolvedValue: resolved.value });
+      }
+    }
+    parent.postMessage({ pluginMessage: { type: 'clear-all-bindings' } }, '*');
+    if (boundProps.length > 0 && onPushUndo) {
+      onPushUndo({
+        description: `Cleared ${boundProps.length} binding${boundProps.length !== 1 ? 's' : ''}`,
+        restore: async () => {
+          for (const { prop, tokenPath, tokenType, resolvedValue } of boundProps) {
+            parent.postMessage({
+              pluginMessage: {
+                type: 'apply-to-selection',
+                tokenPath,
+                tokenType,
+                targetProperty: prop,
+                resolvedValue,
+              },
+            }, '*');
+          }
+        },
+      });
+    }
+  };
+
   const cancelCreate = () => {
     setCreatingFromProp(null);
     setNewTokenName('');
@@ -641,6 +674,15 @@ export function SelectionInspector({
         >
           Remap
         </button>
+        {totalBindings > 0 && (
+          <button
+            onClick={handleClearAllBindings}
+            title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? 's' : ''} from selection`}
+            className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            Clear all
+          </button>
+        )}
       </div>
 
       {/* Remap bindings panel */}

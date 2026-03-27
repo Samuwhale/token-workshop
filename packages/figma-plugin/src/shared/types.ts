@@ -132,6 +132,10 @@ export interface RemoveBindingMessage {
   property: BindableProperty;
 }
 
+export interface ClearAllBindingsMessage {
+  type: 'clear-all-bindings';
+}
+
 export interface SelectionMessage {
   type: 'selection';
   nodes: SelectionNodeInfo[];
