@@ -59,6 +59,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [error, setError] = useState<string | null>(null);
   const [targetSet, setTargetSet] = useState(() => lsGet(STORAGE_KEYS.IMPORT_TARGET_SET, 'imported'));
   const [sets, setSets] = useState<string[]>([]);
+  const [setsError, setSetsError] = useState<string | null>(null);
   const [source, setSource] = useState<'variables' | 'styles' | 'json' | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -72,10 +73,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const correlationIdRef = useRef<string | null>(null);
 
   // Fetch available sets
-  useEffect(() => {
+  const fetchSets = () => {
     if (!connected) return;
+    setSetsError(null);
     fetch(`${serverUrl}/api/sets`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        return res.json();
+      })
       .then(data => {
         const fetchedSets: string[] = data.sets || [];
         setSets(fetchedSets);
@@ -84,7 +89,12 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           return fetchedSets[0] ?? prev;
         });
       })
-      .catch(() => {});
+      .catch((err) => {
+        setSetsError(err instanceof Error ? err.message : 'Failed to load sets');
+      });
+  };
+  useEffect(() => {
+    fetchSets();
   }, [serverUrl, connected]);
 
   // Listen for messages from sandbox
@@ -811,7 +821,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                   <option value="__new__">+ New set…</option>
                 </select>
               </div>
-              <p className="text-[9px] text-[var(--color-figma-text-tertiary)] pl-[26px]">Pick an existing set or choose <button type="button" onClick={() => setNewSetInputVisible(true)} className="underline hover:text-[var(--color-figma-text-secondary)]">+ New set…</button> to create one</p>
+              {setsError ? (
+                <p className="text-[9px] text-[var(--color-figma-text-danger,#e53935)] pl-[26px]">
+                  Could not load sets.{' '}
+                  <button type="button" onClick={fetchSets} className="underline hover:opacity-80">Retry</button>
+                </p>
+              ) : (
+                <p className="text-[9px] text-[var(--color-figma-text-tertiary)] pl-[26px]">Pick an existing set or choose <button type="button" onClick={() => setNewSetInputVisible(true)} className="underline hover:text-[var(--color-figma-text-secondary)]">+ New set…</button> to create one</p>
+              )}
             </div>
           )}
 

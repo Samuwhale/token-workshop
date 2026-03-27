@@ -1,18 +1,10 @@
 # Backlog Progress Log
 ---
 
-## 2026-03-27 - ux-pass: Save button shows specific block reason instead of generic "Complete required fields"
-- TokenEditor save button now displays the exact reason it's disabled: "Circular reference", "Fix extensions JSON", "Font family required", "Font size required", "Font family and size required", or "Enter a token path" — instead of the generic "Complete required fields" for all cases.
-- Added a `saveBlockReason` memo that evaluates the same conditions as `canSave` but returns a human-readable string. Button text and tooltip both use it.
-- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L289 (saveBlockReason memo), ~L1349 (button label + title)
-- **User impact:** Users now see exactly what's blocking save without having to hunt through the form. Especially helpful for non-obvious blockers like circular alias references or invalid extensions JSON.
----
-
-## 2026-03-27 - TokenList: delete fails silently — if DELETE request fails the token is already removed from the UI
-- `executeDelete` now checks `response.ok` on all DELETE fetch calls and throws on non-2xx responses. For bulk deletes, counts failed responses and reports how many failed.
-- On failure: error is caught, `onRefresh()` is called to restore correct server state, and a red error banner is shown at the top of the token list with a dismiss button.
-- Added `deleteError` state and a dismissible error banner above the scroll container.
-- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L211 (deleteError state), ~L1217-1264 (response.ok checks + error handling), ~L1920 (error banner)
+## 2026-03-27 - ImportPanel: unhandled fetch failure when loading set list
+- Replaced `.catch(() => {})` with proper error handling: checks `res.ok`, sets `setsError` state on failure, shows "Could not load sets" message with a Retry button near the dropdown.
+- Extracted fetch logic into a `fetchSets` function so the retry button can re-invoke it.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L62 (setsError state), ~L75 (fetchSets function + useEffect), ~L818 (error/help text conditional)
 - **Learnings for future iterations:**
-  - `fetch()` does NOT throw on HTTP error status codes (4xx/5xx) — only on network errors. Always check `response.ok` after fetch calls to detect server-side failures.
+  - `fetch()` does NOT throw on HTTP error status codes — always check `response.ok`. This is the same pattern as the TokenList delete fix.
 ---
