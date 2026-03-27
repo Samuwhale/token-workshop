@@ -338,7 +338,7 @@ export function BatchEditor({
             min="0"
             max="100"
             step="1"
-            value={opacityPct === '' ? '' : Math.round(parseFloat(opacityPct))}
+            value={opacityPct === '' ? 0 : Math.min(100, Math.max(0, Math.round(parseFloat(opacityPct) || 0)))}
             onChange={e => setOpacityPct(e.target.value)}
             className="flex-1 accent-[var(--color-figma-accent)]"
           />
@@ -348,9 +348,21 @@ export function BatchEditor({
             max="100"
             value={opacityPct}
             onChange={e => setOpacityPct(e.target.value)}
+            onBlur={e => {
+              if (e.target.value === '') return;
+              const n = parseFloat(e.target.value);
+              if (!isNaN(n)) setOpacityPct(String(Math.min(100, Math.max(0, Math.round(n)))));
+            }}
             placeholder="—"
-            className="w-12 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] text-right"
+            className={`w-12 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none text-right ${
+              opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100)
+                ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
+                : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
+            }`}
           />
+          {opacityPct !== '' && !isNaN(parseFloat(opacityPct)) && (parseFloat(opacityPct) < 0 || parseFloat(opacityPct) > 100) && (
+            <span className="text-[10px] text-[var(--color-figma-error)]">0–100</span>
+          )}
         </div>
       )}
 

@@ -111,3 +111,16 @@ Already up to date.
 - Expanded the "Copy token path" context menu section from a single button into four format options:
   1. "Copy path" → dot notation `color.primary.500` (existing C shortcut kept)
   2. "Copy as CSS var" → `var(--color-primary-500)` (dots replaced with hyphens)
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  74 items remaining
+===============================================================
+  Claimed: BatchEditor opacity allows out-of-range values (e.g. "150") that silently clamp to the slider max — disconnect between typed value and displayed result
+  Worktree: /tmp/backlog-98901-WddnYe
+
+  ✓ done: BatchEditor opacity allows out-of-range values (e.g. "150") that silently clamp to the slider max — disconnect between typed value and displayed result
+    Slider now shows true clamped position; onBlur clamps typed value to [0–100]; out-of-range values get red border + "0–100" hint before blur
+    9 turns · 56s · $0.19
+
+--- Merging: BatchEditor opacity allows out-of-range values (e.g. "150") that silently clamp to the slider max — disconnect between typed value and displayed result ---
+Already up to date.

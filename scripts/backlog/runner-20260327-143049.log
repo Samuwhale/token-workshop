@@ -60,3 +60,16 @@ Already up to date.
 
 --- Merging: Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal ---
 Already up to date.
+[main 1b1d86e] chore(backlog): done – Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
+ 6 files changed, 103 insertions(+), 20 deletions(-)
+
+## 2026-03-27 - Inline editing limited to colors — only color tokens get the inline swatch picker
+- Added a stepper widget (−/+buttons around a number input) for `number`, `dimension`, `fontWeight`, and `duration` token types when inline editing is active.
+- `dimension` tokens additionally show the unit suffix (e.g. `px`, `rem`) as a read-only label between the input and `+` button.
+- `+`/`−` buttons use `onMouseDown` + `e.preventDefault()` to avoid triggering the input's blur/save handler while stepping.
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  73 items remaining
+===============================================================
+  Claimed: BatchEditor scaling dimension tokens containing aliases (e.g. `{spacing.base} * 2`) fails silently with no feedback about why
+  Worktree: /tmp/backlog-97510-3WfR0O

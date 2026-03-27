@@ -316,3 +316,14 @@
   - Using `onMouseDown` + `e.preventDefault()` on stepper buttons prevents the focused input from firing `onBlur`, which is the correct pattern for any inline numeric stepper next to a controlled input.
   - Dimension values in `inlineEditValue` are stored as strings like "16px" — parse with regex to extract numeric and unit parts, then reassemble on change.
 ---
+
+## 2026-03-27 - BatchEditor opacity allows out-of-range values (e.g. "150") that silently clamp to the slider max
+- Fixed disconnect between typed opacity value and slider display. Three changes:
+  1. Slider `value` now uses `Math.min(100, Math.max(0, ...))` so it always reflects the true clamped position.
+  2. Number input gains an `onBlur` handler that clamps and rounds the value to [0, 100] when the user leaves the field.
+  3. While the value is out of range (before blur), the input border turns red and a "0–100" hint appears — matching the scale factor field pattern.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L332
+- **Learnings for future iterations:**
+  - HTML `min`/`max` attributes on `type="number"` inputs do not prevent typing out-of-range values; clamp must be done explicitly in `onBlur` (or `onChange`).
+  - Clamp-on-blur is better UX than clamp-on-change because it lets users type freely without intermediate values being reset mid-keystroke.
+---
