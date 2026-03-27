@@ -255,3 +255,10 @@
 - Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L64, L937, L1257
 - **User impact:** Users are now warned before deleting primitive tokens that are referenced by semantic tokens, preventing silent broken aliases.
 ---
+
+## 2026-03-27 - DimensionsStore re-created on every themes API call
+- Moved `createDimensionsStore(tokenDir)` call from inside each route handler to the plugin level, creating a single shared `store` instance for all 6 handlers.
+- Files changed: `packages/server/src/routes/themes.ts` ~L47
+- **Learnings for future iterations:**
+  - Fastify plugin options (like `tokenDir`) are resolved once at registration time — any store/client built from them can safely be created at plugin level and reused across handlers.
+---
