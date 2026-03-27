@@ -1713,7 +1713,9 @@ export function App() {
                         >
                           <span className="truncate flex-1">{set}</span>
                           {setTokenCounts[set] !== undefined && (
-                            <span className={`text-[9px] shrink-0 ml-1 ${activeSet === set ? 'opacity-60' : 'text-[var(--color-figma-text-tertiary)]'}`}>{setTokenCounts[set]}</span>
+                            <span className={`text-[9px] shrink-0 ml-1 ${activeSet === set ? 'opacity-60' : 'text-[var(--color-figma-text-tertiary)]'}`}>
+                              {activeSet === set && filteredSetCount !== null ? `${filteredSetCount} / ${setTokenCounts[set]}` : setTokenCounts[set]}
+                            </span>
                           )}
                         </button>
                       )}
@@ -2127,6 +2129,7 @@ export function App() {
                     showIssuesOnly={showIssuesOnly}
                     onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
                     cascadeDiff={cascadeDiff ?? undefined}
+                    onFilteredCountChange={setFilteredSetCount}
                   />
                 </div>
                 <div className="w-60 shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-col overflow-hidden">
@@ -2177,6 +2180,7 @@ export function App() {
                 showIssuesOnly={showIssuesOnly}
                 onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
                 cascadeDiff={cascadeDiff ?? undefined}
+                onFilteredCountChange={setFilteredSetCount}
               />
             )
           )}
@@ -2212,6 +2216,7 @@ export function App() {
                   showIssuesOnly={showIssuesOnly}
                   onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
                   cascadeDiff={cascadeDiff ?? undefined}
+                  onFilteredCountChange={setFilteredSetCount}
                 />
               </div>
               <div

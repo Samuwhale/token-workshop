@@ -55,3 +55,9 @@
   - Tab badge pattern: `<span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-<color> border border-[var(--color-figma-bg)]" />` inside the `relative` tab button. Suppress when on the active tab with `!(activeTab === 'X' && overflowPanel === null)`.
   - Git dirty check: `data.status != null && !data.status.isClean` on the `/api/sync/status` response. `data.status` is null when not a git repo.
 ---
+
+## 2026-03-27 - ux-pass: add title/aria-label to × remove-step buttons in generator dialog
+- Added `title="Remove step"` and `aria-label="Remove step"` to all four `×` remove-step buttons across ColorRampConfigEditor, ScaleMultiplierConfigEditor, CustomScaleConfigEditor step rows. These were icon-only `×` buttons with no accessible label — users had no tooltip to confirm their intent before clicking a destructive action.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L701, L994, L1030, L1124
+- **User impact:** Hovering any remove-step button now shows "Remove step" tooltip, preventing accidental deletions and clarifying the button's purpose at a glance.
+---
