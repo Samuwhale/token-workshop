@@ -109,3 +109,10 @@ Already up to date.
 ===============================================================
   Claimed: No "Create as alias" fast path — creating an alias token requires: open editor, toggle alias mode, type reference path, save; a direct "Create Alias" action or right-click "Alias to this token" would cut this to 1-2 steps
   Worktree: /tmp/backlog-44348-UGSvYc
+
+  ✓ done: No "Create as alias" fast path
+    Added "Alias to this token" right-click context menu item that opens the create form with value pre-filled as {token.path} and type matched — reduces alias creation from 4+ steps to 2 (right-click → type path → Enter).
+    29 turns · 249s · $1.45
+
+--- Merging: No "Create as alias" fast path ---
+Already up to date.

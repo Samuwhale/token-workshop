@@ -114,9 +114,9 @@
 - [x] No copy/paste for tokens (Cmd+C/V) — users can paste via a dedicated modal (Cmd+Shift+V) but there's no way to copy selected tokens as JSON to clipboard; common "duplicate across sets" workflow requires the Move dialog instead of copy-paste
 - [x] Inline editing limited to color/boolean — string, dimension, and number tokens require opening the full editor panel to change values; inline click-to-edit for simple scalar types would save a round-trip to the editor
 - [x] Arrow left/right don't expand/collapse groups — when a group row is focused via keyboard, left/right arrows do nothing; they should collapse/expand the group (standard tree keyboard pattern)
-- [~] Search resets on set switch — filter/search text is lost when switching between sets; users working across multiple sets must re-type their search each time
+- [x] Search resets on set switch — filter/search text is lost when switching between sets; users working across multiple sets must re-type their search each time
 - [~] No "Create as alias" fast path — creating an alias token requires: open editor, toggle alias mode, type reference path, save; a direct "Create Alias" action or right-click "Alias to this token" would cut this to 1-2 steps
-- [ ] Context menu has no letter-key accelerators — right-click menu shows 12+ items navigable only by arrow keys; adding letter-key access (d=delete, r=rename, c=copy path) would speed up power users
+- [~] Context menu has no letter-key accelerators — right-click menu shows 12+ items navigable only by arrow keys; adding letter-key access (d=delete, r=rename, c=copy path) would speed up power users
 - [ ] Generators show no preview before commit — users configure a color scale or type scale but can't see what tokens will be created until they confirm; a live preview of generated output would prevent trial-and-error
 - [ ] Validation-fix-revalidate loop is fully manual — after fixing a validation issue, users must manually switch back to Analytics and re-trigger validation; no auto-revalidation or "recheck this issue" action
 - [ ] Selection Inspector create-and-bind requires tab switch — when binding a token that doesn't exist yet, users must leave Inspect tab, create token in Tokens tab, return to Inspect, re-bind; an inline "Create & Bind" flow would eliminate this context switch

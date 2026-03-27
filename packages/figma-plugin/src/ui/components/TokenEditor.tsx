@@ -104,6 +104,8 @@ interface TokenEditorProps {
   isCreateMode?: boolean;
   /** Initial token type for create mode. */
   initialType?: string;
+  /** Initial value for create mode — when it looks like an alias (e.g. "{color.primary}"), alias mode is activated automatically. */
+  initialValue?: string;
   /** Called whenever the dirty state changes so the parent can guard backdrop clicks. */
   onDirtyChange?: (dirty: boolean) => void;
   /** Called with the final saved path on a successful save so the parent can highlight it. */
@@ -112,7 +114,7 @@ interface TokenEditorProps {
   dimensions?: ThemeDimension[];
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, onDirtyChange, onSaved, dimensions = [] }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, dimensions = [] }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -130,8 +132,14 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     return '';
   });
   const [description, setDescription] = useState('');
-  const [reference, setReference] = useState('');
-  const [aliasMode, setAliasMode] = useState(false);
+  const [reference, setReference] = useState(() => {
+    if (isCreateMode && initialValue && initialValue.startsWith('{') && initialValue.endsWith('}')) return initialValue;
+    return '';
+  });
+  const [aliasMode, setAliasMode] = useState(() => {
+    if (isCreateMode && initialValue && initialValue.startsWith('{') && initialValue.endsWith('}')) return true;
+    return false;
+  });
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
   const preAliasValueRef = useRef<any>(null);

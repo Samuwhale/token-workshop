@@ -103,3 +103,16 @@ Already up to date.
 
 --- Merging: Search resets on set switch ---
 Already up to date.
+[main 9c37804] chore(backlog): done – Search resets on set switch
+ 5 files changed, 30 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - Search resets on set switch
+- Already implemented. Commit `e753631` ("Filter Persistence Across Set Switches") added sessionStorage persistence for search query, ref filter, and show-duplicates (shared across sets), plus localStorage per-set persistence for type filter. TokenList does not unmount during set switches (old tokens remain until new data arrives), so React state is also preserved. The `clearFilters` function (user-triggered) is the only code that resets search to empty.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  7 items remaining
+===============================================================
+  Claimed: Context menu has no letter-key accelerators — right-click menu shows 12+ items navigable only by arrow keys; adding letter-key access (d=delete, r=rename, c=copy path) would speed up power users
+  Worktree: /tmp/backlog-44614-0odX4m

@@ -54,7 +54,7 @@ interface TokenListData {
 
 interface TokenListActions {
   onEdit: (path: string, name?: string) => void;
-  onCreateNew?: (initialPath?: string, initialType?: string) => void;
+  onCreateNew?: (initialPath?: string, initialType?: string, initialValue?: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onTokenCreated?: (path: string) => void;
@@ -4224,6 +4224,25 @@ function TokenTreeNode({
             }}
           >
             Duplicate token
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setContextMenuPos(null);
+              const aliasValue = `{${node.path}}`;
+              if (onCreateNew) {
+                onCreateNew('', node.$type || 'color', aliasValue);
+              } else {
+                setNewTokenValue(aliasValue);
+                setNewTokenType(node.$type || 'color');
+                setNewTokenPath('');
+                setSiblingPrefix(null);
+                setShowCreateForm(true);
+              }
+            }}
+          >
+            Alias to this token
           </button>
           <button
             className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"

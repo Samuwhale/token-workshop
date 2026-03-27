@@ -413,3 +413,11 @@
 - **Learnings for future iterations:**
   - Before implementing, check `git log -S` for existing implementations — filter persistence was already added
 ---
+
+## 2026-03-27 - No "Create as alias" fast path
+- Added "Alias to this token" context menu item on every token row. Right-clicking a token and selecting it opens the create form (or side-panel editor) with the value pre-filled as `{token.path}` and the type matched, so the user only needs to type the new alias path and press Enter.
+- Extended `onCreateNew` callback to accept `initialValue` parameter, and added `initialValue` prop to TokenEditor that auto-activates alias mode when the value looks like `{...}`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L4218 (context menu item), ~L57 (prop type), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L107 (initialValue prop), ~L133 (alias mode init), `packages/figma-plugin/src/ui/App.tsx` ~L209 (editingToken type), ~L2007 (onCreateNew wiring), ~L2026 (initialValue passthrough)
+- **Learnings for future iterations:**
+  - TokenEditor initializes `reference` and `aliasMode` via `useState` initializers — to support initial values from props, use lazy initializer functions rather than effects to avoid flash of non-alias state.
+---
