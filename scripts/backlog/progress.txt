@@ -291,3 +291,14 @@
   - Batch-add UX pattern: don't close form on success — clear input, re-focus, let user dismiss manually.
   - Re-focus after async state update requires `setTimeout(..., 0)` to run after React's render cycle.
 ---
+
+## 2026-03-27 - 10-second Figma correlation timeout has no loading indicator
+- Added two missing loading indicators in SyncPanel:
+  1. Apply button now shows an inline spinner + "Syncing…" during `varSyncing` (waiting for Figma apply-variables response). Changed button to `inline-flex` with a white spinner icon next to the text.
+  2. Readiness re-check now shows a spinner row ("Re-checking…") during `readinessLoading`, regardless of whether prior checks exist. Previously the spinner body was suppressed when `readinessChecks.length > 0`, leaving stale check results visible with no indication of ongoing work.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L673 (apply button spinner), ~L787 (readiness spinner condition)
+- **Learnings for future iterations:**
+  - The `varLoading` (Compare) spinner was already in place; only `varSyncing` (Apply) and readiness re-check were missing indicators.
+  - Use `inline-flex items-center gap-1.5` on buttons to cleanly support icon+text layout.
+  - The readiness spinner condition had `&& readinessChecks.length === 0` which correctly prevented showing a blank spinner on re-check, but left no feedback at all — the fix is to keep showing the spinner and change the text to "Re-checking…" vs "Running checks…".
+---

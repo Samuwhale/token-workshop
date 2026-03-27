@@ -169,3 +169,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 51)
+[main 2027d78] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 210 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - "Add option" form resets after each addition — batch-add support
+- Removed `setShowAddOption(false)` from `handleAddOption` so the form stays open after a successful addition. Added a `addOptionInputRefs` ref map to re-focus the input after each add, enabling rapid batch entry. The Cancel button (and Escape key) still closes the form.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L62 (ref declaration), ~L284-L287 (handler: keep form open, re-focus), ~L713 (input: wire ref)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  57 items remaining
+===============================================================
+  Claimed: SyncPanel variable sync has a 15-second timeout with no user-facing indication of the threshold — for large token sets this feels like a hang before showing an unhelpful error
+  Worktree: /tmp/backlog-97510-qJMFUO

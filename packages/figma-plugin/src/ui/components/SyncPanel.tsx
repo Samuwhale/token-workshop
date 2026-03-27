@@ -673,9 +673,14 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
                     <button
                       onClick={applyVarDiff}
                       disabled={varSyncing || varSyncCount === 0}
-                      className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                      className="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
-                      {varSyncing ? 'Syncing…' : `Apply ${varSyncCount > 0 ? varSyncCount + ' change' + (varSyncCount !== 1 ? 's' : '') : ''}`}
+                      {varSyncing ? (
+                        <>
+                          <div className="w-2.5 h-2.5 rounded-full border-[1.5px] border-white/40 border-t-white animate-spin shrink-0" aria-hidden="true" />
+                          Syncing…
+                        </>
+                      ) : `Apply ${varSyncCount > 0 ? varSyncCount + ' change' + (varSyncCount !== 1 ? 's' : '') : ''}`}
                     </button>
                   </div>
                 </>
@@ -784,10 +789,10 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
                 ))}
               </div>
             )}
-            {readinessLoading && readinessChecks.length === 0 && (
+            {readinessLoading && (
               <div className="px-3 py-3 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
                 <div className="w-3 h-3 rounded-full border-[1.5px] border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin shrink-0" aria-hidden="true" />
-                Running publish readiness checks…
+                {readinessChecks.length > 0 ? 'Re-checking…' : 'Running publish readiness checks…'}
               </div>
             )}
             {!readinessLoading && readinessChecks.length === 0 && !readinessError && (
