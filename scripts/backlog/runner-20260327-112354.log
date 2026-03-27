@@ -32,3 +32,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager `handleDrop` (set reorder) doesn't check `res.ok` — after drag-and-drop reordering, the POST to save new order silently fails on server error; local state is already updated optimistically with no rollback (`ThemeManager.tsx:376-384`)
   Worktree: /tmp/backlog-75264-LDjvRX
+
+  ✓ done: ThemeManager handleDrop (set reorder) doesn't check res.ok
+    Added res.ok check after POST and optimistic state rollback on failure; build passes.
+    23 turns · 158s · $0.59
+
+--- Merging: ThemeManager handleDrop (set reorder) doesn't check res.ok ---
+Already up to date.

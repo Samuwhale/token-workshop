@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Remove unused `allSets` param from `UseGeneratorDialogParams` ---
 Already up to date.
+[main b96a0bd] chore(backlog): done – Remove unused `allSets` param from `UseGeneratorDialogParams`
+ 7 files changed, 32 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - Remove unused `allSets` param from `UseGeneratorDialogParams`
+- Removed `allSets: string[]` from the `UseGeneratorDialogParams` interface (was accepted but never read by hook body).
+- Removed `allSets` from the call site in `TokenGeneratorDialog.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L27, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L256
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  12 items remaining
+===============================================================
+  Claimed: `useThemeSwitcher` stale active-theme cleanup uses `setActiveThemesState` instead of `setActiveThemes` — removed dimensions are cleaned from React state but persist in localStorage and Figma clientStorage, causing phantom theme selections to reappear on next load (`useThemeSwitcher.ts:53-60`)
+  Worktree: /tmp/backlog-75957-B5m0Bh

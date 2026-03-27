@@ -343,6 +343,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
     const newOrder = [...order];
     newOrder.splice(fromIdx, 1);
     newOrder.splice(toIdx, 0, dragInfo.setName);
+    const previousOrder = order;
     setOptionSetOrders(prev => ({
       ...prev,
       [dimId]: { ...(prev[dimId] || {}), [optionName]: newOrder },
@@ -352,12 +353,20 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
       reorderedSets[s] = opt.sets[s] ?? 'disabled';
     }
     try {
-      await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: optionName, sets: reorderedSets }),
       });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(body || `Server returned ${res.status}`);
+      }
     } catch (err) {
+      setOptionSetOrders(prev => ({
+        ...prev,
+        [dimId]: { ...(prev[dimId] || {}), [optionName]: previousOrder },
+      }));
       setError(err instanceof Error ? err.message : 'Failed to save set order');
     }
   };

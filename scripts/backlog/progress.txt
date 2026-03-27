@@ -117,3 +117,10 @@
 - **Learnings for future iterations:**
   - Build validation failed due to pre-existing `@tokenmanager/core` dist missing in worktree — not related to the change. Grepping the hook body for the param name is sufficient validation for dead-param removal.
 ---
+
+## 2026-03-27 - ThemeManager `handleDrop` (set reorder) doesn't check `res.ok`
+- Added `res.ok` check after the POST to save reordered sets. On failure (HTTP error or network error), the optimistic state update is rolled back by restoring `previousOrder`. Error message includes server response body for debugging.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L346 (save previousOrder), ~L358 (res.ok check + rollback)
+- **Learnings for future iterations:**
+  - Optimistic UI updates need a rollback path: capture the previous state *before* applying the optimistic change, then restore it in the catch block.
+---
