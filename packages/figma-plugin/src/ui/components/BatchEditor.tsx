@@ -113,11 +113,12 @@ export function BatchEditor({
     path.split('.').map(encodeURIComponent).join('/');
 
   const patchToken = async (path: string, body: Record<string, unknown>) => {
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath(path)}`, {
+    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath(path)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
+    if (!res.ok) throw new Error(`PATCH ${path} failed (${res.status})`);
   };
 
   const handleApply = async () => {
@@ -170,30 +171,41 @@ export function BatchEditor({
     setFeedback(null);
 
     try {
-      await Promise.all(ops.map(({ path, patch }) => patchToken(path, patch)));
+      const results = await Promise.allSettled(ops.map(({ path, patch }) => patchToken(path, patch)));
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
 
-      if (onPushUndo) {
-        onPushUndo({
-          description: `Batch edit ${ops.length} token${ops.length === 1 ? '' : 's'}`,
-          restore: async () => {
-            await Promise.all(ops.map(({ path, oldEntry }) =>
-              patchToken(path, { $type: oldEntry.$type, $value: oldEntry.$value })
-            ));
-            onApply();
-          },
-          redo: async () => {
-            await Promise.all(ops.map(({ path, patch }) => patchToken(path, patch)));
-            onApply();
-          },
-        });
+      if (succeeded > 0) {
+        if (onPushUndo) {
+          const successOps = ops.filter((_, i) => results[i].status === 'fulfilled');
+          onPushUndo({
+            description: `Batch edit ${successOps.length} token${successOps.length === 1 ? '' : 's'}`,
+            restore: async () => {
+              await Promise.all(successOps.map(({ path, oldEntry }) =>
+                patchToken(path, { $type: oldEntry.$type, $value: oldEntry.$value })
+              ));
+              onApply();
+            },
+            redo: async () => {
+              await Promise.all(successOps.map(({ path, patch }) => patchToken(path, patch)));
+              onApply();
+            },
+          });
+        }
+        onApply();
       }
 
-      setFeedback({ ok: true, msg: `Applied to ${ops.length} token${ops.length === 1 ? '' : 's'}` });
-      setDescription('');
-      setOpacityPct('');
-      setScaleFactor('');
-      setNewType('');
-      onApply();
+      if (failed === 0) {
+        setFeedback({ ok: true, msg: `Applied to ${succeeded} token${succeeded === 1 ? '' : 's'}` });
+        setDescription('');
+        setOpacityPct('');
+        setScaleFactor('');
+        setNewType('');
+      } else if (succeeded === 0) {
+        setFeedback({ ok: false, msg: `Failed to update all ${failed} token${failed === 1 ? '' : 's'}` });
+      } else {
+        setFeedback({ ok: false, msg: `${succeeded} updated, ${failed} failed` });
+      }
     } catch {
       setFeedback({ ok: false, msg: 'Error — check server connection' });
     } finally {
@@ -206,18 +218,29 @@ export function BatchEditor({
     setMoving(true);
     setFeedback(null);
     try {
-      await Promise.all(
-        selectedEntries.map(({ path }) =>
-          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
+      const results = await Promise.allSettled(
+        selectedEntries.map(async ({ path }) => {
+          const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ tokenPath: path, targetSet }),
-          })
-        )
+          });
+          if (!res.ok) throw new Error(`Move ${path} failed (${res.status})`);
+        })
       );
-      setFeedback({ ok: true, msg: `Moved ${selectedEntries.length} token${selectedEntries.length === 1 ? '' : 's'} to "${targetSet}"` });
-      setTargetSet('');
-      onApply();
+      const succeeded = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
+      if (succeeded > 0) onApply();
+
+      if (failed === 0) {
+        setFeedback({ ok: true, msg: `Moved ${succeeded} token${succeeded === 1 ? '' : 's'} to "${targetSet}"` });
+        setTargetSet('');
+      } else if (succeeded === 0) {
+        setFeedback({ ok: false, msg: `Failed to move all ${failed} token${failed === 1 ? '' : 's'}` });
+      } else {
+        setFeedback({ ok: false, msg: `${succeeded} moved, ${failed} failed` });
+      }
     } catch {
       setFeedback({ ok: false, msg: 'Move failed — check server connection' });
     } finally {
@@ -232,20 +255,38 @@ export function BatchEditor({
     setFeedback(null);
     try {
       // Rename sequentially to avoid conflicts when paths share prefixes
+      let succeeded = 0;
+      let failed = 0;
       for (const { path } of toRename) {
         const newPath = path.split(findText).join(replaceText);
         if (newPath !== path) {
-          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldPath: path, newPath }),
-          });
+          try {
+            const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ oldPath: path, newPath }),
+            });
+            if (!res.ok) throw new Error(`Rename ${path} failed (${res.status})`);
+            succeeded++;
+          } catch {
+            failed++;
+          }
+        } else {
+          succeeded++; // no-op rename counts as success
         }
       }
-      setFeedback({ ok: true, msg: `Renamed ${toRename.length} token${toRename.length === 1 ? '' : 's'}` });
-      setFindText('');
-      setReplaceText('');
-      onApply();
+
+      if (succeeded > 0) onApply();
+
+      if (failed === 0) {
+        setFeedback({ ok: true, msg: `Renamed ${succeeded} token${succeeded === 1 ? '' : 's'}` });
+        setFindText('');
+        setReplaceText('');
+      } else if (succeeded === 0) {
+        setFeedback({ ok: false, msg: `Failed to rename all ${failed} token${failed === 1 ? '' : 's'}` });
+      } else {
+        setFeedback({ ok: false, msg: `${succeeded} renamed, ${failed} failed` });
+      }
     } catch {
       setFeedback({ ok: false, msg: 'Rename failed — check server connection' });
     } finally {
