@@ -2054,7 +2054,10 @@ export function App() {
                       className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
                     />
                     <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-                      Run <span className="font-mono">npm start</span> in the TokenManager directory, then press Enter or click Save &amp; Connect.
+                      Press <kbd className="font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-0.5">Enter</kbd> to connect, or click Save &amp; Connect below.
+                    </p>
+                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
+                      Run <span className="font-mono">npm start</span> in the TokenManager directory first.
                     </p>
                   </div>
                   {connectResult === 'ok' && (

@@ -455,7 +455,10 @@ function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedTokenResult
     );
   }
 
-  const failCount = tokens.filter(t => (t.value as number) < WCAG_AA_NORMAL).length;
+  const enforcedLevels = config?.levels?.length ? config.levels : (['AA'] as ('AA' | 'AAA')[]);
+  const failThreshold = enforcedLevels.includes('AAA') ? WCAG_AAA_NORMAL : WCAG_AA_NORMAL;
+  const strictestLabel = enforcedLevels.includes('AAA') ? 'AAA' : 'AA';
+  const failCount = tokens.filter(t => (t.value as number) < failThreshold).length;
 
   return (
     <div className="flex flex-col gap-0.5">
@@ -466,7 +469,7 @@ function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedTokenResult
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
           <span className="text-[9px] text-amber-700 font-medium">
-            {failCount} step{failCount !== 1 ? 's' : ''} fail{failCount === 1 ? 's' : ''} AA
+            {failCount} step{failCount !== 1 ? 's' : ''} fail{failCount === 1 ? 's' : ''} {strictestLabel}
           </span>
         </div>
       ) : (
@@ -474,7 +477,7 @@ function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedTokenResult
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 shrink-0" aria-hidden="true">
             <path d="M20 6L9 17l-5-5"/>
           </svg>
-          <span className="text-[9px] text-green-700 font-medium">All steps pass AA</span>
+          <span className="text-[9px] text-green-700 font-medium">All steps pass {strictestLabel}</span>
         </div>
       )}
       {tokens.map(t => {
@@ -482,8 +485,9 @@ function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedTokenResult
         const passAA = ratio !== null && ratio >= WCAG_AA_NORMAL;
         const passAAA = ratio !== null && ratio >= WCAG_AAA_NORMAL;
         const hex = hexByName[t.stepName];
+        const rowFails = ratio === null || ratio < failThreshold;
         return (
-          <div key={t.stepName} className={`flex items-center gap-2 px-1 py-0.5 rounded ${!passAA ? 'bg-amber-500/5' : ''}`}>
+          <div key={t.stepName} className={`flex items-center gap-2 px-1 py-0.5 rounded ${rowFails ? 'bg-amber-500/5' : ''}`}>
             {hex ? (
               <span className="w-4 h-4 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: hex }} />
             ) : (
@@ -493,12 +497,16 @@ function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedTokenResult
             <span className="flex-1 text-[9px] font-mono text-[var(--color-figma-text)]">
               {ratio !== null ? ratio.toFixed(2) + ':1' : '—'}
             </span>
-            <span className={`text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${passAA ? 'bg-green-500/15 text-green-600' : 'bg-red-500/15 text-red-500'}`}>
-              AA
-            </span>
-            <span className={`text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${passAAA ? 'bg-green-500/15 text-green-600' : 'bg-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
-              AAA
-            </span>
+            {enforcedLevels.includes('AA') && (
+              <span className={`text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${passAA ? 'bg-green-500/15 text-green-600' : 'bg-red-500/15 text-red-500'}`}>
+                AA
+              </span>
+            )}
+            {enforcedLevels.includes('AAA') && (
+              <span className={`text-[8px] font-semibold px-1 py-0.5 rounded shrink-0 ${passAAA ? 'bg-green-500/15 text-green-600' : 'bg-red-500/15 text-red-500'}`}>
+                AAA
+              </span>
+            )}
           </div>
         );
       })}
@@ -682,7 +690,8 @@ function ContrastCheckConfigEditor({ config, onChange }: { config: ContrastCheck
         <div className="flex flex-col gap-1">
           {config.steps.map((step, idx) => {
             const ratio = wcagContrast(step.hex, config.backgroundHex);
-            const passAA = ratio !== null && ratio >= WCAG_AA_NORMAL;
+            const cfgThreshold = config.levels?.includes('AAA') ? WCAG_AAA_NORMAL : WCAG_AA_NORMAL;
+            const passAA = ratio !== null && ratio >= cfgThreshold;
             return (
               <div key={idx} className="flex items-center gap-1.5">
                 <ColorStepSwatch hex={step.hex} onHexChange={hex => updateStep(idx, { hex })} />

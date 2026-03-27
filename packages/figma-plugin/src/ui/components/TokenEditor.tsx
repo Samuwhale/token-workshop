@@ -581,14 +581,55 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
               </div>
             );
           })()}
-          {!aliasMode && reference && (
-            <div className="mt-1 flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 border border-[var(--color-figma-accent)]/30">
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M1 4h2.5M4.5 4H7M5.5 2L7 4L5.5 6M2.5 2L1 4L2.5 6"/>
-              </svg>
-              <span className="text-[10px] text-[var(--color-figma-accent)] font-mono truncate">{reference}</span>
-            </div>
-          )}
+          {!aliasMode && reference && (() => {
+            const chain = reference.startsWith('{') && reference.endsWith('}') ? resolveAliasChain(reference, allTokensFlat) : [];
+            return (
+              <div className="relative mt-1"
+                onMouseEnter={() => setShowChainPopover(true)}
+                onMouseLeave={() => setShowChainPopover(false)}
+              >
+                <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 border border-[var(--color-figma-accent)]/30 cursor-default">
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M1 4h2.5M4.5 4H7M5.5 2L7 4L5.5 6M2.5 2L1 4L2.5 6"/>
+                  </svg>
+                  <span className="text-[10px] text-[var(--color-figma-accent)] font-mono truncate">{reference}</span>
+                </div>
+                {showChainPopover && chain.length > 0 && (
+                  <div className="absolute left-0 top-full mt-1 z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg px-2.5 py-2 min-w-[180px] max-w-[260px]">
+                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase tracking-wide font-medium mb-1.5">Resolution chain</div>
+                    <div className="flex flex-col gap-1">
+                      {chain.map((hop, i) => {
+                        const resolvedColor = hop.type === 'color' && typeof hop.value === 'string' && !hop.value.startsWith('{') ? hop.value : null;
+                        const isLast = i === chain.length - 1;
+                        return (
+                          <div key={hop.path} className="flex items-center gap-1.5 min-w-0">
+                            {i > 0 && (
+                              <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">→</span>
+                            )}
+                            {resolvedColor && (
+                              <div
+                                className="w-3 h-3 rounded-sm border border-white/50 ring-1 ring-[var(--color-figma-border)] shrink-0"
+                                style={{ backgroundColor: resolvedColor }}
+                                aria-hidden="true"
+                              />
+                            )}
+                            <span className={`text-[10px] font-mono truncate ${isLast ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
+                              {isLast && hop.value !== undefined && typeof hop.value !== 'object' && !String(hop.value).startsWith('{') && !resolvedColor
+                                ? String(hop.value)
+                                : hop.path}
+                            </span>
+                            {isLast && hop.value === undefined && (
+                              <span className="ml-auto shrink-0 text-[9px] text-[var(--color-figma-error)]">not found</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         {/* Type-specific editor */}

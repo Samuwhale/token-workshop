@@ -381,3 +381,19 @@
 - Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L5
 - **Why:** `rgbToHsl` appeared only in the import statement and was never referenced in the 500+ line file. Dead import left from earlier refactoring (the file uses `hexToHsl`/`hslToHex`/`hslToRgb` directly instead).
 ---
+
+## 2026-03-27 - Settings server URL field: surface "Press Enter to connect" affordance
+- Split the single helper paragraph into two: the first now leads with a styled `<kbd>Enter</kbd>` hint ("Press Enter to connect, or click Save & Connect below"), and the second gives the server setup instruction ("Run `npm start`…"). The Enter affordance is now the first thing a user reads after editing the field.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L2056
+- **Learnings for future iterations:**
+  - When a keyboard shortcut exists, surface it immediately adjacent to the field — before any prerequisite instructions — so users discover it at the moment of interaction.
+  - `<kbd>` with `font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-0.5` gives a subtle key-badge look consistent with Figma plugin styling.
+---
+
+## 2026-03-27 - Show alias resolution chain on hover
+- Added hover popover to the alias chip (shown when a token has an alias reference but alias mode is off). On hover, a popover appears below the chip showing the full resolution chain with `→` arrows, color swatches for color hops, and a "not found" error for broken references. The `resolveAliasChain` function was already present; this just wires it to a hover-triggered absolute-positioned popover.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L128,L583
+- **Learnings for future iterations:**
+  - The alias chip (`!aliasMode && reference`) is shown when a token loads with an alias value before the user has toggled alias mode. `aliasMode` starts `false` even for alias tokens — it's an editing-mode toggle, not a read-only display flag.
+  - The "Resolves to" inline box (inside `aliasMode` block) is for the editing flow; the chip with hover popover is for the read-only view.
+---
