@@ -123,3 +123,23 @@ Already up to date.
 
 --- Merging: Context menu has no letter-key accelerators ---
 Already up to date.
+[main e30a1d7] chore(backlog): done – Context menu has no letter-key accelerators
+ 6 files changed, 110 insertions(+), 42 deletions(-)
+
+## 2026-03-27 - Context menu has no letter-key accelerators
+- Added letter-key accelerators to both token and group context menus. Each menu item shows a right-aligned hint letter (e.g., R for Rename, C for Copy path) and pressing that key while the menu is open triggers the action.
+- Token menu keys: N=Create sibling, D=Duplicate, R=Rename, L=Link to token, M=Move to set, C=Copy path, V=Copy value, J=Copy as JSON
+- Group menu keys: N=New subgroup, R=Rename, E=Edit type & desc, M=Move to set, D=Duplicate, S=Set scopes, V=Create variables, Y=Create styles, G=Generate scale, X=Delete
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  4 items remaining
+===============================================================
+  Claimed: Selection Inspector create-and-bind requires tab switch — when binding a token that doesn't exist yet, users must leave Inspect tab, create token in Tokens tab, return to Inspect, re-bind; an inline "Create & Bind" flow would eliminate this context switch
+  Worktree: /tmp/backlog-44614-UzQ40T
+
+  ✓ done: Selection Inspector create-and-bind requires tab switch
+    stale — already done. SelectionInspector.tsx already has inline Create & Bind flow: + button on property rows opens form, handleCreateToken creates token via API then binds immediately.
+    13 turns · 165s · $0.9
+
+--- Merging: Selection Inspector create-and-bind requires tab switch ---
+Already up to date.

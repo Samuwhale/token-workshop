@@ -440,3 +440,10 @@
 - **Learnings for future iterations:**
   - Using `data-accel` attributes + `querySelector` is a clean pattern for keyboard accelerators on dynamic menus — avoids needing refs on every button or duplicating action logic.
 ---
+
+## 2026-03-27 - Selection Inspector create-and-bind requires tab switch
+- Already implemented: SelectionInspector.tsx has a "+" button on each property row (~L817) that opens an inline "Create token from this value" form (~L944-1010). The `handleCreateToken` handler (~L357-404) creates the token via POST API then immediately binds it via `apply-to-selection` message. No tab switch required.
+- Files changed: none (feature already exists)
+- **Learnings for future iterations:**
+  - Always check if the feature already exists before planning implementation
+---
