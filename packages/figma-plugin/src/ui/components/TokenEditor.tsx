@@ -67,6 +67,28 @@ function resolveAliasChain(
   return [current];
 }
 
+/** Returns true if following `ref` from `currentTokenPath` would create a cycle. */
+function detectAliasCycle(
+  ref: string,
+  currentTokenPath: string,
+  allTokensFlat: Record<string, TokenMapEntry>,
+): boolean {
+  const visited = new Set<string>([currentTokenPath]);
+  let current = ref.startsWith('{') && ref.endsWith('}') ? ref.slice(1, -1) : ref;
+  while (true) {
+    if (visited.has(current)) return true;
+    visited.add(current);
+    const entry = allTokensFlat[current];
+    if (!entry) return false;
+    const v = entry.$value;
+    if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
+      current = v.slice(1, -1);
+    } else {
+      return false;
+    }
+  }
+}
+
 interface TokenEditorProps {
   tokenPath: string;
   setName: string;
@@ -229,7 +251,15 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 
   useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
+  const aliasHasCycle = useMemo(() => {
+    if (!aliasMode || !reference.startsWith('{') || !reference.endsWith('}')) return false;
+    const currentPath = isCreateMode ? editPath.trim() : tokenPath;
+    if (!currentPath) return false;
+    return detectAliasCycle(reference, currentPath, allTokensFlat);
+  }, [aliasMode, reference, isCreateMode, editPath, tokenPath, allTokensFlat]);
+
   const canSave = useMemo(() => {
+    if (aliasHasCycle) return false;
     if (tokenType === 'typography' && !aliasMode) {
       const v = typeof value === 'object' && value !== null ? value : {};
       const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
@@ -238,7 +268,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       if (fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0) return false;
     }
     return true;
-  }, [tokenType, value, aliasMode]);
+  }, [aliasHasCycle, tokenType, value, aliasMode]);
 
   const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
     color: '#000000',
@@ -558,7 +588,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                 Type <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">{'{'}</code> to search and select a token
               </p>
             )}
-            {!showAutocomplete && reference.startsWith('{') && reference.endsWith('}') && (() => {
+            {!showAutocomplete && aliasHasCycle && (
+              <p className="mt-0.5 text-[9px] text-[var(--color-figma-error)]">Circular reference — this alias would create an infinite loop</p>
+            )}
+            {!showAutocomplete && !aliasHasCycle && reference.startsWith('{') && reference.endsWith('}') && (() => {
               const chain = resolveAliasChain(reference, allTokensFlat);
               return chain.length > 0 && chain[chain.length - 1].value === undefined ? (
                 <p className="mt-0.5 text-[9px] text-[var(--color-figma-error)]">Reference does not resolve — token not found</p>
@@ -566,7 +599,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             })()}
             </>
           )}
-          {aliasMode && reference.startsWith('{') && reference.endsWith('}') && (() => {
+          {aliasMode && !aliasHasCycle && reference.startsWith('{') && reference.endsWith('}') && (() => {
             const chain = resolveAliasChain(reference, allTokensFlat);
             if (chain.length === 0) return null;
             return (

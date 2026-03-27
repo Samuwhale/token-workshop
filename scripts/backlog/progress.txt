@@ -298,3 +298,15 @@
   - `resolveAliasChain` returns `[{ path, value: undefined, type: 'unknown' }]` (not empty array) for missing paths — `chain.length === 0` only occurs on circular references. So the not-found check is `chain[chain.length - 1].value === undefined`.
   - The existing "Resolves to" box already showed a tiny "not found" label for broken refs (line 585-587). The new warning is a more prominent paragraph immediately below the input field, shown before the chain box.
 ---
+
+## 2026-03-27 - Circular alias reference detection
+- Added `detectAliasCycle(ref, currentTokenPath, allTokensFlat)` helper using iterative chain-following with a visited set seeded with the current token's path; returns true if following the chain loops back to any visited node.
+- Added `aliasHasCycle` useMemo computed before `canSave`, using `tokenPath` (edit mode) or `editPath` (create mode) as the seed.
+- `canSave` now returns false when `aliasHasCycle` is true, disabling the Save button.
+- Cycle error message "Circular reference — this alias would create an infinite loop" shown below the reference input; "Resolves to" chain panel suppressed when cycle is active.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L68,L248,L258,L595
+- **Learnings for future iterations:**
+  - Seeding the `visited` set with `currentTokenPath` before traversal is the cleanest way to detect would-be cycles — no need to compare the final node.
+  - Works correctly in create mode too: if the user types a reference to the token they're creating (which doesn't exist yet in `allTokensFlat`), the path is still in `visited` from the seed.
+  - `detectAliasCycle` only follows single-value alias strings (`{path}`) — composite/formula tokens break the chain naturally and return false.
+---
