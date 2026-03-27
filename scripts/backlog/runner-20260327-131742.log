@@ -177,3 +177,19 @@ Already up to date.
 
 --- Merging: Export has no batch copy or download ---
 Already up to date.
+[main 11c0b4d] chore(backlog): done – Export has no batch copy or download
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Export has no batch copy or download
+- Already implemented. ExportPanel.tsx has both "Copy All" (L917-926, handler at L349) and "Download ZIP" (L927-938, handler at L313) buttons in the sticky footer. They appear when platform export results exist. The ZIP builder (`buildZipBlob` at L49-112) is a pure-JS implementation. The "Copy All" handler concatenates all files with platform/path comment headers.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  0
+0 items remaining
+===============================================================
+./scripts/backlog/backlog.sh: line 696: [: 0
+0: integer expression expected
+No items available to claim (all in-progress or empty). Exiting.

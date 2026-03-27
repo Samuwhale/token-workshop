@@ -184,3 +184,10 @@ Already up to date.
 ===============================================================
   Claimed: Deep Inspect mode has no keyboard shortcut — toggling deep inspection requires clicking a small button; a keyboard shortcut would streamline the inspect workflow
   Worktree: /tmp/backlog-44614-E2Ia2k
+
+  ✓ done: Deep Inspect mode has no keyboard shortcut
+    Added ⌘⇧D keyboard shortcut to toggle deep inspect in SelectionInspector, with tooltip hint and KeyboardShortcutsModal entry.
+    17 turns · 147s · $0.53
+
+--- Merging: Deep Inspect mode has no keyboard shortcut ---
+Already up to date.

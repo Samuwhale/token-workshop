@@ -279,3 +279,13 @@
 - **Learnings for future iterations:**
   - Always check current code before assuming a backlog item is still valid — batch export features were added when ExportPanel was first built.
 ---
+
+## 2026-03-27 - Deep Inspect mode has no keyboard shortcut
+- Added Cmd+Shift+D (⌘⇧D) keyboard shortcut to toggle deep inspect mode in the Selection Inspector.
+- Added a `useEffect` keydown listener in `SelectionInspector.tsx` that uses the functional `setDeepInspect` updater to read+toggle state and post the message to the plugin controller.
+- Updated button tooltip to include the shortcut hint.
+- Added "Inspect" section to `KeyboardShortcutsModal.tsx` with the new shortcut.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L175, ~L490; `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L35
+- **Learnings for future iterations:**
+  - When toggling state from a keydown handler that's closed over stale state, use the functional updater form of setState (e.g. `setX(prev => ...)`) to read the current value.
+---

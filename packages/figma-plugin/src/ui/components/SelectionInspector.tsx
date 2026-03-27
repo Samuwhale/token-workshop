@@ -173,6 +173,22 @@ export function SelectionInspector({
   const nameInputRef = useRef<HTMLInputElement>(null);
   const prevNodeIdsRef = useRef<string>('');
 
+  // Keyboard shortcut: Cmd+Shift+D to toggle deep inspect
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'd') {
+        e.preventDefault();
+        setDeepInspect(prev => {
+          const next = !prev;
+          parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: next } }, '*');
+          return next;
+        });
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
   // Split selected nodes into directly-selected (depth 0) vs deep children (depth 1+)
   const rootNodes = selectedNodes.filter(n => (n.depth ?? 0) === 0);
   const deepChildNodes = selectedNodes.filter(n => (n.depth ?? 0) > 0);
@@ -475,7 +491,7 @@ export function SelectionInspector({
             setDeepInspect(next);
             parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: next } }, '*');
           }}
-          title={deepInspect ? 'Deep inspect on — showing nested children' : 'Enable deep inspect to show nested children'}
+          title={deepInspect ? 'Deep inspect on — showing nested children (⌘⇧D)' : 'Enable deep inspect to show nested children (⌘⇧D)'}
           className={`text-[9px] px-1.5 py-0.5 rounded transition-colors mr-1 ${
             deepInspect
               ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'

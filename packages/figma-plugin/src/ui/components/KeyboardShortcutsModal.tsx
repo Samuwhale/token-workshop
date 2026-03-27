@@ -32,6 +32,12 @@ const SECTIONS: ShortcutSection[] = [
     ],
   },
   {
+    header: 'Inspect',
+    shortcuts: [
+      { keys: ['⌘⇧D'], label: 'Toggle deep inspect' },
+    ],
+  },
+  {
     header: 'Token List',
     shortcuts: [
       { keys: ['⌘C'], label: 'Copy selected tokens as JSON' },
