@@ -18,9 +18,9 @@ export const DEFAULT_COLOR_RAMP_CONFIG: ColorRampConfig = {
 // ---------------------------------------------------------------------------
 
 const COLOR_STEP_PRESETS = [
-  { label: 'Tailwind (11)', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] },
-  { label: 'Material (10)', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] },
-  { label: 'Compact (5)', steps: [100, 300, 500, 700, 900] },
+  { label: 'Tailwind (11)', description: '11 steps (50–950) matching the Tailwind CSS color palette', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] },
+  { label: 'Material (10)', description: '10 steps (50–900) matching the Material Design color palette', steps: [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] },
+  { label: 'Compact (5)', description: '5 steps (100, 300, 500, 700, 900) — minimal palette for simple use cases', steps: [100, 300, 500, 700, 900] },
 ];
 
 // ---------------------------------------------------------------------------
@@ -80,7 +80,7 @@ export function ColorRampConfigEditor({ config, onChange }: { config: ColorRampC
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5 flex-wrap">
           {COLOR_STEP_PRESETS.map((preset, i) => (
-            <button key={preset.label} onClick={() => onChange({ ...config, steps: [...preset.steps] })}
+            <button key={preset.label} title={preset.description} onClick={() => onChange({ ...config, steps: [...preset.steps] })}
               className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}

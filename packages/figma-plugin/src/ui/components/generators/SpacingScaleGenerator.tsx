@@ -33,10 +33,12 @@ export const DEFAULT_SPACING_SCALE_CONFIG: SpacingScaleConfig = {
 const SPACING_STEP_PRESETS = [
   {
     label: 'Tailwind',
+    description: '14 steps (0.5–24× base unit) matching the Tailwind CSS spacing scale',
     steps: DEFAULT_SPACING_SCALE_CONFIG.steps,
   },
   {
     label: '8pt Grid',
+    description: '8 steps on a strict 8pt grid (1×–12× base unit) for pixel-perfect layouts',
     steps: [
       { name: '1', multiplier: 1 },
       { name: '2', multiplier: 2 },
@@ -112,7 +114,7 @@ export function SpacingScaleConfigEditor({ config, onChange }: { config: Spacing
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5 flex-wrap">
           {SPACING_STEP_PRESETS.map((preset, i) => (
-            <button key={preset.label} onClick={() => { setIsCustom(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })) }); }}
+            <button key={preset.label} title={preset.description} onClick={() => { setIsCustom(false); onChange({ ...config, steps: preset.steps.map(s => ({ ...s })) }); }}
               className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!isCustom && activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}

@@ -99,7 +99,7 @@
 - [x] GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
 - [x] Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
 - [x] No search/filter in graph view — large dependency graphs have no way to locate a specific token node
-- [~] No graph export — no option to save the rendered graph as SVG or PNG for documentation
+- [x] No graph export — no option to save the rendered graph as SVG or PNG for documentation
 - [~] Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips
 - [~] Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
 - [~] No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values
@@ -110,7 +110,7 @@
 
 ### QoL
 
-- [ ] TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain
+- [~] TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain
 - [ ] No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation
 - [ ] No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version
 - [ ] Circular-reference error doesn't identify the cycle — the error says "circular reference detected" but doesn't name which tokens form the loop

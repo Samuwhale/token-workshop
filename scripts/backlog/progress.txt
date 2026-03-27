@@ -426,3 +426,12 @@
   - `URL.revokeObjectURL` should be called after `a.click()` to free the object URL immediately (click is synchronous for downloads in browsers).
   - No `html2canvas` or external lib needed for structured data like pipeline diagrams — directly computed SVG is lighter and more reliable in a Figma plugin context.
 ---
+
+## 2026-03-27 - Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips
+- Added `description` field to all preset constants in ColorRampGenerator, TypeScaleGenerator, SpacingScaleGenerator, and OpacityScaleGenerator. Added `title={preset.description}` (or `title={\`${preset.label} — ${preset.description}\`}` for ratio presets whose button label is truncated) to each preset button so native browser tooltips appear on hover.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/ColorRampGenerator.tsx` ~L20 (presets), ~L84 (button); `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L29 (ratio presets), ~L38 (step presets), ~L137 (ratio button), ~L154 (step button); `packages/figma-plugin/src/ui/components/generators/SpacingScaleGenerator.tsx` ~L33 (presets), ~L115 (button); `packages/figma-plugin/src/ui/components/generators/OpacityScaleGenerator.tsx` ~L31 (presets), ~L102 (button)
+- **Learnings for future iterations:**
+  - Native `title` attribute is the right tool for preset tooltips in this plugin — no custom tooltip component needed
+  - TypeScaleGenerator ratio buttons show truncated labels (e.g., "Minor (1.067)") so the tooltip includes the full name: `title={\`${preset.label} — ${preset.description}\`}`
+  - Preset description fields should live alongside the data they describe; no separate lookup table needed
+---

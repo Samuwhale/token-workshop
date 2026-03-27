@@ -402,3 +402,16 @@ Already up to date.
 
 --- Merging: No graph export — no option to save the rendered graph as SVG or PNG for documentation ---
 Already up to date.
+[main 558581f] chore(backlog): done – No graph export — no option to save the rendered graph as SVG or PNG for documentation
+ 6 files changed, 113 insertions(+), 11 deletions(-)
+
+## 2026-03-27 - No graph export — no option to save the rendered graph as SVG or PNG for documentation
+- Added `exportGraphAsSVG(generators, activeSet)` helper that builds an SVG diagram (source→generator→target pipeline rows) and triggers a browser download as `<set>-graph.svg`. No external dependencies — pure SVG string construction with `Blob` + `URL.createObjectURL`.
+- Added a download icon button (↓ arrow SVG) in the pipeline view header alongside "+ Template", triggering the export.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L711 (exportGraphAsSVG function), ~L862 (export button in pipeline header)
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  19 items remaining
+===============================================================
+  Claimed: TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain
+  Worktree: /tmp/backlog-98408-9YdoXF

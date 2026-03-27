@@ -366,3 +366,10 @@ Already up to date.
 ===============================================================
   Claimed: Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips
   Worktree: /tmp/backlog-97510-Ryiorm
+
+  ✓ done: Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips
+    Added description field to all presets in 4 generator files; wired as title attribute on each preset button for native hover tooltips
+    21 turns · 186s · $0.56
+
+--- Merging: Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips ---
+Already up to date.

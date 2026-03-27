@@ -27,17 +27,18 @@ export const DEFAULT_TYPE_SCALE_CONFIG: TypeScaleConfig = {
 // ---------------------------------------------------------------------------
 
 const TYPE_RATIO_PRESETS = [
-  { label: 'Minor Second', value: 1.067 },
-  { label: 'Major Second', value: 1.125 },
-  { label: 'Minor Third', value: 1.2 },
-  { label: 'Major Third', value: 1.25 },
-  { label: 'Perfect Fourth', value: 1.333 },
-  { label: 'Golden Ratio', value: 1.618 },
+  { label: 'Minor Second', description: 'Ratio 1.067 — very subtle scale, tight steps ideal for dense UIs', value: 1.067 },
+  { label: 'Major Second', description: 'Ratio 1.125 — gentle scale, good for body text hierarchies', value: 1.125 },
+  { label: 'Minor Third', description: 'Ratio 1.2 — moderate scale, common for UI type systems', value: 1.2 },
+  { label: 'Major Third', description: 'Ratio 1.25 — balanced scale, used by Tailwind CSS', value: 1.25 },
+  { label: 'Perfect Fourth', description: 'Ratio 1.333 — strong scale with clear visual hierarchy', value: 1.333 },
+  { label: 'Golden Ratio', description: 'Ratio 1.618 — dramatic scale with large jumps between sizes', value: 1.618 },
 ];
 
 const TYPE_STEP_PRESETS = [
   {
     label: 'T-shirt (7)',
+    description: '7 named steps: xs, sm, base, lg, xl, 2xl, 3xl',
     steps: [
       { name: 'xs', exponent: -2 },
       { name: 'sm', exponent: -1 },
@@ -50,6 +51,7 @@ const TYPE_STEP_PRESETS = [
   },
   {
     label: 'Extended (9)',
+    description: '9 named steps: 2xs through 4xl — wider range for complex type hierarchies',
     steps: [
       { name: '2xs', exponent: -3 },
       { name: 'xs', exponent: -2 },
@@ -64,6 +66,7 @@ const TYPE_STEP_PRESETS = [
   },
   {
     label: 'Numeric',
+    description: '9 steps named by pixel size: 10, 12, 14, 16, 20, 24, 32, 40, 48',
     steps: [
       { name: '10', exponent: -3 },
       { name: '12', exponent: -2 },
@@ -133,7 +136,7 @@ export function TypeScaleConfigEditor({ config, onChange }: { config: TypeScaleC
         <div className="flex flex-col gap-1">
           <div className="flex gap-1 flex-wrap">
             {TYPE_RATIO_PRESETS.map(preset => (
-              <button key={preset.value} onClick={() => handleRatioPreset(preset.value)}
+              <button key={preset.value} title={`${preset.label} — ${preset.description}`} onClick={() => handleRatioPreset(preset.value)}
                 className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!isCustomRatio && activePresetRatio?.value === preset.value ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
               >{preset.label.split(' ')[0]} ({preset.value})</button>
             ))}
@@ -151,7 +154,7 @@ export function TypeScaleConfigEditor({ config, onChange }: { config: TypeScaleC
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5">
           {TYPE_STEP_PRESETS.map((preset, i) => (
-            <button key={preset.label} onClick={() => onChange({ ...config, steps: preset.steps.map(s => ({ ...s })) })}
+            <button key={preset.label} title={preset.description} onClick={() => onChange({ ...config, steps: preset.steps.map(s => ({ ...s })) })}
               className={`flex-1 px-2 py-1 rounded text-[10px] font-medium border transition-colors ${activeStepPresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}

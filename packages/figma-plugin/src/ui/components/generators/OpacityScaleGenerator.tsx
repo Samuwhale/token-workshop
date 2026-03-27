@@ -29,9 +29,10 @@ export const DEFAULT_OPACITY_SCALE_CONFIG: OpacityScaleConfig = {
 // ---------------------------------------------------------------------------
 
 const OPACITY_PRESETS = [
-  { label: 'Full range (13)', steps: DEFAULT_OPACITY_SCALE_CONFIG.steps },
+  { label: 'Full range (13)', description: '13 steps: 0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100% — fine-grained opacity control', steps: DEFAULT_OPACITY_SCALE_CONFIG.steps },
   {
     label: 'Compact (5)',
+    description: '5 steps: 0, 25, 50, 75, 100% — simple quarter increments',
     steps: [
       { name: '0', value: 0 },
       { name: '25', value: 25 },
@@ -99,7 +100,7 @@ export function OpacityScaleConfigEditor({ config, onChange }: { config: Opacity
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Preset</label>
         <div className="flex gap-1.5 flex-wrap">
           {OPACITY_PRESETS.map((preset, i) => (
-            <button key={preset.label} onClick={() => { setIsCustom(false); onChange({ steps: preset.steps.map(s => ({ ...s })) }); }}
+            <button key={preset.label} title={preset.description} onClick={() => { setIsCustom(false); onChange({ steps: preset.steps.map(s => ({ ...s })) }); }}
               className={`px-2 py-1 rounded text-[10px] font-medium border transition-colors ${!isCustom && activePresetIdx === i ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >{preset.label}</button>
           ))}
