@@ -165,3 +165,9 @@ Already up to date.
 - Stale — already implemented. The modal at TokenList.tsx ~L2892 already has a full preview-and-confirm flow: live diff list showing oldPath → newPath for every affected token (with red/green segment highlights), conflict detection with warning badges, empty-replacement warning, and an explicit "Rename N" confirmation button that only enables when there are actionable matches.
 - Files changed: none
 - **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  68 items remaining
+===============================================================
+  Claimed: Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
+  Worktree: /tmp/backlog-97955-so9PsM

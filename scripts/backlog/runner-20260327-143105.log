@@ -145,3 +145,16 @@ Already up to date.
 
 --- Merging: PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive — mixing formats gives confusing results ---
 Already up to date.
+[main e099e12] chore(backlog): done – PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive — mixing formats gives confusing results
+ 6 files changed, 47 insertions(+), 9 deletions(-)
+
+## 2026-03-27 - PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive
+- Updated the format hints area to:
+  1. Display "Format: JSON / DTCG or name: value — not both" making mutual exclusivity explicit
+  2. Highlight the detected format with accent color when input is present (the other dims to secondary text)
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  67 items remaining
+===============================================================
+  Claimed: Theme references stale sets — if a token set is deleted externally, theme configurations still reference it with no validation or warning; applying the theme silently skips the missing set
+  Worktree: /tmp/backlog-98901-ppULPN

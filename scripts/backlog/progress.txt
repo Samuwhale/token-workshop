@@ -377,3 +377,11 @@
   - Active/inactive pill pattern: render format labels as pills with `transition-colors` and swap between `bg-accent/10 text-accent font-semibold` (active) and `bg-secondary text-secondary` (inactive) based on parsed format state — provides immediate feedback without adding new UI elements
   - Mixed-format regex: `/\n\s*[\w.]+\s*:/` detects name:value lines inside JSON-prefixed input (starts with `{` but has dotted-key lines interspersed)
 ---
+
+## 2026-03-27 - No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation
+- Added a `useEffect` in `PasteTokensModal` that reads `navigator.clipboard.readText()` on mount and pre-populates the textarea if clipboard is non-empty. Now Cmd+C (copy tokens) → Cmd+Shift+V (open paste modal) auto-fills the modal with the copied JSON, enabling a full round-trip workflow.
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L173
+- **Learnings for future iterations:**
+  - `navigator.clipboard.readText()` is async and can throw if clipboard permission is denied — always `.catch(() => {})` silently so the modal still opens empty.
+  - The effect must run only on mount (empty dep array) so it doesn't re-read clipboard every time the user edits the textarea.
+---

@@ -94,3 +94,10 @@ Already up to date.
 ===============================================================
   Claimed: No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation
   Worktree: /tmp/backlog-97510-RlpFfX
+
+  ✓ done: No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation
+    PasteTokensModal now reads clipboard on mount and pre-populates the textarea, closing the Cmd+C → Cmd+Shift+V copy-paste loop
+    8 turns · 81s · $0.27
+
+--- Merging: No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation ---
+Already up to date.

@@ -174,6 +174,13 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
     [prefixedTokens, existingPaths],
   );
 
+  // Pre-populate from clipboard on mount so Cmd+C → Cmd+Shift+V works end-to-end
+  useEffect(() => {
+    navigator.clipboard.readText().then(text => {
+      if (text.trim()) setInput(text.trim());
+    }).catch(() => { /* clipboard unavailable or denied — leave empty */ });
+  }, []);
+
   useEffect(() => {
     setRowOverwrites({});
     setOverwriteAll(false);
