@@ -21,7 +21,7 @@
 - [x] Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
 - [x] No success toasts for set operations — create, rename, delete, reorder, merge, and split all succeed silently; only errors are surfaced, leaving users uncertain whether the action took effect
 - [~] Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback
-- [~] Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
+- [x] Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
 - [x] Resize handle is too small — the bottom-right drag handle is 12×12 px with no hover affordance; enlarge and show a cursor change on approach
 
 ### UX
@@ -36,7 +36,7 @@
 
 ### Bugs
 
-- [ ] ColorPicker hex input doesn't trim whitespace — pasting a hex code with leading/trailing spaces (common from copy-paste) silently rejects the value with no error feedback
+- [~] ColorPicker hex input doesn't trim whitespace — pasting a hex code with leading/trailing spaces (common from copy-paste) silently rejects the value with no error feedback
 - [ ] ColorPicker alpha numeric input doesn't validate range — entering "999" creates an invalid alpha that internally clamps, showing confusing mismatch between input and result
 - [ ] `parseInlineValue` for boolean type accepts any non-`"false"` string as `true` — typing "maybe" or "yes" both evaluate as `true` with no validation
 - [ ] Find-and-replace silently swallows invalid regex — if the user enables regex mode and enters a malformed pattern, `new RegExp()` throws and the preview returns empty with no error

@@ -16,3 +16,23 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist ---
 Already up to date.
+[main 565c4c3] chore(backlog): done – Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
+ 6 files changed, 48 insertions(+), 9 deletions(-)
+
+## 2026-03-27 - Empty state disabled buttons only explain "Server offline" via hover tooltip
+- Added an inline info banner above the action buttons that renders only when `!connected`. The banner shows an info icon and the text "Server offline — start the local server to use these actions", making the offline reason visible without requiring hover.
+- Files changed: `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L33
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  89 items remaining
+===============================================================
+  Claimed: ColorPicker hex input doesn't trim whitespace — pasting a hex code with leading/trailing spaces (common from copy-paste) silently rejects the value with no error feedback
+  Worktree: /tmp/backlog-98408-NQvnos
+
+  ✓ done: ColorPicker hex input doesn't trim whitespace — pasting a hex code with leading/trailing spaces (common from copy-paste) silently rejects the value with no error feedback
+    Trim whitespace in onHexInputChange before validation; pasted values like ' #ff0000 ' are now accepted
+    8 turns · 42s · $0.18
+
+--- Merging: ColorPicker hex input doesn't trim whitespace — pasting a hex code with leading/trailing spaces (common from copy-paste) silently rejects the value with no error feedback ---
+Already up to date.

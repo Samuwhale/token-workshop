@@ -355,3 +355,10 @@
 - **Learnings for future iterations:**
   - Tooltip-only explanations for disabled states are insufficient; always pair disabled controls with an inline status message for discoverability.
 ---
+
+## 2026-03-27 - ColorPicker hex input doesn't trim whitespace
+- Trimmed whitespace from pasted/typed hex values in `onHexInputChange` before validation and state updates. Both the display (`hexInput`) and the processed `clean` value now use the trimmed string, so pasting ` #ff0000 ` is accepted and reflected correctly.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L307
+- **Learnings for future iterations:**
+  - All free-text hex inputs should trim before regex validation — paste from design tools often includes surrounding whitespace.
+---

@@ -304,8 +304,9 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
 
   // Handle hex text input
   const onHexInputChange = (text: string) => {
-    setHexInput(text);
-    const clean = text.startsWith('#') ? text : '#' + text;
+    const trimmed = text.trim();
+    setHexInput(trimmed);
+    const clean = trimmed.startsWith('#') ? trimmed : '#' + trimmed;
     if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean)) {
       const hsl = hexToHsl(clean);
       if (hsl) {
