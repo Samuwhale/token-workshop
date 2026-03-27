@@ -553,3 +553,10 @@ Already up to date.
 ===============================================================
   Claimed: PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view
   Worktree: /tmp/backlog-98901-Fch7Jm
+
+  ✓ done: PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view
+    Added resolveAlias memo that follows alias chains to their concrete hex value; aliased color tokens now appear in the palette
+    8 turns · 59s · $0.2
+
+--- Merging: PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view ---
+Already up to date.

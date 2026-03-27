@@ -384,3 +384,11 @@
   - The SSE endpoint exists but the plugin UI does not subscribe to it with EventSource — all UI updates are manual refresh or polling. Any server-side event that needs UI visibility must be surfaced via the API and fetched on refresh.
   - `refreshAll` in App.tsx is defined before `useGenerators`, so adding `refreshGenerators` to its deps required moving the `useGenerators` hook declaration above `refreshAll`.
 ---
+
+## 2026-03-27 - PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view
+- Replaced the alias-skip logic in `colorGroups` with a `resolveAlias` memo that follows alias chains (`{path}` → lookup in `allTokensFlat` → recurse) up to the concrete hex value. Circular/unresolvable aliases are still skipped (`continue`). Alias tokens now appear in the palette with their resolved color.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L94
+- **Learnings for future iterations:**
+  - Alias resolution for display needs a visited-set guard to prevent infinite loops on circular references.
+  - `useMemo` returning a closure (the resolver function) is fine — it keeps the resolver stable and allows the dependent memo to list it as a dep cleanly.
+---

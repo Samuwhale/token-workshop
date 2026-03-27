@@ -90,20 +90,33 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens }: PreviewPanelProps)
     return vars;
   }, [allTokensFlat]);
 
+  // Resolve alias chain to a concrete (non-alias) value, or null if unresolvable
+  const resolveAlias = useMemo(() => {
+    return function resolve(value: string, visited = new Set<string>()): string | null {
+      const aliasMatch = /^\{([^}]+)\}$/.exec(value);
+      if (!aliasMatch) return value;
+      const refPath = aliasMatch[1];
+      if (visited.has(refPath)) return null; // circular
+      const target = allTokensFlat[refPath];
+      if (!target) return null;
+      return resolve(String(target.$value ?? ''), new Set([...visited, refPath]));
+    };
+  }, [allTokensFlat]);
+
   // Collect color tokens grouped by top-level prefix
   const colorGroups = useMemo(() => {
     const groups: Record<string, { path: string; value: string }[]> = {};
     for (const [path, entry] of Object.entries(allTokensFlat)) {
       if (entry.$type !== 'color') continue;
       const raw = String(entry.$value ?? '');
-      // Skip pure aliases for the palette (would just show a reference)
-      if (/^\{[^}]+\}$/.test(raw)) continue;
+      const resolved = /^\{[^}]+\}$/.test(raw) ? resolveAlias(raw) : raw;
+      if (!resolved) continue; // unresolvable alias — skip
       const prefix = path.split('.')[0];
       if (!groups[prefix]) groups[prefix] = [];
-      groups[prefix].push({ path, value: raw });
+      groups[prefix].push({ path, value: resolved });
     }
     return groups;
-  }, [allTokensFlat]);
+  }, [allTokensFlat, resolveAlias]);
 
   // Collect typography tokens grouped by prefix
   const typeTokens = useMemo(() => {
