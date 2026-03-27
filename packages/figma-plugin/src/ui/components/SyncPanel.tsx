@@ -67,8 +67,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   const [varSyncing, setVarSyncing] = useState(false);
   const [varError, setVarError] = useState<string | null>(null);
   const [varChecked, setVarChecked] = useState(false);
-  const varReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
-  const varCorrelationIdRef = useRef<string | null>(null);
+  const varPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
 
   // Publish readiness state
   const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
@@ -122,16 +121,14 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
     try {
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
         const cid = `sync-${Date.now()}-${Math.random()}`;
-        varCorrelationIdRef.current = cid;
         const timeout = setTimeout(() => {
-          varReadResolveRef.current = null;
-          varCorrelationIdRef.current = null;
+          varPendingRef.current.delete(cid);
           reject(new Error('Figma read timed out — is the plugin running?'));
         }, 10000);
-        varReadResolveRef.current = (tokens) => {
+        varPendingRef.current.set(cid, (tokens) => {
           clearTimeout(timeout);
           resolve(tokens);
-        };
+        });
         parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
 
@@ -189,10 +186,12 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'variables-read' && varReadResolveRef.current && msg.correlationId === varCorrelationIdRef.current) {
-        varCorrelationIdRef.current = null;
-        varReadResolveRef.current(msg.tokens ?? []);
-        varReadResolveRef.current = null;
+      if (msg?.type === 'variables-read' && msg.correlationId) {
+        const resolve = varPendingRef.current.get(msg.correlationId);
+        if (resolve) {
+          varPendingRef.current.delete(msg.correlationId);
+          resolve(msg.tokens ?? []);
+        }
       }
       if (msg?.type === 'orphans-deleted' && orphansResolveRef.current) {
         orphansResolveRef.current(msg.count ?? 0);
@@ -250,13 +249,11 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
     try {
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
         const cid = `sync-${Date.now()}-${Math.random()}`;
-        varCorrelationIdRef.current = cid;
         const timeout = setTimeout(() => {
-          varReadResolveRef.current = null;
-          varCorrelationIdRef.current = null;
+          varPendingRef.current.delete(cid);
           reject(new Error('Figma read timed out'));
         }, 10000);
-        varReadResolveRef.current = (tokens) => { clearTimeout(timeout); resolve(tokens); };
+        varPendingRef.current.set(cid, (tokens) => { clearTimeout(timeout); resolve(tokens); });
         parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
 

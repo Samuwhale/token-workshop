@@ -328,3 +328,10 @@
 - **Learnings for future iterations:**
   - When a backlog item references a specific line range (e.g. `docs.ts:70-71`) and the fix is already present, check `git log --follow` to confirm — the prior fix commit will be visible.
 ---
+
+## 2026-03-27 - bugfix-pass: SyncPanel concurrent read-variables requests clobbered by shared refs
+- Bug: `computeVarDiff` and `runReadinessChecks` both wrote to the same `varCorrelationIdRef` and `varReadResolveRef`. If both ran concurrently (e.g., auto-run on mount while the user clicked "Run readiness checks"), the second call overwrote the cid/resolver, causing the first call's `variables-read` response to fail the `correlationId` check — the message was silently dropped and that call hung for the full 10-second timeout before rejecting.
+- Fix: Replaced the two single-slot refs with a single `varPendingRef = useRef<Map<string, resolver>>(new Map())`. Each call registers its resolver by its unique cid; the message handler looks up by correlationId, calls the resolver, and deletes the entry. Concurrent calls no longer interfere.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L70-71, ~L123-135, ~L192-195, ~L251-260
+- **Root cause:** The original code assumed only one `read-variables` request could be in flight at a time — a valid assumption when the two callers were separate buttons, but violated by the auto-run `useEffect` which fires immediately on mount while the user might also trigger the readiness check.
+---
