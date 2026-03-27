@@ -251,3 +251,10 @@ Already up to date.
 ===============================================================
   Claimed: No dry-run mode — no way to preview what a sync will change before it touches Figma objects
   Worktree: /tmp/backlog-97955-WOuXUj
+
+  ✓ done: No dry-run mode — no way to preview what a sync will change before it touches Figma objects
+    Added two-step preview/confirm flow to Figma variable sync: "Preview N changes" button opens an inline panel showing exact before→after values per token (push/pull grouped), with "Confirm & Apply" to execute or "Cancel" to go back
+    19 turns · 231s · $0.73
+
+--- Merging: No dry-run mode — no way to preview what a sync will change before it touches Figma objects ---
+Already up to date.

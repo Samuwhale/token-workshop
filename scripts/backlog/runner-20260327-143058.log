@@ -219,3 +219,16 @@ Already up to date.
 
 --- Merging: No pause/cancel for in-progress sync — once a bulk sync starts there's no way to stop it; a cancel button would prevent wasted time on wrong-set syncs ---
 Already up to date.
+[main 7faa8be] chore(backlog): done – No pause/cancel for in-progress sync — once a bulk sync starts there's no way to stop it; a cancel button would prevent wasted time on wrong-set syncs
+ 6 files changed, 77 insertions(+), 16 deletions(-)
+
+## 2026-03-27 - No pause/cancel for in-progress sync — once a bulk sync starts there's no way to stop it; a cancel button would prevent wasted time on wrong-set syncs
+- Added Cancel button that appears next to the Syncing… button during an active variable sync. Clicking it sets `syncCancelledRef`, aborts the pull-phase fetch, and rejects any pending Figma apply promise — stopping the sync at the earliest safe checkpoint without showing an error to the user.
+- Added two refs: `syncCancelledRef` (boolean flag checked between phases) and `syncFetchAbortRef` (AbortController passed to the pull fetch). Added `cancelVarSync` callback that sets the flag, aborts the fetch, and rejects pending Figma promises.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L78 (refs), ~L245 (cancelVarSync), ~L254 (applyVarDiff), ~L712 (Cancel button UI)
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  49 items remaining
+===============================================================
+  Claimed: Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers
+  Worktree: /tmp/backlog-98408-DDrPFy

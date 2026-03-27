@@ -370,3 +370,12 @@
   - Check `syncCancelledRef.current` between phases (not inside the promise) to avoid race conditions.
   - Suppress error display on cancellation with `if (!syncCancelledRef.current)` in the catch block — cancellation is intentional, not an error.
 ---
+
+## 2026-03-27 - No dry-run mode — no way to preview what a sync will change before it touches Figma objects
+- Added a two-step preview/confirm flow to the Figma variable sync footer. Clicking "Preview N changes" now opens an inline preview panel showing exactly which tokens will be pushed to Figma (with before→after values) and which will be pulled to local, before any Figma objects are touched. A "Confirm & Apply" button executes; "Cancel" returns to the diff list. The `computeVarDiff` call also resets `varPreviewMode` so re-checking always starts fresh.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L68 (state), ~L140 (reset on recompute), ~L680 (preview panel + footer swap)
+- **Learnings for future iterations:**
+  - The diff row data (`varRows`, `varDirs`) already contains all the before/after values needed for a preview — no extra data fetching required.
+  - Two-step confirm pattern: replace the primary action button's `onClick` with `() => setPreviewMode(true)`, render a preview panel when `previewMode && !syncing`, and inside that panel call the real action. This pattern works for any destructive operation that already has diff state.
+  - Default direction fallback for preview rows must match the diff-row defaults used in the list (`figma-only` defaults to `pull`, everything else to `push`).
+---

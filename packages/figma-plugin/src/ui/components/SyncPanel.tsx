@@ -72,6 +72,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   // Variable sync state
   const [varRows, setVarRows] = useState<VarDiffRow[]>([]);
   const [varDirs, setVarDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
+  const [varPreviewMode, setVarPreviewMode] = useState(false);
   const [varLoading, setVarLoading] = useState(false);
   const [varSyncing, setVarSyncing] = useState(false);
   const [varSyncElapsed, setVarSyncElapsed] = useState(0);
@@ -146,6 +147,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
     setVarLoading(true);
     setVarError(null);
     setVarChecked(false);
+    setVarPreviewMode(false);
     try {
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
         const cid = `sync-${Date.now()}-${Math.random()}`;
@@ -718,6 +720,77 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
                     ))}
                   </div>
 
+                  {varPreviewMode && !varSyncing ? (() => {
+                    const previewPushRows = varRows.filter(r => (varDirs[r.path] ?? (r.cat === 'figma-only' ? 'pull' : 'push')) === 'push');
+                    const previewPullRows = varRows.filter(r => (varDirs[r.path] ?? (r.cat === 'figma-only' ? 'pull' : 'push')) === 'pull');
+                    return (
+                      <div className="border-t border-[var(--color-figma-border)]">
+                        <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+                          <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Preview changes</span>
+                          <button
+                            onClick={() => setVarPreviewMode(false)}
+                            className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] px-1"
+                          >
+                            ✕ Cancel
+                          </button>
+                        </div>
+                        {previewPushRows.length > 0 && (
+                          <div>
+                            <div className="px-3 py-1 bg-[var(--color-figma-bg)]">
+                              <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">↑ Push to Figma ({previewPushRows.length})</span>
+                            </div>
+                            <div className="divide-y divide-[var(--color-figma-border)] max-h-28 overflow-y-auto">
+                              {previewPushRows.map(r => (
+                                <div key={r.path} className="px-3 py-1 flex items-center justify-between gap-2">
+                                  <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate flex-1">{r.path}</span>
+                                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">
+                                    {r.figmaValue !== undefined
+                                      ? <><span className="line-through opacity-60">{truncateValue(r.figmaValue)}</span> → {truncateValue(r.localValue ?? '')}</>
+                                      : <span className="text-[var(--color-figma-accent)]">new: {truncateValue(r.localValue ?? '')}</span>
+                                    }
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {previewPullRows.length > 0 && (
+                          <div className={previewPushRows.length > 0 ? 'border-t border-[var(--color-figma-border)]' : ''}>
+                            <div className="px-3 py-1 bg-[var(--color-figma-bg)]">
+                              <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">↓ Pull to local ({previewPullRows.length})</span>
+                            </div>
+                            <div className="divide-y divide-[var(--color-figma-border)] max-h-28 overflow-y-auto">
+                              {previewPullRows.map(r => (
+                                <div key={r.path} className="px-3 py-1 flex items-center justify-between gap-2">
+                                  <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate flex-1">{r.path}</span>
+                                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">
+                                    {r.localValue !== undefined
+                                      ? <><span className="line-through opacity-60">{truncateValue(r.localValue)}</span> → {truncateValue(r.figmaValue ?? '')}</>
+                                      : <span className="text-[var(--color-figma-accent)]">new: {truncateValue(r.figmaValue ?? '')}</span>
+                                    }
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
+                          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                            {[
+                              previewPushRows.length > 0 ? `${previewPushRows.length} pushed to Figma` : null,
+                              previewPullRows.length > 0 ? `${previewPullRows.length} pulled to local` : null,
+                            ].filter(Boolean).join(' · ')}
+                          </span>
+                          <button
+                            onClick={() => { setVarPreviewMode(false); applyVarDiff(); }}
+                            className="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)]"
+                          >
+                            Confirm &amp; Apply
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })() : (
                   <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
                     <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
                       {varSyncing
@@ -732,29 +805,20 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
                             ].filter(Boolean).join(' · ')
                       }
                     </span>
-                    <div className="flex items-center gap-1.5">
-                      {varSyncing && (
-                        <button
-                          onClick={cancelVarSync}
-                          className="inline-flex items-center text-[10px] px-2.5 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      )}
-                      <button
-                        onClick={applyVarDiff}
-                        disabled={varSyncing || varSyncCount === 0}
-                        className="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                      >
-                        {varSyncing ? (
-                          <>
-                            <div className="w-2.5 h-2.5 rounded-full border-[1.5px] border-white/40 border-t-white animate-spin shrink-0" aria-hidden="true" />
-                            Syncing…
-                          </>
-                        ) : `Apply ${varSyncCount > 0 ? varSyncCount + ' change' + (varSyncCount !== 1 ? 's' : '') : ''}`}
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setVarPreviewMode(true)}
+                      disabled={varSyncing || varSyncCount === 0}
+                      className="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                    >
+                      {varSyncing ? (
+                        <>
+                          <div className="w-2.5 h-2.5 rounded-full border-[1.5px] border-white/40 border-t-white animate-spin shrink-0" aria-hidden="true" />
+                          Syncing…
+                        </>
+                      ) : `Preview ${varSyncCount > 0 ? varSyncCount + ' change' + (varSyncCount !== 1 ? 's' : '') : ''}`}
+                    </button>
                   </div>
+                  )}
                 </>
               );
             })()}
