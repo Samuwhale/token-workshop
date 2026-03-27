@@ -68,7 +68,7 @@
 - [x] AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets
 - [x] No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel
 - [x] Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers
-- [~] No export validation report — no way to save or share current validation results as JSON or CSV
+- [x] No export validation report — no way to save or share current validation results as JSON or CSV
 - [~] Component coverage analysis has no progress indicator — scanning runs with no feedback until results appear
 
 ---
@@ -83,7 +83,7 @@
 
 ### QoL
 
-- [ ] Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong
+- [~] Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong
 - [ ] `handleApplyGroupScopes` sends one PATCH request per token in `Promise.all` with no batching — for groups with many tokens this is slow with no progress indicator
 - [ ] No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
 - [ ] New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`

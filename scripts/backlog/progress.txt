@@ -419,3 +419,10 @@
   - `URL.createObjectURL(blob)` + `<a>.click()` + `revokeObjectURL` is the correct pattern for triggering file downloads inside a plugin iframe — no server needed.
   - A single `validationExported: 'json'|'csv'|null` state handles feedback for multiple export formats without needing separate booleans per format.
 ---
+
+## 2026-03-27 - useFigmaSync handleSyncGroup and handleSyncGroupStyles don't restore pending state on error
+- Restored `syncGroupPending` / `syncGroupStylesPending` in the catch block of each handler so the UI returns to the confirmation state and the user can retry after a failed sync.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L34, ~L55
+- **Learnings for future iterations:**
+  - Clearing state before async work is a common optimistic-update pattern, but the catch block must restore it; otherwise a failed async op leaves the UI stuck in a blank/dead state with no retry path.
+---

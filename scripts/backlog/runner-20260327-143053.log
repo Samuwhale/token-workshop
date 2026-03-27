@@ -279,3 +279,16 @@ Already up to date.
 
 --- Merging: No export validation report — no way to save or share current validation results as JSON or CSV ---
 Already up to date.
+[main 5b81b3c] chore(backlog): done – No export validation report — no way to save or share current validation results as JSON or CSV
+ 6 files changed, 84 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - No export validation report — no way to save or share current validation results as JSON or CSV
+- Added JSON and CSV download buttons to the validation results header bar in AnalyticsPanel, alongside the existing "Copy MD" button. JSON export includes metadata (generatedAt, counts) and full issue list; CSV export has columns: severity, rule, set, path, message, suggestedFix. Both use `URL.createObjectURL` + programmatic `<a>` click to trigger a file download without any server round-trip. A shared `validationExported` state shows transient "Saved!" feedback for 1.5s after each export.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L68 (state), ~L451 (buttons)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  43 items remaining
+===============================================================
+  Claimed: Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong
+  Worktree: /tmp/backlog-97955-Pop8cG

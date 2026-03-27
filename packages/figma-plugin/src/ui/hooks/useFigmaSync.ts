@@ -33,6 +33,7 @@ export function useFigmaSync(
       parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap: setCollectionNames, modeMap: setModeNames } }, '*');
     } catch (err) {
       console.error('Failed to sync group to Figma:', err);
+      setSyncGroupPending(syncGroupPending);
     }
   }, [syncGroupPending, connected, serverUrl, pathToSet, setCollectionNames, setModeNames]);
 
@@ -53,6 +54,7 @@ export function useFigmaSync(
       parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
     } catch (err) {
       console.error('Failed to create styles from group:', err);
+      setSyncGroupStylesPending(syncGroupStylesPending);
     }
   }, [syncGroupStylesPending, connected, serverUrl]);
 

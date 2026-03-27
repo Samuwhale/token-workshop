@@ -273,3 +273,10 @@ Already up to date.
 ===============================================================
   Claimed: `useFigmaSync` `handleSyncGroup` and `handleSyncGroupStyles` don't restore pending state on error — if sync fails, the UI is stuck in a loading state with no retry path
   Worktree: /tmp/backlog-98408-YyHAb9
+
+  ✓ done: useFigmaSync handleSyncGroup and handleSyncGroupStyles don't restore pending state on error
+    Restored pending state in catch blocks of both handlers so the UI returns to the confirmation prompt and allows retry after a sync failure
+    8 turns · 45s · $0.16
+
+--- Merging: useFigmaSync handleSyncGroup and handleSyncGroupStyles don't restore pending state on error ---
+Already up to date.
