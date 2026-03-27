@@ -2,9 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
-
-export type ThemeOption = { name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> };
-export type ThemeDimension = { id: string; name: string; options: ThemeOption[] };
+import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 
 export function useThemeSwitcher(
   serverUrl: string,

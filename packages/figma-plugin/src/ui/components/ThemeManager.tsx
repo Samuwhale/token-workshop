@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
+import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
 
 const STATE_LABELS: Record<string, string> = {
@@ -13,17 +14,6 @@ const STATE_DESCRIPTIONS: Record<string, string> = {
   source: 'Foundation set — tokens can be overridden by "On" sets',
   enabled: 'Active in this option — overrides the base set',
 };
-
-interface ThemeOption {
-  name: string;
-  sets: Record<string, 'enabled' | 'disabled' | 'source'>;
-}
-
-interface ThemeDimension {
-  id: string;
-  name: string;
-  options: ThemeOption[];
-}
 
 interface ThemeManagerProps {
   serverUrl: string;

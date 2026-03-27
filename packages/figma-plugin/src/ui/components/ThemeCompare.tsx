@@ -2,9 +2,7 @@ import { useMemo, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
-
-type ThemeOption = { name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> };
-type ThemeDimension = { id: string; name: string; options: ThemeOption[] };
+import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 
 interface ThemeCompareProps {
   dimensions: ThemeDimension[];

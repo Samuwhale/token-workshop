@@ -11,7 +11,7 @@
 #   patterns.md     reusable codebase patterns (injected into every session)
 #   progress.txt    full per-item log (human audit trail, not injected)
 
-set -e
+set -eo pipefail
 
 STOP_REQUESTED=0
 graceful_stop() {
@@ -700,8 +700,8 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       --append-system-prompt-file "$CONTEXT_FILE" \
       < "$SCRIPT_DIR/CLAUDE.md" > "$AGENT_TMP" 2>"$AGENT_ERR") &
     AGENT_PID=$!
-    wait $AGENT_PID
-    AGENT_EXIT=$?
+    AGENT_EXIT=0
+    wait $AGENT_PID || AGENT_EXIT=$?
 
     rm -f "$CONTEXT_FILE"
     OUTPUT=$(cat "$AGENT_TMP")
