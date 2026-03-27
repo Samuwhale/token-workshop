@@ -36,6 +36,7 @@ const SECTIONS: ShortcutSection[] = [
   {
     header: 'Inspect',
     shortcuts: [
+      { keys: ['⌘T'], label: 'Create token from selection' },
       { keys: ['⌘⇧D'], label: 'Toggle deep inspect' },
     ],
   },

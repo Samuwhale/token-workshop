@@ -27,6 +27,8 @@ interface SelectionInspectorProps {
   onNavigateToToken?: (tokenPath: string) => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onGoToTokens?: () => void;
+  /** Increment to trigger create-from-first-property (Cmd+T shortcut) */
+  triggerCreateToken?: number;
 }
 
 function shouldShowGroup(condition: string | undefined, caps: NodeCapabilities): boolean {
@@ -178,6 +180,7 @@ export function SelectionInspector({
   onNavigateToToken,
   onPushUndo,
   onGoToTokens,
+  triggerCreateToken,
 }: SelectionInspectorProps) {
   const [creatingFromProp, setCreatingFromProp] = useState<BindableProperty | null>(null);
   const [newTokenName, setNewTokenName] = useState('');
@@ -219,6 +222,38 @@ export function SelectionInspector({
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
+
+  // Cmd+T: open create-from-first-unbound-property
+  useEffect(() => {
+    if (!triggerCreateToken) return; // skip initial value of 0
+    const nodes = selectedNodes.filter(n => (n.depth ?? 0) === 0);
+    if (nodes.length === 0 || !connected || !activeSet) return;
+    const mergedCaps = getMergedCapabilities(nodes);
+    let firstEligible: BindableProperty | null = null;
+    let firstUnbound: BindableProperty | null = null;
+    outer: for (const group of PROPERTY_GROUPS) {
+      if (!shouldShowGroup(group.condition, mergedCaps)) continue;
+      for (const prop of group.properties) {
+        const value = getCurrentValue(nodes, prop);
+        if (value === undefined || value === null) continue;
+        if (firstEligible === null) firstEligible = prop;
+        const binding = getBindingForProperty(nodes, prop);
+        if (!binding) {
+          firstUnbound = prop;
+          break outer;
+        }
+      }
+    }
+    const target = firstUnbound ?? firstEligible;
+    if (target) {
+      setBindingFromProp(null);
+      setBindQuery('');
+      setBindSelectedIndex(-1);
+      setCreatingFromProp(target);
+      setNewTokenName(SUGGESTED_NAMES[target] || 'token.new-token');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [triggerCreateToken]);
 
   // Split selected nodes into directly-selected (depth 0) vs deep children (depth 1+)
   const rootNodes = selectedNodes.filter(n => (n.depth ?? 0) === 0);

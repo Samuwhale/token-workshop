@@ -265,3 +265,10 @@ Already up to date.
 ===============================================================
   Claimed: No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
   Worktree: /tmp/backlog-97510-RJ1oIM
+
+  ✓ done: No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
+    Added Cmd+T shortcut: switches to Inspect tab and opens create-token form for the first unbound property with a current value; documented in KeyboardShortcutsModal
+    25 turns · 268s · $0.84
+
+--- Merging: No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow ---
+Already up to date.

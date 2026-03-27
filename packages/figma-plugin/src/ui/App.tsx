@@ -235,6 +235,7 @@ export function App() {
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
@@ -460,6 +461,11 @@ export function App() {
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'k') {
         e.preventDefault();
         setShowCommandPalette(v => !v);
+      }
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 't') {
+        e.preventDefault();
+        setActiveTab('inspect');
+        setTriggerCreateToken(n => n + 1);
       }
       const tabIndex = ['1', '2', '3', '4', '5', '6'].indexOf(e.key);
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && tabIndex !== -1 && tabIndex < TABS.length) {
@@ -2286,6 +2292,7 @@ export function App() {
               }}
               onPushUndo={pushUndo}
               onGoToTokens={() => setActiveTab('tokens')}
+              triggerCreateToken={triggerCreateToken}
             />
           )}
           {overflowPanel === null && activeTab === 'publish' && (

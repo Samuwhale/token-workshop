@@ -276,3 +276,11 @@
   - SUGGESTED_NAMES already existed with generic paths — the fix needed only to extract the namespace prefix and splice in the layer slug, not replace the whole mapping.
   - Use a PROP_SUFFIX map for properties that share a namespace (e.g., stroke and fill both under "color") so each property gets a distinct leaf when the layer name is the middle segment.
 ---
+
+## 2026-03-27 - No "create token from selection" keyboard shortcut
+- Added Cmd+T (Ctrl+T on Windows) global keyboard shortcut that switches to the Inspect tab and opens the create-token form for the first unbound property with a current value. The shortcut is implemented via a `triggerCreateToken` counter prop on SelectionInspector — incrementing it triggers the effect. Falls back to the first eligible property if all are already bound. Also documented the shortcut in KeyboardShortcutsModal.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L15 (prop), ~L153 (destructure), ~L193 (useEffect); `packages/figma-plugin/src/ui/App.tsx` ~L237 (state), ~L464 (handler), ~L2287 (prop pass); `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L38
+- **Learnings for future iterations:**
+  - Counter-based trigger props (`triggerCreateToken?: number`) are a clean pattern for "fire this side effect from a parent" without lifting all state — increment from parent, useEffect skips 0 (initial), fires on each increment.
+  - When a keyboard shortcut needs to open UI in a child component and the parent also needs to navigate tabs, split the work: parent handles tab switch + state increment, child handles the actual UI via `useEffect([trigger])`.
+---

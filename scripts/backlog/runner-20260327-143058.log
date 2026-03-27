@@ -321,3 +321,16 @@ Already up to date.
 
 --- Merging: New-token form doesn't suggest a path based on the bound property ---
 Already up to date.
+[main db4b18c] chore(backlog): done – New-token form doesn't suggest a path based on the bound property
+ 5 files changed, 64 insertions(+), 2 deletions(-)
+
+## 2026-03-27 - New-token form doesn't suggest a path based on the bound property
+- Added `slugifyLayerName` and `suggestTokenPath` helpers. When `openCreateFromProp` is triggered for a single selected node, the path field is pre-filled as `{namespace}.{layerSlug}` (e.g. `color.button-primary`) or `{namespace}.{layerSlug}.{suffix}` for properties needing disambiguation (e.g. `spacing.card.padding-top`). Falls back to the generic SUGGESTED_NAMES path when multiple nodes are selected.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L119 (helpers), ~L341 (openCreateFromProp)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  35 items remaining
+===============================================================
+  Claimed: Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing
+  Worktree: /tmp/backlog-98408-1J6lQ9
