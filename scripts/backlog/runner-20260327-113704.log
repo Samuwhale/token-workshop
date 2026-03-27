@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed
   Worktree: /tmp/backlog-7690-c7d2UL
+
+  ✓ done: BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed
+    Added contextual hint text when no operation is configured (replaces static "N tokens selected") and title tooltips on all three action buttons explaining why each is disabled.
+    31 turns · 185s · $0.9
+
+--- Merging: BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed ---
+Already up to date.

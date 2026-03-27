@@ -16,3 +16,26 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: ImportPanel has unused importProgress state — progress indicator for large imports is declared but never set or displayed ---
 Already up to date.
+[main a083a99] chore(backlog): done – ImportPanel has unused importProgress state — progress indicator for large imports is declared but never set or displayed
+ 15 files changed, 228 insertions(+), 356 deletions(-)
+ delete mode 100644 scripts/backlog/bugfix-pass.md
+ create mode 100644 scripts/backlog/code-pass.md
+ delete mode 100644 scripts/backlog/discover-pass.md
+ delete mode 100644 scripts/backlog/feature-pass.md
+ delete mode 100644 scripts/backlog/housekeeping-pass.md
+ create mode 100644 scripts/backlog/product-pass.md
+ create mode 100644 scripts/backlog/runner-20260327-113653.log
+ create mode 100644 scripts/backlog/runner-20260327-113659.log
+ create mode 100644 scripts/backlog/runner-20260327-113704.log
+ delete mode 100644 scripts/backlog/ux-pass.md
+
+## 2026-03-27 - ImportPanel has unused `importProgress` state — progress indicator for large imports is declared but never set or displayed
+- Already implemented: `importProgress` state (L70) is set during both variable-mode import (L252, L286, L308) and single-set import (L358, L386, L398). Progress bars and text labels are rendered in multiple footer sections (L796-808, L909-931, L951-962).
+- Files changed: none (stale item)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  6 items remaining
+===============================================================
+  Claimed: ConfirmModal error display doesn't handle long error text — single-line `<p>` with no wrapping or scroll for verbose errors
+  Worktree: /tmp/backlog-7333-x4ydms

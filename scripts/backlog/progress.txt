@@ -161,3 +161,11 @@
 - **Learnings for future iterations:**
   - Always check if the item is already fixed before implementing — previous sessions may have addressed it.
 ---
+
+## 2026-03-27 - BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed
+- Replaced the static "N tokens selected" status text with a contextual hint when `hasOp` is false: tells users which fields to fill in (description, type, opacity for colors, scale factor for dimensions).
+- Added `title` tooltips to all three action buttons (Apply, Rename, Move) with context-aware messages explaining why each is disabled (no fields filled, not connected, no find text, no target set chosen, no matches).
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L382 (footer hint), ~L397 (Apply title), ~L427 (Rename title), ~L450 (Move title)
+- **Learnings for future iterations:**
+  - Disabled buttons should always have a `title` tooltip explaining why they're disabled — this is low-cost and high-value UX.
+---

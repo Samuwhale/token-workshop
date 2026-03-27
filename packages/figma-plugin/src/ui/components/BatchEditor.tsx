@@ -383,6 +383,12 @@ export function BatchEditor({
           <span className={`text-[10px] ${feedback.ok ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
             {feedback.msg}
           </span>
+        ) : !hasOp ? (
+          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            {!connected
+              ? 'Not connected to server'
+              : `Set a description${newType === '' ? ', type' : ''}${allColors ? ', or opacity' : allScalable ? ', or scale factor' : ''} to apply`}
+          </span>
         ) : (
           <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             {selectedPaths.size} token{selectedPaths.size === 1 ? '' : 's'} selected
@@ -391,6 +397,7 @@ export function BatchEditor({
         <button
           onClick={handleApply}
           disabled={applying || !connected || !hasOp}
+          title={!connected ? 'Not connected to server' : !hasOp ? 'Fill in at least one field above' : `Apply changes to ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'}`}
           className="px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {applying ? 'Applying…' : `Apply to ${selectedPaths.size}`}
@@ -419,7 +426,7 @@ export function BatchEditor({
           <button
             onClick={handleRename}
             disabled={!connected || !canRename}
-            title={findText && renamePreview === 0 ? 'No selected tokens match the find text' : `Rename ${renamePreview} token path${renamePreview === 1 ? '' : 's'}`}
+            title={!connected ? 'Not connected to server' : !findText ? 'Enter text to find in token paths' : renamePreview === 0 ? 'No selected tokens match the find text' : `Rename ${renamePreview} token path${renamePreview === 1 ? '' : 's'}`}
             className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {renaming ? '…' : `Rename${renamePreview > 0 ? ` ${renamePreview}` : ''}`}
@@ -443,6 +450,7 @@ export function BatchEditor({
             <button
               onClick={handleMove}
               disabled={!connected || !canMove || moving}
+              title={!connected ? 'Not connected to server' : targetSet === '' ? 'Choose a target set first' : `Move ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to "${targetSet}"`}
               className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {moving ? '…' : 'Move'}
