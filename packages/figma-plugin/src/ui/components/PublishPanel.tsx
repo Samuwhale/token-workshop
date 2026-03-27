@@ -402,7 +402,8 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'variables-read' && varReadResolveRef.current) {
+      if (msg?.type === 'variables-read' && varReadResolveRef.current && msg.correlationId === varCorrelationIdRef.current) {
+        varCorrelationIdRef.current = null;
         varReadResolveRef.current(msg.tokens ?? []);
         varReadResolveRef.current = null;
       }
@@ -1315,21 +1316,28 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
 
               {/* Push / Pull */}
               {gitStatus?.remote && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => doAction('pull')}
-                    disabled={actionLoading !== null}
-                    className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
-                  >
-                    {actionLoading === 'pull' ? 'Pulling\u2026' : '\u2193 Pull'}
-                  </button>
-                  <button
-                    onClick={() => doAction('push')}
-                    disabled={actionLoading !== null}
-                    className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                  >
-                    {actionLoading === 'push' ? 'Pushing\u2026' : '\u2191 Push'}
-                  </button>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => doAction('pull')}
+                      disabled={actionLoading !== null}
+                      className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+                    >
+                      {actionLoading === 'pull' ? 'Pulling\u2026' : '\u2193 Pull'}
+                    </button>
+                    <button
+                      onClick={() => doAction('push')}
+                      disabled={actionLoading !== null}
+                      className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                    >
+                      {actionLoading === 'push' ? 'Pushing\u2026' : '\u2191 Push'}
+                    </button>
+                  </div>
+                  {lastSynced && (
+                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-right">
+                      Last synced: {formatRelativeTime(lastSynced)}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

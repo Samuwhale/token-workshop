@@ -1,6 +1,14 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - SyncPanel `computeVarDiff` reads `'variables-read'` messages with no correlation ID
+- Added `correlationId` to `read-variables` requests and echoed it back in `variables-read` responses. Each panel now only resolves its promise when the correlationId matches, preventing cross-panel message theft.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L22,L463,L490; `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L83,L136,L201,L259; `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L192,L332,L405,L568; `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L68,L93,L136,L145`
+- **Learnings for future iterations:**
+  - Correlation IDs: generate with `` `${prefix}-${Date.now()}-${Math.random()}` `` stored in a `useRef`, sent with the request, echoed by the controller, checked in the handler. Clear the ref when resolved or timed out.
+  - The controller's `PluginMessage` interface is `{ type: string; [key: string]: any }` — extra fields like `correlationId` pass through without type changes.
+---
+
 ## 2026-03-27 - onNavigateToAlias should scroll virtual list to highlighted row
 - Stale — already implemented. A `useLayoutEffect` at `TokenList.tsx` ~L566 watches `[highlightedToken, flatItems, viewMode]` and scrolls the virtual list to center the highlighted token. For tokens in collapsed groups, the separate `useEffect` at ~L350 expands ancestors first; the `useLayoutEffect` re-fires when `flatItems` changes and scrolls on the second render.
 - Files changed: none (code was present from the "Virtual scrolling for large token sets" commit)

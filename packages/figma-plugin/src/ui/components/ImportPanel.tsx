@@ -66,6 +66,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
   const [newSetDraft, setNewSetDraft] = useState('');
   const readTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSourceRef = useRef<'variables' | 'styles' | null>(null);
+  const correlationIdRef = useRef<string | null>(null);
 
   // Fetch available sets
   useEffect(() => {
@@ -89,9 +90,10 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
       const msg = event.data?.pluginMessage;
       if (!msg) return;
 
-      if (msg.type === 'variables-read' && pendingSourceRef.current === 'variables') {
+      if (msg.type === 'variables-read' && pendingSourceRef.current === 'variables' && msg.correlationId === correlationIdRef.current) {
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
         pendingSourceRef.current = null;
+        correlationIdRef.current = null;
         const cols: CollectionData[] = msg.collections || [];
         setCollectionData(cols);
         // Build default set names and enabled map
@@ -135,6 +137,8 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
 
   const handleReadVariables = () => {
     pendingSourceRef.current = 'variables';
+    const cid = `import-${Date.now()}-${Math.random()}`;
+    correlationIdRef.current = cid;
     setSource('variables');
     setLoading(true);
     setCollectionData([]);
@@ -142,7 +146,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
     setError(null);
     setSuccessMessage(null);
     startReadTimeout();
-    parent.postMessage({ pluginMessage: { type: 'read-variables' } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
   };
 
   const handleReadStyles = () => {

@@ -61,7 +61,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] File watcher fires on the server's own writes, causing redundant `loadSet` + `rebuildFlatTokens` + double SSE events (`server/token-store.ts:85-117`)
 - [x] `applyDiffChoices` pushes the entire repo when any single file is marked 'push' — semantic mismatch with per-file UI (`server/git-sync.ts:132-135`)
-- [~] SyncPanel `computeVarDiff` reads `'variables-read'` messages with no correlation ID — can collide with ImportPanel/ExportPanel reading variables simultaneously (`figma-plugin/SyncPanel.tsx:135-145`)
+- [x] SyncPanel `computeVarDiff` reads `'variables-read'` messages with no correlation ID — can collide with ImportPanel/ExportPanel reading variables simultaneously (`figma-plugin/SyncPanel.tsx:135-145`)
 
 ### UX
 
@@ -92,7 +92,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [ ] Auto-navigate to imported set after successful import — after `executeImport` completes, close the Import panel and switch to the Tokens tab with the target set active; currently leaves the user on the Import panel with no indication of what was added (`figma-plugin/ImportPanel.tsx`)
+- [~] Auto-navigate to imported set after successful import — after `executeImport` completes, close the Import panel and switch to the Tokens tab with the target set active; currently leaves the user on the Import panel with no indication of what was added (`figma-plugin/ImportPanel.tsx`)
 
 ---
 

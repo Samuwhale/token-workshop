@@ -353,6 +353,45 @@ export class TokenStore {
     this.emit({ type: 'token-updated', setName, tokenPath });
   }
 
+  async batchUpsertTokens(
+    setName: string,
+    tokens: Array<{ path: string; token: Token }>,
+    strategy: 'skip' | 'overwrite',
+  ): Promise<{ imported: number; skipped: number }> {
+    if (!/^[a-zA-Z0-9_-]+$/.test(setName)) {
+      throw new Error(`Invalid set name "${setName}". Only alphanumeric characters, dashes, and underscores are allowed.`);
+    }
+    let set = this.sets.get(setName);
+    if (!set) {
+      set = await this._createSetNoRebuild(setName);
+    }
+    this.beginBatch();
+    let imported = 0;
+    let skipped = 0;
+    for (const { path: tokenPath, token } of tokens) {
+      const enriched = this.enrichFormulaExtension(token);
+      const existing = this.getTokenAtPath(set.tokens, tokenPath);
+      if (existing) {
+        if (strategy === 'overwrite') {
+          if ('$value' in enriched) existing.$value = enriched.$value;
+          if ('$type' in enriched) existing.$type = enriched.$type;
+          if ('$description' in enriched) existing.$description = enriched.$description;
+          if ('$extensions' in enriched) existing.$extensions = enriched.$extensions;
+          imported++;
+        } else {
+          skipped++;
+        }
+      } else {
+        this.setTokenAtPath(set.tokens, tokenPath, enriched);
+        imported++;
+      }
+    }
+    await this.saveSet(setName);
+    this.endBatch();
+    this.emit({ type: 'token-updated', setName, tokenPath: '' });
+    return { imported, skipped };
+  }
+
   async deleteToken(setName: string, tokenPath: string): Promise<boolean> {
     const set = this.sets.get(setName);
     if (!set) return false;

@@ -133,6 +133,41 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // POST /api/tokens/:set/batch — upsert multiple tokens in a single request
+  fastify.post<{
+    Params: { set: string };
+    Body: { tokens: Array<{ path: string; $type?: string; $value: unknown; $description?: string; $extensions?: Record<string, unknown> }>; strategy: 'skip' | 'overwrite' };
+  }>('/tokens/:set/batch', async (request, reply) => {
+    const { set } = request.params;
+    const { tokens, strategy } = request.body ?? {};
+    if (!Array.isArray(tokens) || tokens.length === 0) {
+      return reply.status(400).send({ error: 'tokens must be a non-empty array' });
+    }
+    if (strategy !== 'skip' && strategy !== 'overwrite') {
+      return reply.status(400).send({ error: 'strategy must be "skip" or "overwrite"' });
+    }
+    for (const t of tokens) {
+      if (!t.path || t.$value === undefined) {
+        return reply.status(400).send({ error: 'Each token must have a path and $value' });
+      }
+      if (!validateTokenBody(t)) {
+        return reply.status(400).send({ error: `Invalid token body for "${t.path}": $type must be a valid DTCG token type` });
+      }
+    }
+    try {
+      const result = await fastify.tokenStore.batchUpsertTokens(
+        set,
+        tokens.map(t => ({ path: t.path, token: t as any })),
+        strategy,
+      );
+      return result;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+      return reply.status(500).send({ error: 'Failed to batch upsert tokens', detail: msg });
+    }
+  });
+
   // GET /api/tokens/:set/dependents/* — get tokens that reference a given token path (cross-set)
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/dependents/*', async (request, reply) => {
     const tokenPath = request.params['*'];
