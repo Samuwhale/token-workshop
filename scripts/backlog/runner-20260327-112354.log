@@ -74,3 +74,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenList delete failure is silent — console.error but no user-visible feedback when token/group deletion fails (TokenList.tsx ~L1261)
   Worktree: /tmp/backlog-75264-7QCyLv
+
+  ✓ done: TokenList delete failure is silent
+    stale — already done. deleteError state, res.ok checks, and error banner UI all exist.
+    10 turns · 48s · $0.28
+
+--- Merging: TokenList delete failure is silent ---
+Already up to date.

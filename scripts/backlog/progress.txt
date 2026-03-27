@@ -147,3 +147,10 @@
 - **Learnings for future iterations:**
   - `TokenMapEntry.$name` carries the original leaf segment name — use it instead of `path.split('.')` whenever you need to split a token path into parent + leaf.
 ---
+
+## 2026-03-27 - TokenList delete failure is silent
+- Already implemented: `deleteError` state (L211), `res.ok` checks with thrown errors (L1222, L1230), `setDeleteError` in catch block (L1267), and visible error banner with dismiss button (L1915-1919).
+- Files changed: none (stale item)
+- **Learnings for future iterations:**
+  - Always check if the item is already fixed before implementing — previous sessions may have addressed it.
+---
