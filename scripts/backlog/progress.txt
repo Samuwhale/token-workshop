@@ -435,3 +435,16 @@
   - TypeScaleGenerator ratio buttons show truncated labels (e.g., "Minor (1.067)") so the tooltip includes the full name: `title={\`${preset.label} — ${preset.description}\`}`
   - Preset description fields should live alongside the data they describe; no separate lookup table needed
 ---
+
+## 2026-03-27 - Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
+- Added 12×12px inline color swatches next to each slider label in `ColorRampConfigEditor`:
+  - Light end L* and Dark end L* sliders: neutral gray swatch via `labToHex(L*, 0, 0)` — shows the perceptual gray at that lightness level
+  - Chroma boost slider: reference swatch using fixed hue 220° (blue-ish) with base chroma 25 × boost at L=55 — shows muted→vivid saturation effect
+- Added two helper functions `lstarToSwatchHex(L)` and `chromaBoostToSwatchHex(boost)` inline in the component file
+- Imported `labToHex` directly from `@tokenmanager/core` (not via colorUtils re-export, per pattern)
+- Files changed: `packages/figma-plugin/src/ui/components/generators/ColorRampGenerator.tsx` ~L1 (imports + helpers), ~L102-134 (slider labels with swatches)
+- **Learnings for future iterations:**
+  - `labToHex(L, 0, 0)` produces a perceptually-accurate neutral gray for any L* value — ideal for visualizing CIELAB lightness
+  - For chroma-only previews without a user-supplied hue, a fixed reference hue (220°) communicates the muted→vivid effect without being misleading
+  - Import `labToHex` directly from `@tokenmanager/core` in generator components per the no-reexport pattern
+---

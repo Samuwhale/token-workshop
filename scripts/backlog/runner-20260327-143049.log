@@ -373,3 +373,17 @@ Already up to date.
 
 --- Merging: Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips ---
 Already up to date.
+[main 30b4864] chore(backlog): done – Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips
+ 9 files changed, 53 insertions(+), 18 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips
+- Added `description` field to all preset constants in ColorRampGenerator, TypeScaleGenerator, SpacingScaleGenerator, and OpacityScaleGenerator. Added `title={preset.description}` (or `title={\`${preset.label} — ${preset.description}\`}` for ratio presets whose button label is truncated) to each preset button so native browser tooltips appear on hover.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/ColorRampGenerator.tsx` ~L20 (presets), ~L84 (button); `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L29 (ratio presets), ~L38 (step presets), ~L137 (ratio button), ~L154 (step button); `packages/figma-plugin/src/ui/components/generators/SpacingScaleGenerator.tsx` ~L33 (presets), ~L115 (button); `packages/figma-plugin/src/ui/components/generators/OpacityScaleGenerator.tsx` ~L31 (presets), ~L102 (button)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  18 items remaining
+===============================================================
+  Claimed: No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation
+  Worktree: /tmp/backlog-97510-sCys4S

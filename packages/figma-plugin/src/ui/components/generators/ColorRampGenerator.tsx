@@ -1,5 +1,18 @@
+import { labToHex } from '@tokenmanager/core';
 import type { ColorRampConfig, GeneratedTokenResult } from '../../hooks/useGenerators';
 import { OverrideRow, OverrideTable } from './generatorShared';
+
+/** Convert a Lab L* value to a neutral-gray hex swatch color. */
+function lstarToSwatchHex(Lstar: number): string {
+  return labToHex(Lstar, 0, 0);
+}
+
+/** Swatch hex for chroma boost: fixed reference hue (220°, blue-ish) at L=55, base chroma 25. */
+function chromaBoostToSwatchHex(chromaBoost: number): string {
+  const rad = (220 * Math.PI) / 180;
+  const chroma = 25 * chromaBoost;
+  return labToHex(55, chroma * Math.cos(rad), chroma * Math.sin(rad));
+}
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -88,16 +101,40 @@ export function ColorRampConfigEditor({ config, onChange }: { config: ColorRampC
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Light end L* <span className="text-[var(--color-figma-text)]">{config.lightEnd}</span></label>
+          <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+            Light end L*
+            <span
+              className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
+              style={{ background: lstarToSwatchHex(config.lightEnd) }}
+              title={`L* ${config.lightEnd} neutral gray`}
+            />
+            <span className="text-[var(--color-figma-text)]">{config.lightEnd}</span>
+          </label>
           <input type="range" min={80} max={99} step={1} value={config.lightEnd} onChange={e => onChange({ ...config, lightEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
         </div>
         <div>
-          <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Dark end L* <span className="text-[var(--color-figma-text)]">{config.darkEnd}</span></label>
+          <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+            Dark end L*
+            <span
+              className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
+              style={{ background: lstarToSwatchHex(config.darkEnd) }}
+              title={`L* ${config.darkEnd} neutral gray`}
+            />
+            <span className="text-[var(--color-figma-text)]">{config.darkEnd}</span>
+          </label>
           <input type="range" min={2} max={30} step={1} value={config.darkEnd} onChange={e => onChange({ ...config, darkEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
         </div>
       </div>
       <div>
-        <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Chroma boost <span className="text-[var(--color-figma-text)]">{config.chromaBoost.toFixed(1)}x</span></label>
+        <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
+          Chroma boost
+          <span
+            className="inline-block w-3 h-3 rounded-sm border border-black/10 shrink-0"
+            style={{ background: chromaBoostToSwatchHex(config.chromaBoost) }}
+            title={`Chroma boost ${config.chromaBoost.toFixed(1)}x (reference hue)`}
+          />
+          <span className="text-[var(--color-figma-text)]">{config.chromaBoost.toFixed(1)}x</span>
+        </label>
         <input type="range" min={0.3} max={2.0} step={0.1} value={config.chromaBoost} onChange={e => onChange({ ...config, chromaBoost: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
         <div className="flex justify-between mt-0.5">
           <span className="text-[8px] text-[var(--color-figma-text-secondary)]">0.3 muted</span>

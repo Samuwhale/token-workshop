@@ -388,3 +388,10 @@ Already up to date.
 ===============================================================
   Claimed: Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
   Worktree: /tmp/backlog-98901-OaDuVZ
+
+  ✓ done: Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
+    Added 12px inline swatches next to each slider label: L* sliders show neutral gray via labToHex(L*,0,0), chroma boost shows reference blue-ish hue at current saturation level
+    14 turns · 168s · $0.5
+
+--- Merging: Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces ---
+Already up to date.
