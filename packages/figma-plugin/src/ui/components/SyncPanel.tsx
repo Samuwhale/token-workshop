@@ -765,12 +765,20 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
               <div className="max-h-28 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
                 {allChanges.map((change, i) => (
                   <div key={i} className="flex items-center gap-2 px-3 py-1">
-                    <span className={`text-[9px] font-mono font-bold w-3 ${
-                      change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
-                      change.status === 'A' ? 'text-[var(--color-figma-success)]' :
-                      change.status === 'D' ? 'text-[var(--color-figma-error)]' :
-                      'text-[var(--color-figma-text-secondary)]'
-                    }`}>
+                    <span
+                      className={`text-[9px] font-mono font-bold w-3 ${
+                        change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
+                        change.status === 'A' ? 'text-[var(--color-figma-success)]' :
+                        change.status === 'D' ? 'text-[var(--color-figma-error)]' :
+                        'text-[var(--color-figma-text-secondary)]'
+                      }`}
+                      title={
+                        change.status === 'M' ? 'Modified — has uncommitted changes' :
+                        change.status === 'A' ? 'Added — staged for commit' :
+                        change.status === 'D' ? 'Deleted — removed from repository' :
+                        'Untracked — new file not yet staged'
+                      }
+                    >
                       {change.status}
                     </span>
                     <span className="text-[10px] text-[var(--color-figma-text)] truncate">{change.file}</span>

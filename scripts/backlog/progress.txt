@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - `formatValue` redefined locally in ExportPanel.tsx shadowing the one from `tokenListUtils.ts`
+- Renamed the local `formatValue` to `formatModeValue` (signature `(modeVal: ExportedModeValue): string`) to eliminate the shadowing. The two functions serve different purposes and cannot be unified — the utility one formats raw token values by type, the local one resolves alias references from Figma's export format.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L305, ~L710
+- **Learnings for future iterations:**
+  - Multiple `formatValue` locals exist across the codebase (ExportPanel, ThemeCompare, TokenGeneratorDialog) — each has a distinct signature. The correct fix is renaming, not consolidating.
+---
+
 ## 2026-03-27 - housekeeping: remove unused `hexToRgb` import in TokenList.tsx
 - Removed `hexToRgb` from the `colorUtils` import destructure (only `colorDeltaE` and `stableStringify` are actually used)
 - Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L13
@@ -237,4 +244,11 @@
 - Files changed: `packages/core/src/color-math.ts` ~L48; `packages/core/src/generator-engine.ts` ~L19,L272
 - **Learnings for future iterations:**
   - When a module-level helper (`toLinear`) already exists in a shared file, co-locate derived functions that use it there rather than recreating closures locally.
+---
+
+## 2026-03-27 - `countLeafNodes` duplicated between `useTokens.ts:132-143` and AnalyticsPanel
+- Moved the richer AnalyticsPanel version (returns `{ total, byType }`) to `colorUtils.ts` as an export. Updated `useTokens.ts` to import it and use `.total`. Removed both local implementations.
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L292; `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L3,L58,L63,L132; `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L2,L28
+- **Learnings for future iterations:**
+  - When two versions differ in richness (one is a superset), keep the richer version in shared utils and have the simpler consumer extract only what it needs (e.g. `.total`).
 ---

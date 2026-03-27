@@ -96,10 +96,10 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Redundancy & Duplication
 
-- [~] `countLeafNodes` duplicated between `useTokens.ts:132-143` and AnalyticsPanel
+- [x] `countLeafNodes` duplicated between `useTokens.ts:132-143` and AnalyticsPanel
 - [x] `toLinear` / `wcagLuminance` duplicated between `color-math.ts` and `generator-engine.ts:275` — new closure allocated per call
 - [~] `formatValue` redefined locally in ExportPanel.tsx shadowing the one from `tokenListUtils.ts` (`figma-plugin/ExportPanel.tsx:305-309`)
-- [ ] `FlatToken` interface in docs.ts duplicates core types — will drift (`server/routes/docs.ts:21-26`)
+- [~] `FlatToken` interface in docs.ts duplicates core types — will drift (`server/routes/docs.ts:21-26`)
 - [ ] `stableStringify` exported from `colorUtils.ts` — JSON serialization utility doesn't belong in a color math module
 
 ### Performance
