@@ -780,27 +780,30 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <label className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">To</label>
-              <select
-                value={sets.includes(targetSet) ? targetSet : targetSet}
-                onChange={e => {
-                  setConflictPaths(null);
-                  if (e.target.value === '__new__') {
-                    setNewSetInputVisible(true);
-                  } else {
-                    setTargetSet(e.target.value);
-                    lsSet(STORAGE_KEYS.IMPORT_TARGET_SET, e.target.value);
-                  }
-                }}
-                className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none"
-              >
-                {sets.map(s => <option key={s} value={s}>{s}</option>)}
-                {!sets.includes(targetSet) && targetSet && (
-                  <option value={targetSet}>{targetSet} (new)</option>
-                )}
-                <option value="__new__">+ New set…</option>
-              </select>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <label className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">To</label>
+                <select
+                  value={sets.includes(targetSet) ? targetSet : targetSet}
+                  onChange={e => {
+                    setConflictPaths(null);
+                    if (e.target.value === '__new__') {
+                      setNewSetInputVisible(true);
+                    } else {
+                      setTargetSet(e.target.value);
+                      lsSet(STORAGE_KEYS.IMPORT_TARGET_SET, e.target.value);
+                    }
+                  }}
+                  className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none"
+                >
+                  {sets.map(s => <option key={s} value={s}>{s}</option>)}
+                  {!sets.includes(targetSet) && targetSet && (
+                    <option value={targetSet}>{targetSet} (new)</option>
+                  )}
+                  <option value="__new__">+ New set…</option>
+                </select>
+              </div>
+              <p className="text-[9px] text-[var(--color-figma-text-tertiary)] pl-[26px]">Pick an existing set or choose <button type="button" onClick={() => setNewSetInputVisible(true)} className="underline hover:text-[var(--color-figma-text-secondary)]">+ New set…</button> to create one</p>
             </div>
           )}
 

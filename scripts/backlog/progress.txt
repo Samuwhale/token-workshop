@@ -263,3 +263,10 @@
 - **Learnings for future iterations:**
   - The import source buttons are never disabled — the concern is purely about discoverability. A `title` tooltip is the lightest intervention.
 ---
+
+## 2026-03-27 - ImportPanel: targetSet dropdown hint for creating new sets
+- Added inline hint text below the target set dropdown: "Pick an existing set or choose + New set… to create one". The "+ New set…" text in the hint is a clickable button that directly opens the new-set input, providing a second, more visible entry point alongside the dropdown option.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L783
+- **Learnings for future iterations:**
+  - The "+" for creating a new set is an `<option value="__new__">` inside the `<select>`, not a separate button. Adding a parallel clickable `<button>` in hint text that calls the same `setNewSetInputVisible(true)` gives a second discovery path without duplicating logic.
+---
