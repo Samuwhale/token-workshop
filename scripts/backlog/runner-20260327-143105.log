@@ -138,3 +138,10 @@ Already up to date.
 ===============================================================
   Claimed: PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive — mixing formats gives confusing results
   Worktree: /tmp/backlog-98901-fiA9B0
+
+  ✓ done: PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive — mixing formats gives confusing results
+    Added "— not both" label, highlight detected format as accent pill, dim inactive format; mixed-format parse error hint when JSON fails with name:value-looking lines
+    12 turns · 114s · $0.29
+
+--- Merging: PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive — mixing formats gives confusing results ---
+Already up to date.

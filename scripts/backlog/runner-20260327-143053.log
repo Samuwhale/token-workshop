@@ -158,3 +158,10 @@ Already up to date.
 
 --- Merging: Find-and-replace has no confirmation step — bulk rename applies immediately with no preview-and-confirm modal, making accidental mass renames easy ---
 Already up to date.
+[main 985d341] chore(backlog): done – Find-and-replace has no confirmation step — bulk rename applies immediately with no preview-and-confirm modal, making accidental mass renames easy
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - Find-and-replace has no confirmation step — bulk rename applies immediately with no preview-and-confirm modal
+- Stale — already implemented. The modal at TokenList.tsx ~L2892 already has a full preview-and-confirm flow: live diff list showing oldPath → newPath for every affected token (with red/green segment highlights), conflict detection with warning badges, empty-replacement warning, and an explicit "Rename N" confirmation button that only enables when there are actionable matches.
+- Files changed: none
+- **Learnings for future iterations:**

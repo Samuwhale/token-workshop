@@ -366,3 +366,14 @@
 - **Learnings for future iterations:**
   - The find-replace preview (frPreview useMemo ~L1586) and modal (~L2892) were built out in an earlier session; the backlog item predates this work.
 ---
+
+## 2026-03-27 - PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive
+- Updated the format hints area to:
+  1. Display "Format: JSON / DTCG or name: value — not both" making mutual exclusivity explicit
+  2. Highlight the detected format with accent color when input is present (the other dims to secondary text)
+  3. Added mixed-format detection: when JSON parsing fails and the input contains name:value-like lines, appends "(did you mix JSON and name:value lines? Use one format only)" to the parse error
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L56 (mixed-format error hint), ~L267 (format hints section)
+- **Learnings for future iterations:**
+  - Active/inactive pill pattern: render format labels as pills with `transition-colors` and swap between `bg-accent/10 text-accent font-semibold` (active) and `bg-secondary text-secondary` (inactive) based on parsed format state — provides immediate feedback without adding new UI elements
+  - Mixed-format regex: `/\n\s*[\w.]+\s*:/` detects name:value lines inside JSON-prefixed input (starts with `{` but has dotted-key lines interspersed)
+---

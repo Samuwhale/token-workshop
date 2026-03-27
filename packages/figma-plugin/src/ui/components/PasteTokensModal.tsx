@@ -62,7 +62,11 @@ function parseInput(raw: string): ParseResult {
       }
       return { tokens, errors: [], format: 'dtcg' };
     } catch (e) {
-      return { tokens: [], errors: [`JSON parse error: ${e instanceof Error ? e.message : String(e)}`], format: 'error' };
+      const msg = e instanceof Error ? e.message : String(e);
+      // Check if it looks like name:value lines were mixed into the JSON
+      const looksLikeMixed = /\n\s*[\w.]+\s*:/.test(trimmed);
+      const hint = looksLikeMixed ? ' (did you mix JSON and name:value lines? Use one format only)' : '';
+      return { tokens: [], errors: [`JSON parse error: ${msg}${hint}`], format: 'error' };
     }
   }
 
@@ -263,12 +267,21 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
           </button>
         </div>
 
-        {/* Format hints */}
-        <div className="px-4 pt-3 pb-0 flex items-center gap-2">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Formats accepted:</span>
-          <span className="text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] rounded px-1.5 py-0.5">JSON / DTCG</span>
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">or</span>
-          <span className="text-[10px] font-mono bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text)] rounded px-1.5 py-0.5">name: value</span>
+        {/* Format hints — mutually exclusive */}
+        <div className="px-4 pt-3 pb-0 flex items-center gap-1.5">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Format:</span>
+          <span className={`text-[10px] font-mono rounded px-1.5 py-0.5 transition-colors ${
+            format === 'dtcg'
+              ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-semibold'
+              : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'
+          }`}>JSON / DTCG</span>
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] select-none">or</span>
+          <span className={`text-[10px] font-mono rounded px-1.5 py-0.5 transition-colors ${
+            format === 'lines'
+              ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-semibold'
+              : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'
+          }`}>name: value</span>
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] select-none">— not both</span>
         </div>
 
         <div className="p-3 flex flex-col gap-2">
