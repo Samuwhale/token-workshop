@@ -143,3 +143,9 @@ Already up to date.
 
 --- Merging: Selection Inspector create-and-bind requires tab switch ---
 Already up to date.
+[main 11b314e] chore(backlog): done – Selection Inspector create-and-bind requires tab switch
+ 4 files changed, 30 insertions(+), 3 deletions(-)
+
+--- Cleanup: archiving completed items (≥22) ---
+  → Archived 22 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 55)
