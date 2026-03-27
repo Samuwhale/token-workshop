@@ -90,3 +90,10 @@ Already up to date.
 ===============================================================
   Claimed: No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
   Worktree: /tmp/backlog-97955-gELnZc
+
+  ✓ done: No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
+    Enabled multi-drag by allowing draggable on selected tokens in select mode and passing all selectedLeafNodes paths/names in onDragStart
+    16 turns · 192s · $0.57
+
+--- Merging: No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves ---
+Already up to date.

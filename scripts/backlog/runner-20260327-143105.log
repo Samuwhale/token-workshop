@@ -83,3 +83,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥23) ---
   → Archived 23 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 52)
+[main a34462d] chore(backlog): archive 23 completed items + trim progress
+ 5 files changed, 32 insertions(+), 206 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Context menu disabled in select mode
+- Removed `selectMode` from the early-return guard in both the token row `handleContextMenu` and the group row `onContextMenu` handler. Context menus now open normally regardless of whether checkboxes are visible.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3865 (token handler), ~L3490 (group handler)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  78 items remaining
+===============================================================
+  Claimed: Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
+  Worktree: /tmp/backlog-98901-mkTEYe

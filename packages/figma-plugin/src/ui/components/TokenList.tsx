@@ -3928,11 +3928,15 @@ function TokenTreeNode({
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       tabIndex={selectMode ? -1 : 0}
       data-token-path={node.path}
-      draggable={!selectMode}
+      draggable={!selectMode || isSelected}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('application/x-token-drag', 'true');
-        onDragStart?.([node.path], [node.name]);
+        if (selectMode && isSelected && selectedLeafNodes && selectedLeafNodes.length > 0) {
+          onDragStart?.(selectedLeafNodes.map(n => n.path), selectedLeafNodes.map(n => n.name));
+        } else {
+          onDragStart?.([node.path], [node.name]);
+        }
       }}
       onDragEnd={() => onDragEnd?.()}
       onMouseEnter={() => { setHovered(true); if (inspectMode) onHoverToken?.(node.path); }}

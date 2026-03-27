@@ -267,3 +267,11 @@
   - The original guard was `if (node.isGroup || selectMode) return;` — the `selectMode` part was the only thing blocking context menus in select mode; removing it is sufficient.
   - No state conflicts: the context menu actions (copy/rename/delete) operate on a single token path and don't interact with the multi-select state.
 ---
+
+## 2026-03-27 - No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
+- Enabled multi-drag in select mode: changed `draggable={!selectMode}` to `draggable={!selectMode || isSelected}` and updated `onDragStart` to pass all `selectedLeafNodes` paths/names when dragging in select mode with a selected token. The drop handler already supported arrays, so no changes needed there.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3925
+- **Learnings for future iterations:**
+  - `selectedLeafNodes` is already passed as a prop to TokenRow, making it trivial to access all selected tokens during drag. When adding multi-drag, the drop handler is the easy part — the key change is at the drag source (onDragStart).
+  - Allowing `draggable` only when `isSelected` (not for all tokens in select mode) ensures unselected tokens remain non-draggable in select mode, keeping UX consistent.
+---
