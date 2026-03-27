@@ -349,3 +349,12 @@
 - **Learnings for future iterations:**
   - Check git log before starting — item may already be done from a prior session.
 ---
+
+## 2026-03-27 - syncBindings applies raw $value without resolving aliases
+- Added `isAlias` + `resolveTokenValue` import from `shared/resolveAlias.js` to controller.ts.
+- In `syncBindings`, before calling `applyTokenValue`, check if `entry.$value` is an alias. If so, resolve it via `resolveTokenValue`. If resolution fails (circular, missing target), log a warning and skip (increment `skipped`) instead of passing the raw alias string which would cause a type mismatch error.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L3 (import), ~L1302 (alias resolution block)
+- **Learnings for future iterations:**
+  - The UI side (`App.tsx:104`) already calls `resolveAllAliases` before posting to the controller, but `resolveAllAliases` falls back to the raw `$value` when resolution fails (`result.value ?? entry.$value`), so alias strings can still reach the controller.
+  - Defense-in-depth: always resolve aliases at the point of consumption (controller), not just at the point of dispatch (UI).
+---

@@ -1,6 +1,7 @@
 // This runs in Figma's sandbox (no DOM access)
 
 import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
+import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 
 const SERVER_URL = 'http://localhost:9400';
 const PLUGIN_DATA_NAMESPACE = 'tokenmanager';
@@ -1305,8 +1306,22 @@ async function syncBindings(tokenMap: Record<string, { $value: any; $type: strin
           skipped++;
           continue;
         }
+        // Resolve alias references before applying — raw alias strings like
+        // "{color.primary}" would cause a type mismatch in applyTokenValue.
+        let value = entry.$value;
+        let type = entry.$type;
+        if (isAlias(value)) {
+          const resolved = resolveTokenValue(value, type, tokenMap);
+          if (resolved.error) {
+            console.warn(`Alias resolution failed for ${tokenPath}: ${resolved.error}`);
+            skipped++;
+            continue;
+          }
+          value = resolved.value;
+          type = resolved.$type;
+        }
         try {
-          await applyTokenValue(node, prop, entry.$value, entry.$type);
+          await applyTokenValue(node, prop, value, type);
           updated++;
         } catch (err) {
           console.error(`Sync error on ${node.name}.${prop}:`, err);
