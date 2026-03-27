@@ -358,3 +358,10 @@
   - The UI side (`App.tsx:104`) already calls `resolveAllAliases` before posting to the controller, but `resolveAllAliases` falls back to the raw `$value` when resolution fails (`result.value ?? entry.$value`), so alias strings can still reach the controller.
   - Defense-in-depth: always resolve aliases at the point of consumption (controller), not just at the point of dispatch (UI).
 ---
+
+## 2026-03-27 - bulkRename mutates in-memory tree before beginBatch/saveSet
+- Already fixed in commit ad771aa. The code now calls `beginBatch()` before mutations, wraps all `setTokenAtPath`/`deleteTokenAtPath` calls in a try/catch, and reverts in-memory mutations on error before re-throwing.
+- Files changed: `packages/server/src/services/token-store.ts` ~L982-L1018
+- **Learnings for future iterations:**
+  - Check git log for recent commits before starting work — items may already be resolved
+---

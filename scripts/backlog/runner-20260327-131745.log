@@ -54,3 +54,10 @@ Already up to date.
 ===============================================================
   Claimed: [HIGH] `bulkRename` mutates in-memory tree before `beginBatch`/`saveSet` — token-store.ts:879-884 applies `setTokenAtPath`/`deleteTokenAtPath` before L886 `beginBatch()` and L888 `saveSet()`; if `saveSet` throws, the in-memory tree is mutated but the disk file still has old paths, leaving the store in an inconsistent state
   Worktree: /tmp/backlog-44614-U20jUq
+
+  ✓ done: bulkRename mutates in-memory tree before beginBatch/saveSet
+    stale — already done. Fixed in commit ad771aa: beginBatch() now precedes mutations, catch block reverts in-memory state on saveSet failure.
+    9 turns · 48s · $0.25
+
+--- Merging: bulkRename mutates in-memory tree before beginBatch/saveSet ---
+Already up to date.
