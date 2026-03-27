@@ -362,3 +362,11 @@
 - **Learnings for future iterations:**
   - All free-text hex inputs should trim before regex validation — paste from design tools often includes surrounding whitespace.
 ---
+
+## 2026-03-27 - ColorPicker alpha numeric input doesn't validate range
+- Added local editing state (`alphaInput` + `alphaEditing` ref) to decouple the alpha text input from the `alpha` state during typing. The input now accepts any text while focused and only commits/clamps on blur or Enter. Out-of-range values (e.g. "999") are visibly corrected to "100%" at commit time, eliminating the confusing mid-type mismatch. Arrow keys still nudge by 1% and onFocus selects all for easy replacement.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L201 (state), ~L228 (prop sync), ~L237 (emit sync), ~L481 (input element)
+- **Learnings for future iterations:**
+  - Controlled inputs that silently clamp on every keystroke create UX mismatches. Use local editing state + commit-on-blur for numeric inputs with range constraints.
+  - `useRef(false)` as an "editing" flag prevents external state updates (from slider drag or prop changes) from overwriting the user's in-progress typed value.
+---

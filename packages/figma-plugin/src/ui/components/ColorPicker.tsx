@@ -201,6 +201,8 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
   const [alpha, setAlpha] = useState(parseAlpha(value));
   const [space, setSpace] = useState<ColorSpace>('hex');
   const [hexInput, setHexInput] = useState(value);
+  const [alphaInput, setAlphaInput] = useState(() => Math.round(parseAlpha(value) * 100) + '%');
+  const alphaEditing = useRef(false);
 
   const areaRef = useRef<HTMLCanvasElement>(null);
   const hueRef = useRef<HTMLCanvasElement>(null);
@@ -223,7 +225,9 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
         setSat(hsl.s);
         setLit(hsl.l);
       }
-      setAlpha(parseAlpha(value));
+      const newAlpha = parseAlpha(value);
+      setAlpha(newAlpha);
+      if (!alphaEditing.current) setAlphaInput(Math.round(newAlpha * 100) + '%');
       setHexInput(value);
     }
   }, [value]);
@@ -238,6 +242,7 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
       setHexInput(out);
       emitRef.current(out);
     }
+    if (!alphaEditing.current) setAlphaInput(Math.round(alpha * 100) + '%');
   }, [hue, sat, lit, alpha]);
 
   // Click outside to close
@@ -480,10 +485,37 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
           <label className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase">Alpha</label>
           <input
             type="text"
-            value={Math.round(alpha * 100) + '%'}
+            value={alphaInput}
             onChange={e => {
-              const n = parseInt(e.target.value);
-              if (!isNaN(n)) setAlpha(clamp(n / 100, 0, 1));
+              alphaEditing.current = true;
+              setAlphaInput(e.target.value);
+            }}
+            onBlur={() => {
+              alphaEditing.current = false;
+              const n = parseFloat(alphaInput);
+              const clamped = isNaN(n) ? Math.round(alpha * 100) : clamp(Math.round(n), 0, 100);
+              setAlpha(clamped / 100);
+              setAlphaInput(clamped + '%');
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                (e.target as HTMLInputElement).blur();
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                const clamped = clamp(Math.round(alpha * 100) + 1, 0, 100);
+                setAlpha(clamped / 100);
+                setAlphaInput(clamped + '%');
+              } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                const clamped = clamp(Math.round(alpha * 100) - 1, 0, 100);
+                setAlpha(clamped / 100);
+                setAlphaInput(clamped + '%');
+              }
+            }}
+            onFocus={e => {
+              alphaEditing.current = true;
+              // Select all text so the user can immediately type a new value
+              e.target.select();
             }}
             className={inputClass}
           />

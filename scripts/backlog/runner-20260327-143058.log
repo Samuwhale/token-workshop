@@ -36,3 +36,23 @@ Already up to date.
 
 --- Merging: ColorPicker hex input doesn't trim whitespace — pasting a hex code with leading/trailing spaces (common from copy-paste) silently rejects the value with no error feedback ---
 Already up to date.
+[main c848983] chore(backlog): done – ColorPicker hex input doesn't trim whitespace — pasting a hex code with leading/trailing spaces (common from copy-paste) silently rejects the value with no error feedback
+ 5 files changed, 33 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - ColorPicker hex input doesn't trim whitespace
+- Trimmed whitespace from pasted/typed hex values in `onHexInputChange` before validation and state updates. Both the display (`hexInput`) and the processed `clean` value now use the trimmed string, so pasting ` #ff0000 ` is accepted and reflected correctly.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L307
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  88 items remaining
+===============================================================
+  Claimed: ColorPicker alpha numeric input doesn't validate range — entering "999" creates an invalid alpha that internally clamps, showing confusing mismatch between input and result
+  Worktree: /tmp/backlog-98408-wmPgTN
+
+  ✓ done: ColorPicker alpha numeric input doesn't validate range — entering "999" creates an invalid alpha that internally clamps, showing confusing mismatch between input and result
+    Added local editing state for alpha input — values are now committed on blur/Enter, so "999" visibly corrects to "100%" at the moment of commit rather than silently mid-type
+    10 turns · 91s · $0.26
+
+--- Merging: ColorPicker alpha numeric input doesn't validate range — entering "999" creates an invalid alpha that internally clamps, showing confusing mismatch between input and result ---
+Already up to date.
