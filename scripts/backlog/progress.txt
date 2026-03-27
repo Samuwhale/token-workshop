@@ -168,3 +168,11 @@
 - **Learnings for future iterations:**
   - Object identity (`!==`) is never correct for comparing the "before" and "after" of a function that may return a new object — use `JSON.stringify` or a deep-equal for structural comparison.
 ---
+
+## 2026-03-27 - Copy token path to clipboard on row hover
+- Added a "Copy token path" button (using `</>` code icon) to the hover actions row in `TokenRow`. Updated `handleCopyPath` to copy `node.path` (dotted path) instead of CSS var format. Fixed copy value button to only show checkmark for `copiedWhat === 'value'` (not 'path'), since path now has its own dedicated button with its own checkmark feedback.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2619,L3318
+- **Learnings for future iterations:**
+  - `handleCopyPath` was defined but unused — it copied CSS var format (`--colors-primary-500`). When wiring it to a new button, update it to copy the raw dotted path as the task described.
+  - The `copiedWhat` state uses string literals ('path'|'value'|null) for feedback — keep each button's checkmark tied only to its own value to avoid false positives when multiple copy buttons exist in the same row.
+---

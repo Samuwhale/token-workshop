@@ -2617,8 +2617,7 @@ function TokenTreeNode({
   const cascadeChange = !node.isGroup ? cascadeDiff?.[node.path] : undefined;
 
   const handleCopyPath = () => {
-    const cssVar = '--' + node.path.replace(/\./g, '-');
-    navigator.clipboard.writeText(cssVar).catch(() => {});
+    navigator.clipboard.writeText(node.path).catch(() => {});
     setCopiedWhat('path');
     setTimeout(() => setCopiedWhat(null), 1500);
   };
@@ -3316,11 +3315,26 @@ function TokenTreeNode({
             </svg>
           </button>
           <button
+            onClick={e => { e.stopPropagation(); handleCopyPath(); }}
+            title={copiedWhat === 'path' ? 'Copied!' : 'Copy token path'}
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+          >
+            {copiedWhat === 'path' ? (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2.5" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>
+              </svg>
+            )}
+          </button>
+          <button
             onClick={handleCopyValue}
             title={copiedWhat === 'value' ? 'Copied!' : 'Copy value'}
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >
-            {copiedWhat === 'value' || copiedWhat === 'path' ? (
+            {copiedWhat === 'value' ? (
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2.5" aria-hidden="true">
                 <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
