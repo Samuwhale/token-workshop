@@ -29,14 +29,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
-- [x] `n` keyboard shortcut to open new-token form — when the token list has focus and no input is active, pressing `n` should open the create form with the currently focused group path pre-filled as the path prefix
-
 ### UX
-
-- [x] Rename remap preview — rename confirmation dialog shows dependent count but not which tokens will be updated; add a scrollable list of affected token paths so users can verify before confirming (`TokenList.tsx:2085-2090`)
-- [x] Inline lint violation indicator on token rows — violations currently only surface in AnalyticsPanel or behind the issues-only filter toggle; each violating row should show a subtle warning icon inline so problems are visible while browsing normally, not just when explicitly filtering (`TokenList.tsx`, `lintViolations` prop)
-- [x] `onNavigateToAlias` should scroll virtual list to highlighted row — clicking an alias `{path}` ref sets `highlightedToken` but doesn't scroll the virtual list viewport to make the highlighted row visible; row can be off-screen with no indication of where it is (`TokenList.tsx`, virtual scroll logic)
-- [x] Move token to group via drag-and-drop — moving a token to a different group currently requires manually editing its path; token rows should be draggable onto group header rows as a drop target, distinct from the existing select-mode drag-to-reorder (`TokenList.tsx`)
 
 ---
 
@@ -44,14 +37,9 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
-- [x] `DimensionsStore` re-created on every themes API call — re-reads `$themes.json` from disk per request (`server/routes/themes.ts:51,72,94,112,141,169`)
-
 ### QoL
 
 ### UX
-
-- [x] Theme dimension switcher: use segmented controls instead of dropdowns — dimensions with ≤5 options should render as inline pill/radio buttons so all options are visible at a glance without clicking; fall back to dropdown only for 6+ options (`App.tsx:1770-1814`)
-- [x] Collapse theme switcher bar to a badge at narrow plugin widths — the dimensions row wraps to multiple lines at small widths (≤360px), consuming 3+ rows of vertical space; collapse to a single "Light · Brand A" badge that expands on click (`App.tsx:1772-1827`)
 
 ---
 
@@ -59,13 +47,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
-- [x] File watcher fires on the server's own writes, causing redundant `loadSet` + `rebuildFlatTokens` + double SSE events (`server/token-store.ts:85-117`)
-- [x] `applyDiffChoices` pushes the entire repo when any single file is marked 'push' — semantic mismatch with per-file UI (`server/git-sync.ts:132-135`)
-- [x] SyncPanel `computeVarDiff` reads `'variables-read'` messages with no correlation ID — can collide with ImportPanel/ExportPanel reading variables simultaneously (`figma-plugin/SyncPanel.tsx:135-145`)
-
 ### UX
-
-- [x] Last-synced timestamp in Publish tab — no visual indication of when the last git push/pull occurred; show "Last synced: 3 min ago" or a static ISO timestamp below the Publish header so users can gauge staleness at a glance
 
 ---
 
@@ -73,8 +55,6 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 <!-- All analytics items currently live under App Shell > "Inline analytics as a toolbar toggle" -->
 
 ### UX
-
-- [x] Click-to-navigate from analytics violations to the offending token — violation and duplicate entries in AnalyticsPanel are informational only; clicking one should close the panel, switch to Tokens tab, navigate to the set containing the token, and highlight the row (`figma-plugin/AnalyticsPanel.tsx`)
 
 ---
 
@@ -88,11 +68,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
-- [x] ImportPanel `executeImport` sends tokens one at a time in a sequential `for` loop — N HTTP requests for N tokens (`figma-plugin/ImportPanel.tsx:279-297`)
-
 ### UX
-
-- [x] Auto-navigate to imported set after successful import — after `executeImport` completes, close the Import panel and switch to the Tokens tab with the target set active; currently leaves the user on the Import panel with no indication of what was added (`figma-plugin/ImportPanel.tsx`)
 
 ---
 
@@ -100,13 +76,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
-- [x] `contrastCheck` generator type missing from `computeResultsWithValue` switch — will throw "Unknown generator type" for multi-brand contrast check generators (`server/generator-service.ts:408-481`)
-- [x] `contrastLevel` and `levels` config fields defined in generator types but never read by the engine — always hardcodes AA 4.5 threshold (`core/generator-types.ts:165,219`, `core/generator-engine.ts:291,393`)
-- [x] `getGeneratorTypeLabel` missing `'contrastCheck'` case — returns `undefined` in GraphPanel UI (`figma-plugin/GraphPanel.tsx:171-181`)
-
 ### UX
-
-- [x] Generators tab empty state guidance — when no generators exist the list is blank; replace with a descriptive empty state explaining what generators produce (color scales, contrast pairs, spacing scales, semantic aliases) and a primary CTA to add the first generator (`figma-plugin/GraphPanel.tsx`)
 
 ---
 
@@ -114,15 +84,11 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
-- [x] Show alias resolution chain on hover — when a token's value is an alias `{path.to.ref}`, hovering the alias chip in the editor should show a popover with the full resolution chain (e.g. `brand.primary → palette.blue.500 → #0070f3`) rather than only the terminal resolved value (`figma-plugin/TokenEditor.tsx`)
-
 ---
 
 ## Settings & Data Management
 
 ### QoL
-
-- [x] Settings server URL field: surface "Press Enter to connect" affordance — the field accepts Enter to trigger a connection attempt but there's no visible hint; a small helper text below the input reduces confusion for first-time setup (`App.tsx:1884-1890`)
 
 ---
 
@@ -130,10 +96,6 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Redundancy & Duplication
 
-- [x] `computeResults` and `computeResultsWithValue` are near-identical 200-line switch statements — should resolve source value first then call one shared switch (`server/generator-service.ts:401-483 vs 486-599`)
-- [x] `hexToHsl` duplicated in TokenCanvas.tsx when it already exists in `colorUtils.ts` (`figma-plugin/TokenCanvas.tsx:18-33`)
-- [x] `flattenTokensObj` re-implemented in App.tsx despite `flattenTokenGroup` from `@tokenmanager/core` (`figma-plugin/App.tsx:859-871`)
-- [x] `flattenForVarDiff` in SyncPanel is yet another flatten implementation (`figma-plugin/SyncPanel.tsx:42-57`)
 - [~] `countLeafNodes` duplicated between `useTokens.ts:132-143` and AnalyticsPanel
 - [~] `toLinear` / `wcagLuminance` duplicated between `color-math.ts` and `generator-engine.ts:275` — new closure allocated per call
 - [ ] `formatValue` redefined locally in ExportPanel.tsx shadowing the one from `tokenListUtils.ts` (`figma-plugin/ExportPanel.tsx:305-309`)
@@ -181,7 +143,6 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [ ] Token ordering within a group — tokens within a group are rendered in whatever order they appear in the JSON file; there is no way to reorder them via the UI, making it hard to control the visual hierarchy of a group (e.g. putting `default` before `hover` before `active`) (`TokenList.tsx`, `server/token-store.ts`)
 
 - [ ] Group $type and $description editing — DTCG allows groups to carry `$type` (inherited by all children) and `$description`; there is no UI to set or edit these on a group, so inherited types must be manually maintained on every leaf token instead (`TokenList.tsx` group header, `server/routes/tokens.ts`)
-
 
 - [ ] Cross-set token search — the search/filter bar only operates on the active set tab; searching across all sets simultaneously is a basic workflow (e.g. "find every token named `primary`") and currently requires switching tabs manually (`TokenList.tsx:525`, `App.tsx:231`)
 
