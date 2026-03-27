@@ -342,3 +342,10 @@
   - `validateAllTokens` and `lintTokens` are parallel functions — both now consistently read from `LintConfig` instead of having one use hardcoded defaults.
   - Making the `config` parameter optional (with `DEFAULT_LINT_CONFIG` fallback) keeps the function usable in tests without wiring up a config store.
 ---
+
+## 2026-03-27 - `REFERENCE_GLOBAL_REGEX` module-level stateful regex with `/g` flag
+- Already implemented in a prior session. `REFERENCE_GLOBAL_REGEX` was replaced with `makeReferenceGlobalRegex()` factory function at `core/constants.ts:120`, with JSDoc explaining the `.lastIndex` hazard. All callers (`dtcg-types.ts`, `resolver.ts`, `style-dict.ts`) were already updated to call the factory.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+  - The git status showed `packages/core/src/constants.ts` as already modified — this was the tell that the fix was in-flight before the session started.
+---

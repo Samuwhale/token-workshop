@@ -445,9 +445,22 @@ run_special_pass() {
 # JSON schema for structured agent output
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
+# 4-type pass rotation (every 3 items): ux → bugfix → discover → housekeeping → ux → …
+# Cycle index = (completed_count / 3) mod 4
+_pass_type_for_count() {
+  local count=$1
+  local slot=$(( (count / 3) % 4 ))
+  case $slot in
+    0) echo "ux" ;;
+    1) echo "bugfix" ;;
+    2) echo "discover" ;;
+    3) echo "housekeeping" ;;
+  esac
+}
+
 CURRENT_COUNT=$(get_completed_count)
 NEXT_PASS_IN=$(( 3 - (CURRENT_COUNT % 3) ))
-NEXT_PASS_TYPE=$( [ $(( (CURRENT_COUNT + NEXT_PASS_IN) % 6 )) -eq 0 ] && echo "housekeeping" || echo "ux" )
+NEXT_PASS_TYPE=$( _pass_type_for_count $(( CURRENT_COUNT + NEXT_PASS_IN )) )
 
 echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iterations: $MAX_ITERATIONS"
 echo "  Remaining items: $(remaining)"
@@ -581,11 +594,8 @@ for i in $(seq 1 $MAX_ITERATIONS); do
         # Non-blocking pass lock: if another runner is already running a pass, skip
         if mkdir "$PASS_LOCKDIR" 2>/dev/null; then
           echo $$ > "$PASS_LOCKDIR/pid"
-          if [ $((TOTAL_DONE % 6)) -eq 0 ]; then
-            run_special_pass "housekeeping"
-          else
-            run_special_pass "ux"
-          fi
+          PASS_TYPE=$( _pass_type_for_count "$TOTAL_DONE" )
+          run_special_pass "$PASS_TYPE"
           rm -rf "$PASS_LOCKDIR"
         else
           echo "  (maintenance pass skipped — another runner is handling it)"

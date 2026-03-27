@@ -114,5 +114,7 @@ export const DEFAULTS = {
 /** Regex that matches a DTCG alias reference, e.g. `{colors.primary.500}` */
 export const REFERENCE_REGEX = /^\{([^}]+)\}$/;
 
-/** Regex that matches references *within* a string (non-anchored). */
-export const REFERENCE_GLOBAL_REGEX = /\{([^}]+)\}/g;
+/** Returns a fresh regex that matches references *within* a string (non-anchored, global).
+ * A factory is used instead of a shared constant to avoid `.lastIndex` contamination
+ * when callers use `.test()` or `.exec()` on the same regex instance. */
+export const makeReferenceGlobalRegex = (): RegExp => /\{([^}]+)\}/g;
