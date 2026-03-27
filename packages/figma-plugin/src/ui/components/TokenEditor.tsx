@@ -604,9 +604,9 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             )}
             {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} />}
             {tokenType === 'dimension' && <DimensionEditor value={value} onChange={setValue} />}
-            {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} />}
-            {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} />}
-            {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} />}
+            {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+            {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+            {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'number' && <NumberEditor value={value} onChange={setValue} />}
             {tokenType === 'duration' && <DurationEditor value={value} onChange={setValue} />}
@@ -1428,45 +1428,51 @@ function TypographyEditor({ value, onChange, allTokensFlat, pathToSet }: { value
   );
 }
 
-function ShadowEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function ShadowEditor({ value, onChange, allTokensFlat, pathToSet }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string> }) {
   const val = typeof value === 'object' ? value : {};
   const update = (key: string, v: any) => onChange({ ...val, [key]: v });
-  const getDim = (v: any) => (typeof v === 'object' ? v.value : (v ?? 0));
-  const setDim = (key: string, n: number) => update(key, { value: n, unit: 'px' });
+  const getDim = (v: any) => (typeof v === 'string' && v.startsWith('{') ? v : (typeof v === 'object' ? v.value : (v ?? 0)));
+  const setDim = (key: string, v: any) => update(key, typeof v === 'string' && v.startsWith('{') ? v : { value: typeof v === 'number' ? v : parseFloat(String(v)) || 0, unit: 'px' });
+  const isColorAlias = typeof val.color === 'string' && val.color.startsWith('{');
 
   return (
     <div className="flex flex-col gap-2">
       <div>
         <div className={labelClass}>Color</div>
         <div className="flex gap-2 items-center">
-          <ColorSwatchButton
-            color={val.color || '#000000'}
-            onChange={v => update('color', v)}
-          />
-          <input
-            type="text"
+          {!isColorAlias && (
+            <ColorSwatchButton
+              color={val.color || '#000000'}
+              onChange={v => update('color', v)}
+            />
+          )}
+          <SubPropInput
             value={val.color || '#00000040'}
-            onChange={e => update('color', e.target.value)}
-            className={inputClass}
+            onChange={v => update('color', v)}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            filterType="color"
+            inputType="string"
+            placeholder="#00000040 or {token}"
           />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <div className={labelClass}>Offset X</div>
-          <input type="number" value={getDim(val.offsetX)} onChange={e => setDim('offsetX', parseFloat(e.target.value) || 0)} className={inputClass} />
+          <SubPropInput value={getDim(val.offsetX)} onChange={v => setDim('offsetX', v)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} placeholder="0" />
         </div>
         <div>
           <div className={labelClass}>Offset Y</div>
-          <input type="number" value={getDim(val.offsetY)} onChange={e => setDim('offsetY', parseFloat(e.target.value) || 0)} className={inputClass} />
+          <SubPropInput value={getDim(val.offsetY)} onChange={v => setDim('offsetY', v)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} placeholder="0" />
         </div>
         <div>
           <div className={labelClass}>Blur</div>
-          <input type="number" value={getDim(val.blur)} onChange={e => setDim('blur', parseFloat(e.target.value) || 0)} className={inputClass} />
+          <SubPropInput value={getDim(val.blur)} onChange={v => setDim('blur', v)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} placeholder="0" />
         </div>
         <div>
           <div className={labelClass}>Spread</div>
-          <input type="number" value={getDim(val.spread)} onChange={e => setDim('spread', parseFloat(e.target.value) || 0)} className={inputClass} />
+          <SubPropInput value={getDim(val.spread)} onChange={v => setDim('spread', v)} allTokensFlat={allTokensFlat} pathToSet={pathToSet} placeholder="0" />
         </div>
       </div>
       <div>
@@ -1484,47 +1490,69 @@ function ShadowEditor({ value, onChange }: { value: any; onChange: (v: any) => v
   );
 }
 
-function BorderEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function BorderEditor({ value, onChange, allTokensFlat, pathToSet }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string> }) {
   const val = typeof value === 'object' ? value : {};
   const update = (key: string, v: any) => onChange({ ...val, [key]: v });
-  const width = typeof val.width === 'object' ? val.width : { value: val.width ?? 1, unit: 'px' };
+  const isWidthAlias = typeof val.width === 'string' && val.width.startsWith('{');
+  const width = !isWidthAlias && typeof val.width === 'object' ? val.width : { value: val.width ?? 1, unit: 'px' };
+  const isColorAlias = typeof val.color === 'string' && val.color.startsWith('{');
 
   return (
     <div className="flex flex-col gap-2">
       <div>
         <div className={labelClass}>Color</div>
         <div className="flex gap-2 items-center">
-          <ColorSwatchButton
-            color={val.color || '#000000'}
-            onChange={v => update('color', v)}
-          />
-          <input
-            type="text"
+          {!isColorAlias && (
+            <ColorSwatchButton
+              color={val.color || '#000000'}
+              onChange={v => update('color', v)}
+            />
+          )}
+          <SubPropInput
             value={val.color || '#000000'}
-            onChange={e => update('color', e.target.value)}
-            className={inputClass}
+            onChange={v => update('color', v)}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            filterType="color"
+            inputType="string"
+            placeholder="#000000 or {token}"
           />
         </div>
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
           <div className={labelClass}>Width</div>
-          <div className="flex gap-1">
-            <input
-              type="number"
-              value={width.value}
-              onChange={e => update('width', { ...width, value: parseFloat(e.target.value) || 0 })}
-              className={inputClass + ' flex-1'}
+          {isWidthAlias ? (
+            <SubPropInput
+              value={val.width}
+              onChange={v => update('width', v)}
+              allTokensFlat={allTokensFlat}
+              pathToSet={pathToSet}
             />
-            <select
-              value={width.unit}
-              onChange={e => update('width', { ...width, unit: e.target.value })}
-              className={inputClass + ' w-14'}
-            >
-              <option value="px">px</option>
-              <option value="rem">rem</option>
-            </select>
-          </div>
+          ) : (
+            <div className="flex gap-1">
+              <input
+                type="number"
+                value={width.value}
+                onChange={e => update('width', { ...width, value: parseFloat(e.target.value) || 0 })}
+                className={inputClass + ' flex-1'}
+                onKeyDown={e => {
+                  if (e.key === '{') {
+                    e.preventDefault();
+                    update('width', '{');
+                  }
+                }}
+              />
+              <select
+                value={width.unit}
+                onChange={e => update('width', { ...width, unit: e.target.value })}
+                className={inputClass + ' w-14'}
+              >
+                <option value="px">px</option>
+                <option value="rem">rem</option>
+              </select>
+            </div>
+          )}
         </div>
         <div className="flex-1">
           <div className={labelClass}>Style</div>

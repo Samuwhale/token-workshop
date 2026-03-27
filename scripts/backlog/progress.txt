@@ -1,6 +1,16 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - Composite token sub-property references
+- Added a `SubPropInput` component (above `TypographyEditor`) that renders a text input accepting either raw values or `{path.to.token}` alias syntax, showing `AliasAutocomplete` when `{` is typed.
+- Updated `TypographyEditor`, `ShadowEditor`, `BorderEditor` to accept `allTokensFlat` and `pathToSet` props and use `SubPropInput` for all text/number sub-property fields (fontFamily, fontSize, lineHeight, letterSpacing, offsetX, offsetY, blur, spread, color). Dimension fields (fontSize, width) conditionally render the original number+unit-select when not an alias, or `SubPropInput` when the stored value starts with `{`. Color fields hide the swatch when value is an alias.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1257,L1318,L1425,L1498; call sites ~L607-609
+- **Learnings for future iterations:**
+  - Dimension sub-props (e.g., `fontSize`, `width`) need conditional rendering: show `SubPropInput` when value is an alias string, otherwise show the normal number+unit-select pair.
+  - `setDim` helpers need to be updated to pass through alias strings unchanged instead of always wrapping in `{ value, unit }`.
+  - Color swatch should be hidden when the color subprop is an alias (can't preview an unresolved reference).
+---
+
 ## 2026-03-27 - ImportPanel conflict check only looks at top-level keys, misses nested token paths
 - Replaced `Object.keys(data.tokens || {})` with `flattenTokenGroup(data.tokens || {}).keys()` so the existing-path set includes all nested token paths (e.g. `colors.primary.500`), not just top-level group names.
 - Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L1,L323
