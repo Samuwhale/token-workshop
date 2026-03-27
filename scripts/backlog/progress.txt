@@ -319,3 +319,12 @@
   - `figma.loadFontAsync` must be called before ANY font property is set on a text node or text style — both on SceneNode assignment and on TextStyle creation.
   - The `applyTextStyle` path previously skipped `loadFontAsync` while `applyTokenValue` called it correctly; always audit both paths when a font-related bug is reported.
 ---
+
+## 2026-03-27 - ThemeManager: No search or filter for sets within a theme option — when a project has 10+ sets, the set matrix in each theme option becomes a long unfiltered list with no way to find a specific set quickly
+- Added per-option set filter: a `setSearchTerms` state (`Record<string, string>`) keyed by `${dimId}:${optName}`, a text input shown in the legend bar when the project has ≥5 sets, and a `filteredOptSets` derived variable used for rendering. When no sets match the query, a "No sets match…" empty state is shown. The full `optSets` array is still used for up/down reorder disabled checks.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L77 (state), ~L597 (filteredOptSets), ~L651 (legend bar + filter input), ~L671 (conditional empty state + map)
+- **Learnings for future iterations:**
+  - The threshold of ≥5 sets to show the filter input prevents cluttering small projects while helping large ones.
+  - `filteredOptSets` is used only for rendering; `optSets.indexOf(setName)` in up/down button disabled logic must still reference the full ordered list (reorder meaning stays correct even when filtered).
+  - The ternary `{condition ? <empty> : array.map(...)}` pattern inside a JSX expression works cleanly — closing `})}` covers arrow function + map call + JSX brace.
+---

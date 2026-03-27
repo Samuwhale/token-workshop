@@ -75,6 +75,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [dragInfo, setDragInfo] = useState<{ dimId: string; optionName: string; setName: string } | null>(null);
   const [dragOver, setDragOver] = useState<{ dimId: string; optionName: string; setName: string } | null>(null);
 
+  // Per-option set search/filter
+  const [setSearchTerms, setSetSearchTerms] = useState<Record<string, string>>({});
+
   // Newly created dimension for auto-scroll
   const [newlyCreatedDim, setNewlyCreatedDim] = useState<string | null>(null);
   const newDimCardRef = useRef<HTMLDivElement | null>(null);
@@ -592,6 +595,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         .map(([s]) => s);
                       const hasStale = staleSetNames.length > 0;
                       const optSets = optionSetOrders[dim.id]?.[opt.name] || sets;
+                      const setSearchTerm = (setSearchTerms[covKey] || '').toLowerCase().trim();
+                      const filteredOptSets = setSearchTerm ? optSets.filter(s => s.toLowerCase().includes(setSearchTerm)) : optSets;
                       return (
                         <div key={opt.name} className="group/opt">
                           {/* Option header row */}
@@ -645,7 +650,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           {/* Set matrix for this option */}
                           {sets.length > 0 && (
                             <>
-                              <div className="flex items-center justify-end px-3 py-0.5 bg-[var(--color-figma-bg-secondary)] gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                              <div className="flex items-center px-3 py-0.5 bg-[var(--color-figma-bg-secondary)] gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
+                                {sets.length >= 5 && (
+                                  <input
+                                    type="text"
+                                    placeholder="Filter sets…"
+                                    value={setSearchTerms[covKey] || ''}
+                                    onChange={e => setSetSearchTerms(prev => ({ ...prev, [covKey]: e.target.value }))}
+                                    className="flex-1 min-w-0 bg-transparent border border-[var(--color-figma-border)] rounded px-1.5 py-0.5 text-[9px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)] mr-1"
+                                  />
+                                )}
                                 <span className="font-medium text-[var(--color-figma-text-secondary)]">Off</span>
                                 <span>= not used</span>
                                 <span className="opacity-40">·</span>
@@ -656,7 +670,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 <span>= overrides base</span>
                               </div>
                               <div className="divide-y divide-[var(--color-figma-border)]">
-                                {optSets.map(setName => {
+                                {filteredOptSets.length === 0 ? (
+                                  <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)] italic">No sets match &ldquo;{setSearchTerms[covKey]}&rdquo;</div>
+                                ) : filteredOptSets.map(setName => {
                                   const state = opt.sets[setName] || 'disabled';
                                   const isDropTarget = dragOver?.dimId === dim.id && dragOver?.optionName === opt.name && dragOver?.setName === setName;
                                   const isDragging = dragInfo?.dimId === dim.id && dragInfo?.optionName === opt.name && dragInfo?.setName === setName;

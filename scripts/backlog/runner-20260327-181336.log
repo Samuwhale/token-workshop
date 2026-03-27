@@ -36,3 +36,16 @@ Already up to date.
 
 --- Merging: `applyTextStyle` does not call `loadFontAsync` before setting font properties ---
 Already up to date.
+[main ba1e105] chore(backlog): done – `applyTextStyle` does not call `loadFontAsync` before setting font properties
+ 5 files changed, 35 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - `applyTextStyle` does not call `loadFontAsync` before setting font properties
+- Added `await figma.loadFontAsync({ family, style: fontStyle })` before `style.fontName = ...` in `applyTextStyle`. Also aligned font-style derivation to use `weightToFontStyle(val.fontWeight)` (same as `applyTokenValue` path) so numeric `fontWeight` values are handled correctly.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L329
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  29 items remaining
+===============================================================
+  Claimed: Git sync `commit` always stages all files with `git add .` — stages ALL untracked/modified files in the token directory (including non-token files) even when the user only changed a single token; no way to commit selectively
+  Worktree: /tmp/backlog-60772-PvmO62
