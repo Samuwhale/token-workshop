@@ -22,3 +22,10 @@
   - setState updater functions must be pure — never call async side effects inside them. Read state outside the updater, then call setState with the derived value and run side effects after.
   - The `executingRef` guard is sufficient to prevent double-execution when `past`/`future` change rapidly; callbacks with those as deps are safe here.
 ---
+
+## 2026-03-27 - Rename "Graph" tab to "Generators"
+- Changed label from `'Graph'` to `'Generators'` in the TABS array
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L134
+- **Learnings for future iterations:**
+  - Tab labels are defined in a single TABS array at the top of App.tsx; the `id` stays unchanged (`'graph'`), only the `label` field needed updating.
+---
