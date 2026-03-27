@@ -284,3 +284,11 @@
 - Files changed: `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L208 (interface), ~L262-295 (functions + return)
 - **Why:** Dead code adding ~25 lines of complexity and unused API surface to the hook's return type. Server-side endpoints exist but the UI never wired up step-level override controls.
 ---
+
+## 2026-03-27 - Grid view empty state: distinguish "no color tokens exist" from "filters hide all color tokens"
+- Added a three-way empty state in the grid view: (1) type filter blocks colors → "clear type filter" CTA (existing), (2) other filters hide existing colors → "Filters hide all N color tokens" with count and "switch to tree view" CTA, (3) no color tokens in set at all → "No color tokens in this set" with "switch to tree view" CTA. Checks `flattenLeafNodes(sortedTokens)` (unfiltered) to detect whether colors exist before filters are applied.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2080
+- **Learnings for future iterations:**
+  - `sortedTokens` is the pre-filter source of truth; `displayedTokens` is post-filter. Compare both to distinguish "doesn't exist" from "filtered out."
+  - `filtersActive` covers searchQuery, typeFilter, refFilter, showDuplicates, showIssuesOnly — use it as the broad "something is filtering" flag.
+---

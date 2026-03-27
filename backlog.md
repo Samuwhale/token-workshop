@@ -117,7 +117,7 @@ Items spotted during UX passes but out of scope for that session.
 - [x] ImportPanel: `targetSet` dropdown in styles import shows "Select a set" placeholder but the only way to create a new set is a small "+" button that's easy to miss — consider inline hint text
 
 - [x] ImportPanel: show progress bar using existing `importProgress` state during token import — long imports feel stuck with only "Importing…" text
-- [ ] Grid view empty state: distinguish "no color tokens exist in this set" from "filters hide all color tokens" — current message always says "Grid view shows color tokens as swatches" regardless of cause
+- [x] Grid view empty state: distinguish "no color tokens exist in this set" from "filters hide all color tokens" — current message always says "Grid view shows color tokens as swatches" regardless of cause
 - [ ] ExportPanel: "Read Variables from Figma" button has no loading indicator — clicking it gives no immediate feedback
 
 - [ ] `suggestTargetGroup` splits on literal dots in segment names — `TokenGeneratorDialog.tsx:52` uses `sourceTokenPath.split('.')` to compute the parent group; if a segment contains a literal dot (e.g. `spacing.1.5`), it returns `spacing.1` instead of `spacing` as the pre-filled target group, silently producing a wrong path.
@@ -152,3 +152,9 @@ Items spotted during UX passes but out of scope for that session.
 - [ ] ImportPanel: `readFigmaStyles` only reads the first paint from multi-fill styles (controller.ts L527) — gradient fills and multi-paint styles are silently converted to only their first solid fill, with no indication to the user that data was lost
 - [ ] ImportPanel: `handleImportVariables` individual token failures (L254 `.catch(() => null)`) only increment a counter — user sees "3 failed" but has no way to know which tokens failed or why; consider collecting failed paths and showing them in the success message
 - [ ] ImportPanel: `styles-read` message handler (L116) has no correlationId check — if user clicks "Read Styles" twice quickly, a stale response from the first read could be consumed by the second, potentially showing outdated data; `variables-read` already has correlationId protection (L96)
+
+- [ ] Remove unnecessary exports from hook files — `UseGeneratorsResult`, `UseGeneratorDialogParams`, `UseGeneratorDialogReturn`, `TokenGraphProps`, `QuickStartDialogProps`, `ParsedToken`, `parseInput`, `HeatmapNode` are exported but only used internally
+- [ ] Consolidate duplicate `ThemeOption`/`ThemeDimension` types — defined identically in `useThemeSwitcher.ts`, `ThemeCompare.tsx`, and `ThemeManager.tsx`; consumers should import from one place
+- [ ] Remove unused `updateServerUrl` from `useServerConnection` return — returned from hook but never destructured by any caller
+- [ ] Remove unnecessary `rgbToHsl` export in `colorUtils.ts` — only used internally by `hexToHsl` in the same file
+- [ ] Remove unused `allSets` param from `UseGeneratorDialogParams` — accepted in interface but never read by hook body

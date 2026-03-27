@@ -2079,6 +2079,8 @@ export function TokenList({
             const colorLeaves = leaves.filter(l => l.$type === 'color');
             if (colorLeaves.length === 0) {
               const filterIsBlockingColors = typeFilter !== '' && typeFilter !== 'color';
+              const allColorCount = flattenLeafNodes(sortedTokens).filter(l => l.$type === 'color').length;
+              const filtersHidingColors = !filterIsBlockingColors && allColorCount > 0 && filtersActive;
               return (
                 <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -2097,10 +2099,21 @@ export function TokenList({
                         Clear type filter
                       </button>
                     </>
+                  ) : filtersHidingColors ? (
+                    <>
+                      <p className="mt-2 text-[11px] font-medium">Filters hide all {allColorCount} color token{allColorCount !== 1 ? 's' : ''}</p>
+                      <p className="text-[10px] mt-0.5">This set has color tokens, but none match the current search or filters</p>
+                      <button
+                        onClick={() => setViewMode('tree')}
+                        className="mt-3 px-2.5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        Switch to Tree view
+                      </button>
+                    </>
                   ) : (
                     <>
-                      <p className="mt-2 text-[11px] font-medium">No color tokens to display</p>
-                      <p className="text-[10px] mt-0.5">Grid view shows color tokens as swatches</p>
+                      <p className="mt-2 text-[11px] font-medium">No color tokens in this set</p>
+                      <p className="text-[10px] mt-0.5">Grid view shows color tokens as swatches — this set has no color tokens</p>
                       <button
                         onClick={() => setViewMode('tree')}
                         className="mt-3 px-2.5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"

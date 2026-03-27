@@ -1,5 +1,0 @@
-- [ ] Remove unnecessary exports from hook files — `UseGeneratorsResult`, `UseGeneratorDialogParams`, `UseGeneratorDialogReturn`, `TokenGraphProps`, `QuickStartDialogProps`, `ParsedToken`, `parseInput`, `HeatmapNode` are exported but only used internally
-- [ ] Consolidate duplicate `ThemeOption`/`ThemeDimension` types — defined identically in `useThemeSwitcher.ts`, `ThemeCompare.tsx`, and `ThemeManager.tsx`; consumers should import from one place
-- [ ] Remove unused `updateServerUrl` from `useServerConnection` return — returned from hook but never destructured by any caller
-- [ ] Remove unnecessary `rgbToHsl` export in `colorUtils.ts` — only used internally by `hexToHsl` in the same file
-- [ ] Remove unused `allSets` param from `UseGeneratorDialogParams` — accepted in interface but never read by hook body
