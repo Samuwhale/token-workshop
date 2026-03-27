@@ -178,3 +178,17 @@ Already up to date.
 
 --- Merging: No "expand all / collapse all" keyboard shortcut in token tree — users manually expanding/collapsing hundreds of nested groups have no fast path; only individual toggle is available ---
 Already up to date.
+[main 63c8f31] chore(backlog): done – No "expand all / collapse all" keyboard shortcut in token tree — users manually expanding/collapsing hundreds of nested groups have no fast path; only individual toggle is available
+ 7 files changed, 45 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - No "expand all / collapse all" keyboard shortcut in token tree — users manually expanding/collapsing hundreds of nested groups have no fast path; only individual toggle is available
+- Added `Cmd/Ctrl+→` (expand all) and `Cmd/Ctrl+←` (collapse all) shortcuts to `handleListKeyDown` in TokenList.tsx, calling the existing `handleExpandAll`/`handleCollapseAll` functions. Added both to the dependency array. Documented them in KeyboardShortcutsModal.tsx under "Token List" section.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L442, `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L44
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  1 items remaining
+===============================================================
+  Claimed: HeatmapPanel "select all red" action has no follow-up workflow — selecting unbound layers has no batch "bind all to token X" or "create tokens for these" next step
+  Worktree: /tmp/backlog-60772-GPfeUF

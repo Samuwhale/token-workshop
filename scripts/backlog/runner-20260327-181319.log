@@ -143,3 +143,10 @@ Already up to date.
 ===============================================================
   Claimed: ExportPanel has no output preview — exporting to CSS/Dart/Swift generates a zip but users can't preview the actual generated code before downloading
   Worktree: /tmp/backlog-59883-sDyR5H
+
+  ✓ done: ExportPanel has no output preview — exporting to CSS/Dart/Swift generates a zip but users can't preview the actual generated code before downloading
+    stale — already done: ExportPanel already shows expandable file cards with full code preview (lines 605–688) before the Download ZIP action
+    12 turns · 133s · $0.45
+
+--- Merging: ExportPanel has no output preview — exporting to CSS/Dart/Swift generates a zip but users can't preview the actual generated code before downloading ---
+Already up to date.

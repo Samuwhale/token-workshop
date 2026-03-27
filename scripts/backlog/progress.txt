@@ -383,3 +383,10 @@
   - `handleExpandAll` and `handleCollapseAll` already existed in TokenList.tsx — the shortcut handler just needed wiring. When adding keyboard shortcuts, check whether the underlying functions already exist before implementing them.
   - When adding modifier-key variants of existing arrow-key shortcuts, insert the modifier check BEFORE the plain arrow handler and `return` after, so the plain handler still runs for unmodified arrow presses.
 ---
+
+## 2026-03-27 - ExportPanel has no output preview — exporting to CSS/Dart/Swift generates a zip but users can't preview the actual generated code before downloading
+- Item is already implemented. The ExportPanel already has a full inline preview: after clicking "Export", results are displayed in expandable file cards (lines 605–688 of ExportPanel.tsx) with `<pre>` content showing the actual generated code. Users can expand each file, view the code, copy it, or download individually — all before clicking "Download ZIP" in the footer.
+- Files changed: none
+- **Learnings for future iterations:**
+  - When a backlog item says "no preview exists", always read the full component first — the preview may have been added in a previous session. The ExportPanel results section (expandable cards with code `<pre>` blocks) is the canonical preview pattern for this codebase.
+---
