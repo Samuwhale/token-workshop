@@ -433,3 +433,11 @@
   - `flattenTokenGroup` returns `Map<string, DTCGToken>`; callers expecting `Record<string, any>` need a thin Map→object conversion. The wrapper pattern avoids touching callers.
   - The local function had a `prefix` param used only recursively — no external callers passed it, so it could be safely dropped.
 ---
+
+## 2026-03-27 - `flattenForVarDiff` in SyncPanel is yet another flatten implementation
+- Deleted the 16-line local `flattenForVarDiff` function and replaced both call sites with `flattenTokenGroup` from `@tokenmanager/core`, spreading the Map into an array and mapping to `{ path, value, type }`.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L1,L42-57,L154,L274
+- **Learnings for future iterations:**
+  - `flattenTokenGroup` returns a `Map<string, DTCGToken>`; spread with `[...flattenTokenGroup(group)]` to iterate as `[path, token]` pairs.
+  - Converting to a local `{ path, value, type }[]` shape inline at the call site is cleaner than wrapping in a helper.
+---
