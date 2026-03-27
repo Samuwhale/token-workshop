@@ -20,9 +20,11 @@ interface ThemeManagerProps {
   connected: boolean;
   sets: string[];
   onDimensionsChange?: (dimensions: ThemeDimension[]) => void;
+  onNavigateToToken?: (set: string, tokenPath: string) => void;
 }
 
-type CoverageMap = Record<string, Record<string, { uncovered: string[] }>>;
+type CoverageToken = { path: string; set: string };
+type CoverageMap = Record<string, Record<string, { uncovered: CoverageToken[] }>>;
 
 
 function slugify(name: string): string {
@@ -33,7 +35,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken }: ThemeManagerProps) {
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
 
   useEffect(() => { onDimensionsChange?.(dimensions); }, [dimensions, onDimensionsChange]);
@@ -130,15 +132,26 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
         cov[dim.id] = {};
         for (const opt of dim.options) {
           const activeValues: Record<string, any> = {};
+          const tokenSetOrigin: Record<string, string> = {};
           for (const [setName, state] of Object.entries(opt.sets)) {
-            if (state === 'source') Object.assign(activeValues, setTokenValues[setName] ?? {});
+            if (state === 'source') {
+              for (const path of Object.keys(setTokenValues[setName] ?? {})) {
+                tokenSetOrigin[path] = setName;
+              }
+              Object.assign(activeValues, setTokenValues[setName] ?? {});
+            }
           }
           for (const [setName, state] of Object.entries(opt.sets)) {
-            if (state === 'enabled') Object.assign(activeValues, setTokenValues[setName] ?? {});
+            if (state === 'enabled') {
+              for (const path of Object.keys(setTokenValues[setName] ?? {})) {
+                tokenSetOrigin[path] = setName;
+              }
+              Object.assign(activeValues, setTokenValues[setName] ?? {});
+            }
           }
           const uncovered = Object.entries(activeValues)
             .filter(([, v]) => !isResolved(v, activeValues))
-            .map(([p]) => p);
+            .map(([p]) => ({ path: p, set: tokenSetOrigin[p] ?? '' }));
           cov[dim.id][opt.name] = { uncovered };
         }
       }
@@ -655,8 +668,19 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
                               </div>
                               <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can't be resolved within the active sets.</p>
                               <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
-                                {coverage[dim.id][opt.name].uncovered.map(p => (
-                                  <div key={p} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate">{p}</div>
+                                {coverage[dim.id][opt.name].uncovered.map(item => (
+                                  onNavigateToToken && item.set ? (
+                                    <button
+                                      key={item.path}
+                                      onClick={() => onNavigateToToken(item.set, item.path)}
+                                      className="text-left text-[9px] text-[var(--color-figma-warning)] font-mono truncate hover:underline cursor-pointer"
+                                      title={`Navigate to ${item.path} in set "${item.set}"`}
+                                    >
+                                      {item.path}
+                                    </button>
+                                  ) : (
+                                    <div key={item.path} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate">{item.path}</div>
+                                  )
                                 ))}
                               </div>
                             </div>

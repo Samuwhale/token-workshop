@@ -159,3 +159,16 @@ Already up to date.
 
 --- Merging: ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance ---
 Already up to date.
+[main 39cd581] chore(backlog): done – ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance
+ 6 files changed, 31 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance
+- Updated error message from "Use letters, numbers, and spaces" to "Name must contain at least one letter or number (spaces and hyphens are allowed)." — accurately reflects that spaces are valid input (slugify converts them to hyphens) and the real constraint is that the name can't consist entirely of symbols.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L162
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  61 items remaining
+===============================================================
+  Claimed: No theme preview mode — no way to preview token values with a theme applied before committing it as active
+  Worktree: /tmp/backlog-98408-beDie6

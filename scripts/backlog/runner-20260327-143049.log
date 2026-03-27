@@ -135,3 +135,10 @@ Already up to date.
 ===============================================================
   Claimed: Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
   Worktree: /tmp/backlog-97510-UV7i67
+
+  ✓ done: Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
+    Uncovered token paths in ThemeManager gaps panel are now clickable buttons that close the themes panel, switch to Tokens tab, and highlight the token in its source set
+    24 turns · 191s · $0.56
+
+--- Merging: Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens ---
+Already up to date.

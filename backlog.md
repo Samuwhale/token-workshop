@@ -58,9 +58,9 @@
 
 ### UX
 
-- [~] ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance
+- [x] ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance
 - [~] ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
-- [ ] No theme preview mode — no way to preview token values with a theme applied before committing it as active
+- [~] No theme preview mode — no way to preview token values with a theme applied before committing it as active
 - [ ] "Add option" form resets after each addition — creating multiple dimension options requires re-opening the form each time; batch-add would be faster
 
 ---

@@ -437,3 +437,14 @@
 - **Learnings for future iterations:**
   - When a slugify function strips invalid chars and the error fires for an empty result, the guidance should describe what *input* is accepted, not what the output format is.
 ---
+
+## 2026-03-27 - Coverage gaps don't link to unresolved tokens
+- Made each uncovered token in the ThemeManager coverage gaps panel a clickable button. Clicking navigates: closes the themes overflow panel, switches to the Tokens tab, and highlights the token in its source set.
+- Extended `CoverageMap` type: `uncovered` changed from `string[]` to `Array<{path: string; set: string}>`. Coverage computation now tracks `tokenSetOrigin` (which set last defined each token path, respecting source→enabled override order).
+- Added `onNavigateToToken?: (set: string, tokenPath: string) => void` prop to `ThemeManager`.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L25, ~L19, ~L36, ~L131-L150, ~L643
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L2260
+- **Learnings for future iterations:**
+  - Coverage computation merges source sets first, then enabled sets — track `tokenSetOrigin` in parallel to record which set last defined each path.
+  - When a navigation prop is absent (e.g. standalone use), fall back to non-clickable display rather than crashing.
+---
