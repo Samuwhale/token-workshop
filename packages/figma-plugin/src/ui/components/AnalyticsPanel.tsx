@@ -179,8 +179,10 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     if (!connected) { setLoading(false); return; }
     setLoading(true);
 
+    const controller = new AbortController();
+
     const load = async () => {
-      const setsRes = await fetch(`${serverUrl}/api/sets`);
+      const setsRes = await fetch(`${serverUrl}/api/sets`, { signal: controller.signal });
       const setsData = await setsRes.json();
       const sets: string[] = setsData.sets || [];
       const descriptions: Record<string, string> = setsData.descriptions || {};
@@ -190,7 +192,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       const allColors: { path: string; hex: string }[] = [];
       const results = await Promise.all(
         sets.map(async (name) => {
-          const res = await fetch(`${serverUrl}/api/tokens/${name}`);
+          const res = await fetch(`${serverUrl}/api/tokens/${name}`, { signal: controller.signal });
           const data = await res.json();
           const flat = data.tokens as Record<string, { $value: unknown; $type: string }> || {};
           allFlatBySet[name] = flat;
@@ -241,7 +243,11 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       setLoading(false);
     };
 
-    load().catch(() => setLoading(false));
+    load().catch((err) => {
+      if (err?.name !== 'AbortError') setLoading(false);
+    });
+
+    return () => controller.abort();
   }, [serverUrl, connected, reloadKey]);
 
   if (!connected) {

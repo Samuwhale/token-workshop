@@ -298,3 +298,11 @@
   - The `/tokens/:set/batch` endpoint already existed — always check tokens.ts for batch/bulk endpoints before assuming per-item requests are needed.
   - `strategy: 'overwrite'` is the correct choice for Figma export sync (idempotent upsert).
 ---
+
+## 2026-03-27 - Color map reinitialized O(n) on every single-token `resolve()` call — wasteful for single lookups
+- Removed the O(n) pre-population loop from `resolve()` (lines 81-84). Now creates a fresh empty `Map` (O(1)). Added `&& !this.resolved.has(dep)` guard in `dfsResolve()` so already-resolved deps are skipped via the `resolved` cache instead of needing to be pre-marked Black in the color map.
+- Files changed: `packages/core/src/resolver.ts` ~L80, ~L254
+- **Learnings for future iterations:**
+  - The color map's "Black = already resolved" role can be replaced by checking `this.resolved.has()` directly, which is O(1) and always up-to-date without upfront O(n) initialization.
+  - `resolveAll()` retains its O(n) pre-population loop — intentional, since it traverses all tokens anyway and the overhead is proportionally negligible.
+---

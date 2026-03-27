@@ -217,13 +217,19 @@ export function BatchEditor({
             onChange={e => setScaleFactor(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
             placeholder="e.g. 1.5"
-            className="w-24 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+            className={`w-24 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none ${
+              scaleFactor !== '' && (isNaN(parseFloat(scaleFactor)) || parseFloat(scaleFactor) <= 0)
+                ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
+                : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
+            }`}
           />
-          {scaleFactor && !isNaN(parseFloat(scaleFactor)) && (
+          {scaleFactor !== '' && (isNaN(parseFloat(scaleFactor)) || parseFloat(scaleFactor) <= 0) ? (
+            <span className="text-[10px] text-[var(--color-figma-error)]">must be &gt; 0</span>
+          ) : scaleFactor && !isNaN(parseFloat(scaleFactor)) ? (
             <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
               ×{scaleFactor}
             </span>
-          )}
+          ) : null}
         </div>
       )}
 

@@ -77,12 +77,8 @@ export class TokenResolver {
       throw new Error(`Token not found: "${path}"`);
     }
 
-    // Reset colors for a fresh DFS from this node
+    // Fresh color map — already-resolved tokens are skipped lazily in dfsResolve
     this.color = new Map();
-    for (const p of this.tokens.keys()) {
-      this.color.set(p, this.resolved.has(p) ? Color.Black : Color.White);
-    }
-
     this.dfsResolve(path);
     return this.resolved.get(path)!;
   }
@@ -251,7 +247,7 @@ export class TokenResolver {
             `Resolution would cause an infinite loop.`,
         );
       }
-      if (depColor === Color.White || depColor === undefined) {
+      if ((depColor === Color.White || depColor === undefined) && !this.resolved.has(dep)) {
         this.dfsResolve(dep);
       }
     }
