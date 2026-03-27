@@ -122,3 +122,10 @@ Already up to date.
 ===============================================================
   Claimed: Token delete does not warn about dependent tokens — deleting a token that other tokens alias silently breaks downstream references; the server should block or warn like it does for set deletion
   Worktree: /tmp/backlog-59883-bzVlFj
+
+  ✓ done: Token delete does not warn about dependent tokens — deleting a token that other tokens alias silently breaks downstream references; the server should block or warn like it does for set deletion
+    DELETE /api/tokens/:set/* now returns 409 with dependent token list before deleting; UI parses the error body to show the meaningful message instead of "Server returned 409"
+    19 turns · 210s · $0.67
+
+--- Merging: Token delete does not warn about dependent tokens — deleting a token that other tokens alias silently breaks downstream references; the server should block or warn like it does for set deletion ---
+Already up to date.

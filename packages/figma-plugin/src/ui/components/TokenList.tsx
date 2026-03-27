@@ -1420,7 +1420,10 @@ export function TokenList({
     try {
       if (deletedType === 'token' || deletedType === 'group') {
         const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.error ?? `Server returned ${res.status}`);
+        }
       } else {
         const results = await Promise.all(
           deletedPaths.map(path =>

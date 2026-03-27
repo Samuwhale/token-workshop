@@ -347,3 +347,14 @@
   - The existing code already tracked `totalTokenMatches` and showed a truncation notice — the fix was just removing the `.slice(0, MAX)` when a query is present.
   - Keeping a browse-mode cap (no query) is still good UX — an unfiltered list of 500+ tokens is not useful. The cap should only be lifted when search narrows and ranks results.
 ---
+
+## 2026-03-27 - Token delete does not warn about dependent tokens — deleting a token that other tokens alias silently breaks downstream references; the server should block or warn like it does for set deletion
+- Added dependent-check to DELETE `/api/tokens/:set/*` route: before deletion, calls `getFlatTokensForSet` to enumerate all leaf paths being deleted (handles both single token and group delete), then calls `getDependents` on each path and collects external dependents (filtering out intra-group refs). Returns 409 with error message listing dependent token paths if any found. Supports `?force=true` to bypass the check.
+- Updated UI `executeDelete` to parse the 409 JSON response body and surface the server's `error` message in `deleteError` state instead of a generic "Server returned 409".
+- Files changed: `packages/server/src/routes/tokens.ts` ~L388, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1422
+- **Learnings for future iterations:**
+  - The token-store already has `getDependents(path)` and `getFlatTokensForSet(setName)` as public methods — no new service code needed for this pattern.
+  - For group deletes, filter out intra-group dependents (deps whose path is in the `deletedSet`) to avoid false positives when tokens within the same group alias each other.
+  - `?force=true` query param is a clean escape hatch for power users without requiring a separate route.
+  - UI fetch error handling: always try `res.json().catch(() => null)` first to get structured error body; fall back to generic message only if JSON parsing fails.
+---

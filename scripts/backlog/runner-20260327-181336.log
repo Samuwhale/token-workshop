@@ -158,3 +158,16 @@ Already up to date.
 
 --- Merging: CommandPalette token results don't show which set a token belongs to — when the same path exists in multiple sets, users can't distinguish between them in search results ---
 Already up to date.
+[main cb6c9b7] chore(backlog): done – CommandPalette token results don't show which set a token belongs to — when the same path exists in multiple sets, users can't distinguish between them in search results
+ 7 files changed, 39 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - CommandPalette token search capped at 100 results with no pagination — users with 500+ tokens can't find matches beyond the cap, and there's no indication results were truncated
+- Removed the 100-result cap when a search query is active (`tokenQuery` non-empty). All fuzzy-matched results are now returned sorted by score, so users always see every match. The 100-item cap is retained only for the no-query browse mode (when user typed `>` but no search term), where it prevents an overwhelming unfiltered list. Updated the truncation footer message to read "Showing first 100 of N tokens — type to search all" and to only appear in browse mode (not during active search).
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L98
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  5 items remaining
+===============================================================
+  Claimed: No "expand all / collapse all" keyboard shortcut in token tree — users manually expanding/collapsing hundreds of nested groups have no fast path; only individual toggle is available
+  Worktree: /tmp/backlog-60772-lcw8rI

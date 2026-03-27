@@ -385,22 +385,60 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // DELETE /api/tokens/:set/* — delete token
-  fastify.delete<{ Params: { set: string; '*': string } }>('/tokens/:set/*', async (request, reply) => {
-    const { set } = request.params;
-    const tokenPath = request.params['*'].split('/').join('.');
-    if (!tokenPath) {
-      return reply.status(400).send({ error: 'Token path is required' });
-    }
-
-    try {
-      const deleted = await fastify.tokenStore.deleteToken(set, tokenPath);
-      if (!deleted) {
-        return reply.status(404).send({ error: `Token "${tokenPath}" not found in set "${set}"` });
+  // DELETE /api/tokens/:set/* — delete token or group
+  fastify.delete<{ Params: { set: string; '*': string }; Querystring: { force?: string } }>(
+    '/tokens/:set/*',
+    async (request, reply) => {
+      const { set } = request.params;
+      const tokenPath = request.params['*'].split('/').join('.');
+      if (!tokenPath) {
+        return reply.status(400).send({ error: 'Token path is required' });
       }
-      return { deleted: true, path: tokenPath, set };
-    } catch (err) {
-      return reply.status(500).send({ error: 'Failed to delete token', detail: String(err) });
-    }
-  });
+
+      const force = request.query.force === 'true';
+
+      try {
+        if (!force) {
+          // Collect all leaf token paths being deleted (single token or all tokens in a group)
+          const flatTokens = await fastify.tokenStore.getFlatTokensForSet(set);
+          const deletedPaths = Object.keys(flatTokens).filter(
+            (p) => p === tokenPath || p.startsWith(tokenPath + '.'),
+          );
+          const deletedSet = new Set(deletedPaths);
+
+          // For each deleted path, find dependents that are NOT themselves being deleted
+          const externalDependents: Array<{ path: string; setName: string }> = [];
+          const seen = new Set<string>();
+          for (const p of deletedPaths) {
+            for (const dep of fastify.tokenStore.getDependents(p)) {
+              if (!deletedSet.has(dep.path) && !seen.has(dep.path)) {
+                seen.add(dep.path);
+                externalDependents.push(dep);
+              }
+            }
+          }
+
+          if (externalDependents.length > 0) {
+            const preview = externalDependents
+              .slice(0, 5)
+              .map((d) => `"${d.path}"`)
+              .join(', ');
+            const more = externalDependents.length > 5 ? ` and ${externalDependents.length - 5} more` : '';
+            return reply.status(409).send({
+              error: `Cannot delete "${tokenPath}" — ${externalDependents.length} token${externalDependents.length !== 1 ? 's' : ''} reference it: ${preview}${more}`,
+              dependents: externalDependents,
+            });
+          }
+        }
+
+        const deleted = await fastify.tokenStore.deleteToken(set, tokenPath);
+        if (!deleted) {
+          return reply.status(404).send({ error: `Token "${tokenPath}" not found in set "${set}"` });
+        }
+        return { deleted: true, path: tokenPath, set };
+      } catch (err) {
+        return reply.status(500).send({ error: 'Failed to delete token', detail: String(err) });
+      }
+    },
+  );
 };
