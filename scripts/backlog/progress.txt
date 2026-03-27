@@ -457,3 +457,11 @@
 - Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1048, L1078, L1082, L1103, L1138, L1142, L1219, L1223, L1247; `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L344
 - **Root cause:** Most URL constructions in these files already used `encodeURIComponent(setName)` (added in earlier refactors), but the token create/delete handlers and their undo/redo closures were written or modified later and were missed in the encoding sweep.
 ---
+
+## 2026-03-27 - Token editor does not auto-focus first field
+- Added `autoFocus` prop to `ColorEditor`, `StringEditor`, `FontFamilyEditor`, `NumberEditor`, `DimensionEditor`, `DurationEditor`, and `StepperInput` sub-components. In edit mode (`!isCreateMode`), each value editor now auto-focuses its primary input on mount. Create mode was already handled (name field had `autoFocus`).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L731, ~L1411, ~L1445, ~L1502, ~L1901, ~L1955, ~L2004, ~L2061
+- **Learnings for future iterations:**
+  - The `loading` early-return pattern (`if (loading) return <spinner/>`) means sub-editors mount fresh when data arrives, so `autoFocus` on their inputs fires correctly without needing a `useEffect`.
+  - Create mode already had `autoFocus` on the name/path input (line 452); only edit mode needed value-field focus.
+---

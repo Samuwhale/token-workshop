@@ -728,18 +728,18 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             {initialRef.current && JSON.stringify(value) !== JSON.stringify(initialRef.current.value) && (
               <ValueDiff type={tokenType} before={initialRef.current.value} after={value} />
             )}
-            {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} />}
-            {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} />}
+            {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
+            {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} autoFocus={!isCreateMode} />}
             {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-            {tokenType === 'number' && <NumberEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} />}
-            {tokenType === 'duration' && <DurationEditor value={value} onChange={setValue} />}
-            {tokenType === 'fontFamily' && <FontFamilyEditor value={value} onChange={setValue} />}
+            {tokenType === 'number' && <NumberEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} autoFocus={!isCreateMode} />}
+            {tokenType === 'duration' && <DurationEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
+            {tokenType === 'fontFamily' && <FontFamilyEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
             {tokenType === 'fontWeight' && <FontWeightEditor value={value} onChange={setValue} />}
             {tokenType === 'strokeStyle' && <StrokeStyleEditor value={value} onChange={setValue} />}
-            {tokenType === 'string' && <StringEditor value={value} onChange={setValue} />}
+            {tokenType === 'string' && <StringEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
             {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
             {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} />}
             {tokenType === 'asset' && <AssetEditor value={value} onChange={setValue} />}
@@ -1408,7 +1408,7 @@ function ColorSwatchButton({ color, onChange, className = 'w-8 h-8' }: { color: 
   );
 }
 
-function ColorEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function ColorEditor({ value, onChange, autoFocus }: { value: any; onChange: (v: any) => void; autoFocus?: boolean }) {
   const hex = typeof value === 'string' ? value : '#000000';
   const [pickerOpen, setPickerOpen] = useState(false);
   return (
@@ -1426,6 +1426,7 @@ function ColorEditor({ value, onChange }: { value: any; onChange: (v: any) => vo
         value={hex}
         onChange={e => onChange(e.target.value)}
         placeholder="#000000"
+        autoFocus={autoFocus}
         className={inputClass}
       />
       {pickerOpen && (
@@ -1443,10 +1444,12 @@ function StepperInput({
   value,
   onChange,
   className = '',
+  autoFocus,
 }: {
   value: number;
   onChange: (v: number) => void;
   className?: string;
+  autoFocus?: boolean;
 }) {
   const step = (delta: number) => onChange(Math.round((value + delta) * 1000) / 1000);
 
@@ -1468,6 +1471,7 @@ function StepperInput({
         onChange={e => onChange(parseFloat(e.target.value) || 0)}
         onKeyDown={handleKeyDown}
         onWheel={handleWheel}
+        autoFocus={autoFocus}
         className={inputClass + ' w-full pr-5 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'}
       />
       <div className="absolute right-0 top-0 bottom-0 flex flex-col border-l border-[var(--color-figma-border)]">
@@ -1499,7 +1503,7 @@ const UNIT_CONVERSIONS: Record<string, Record<string, (v: number) => number>> = 
   '%': { px: v => v, rem: v => v, em: v => v },
 };
 
-function DimensionEditor({ value, onChange, allTokensFlat = {} }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry> }) {
+function DimensionEditor({ value, onChange, allTokensFlat = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; autoFocus?: boolean }) {
   const val = typeof value === 'object' ? value : { value: value ?? 0, unit: 'px' };
   const isFormulaValue = typeof val.value === 'string' && isFormula(val.value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
@@ -1544,6 +1548,7 @@ function DimensionEditor({ value, onChange, allTokensFlat = {} }: { value: any; 
             value={numVal}
             onChange={v => onChange({ ...val, value: v })}
             className="flex-1"
+            autoFocus={autoFocus}
           />
         )}
         <select
@@ -1894,7 +1899,7 @@ function BorderEditor({ value, onChange, allTokensFlat, pathToSet }: { value: an
   );
 }
 
-function NumberEditor({ value, onChange, allTokensFlat = {} }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry> }) {
+function NumberEditor({ value, onChange, allTokensFlat = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; autoFocus?: boolean }) {
   const isFormulaValue = typeof value === 'string' && isFormula(value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
   const numVal = formulaMode ? 0 : (parseFloat(value) || 0);
@@ -1928,6 +1933,7 @@ function NumberEditor({ value, onChange, allTokensFlat = {} }: { value: any; onC
             value={numVal}
             onChange={onChange}
             className="flex-1"
+            autoFocus={autoFocus}
           />
         )}
         <button
@@ -1948,13 +1954,14 @@ function NumberEditor({ value, onChange, allTokensFlat = {} }: { value: any; onC
   );
 }
 
-function StringEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function StringEditor({ value, onChange, autoFocus }: { value: any; onChange: (v: any) => void; autoFocus?: boolean }) {
   return (
     <input
       type="text"
       value={value ?? ''}
       onChange={e => onChange(e.target.value)}
       placeholder="Enter value"
+      autoFocus={autoFocus}
       className={inputClass}
     />
   );
@@ -2001,13 +2008,14 @@ function BooleanEditor({ value, onChange }: { value: any; onChange: (v: any) => 
   );
 }
 
-function FontFamilyEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function FontFamilyEditor({ value, onChange, autoFocus }: { value: any; onChange: (v: any) => void; autoFocus?: boolean }) {
   return (
     <input
       type="text"
       value={typeof value === 'string' ? value : ''}
       onChange={e => onChange(e.target.value)}
       placeholder="Inter, system-ui, sans-serif"
+      autoFocus={autoFocus}
       className={inputClass}
     />
   );
@@ -2058,7 +2066,7 @@ function StrokeStyleEditor({ value, onChange }: { value: any; onChange: (v: any)
 
 const DURATION_PRESETS = [100, 150, 200, 300, 500];
 
-function DurationEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function DurationEditor({ value, onChange, autoFocus }: { value: any; onChange: (v: any) => void; autoFocus?: boolean }) {
   const ms = typeof value?.value === 'number' ? value.value : typeof value === 'number' ? value : 200;
   const unit: 'ms' | 's' = value?.unit === 's' ? 's' : 'ms';
   const update = (patch: { value?: number; unit?: 'ms' | 's' }) =>
@@ -2072,6 +2080,7 @@ function DurationEditor({ value, onChange }: { value: any; onChange: (v: any) =>
           step={unit === 'ms' ? 50 : 0.05}
           value={ms}
           onChange={e => update({ value: parseFloat(e.target.value) || 0 })}
+          autoFocus={autoFocus}
           className={inputClass + ' flex-1'}
         />
         <select
