@@ -415,3 +415,16 @@ Already up to date.
 
 --- Merging: No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version ---
 Already up to date.
+[main 200a771] chore(backlog): done – No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version
+ 6 files changed, 70 insertions(+), 17 deletions(-)
+
+## 2026-03-27 - No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version
+- Added pre-save conflict detection to TokenEditor: when saving (PATCH), the editor re-fetches the current server state and compares it (via `JSON.stringify`) to the snapshot captured on initial load. If they differ, a ConfirmModal is shown: "Token modified on server — overwrite?" If the user confirms, `handleSave(true)` is called with `forceOverwrite=true` to skip the check. If the conflict check fetch fails (network error), save proceeds normally to avoid blocking the user.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L171 (new state/ref), ~L218 (snapshot capture), ~L397 (conflict check in handleSave), ~L1332 (conflict ConfirmModal in JSX)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  13 items remaining
+===============================================================
+  Claimed: SyncPanel.tsx is dead code (1167 lines) — exported but never imported; appears superseded by PublishPanel; should be removed
+  Worktree: /tmp/backlog-98901-465F5u

@@ -435,3 +435,10 @@ Already up to date.
 ===============================================================
   Claimed: Circular-reference error doesn't identify the cycle — the error says "circular reference detected" but doesn't name which tokens form the loop
   Worktree: /tmp/backlog-98408-SPhWoU
+
+  ✓ done: Circular-reference error doesn't identify the cycle — the error says "circular reference detected" but doesn't name which tokens form the loop
+    Updated detectCycles in lint.ts to return the full cycle path and emit "Circular reference: a → b → c → a"; updated resolver.ts DFS to track a stack for full cycle reconstruction in thrown errors
+    25 turns · 128s · $0.46
+
+--- Merging: Circular-reference error doesn't identify the cycle — the error says "circular reference detected" but doesn't name which tokens form the loop ---
+Already up to date.

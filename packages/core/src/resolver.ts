@@ -54,6 +54,9 @@ export class TokenResolver {
   /** DFS coloring for cycle detection. */
   private color: Map<string, Color> = new Map();
 
+  /** Current DFS recursion stack (for cycle path reconstruction). */
+  private dfsStack: string[] = [];
+
   /** Name of the token set (attached to every ResolvedToken). */
   private setName: string;
 
@@ -240,15 +243,20 @@ export class TokenResolver {
     }
 
     this.color.set(path, Color.Gray);
+    this.dfsStack.push(path);
 
     // Visit all dependencies first
     const deps = this.dependencies.get(path) ?? new Set<string>();
     for (const dep of deps) {
       const depColor = this.color.get(dep);
       if (depColor === Color.Gray) {
+        // Reconstruct the cycle from the stack
+        const cycleStart = this.dfsStack.indexOf(dep);
+        const cyclePath = cycleStart >= 0
+          ? [...this.dfsStack.slice(cycleStart), dep]
+          : [path, dep];
         throw new Error(
-          `Circular reference detected: "${path}" -> "${dep}". ` +
-            `Resolution would cause an infinite loop.`,
+          `Circular reference: ${cyclePath.join(' → ')}`,
         );
       }
       if ((depColor === Color.White || depColor === undefined) && !this.resolved.has(dep)) {
@@ -289,6 +297,7 @@ export class TokenResolver {
       setName: this.setName,
     });
 
+    this.dfsStack.pop();
     this.color.set(path, Color.Black);
   }
 

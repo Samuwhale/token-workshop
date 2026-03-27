@@ -288,3 +288,12 @@
   - `forceOverwrite` parameter on `handleSave` is the simplest way to let the conflict modal re-invoke save without re-triggering the check — no additional state needed.
   - Network failures during the conflict check are silently swallowed to avoid false-positive conflict blocks.
 ---
+
+## 2026-03-27 - Circular-reference error doesn't identify the cycle — the error says "circular reference detected" but doesn't name which tokens form the loop
+- Updated `detectCycles` in `packages/server/src/services/lint.ts` to return `string[] | null` (the ordered cycle path, e.g. `["a","b","c","a"]`) instead of boolean. Updated the lint issue message from "Token is part of a circular alias reference chain." to `Circular reference: a → b → c → a`.
+- Updated `packages/core/src/resolver.ts` DFS to track a `dfsStack: string[]` field. When a Gray node is detected (cycle), reconstructs the full cycle from the stack (from the first occurrence of `dep` to the current node, then closing with `dep` again). Error message is now `Circular reference: a → b → c → a` instead of just showing one `path -> dep` hop.
+- Files changed: `packages/server/src/services/lint.ts` ~L262 (detectCycles), ~L327 (lint rule message); `packages/core/src/resolver.ts` ~L55 (dfsStack field), ~L248 (cycle reconstruction), ~L300 (stack pop)
+- **Learnings for future iterations:**
+  - The lint.ts `detectCycles` was a simple while-loop walker — changing it to use an ordered array + index map lets you slice out exactly which segment of the chain forms the cycle (important when the starting token isn't itself in the loop).
+  - The resolver DFS uses three-color marking; tracking the call stack in parallel (`dfsStack.push` on entry, `pop` on exit) is the minimal addition needed to reconstruct the full cycle without changing the algorithm.
+---

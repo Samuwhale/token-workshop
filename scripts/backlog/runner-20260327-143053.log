@@ -400,3 +400,9 @@ Already up to date.
 ===============================================================
   Claimed: Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected
   Worktree: /tmp/backlog-97955-oL1IF4
+
+  ✓ done: Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected
+    Added dependent count to the type-change confirmation dialog in TokenEditor.tsx — reused the already-fetched `dependents` state to show "N dependent token(s) reference this token and may break." when count > 0
+    8 turns · 117s · $0.39
+
+--- Merging: Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected ---

@@ -262,14 +262,21 @@ export interface ValidationIssue {
 function detectCycles(
   startPath: string,
   allTokens: Record<string, { token: Token; setName: string }>,
-): boolean {
-  const visited = new Set<string>();
+): string[] | null {
+  const chain: string[] = [];
+  const indexMap = new Map<string, number>(); // path → index in chain
   let current = startPath;
   while (true) {
-    if (visited.has(current)) return true;
+    if (indexMap.has(current)) {
+      const cycleStart = indexMap.get(current)!;
+      const cycle = chain.slice(cycleStart);
+      cycle.push(current); // close the loop: e.g. [a, b, c, a]
+      return cycle;
+    }
     const entry = allTokens[current];
-    if (!entry || !isAlias(entry.token.$value)) return false;
-    visited.add(current);
+    if (!entry || !isAlias(entry.token.$value)) return null;
+    indexMap.set(current, chain.length);
+    chain.push(current);
     current = (entry.token.$value as string).slice(1, -1);
   }
 }
@@ -324,13 +331,14 @@ export async function validateAllTokens(tokenStore: TokenStore, config?: LintCon
       }
 
       // Circular reference
-      if (detectCycles(tokenPath, allTokensMap)) {
+      const cycle = detectCycles(tokenPath, allTokensMap);
+      if (cycle) {
         issues.push({
           severity: 'error',
           setName,
           path: tokenPath,
           rule: 'circular-reference',
-          message: `Token is part of a circular alias reference chain.`,
+          message: `Circular reference: ${cycle.join(' → ')}`,
         });
       }
 
