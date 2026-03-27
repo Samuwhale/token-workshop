@@ -138,7 +138,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
         parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
 
-      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
       const data = await res.json();
       const localFlat = [...flattenTokenGroup(data.tokens || {})].map(([path, token]) => ({
@@ -258,7 +258,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
       }
 
       if (pullRows.length > 0) {
-        await fetch(`${serverUrl}/api/tokens/${activeSet}/batch`, {
+        await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/batch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -302,7 +302,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
         parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
 
-      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
       const data = await res.json();
       const localFlat = [...flattenTokenGroup(data.tokens || {})].map(([path, token]) => ({

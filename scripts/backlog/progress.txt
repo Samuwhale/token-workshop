@@ -185,3 +185,11 @@
 - **Learnings for future iterations:**
   - DTCG composite types (shadow, typography, border, transition, gradient) store sub-values as nested dimension objects `{value, unit}`, so the formatter must recurse into sub-properties.
 ---
+---
+
+## 2026-03-27 - ConfirmModal error display doesn't handle long error text
+- Added `break-words` for word wrapping, and `max-h-[80px] overflow-y-auto` so verbose error messages scroll instead of overflowing the fixed-width (240px) modal.
+- Files changed: `packages/figma-plugin/src/ui/components/ConfirmModal.tsx` ~L71
+- **Learnings for future iterations:**
+  - Core package `tsc` fails with circular type errors; use `tsc --noCheck` to emit JS/declarations, then the plugin build succeeds.
+---

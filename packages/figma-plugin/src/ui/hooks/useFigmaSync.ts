@@ -60,7 +60,7 @@ export function useFigmaSync(
     if (!groupScopesPath || !connected) return;
     setGroupScopesApplying(true);
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Failed to fetch tokens');
       const data = await res.json();
       const prefix = groupScopesPath + '.';
@@ -71,7 +71,7 @@ export function useFigmaSync(
           const path = p ? `${p}.${key}` : key;
           if (val && typeof val === 'object' && '$value' in val) {
             if (path === groupScopesPath || path.startsWith(prefix)) {
-              patchPromises.push(fetch(`${serverUrl}/api/tokens/${activeSet}/${path}`, {
+              patchPromises.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ $extensions: { 'com.figma.scopes': groupScopesSelected } }),

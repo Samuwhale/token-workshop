@@ -139,7 +139,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
     abortRef.current = controller;
     try {
       const results = await Promise.all(scale.map(step =>
-        fetch(`${serverUrl}/api/tokens/${activeSet}/${prefix}.${step.label}`, {
+        fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${prefix}.${step.label}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $type: 'color', $value: step.hex }),

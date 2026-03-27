@@ -363,7 +363,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
 
-      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
       const data = await res.json();
       const localFlat = flattenForVarDiff(data.tokens || {});
@@ -450,7 +450,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
       if (pullRows.length > 0) {
         await Promise.all(pullRows.map(r =>
-          fetch(`${serverUrl}/api/tokens/${activeSet}/${r.path}`, {
+          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaValue ?? '' }),
@@ -489,7 +489,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         parent.postMessage({ pluginMessage: { type: 'read-styles' } }, '*');
       });
 
-      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
       const data = await res.json();
       const localFlat = flattenForStyleDiff(data.tokens || {});
@@ -550,7 +550,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
       if (pullRows.length > 0) {
         await Promise.all(pullRows.map(r =>
-          fetch(`${serverUrl}/api/tokens/${activeSet}/${r.path}`, {
+          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaRaw }),
@@ -588,7 +588,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
 
-      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
       const data = await res.json();
       const localFlat = flattenForVarDiff(data.tokens || {});

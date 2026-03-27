@@ -193,7 +193,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       const allColors: { path: string; hex: string }[] = [];
       const results = await Promise.all(
         sets.map(async (name) => {
-          const res = await fetch(`${serverUrl}/api/tokens/${name}`, { signal: controller.signal });
+          const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(name)}`, { signal: controller.signal });
           const data = await res.json();
           const flat = data.tokens as Record<string, { $value: unknown; $type: string }> || {};
           allFlatBySet[name] = flat;
@@ -360,7 +360,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     setDeduplicating(hex);
     try {
       await Promise.all(others.map(({ path, set }) =>
-        fetch(`${serverUrl}/api/tokens/${set}/${path}`, {
+        fetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $value: `{${canonical.path}}` }),

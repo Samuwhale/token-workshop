@@ -102,7 +102,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
       const setTokenValues: Record<string, Record<string, any>> = {};
       await Promise.all(sets.map(async (s) => {
         try {
-          const r = await fetch(`${serverUrl}/api/tokens/${s}`);
+          const r = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(s)}`);
           if (r.ok) {
             const d = await r.json();
             const map: Record<string, any> = {};

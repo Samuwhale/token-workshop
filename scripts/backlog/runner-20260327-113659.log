@@ -59,3 +59,10 @@ Already up to date.
 ===============================================================
   Claimed: Many fetch URLs for token API use set name without encodeURIComponent (ThemeManager, PublishPanel, SyncPanel, AnalyticsPanel, useFigmaSync, ColorScaleGenerator, etc.) — would break if set names contain special characters like spaces or slashes
   Worktree: /tmp/backlog-7333-IvfSfF
+
+  ✓ done: Fetch URLs for token API missing encodeURIComponent on set names
+    Wrapped all 14 unencoded set-name interpolations in encodeURIComponent() across 6 files (useFigmaSync, ThemeManager, ColorScaleGenerator, AnalyticsPanel, SyncPanel, PublishPanel). Build passes.
+    63 turns · 241s · $1.43
+
+--- Merging: Fetch URLs for token API missing encodeURIComponent on set names ---
+Already up to date.

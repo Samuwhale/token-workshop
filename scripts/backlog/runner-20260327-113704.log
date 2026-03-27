@@ -42,3 +42,16 @@ Already up to date.
 
 --- Merging: PreviewPanel resolveValue: shadow/typography composite token values produce [object Object] ---
 Already up to date.
+[main 2660997] chore(backlog): done – PreviewPanel resolveValue: shadow/typography composite token values produce [object Object]
+ 7 files changed, 76 insertions(+), 7 deletions(-)
+
+## 2026-03-27 - PreviewPanel resolveValue: shadow/typography composite token values produce [object Object]
+- Added `formatCompositeValue()` helper that formats structured DTCG objects into CSS strings: dimension `{value,unit}` → `"16px"`, shadow `{offsetX,offsetY,blur,spread,color}` → `"2px 4px 8px 0 #000"`, typography `{fontFamily,fontSize,fontWeight,lineHeight}` → `"600 16px/1.5 Inter"`.
+- Also handles arrays of shadows (→ comma-separated) for multi-layer shadow tokens.
+- Refactored `resolveValue` to delegate to `formatCompositeValue` for all object/array values before falling through to `String()`.
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  3 items remaining
+===============================================================
+  Claimed: Set name validation rejects `/` but UI expects folder-structured names — server routes (sets.ts:37, 82) and token-store.ts (L347, 405, 449) enforce `^[a-zA-Z0-9_-]+$`, but the UI's `buildSetFolderTree` (App.tsx:126) splits on `/` to create folder hierarchy; users can never create folder-structured sets through the API
+  Worktree: /tmp/backlog-7690-PJ8XoW
