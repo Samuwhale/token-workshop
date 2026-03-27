@@ -424,3 +424,12 @@
   - Rename must be sequential (not `Promise.all`) when paths share segment prefixes, otherwise second rename may not find the path.
   - $type change should be added to the PATCH-based Apply (not a separate button) since it's just another field in the token patch.
 ---
+
+## 2026-03-27 - Arbitrary $extensions view and edit
+- Added a collapsible "Extensions" section to TokenEditor showing all `$extensions` keys beyond `tokenmanager` and `com.figma.scopes`. Data is displayed/edited as raw JSON in a resizable monospace textarea with live validation (JSON parse error surfaced inline). Dirty detection, revert, and save all round-trip the custom extension data correctly.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L144,L157,L188,L250,L267,L320,L368,L1244
+- **Learnings for future iterations:**
+  - Treat the well-known extension keys (`tokenmanager`, `com.figma.scopes`) as a blocklist when extracting "other" extensions — anything not in that set passes through.
+  - Raw JSON textarea approach works well for arbitrary structured data: live-validate on `onChange`, disable save on error, merge at save time with `Object.assign`. Pair with `extensionsJsonError` state feeding both inline error text and `canSave` guard.
+  - `initialRef` type must be updated whenever new editable state fields are added to the editor — otherwise TypeScript won't enforce tracking initial vs. current values.
+---

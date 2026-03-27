@@ -141,7 +141,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const bgInputRef = useRef<HTMLInputElement>(null);
   const [scopes, setScopes] = useState<string[]>([]);
   const [showScopes, setShowScopes] = useState(false);
-  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[]; modeValues: Record<string, any> } | null>(null);
+  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[]; modeValues: Record<string, any>; extensionsJsonText: string } | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -155,6 +155,9 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const [showChainPopover, setShowChainPopover] = useState(false);
   const [modeValues, setModeValues] = useState<Record<string, any>>({});
   const [showModeValues, setShowModeValues] = useState(false);
+  const [extensionsJsonText, setExtensionsJsonText] = useState('');
+  const [showExtensions, setShowExtensions] = useState(false);
+  const [extensionsJsonError, setExtensionsJsonError] = useState<string | null>(null);
 
   const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
@@ -187,6 +190,14 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         const savedModes = token?.$extensions?.tokenmanager?.modes;
         const loadedModes: Record<string, any> = (savedModes && typeof savedModes === 'object' && !Array.isArray(savedModes)) ? savedModes as Record<string, any> : {};
         setModeValues(loadedModes);
+        const ext = token?.$extensions ?? {};
+        const knownExtKeys = new Set(['com.figma.scopes', 'tokenmanager']);
+        const otherExt: Record<string, any> = {};
+        for (const [k, v] of Object.entries(ext)) {
+          if (!knownExtKeys.has(k)) otherExt[k] = v;
+        }
+        const otherExtText = Object.keys(otherExt).length > 0 ? JSON.stringify(otherExt, null, 2) : '';
+        setExtensionsJsonText(otherExtText);
         const ref = typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}') ? token.$value : '';
         if (ref) setReference(ref);
         initialRef.current = {
@@ -197,6 +208,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           type: token?.$type || 'string',
           colorModifiers: loadedModifiers,
           modeValues: loadedModes,
+          extensionsJsonText: otherExtText,
         };
         if (typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}')) {
           setReference(token.$value);
@@ -245,9 +257,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       reference !== init.reference ||
       JSON.stringify(scopes) !== JSON.stringify(init.scopes) ||
       JSON.stringify(colorModifiers) !== JSON.stringify(init.colorModifiers) ||
-      JSON.stringify(modeValues) !== JSON.stringify(init.modeValues)
+      JSON.stringify(modeValues) !== JSON.stringify(init.modeValues) ||
+      extensionsJsonText !== init.extensionsJsonText
     );
-  }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues]);
+  }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText]);
 
   useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
@@ -260,6 +273,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 
   const canSave = useMemo(() => {
     if (aliasHasCycle) return false;
+    if (extensionsJsonError) return false;
     if (tokenType === 'typography' && !aliasMode) {
       const v = typeof value === 'object' && value !== null ? value : {};
       const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
@@ -268,7 +282,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       if (fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0) return false;
     }
     return true;
-  }, [aliasHasCycle, tokenType, value, aliasMode]);
+  }, [aliasHasCycle, extensionsJsonError, tokenType, value, aliasMode]);
 
   const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
     color: '#000000',
@@ -319,6 +333,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
     setScopes(init.scopes);
     setColorModifiers(init.colorModifiers);
     setModeValues(init.modeValues);
+    setExtensionsJsonText(init.extensionsJsonText);
+    setExtensionsJsonError(null);
     setAliasMode(!!init.reference);
   };
 
@@ -366,6 +382,19 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       const cleanModes = Object.fromEntries(Object.entries(modeValues).filter(([, v]) => v !== '' && v !== undefined && v !== null));
       if (Object.keys(cleanModes).length > 0) tmExt.modes = cleanModes;
       if (Object.keys(tmExt).length > 0) extensions.tokenmanager = tmExt;
+      const trimmedExtJson = extensionsJsonText.trim();
+      if (trimmedExtJson && trimmedExtJson !== '{}') {
+        try {
+          const parsed = JSON.parse(trimmedExtJson);
+          if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+            Object.assign(extensions, parsed);
+          }
+        } catch {
+          setError('Invalid JSON in Extensions — fix before saving');
+          setSaving(false);
+          return;
+        }
+      }
       if (Object.keys(extensions).length > 0) body.$extensions = extensions;
 
       const targetPath = isCreateMode ? editPath.trim() : tokenPath;
@@ -1181,6 +1210,66 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                   })}
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Other extensions — any $extensions keys beyond tokenmanager and com.figma.scopes */}
+      {!isCreateMode && (
+        <div className="border-t border-[var(--color-figma-border)]">
+          <button
+            type="button"
+            onClick={() => setShowExtensions(v => !v)}
+            className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+          >
+            <span className="flex items-center gap-1.5">
+              Extensions
+              {extensionsJsonText.trim() && extensionsJsonText.trim() !== '{}' && (
+                <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] text-[8px] font-medium">custom</span>
+              )}
+              {extensionsJsonError && (
+                <span className="px-1 py-0.5 rounded bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] text-[8px] font-medium">invalid JSON</span>
+              )}
+            </span>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showExtensions ? 'rotate-180' : ''}`}>
+              <path d="M2 3.5l3 3 3-3"/>
+            </svg>
+          </button>
+          {showExtensions && (
+            <div className="px-3 py-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
+              <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                Custom <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">$extensions</code> data as JSON object. The <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">tokenmanager</code> and <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">com.figma.scopes</code> keys are managed above and will not be overwritten here.
+              </p>
+              <textarea
+                value={extensionsJsonText}
+                onChange={e => {
+                  const text = e.target.value;
+                  setExtensionsJsonText(text);
+                  const trimmed = text.trim();
+                  if (!trimmed || trimmed === '{}') {
+                    setExtensionsJsonError(null);
+                  } else {
+                    try {
+                      const parsed = JSON.parse(trimmed);
+                      if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+                        setExtensionsJsonError('Must be a JSON object');
+                      } else {
+                        setExtensionsJsonError(null);
+                      }
+                    } catch {
+                      setExtensionsJsonError('Invalid JSON');
+                    }
+                  }
+                }}
+                placeholder={'{\n  "my.tool": { "category": "brand" }\n}'}
+                rows={5}
+                spellCheck={false}
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono outline-none resize-y min-h-[72px] placeholder:text-[var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
+              />
+              {extensionsJsonError && (
+                <p className="text-[9px] text-[var(--color-figma-error)]">{extensionsJsonError}</p>
+              )}
             </div>
           )}
         </div>

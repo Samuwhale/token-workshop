@@ -128,7 +128,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] Bulk token operations beyond the current three — the batch editor only supports: add description, apply opacity (colors), scale values (dimensions/numbers); missing bulk operations for common tasks: move selection to a different set, rename by find/replace within selection, change `$type` across selection (`figma-plugin/BatchEditor.tsx:47-170`)
 
-- [ ] Arbitrary `$extensions` view and edit — the token editor only exposes `tokenmanager.colorModifier` and `com.figma.scopes`; all other extension data on a token is invisible and uneditable via UI, making it impossible to manage custom tooling extensions without editing the JSON file directly (`figma-plugin/TokenEditor.tsx:154-156`)
+- [x] Arbitrary `$extensions` view and edit — the token editor only exposes `tokenmanager.colorModifier` and `com.figma.scopes`; all other extension data on a token is invisible and uneditable via UI, making it impossible to manage custom tooling extensions without editing the JSON file directly (`figma-plugin/TokenEditor.tsx:154-156`)
 
 - [ ] AnalyticsPanel fetch AbortController — fetches all sets' tokens in parallel with no AbortController; setState on unmounted component if user switches tabs (`figma-plugin/AnalyticsPanel.tsx:201-264`)
 - [ ] AliasAutocomplete entries not memoized — `entries` recomputed every render without `useMemo`; expensive for large token sets (`figma-plugin/AliasAutocomplete.tsx`)
