@@ -307,3 +307,10 @@
   - The `_writingFiles` set must cover deletions too, not just writes — use it for `fs.unlink` calls just like `fs.writeFile`. Add the path before the async op, remove after 500ms.
   - The `unlink` handler was the only watcher handler missing the guard, since delete operations didn't track paths and the handler had no check.
 ---
+
+## 2026-03-27 - Click-to-navigate from analytics violations to the offending token
+- Validation issue rows already had a "Go →" button calling `onNavigateToToken`. Added matching "Go →" buttons to each duplicate color token entry in the Duplicate Colors section. The button calls `onNavigateToToken(t.path, t.set)` which (via App.tsx) closes the analytics panel, switches to Tokens tab, sets the active set, and highlights the row.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L716
+- **Learnings for future iterations:**
+  - A button inside a `<label>` still triggers the label's associated input on click. Wrap each row in a plain `<div>` instead when adding action buttons alongside radio/checkbox labels.
+---

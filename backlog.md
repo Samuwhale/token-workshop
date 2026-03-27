@@ -74,7 +74,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [~] Click-to-navigate from analytics violations to the offending token — violation and duplicate entries in AnalyticsPanel are informational only; clicking one should close the panel, switch to Tokens tab, navigate to the set containing the token, and highlight the row (`figma-plugin/AnalyticsPanel.tsx`)
+- [x] Click-to-navigate from analytics violations to the offending token — violation and duplicate entries in AnalyticsPanel are informational only; clicking one should close the panel, switch to Tokens tab, navigate to the set containing the token, and highlight the row (`figma-plugin/AnalyticsPanel.tsx`)
 
 ---
 

@@ -198,7 +198,8 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'variables-read' && varReadResolveRef.current) {
+      if (msg?.type === 'variables-read' && varReadResolveRef.current && msg.correlationId === varCorrelationIdRef.current) {
+        varCorrelationIdRef.current = null;
         varReadResolveRef.current(msg.tokens ?? []);
         varReadResolveRef.current = null;
       }

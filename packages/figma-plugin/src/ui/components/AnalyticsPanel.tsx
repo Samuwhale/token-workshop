@@ -715,21 +715,32 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                     </div>
                     <div className="flex flex-col gap-0.5">
                       {tokens.map(t => (
-                        <label key={t.path} className="flex items-center gap-1.5 cursor-pointer">
-                          <input
-                            type="radio"
-                            name={`canonical-${hex}`}
-                            value={t.path}
-                            checked={canonical === t.path}
-                            onChange={() => setCanonicalPick(prev => ({ ...prev, [hex]: t.path }))}
-                            className="w-3 h-3"
-                          />
-                          <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{t.path}</span>
-                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{t.set}</span>
-                          {canonical === t.path && (
-                            <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>
+                        <div key={t.path} className="flex items-center gap-1.5">
+                          <label className="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
+                            <input
+                              type="radio"
+                              name={`canonical-${hex}`}
+                              value={t.path}
+                              checked={canonical === t.path}
+                              onChange={() => setCanonicalPick(prev => ({ ...prev, [hex]: t.path }))}
+                              className="w-3 h-3"
+                            />
+                            <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{t.path}</span>
+                            <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{t.set}</span>
+                            {canonical === t.path && (
+                              <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>
+                            )}
+                          </label>
+                          {onNavigateToToken && (
+                            <button
+                              onClick={() => onNavigateToToken(t.path, t.set)}
+                              className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                              title="Go to token"
+                            >
+                              Go →
+                            </button>
                           )}
-                        </label>
+                        </div>
                       ))}
                     </div>
                     <button

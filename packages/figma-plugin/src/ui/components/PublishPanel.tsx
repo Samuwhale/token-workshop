@@ -179,6 +179,8 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
   const [diffLoading, setDiffLoading] = useState(false);
   const [diffChoices, setDiffChoices] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
   const [applyingDiff, setApplyingDiff] = useState(false);
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+  const [, setTick] = useState(0);
 
   // ── Variable sync state ──
   const [varRows, setVarRows] = useState<VarDiffRow[]>([]);
@@ -250,6 +252,12 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
     return () => { fetchAbortRef.current?.abort(); };
   }, [fetchStatus]);
 
+  useEffect(() => {
+    if (!lastSynced) return;
+    const id = setInterval(() => setTick(t => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, [lastSynced]);
+
   const doAction = async (action: string, body?: any) => {
     setActionLoading(action);
     setGitError(null);
@@ -263,6 +271,7 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `${action} failed`);
       }
+      if (action === 'push' || action === 'pull') setLastSynced(new Date());
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Git ${action} completed` } }, '*');
       fetchStatus();
     } catch (err) {
