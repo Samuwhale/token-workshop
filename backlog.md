@@ -115,7 +115,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] Generator output not previewed before applying — the token generator writes tokens immediately with no preview step showing the generated values before commit (`figma-plugin/TokenGeneratorDialog.tsx`)
 - [x] No way to edit generator seed values after creation — once a generator is saved, seed values (base color, scale ratio, etc.) cannot be changed; users must delete and recreate (`figma-plugin/TokenGeneratorDialog.tsx`)
 - [x] Lint results have no severity levels — all lint findings are treated equally with no warning vs error distinction, making it hard to prioritize (`server/lint.ts`, `figma-plugin/AnalyticsPanel.tsx`)
-- [ ] No way to suppress specific lint warnings — lint findings cannot be dismissed or suppressed per-item; every run shows the same findings even for intentional patterns (`server/lint.ts`)
+- [x] No way to suppress specific lint warnings — lint findings cannot be dismissed or suppressed per-item; every run shows the same findings even for intentional patterns (`server/lint.ts`)
 - [ ] Server connection status not visible in plugin header — there is no persistent indicator showing whether the local server is reachable; users only discover connectivity issues when an action fails (`figma-plugin/App.tsx`)
 - [ ] No backup/export-all as ZIP — the export panel has format options but no "export all sets as a ZIP archive" for full backup or handoff (`figma-plugin/ExportPanel.tsx`, `server/routes/export.ts`)
 - [ ] Selection inspector empty state missing — the selection inspector shows nothing when no Figma node is selected; a prompt like "Select a layer to inspect token bindings" would reduce confusion

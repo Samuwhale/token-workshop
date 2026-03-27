@@ -1,6 +1,14 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - No way to suppress specific lint warnings
+- Added client-side suppression for individual validation findings. Each issue row shows a hover-visible "Suppress" button. Suppressed items are hidden from the main list and persisted to localStorage (`analytics_suppressions`). A "N suppressed · show/hide" footer in the validation box lets users review suppressed items and restore them individually or clear all at once.
+- Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L21, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L86, ~L103, ~L278, ~L516, ~L572
+- **Learnings for future iterations:**
+  - Suppression key format is `${rule}:${setName}:${path}` — all three fields are needed because the same token path can appear in multiple sets with different rules.
+  - The "faint-always-visible button" pattern works well for Suppress; it's discoverable without cluttering every row.
+---
+
 ## 2026-03-27 - Lint results have no severity levels
 - Added severity-appropriate colors to the severity filter buttons in the validation section: "error" button now highlights red, "warning" highlights yellow, "info"/"all" keep the accent color. Also added a severity summary in the validation section header ("2 errors · 5 warnings · 3 info") with each count colored by severity for at-a-glance prioritization.
 - Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L403, ~L430

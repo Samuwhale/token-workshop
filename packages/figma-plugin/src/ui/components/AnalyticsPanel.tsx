@@ -84,6 +84,10 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [showScaleInspector, setShowScaleInspector] = useState(false);
   const [resultsStale, setResultsStale] = useState(false); // true after a "Go →" navigation
   const [collapsedRules, setCollapsedRules] = useState<Set<string>>(new Set());
+  const [suppressedKeys, setSuppressedKeys] = useState<Set<string>>(
+    () => new Set(lsGetJson<string[]>(STORAGE_KEYS.ANALYTICS_SUPPRESSIONS, []))
+  );
+  const [showSuppressed, setShowSuppressed] = useState(false);
   const hasAutoValidated = useRef(false);
 
   // Component coverage state
@@ -100,6 +104,10 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   useEffect(() => {
     lsSetJson(STORAGE_KEYS.ANALYTICS_CANONICAL, canonicalPick);
   }, [canonicalPick]);
+
+  useEffect(() => {
+    lsSetJson(STORAGE_KEYS.ANALYTICS_SUPPRESSIONS, [...suppressedKeys]);
+  }, [suppressedKeys]);
 
   const runValidate = useCallback(async () => {
     if (!connected) return;
@@ -275,21 +283,30 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   }
   const sortedTypes = Object.entries(allByType).sort((a, b) => b[1] - a[1]);
 
-  const filteredIssues = validateResults
+  const suppressKey = (issue: ValidationIssue) => `${issue.rule}:${issue.setName}:${issue.path}`;
+
+  const activeIssues = validateResults
+    ? validateResults.filter(i => !suppressedKeys.has(suppressKey(i)))
+    : null;
+  const suppressedIssues = validateResults
+    ? validateResults.filter(i => suppressedKeys.has(suppressKey(i)))
+    : null;
+
+  const filteredIssues = activeIssues
     ? (severityFilter === 'all'
-        ? [...validateResults].sort((a, b) => {
+        ? [...activeIssues].sort((a, b) => {
             const order = { error: 0, warning: 1, info: 2 } as const;
             return order[a.severity] - order[b.severity];
           })
-        : validateResults.filter(i => i.severity === severityFilter))
+        : activeIssues.filter(i => i.severity === severityFilter))
     : null;
 
-  const severityCounts = validateResults
+  const severityCounts = activeIssues
     ? {
-        all: validateResults.length,
-        error: validateResults.filter(i => i.severity === 'error').length,
-        warning: validateResults.filter(i => i.severity === 'warning').length,
-        info: validateResults.filter(i => i.severity === 'info').length,
+        all: activeIssues.length,
+        error: activeIssues.filter(i => i.severity === 'error').length,
+        warning: activeIssues.filter(i => i.severity === 'warning').length,
+        info: activeIssues.filter(i => i.severity === 'info').length,
       }
     : null;
 
@@ -514,7 +531,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                     )}
                     {/* Issue rows */}
                     {!isCollapsed && group.issues.map((issue, i) => (
-                      <div key={i} className="px-3 py-1.5 flex items-center gap-2 border-b border-[var(--color-figma-border)] last:border-b-0">
+                      <div key={i} className="group px-3 py-1.5 flex items-center gap-2 border-b border-[var(--color-figma-border)] last:border-b-0">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-1.5 flex-wrap">
                             <span className="text-[10px] text-[var(--color-figma-text)] font-medium font-mono truncate">{issue.path}</span>
@@ -522,6 +539,17 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                           </div>
                           <div className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">{issue.message}</div>
                         </div>
+                        <button
+                          onClick={() => setSuppressedKeys(prev => {
+                            const next = new Set(prev);
+                            next.add(suppressKey(issue));
+                            return next;
+                          })}
+                          className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                          title="Suppress this finding"
+                        >
+                          Suppress
+                        </button>
                         {onNavigateToToken && (
                           <button
                             onClick={() => {
@@ -539,6 +567,55 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                   </div>
                 );
               })}
+            </div>
+          )}
+          {/* Suppressed items footer */}
+          {suppressedIssues && suppressedIssues.length > 0 && (
+            <div className="border-t border-[var(--color-figma-border)]">
+              <button
+                onClick={() => setShowSuppressed(s => !s)}
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                <span>{suppressedIssues.length} suppressed finding{suppressedIssues.length !== 1 ? 's' : ''}</span>
+                <span className="flex items-center gap-1">
+                  {showSuppressed ? 'hide' : 'show'}
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showSuppressed ? 'rotate-90' : ''}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+                </span>
+              </button>
+              {showSuppressed && (
+                <div className="divide-y divide-[var(--color-figma-border)]">
+                  {suppressedIssues.map((issue, i) => (
+                    <div key={i} className="group px-3 py-1.5 flex items-center gap-2 opacity-50">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          <span className="text-[10px] text-[var(--color-figma-text)] font-medium font-mono truncate line-through">{issue.path}</span>
+                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{issue.setName}</span>
+                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{RULE_LABELS[issue.rule]?.label ?? issue.rule}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setSuppressedKeys(prev => {
+                          const next = new Set(prev);
+                          next.delete(suppressKey(issue));
+                          return next;
+                        })}
+                        className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                        title="Unsuppress this finding"
+                      >
+                        Restore
+                      </button>
+                    </div>
+                  ))}
+                  <div className="px-3 py-1.5 flex justify-end">
+                    <button
+                      onClick={() => setSuppressedKeys(new Set())}
+                      className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                    >
+                      Clear all suppressions
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

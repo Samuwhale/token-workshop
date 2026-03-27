@@ -19,6 +19,7 @@ export const STORAGE_KEYS = {
   SERVER_URL:            'tokenmanager_server_url',
   PALETTE_RECENT:        'tm_palette_recent',
   ANALYTICS_CANONICAL:   'analytics_canonicalPick',
+  ANALYTICS_SUPPRESSIONS: 'analytics_suppressions',
   IMPORT_TARGET_SET:     'importTargetSet',
   THEME_CARD_ORDER:      'themeCardOrder',
 } as const;
