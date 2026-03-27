@@ -176,3 +176,9 @@
   - `handleCopyPath` was defined but unused — it copied CSS var format (`--colors-primary-500`). When wiring it to a new button, update it to copy the raw dotted path as the task described.
   - The `copiedWhat` state uses string literals ('path'|'value'|null) for feedback — keep each button's checkmark tied only to its own value to avoid false positives when multiple copy buttons exist in the same row.
 ---
+
+## 2026-03-27 - housekeeping: remove unused `hexToRgb` import in TokenList.tsx
+- Removed `hexToRgb` from the `colorUtils` import destructure (only `colorDeltaE` and `stableStringify` are actually used)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L13
+- **Why:** Dead import — `hexToRgb` was never referenced in the file body. A prior housekeeping pass removed `rgbToLab` from the same file; this removes the other stale symbol from the same import line.
+---

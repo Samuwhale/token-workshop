@@ -10,7 +10,7 @@ import { QuickStartDialog } from './QuickStartDialog';
 import { BatchEditor } from './BatchEditor';
 import { TokenCanvas } from './TokenCanvas';
 import { TokenGraph } from './TokenGraph';
-import { hexToRgb, colorDeltaE, stableStringify } from '../shared/colorUtils';
+import { colorDeltaE, stableStringify } from '../shared/colorUtils';
 import { ValuePreview } from './ValuePreview';
 import { ColorPicker } from './ColorPicker';
 import type { SortOrder } from './tokenListUtils';

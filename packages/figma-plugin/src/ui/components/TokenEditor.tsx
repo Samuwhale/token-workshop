@@ -1252,81 +1252,175 @@ function DimensionEditor({ value, onChange }: { value: any; onChange: (v: any) =
   );
 }
 
-function TypographyEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+// Sub-property input that accepts either a raw value or an alias {path.to.token}.
+// Shows autocomplete when user types '{'.
+function SubPropInput({
+  value,
+  onChange,
+  allTokensFlat,
+  pathToSet,
+  filterType,
+  placeholder,
+  className,
+  inputType = 'number',
+}: {
+  value: any;
+  onChange: (v: any) => void;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToSet: Record<string, string>;
+  filterType?: string;
+  placeholder?: string;
+  className?: string;
+  inputType?: 'number' | 'string';
+}) {
+  const isAlias = typeof value === 'string' && value.startsWith('{');
+  const displayValue = isAlias ? value : String(value ?? '');
+  const [showAC, setShowAC] = useState(false);
+
+  return (
+    <div className="relative">
+      <input
+        type="text"
+        value={displayValue}
+        onChange={e => {
+          const raw = e.target.value;
+          setShowAC(raw.includes('{') && !raw.endsWith('}'));
+          if (raw.startsWith('{')) {
+            onChange(raw);
+          } else if (inputType === 'number') {
+            const n = parseFloat(raw);
+            onChange(isNaN(n) ? 0 : n);
+          } else {
+            onChange(raw);
+          }
+        }}
+        onFocus={() => {
+          if (displayValue.includes('{') && !displayValue.endsWith('}')) setShowAC(true);
+        }}
+        onBlur={() => setTimeout(() => setShowAC(false), 150)}
+        placeholder={placeholder}
+        className={`${inputClass}${isAlias ? ' !border-[var(--color-figma-accent)]' : ''}${className ? ` ${className}` : ''}`}
+      />
+      {showAC && (
+        <AliasAutocomplete
+          query={displayValue.includes('{') ? displayValue.slice(displayValue.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          filterType={filterType}
+          onSelect={path => {
+            onChange(`{${path}}`);
+            setShowAC(false);
+          }}
+          onClose={() => setShowAC(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function TypographyEditor({ value, onChange, allTokensFlat, pathToSet }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string> }) {
   const val = typeof value === 'object' ? value : {};
   const update = (key: string, v: any) => onChange({ ...val, [key]: v });
-  const fontSize = typeof val.fontSize === 'object' ? val.fontSize : { value: val.fontSize ?? 16, unit: 'px' };
+  const isFontSizeAlias = typeof val.fontSize === 'string' && val.fontSize.startsWith('{');
+  const fontSize = !isFontSizeAlias && typeof val.fontSize === 'object' ? val.fontSize : { value: val.fontSize ?? 16, unit: 'px' };
+  const isFontWeightAlias = typeof val.fontWeight === 'string' && val.fontWeight.startsWith('{');
 
   return (
     <div className="flex flex-col gap-2">
       <div>
         <div className={labelClass}>Font Family</div>
-        <input
-          type="text"
+        <SubPropInput
           value={Array.isArray(val.fontFamily) ? val.fontFamily[0] : (val.fontFamily || '')}
-          onChange={e => update('fontFamily', e.target.value)}
+          onChange={v => update('fontFamily', v)}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
+          inputType="string"
           placeholder="Inter"
-          className={inputClass}
         />
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
           <div className={labelClass}>Font Size</div>
-          <div className="flex gap-1">
-            <input
-              type="number"
-              value={fontSize.value}
-              onChange={e => update('fontSize', { ...fontSize, value: parseFloat(e.target.value) || 0 })}
-              className={inputClass + ' flex-1'}
+          {isFontSizeAlias ? (
+            <SubPropInput
+              value={val.fontSize}
+              onChange={v => update('fontSize', v)}
+              allTokensFlat={allTokensFlat}
+              pathToSet={pathToSet}
             />
-            <select
-              value={fontSize.unit}
-              onChange={e => update('fontSize', { ...fontSize, unit: e.target.value })}
-              className={inputClass + ' w-14'}
-            >
-              <option value="px">px</option>
-              <option value="rem">rem</option>
-            </select>
-          </div>
+          ) : (
+            <div className="flex gap-1">
+              <input
+                type="number"
+                value={fontSize.value}
+                onChange={e => update('fontSize', { ...fontSize, value: parseFloat(e.target.value) || 0 })}
+                className={inputClass + ' flex-1'}
+                placeholder="{token}"
+                onKeyDown={e => {
+                  if (e.key === '{') {
+                    e.preventDefault();
+                    update('fontSize', '{');
+                  }
+                }}
+              />
+              <select
+                value={fontSize.unit}
+                onChange={e => update('fontSize', { ...fontSize, unit: e.target.value })}
+                className={inputClass + ' w-14'}
+              >
+                <option value="px">px</option>
+                <option value="rem">rem</option>
+              </select>
+            </div>
+          )}
         </div>
         <div className="w-20">
           <div className={labelClass}>Weight</div>
-          <select
-            value={val.fontWeight ?? 400}
-            onChange={e => update('fontWeight', parseInt(e.target.value))}
-            className={inputClass}
-          >
-            <option value={100}>100 Thin</option>
-            <option value={200}>200 ExtraLight</option>
-            <option value={300}>300 Light</option>
-            <option value={400}>400 Regular</option>
-            <option value={500}>500 Medium</option>
-            <option value={600}>600 SemiBold</option>
-            <option value={700}>700 Bold</option>
-            <option value={800}>800 ExtraBold</option>
-            <option value={900}>900 Black</option>
-          </select>
+          {isFontWeightAlias ? (
+            <SubPropInput
+              value={val.fontWeight}
+              onChange={v => update('fontWeight', v)}
+              allTokensFlat={allTokensFlat}
+              pathToSet={pathToSet}
+            />
+          ) : (
+            <select
+              value={val.fontWeight ?? 400}
+              onChange={e => update('fontWeight', parseInt(e.target.value))}
+              className={inputClass}
+            >
+              <option value={100}>100 Thin</option>
+              <option value={200}>200 ExtraLight</option>
+              <option value={300}>300 Light</option>
+              <option value={400}>400 Regular</option>
+              <option value={500}>500 Medium</option>
+              <option value={600}>600 SemiBold</option>
+              <option value={700}>700 Bold</option>
+              <option value={800}>800 ExtraBold</option>
+              <option value={900}>900 Black</option>
+            </select>
+          )}
         </div>
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
           <div className={labelClass}>Line Height</div>
-          <input
-            type="number"
-            step="0.1"
+          <SubPropInput
             value={typeof val.lineHeight === 'object' ? val.lineHeight.value : (val.lineHeight ?? 1.5)}
-            onChange={e => update('lineHeight', parseFloat(e.target.value) || 1.5)}
-            className={inputClass}
+            onChange={v => update('lineHeight', v)}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            placeholder="1.5"
           />
         </div>
         <div className="flex-1">
           <div className={labelClass}>Letter Spacing</div>
-          <input
-            type="number"
-            step="0.1"
+          <SubPropInput
             value={typeof val.letterSpacing === 'object' ? val.letterSpacing.value : (val.letterSpacing ?? 0)}
-            onChange={e => update('letterSpacing', { value: parseFloat(e.target.value) || 0, unit: 'px' })}
-            className={inputClass}
+            onChange={v => update('letterSpacing', typeof v === 'string' && v.startsWith('{') ? v : { value: typeof v === 'number' ? v : parseFloat(String(v)) || 0, unit: 'px' })}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            placeholder="0"
           />
         </div>
       </div>
