@@ -259,3 +259,10 @@ Already up to date.
 ===============================================================
   Claimed: Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text
   Worktree: /tmp/backlog-98901-hHKcOZ
+
+  ✓ done: Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text
+    Added a one-line description under the "Remap Bindings" header explaining the find-and-replace semantics
+    10 turns · 49s · $0.2
+
+--- Merging: Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text ---
+Already up to date.

@@ -83,7 +83,7 @@
 
 ### QoL
 
-- [~] Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong
+- [x] Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong
 - [x] `handleApplyGroupScopes` sends one PATCH request per token in `Promise.all` with no batching — for groups with many tokens this is slow with no progress indicator
 - [~] No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
 - [~] New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`
@@ -91,7 +91,7 @@
 
 ### UX
 
-- [ ] No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
+- [~] No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
 
 ---
 

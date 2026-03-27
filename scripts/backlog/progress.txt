@@ -456,3 +456,10 @@
 - **Learnings for future iterations:**
   - Plugin controller functions that postMessage results should always be wrapped in try/catch so `*Running` states in the UI can be reset and errors surfaced even on unexpected failures.
 ---
+
+## 2026-03-27 - Remap panel "from → to" syntax is unexplained
+- Added a one-line inline help sentence below the "Remap Bindings" header: "Find-and-replace token paths — enter the old path on the left and the replacement on the right, then click Remap." This appears between the title row and the mapping rows, giving users immediate context without requiring a tooltip or external docs.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L573
+- **Learnings for future iterations:**
+  - A single `<p>` sentence of `text-[9px] text-[var(--color-figma-text-secondary)]` directly under a panel header is an effective, low-footprint way to explain non-obvious UI patterns in the plugin's constrained space.
+---

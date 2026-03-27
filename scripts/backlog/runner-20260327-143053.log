@@ -299,3 +299,16 @@ Already up to date.
 
 --- Merging: Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong ---
 Already up to date.
+[main 3d4d274] chore(backlog): done – Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong
+ 8 files changed, 88 insertions(+), 38 deletions(-)
+
+## 2026-03-27 - Remap operation provides no error feedback
+- Added try/catch in `remapBindings` (controller.ts) to catch unexpected errors and send `remap-complete` with an `error` field; also calls `figma.notify` with `{ error: true }`. Added `error?: string` to `RemapCompleteMessage` type. In `SelectionInspector.tsx`, added `remapError` state, populated on error messages and cleared on new remap/panel open/selection change. Displayed error inline (truncated to 40 chars with full text in `title`) using `--color-figma-error`.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L174, `packages/figma-plugin/src/plugin/controller.ts` ~L1238, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L171, ~L209, ~L297, ~L309, ~L231, ~L627
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  38 items remaining
+===============================================================
+  Claimed: No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
+  Worktree: /tmp/backlog-97955-z9PWiD

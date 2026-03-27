@@ -578,7 +578,7 @@ export function SelectionInspector({
       {/* Remap bindings panel */}
       {showRemapPanel && (
         <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 shrink-0">
-          <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center justify-between mb-1">
             <span className="text-[9px] font-semibold text-[var(--color-figma-text)] uppercase tracking-wide">Remap Bindings</span>
             <div className="flex items-center gap-1">
               {/* Scope toggle */}
@@ -591,6 +591,9 @@ export function SelectionInspector({
               </button>
             </div>
           </div>
+          <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5 leading-relaxed">
+            Find-and-replace token paths — enter the old path on the left and the replacement on the right, then click Remap.
+          </p>
 
           {/* Mapping rows */}
           <div className="flex flex-col gap-1 mb-1.5">
