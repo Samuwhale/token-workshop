@@ -156,3 +156,10 @@ Already up to date.
 ===============================================================
   Claimed: "Add option" form resets after each addition — creating multiple dimension options requires re-opening the form each time; batch-add would be faster
   Worktree: /tmp/backlog-97510-ip5Ats
+
+  ✓ done: "Add option" form resets after each addition — creating multiple dimension options requires re-opening the form each time; batch-add would be faster
+    Form now stays open after each addition; input is cleared and re-focused so users can add multiple options in sequence. Cancel/Escape still closes it.
+    12 turns · 82s · $0.28
+
+--- Merging: "Add option" form resets after each addition — creating multiple dimension options requires re-opening the form each time; batch-add would be faster ---
+Already up to date.

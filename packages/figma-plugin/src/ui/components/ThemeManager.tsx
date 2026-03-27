@@ -60,6 +60,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [newOptionNames, setNewOptionNames] = useState<Record<string, string>>({});
   const [showAddOption, setShowAddOption] = useState<Record<string, boolean>>({});
   const [addOptionErrors, setAddOptionErrors] = useState<Record<string, string>>({});
+  const addOptionInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Coverage gaps
   const [coverage, setCoverage] = useState<CoverageMap>({});
@@ -292,8 +293,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         return;
       }
       setNewOptionNames(prev => ({ ...prev, [dimId]: '' }));
-      setShowAddOption(prev => ({ ...prev, [dimId]: false }));
       fetchDimensions();
+      setTimeout(() => addOptionInputRefs.current[dimId]?.focus(), 0);
     } catch (err) {
       setAddOptionErrors(prev => ({ ...prev, [dimId]: err instanceof Error ? err.message : 'Failed to add option' }));
     }
@@ -778,6 +779,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1">
                         <input
+                          ref={el => { addOptionInputRefs.current[dim.id] = el; }}
                           type="text"
                           value={newOptionNames[dim.id] || ''}
                           onChange={e => { setNewOptionNames(prev => ({ ...prev, [dim.id]: e.target.value })); setAddOptionErrors(prev => ({ ...prev, [dim.id]: '' })); }}

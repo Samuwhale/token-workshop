@@ -54,7 +54,7 @@
 
 - [x] No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
 - [x] Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
-- [~] Drag-to-reorder set precedence has no keyboard alternative — reordering relies exclusively on pointer drag; keyboard-only users can't change precedence
+- [x] Drag-to-reorder set precedence has no keyboard alternative — reordering relies exclusively on pointer drag; keyboard-only users can't change precedence
 
 ### UX
 
@@ -70,7 +70,7 @@
 ### Bugs
 
 - [~] 10-second Figma correlation timeout has no loading indicator — the sync panel waits for a Figma response with no spinner; users see a frozen UI
-- [ ] Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert
+- [~] Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert
 
 ### QoL
 

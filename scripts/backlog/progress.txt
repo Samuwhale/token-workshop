@@ -466,3 +466,11 @@
   - For ThemeManager vertical set rows, small ↑↓ buttons with `opacity-0 group-hover/setrow:opacity-100 focus-within:opacity-100` keeps the UI clean while being discoverable via keyboard focus.
   - `group/setrow` named group avoids conflicts with other `group` usages in deeply nested JSX.
 ---
+
+## 2026-03-27 - "Add option" form resets after each addition — batch-add support
+- Removed `setShowAddOption(false)` from `handleAddOption` so the form stays open after a successful addition. Added a `addOptionInputRefs` ref map to re-focus the input after each add, enabling rapid batch entry. The Cancel button (and Escape key) still closes the form.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L62 (ref declaration), ~L284-L287 (handler: keep form open, re-focus), ~L713 (input: wire ref)
+- **Learnings for future iterations:**
+  - Batch-add UX pattern: don't close form on success — clear input, re-focus, let user dismiss manually.
+  - Re-focus after async state update requires `setTimeout(..., 0)` to run after React's render cycle.
+---

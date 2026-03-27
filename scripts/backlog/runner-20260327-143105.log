@@ -185,3 +185,16 @@ Already up to date.
 
 --- Merging: Drag-to-reorder set precedence has no keyboard alternative — reordering relies exclusively on pointer drag; keyboard-only users can't change precedence ---
 Already up to date.
+[main d16f227] chore(backlog): done – Drag-to-reorder set precedence has no keyboard alternative — reordering relies exclusively on pointer drag; keyboard-only users can't change precedence
+ 7 files changed, 132 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - Drag-to-reorder set precedence has no keyboard alternative
+- Added "← Move left" and "Move right →" items to the set tab context menu in App.tsx (accessible via the "..." button on each tab, which is keyboard-reachable via Tab). Items are disabled at the boundaries. Uses a new `handleReorderSet(setName, direction)` function that calls the same `PUT /api/sets/reorder` API as drag-drop.
+- Added `handleKeyboardReorder(dimId, optionName, setName, direction)` to ThemeManager.tsx for theme option set ordering. Added ↑↓ arrow buttons to each set row that appear on row hover (using `group/setrow` + `opacity-0 group-hover/setrow:opacity-100 focus-within:opacity-100`), disabled at boundaries.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L594 (handleReorderSet), ~L1480 (menu items); `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L424 (handleKeyboardReorder), ~L685 (↑↓ buttons)
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  58 items remaining
+===============================================================
+  Claimed: Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert
+  Worktree: /tmp/backlog-98901-7mC8P3
