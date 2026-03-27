@@ -375,3 +375,11 @@
   - The per-option filter already existed but was hidden inside the legend bar and independent per-option — unhelpful for 50+ sets across multiple options. Moving the filter to dimension scope (one input for all options) is the right UX for repeated scrolling problems.
   - When replacing a scoped filter with a parent-scoped one, check: (1) state key changes, (2) all filter application sites, (3) empty-state messages that reference the old state key, (4) the removed UI markup.
 ---
+
+## 2026-03-27 - No "expand all / collapse all" keyboard shortcut in token tree — users manually expanding/collapsing hundreds of nested groups have no fast path; only individual toggle is available
+- Added `Cmd/Ctrl+→` (expand all) and `Cmd/Ctrl+←` (collapse all) shortcuts to `handleListKeyDown` in TokenList.tsx, calling the existing `handleExpandAll`/`handleCollapseAll` functions. Added both to the dependency array. Documented them in KeyboardShortcutsModal.tsx under "Token List" section.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L442, `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L44
+- **Learnings for future iterations:**
+  - `handleExpandAll` and `handleCollapseAll` already existed in TokenList.tsx — the shortcut handler just needed wiring. When adding keyboard shortcuts, check whether the underlying functions already exist before implementing them.
+  - When adding modifier-key variants of existing arrow-key shortcuts, insert the modifier check BEFORE the plain arrow handler and `return` after, so the plain handler still runs for unmodified arrow presses.
+---

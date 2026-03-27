@@ -439,6 +439,17 @@ export function TokenList({
       }
     }
 
+    // Cmd/Ctrl+→: expand all groups; Cmd/Ctrl+←: collapse all groups
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+      e.preventDefault();
+      if (e.key === 'ArrowRight') {
+        handleExpandAll();
+      } else {
+        handleCollapseAll();
+      }
+      return;
+    }
+
     // ←/→: expand/collapse groups (standard tree keyboard pattern)
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       const activeEl = document.activeElement as HTMLElement;
@@ -493,7 +504,7 @@ export function TokenList({
         }
       }
     }
-  }, [showCreateForm, selectMode, handleOpenCreateSibling, expandedPaths, handleToggleExpand]);
+  }, [showCreateForm, selectMode, handleOpenCreateSibling, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll]);
 
   // Expand ancestor groups when navigating to a highlighted token
   useEffect(() => {

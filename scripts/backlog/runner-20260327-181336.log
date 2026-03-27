@@ -171,3 +171,10 @@ Already up to date.
 ===============================================================
   Claimed: No "expand all / collapse all" keyboard shortcut in token tree — users manually expanding/collapsing hundreds of nested groups have no fast path; only individual toggle is available
   Worktree: /tmp/backlog-60772-lcw8rI
+
+  ✓ done: No "expand all / collapse all" keyboard shortcut in token tree — users manually expanding/collapsing hundreds of nested groups have no fast path; only individual toggle is available
+    Added Cmd/Ctrl+→ (expand all) and Cmd/Ctrl+←  (collapse all) to handleListKeyDown; documented in KeyboardShortcutsModal
+    12 turns · 139s · $0.44
+
+--- Merging: No "expand all / collapse all" keyboard shortcut in token tree — users manually expanding/collapsing hundreds of nested groups have no fast path; only individual toggle is available ---
+Already up to date.

@@ -46,6 +46,8 @@ const SECTIONS: ShortcutSection[] = [
       { keys: ['M'], label: 'Toggle multi-select mode' },
       { keys: ['Esc'], label: 'Exit multi-select / close form' },
       { keys: ['⌘C'], label: 'Copy selected tokens as JSON' },
+      { keys: ['⌘→'], label: 'Expand all groups' },
+      { keys: ['⌘←'], label: 'Collapse all groups' },
     ],
   },
   {

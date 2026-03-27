@@ -159,3 +159,16 @@ Already up to date.
 
 --- Merging: ThemeManager has no search/filter for token sets — configuring dimension options with 50+ sets requires scrolling through the entire list with no way to filter by name ---
 Already up to date.
+[main 5df29cc] chore(backlog): done – ThemeManager has no search/filter for token sets — configuring dimension options with 50+ sets requires scrolling through the entire list with no way to filter by name
+ 6 files changed, 48 insertions(+), 16 deletions(-)
+
+## 2026-03-27 - ThemeManager has no search/filter for token sets — configuring dimension options with 50+ sets requires scrolling through the entire list with no way to filter by name
+- Replaced per-option set filter (one input per option, keyed by `covKey`) with a single per-dimension filter input shown once above all options. The dimension filter applies to all options within that dimension simultaneously, so typing once filters every option's set list. Filter is shown when `sets.length >= 5`.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L84, ~L654, ~L641, ~L739
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  2 items remaining
+===============================================================
+  Claimed: HeatmapPanel has no export or reporting — users can't export binding coverage as CSV/JSON or share a "200/1000 layers bound (20%)" summary with stakeholders
+  Worktree: /tmp/backlog-59609-GX5zSE
