@@ -51,6 +51,9 @@ PATTERNS_FILE="$SCRIPT_DIR/patterns.md"
 PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
 BACKLOG_LOCKDIR="$PROJECT_ROOT/.backlog.lock"
 GIT_LOCKDIR="$PROJECT_ROOT/.backlog-git.lock"
+COUNTER_FILE="$SCRIPT_DIR/.completed-count"
+ARCHIVE_FILE="$SCRIPT_DIR/backlog-archive.md"
+PASS_LOCKDIR="$PROJECT_ROOT/.backlog-pass.lock"
 
 if [ ! -f "$BACKLOG_FILE" ]; then
   echo "Error: backlog.md not found at $PROJECT_ROOT"
@@ -166,6 +169,11 @@ cleanup_on_exit() {
     update_item_status " " "$CLAIMED_ITEM" 2>/dev/null || true
     CLAIMED_ITEM=""
   fi
+  # Release pass lock if we hold it (stale lock has same pid-check as others)
+  local pass_pid=$(cat "$PASS_LOCKDIR/pid" 2>/dev/null || echo "")
+  if [ "$pass_pid" = "$$" ]; then
+    rm -rf "$PASS_LOCKDIR"
+  fi
 }
 trap cleanup_on_exit EXIT
 
@@ -278,11 +286,172 @@ drain_inbox() {
   release_lock "$BACKLOG_LOCKDIR"
 }
 
+# ─── Completed-item counter ───────────────────────────────────────
+# Persisted across sessions. Used to trigger periodic maintenance passes.
+
+get_completed_count() {
+  cat "$COUNTER_FILE" 2>/dev/null || echo "0"
+}
+
+# Atomically increments the counter under the backlog lock.
+# Returns the new count. Safe for concurrent runners.
+increment_completed_count() {
+  acquire_lock "$BACKLOG_LOCKDIR" || { echo "0"; return 1; }
+  local count
+  count=$(cat "$COUNTER_FILE" 2>/dev/null || echo "0")
+  count=$((count + 1))
+  echo "$count" > "$COUNTER_FILE"
+  release_lock "$BACKLOG_LOCKDIR"
+  echo "$count"
+}
+
+# ─── Periodic cleanup ─────────────────────────────────────────────
+# Archives [x] items from backlog.md and trims old progress.txt sections
+# when they exceed thresholds. Keeps agent context lean.
+
+cleanup_if_needed() {
+  local done_count
+  done_count=$(grep -cE '^\- \[x\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+  if [ "$done_count" -le 20 ]; then return 0; fi
+
+  echo ""
+  echo "--- Cleanup: archiving completed items (≥$done_count) ---"
+
+  if [ ! -f "$ARCHIVE_FILE" ]; then
+    echo "# Backlog Archive" > "$ARCHIVE_FILE"
+    echo "Completed items removed from backlog.md to keep it lean." >> "$ARCHIVE_FILE"
+  fi
+
+  acquire_lock "$BACKLOG_LOCKDIR" || { echo "  (cleanup skipped — lock timeout)"; return 0; }
+
+  # Re-count inside lock for accuracy
+  done_count=$(grep -cE '^\- \[x\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+  if [ "$done_count" -le 20 ]; then release_lock "$BACKLOG_LOCKDIR"; return 0; fi
+
+  local date_str
+  date_str=$(date +%Y-%m-%d)
+
+  # Append completed items to archive file
+  { printf '\n## Archived %s (%s items)\n' "$date_str" "$done_count"; grep -E '^\- \[x\]' "$BACKLOG_FILE"; } >> "$ARCHIVE_FILE"
+
+  # Remove [x] items from backlog.md, squeeze consecutive blank lines
+  local tmpfile
+  tmpfile=$(mktemp "$BACKLOG_FILE.XXXXXX")
+  grep -vE '^\- \[x\]' "$BACKLOG_FILE" | cat -s > "$tmpfile" \
+    && mv "$tmpfile" "$BACKLOG_FILE" \
+    || { rm -f "$tmpfile"; release_lock "$BACKLOG_LOCKDIR"; return 0; }
+
+  release_lock "$BACKLOG_LOCKDIR"
+  echo "  → Archived $done_count items from backlog.md"
+
+  # Trim progress.txt: keep last 30 sections
+  local section_count
+  section_count=$(grep -c '^## ' "$PROGRESS_FILE" 2>/dev/null || echo 0)
+  if [ "$section_count" -gt 30 ]; then
+    local keep=30
+    local skip=$((section_count - keep))
+    local start_line
+    start_line=$(grep -n '^## ' "$PROGRESS_FILE" | awk -F: "NR==$((skip+1)){print \$1}")
+    if [ -n "$start_line" ]; then
+      local tmpfile2
+      tmpfile2=$(mktemp "$PROGRESS_FILE.XXXXXX")
+      { head -3 "$PROGRESS_FILE"; tail -n +"$start_line" "$PROGRESS_FILE"; } > "$tmpfile2" \
+        && mv "$tmpfile2" "$PROGRESS_FILE" \
+        || rm -f "$tmpfile2"
+      echo "  → Trimmed progress.txt to last $keep sections (was $section_count)"
+    fi
+  fi
+
+  git_commit_and_push "chore(backlog): archive $done_count completed items + trim progress"
+}
+
+# ─── Periodic maintenance passes ──────────────────────────────────
+# Every 10 items: housekeeping pass (dead code, smells, cleanup).
+# Every 5 items (non-10): UI/UX/QOL pass.
+# Each is a separate focused agent session — clean context window.
+
+run_special_pass() {
+  local pass_type="$1"  # "housekeeping" or "ux"
+  local prompt_file="$SCRIPT_DIR/${pass_type}-pass.md"
+
+  # Special passes only support the claude tool
+  if [[ "$TOOL" != "claude" ]]; then
+    echo "  (skipping $pass_type pass — only supported with --tool claude)"
+    return 0
+  fi
+
+  if [ ! -f "$prompt_file" ]; then
+    echo "WARNING: $prompt_file not found — skipping $pass_type pass"
+    return 0
+  fi
+
+  echo ""
+  echo "================================================================"
+  echo "  ★ Maintenance Pass: $pass_type"
+  echo "================================================================"
+
+  local context_file
+  context_file=$(mktemp)
+  cat "$PATTERNS_FILE" > "$context_file"
+  printf '\n\n## Recent session log:\n' >> "$context_file"
+  awk '/^## /{found=1; count++} found && count<=5{print} /^---$/ && found && count>=5{exit}' \
+    "$PROGRESS_FILE" >> "$context_file" 2>/dev/null || true
+
+  local agent_tmp agent_err
+  agent_tmp=$(mktemp)
+  agent_err=$(mktemp)
+
+  (trap '' INT; claude \
+    --dangerously-skip-permissions \
+    --print \
+    --no-session-persistence \
+    --max-turns 100 \
+    --output-format json \
+    --json-schema "$JSON_SCHEMA" \
+    --model "$MODEL" \
+    --fallback-model claude-haiku-4-5-20251001 \
+    --append-system-prompt-file "$context_file" \
+    < "$prompt_file" > "$agent_tmp" 2>"$agent_err") &
+  local pass_pid=$!
+  wait $pass_pid || true
+
+  rm -f "$context_file"
+  local pass_output
+  pass_output=$(cat "$agent_tmp")
+  local pass_err_text
+  pass_err_text=$(cat "$agent_err" 2>/dev/null || true)
+  rm -f "$agent_tmp" "$agent_err"
+
+  # Rate-limit detection — warn and return so main loop can also detect on next item
+  if echo "$pass_output $pass_err_text" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|billing|overloaded|capacity|too many requests|529|Claude\.ai/upgrade'; then
+    echo "  WARNING: Rate limit hit during $pass_type pass — skipping"
+    return 0
+  fi
+
+  local pass_status pass_item pass_note
+  pass_status=$(echo "$pass_output" | jq -r '.structured_output.status // ""' 2>/dev/null || echo "")
+  pass_item=$(echo "$pass_output" | jq -r '.structured_output.item // ""' 2>/dev/null || echo "")
+  pass_note=$(echo "$pass_output" | jq -r '.structured_output.note // ""' 2>/dev/null || echo "")
+
+  if [ "$pass_status" = "done" ]; then
+    echo "  ✓ $pass_type pass: ${pass_item:-done}"
+    [ -n "$pass_note" ] && echo "    $pass_note"
+    git_commit_and_push "chore(backlog): $pass_type pass – ${pass_item:-maintenance}"
+  else
+    echo "  · $pass_type pass: ${pass_status:-no result} — ${pass_note:-skipped}"
+  fi
+}
+
 # JSON schema for structured agent output
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
+CURRENT_COUNT=$(get_completed_count)
+NEXT_PASS_IN=$(( 5 - (CURRENT_COUNT % 5) ))
+NEXT_PASS_TYPE=$( [ $(( (CURRENT_COUNT + NEXT_PASS_IN) % 10 )) -eq 0 ] && echo "housekeeping" || echo "ux" )
+
 echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iterations: $MAX_ITERATIONS"
 echo "  Remaining items: $(remaining)"
+echo "  Completed total: $CURRENT_COUNT (next ${NEXT_PASS_TYPE} pass in $NEXT_PASS_IN items)"
 echo "  Stop signal:     Ctrl+C  (or: touch $STOP_FILE)"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
@@ -404,6 +573,24 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       echo ""
       echo "--- Pushing: $PUSH_ITEM ---"
       git_commit_and_push "chore(backlog): done – $PUSH_ITEM"
+
+      # Milestone maintenance passes (skip if stop was requested)
+      TOTAL_DONE=$(increment_completed_count)
+      if [ $((TOTAL_DONE % 5)) -eq 0 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
+        cleanup_if_needed
+        # Non-blocking pass lock: if another runner is already running a pass, skip
+        if mkdir "$PASS_LOCKDIR" 2>/dev/null; then
+          echo $$ > "$PASS_LOCKDIR/pid"
+          if [ $((TOTAL_DONE % 10)) -eq 0 ]; then
+            run_special_pass "housekeeping"
+          else
+            run_special_pass "ux"
+          fi
+          rm -rf "$PASS_LOCKDIR"
+        else
+          echo "  (maintenance pass skipped — another runner is handling it)"
+        fi
+      fi
       ;;
     failed)
       update_item_status "!" "$CLAIMED_ITEM"

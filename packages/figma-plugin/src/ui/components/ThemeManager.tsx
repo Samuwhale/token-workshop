@@ -58,7 +58,7 @@ function slugify(name: string): string {
 export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }: ThemeManagerProps) {
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
 
-  useEffect(() => { onDimensionsChange?.(dimensions); }, [dimensions]);
+  useEffect(() => { onDimensionsChange?.(dimensions); }, [dimensions, onDimensionsChange]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

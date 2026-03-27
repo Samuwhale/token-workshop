@@ -1,2 +1,9 @@
 # Backlog Progress Log
 ---
+
+## 2026-03-27 - ThemeManager useEffect missing `onDimensionsChange` in dependency array
+- Added `onDimensionsChange` to the useEffect dependency array at ThemeManager.tsx:61
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L61
+- **Learnings for future iterations:**
+  - Optional callback props (`prop?.()`) still need to be in useEffect deps — React's exhaustive-deps rule applies even to optional callbacks. The stale-closure bug manifests if the parent passes a new function reference after first render.
+---

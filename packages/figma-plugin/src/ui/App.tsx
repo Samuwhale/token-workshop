@@ -227,6 +227,8 @@ export function App() {
   const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  // Must be declared before useSidePanel which references it
+  const [createFromEmpty, setCreateFromEmpty] = useState(false);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
@@ -345,6 +347,10 @@ export function App() {
     return resolveAllAliases(merged);
   }, [activeThemes, dimensions, allTokensFlat, pathToSet]);
 
+  // Must be declared before cascadeDiff useMemo which references them
+  const [dragSetName, setDragSetName] = useState<string | null>(null);
+  const [dragOverSetName, setDragOverSetName] = useState<string | null>(null);
+
   // Cascade diff: live diff of resolved values when dragging set tabs to reorder
   const cascadeDiff = useMemo<Record<string, { before: any; after: any }> | null>(() => {
     if (!dragSetName || !dragOverSetName || dragSetName === dragOverSetName) return null;
@@ -378,9 +384,6 @@ export function App() {
   const [tabMenuOpen, setTabMenuOpen] = useState<string | null>(null);
   const [tabMenuPos, setTabMenuPos] = useState({ x: 0, y: 0 });
   const tabMenuRef = useRef<HTMLDivElement>(null);
-
-  // Empty state create flow
-  const [createFromEmpty, setCreateFromEmpty] = useState(false);
 
   // Reset createFromEmpty when switching sets
   useEffect(() => {
@@ -424,9 +427,7 @@ export function App() {
   const [renameValue, setRenameValue] = useState('');
   const [renameError, setRenameError] = useState('');
 
-  // Drag-to-reorder set tabs state
-  const [dragSetName, setDragSetName] = useState<string | null>(null);
-  const [dragOverSetName, setDragOverSetName] = useState<string | null>(null);
+  // Drag-to-reorder set tabs (dragSetName/dragOverSetName declared before cascadeDiff useMemo above)
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   // New set creation state
@@ -1607,7 +1608,7 @@ export function App() {
           </>
         )}
         </div>
-        {sets.length > 1 && (
+        {sets.length > 1 && dragSetName && (
           <div className="px-2 py-0.5 text-[9px] text-[var(--color-figma-text-tertiary)] select-none bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
             ← lower precedence · drag to reorder · higher precedence →
           </div>
@@ -1767,61 +1768,83 @@ export function App() {
 
         {/* Main content column */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Theme switcher (for tokens tab) — one dropdown per dimension */}
-          {activeTab === 'tokens' && overflowPanel === null && dimensions.length > 0 && (
-            <div ref={dimDropdownRef} className="flex shrink-0 flex-wrap items-center gap-1 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-              {dimensions.map(dim => {
-                const activeOption = activeThemes[dim.id];
-                const isOpen = openDimDropdown === dim.id;
-                return (
-                  <div key={dim.id} className="relative flex items-center gap-1">
-                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{dim.name}:</span>
-                    <button
-                      onClick={() => setOpenDimDropdown(isOpen ? null : dim.id)}
-                      className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] transition-colors ${
-                        activeOption
-                          ? 'bg-[var(--color-figma-accent)] text-white font-medium'
-                          : 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)]'
-                      }`}
-                    >
-                      {activeOption || 'None'}
-                      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={isOpen ? 'rotate-180' : ''}>
-                        <path d="M1 3l3 3 3-3" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {isOpen && (
-                      <div className="absolute top-full left-0 mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[120px]">
+          {/* Theme/Mode switcher — always visible on tokens tab */}
+          {activeTab === 'tokens' && overflowPanel === null && (
+            <div ref={dimDropdownRef} className="flex shrink-0 flex-wrap items-center gap-1.5 px-2 py-1 bg-[var(--color-figma-bg)] border-b border-[var(--color-figma-border)]">
+              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0 flex items-center gap-1">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+                  <circle cx="3.5" cy="5" r="2.5"/>
+                  <circle cx="6.5" cy="5" r="2.5"/>
+                </svg>
+                Themes
+              </span>
+              {dimensions.length > 0 ? (
+                <>
+                  {dimensions.map(dim => {
+                    const activeOption = activeThemes[dim.id];
+                    const isOpen = openDimDropdown === dim.id;
+                    return (
+                      <div key={dim.id} className="relative flex items-center gap-1">
+                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{dim.name}:</span>
                         <button
-                          onClick={() => { const next = { ...activeThemes }; delete next[dim.id]; setActiveThemes(next); setOpenDimDropdown(null); }}
-                          className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
-                            !activeOption ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
+                          onClick={() => setOpenDimDropdown(isOpen ? null : dim.id)}
+                          className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] transition-colors ${
+                            activeOption
+                              ? 'bg-[var(--color-figma-accent)] text-white font-medium'
+                              : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)]'
                           }`}
                         >
-                          None
+                          {activeOption || 'None'}
+                          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+                            <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
                         </button>
-                        {dim.options.map(opt => (
-                          <button
-                            key={opt.name}
-                            onClick={() => { setActiveThemes({ ...activeThemes, [dim.id]: opt.name }); setOpenDimDropdown(null); }}
-                            className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
-                              activeOption === opt.name ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
-                            }`}
-                          >
-                            {opt.name}
-                          </button>
-                        ))}
+                        {isOpen && (
+                          <div className="absolute top-full left-0 mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[120px]">
+                            <button
+                              onClick={() => { const next = { ...activeThemes }; delete next[dim.id]; setActiveThemes(next); setOpenDimDropdown(null); }}
+                              className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
+                                !activeOption ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
+                              }`}
+                            >
+                              None
+                            </button>
+                            {dim.options.map(opt => (
+                              <button
+                                key={opt.name}
+                                onClick={() => { setActiveThemes({ ...activeThemes, [dim.id]: opt.name }); setOpenDimDropdown(null); }}
+                                className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
+                                  activeOption === opt.name ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
+                                }`}
+                              >
+                                {opt.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-              <button
-                onClick={() => setOverflowPanel('themes')}
-                className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors px-1"
-                title="Manage themes"
-              >
-                ···
-              </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setOverflowPanel('themes')}
+                    className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors px-1"
+                    title="Manage themes"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+                      <circle cx="5" cy="2" r="1"/>
+                      <circle cx="5" cy="5" r="1"/>
+                      <circle cx="5" cy="8" r="1"/>
+                    </svg>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setOverflowPanel('themes')}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border border-dashed border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+                >
+                  + Add theme
+                </button>
+              )}
             </div>
           )}
           <div className="flex-1 overflow-y-auto">
