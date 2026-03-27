@@ -55,6 +55,12 @@ COUNTER_FILE="$SCRIPT_DIR/.completed-count"
 ARCHIVE_FILE="$SCRIPT_DIR/backlog-archive.md"
 PASS_LOCKDIR="$PROJECT_ROOT/.backlog-pass.lock"
 WORKTREE_DIR=""  # Current agent worktree (cleaned up by EXIT trap)
+CONSECUTIVE_FAILURES=0
+MAX_CONSECUTIVE_FAILURES=5
+
+# Runner log — persists operational output alongside progress.txt
+RUNNER_LOG="$SCRIPT_DIR/runner-$(date +%Y%m%d-%H%M%S).log"
+exec > >(tee -a "$RUNNER_LOG") 2>&1
 
 if [ ! -f "$BACKLOG_FILE" ]; then
   echo "Error: backlog.md not found at $PROJECT_ROOT"
@@ -335,8 +341,23 @@ merge_worktree_to_main() {
   # Sync main with remote first
   git -C "$PROJECT_ROOT" pull --rebase --autostash 2>/dev/null || true
 
-  # Cherry-pick code changes (if any)
+  # Cherry-pick code changes (if any).
+  # The worktree was detached at an older HEAD — if main has moved (maintenance
+  # passes, concurrent runners), rebase the agent commit onto current main first
+  # so the cherry-pick applies cleanly.
   if [ -n "$worktree_sha" ]; then
+    local current_main
+    current_main=$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null)
+    if [ "$current_main" != "$WORKTREE_BASE_SHA" ]; then
+      # Rebase the agent commit onto current main inside the worktree.
+      # Worktrees share the .git object store, so current_main is already reachable.
+      if git -C "$WORKTREE_DIR" rebase "$current_main" --quiet 2>/dev/null; then
+        worktree_sha=$(git -C "$WORKTREE_DIR" rev-parse HEAD 2>/dev/null || echo "")
+      else
+        git -C "$WORKTREE_DIR" rebase --abort 2>/dev/null || true
+        # Fall through to cherry-pick — it may still succeed for non-overlapping changes
+      fi
+    fi
     if ! git -C "$PROJECT_ROOT" cherry-pick --no-commit "$worktree_sha" 2>/dev/null; then
       echo "  WARNING: Cherry-pick conflict — aborting merge"
       git -C "$PROJECT_ROOT" cherry-pick --abort 2>/dev/null || true
@@ -392,7 +413,7 @@ drain_inbox() {
     || rm -f "$inbox_tmp"
 
   HIGH_ITEMS=$(grep -E '^\- \[ \] \[(HIGH|P0)\]' "$INBOX_FILE" 2>/dev/null || true)
-  OTHER_ITEMS=$(grep -vE '^\- \[ \] \[(HIGH|P0)\]' "$INBOX_FILE" 2>/dev/null || true)
+  OTHER_ITEMS=$(grep -E '^\- \[ \]' "$INBOX_FILE" | grep -vE '\[(HIGH|P0)\]' 2>/dev/null || true)
 
   # HIGH/P0: insert before the first [ ] item so the agent picks them next.
   if [ -n "$HIGH_ITEMS" ]; then
@@ -418,7 +439,7 @@ drain_inbox() {
     echo "  → Normal item(s) appended to bottom"
   fi
 
-  truncate -s 0 "$INBOX_FILE"
+  : > "$INBOX_FILE"
   echo "--- Inbox drained ---"
 
   release_lock "$BACKLOG_LOCKDIR"
@@ -759,6 +780,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
   case "$STATUS" in
     done)
+      CONSECUTIVE_FAILURES=0
       PUSH_ITEM="${ITEM_FROM_AGENT:-$CLAIMED_ITEM}"
       echo ""
       echo "--- Merging: $PUSH_ITEM ---"
@@ -787,17 +809,27 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       fi
       ;;
     failed)
+      CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
       update_item_status "!" "$CLAIMED_ITEM"
       CLAIMED_ITEM=""
       teardown_worktree
       ;;
     *)
+      CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
       echo "WARNING: Agent returned unexpected status '$STATUS' — unclaiming item"
       update_item_status " " "$CLAIMED_ITEM"
       CLAIMED_ITEM=""
       teardown_worktree
       ;;
   esac
+
+  # ── Circuit breaker: stop if agents keep failing ──
+  if [ "$CONSECUTIVE_FAILURES" -ge "$MAX_CONSECUTIVE_FAILURES" ]; then
+    echo ""
+    echo "FATAL: $CONSECUTIVE_FAILURES consecutive failures — stopping to avoid wasting resources."
+    echo "  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)"
+    exit 1
+  fi
 
   # ── Drain inbox ──
   drain_inbox

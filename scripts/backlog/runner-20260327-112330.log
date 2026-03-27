@@ -1,0 +1,12 @@
+./scripts/backlog/backlog.sh: line 203: [: 0
+0: integer expression expected
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 17
+  Completed total: 166 (next ux pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  17 items remaining
+===============================================================
+  Claimed: Remove unused `updateServerUrl` from `useServerConnection` return — returned from hook but never destructured by any caller
+  Worktree: /tmp/backlog-73590-93UpL9
