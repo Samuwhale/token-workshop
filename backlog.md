@@ -121,7 +121,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] App.tsx is a ~2000-line god component with 40+ useState declarations — should be decomposed into feature modules
 - [x] TokenList accepts 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)
 - [x] TokenGeneratorDialog is ~800+ lines handling 7+ generator types in one component (`figma-plugin/TokenGeneratorDialog.tsx`)
-- [ ] `docs.ts` style attribute built with `escapeHtml` but not `escapeCssValue` — CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
+- [x] `docs.ts` style attribute built with `escapeHtml` but not `escapeCssValue` — CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
 - [ ] 15+ distinct localStorage keys scattered across components without centralized persistence utility
 
 - [ ] Per-mode token value editing — there is no way to set different `$value`s for the same token across different modes; mode-aware editing is a core DTCG use-case (e.g. light/dark, brand-A/brand-B) and should be surfaced in the token edit UI alongside the current single-value field

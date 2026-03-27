@@ -63,11 +63,11 @@ function renderTypographyTokens(tokens: FlatToken[]): string {
           ? (t.$value as Record<string, unknown>)
           : null;
         const style = val
-          ? `font-family:${val['fontFamily'] ?? 'inherit'};font-size:${val['fontSize'] ?? 16}px;font-weight:${val['fontWeight'] ?? 400};line-height:${val['lineHeight'] ?? 1.5};letter-spacing:${val['letterSpacing'] ?? 0}px`
+          ? `font-family:${escapeCssValue(String(val['fontFamily'] ?? 'inherit'))};font-size:${escapeCssValue(String(val['fontSize'] ?? 16))}px;font-weight:${escapeCssValue(String(val['fontWeight'] ?? 400))};line-height:${escapeCssValue(String(val['lineHeight'] ?? 1.5))};letter-spacing:${escapeCssValue(String(val['letterSpacing'] ?? 0))}px`
           : '';
         return `
           <div class="typo-row">
-            <div class="typo-specimen" style="${escapeHtml(style)}">The quick brown fox</div>
+            <div class="typo-specimen" style="${style}">The quick brown fox</div>
             <div class="token-meta">
               <div class="token-path">${escapeHtml(t.path)}</div>
               <div class="token-value">${escapeHtml(JSON.stringify(t.$value))}</div>

@@ -415,3 +415,11 @@
 - Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L34, ~L133, ~L141
 - **Why:** All three functions are only called internally within colorUtils.ts (by `colorDeltaE`, `hexToLch`, `lchToHex`). Exporting them unnecessarily bloated the public API surface of the module — confirmed by grepping the entire codebase for usage.
 ---
+
+## 2026-03-27 - `docs.ts` style attribute built with `escapeHtml` but not `escapeCssValue` — CSS injection possible via adversarial token values
+- Applied `escapeCssValue()` to each individual CSS property value (fontFamily, fontSize, fontWeight, lineHeight, letterSpacing) when building the typography specimen style string, replacing the prior `escapeHtml(style)` on the concatenated string. `escapeHtml` escapes HTML metacharacters but leaves `;` intact, which allows injecting additional CSS properties (e.g. `fontFamily: "Arial; background: red"`). `escapeCssValue` strips `;`, `"`, `{`, `}`, `<`, `>` from each value individually, keeping the property delimiters in the constructed string valid.
+- Files changed: `packages/server/src/routes/docs.ts` ~L65-70
+- **Learnings for future iterations:**
+  - `escapeCssValue` must be applied per-value, not to the full multi-property style string — applying it to the full string would strip the valid `;` delimiters between properties.
+  - The pattern was already correctly used in `renderColorTokens` (line 44); the typography function just missed it.
+---
