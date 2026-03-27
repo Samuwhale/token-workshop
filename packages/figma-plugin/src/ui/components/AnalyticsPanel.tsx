@@ -1054,6 +1054,14 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             )}
           </>
         )}
+        {coverageLoading && (
+          <div className="px-3 py-4 flex items-center gap-2">
+            <svg className="animate-spin shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            </svg>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Scanning components…</span>
+          </div>
+        )}
         {!coverageLoading && coverageError && (
           <div className="px-3 py-3 text-[10px] text-[var(--color-figma-error)]">
             {coverageError}

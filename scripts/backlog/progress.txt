@@ -426,3 +426,10 @@
 - **Learnings for future iterations:**
   - Clearing state before async work is a common optimistic-update pattern, but the catch block must restore it; otherwise a failed async op leaves the UI stuck in a blank/dead state with no retry path.
 ---
+
+## 2026-03-27 - Component coverage analysis has no progress indicator
+- Added a spinner + "Scanning components…" text in the card body when `coverageLoading` is true. Previously the card body was empty during the scan since all three content blocks required `!coverageLoading`. Now an `animate-spin` SVG loader appears immediately on click, giving clear feedback while the scan runs.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L990
+- **Learnings for future iterations:**
+  - When conditional rendering uses `!loading && ...` guards, the loading state itself leaves the content area empty. Always add an explicit `{loading && <spinner>}` block to fill that gap.
+---

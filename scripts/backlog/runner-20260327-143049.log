@@ -245,3 +245,10 @@ Already up to date.
 ===============================================================
   Claimed: Component coverage analysis has no progress indicator — scanning runs with no feedback until results appear
   Worktree: /tmp/backlog-97510-4DV0M7
+
+  ✓ done: Component coverage analysis has no progress indicator — scanning runs with no feedback until results appear
+    Added spinner + "Scanning components…" text in the card body during loading; previously all content blocks required !coverageLoading leaving the area empty
+    14 turns · 112s · $0.4
+
+--- Merging: Component coverage analysis has no progress indicator — scanning runs with no feedback until results appear ---
+Already up to date.

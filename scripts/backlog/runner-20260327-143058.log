@@ -280,3 +280,17 @@ Already up to date.
 
 --- Merging: useFigmaSync handleSyncGroup and handleSyncGroupStyles don't restore pending state on error ---
 Already up to date.
+[main 73ede66] chore(backlog): done – useFigmaSync handleSyncGroup and handleSyncGroupStyles don't restore pending state on error
+ 6 files changed, 32 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - useFigmaSync handleSyncGroup and handleSyncGroupStyles don't restore pending state on error
+- Restored `syncGroupPending` / `syncGroupStylesPending` in the catch block of each handler so the UI returns to the confirmation state and the user can retry after a failed sync.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L34, ~L55
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  42 items remaining
+===============================================================
+  Claimed: `handleApplyGroupScopes` sends one PATCH request per token in `Promise.all` with no batching — for groups with many tokens this is slow with no progress indicator
+  Worktree: /tmp/backlog-98408-UkCDTN
