@@ -438,3 +438,11 @@
   - HTTP 200 from `bulk-rename` does not mean tokens were actually changed — server returns `{ renamed: N, skipped: [...] }`. Always check `renamed` before treating the response as a success.
   - The `!res.ok` guard only catches HTTP-level failures. Semantic failures (nothing changed) need a separate check on the response body.
 ---
+
+## 2026-03-27 - Context menu disabled in select mode
+- Removed `selectMode` from the early-return guard in both the token row `handleContextMenu` and the group row `onContextMenu` handler. Context menus now open normally regardless of whether checkboxes are visible.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3865 (token handler), ~L3490 (group handler)
+- **Learnings for future iterations:**
+  - The original guard was `if (node.isGroup || selectMode) return;` — the `selectMode` part was the only thing blocking context menus in select mode; removing it is sufficient.
+  - No state conflicts: the context menu actions (copy/rename/delete) operate on a single token path and don't interact with the multi-select state.
+---

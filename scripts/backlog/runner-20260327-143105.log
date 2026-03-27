@@ -57,3 +57,23 @@ Already up to date.
 
 --- Merging: Find-and-replace clears UI state even on failure ---
 Already up to date.
+[main 7c03902] chore(backlog): done – Find-and-replace clears UI state even on failure
+ 6 files changed, 38 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - Find-and-replace clears UI state even on failure
+- Added a `data.renamed === 0` guard after the `!res.ok` check in `handleFindReplace`. When the server returns HTTP 200 but renamed 0 tokens (e.g. all matches conflicted with existing paths), the function now sets a descriptive error and returns early instead of closing the dialog and clearing the find/replace/regex fields.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1587
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  79 items remaining
+===============================================================
+  Claimed: Context menu disabled in select mode — right-clicking while checkboxes are visible returns early; users lose copy/rename/delete for individual tokens
+  Worktree: /tmp/backlog-98901-yWbdGY
+
+  ✓ done: Context menu disabled in select mode
+    Removed selectMode early-return from both token and group context menu handlers so right-click works while checkboxes are visible
+    10 turns · 69s · $0.25
+
+--- Merging: Context menu disabled in select mode ---
+Already up to date.

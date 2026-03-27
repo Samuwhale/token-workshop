@@ -3487,7 +3487,6 @@ function TokenTreeNode({
             }
           }}
           onContextMenu={e => {
-            if (selectMode) return;
             e.preventDefault();
             setGroupMenuPos({
               x: Math.min(e.clientX, window.innerWidth - 168),
@@ -3862,7 +3861,7 @@ function TokenTreeNode({
   }
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    if (node.isGroup || selectMode) return;
+    if (node.isGroup) return;
     e.preventDefault();
     setContextMenuPos({
       x: Math.min(e.clientX, window.innerWidth - 168),
