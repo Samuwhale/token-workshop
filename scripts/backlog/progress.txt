@@ -249,3 +249,9 @@
 - **Learnings for future iterations:**
   - Full drag-to-group was added in a prior session alongside the select-mode drag-to-reorder; the two are disambiguated by the `draggable={!selectMode}` toggle on token rows and the `application/x-token-drag` MIME type guard on group drop targets.
 ---
+
+## 2026-03-27 - ux-pass: warn about broken references when deleting a single token
+- When deleting a single token, the confirmation modal previously showed no warning even if other tokens referenced it (would become broken aliases). Bulk delete already had this warning. Added `orphanCount` field to the `'token'` variant of `DeleteConfirm`, computed in `requestDeleteToken` by scanning `allTokensFlat` for direct alias references, and updated `getDeleteModalProps` to show "N other tokens reference this and will become broken." when `orphanCount > 0`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L64, L937, L1257
+- **User impact:** Users are now warned before deleting primitive tokens that are referenced by semantic tokens, preventing silent broken aliases.
+---
