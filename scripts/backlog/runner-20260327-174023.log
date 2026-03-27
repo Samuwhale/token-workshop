@@ -1,0 +1,11 @@
+NOTE: 3 [~] item(s) found — skipping reset (4 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+  Remaining items: 30
+  Completed total: 312 (next code pass in 3 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  30 items remaining
+===============================================================
+  Claimed: [HIGH] TokenResolver `dfsStack` is not cleaned up on error — if `dfsResolve` throws, `this.dfsStack.pop()` is never reached, leaving stale entries that corrupt cycle detection in subsequent `resolve()` calls within the same resolver instance
+  Worktree: /tmp/backlog-91967-LXSl0l

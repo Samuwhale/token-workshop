@@ -411,3 +411,34 @@
   - Pattern for debouncing expensive `useMemo`: add `const [debouncedX, setDebouncedX] = useState(x)` + `useEffect(() => { const t = setTimeout(() => setDebouncedX(x), 300); return () => clearTimeout(t); }, [x])`, then depend the memo on `debouncedX`. Initial value matches immediately; subsequent changes are batched.
   - The `useState` must be declared before any `useMemo`/`useCallback` that references it (TDZ rule).
 ---
+
+## 2026-03-27 - Product discovery sweep (batch 2)
+- Explored all UI panels, hooks, and components in packages/figma-plugin/src/ui/ to identify UX gaps, missing features, and workflow friction.
+- Added 12 new items to scripts/backlog/backlog-inbox.md covering: ThemeManager rename options, ThemeCompare search/export, ExportPanel loading state and code duplication, TokenEditor alias mode shortcut, accessibility (aria-live toasts), CommandPalette copy value action, BatchEditor confirmation for type changes, multi-select keyboard shortcuts, and set filtering in theme options.
+- Areas explored: App.tsx, TokenList.tsx, TokenEditor.tsx, ThemeManager.tsx, ThemeCompare.tsx, ExportPanel.tsx, PublishPanel.tsx, CommandPalette.tsx, SelectionInspector.tsx, GraphPanel.tsx, BatchEditor.tsx, KeyboardShortcutsModal.tsx, EmptyState.tsx
+- **Learnings for future iterations:**
+  - The PLATFORMS constant is duplicated between ExportPanel.tsx and PublishPanel.tsx — a common pattern to watch for when panels share similar export functionality.
+  - ThemeManager supports rename for dimensions but not for options — asymmetric CRUD operations are a recurring UX gap pattern.
+  - No aria-live regions exist anywhere in the UI — accessibility is a systemic gap, not just a one-off issue.
+---
+
+## 2026-03-27 - product-pass
+- Areas explored: App.tsx, TokenList.tsx, TokenEditor.tsx, TokenCanvas.tsx, ThemeManager.tsx, ThemeCompare.tsx, PublishPanel.tsx, ExportPanel.tsx, ImportPanel.tsx, SelectionInspector.tsx, AnalyticsPanel.tsx, HeatmapPanel.tsx, GraphPanel.tsx, BatchEditor.tsx, CommandPalette.tsx, ColorPicker.tsx, PreviewPanel.tsx, QuickStartDialog.tsx, PasteTokensModal.tsx, SemanticMappingDialog.tsx, useTokens.ts, useUndo.ts, useFigmaSync.ts, useGenerators.ts, server routes (tokens, sets, themes), token-store.ts
+- Found 15 items — written to backlog-inbox.md
+- Notable: batch editor lacks regex find-replace and operation previews; token deletion doesn't warn about dependents (unlike set deletion which does); CommandPalette caps at 100 results silently; ColorPicker has no contrast checker or harmony tools
+---
+
+## 2026-03-27 - Code discovery pass: server routes, core resolver, plugin controller, hooks, services
+- Explored: packages/server/src/ (all routes, all services), packages/core/src/ (resolver, validator, dtcg-types, eval-expr, color-modifier), packages/figma-plugin/src/plugin/controller.ts, packages/figma-plugin/src/ui/hooks/ (useGenerators, useServerConnection, useServerEvents, useThemeSwitcher, useTokens, useUndo, useGeneratorDialog), packages/figma-plugin/src/shared/resolveAlias.ts
+- 11 new items appended to backlog-inbox.md (1 HIGH, 10 normal)
+- Key findings: dfsStack leak in resolver on error, missing generator types in UI hook, formula refs not updated on rename, composite alias resolution gaps, theme view drops non-themed tokens
+- **Areas NOT yet explored:** UI components (App.tsx, AnalyticsPanel, ExportPanel, PublishPanel, TokenEditor, CommandPalette, BatchEditor, ThemeManager, ThemeCompare), useHeatmap, useLint, usePreviewSplit, useSelection, useTokenNavigation, useWindowExpand hooks
+---
+
+## 2026-03-27 - No aria-live regions for toast notifications — SuccessToast, UndoToast, and error toasts appear visually but are not announced to screen readers
+- Added `role="status"` and `aria-live="polite"` to the root `<div>` of both SuccessToast and UndoToast components. This covers error toasts as well since SuccessToast handles both `variant="success"` and `variant="error"`.
+- Files changed: `packages/figma-plugin/src/ui/components/SuccessToast.tsx` ~L29, `packages/figma-plugin/src/ui/components/UndoToast.tsx` ~L21
+- **Learnings for future iterations:**
+  - `role="status"` is equivalent to `aria-live="polite"` but including both is belt-and-suspenders for maximum screen reader compat.
+  - Error toasts using `variant="error"` could also use `role="alert"` / `aria-live="assertive"` for more urgent announcements, but `polite` is acceptable for transient plugin notifications.
+---

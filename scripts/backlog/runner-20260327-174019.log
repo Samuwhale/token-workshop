@@ -1,0 +1,18 @@
+NOTE: 2 [~] item(s) found — skipping reset (1 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+  Remaining items: 31
+  Completed total: 312 (next code pass in 3 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  31 items remaining
+===============================================================
+  Claimed: [HIGH] No aria-live regions for toast notifications — SuccessToast, UndoToast, and error toasts appear visually but are not announced to screen readers; adding `aria-live="polite"` or `role="status"` to toast containers would make the plugin accessible
+  Worktree: /tmp/backlog-91651-4JVLoB
+
+  ✓ done: No aria-live regions for toast notifications — SuccessToast, UndoToast, and error toasts appear visually but are not announced to screen readers; adding `aria-live="polite"` or `role="status"` to toast containers would make the plugin accessible
+    Added role="status" aria-live="polite" to SuccessToast and UndoToast container divs; covers all variants including error toasts
+    9 turns · 38s · $0.19
+
+--- Merging: No aria-live regions for toast notifications — SuccessToast, UndoToast, and error toasts appear visually but are not announced to screen readers; adding `aria-live="polite"` or `role="status"` to toast containers would make the plugin accessible ---
+Already up to date.

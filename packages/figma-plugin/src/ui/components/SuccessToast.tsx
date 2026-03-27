@@ -26,7 +26,7 @@ export function SuccessToast({ message, onDismiss, variant = 'success', timeout 
   );
 
   return (
-    <div className="fixed bottom-4 left-3 right-3 flex items-center gap-2 px-3 py-2 rounded-md bg-[var(--color-figma-text)] text-[var(--color-figma-bg)] text-[11px] shadow-lg z-50">
+    <div role="status" aria-live="polite" className="fixed bottom-4 left-3 right-3 flex items-center gap-2 px-3 py-2 rounded-md bg-[var(--color-figma-text)] text-[var(--color-figma-bg)] text-[11px] shadow-lg z-50">
       {iconEl}
       <span className="flex-1 min-w-0 break-words line-clamp-3">{message}</span>
       <button
