@@ -163,3 +163,10 @@ Already up to date.
 ===============================================================
   Claimed: Remap bindings has no token autocomplete — the remap panel requires typing exact token paths manually with no search/autocomplete, making it error-prone for large token sets
   Worktree: /tmp/backlog-44614-HAaeNv
+
+  ✓ done: Remap bindings has no token autocomplete
+    Added RemapAutocompleteInput component with search-as-you-type dropdown, keyboard navigation, color swatches, and type badges. Replaced both from/to plain inputs in the remap panel.
+    15 turns · 305s · $0.71
+
+--- Merging: Remap bindings has no token autocomplete ---
+Already up to date.

@@ -263,3 +263,12 @@
 - **Learnings for future iterations:**
   - AnalyticsPanel unmounts when `overflowPanel` changes away from `'analytics'`, so all local state resets. The auto-validate-on-mount effect already handles re-running validation on return — the real UX gap was navigating back, not re-triggering.
 ---
+
+## 2026-03-27 - Remap bindings has no token autocomplete
+- Created `RemapAutocompleteInput` component: a text input with a dropdown of matching token paths that appears as the user types. Shows color swatches and type badges. Supports keyboard navigation (arrow keys, Enter to select, Escape to dismiss).
+- Replaced both "from" and "to" plain `<input>` elements in the remap panel with `RemapAutocompleteInput`, passing the existing `tokenMap` prop for suggestions.
+- Files changed: `packages/figma-plugin/src/ui/components/RemapAutocompleteInput.tsx` (new), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L571
+- **Learnings for future iterations:**
+  - The remap panel inputs are inside a `flex items-center gap-1` row — the autocomplete dropdown needs `relative` on the wrapper and `absolute z-50` on the dropdown to overlay correctly without pushing sibling elements.
+  - Using `onBlur` with a `setTimeout(150)` delay is necessary to allow `onMouseDown` on dropdown items to fire before the dropdown closes.
+---

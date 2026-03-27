@@ -8,6 +8,7 @@ import {
 import type { BindableProperty, SelectionNodeInfo, NodeCapabilities, SyncCompleteMessage, TokenMapEntry } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import { nodeParentPath } from './tokenListUtils';
+import { RemapAutocompleteInput } from './RemapAutocompleteInput';
 import type { UndoSlot } from '../hooks/useUndo';
 
 interface SelectionInspectorProps {
@@ -568,22 +569,20 @@ export function SelectionInspector({
           <div className="flex flex-col gap-1 mb-1.5">
             {remapRows.map((row, idx) => (
               <div key={idx} className="flex items-center gap-1">
-                <input
-                  type="text"
+                <RemapAutocompleteInput
                   value={row.from}
-                  onChange={e => setRemapRows(rows => rows.map((r, i) => i === idx ? { ...r, from: e.target.value } : r))}
+                  onChange={v => setRemapRows(rows => rows.map((r, i) => i === idx ? { ...r, from: v } : r))}
                   placeholder="old.token.path"
-                  className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[9px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                  tokenMap={tokenMap}
                 />
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-text-secondary)]" aria-hidden="true">
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
-                <input
-                  type="text"
+                <RemapAutocompleteInput
                   value={row.to}
-                  onChange={e => setRemapRows(rows => rows.map((r, i) => i === idx ? { ...r, to: e.target.value } : r))}
+                  onChange={v => setRemapRows(rows => rows.map((r, i) => i === idx ? { ...r, to: v } : r))}
                   placeholder="new.token.path"
-                  className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[9px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
+                  tokenMap={tokenMap}
                 />
                 {remapRows.length > 1 && (
                   <button
