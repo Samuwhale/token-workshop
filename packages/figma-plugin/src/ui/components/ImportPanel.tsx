@@ -213,8 +213,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setError(null);
         setSuccessMessage(null);
         setCollectionData([]);
-      } catch {
-        setError('Could not parse JSON file. Make sure it is valid JSON.');
+      } catch (err) {
+        const detail = err instanceof SyntaxError ? err.message : String(err);
+        setError(`Could not parse JSON file: ${detail}`);
       }
     };
     reader.readAsText(file);

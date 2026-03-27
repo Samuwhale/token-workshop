@@ -60,7 +60,7 @@
 
 ### QoL
 
-- [~] No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
+- [x] No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
 - [x] New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`
 
 ### UX
@@ -78,7 +78,7 @@
 
 ### UX
 
-- [ ] ImportPanel JSON parse failure shows generic "Could not parse JSON file" with no detail about the syntax error location or what went wrong
+- [~] ImportPanel JSON parse failure shows generic "Could not parse JSON file" with no detail about the syntax error location or what went wrong
 - [ ] ImportPanel "Import from Figma Variables" gives no guidance about prerequisites — the only feedback is a 15-second timeout error if the plugin isn't set up correctly
 - [ ] No import preview — users can't review what will be created/overwritten before committing
 - [ ] No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options

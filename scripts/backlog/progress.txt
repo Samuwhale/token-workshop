@@ -284,3 +284,11 @@
   - Counter-based trigger props (`triggerCreateToken?: number`) are a clean pattern for "fire this side effect from a parent" without lifting all state — increment from parent, useEffect skips 0 (initial), fires on each increment.
   - When a keyboard shortcut needs to open UI in a child component and the parent also needs to navigate tabs, split the work: parent handles tab switch + state increment, child handles the actual UI via `useEffect([trigger])`.
 ---
+
+## 2026-03-27 - ImportPanel JSON parse failure shows generic "Could not parse JSON file" with no detail about the syntax error location or what went wrong
+- Changed the catch block in `handleJsonFileChange` to capture the thrown error and append its message to the user-facing error string. `JSON.parse` throws a `SyntaxError` whose `.message` already includes position info (e.g., "Unexpected token } in JSON at position 42"), so surfacing it directly gives the user actionable detail.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L216
+- **Learnings for future iterations:**
+  - `JSON.parse` SyntaxError messages include position/token info in V8 and JavaScriptCore — no need for a custom parser to get useful diagnostics.
+  - Pattern: `catch (err) { const detail = err instanceof SyntaxError ? err.message : String(err); }` is a safe way to surface parse errors without leaking unexpected error types as raw objects.
+---
