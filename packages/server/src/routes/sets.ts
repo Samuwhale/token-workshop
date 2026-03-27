@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import type { TokenGroup } from '@tokenmanager/core';
 
 export const setRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/sets — list all sets (with optional descriptions)
@@ -41,7 +42,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(409).send({ error: `Token set "${name}" already exists` });
       }
 
-      const set = await fastify.tokenStore.createSet(name, tokens as any);
+      const set = await fastify.tokenStore.createSet(name, tokens as TokenGroup | undefined);
       return reply.status(201).send({ name: set.name, tokens: set.tokens });
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to create set', detail: String(err) });

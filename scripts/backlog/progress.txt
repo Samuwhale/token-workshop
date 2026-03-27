@@ -358,3 +358,18 @@
   - Methods with early returns need `try/finally` to ensure `endBatch()` is always called; the `finally` block fires even on `return` statements inside `try`.
   - `endBatch()` only flushes when `_pendingRebuild === true` and `_batchDepth` reaches 0 — so calling `this.rebuildFlatTokens()` inside a batch correctly sets `_pendingRebuild = true` (deferred), and `endBatch()` picks it up.
 ---
+
+## 2026-03-27 - Pervasive `as any` casts in generator-service.ts, generators route, sets route, tokens route, and controller.ts
+- Replaced all `as any` casts with proper types across 5 files (72 total occurrences):
+  - `generator-service.ts`: imported `TokenType`, `Token`, and 11 specific config types from `@tokenmanager/core`; replaced `result.type as any` → `as TokenType`, `result.value as any` → `as Token['$value']`, each `config as any` → the specific config type for that switch case, `(generator as any).type` → `type` (already destructured)
+  - `generators.ts`: imported `GeneratorType`, `GeneratorConfig`, `InputTable`, `TokenGenerator`; replaced casts in create/preview/update
+  - `sets.ts`: imported `TokenGroup`, replaced `tokens as any` → `as TokenGroup | undefined`
+  - `tokens.ts`: added `TokenGroup` to existing import, replaced `t as any` → `as Token`, `body as any` → `as TokenGroup`
+  - `controller.ts`: replaced Figma API `as any` with `as Record<string, unknown>` for dynamic property access/assignment, typed intersections for `boundVariables`, `resize`, `children`, `scopes`, and shadow objects
+- Files changed: `packages/server/src/services/generator-service.ts` ~L1-22, ~L325-500; `packages/server/src/routes/generators.ts` ~L1-100; `packages/server/src/routes/sets.ts` ~L1,L44; `packages/server/src/routes/tokens.ts` ~L2,L160,L226; `packages/figma-plugin/src/plugin/controller.ts` ~L168,L300-314,L361-388,L578-680,L755-810
+- **Learnings for future iterations:**
+  - `config as any` in a switch on `type` should be cast to the specific config type for that case — `GeneratorConfig` is a discriminated union, so each arm knows the concrete type
+  - For Figma SceneNode dynamic property access, `(node as Record<string, unknown>)[prop]` is the right pattern after a `'prop' in node` guard — avoids `as any` while remaining compatible with `Record<string, any>` return values
+  - For Figma methods like `resize()` that exist at runtime but aren't on `SceneNode`, use `node as SceneNode & { resize(w, h): void; width: number; height: number }` — clearer than `as any` and self-documenting
+  - `replace_all: true` in Edit tool does not always catch occurrences with different surrounding whitespace (indentation levels differ between methods in the same file) — verify with grep after
+---

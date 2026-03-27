@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { TOKEN_TYPE_VALUES, type Token } from '@tokenmanager/core';
+import { TOKEN_TYPE_VALUES, type Token, type TokenGroup } from '@tokenmanager/core';
 
 function validateTokenBody(body: unknown): body is Partial<Token> {
   if (typeof body !== 'object' || body === null) return false;
@@ -157,7 +157,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const result = await fastify.tokenStore.batchUpsertTokens(
         set,
-        tokens.map(t => ({ path: t.path, token: t as any })),
+        tokens.map(t => ({ path: t.path, token: t as Token })),
         strategy,
       );
       return result;
@@ -223,7 +223,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'Request body must be a JSON object' });
       }
       try {
-        await fastify.tokenStore.replaceSetTokens(set, body as any);
+        await fastify.tokenStore.replaceSetTokens(set, body as TokenGroup);
         return { set, replaced: true };
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);

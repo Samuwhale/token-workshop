@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import type { GeneratorType, GeneratorConfig, InputTable, TokenGenerator } from '@tokenmanager/core';
 
 interface CreateBody {
   type: string;
@@ -49,14 +50,14 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     }
     try {
       const generator = await fastify.generatorService.create({
-        type: type as any,
+        type: type as GeneratorType,
         sourceToken: sourceToken ?? undefined,
         targetSet,
         targetGroup,
         name: (name || (sourceToken ? `${sourceToken} ${type}` : type)) as string,
-        config: (config ?? {}) as any,
+        config: (config ?? {}) as GeneratorConfig,
         overrides,
-        inputTable: inputTable as any ?? undefined,
+        inputTable: inputTable as InputTable | undefined,
         targetSetTemplate: targetSetTemplate ?? undefined,
       });
       // Run immediately so tokens exist right away
@@ -76,7 +77,10 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'type is required' });
     }
     try {
-      const results = await fastify.generatorService.preview(body as any, fastify.tokenStore);
+      const results = await fastify.generatorService.preview(
+        { ...body, type: body.type as GeneratorType, config: (body.config ?? {}) as GeneratorConfig },
+        fastify.tokenStore,
+      );
       return { count: results.length, tokens: results };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -96,7 +100,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const generator = await fastify.generatorService.update(
         request.params.id,
-        (request.body ?? {}) as any,
+        (request.body ?? {}) as Partial<Omit<TokenGenerator, 'id' | 'createdAt'>>,
       );
       await fastify.generatorService.run(generator.id, fastify.tokenStore);
       return generator;

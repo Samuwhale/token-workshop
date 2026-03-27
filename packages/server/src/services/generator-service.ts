@@ -4,6 +4,19 @@ import { randomUUID } from 'node:crypto';
 import type {
   TokenGenerator,
   GeneratedTokenResult,
+  TokenType,
+  Token,
+  ColorRampConfig,
+  TypeScaleConfig,
+  SpacingScaleConfig,
+  OpacityScaleConfig,
+  BorderRadiusScaleConfig,
+  ZIndexScaleConfig,
+  CustomScaleConfig,
+  AccessibleColorPairConfig,
+  DarkModeInversionConfig,
+  ResponsiveScaleConfig,
+  ContrastCheckConfig,
 } from '@tokenmanager/core';
 import {
   runColorRampGenerator,
@@ -312,8 +325,8 @@ export class GeneratorService {
     try {
       for (const result of results) {
         const token = {
-          $type: result.type as any,
-          $value: result.value as any,
+          $type: result.type as TokenType,
+          $value: result.value as Token['$value'],
           $extensions: extensions,
         };
         const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
@@ -359,8 +372,8 @@ export class GeneratorService {
       try {
         for (const result of results) {
           const token = {
-            $type: result.type as any,
-            $value: result.value as any,
+            $type: result.type as TokenType,
+            $value: result.value as Token['$value'],
             $extensions: extensions,
           };
           const existing = await tokenStore.getToken(effectiveTargetSet, result.path);
@@ -409,7 +422,7 @@ export class GeneratorService {
       case 'colorRamp': {
         const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
         if (!hex) throw new Error(`Source value for colorRamp must be a color string`);
-        results = runColorRampGenerator(hex, config as any, targetGroup);
+        results = runColorRampGenerator(hex, config as ColorRampConfig, targetGroup);
         break;
       }
       case 'typeScale': {
@@ -417,7 +430,7 @@ export class GeneratorService {
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
           throw new Error(`Source value for typeScale must be a dimension value`);
         }
-        results = runTypeScaleGenerator(dim, config as any, targetGroup);
+        results = runTypeScaleGenerator(dim, config as TypeScaleConfig, targetGroup);
         break;
       }
       case 'spacingScale': {
@@ -425,11 +438,11 @@ export class GeneratorService {
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
           throw new Error(`Source value for spacingScale must be a dimension value`);
         }
-        results = runSpacingScaleGenerator(dim, config as any, targetGroup);
+        results = runSpacingScaleGenerator(dim, config as SpacingScaleConfig, targetGroup);
         break;
       }
       case 'opacityScale': {
-        results = runOpacityScaleGenerator(config as any, targetGroup);
+        results = runOpacityScaleGenerator(config as OpacityScaleConfig, targetGroup);
         break;
       }
       case 'borderRadiusScale': {
@@ -437,11 +450,11 @@ export class GeneratorService {
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
           throw new Error(`Source value for borderRadiusScale must be a dimension value`);
         }
-        results = runBorderRadiusScaleGenerator(dim, config as any, targetGroup);
+        results = runBorderRadiusScaleGenerator(dim, config as BorderRadiusScaleConfig, targetGroup);
         break;
       }
       case 'zIndexScale': {
-        results = runZIndexScaleGenerator(config as any, targetGroup);
+        results = runZIndexScaleGenerator(config as ZIndexScaleConfig, targetGroup);
         break;
       }
       case 'customScale': {
@@ -453,19 +466,19 @@ export class GeneratorService {
             base = (resolvedValue as { value: number }).value;
           }
         }
-        results = runCustomScaleGenerator(base, config as any, targetGroup);
+        results = runCustomScaleGenerator(base, config as CustomScaleConfig, targetGroup);
         break;
       }
       case 'accessibleColorPair': {
         const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
         if (!hex) throw new Error(`Source value for accessibleColorPair must be a color string`);
-        results = runAccessibleColorPairGenerator(hex, config as any, targetGroup);
+        results = runAccessibleColorPairGenerator(hex, config as AccessibleColorPairConfig, targetGroup);
         break;
       }
       case 'darkModeInversion': {
         const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
         if (!hex) throw new Error(`Source value for darkModeInversion must be a color string`);
-        results = runDarkModeInversionGenerator(hex, config as any, targetGroup);
+        results = runDarkModeInversionGenerator(hex, config as DarkModeInversionConfig, targetGroup);
         break;
       }
       case 'responsiveScale': {
@@ -473,15 +486,15 @@ export class GeneratorService {
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
           throw new Error(`Source value for responsiveScale must be a dimension value`);
         }
-        results = runResponsiveScaleGenerator(dim, config as any, targetGroup);
+        results = runResponsiveScaleGenerator(dim, config as ResponsiveScaleConfig, targetGroup);
         break;
       }
       case 'contrastCheck': {
-        results = runContrastCheckGenerator(config as any, targetGroup);
+        results = runContrastCheckGenerator(config as ContrastCheckConfig, targetGroup);
         break;
       }
       default:
-        throw new Error(`Unknown generator type: ${(generator as any).type}`);
+        throw new Error(`Unknown generator type: ${type}`);
     }
 
     return applyOverrides(results, generator.overrides);

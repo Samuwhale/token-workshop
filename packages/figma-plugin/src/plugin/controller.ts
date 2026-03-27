@@ -165,7 +165,7 @@ async function applyVariables(tokens: any[]) {
         []
       );
       if (scopeOverrides.length > 0) {
-        (variable as any).scopes = scopeOverrides;
+        (variable as Variable & { scopes: string[] }).scopes = scopeOverrides;
       }
 
       // Store mapping in shared plugin data
@@ -297,7 +297,7 @@ async function scanComponentCoverage() {
     const untokenized: { id: string; name: string; hardcodedCount: number }[] = [];
 
     for (const node of components) {
-      const bound = (node as any).boundVariables || {};
+      const bound = (node as SceneNode & { boundVariables?: Record<string, unknown> }).boundVariables ?? {};
       const boundProps = new Set(Object.keys(bound).filter(k => {
         const v = bound[k];
         return v && (typeof v === 'object') && ('id' in v || (Array.isArray(v) && v.length > 0));
@@ -307,7 +307,7 @@ async function scanComponentCoverage() {
       let hardcodedCount = 0;
       for (const prop of CHECKABLE_PROPS) {
         if (prop in node) {
-          const val = (node as any)[prop];
+          const val = (node as Record<string, unknown>)[prop];
           const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
           if (hasValue && !boundProps.has(prop)) hardcodedCount++;
         }
@@ -358,7 +358,7 @@ async function scanCanvasHeatmap() {
 
     for (const node of nodes) {
       // Figma variable bindings
-      const figmaBound = (node as any).boundVariables || {};
+      const figmaBound = (node as SceneNode & { boundVariables?: Record<string, unknown> }).boundVariables ?? {};
       const figmaBoundProps = new Set<string>(
         Object.keys(figmaBound).filter(k => {
           const v = figmaBound[k];
@@ -378,7 +378,7 @@ async function scanCanvasHeatmap() {
       let figmaBoundMatchCount = 0;
       for (const prop of CHECKABLE_FIGMA_PROPS) {
         if (prop in node) {
-          const val = (node as any)[prop];
+          const val = (node as Record<string, unknown>)[prop];
           const hasValue = Array.isArray(val) ? val.length > 0 : val !== undefined && val !== null;
           if (hasValue) {
             totalCheckable++;
@@ -575,10 +575,10 @@ async function applyTokenValue(node: SceneNode, property: string, value: any, to
             strokeNode.strokes = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
           }
           if ('strokeWeight' in node && value.width != null) {
-            (node as any).strokeWeight = parseDimValue(value.width);
+            (node as Record<string, unknown>)['strokeWeight'] = parseDimValue(value.width);
           }
           if ('dashPattern' in node && value.style === 'dashed') {
-            (node as any).dashPattern = [8, 8];
+            (node as Record<string, unknown>)['dashPattern'] = [8, 8];
           }
         } else {
           const color = parseColor(typeof value === 'string' ? value : value?.color || value);
@@ -592,46 +592,48 @@ async function applyTokenValue(node: SceneNode, property: string, value: any, to
     case 'width':
       if ('resize' in node) {
         const w = parseDimValue(value);
-        (node as any).resize(w, (node as any).height);
+        const resizableW = node as SceneNode & { resize(w: number, h: number): void; height: number };
+        resizableW.resize(w, resizableW.height);
       }
       break;
 
     case 'height':
       if ('resize' in node) {
         const h = parseDimValue(value);
-        (node as any).resize((node as any).width, h);
+        const resizableH = node as SceneNode & { resize(w: number, h: number): void; width: number };
+        resizableH.resize(resizableH.width, h);
       }
       break;
 
     case 'paddingTop':
-      if ('paddingTop' in node) (node as any).paddingTop = parseDimValue(value);
+      if ('paddingTop' in node) (node as Record<string, unknown>)['paddingTop'] = parseDimValue(value);
       break;
     case 'paddingRight':
-      if ('paddingRight' in node) (node as any).paddingRight = parseDimValue(value);
+      if ('paddingRight' in node) (node as Record<string, unknown>)['paddingRight'] = parseDimValue(value);
       break;
     case 'paddingBottom':
-      if ('paddingBottom' in node) (node as any).paddingBottom = parseDimValue(value);
+      if ('paddingBottom' in node) (node as Record<string, unknown>)['paddingBottom'] = parseDimValue(value);
       break;
     case 'paddingLeft':
-      if ('paddingLeft' in node) (node as any).paddingLeft = parseDimValue(value);
+      if ('paddingLeft' in node) (node as Record<string, unknown>)['paddingLeft'] = parseDimValue(value);
       break;
 
     case 'itemSpacing':
-      if ('itemSpacing' in node) (node as any).itemSpacing = parseDimValue(value);
+      if ('itemSpacing' in node) (node as Record<string, unknown>)['itemSpacing'] = parseDimValue(value);
       break;
 
     case 'cornerRadius':
-      if ('cornerRadius' in node) (node as any).cornerRadius = parseDimValue(value);
+      if ('cornerRadius' in node) (node as Record<string, unknown>)['cornerRadius'] = parseDimValue(value);
       break;
 
     case 'strokeWeight':
-      if ('strokeWeight' in node) (node as any).strokeWeight = parseDimValue(value);
+      if ('strokeWeight' in node) (node as Record<string, unknown>)['strokeWeight'] = parseDimValue(value);
       break;
 
     case 'opacity':
       if ('opacity' in node) {
         const num = typeof value === 'number' ? value : parseFloat(value);
-        if (!isNaN(num)) (node as any).opacity = Math.max(0, Math.min(1, num));
+        if (!isNaN(num)) (node as Record<string, unknown>)['opacity'] = Math.max(0, Math.min(1, num));
       }
       break;
 
@@ -664,14 +666,14 @@ async function applyTokenValue(node: SceneNode, property: string, value: any, to
     case 'shadow':
       if ('effects' in node) {
         const shadows = Array.isArray(value) ? value : [value];
-        (node as any).effects = shadows.map((s: any) => {
-          const color = parseColor(s.color);
+        (node as Record<string, unknown>)['effects'] = shadows.map((s: Record<string, unknown>) => {
+          const color = parseColor(s['color']);
           return {
-            type: s.type === 'innerShadow' ? 'INNER_SHADOW' : 'DROP_SHADOW',
+            type: s['type'] === 'innerShadow' ? 'INNER_SHADOW' : 'DROP_SHADOW',
             color: color ? { ...color.rgb, a: color.a } : { r: 0, g: 0, b: 0, a: 0.25 },
-            offset: { x: parseDimValue(s.offsetX), y: parseDimValue(s.offsetY) },
-            radius: parseDimValue(s.blur),
-            spread: parseDimValue(s.spread),
+            offset: { x: parseDimValue(s['offsetX']), y: parseDimValue(s['offsetY']) },
+            radius: parseDimValue(s['blur']),
+            spread: parseDimValue(s['spread']),
             visible: true,
             blendMode: 'NORMAL',
           } as DropShadowEffect;
@@ -754,30 +756,31 @@ function getNodeCapabilities(node: SceneNode) {
 function readCurrentValues(node: SceneNode): Record<string, any> {
   const values: Record<string, any> = {};
 
+  const n = node as Record<string, unknown>;
   if ('fills' in node) {
-    const fills = (node as any).fills;
+    const fills = n['fills'];
     if (Array.isArray(fills) && fills.length > 0 && fills[0].type === 'SOLID') {
       values.fill = rgbToHex(fills[0].color, fills[0].opacity ?? 1);
     }
   }
   if ('strokes' in node) {
-    const strokes = (node as any).strokes;
+    const strokes = n['strokes'];
     if (Array.isArray(strokes) && strokes.length > 0 && strokes[0].type === 'SOLID') {
       values.stroke = rgbToHex(strokes[0].color, strokes[0].opacity ?? 1);
     }
   }
-  if ('width' in node) values.width = (node as any).width;
-  if ('height' in node) values.height = (node as any).height;
-  if ('opacity' in node) values.opacity = (node as any).opacity;
-  if ('cornerRadius' in node) values.cornerRadius = (node as any).cornerRadius;
-  if ('strokeWeight' in node) values.strokeWeight = (node as any).strokeWeight;
+  if ('width' in node) values.width = n['width'];
+  if ('height' in node) values.height = n['height'];
+  if ('opacity' in node) values.opacity = n['opacity'];
+  if ('cornerRadius' in node) values.cornerRadius = n['cornerRadius'];
+  if ('strokeWeight' in node) values.strokeWeight = n['strokeWeight'];
   if ('paddingTop' in node) {
-    values.paddingTop = (node as any).paddingTop;
-    values.paddingRight = (node as any).paddingRight;
-    values.paddingBottom = (node as any).paddingBottom;
-    values.paddingLeft = (node as any).paddingLeft;
+    values.paddingTop = n['paddingTop'];
+    values.paddingRight = n['paddingRight'];
+    values.paddingBottom = n['paddingBottom'];
+    values.paddingLeft = n['paddingLeft'];
   }
-  if ('itemSpacing' in node) values.itemSpacing = (node as any).itemSpacing;
+  if ('itemSpacing' in node) values.itemSpacing = n['itemSpacing'];
   if ('visible' in node) values.visible = node.visible;
 
   return values;
@@ -801,7 +804,7 @@ function readNodeBindings(node: SceneNode): Record<string, string> {
 function collectDescendantsWithBindings(node: SceneNode, depth: number): ReturnType<typeof getSelection extends (...args: any) => Promise<infer R> ? never : never>[] {
   const results: any[] = [];
   if (!('children' in node)) return results;
-  for (const child of (node as any).children as SceneNode[]) {
+  for (const child of (node as SceneNode & { children: readonly SceneNode[] }).children) {
     const bindings = readNodeBindings(child);
     if (Object.keys(bindings).length > 0) {
       results.push({
