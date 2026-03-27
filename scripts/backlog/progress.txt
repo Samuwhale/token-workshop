@@ -342,3 +342,10 @@
 - **Learnings for future iterations:**
   - Check git log before starting — items may already be resolved by prior sessions.
 ---
+
+## 2026-03-27 - moveToken silently overwrites target
+- Already implemented in commit f864124: `moveToken` now calls `pathExistsAt` before writing and throws if target path exists.
+- Files changed: `packages/server/src/services/token-store.ts` ~L881
+- **Learnings for future iterations:**
+  - Check git log before starting — item may already be done from a prior session.
+---

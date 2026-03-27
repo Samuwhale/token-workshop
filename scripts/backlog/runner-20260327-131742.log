@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: [HIGH] `moveToken` silently overwrites target — `moveToken` (token-store.ts:785) calls `setTokenAtPath` without checking if a token already exists at that path in the target set; if one does, it is silently overwritten with no error or warning
   Worktree: /tmp/backlog-44348-OgcKZI
+
+  ✓ done: moveToken silently overwrites target
+    stale — already done in commit f864124; moveToken now checks pathExistsAt and throws if target exists
+    5 turns · 26s · $0.16
+
+--- Merging: moveToken silently overwrites target ---
+Already up to date.

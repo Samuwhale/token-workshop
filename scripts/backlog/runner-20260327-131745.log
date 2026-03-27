@@ -40,3 +40,17 @@ Current branch main is up to date.
 
 --- Merging: deleteTokensByGeneratorId emits no SSE change event ---
 Already up to date.
+[main ef7a708] chore(backlog): done – deleteTokensByGeneratorId emits no SSE change event
+ 5 files changed, 30 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - deleteTokensByGeneratorId emits no SSE change event
+- Already fixed in commit 6390bf6. Lines 586-591 of `token-store.ts` emit `token-updated` for each affected set after bulk deletion.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  15 items remaining
+===============================================================
+  Claimed: [HIGH] `bulkRename` mutates in-memory tree before `beginBatch`/`saveSet` — token-store.ts:879-884 applies `setTokenAtPath`/`deleteTokenAtPath` before L886 `beginBatch()` and L888 `saveSet()`; if `saveSet` throws, the in-memory tree is mutated but the disk file still has old paths, leaving the store in an inconsistent state
+  Worktree: /tmp/backlog-44614-U20jUq
