@@ -328,3 +328,12 @@
 - Files changed: `packages/figma-plugin/src/ui/components/ConfirmModal.tsx` ~L80
 - **User impact:** Users no longer see an unresponsive-looking "…" during destructive confirmations (deletes, overwrites). The spinner + action label clearly communicates that work is in progress.
 ---
+
+## 2026-03-27 - ImportPanel `executeImport` sends tokens one at a time in a sequential `for` loop
+- Added `POST /api/tokens/:set/batch` server route and `batchUpsertTokens` method to `TokenStore` that processes all tokens in one pass: sets tokens via `setTokenAtPath`, calls `saveSet` once, and defers `rebuildFlatTokens` using `beginBatch`/`endBatch`. Updated `ImportPanel.executeImport` to send a single batch request instead of N sequential POSTs/PATCHes.
+- Files changed: `packages/server/src/services/token-store.ts` ~L356; `packages/server/src/routes/tokens.ts` ~L136; `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L283
+- **Learnings for future iterations:**
+  - `beginBatch`/`endBatch` in `TokenStore` defers `rebuildFlatTokens` — use them whenever looping over `createToken`/`updateToken` to reduce rebuild overhead to one.
+  - Batch routes must be registered BEFORE wildcard routes (e.g., `/tokens/:set/batch` before `/tokens/:set/*`) — Fastify matches in registration order.
+  - The batch endpoint handles skip/overwrite strategy server-side, so the client gets one response with `{ imported, skipped }` counts.
+---

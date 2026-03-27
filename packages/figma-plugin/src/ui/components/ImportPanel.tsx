@@ -6,6 +6,7 @@ interface ImportPanelProps {
   serverUrl: string;
   connected: boolean;
   onImported: () => void;
+  onImportComplete: (targetSet: string) => void;
 }
 
 interface ImportToken {
@@ -40,7 +41,7 @@ function modeKey(collectionName: string, modeId: string) {
   return `${collectionName}|${modeId}`;
 }
 
-export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelProps) {
+export function ImportPanel({ serverUrl, connected, onImported, onImportComplete }: ImportPanelProps) {
   // Variables import state
   const [collectionData, setCollectionData] = useState<CollectionData[]>([]);
   const [modeSetNames, setModeSetNames] = useState<Record<string, string>>({});
@@ -218,6 +219,8 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
 
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''}` } }, '*');
       onImported();
+      const firstSet = allModes[0]?.setName ?? '';
+      if (firstSet) onImportComplete(firstSet);
       setCollectionData([]);
       setSource(null);
       setSuccessMessage(`Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''}`);
@@ -280,30 +283,24 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
         throw new Error(`Failed to create set "${targetSet}": ${setRes.statusText}`);
       }
 
-      let imported = 0;
-      for (const token of tokensToImport) {
-        const res = await fetch(`${serverUrl}/api/tokens/${targetSet}/${token.path}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ $type: token.$type, $value: token.$value }),
-        });
-        if (res.status === 409) {
-          if (strategy === 'overwrite') {
-            await fetch(`${serverUrl}/api/tokens/${targetSet}/${token.path}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $type: token.$type, $value: token.$value }),
-            });
-            imported++;
-          }
-        } else {
-          imported++;
-        }
-        setImportProgress({ done: imported, total: tokensToImport.length });
+      const batchRes = await fetch(`${serverUrl}/api/tokens/${targetSet}/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tokens: tokensToImport.map(t => ({ path: t.path, $type: t.$type, $value: t.$value })),
+          strategy,
+        }),
+      });
+      if (!batchRes.ok) {
+        const errBody = await batchRes.json().catch(() => ({ error: batchRes.statusText }));
+        throw new Error(`Import failed: ${(errBody as { error?: string }).error ?? batchRes.statusText}`);
       }
+      const { imported } = await batchRes.json() as { imported: number; skipped: number };
+      setImportProgress({ done: tokensToImport.length, total: tokensToImport.length });
 
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Imported ${imported} tokens to "${targetSet}"` } }, '*');
       onImported();
+      onImportComplete(targetSet);
       setTokens([]);
       setSource(null);
       setSuccessMessage(`Imported ${imported} token${imported !== 1 ? 's' : ''} to "${targetSet}"`);

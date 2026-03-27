@@ -476,6 +476,10 @@ export class GeneratorService {
         results = runResponsiveScaleGenerator(dim, config as any, targetGroup);
         break;
       }
+      case 'contrastCheck': {
+        results = runContrastCheckGenerator(config as any, targetGroup);
+        break;
+      }
       default:
         throw new Error(`Unknown generator type: ${(generator as any).type}`);
     }
