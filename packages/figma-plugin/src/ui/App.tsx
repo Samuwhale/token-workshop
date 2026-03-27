@@ -358,7 +358,7 @@ export function App() {
   const [splitLoading, setSplitLoading] = useState(false);
 
   // Group sync + scope state
-  const { syncGroupPending, setSyncGroupPending, syncGroupStylesPending, setSyncGroupStylesPending, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, handleSyncGroup, handleSyncGroupStyles, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
+  const { syncGroupPending, setSyncGroupPending, syncGroupStylesPending, setSyncGroupStylesPending, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
 
   // Rename state
   const [renamingSet, setRenamingSet] = useState<string | null>(null);
@@ -2541,7 +2541,7 @@ export function App() {
                 onClick={handleApplyGroupScopes}
                 disabled={groupScopesApplying}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
-              >{groupScopesApplying ? 'Applying…' : 'Apply to group'}</button>
+              >{groupScopesApplying ? (groupScopesProgress && groupScopesProgress.total > 0 ? `Applying… ${groupScopesProgress.done}/${groupScopesProgress.total}` : 'Applying…') : 'Apply to group'}</button>
             </div>
           </div>
         </div>

@@ -433,3 +433,11 @@
 - **Learnings for future iterations:**
   - When conditional rendering uses `!loading && ...` guards, the loading state itself leaves the content area empty. Always add an explicit `{loading && <spinner>}` block to fill that gap.
 ---
+
+## 2026-03-27 - handleApplyGroupScopes sends one PATCH request per token with no batching or progress indicator
+- Replaced flat `Promise.all` with a batched loop (batch size 5). Added `groupScopesProgress: { done, total }` state. Button label updates to "Applying… 3/10" as batches complete, falling back to plain "Applying…" until `total` is known.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L17 (state), ~L62 (handler), ~L118 (return); `packages/figma-plugin/src/ui/App.tsx` ~L361 (destructure), ~L2544 (button label)
+- **Learnings for future iterations:**
+  - Sequential batched `await` loop with `setGroupScopesProgress` after each batch gives smooth incremental feedback without flooding the server.
+  - Clear progress state in `finally` so the button resets cleanly on both success and error.
+---

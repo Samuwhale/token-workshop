@@ -15,6 +15,7 @@ export function useFigmaSync(
   const [groupScopesPath, setGroupScopesPath] = useState<string | null>(null);
   const [groupScopesSelected, setGroupScopesSelected] = useState<string[]>([]);
   const [groupScopesApplying, setGroupScopesApplying] = useState(false);
+  const [groupScopesProgress, setGroupScopesProgress] = useState<{ done: number; total: number } | null>(null);
 
   const handleSyncGroup = useCallback(async () => {
     if (!syncGroupPending || !connected) return;
@@ -61,23 +62,20 @@ export function useFigmaSync(
   const handleApplyGroupScopes = useCallback(async () => {
     if (!groupScopesPath || !connected) return;
     setGroupScopesApplying(true);
+    setGroupScopesProgress(null);
     try {
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Failed to fetch tokens');
       const data = await res.json();
       const prefix = groupScopesPath + '.';
-      const patchPromises: Promise<any>[] = [];
+      const tokenPaths: string[] = [];
       const walk = (group: Record<string, any>, p: string) => {
         for (const [key, val] of Object.entries(group)) {
           if (key.startsWith('$')) continue;
           const path = p ? `${p}.${key}` : key;
           if (val && typeof val === 'object' && '$value' in val) {
             if (path === groupScopesPath || path.startsWith(prefix)) {
-              patchPromises.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ $extensions: { 'com.figma.scopes': groupScopesSelected } }),
-              }));
+              tokenPaths.push(path);
             }
           } else if (val && typeof val === 'object') {
             walk(val, path);
@@ -85,13 +83,29 @@ export function useFigmaSync(
         }
       };
       walk(data.tokens || {}, '');
-      await Promise.all(patchPromises);
+      const total = tokenPaths.length;
+      const BATCH_SIZE = 5;
+      let done = 0;
+      setGroupScopesProgress({ done: 0, total });
+      for (let i = 0; i < tokenPaths.length; i += BATCH_SIZE) {
+        const batch = tokenPaths.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(path =>
+          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $extensions: { 'com.figma.scopes': groupScopesSelected } }),
+          })
+        ));
+        done += batch.length;
+        setGroupScopesProgress({ done, total });
+      }
       setGroupScopesPath(null);
       setGroupScopesSelected([]);
     } catch (err) {
       console.error('Failed to apply group scopes:', err);
     } finally {
       setGroupScopesApplying(false);
+      setGroupScopesProgress(null);
     }
   }, [groupScopesPath, groupScopesSelected, connected, serverUrl, activeSet]);
 
@@ -105,6 +119,7 @@ export function useFigmaSync(
     groupScopesSelected,
     setGroupScopesSelected,
     groupScopesApplying,
+    groupScopesProgress,
     handleSyncGroup,
     handleSyncGroupStyles,
     handleApplyGroupScopes,

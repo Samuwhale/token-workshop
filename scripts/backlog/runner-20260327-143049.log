@@ -252,3 +252,16 @@ Already up to date.
 
 --- Merging: Component coverage analysis has no progress indicator — scanning runs with no feedback until results appear ---
 Already up to date.
+[main a61987a] chore(backlog): done – Component coverage analysis has no progress indicator — scanning runs with no feedback until results appear
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - Component coverage analysis has no progress indicator
+- Added a spinner + "Scanning components…" text in the card body when `coverageLoading` is true. Previously the card body was empty during the scan since all three content blocks required `!coverageLoading`. Now an `animate-spin` SVG loader appears immediately on click, giving clear feedback while the scan runs.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L990
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  41 items remaining
+===============================================================
+  Claimed: No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
+  Worktree: /tmp/backlog-97510-RJ1oIM

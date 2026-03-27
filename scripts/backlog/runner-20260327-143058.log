@@ -294,3 +294,10 @@ Already up to date.
 ===============================================================
   Claimed: `handleApplyGroupScopes` sends one PATCH request per token in `Promise.all` with no batching — for groups with many tokens this is slow with no progress indicator
   Worktree: /tmp/backlog-98408-UkCDTN
+
+  ✓ done: handleApplyGroupScopes sends one PATCH request per token in Promise.all with no batching — for groups with many tokens this is slow with no progress indicator
+    Replaced flat Promise.all with a batched loop (5 at a time) and added groupScopesProgress state; button now shows "Applying… 3/10" as batches complete
+    15 turns · 75s · $0.28
+
+--- Merging: handleApplyGroupScopes sends one PATCH request per token in Promise.all with no batching — for groups with many tokens this is slow with no progress indicator ---
+Already up to date.
