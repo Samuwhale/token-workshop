@@ -225,6 +225,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setError(null);
     let importedSets = 0;
     let importedTokens = 0;
+    let failedTokens = 0;
     try {
       const allModes = collectionData.flatMap(col =>
         col.modes
@@ -246,24 +247,34 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
 
         // Import tokens
         for (const token of mode.tokens) {
-          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${token.path}`, {
+          const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${token.path}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: token.$type, $value: token.$value }),
-          }).catch(() => {});
+          }).catch(() => null);
+          if (res && res.ok) {
+            importedTokens++;
+          } else {
+            failedTokens++;
+          }
         }
-        importedTokens += mode.tokens.length;
         importedSets++;
         setImportProgress({ done: importedSets, total: allModes.length });
       }
 
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''}` } }, '*');
+      const notifyMsg = failedTokens > 0
+        ? `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''} (${failedTokens} failed)`
+        : `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
+      parent.postMessage({ pluginMessage: { type: 'notify', message: notifyMsg } }, '*');
       onImported();
       const firstSet = allModes[0]?.setName ?? '';
       if (firstSet) onImportComplete(firstSet);
       setCollectionData([]);
       setSource(null);
-      setSuccessMessage(`Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''}`);
+      const successMsg = failedTokens > 0
+        ? `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''} — ${failedTokens} token${failedTokens !== 1 ? 's' : ''} could not be saved`
+        : `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
+      setSuccessMessage(successMsg);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {

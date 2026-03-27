@@ -129,7 +129,7 @@ Items spotted during UX passes but out of scope for that session.
 
 - [x] `POST /api/export` group filter silently returns empty when path matches nothing — if `group` doesn't exist in any set, `tokenData` becomes `{}` and export runs with empty data producing zero-byte output files with no error or warning (`server/routes/export.ts:48-65`)
 - [x] `POST /api/export` group filter splits on `.` but token segment names can contain literal dots — `group="spacing.1.5"` navigates `spacing → 1 → 5` instead of `spacing → 1.5`, silently returning empty results (`server/routes/export.ts:49`)
-- [ ] SSE `/events` onChange callback has no try/catch — if `JSON.stringify(event)` throws or `reply.raw.write()` errors on a broken socket, the uncaught exception propagates up with no cleanup (`server/routes/sse.ts:15-16`)
+- [x] SSE `/events` onChange callback has no try/catch — if `JSON.stringify(event)` throws or `reply.raw.write()` errors on a broken socket, the uncaught exception propagates up with no cleanup (`server/routes/sse.ts:15-16`)
 - [ ] SSE `/events` race condition: a token change event can fire between the `close` event firing and `unsubscribe()` executing, calling `reply.raw.write()` on an already-ended stream (`server/routes/sse.ts:24-28`)
 - [ ] `POST /api/sync/push` doesn't check whether a remote is configured before attempting push — git error from missing remote is wrapped in a generic "Failed to push" 500 with no actionable message (`server/routes/sync.ts:65-73`)
 - [ ] `POST /api/sync/remote` accepts any string as the remote URL with no format validation — an invalid value is passed directly to git, producing an unhelpful error message wrapped in a generic 500 (`server/routes/sync.ts:104-116`)
@@ -163,3 +163,8 @@ Items spotted during UX passes but out of scope for that session.
 - [ ] `syncBindings` with scope `'selection'` only syncs directly selected nodes, not their children — `controller.ts:1183-1186`: selecting a frame with bound child layers and pressing "Sync Selection" silently skips those children; `remapBindings` correctly recurses into descendants for the same scope, creating inconsistent behavior.
 - [ ] Bind search is capped at 12 results with no overflow indicator — `SelectionInspector.tsx:679`: `bindCandidates.slice(0, 12)` silently truncates the token list; users with large sets see only 12 candidates with no count shown and no prompt to refine the search query.
 - [ ] `openBindFromProp` uses `lastIndexOf('.')` to derive the parent group for pre-filling the bind search — `SelectionInspector.tsx:305`: breaks for segment names containing literal dots (e.g. binding `spacing.1.5` computes parent as `spacing.1` instead of `spacing`); use `nodeParentPath(binding, leafSegment)` from `tokenListUtils.ts` instead.
+
+- [ ] TokenList: delete fails silently — if DELETE request fails the token is already removed from the UI; no error is shown and the stale state persists until next refresh
+- [ ] ImportPanel: unhandled fetch failure when loading set list — `.catch(() => {})` means the set dropdown silently shows nothing if the API is unreachable
+- [ ] PublishPanel: generic "An unexpected error occurred" errors give no context about which operation failed or why — include the HTTP status or operation name
+- [ ] SyncPanel: readiness check timeout has no user messaging — if plugin fails to respond the spinner runs indefinitely with no "try reloading" hint

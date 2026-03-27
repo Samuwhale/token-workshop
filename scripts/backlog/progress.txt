@@ -432,3 +432,11 @@
 - **Learnings for future iterations:**
   - Any API that navigates DTCG group paths should accept `string[]` (segment array), not a dot-delimited string, to avoid ambiguity with segment names like `"1.5"`.
 ---
+
+## 2026-03-27 - SSE `/events` onChange callback has no try/catch
+- Wrapped the `onChange` callback body and keepAlive `write` in try/catch. On error, logs a warning via `fastify.log.warn` and calls a shared `cleanup()` function (unsubscribe + clearInterval + end). The `close` handler now also calls `cleanup()` instead of duplicating the teardown logic.
+- Files changed: `packages/server/src/routes/sse.ts` ~L15
+- **Learnings for future iterations:**
+  - SSE cleanup (unsubscribe + clearInterval + reply.raw.end) must be idempotent-safe — define a single `cleanup` fn and call it from both the `close` event and error paths.
+  - `cleanup` can safely reference `const unsubscribe`/`keepAlive` declared after it, as long as it's only *called* after those are initialized (TDZ safe for deferred calls).
+---

@@ -12,19 +12,33 @@ export const sseRoutes: FastifyPluginAsync = async (fastify) => {
     // Send initial connection event
     reply.raw.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
+    const cleanup = () => {
+      unsubscribe();
+      clearInterval(keepAlive);
+      reply.raw.end();
+    };
+
     const unsubscribe = fastify.tokenStore.onChange((event) => {
-      reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+      try {
+        reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
+      } catch (err) {
+        fastify.log.warn({ err }, 'SSE write failed; closing connection');
+        cleanup();
+      }
     });
 
     // Keep alive ping every 15 seconds
     const keepAlive = setInterval(() => {
-      reply.raw.write(': keepalive\n\n');
+      try {
+        reply.raw.write(': keepalive\n\n');
+      } catch (err) {
+        fastify.log.warn({ err }, 'SSE keepalive write failed; closing connection');
+        cleanup();
+      }
     }, 15000);
 
     request.raw.on('close', () => {
-      unsubscribe();
-      clearInterval(keepAlive);
-      reply.raw.end();
+      cleanup();
     });
   });
 };
