@@ -290,3 +290,11 @@
 - Files changed: `packages/server/src/routes/tokens.ts` ~L173, ~L259, ~L283, ~L316, ~L343
 - **Root cause:** Two URL-construction conventions coexisted in the client — some handlers used raw dot-separated paths, others (inline save, promote-to-alias) used per-segment `encodeURIComponent` joined with `/`. The server never normalized between them.
 ---
+
+## 2026-03-27 - Broken alias reference warning in editor
+- Added an inline warning paragraph "Reference does not resolve — token not found" in red directly below the alias input field when the typed `{path}` is a complete reference but the path doesn't exist in `allTokensFlat`. The warning only appears when `aliasMode` is true, the reference is a well-formed `{...}` token path, and the last hop in `resolveAliasChain` has `value === undefined`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L560
+- **Learnings for future iterations:**
+  - `resolveAliasChain` returns `[{ path, value: undefined, type: 'unknown' }]` (not empty array) for missing paths — `chain.length === 0` only occurs on circular references. So the not-found check is `chain[chain.length - 1].value === undefined`.
+  - The existing "Resolves to" box already showed a tiny "not found" label for broken refs (line 585-587). The new warning is a more prominent paragraph immediately below the input field, shown before the chain box.
+---

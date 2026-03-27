@@ -558,6 +558,12 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                 Type <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">{'{'}</code> to search and select a token
               </p>
             )}
+            {!showAutocomplete && reference.startsWith('{') && reference.endsWith('}') && (() => {
+              const chain = resolveAliasChain(reference, allTokensFlat);
+              return chain.length > 0 && chain[chain.length - 1].value === undefined ? (
+                <p className="mt-0.5 text-[9px] text-[var(--color-figma-error)]">Reference does not resolve — token not found</p>
+              ) : null;
+            })()}
             </>
           )}
           {aliasMode && reference.startsWith('{') && reference.endsWith('}') && (() => {

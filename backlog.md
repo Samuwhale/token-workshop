@@ -108,7 +108,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] Delete non-empty group — the group context menu only allows deleting empty groups; deleting a group with tokens inside requires deleting each token individually or editing the JSON file directly; should offer "Delete group and all contained tokens" with a confirmation showing the count (`TokenList.tsx` group context menu)
 
-- [ ] Broken alias reference warning in editor — the token editor accepts any `{path}` string without validating whether it resolves; broken references are only surfaced in AnalyticsPanel/lint, not at the point of entry; editor should show an inline warning "Reference does not resolve" when the typed path doesn't match any token (`figma-plugin/TokenEditor.tsx`, alias input)
+- [x] Broken alias reference warning in editor — the token editor accepts any `{path}` string without validating whether it resolves; broken references are only surfaced in AnalyticsPanel/lint, not at the point of entry; editor should show an inline warning "Reference does not resolve" when the typed path doesn't match any token (`figma-plugin/TokenEditor.tsx`, alias input)
 
 - [ ] Circular alias reference detection — creating a cycle (token A references B which references A) is not caught at edit time; the resolver silently returns unresolved and lint picks it up later; the editor should detect and block cycles immediately (`core/resolver.ts`, `figma-plugin/TokenEditor.tsx`)
 
