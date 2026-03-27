@@ -430,3 +430,11 @@
   - Reading `disconnectControllerRef.current.signal` at the CALL SITE (via a `getDisconnectSignal()` getter) rather than capturing it in a closure avoids stale-signal issues between React renders.
   - The 5-second health-check poll means users can be stuck for up to 5 s before the disconnect banner appears. `markDisconnected()` bridges this gap for synchronous error paths; the getter + `AbortSignal.any` bridges it for the fetch timeout path.
 ---
+
+## 2026-03-27 - Find-and-replace clears UI state even on failure
+- Added a `data.renamed === 0` guard after the `!res.ok` check in `handleFindReplace`. When the server returns HTTP 200 but renamed 0 tokens (e.g. all matches conflicted with existing paths), the function now sets a descriptive error and returns early instead of closing the dialog and clearing the find/replace/regex fields.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1587
+- **Learnings for future iterations:**
+  - HTTP 200 from `bulk-rename` does not mean tokens were actually changed — server returns `{ renamed: N, skipped: [...] }`. Always check `renamed` before treating the response as a success.
+  - The `!res.ok` guard only catches HTTP-level failures. Semantic failures (nothing changed) need a separate check on the response body.
+---

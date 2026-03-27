@@ -27,7 +27,7 @@
 ### UX
 
 - [x] Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
-- [~] Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt
+- [x] Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt
 - [x] Tab badges disappear when overflow panel is open — Inspect selection count and Publish git-changes badges are hidden whenever any overflow panel is visible, losing important status signals
 
 ---
@@ -48,7 +48,7 @@
 - [x] BatchEditor doesn't return focus to an input field after a successful operation — breaks workflow when performing multiple sequential edits
 - [x] ColorPicker eyedropper button has no active/success state indicator — users can't tell if their click activated the picker or if they need to retry
 - [~] No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
-- [ ] Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
+- [~] Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
 - [ ] Context menu disabled in select mode — right-clicking while checkboxes are visible returns early; users lose copy/rename/delete for individual tokens
 - [ ] Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
 - [ ] Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown

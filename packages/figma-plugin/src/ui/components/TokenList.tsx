@@ -1600,6 +1600,13 @@ export function TokenList({
       });
       const data = await res.json() as { renamed?: number; skipped?: string[]; aliasesUpdated?: number; error?: string };
       if (!res.ok) { setFrError(data.error ?? 'Rename failed'); return; }
+      if ((data.renamed ?? 0) === 0) {
+        const skippedCount = data.skipped?.length ?? 0;
+        setFrError(skippedCount > 0
+          ? `All ${skippedCount} match${skippedCount === 1 ? '' : 'es'} conflict with existing tokens and were skipped`
+          : 'No token paths matched the search pattern');
+        return;
+      }
       // Push undo for plain-text renames with a non-empty replacement string.
       // Regex and empty-replacement cases can't be automatically inverted safely.
       if (onPushUndo && renamedCount > 0 && !capturedIsRegex && capturedReplace !== '') {

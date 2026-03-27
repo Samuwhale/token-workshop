@@ -40,3 +40,16 @@ Already up to date.
 
 --- Merging: Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt ---
 Already up to date.
+[main b4ad562] chore(backlog): done – Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt
+ 8 files changed, 149 insertions(+), 95 deletions(-)
+
+## 2026-03-27 - Connection-drop mid-operation has no recovery
+- Added `markDisconnected()` to `useServerConnection.ts`: immediately flips `connected` to `false`, fires the disconnect AbortController, and triggers an immediate health re-check — so the existing reconnect banner appears at once rather than waiting up to 5 s for the next health poll.
+- Added `getDisconnectSignal()` getter: returns the current `AbortController.signal` for the active connection; callers combine it with `AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()])` so in-flight fetches are cancelled the moment the health poll detects a drop.
+- Health poll now tracks a `prevConnected` flag and calls `fireDisconnect()` on the false → false transition so in-flight requests are aborted when the poller itself detects the outage.
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  80 items remaining
+===============================================================
+  Claimed: Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
+  Worktree: /tmp/backlog-97510-Evl0eO

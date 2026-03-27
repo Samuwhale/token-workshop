@@ -50,3 +50,10 @@ Already up to date.
 ===============================================================
   Claimed: Find-and-replace clears UI state even on failure — after a failed bulk rename the search/replace fields and mode are reset, losing the user's parameters
   Worktree: /tmp/backlog-98901-2uJltF
+
+  ✓ done: Find-and-replace clears UI state even on failure
+    Added renamed===0 guard after !res.ok check; when server returns HTTP 200 but renames nothing (all conflicts/skipped), dialog now shows error and preserves find/replace/regex fields instead of closing and clearing them
+    22 turns · 316s · $0.79
+
+--- Merging: Find-and-replace clears UI state even on failure ---
+Already up to date.
