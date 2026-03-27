@@ -169,3 +169,10 @@
 - **Learnings for future iterations:**
   - Disabled buttons should always have a `title` tooltip explaining why they're disabled — this is low-cost and high-value UX.
 ---
+
+## 2026-03-27 - ConfirmModal error display doesn't handle long error text
+- Added `break-words` for word wrapping, and `max-h-[80px] overflow-y-auto` so verbose error messages scroll instead of overflowing the fixed-width (240px) modal.
+- Files changed: `packages/figma-plugin/src/ui/components/ConfirmModal.tsx` ~L71
+- **Learnings for future iterations:**
+  - Core package `tsc` fails with circular type errors; use `tsc --noCheck` to emit JS/declarations, then the plugin build succeeds.
+---

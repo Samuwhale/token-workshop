@@ -39,3 +39,10 @@ Already up to date.
 ===============================================================
   Claimed: ConfirmModal error display doesn't handle long error text — single-line `<p>` with no wrapping or scroll for verbose errors
   Worktree: /tmp/backlog-7333-x4ydms
+
+  ✓ done: ConfirmModal error display doesn't handle long error text
+    Added break-words, max-h-[80px], and overflow-y-auto to the error <p> in ConfirmModal so long error text wraps and scrolls within the 240px modal.
+    43 turns · 170s · $1.02
+
+--- Merging: ConfirmModal error display doesn't handle long error text ---
+Already up to date.

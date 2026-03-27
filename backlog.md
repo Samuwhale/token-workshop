@@ -125,7 +125,7 @@ Items spotted during UX passes but out of scope for that session.
 - [~] SyncPanel shows no empty state when first loaded — unclear whether "nothing to sync" or "run a check first"
 - [~] ConfirmModal error display doesn't handle long error text — single-line `<p>` with no wrapping or scroll for verbose errors
 
-- [ ] PreviewPanel resolveValue: shadow/typography composite token values also produce [object Object] — needs structured formatting for shadow ({ offsetX, offsetY, blur, spread, color }) and typography ({ fontFamily, fontSize, ... }) objects
+- [~] PreviewPanel resolveValue: shadow/typography composite token values also produce [object Object] — needs structured formatting for shadow ({ offsetX, offsetY, blur, spread, color }) and typography ({ fontFamily, fontSize, ... }) objects
 - [ ] Many fetch URLs for token API use set name without encodeURIComponent (ThemeManager, PublishPanel, SyncPanel, AnalyticsPanel, useFigmaSync, ColorScaleGenerator, etc.) — would break if set names contain special characters like spaces or slashes
 
 - [HIGH] `deleteToken` emits no SSE change event — `createToken`, `updateToken`, and `batchUpsertTokens` all call `this.emit()` but `deleteToken` (token-store.ts:483-492) does not, so SSE-connected clients are never notified when a token is deleted

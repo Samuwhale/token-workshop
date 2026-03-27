@@ -21,3 +21,17 @@ Already up to date.
 
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
+[main 2268b2a] chore(backlog): archive 21 completed items + trim progress
+ 4 files changed, 29 insertions(+), 24 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed
+- Replaced the static "N tokens selected" status text with a contextual hint when `hasOp` is false: tells users which fields to fill in (description, type, opacity for colors, scale factor for dimensions).
+- Added `title` tooltips to all three action buttons (Apply, Rename, Move) with context-aware messages explaining why each is disabled (no fields filled, not connected, no find text, no target set chosen, no matches).
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L382 (footer hint), ~L397 (Apply title), ~L427 (Rename title), ~L450 (Move title)
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  5 items remaining
+===============================================================
+  Claimed: PreviewPanel resolveValue: shadow/typography composite token values also produce [object Object] — needs structured formatting for shadow ({ offsetX, offsetY, blur, spread, color }) and typography ({ fontFamily, fontSize, ... }) objects
+  Worktree: /tmp/backlog-7690-cRGnB4
