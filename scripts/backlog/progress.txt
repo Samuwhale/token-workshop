@@ -335,3 +335,14 @@
 - Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L70-71, ~L123-135, ~L192-195, ~L251-260
 - **Root cause:** The original code assumed only one `read-variables` request could be in flight at a time — a valid assumption when the two callers were separate buttons, but violated by the auto-run `useEffect` which fires immediately on mount while the user might also trigger the readiness check.
 ---
+
+## 2026-03-27 - No bulk multi-select in token list
+- Implemented shift-click (range select) and ctrl/cmd-click (enter select mode + toggle) in the tree view token list.
+- Added `lastSelectedPathRef` to track the selection anchor. Created `handleTokenSelect(path, modifiers?)` replacing direct `toggleSelect` calls at the row click site. `toggleSelect` is kept for checkbox and keyboard (space) paths which don't need modifier handling.
+- Range selection uses `flatItems` (ordered visible tree nodes) for tree view and `flattenLeafNodes(displayedTokens)` for other views.
+- ctrl/cmd-click enters select mode automatically without needing the toolbar first.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L211, ~L1261, ~L2211, ~L2890, ~L3681
+- **Learnings for future iterations:**
+  - `flatItems` (virtual scroll list) is the authoritative ordered list for tree-view range selection — only includes visible (expanded) nodes, which is correct UX for shift-click.
+  - `onToggleSelect` is used in 3 places in TokenTreeNode: checkbox `onChange`, space-key handler, and the name-area click. Only the click needs modifier info; the others can keep the plain `(path: string)` call since the optional parameter defaults gracefully.
+---

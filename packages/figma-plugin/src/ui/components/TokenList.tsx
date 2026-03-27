@@ -208,6 +208,7 @@ export function TokenList({
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  const lastSelectedPathRef = useRef<string | null>(null);
   const [dragSource, setDragSource] = useState<{ paths: string[]; names: string[] } | null>(null);
   const [dragOverGroup, setDragOverGroup] = useState<string | null>(null);
   const [showBatchEditor, setShowBatchEditor] = useState(false);
@@ -1253,6 +1254,56 @@ export function TokenList({
     });
   };
 
+  // Handles token selection with modifier key support:
+  // - ctrl/cmd-click: enter select mode and toggle the token
+  // - shift-click (in select mode): range-select from last selected to current
+  // - plain click (in select mode): toggle the token
+  const handleTokenSelect = useCallback((path: string, modifiers?: { shift: boolean; ctrl: boolean }) => {
+    const isCtrl = modifiers?.ctrl ?? false;
+    const isShift = modifiers?.shift ?? false;
+
+    if (isCtrl) {
+      // Enter select mode on ctrl/cmd-click, then toggle this token
+      if (!selectMode) setSelectMode(true);
+      setSelectedPaths(prev => {
+        const next = new Set(prev);
+        if (next.has(path)) next.delete(path);
+        else next.add(path);
+        return next;
+      });
+      lastSelectedPathRef.current = path;
+      return;
+    }
+
+    if (isShift && selectMode && lastSelectedPathRef.current !== null) {
+      // Range-select from the anchor to the current path
+      const orderedPaths = viewMode === 'tree'
+        ? flatItems.filter(i => !i.node.isGroup).map(i => i.node.path)
+        : flattenLeafNodes(displayedTokens).map(n => n.path);
+      const anchorIdx = orderedPaths.indexOf(lastSelectedPathRef.current);
+      const targetIdx = orderedPaths.indexOf(path);
+      if (anchorIdx !== -1 && targetIdx !== -1) {
+        const lo = Math.min(anchorIdx, targetIdx);
+        const hi = Math.max(anchorIdx, targetIdx);
+        setSelectedPaths(prev => {
+          const next = new Set(prev);
+          for (let i = lo; i <= hi; i++) next.add(orderedPaths[i]);
+          return next;
+        });
+        return; // Keep anchor at lastSelectedPathRef — don't update it on shift-click
+      }
+    }
+
+    // Plain toggle
+    setSelectedPaths(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+    lastSelectedPathRef.current = path;
+  }, [selectMode, viewMode, flatItems, displayedTokens]);
+
   const displayedLeafPaths = useMemo(
     () => new Set(flattenLeafNodes(displayedTokens).map(n => n.path)),
     [displayedTokens]
@@ -2157,7 +2208,7 @@ export function TokenList({
                 allTokensFlat={allTokensFlat}
                 selectMode={selectMode}
                 isSelected={node.isGroup ? false : selectedPaths.has(node.path)}
-                onToggleSelect={toggleSelect}
+                onToggleSelect={handleTokenSelect}
                 expandedPaths={expandedPaths}
                 onToggleExpand={handleToggleExpand}
                 duplicateCounts={duplicateCounts}
@@ -2836,7 +2887,7 @@ function TokenTreeNode({
   allTokensFlat: Record<string, TokenMapEntry>;
   selectMode: boolean;
   isSelected: boolean;
-  onToggleSelect: (path: string) => void;
+  onToggleSelect: (path: string, modifiers?: { shift: boolean; ctrl: boolean }) => void;
   expandedPaths: Set<string>;
   onToggleExpand: (path: string) => void;
   duplicateCounts: Map<string, number>;
@@ -3621,9 +3672,18 @@ function TokenTreeNode({
       )}
 
       {/* Name and info — single-click applies (non-select mode), double-click edits */}
+      {/* ctrl/cmd-click enters select mode; shift-click range-selects */}
       <div
         className={`flex-1 min-w-0${!selectMode ? ' cursor-pointer' : ''}`}
-        onClick={selectMode ? () => onToggleSelect(node.path) : (e) => { e.stopPropagation(); handleApplyToSelection(e); }}
+        onClick={(e) => {
+          if (selectMode || e.ctrlKey || e.metaKey) {
+            e.stopPropagation();
+            onToggleSelect(node.path, { shift: e.shiftKey, ctrl: e.ctrlKey || e.metaKey });
+            return;
+          }
+          e.stopPropagation();
+          handleApplyToSelection(e);
+        }}
         onDoubleClick={!selectMode ? (e) => { e.stopPropagation(); onEdit(node.path); } : undefined}
         style={selectMode ? { cursor: 'pointer' } : undefined}
       >
