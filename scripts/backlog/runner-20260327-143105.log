@@ -520,3 +520,23 @@ Already up to date.
 
 --- Merging: ValuePreview renders an empty 5×5 div for unresolved aliases instead of a warning icon or placeholder — users don't know the token failed to resolve ---
 Already up to date.
+[main 3911ac4] chore(backlog): done – ValuePreview renders an empty 5×5 div for unresolved aliases instead of a warning icon or placeholder — users don't know the token failed to resolve
+ 5 files changed, 42 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - ValuePreview renders an empty 5×5 div for unresolved aliases instead of a warning icon or placeholder
+- Replaced the empty `<div className="w-5 h-5 shrink-0" />` for unresolved aliases (values starting with `{`) with a warning triangle SVG icon using `stroke="currentColor"` in `text-[var(--color-figma-text-tertiary)]`, plus a `title` tooltip showing the unresolved alias string so users understand why no preview renders.
+- Files changed: `packages/figma-plugin/src/ui/components/ValuePreview.tsx` ~L3
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 26 / 90  (claude)  —  2 items remaining
+===============================================================
+  Claimed: ValuePreview shadow preview only renders a single shadow even if the token value is an array — multi-shadow tokens are visually misrepresented
+  Worktree: /tmp/backlog-98901-Ke088M
+
+  ✓ done: ValuePreview shadow preview only renders a single shadow even if the token value is an array — multi-shadow tokens are visually misrepresented
+    Map all shadows in the array to CSS box-shadow parts and join with commas, rendering all layers instead of just the first.
+    7 turns · 44s · $0.14
+
+--- Merging: ValuePreview shadow preview only renders a single shadow even if the token value is an array — multi-shadow tokens are visually misrepresented ---
+Already up to date.

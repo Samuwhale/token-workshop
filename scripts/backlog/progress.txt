@@ -369,3 +369,10 @@
   - ValuePreview uses a simple string-prefix check (`value.startsWith('{')`) to detect unresolved aliases — no resolver call needed here.
   - Adding a `title` attribute to the warning icon doubles as a tooltip with the raw alias value, giving users actionable context without extra UI.
 ---
+
+## 2026-03-27 - ValuePreview shadow preview only renders a single shadow even if the token value is an array — multi-shadow tokens are visually misrepresented
+- Changed shadow rendering to map over all shadows in the array and join them as comma-separated CSS `box-shadow` values, so multi-shadow tokens are fully rendered.
+- Files changed: `packages/figma-plugin/src/ui/components/ValuePreview.tsx` ~L41
+- **Learnings for future iterations:**
+  - CSS `box-shadow` natively supports multiple shadows via comma separation — no wrapper element needed, just join the shadow strings.
+---

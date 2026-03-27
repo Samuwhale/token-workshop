@@ -39,17 +39,22 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
   }
 
   if (type === 'shadow' && typeof value === 'object' && value !== null) {
-    const shadow = Array.isArray(value) ? value[0] : value;
-    if (shadow && typeof shadow === 'object') {
-      const { color = '#00000040', offsetX, offsetY, blur, spread } = shadow;
-      const ox = typeof offsetX === 'object' ? `${offsetX.value}${offsetX.unit}` : (offsetX ?? '0px');
-      const oy = typeof offsetY === 'object' ? `${offsetY.value}${offsetY.unit}` : (offsetY ?? '4px');
-      const b = typeof blur === 'object' ? `${blur.value}${blur.unit}` : (blur ?? '8px');
-      const s = typeof spread === 'object' ? `${spread.value}${spread.unit}` : (spread ?? '0px');
+    const shadows = Array.isArray(value) ? value : [value];
+    const shadowParts = shadows
+      .filter((s): s is Record<string, any> => s !== null && typeof s === 'object')
+      .map(s => {
+        const { color = '#00000040', offsetX, offsetY, blur, spread } = s;
+        const ox = typeof offsetX === 'object' ? `${offsetX.value}${offsetX.unit}` : (offsetX ?? '0px');
+        const oy = typeof offsetY === 'object' ? `${offsetY.value}${offsetY.unit}` : (offsetY ?? '4px');
+        const b = typeof blur === 'object' ? `${blur.value}${blur.unit}` : (blur ?? '8px');
+        const sp = typeof spread === 'object' ? `${spread.value}${spread.unit}` : (spread ?? '0px');
+        return `${ox} ${oy} ${b} ${sp} ${color}`;
+      });
+    if (shadowParts.length > 0) {
       return (
         <div
           className="w-5 h-5 rounded shrink-0 bg-[var(--color-figma-bg)]"
-          style={{ boxShadow: `${ox} ${oy} ${b} ${s} ${color}` }}
+          style={{ boxShadow: shadowParts.join(', ') }}
         />
       );
     }
