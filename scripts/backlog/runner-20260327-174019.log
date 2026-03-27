@@ -59,3 +59,10 @@ Already up to date.
 ===============================================================
   Claimed: CommandPalette: No "Copy token value" action for token search results — the token search mode (">") offers "Go to token" and "Copy CSS var" but not "Copy raw value", which is the most common reason to search for a token
   Worktree: /tmp/backlog-91651-OHDjwo
+
+  ✓ done: CommandPalette: No "Copy token value" action for token search results
+    Added "Val" button to each token row in command palette token search mode; copies raw $value to clipboard
+    20 turns · 87s · $0.37
+
+--- Merging: CommandPalette: No "Copy token value" action for token search results ---
+Already up to date.

@@ -56,6 +56,7 @@ export interface Command {
 export interface TokenEntry {
   path: string;
   type: string;
+  value?: string;
 }
 
 interface CommandPaletteProps {
@@ -63,6 +64,7 @@ interface CommandPaletteProps {
   tokens?: TokenEntry[];
   onGoToToken?: (path: string) => void;
   onCopyTokenCssVar?: (path: string) => void;
+  onCopyTokenValue?: (value: string) => void;
   onClose: () => void;
 }
 
@@ -78,7 +80,7 @@ function tokenCssVar(path: string) {
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyTokenCssVar, onClose }: CommandPaletteProps) {
+export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyTokenCssVar, onCopyTokenValue, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -270,6 +272,16 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                     </span>
                     <span className="text-[11px] font-mono truncate">{token.path}</span>
                   </button>
+                  {onCopyTokenValue && token.value != null && (
+                    <button
+                      tabIndex={-1}
+                      title={`Copy raw value: ${token.value}`}
+                      className={`px-2 py-1.5 text-[9px] shrink-0 transition-colors ${idx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); onCopyTokenValue(token.value!); onClose(); }}
+                    >
+                      Val
+                    </button>
+                  )}
                   {onCopyTokenCssVar && (
                     <button
                       tabIndex={-1}

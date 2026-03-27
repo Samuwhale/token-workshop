@@ -1116,6 +1116,7 @@ export function App() {
     return Object.entries(allTokensFlat).map(([path, entry]) => ({
       path,
       type: entry.$type,
+      value: typeof entry.$value === 'string' ? entry.$value : JSON.stringify(entry.$value),
     }));
   }, [allTokensFlat]);
 
@@ -2726,6 +2727,9 @@ export function App() {
             } else {
               setHighlightedToken(path);
             }
+          }}
+          onCopyTokenValue={(value) => {
+            navigator.clipboard.writeText(value).catch(() => {});
           }}
           onCopyTokenCssVar={(path) => {
             const cssVar = `--${path.replace(/\./g, '-')}`;

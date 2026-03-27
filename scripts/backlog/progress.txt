@@ -477,3 +477,11 @@
   - Escape special regex chars in path segments before inserting into a `RegExp` constructor — token paths can contain dots which are regex wildcards.
   - For `updateBulkAliasRefs` (rename single token), a simple `/{([^}]+)}/g` regex suffices because the pathMap has fully-qualified old→new mappings.
 ---
+
+## 2026-03-27 - CommandPalette: No "Copy token value" action for token search results
+- Added a "Val" button to each token row in the command palette token search mode (">"). Clicking it copies the raw token value to the clipboard. Added `value?: string` to `TokenEntry`, `onCopyTokenValue` prop to `CommandPalette`, included `value` in `paletteTokens` (serialized via `JSON.stringify` for non-string values), and wired the handler in App.tsx. The "Val" button appears before the "CSS" button in each row.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L57, ~L282; `packages/figma-plugin/src/ui/App.tsx` ~L1116, ~L2730
+- **Learnings for future iterations:**
+  - `TokenEntry` lives in `CommandPalette.tsx` — extending it with optional fields is the right place, not App.tsx.
+  - Raw `$value` can be any DTCG type (string, number, object) — stringify non-strings for clipboard copy.
+---

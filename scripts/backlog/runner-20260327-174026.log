@@ -36,3 +36,16 @@ Already up to date.
 
 --- Merging: `updateAliasRefs` does not handle formula strings ---
 Already up to date.
+[main 8f23dd4] chore(backlog): done – `updateAliasRefs` does not handle formula strings
+ 6 files changed, 59 insertions(+), 15 deletions(-)
+
+## 2026-03-27 - `updateAliasRefs` does not handle formula strings
+- Replaced the exact-match/startsWith logic in both `updateAliasRefs` and `updateBulkAliasRefs` with regex-based global replacement. `updateAliasRefs` now uses a compiled `RegExp` with the escaped old path to match `{oldPath}` or `{oldPath.child}` anywhere in a string (including mid-formula like `"{spacing.base} * 2"`). `updateBulkAliasRefs` now uses a generic `/{([^}]+)}/g` regex and replaces each ref independently via the pathMap.
+- Files changed: `packages/server/src/services/token-store.ts` ~L684, ~L728
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  39 items remaining
+===============================================================
+  Claimed: `resolveAllAliases` in the plugin does not recurse into composite token sub-properties — composite tokens (typography, shadow, border) with individually aliased sub-properties (e.g. `fontSize: "{type.base}"`) are not resolved, so the theme preview shows raw `{ref}` strings instead of values
+  Worktree: /tmp/backlog-92215-vwx7WN
