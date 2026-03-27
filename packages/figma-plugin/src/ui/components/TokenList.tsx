@@ -291,10 +291,32 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     // Don't handle shortcuts when typing in a form field
     if (isTyping) return;
 
-    // n: open create form / drawer
+    // n: open create form / drawer, pre-filling path from focused group or token's parent group
     if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();
-      if (onCreateNew) { onCreateNew(); } else { setShowCreateForm(true); }
+      const activeEl = document.activeElement as HTMLElement;
+      const groupPath = activeEl?.dataset?.groupPath;
+      const tokenPath = activeEl?.dataset?.tokenPath;
+
+      let prefixPath = '';
+      if (groupPath) {
+        prefixPath = groupPath;
+      } else if (tokenPath) {
+        // Find the deepest group that is an ancestor of this token
+        const groups = Array.from(document.querySelectorAll<HTMLElement>('[data-group-path]'));
+        const parentGroup = groups
+          .filter(el => tokenPath.startsWith((el.dataset.groupPath ?? '') + '.'))
+          .sort((a, b) => (b.dataset.groupPath?.length ?? 0) - (a.dataset.groupPath?.length ?? 0))[0];
+        prefixPath = parentGroup?.dataset?.groupPath ?? '';
+      }
+
+      if (prefixPath) {
+        handleOpenCreateSibling(prefixPath, 'color');
+      } else if (onCreateNew) {
+        onCreateNew();
+      } else {
+        setShowCreateForm(true);
+      }
       return;
     }
 
