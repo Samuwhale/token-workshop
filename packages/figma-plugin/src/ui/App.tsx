@@ -2158,6 +2158,12 @@ export function App() {
                 loading={heatmapLoading}
                 onRescan={triggerHeatmapScan}
                 onSelectNodes={(ids) => parent.postMessage({ pluginMessage: { type: 'select-heatmap-nodes', nodeIds: ids } }, '*')}
+                availableTokens={allTokensFlat}
+                onBatchBind={(nodeIds, tokenPath, property) => {
+                  const entry = allTokensFlat[tokenPath];
+                  if (!entry) return;
+                  parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
+                }}
               />
             </>
           )}

@@ -192,3 +192,10 @@ Already up to date.
 ===============================================================
   Claimed: HeatmapPanel "select all red" action has no follow-up workflow — selecting unbound layers has no batch "bind all to token X" or "create tokens for these" next step
   Worktree: /tmp/backlog-60772-GPfeUF
+
+  ✓ done: HeatmapPanel "select all red" action has no follow-up workflow — selecting unbound layers has no batch "bind all to token X" or "create tokens for these" next step
+    Added a Quick Bind panel that appears after any "Select all" click in the heatmap — token path input with datalist autocomplete, property dropdown, and "Bind N layers" button that re-selects the nodes and applies the token via a new batch-bind-heatmap-nodes controller message
+    29 turns · 319s · $0.91
+
+--- Merging: HeatmapPanel "select all red" action has no follow-up workflow — selecting unbound layers has no batch "bind all to token X" or "create tokens for these" next step ---
+Already up to date.

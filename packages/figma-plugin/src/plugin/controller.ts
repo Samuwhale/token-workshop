@@ -84,6 +84,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
     case 'select-heatmap-nodes':
       await selectHeatmapNodes(msg.nodeIds);
       break;
+    case 'batch-bind-heatmap-nodes':
+      await batchBindHeatmapNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+      break;
     case 'eyedropper':
       sampleSelectionColor();
       break;
@@ -516,6 +519,20 @@ async function selectHeatmapNodes(nodeIds: string[]) {
   } catch {
     // ignore — node might not be accessible
   }
+}
+
+async function batchBindHeatmapNodes(nodeIds: string[], tokenPath: string, tokenType: string, targetProperty: string, resolvedValue: any) {
+  // First select the nodes so applyToSelection operates on them
+  const nodes: SceneNode[] = [];
+  for (const id of nodeIds) {
+    const node = await figma.getNodeByIdAsync(id);
+    if (node && 'parent' in node) nodes.push(node as SceneNode);
+  }
+  if (nodes.length > 0) {
+    figma.currentPage.selection = nodes;
+    figma.viewport.scrollAndZoomIntoView(nodes);
+  }
+  await applyToSelection(tokenPath, tokenType, targetProperty, resolvedValue);
 }
 
 // Delete Figma variables in TokenManager collection that are not in the known paths list

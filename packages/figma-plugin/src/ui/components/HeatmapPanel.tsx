@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { ALL_BINDABLE_PROPERTIES, PROPERTY_LABELS, type BindableProperty, type TokenMapEntry } from '../../shared/types';
 
 interface HeatmapNode {
   id: string;
@@ -22,6 +23,8 @@ interface HeatmapPanelProps {
   loading: boolean;
   onRescan: () => void;
   onSelectNodes: (ids: string[]) => void;
+  availableTokens?: Record<string, TokenMapEntry>;
+  onBatchBind?: (nodeIds: string[], tokenPath: string, property: BindableProperty) => void;
 }
 
 const STATUS_COLORS = {
@@ -38,9 +41,17 @@ const NODE_TYPE_LABELS: Record<string, string> = {
 
 type FilterStatus = 'all' | 'red' | 'yellow' | 'green';
 
-export function HeatmapPanel({ result, loading, onRescan, onSelectNodes }: HeatmapPanelProps) {
+interface QuickBindState {
+  nodeIds: string[];
+  statusLabel: string;
+}
+
+export function HeatmapPanel({ result, loading, onRescan, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['red']));
+  const [quickBind, setQuickBind] = useState<QuickBindState | null>(null);
+  const [bindToken, setBindToken] = useState('');
+  const [bindProperty, setBindProperty] = useState<BindableProperty>('fill');
 
   const toggleGroup = useCallback((status: string) => {
     setExpanded(prev => {
@@ -51,13 +62,25 @@ export function HeatmapPanel({ result, loading, onRescan, onSelectNodes }: Heatm
     });
   }, []);
 
-  const selectAll = useCallback((status: FilterStatus) => {
+  const selectAll = useCallback((status: FilterStatus, label?: string) => {
     if (!result) return;
     const ids = result.nodes
       .filter(n => status === 'all' || n.status === status)
       .map(n => n.id);
     onSelectNodes(ids);
-  }, [result, onSelectNodes]);
+    if (ids.length > 0 && onBatchBind) {
+      setQuickBind({ nodeIds: ids, statusLabel: label ?? status });
+      setBindToken('');
+      setBindProperty('fill');
+    }
+  }, [result, onSelectNodes, onBatchBind]);
+
+  const handleApplyBind = useCallback(() => {
+    if (!quickBind || !bindToken.trim() || !onBatchBind) return;
+    onBatchBind(quickBind.nodeIds, bindToken.trim(), bindProperty);
+    setQuickBind(null);
+    setBindToken('');
+  }, [quickBind, bindToken, bindProperty, onBatchBind]);
 
   const exportCSV = useCallback(() => {
     if (!result) return;
@@ -105,6 +128,8 @@ export function HeatmapPanel({ result, loading, onRescan, onSelectNodes }: Heatm
     { status: 'yellow', nodes: result?.nodes.filter(n => n.status === 'yellow') ?? [] },
     { status: 'green', nodes: result?.nodes.filter(n => n.status === 'green') ?? [] },
   ].filter(g => g.nodes.length > 0);
+
+  const tokenPaths = availableTokens ? Object.keys(availableTokens) : [];
 
   return (
     <div className="flex flex-col h-full">
@@ -246,7 +271,7 @@ export function HeatmapPanel({ result, loading, onRescan, onSelectNodes }: Heatm
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">{nodes.length}</span>
                     {nodes.length > 0 && (
                       <button
-                        onClick={e => { e.stopPropagation(); onSelectNodes(nodes.map(n => n.id)); }}
+                        onClick={e => { e.stopPropagation(); onSelectNodes(nodes.map(n => n.id)); if (onBatchBind) { setQuickBind({ nodeIds: nodes.map(n => n.id), statusLabel: cfg.label }); setBindToken(''); setBindProperty('fill'); } }}
                         className="text-[9px] text-[var(--color-figma-accent)] hover:underline ml-1 shrink-0"
                       >
                         Select all
@@ -265,7 +290,7 @@ export function HeatmapPanel({ result, loading, onRescan, onSelectNodes }: Heatm
               <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{filteredNodes.length} layers</span>
                 <button
-                  onClick={() => selectAll(filter)}
+                  onClick={() => selectAll(filter, STATUS_COLORS[filter as keyof typeof STATUS_COLORS]?.label)}
                   className="ml-auto text-[9px] text-[var(--color-figma-accent)] hover:underline"
                 >
                   Select all
@@ -276,6 +301,62 @@ export function HeatmapPanel({ result, loading, onRescan, onSelectNodes }: Heatm
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Quick Bind panel — appears after batch selection */}
+      {quickBind && onBatchBind && (
+        <div className="shrink-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-3">
+          <div className="flex items-center gap-1 mb-2">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="text-[var(--color-figma-accent)]">
+              <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+              <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+            </svg>
+            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Bind to token</span>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">· {quickBind.nodeIds.length} layer{quickBind.nodeIds.length !== 1 ? 's' : ''} selected</span>
+            <button
+              onClick={() => setQuickBind(null)}
+              className="ml-auto text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+              aria-label="Dismiss"
+            >
+              <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+                <path d="M1.5 1.5l7 7M8.5 1.5l-7 7"/>
+              </svg>
+            </button>
+          </div>
+          <div className="flex gap-1.5 mb-2">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                list="heatmap-quick-bind-tokens"
+                value={bindToken}
+                onChange={e => setBindToken(e.target.value)}
+                placeholder="Token path…"
+                className="w-full text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+              />
+              <datalist id="heatmap-quick-bind-tokens">
+                {tokenPaths.slice(0, 300).map(p => (
+                  <option key={p} value={p} />
+                ))}
+              </datalist>
+            </div>
+            <select
+              value={bindProperty}
+              onChange={e => setBindProperty(e.target.value as BindableProperty)}
+              className="text-[10px] px-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+            >
+              {ALL_BINDABLE_PROPERTIES.map(p => (
+                <option key={p} value={p}>{PROPERTY_LABELS[p]}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            disabled={!bindToken.trim()}
+            onClick={handleApplyBind}
+            className="w-full text-[10px] py-1.5 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Bind {quickBind.nodeIds.length} layer{quickBind.nodeIds.length !== 1 ? 's' : ''}
+          </button>
         </div>
       )}
     </div>

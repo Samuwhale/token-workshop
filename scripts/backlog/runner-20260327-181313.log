@@ -178,3 +178,19 @@ Already up to date.
 
 --- Merging: No custom export path or selector template — all CSS exports use `:root` selector with no option for scoped output like `.light { --color: ... }` or custom folder structures ---
 Already up to date.
+[main bd1d550] chore(backlog): done – No custom export path or selector template — all CSS exports use `:root` selector with no option for scoped output like `.light { --color: ... }` or custom folder structures
+ 8 files changed, 103 insertions(+), 8 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - No custom export path or selector template — all CSS exports use `:root` selector with no option for scoped output like `.light { --color: ... }` or custom folder structures
+- Added a CSS selector input to ExportPanel (shown when CSS platform is selected). Users can enter any valid CSS selector (e.g. `.light`, `[data-theme="dark"]`, `:root`). Defaults to `:root` and persists to localStorage. A "Reset to :root" shortcut appears when changed.
+- Wired the selector through the POST body (`cssSelector` field) → export route → `exportTokens()` → StyleDictionary file config (`options.selector`). StyleDictionary v4's built-in `css/variables` format natively supports the `selector` option — no custom format needed.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L115, ~L137, ~L210, ~L568, `packages/server/src/routes/export.ts` ~L2, ~L13, ~L82, `packages/server/src/services/style-dict.ts` ~L182, ~L224
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  0
+0 items remaining
+===============================================================
+./scripts/backlog/backlog.sh: line 696: [: 0
+0: integer expression expected
+No items available to claim (all in-progress or empty). Exiting.
