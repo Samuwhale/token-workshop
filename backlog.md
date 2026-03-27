@@ -117,8 +117,8 @@
 - [x] Search resets on set switch — filter/search text is lost when switching between sets; users working across multiple sets must re-type their search each time
 - [x] No "Create as alias" fast path — creating an alias token requires: open editor, toggle alias mode, type reference path, save; a direct "Create Alias" action or right-click "Alias to this token" would cut this to 1-2 steps
 - [~] Context menu has no letter-key accelerators — right-click menu shows 12+ items navigable only by arrow keys; adding letter-key access (d=delete, r=rename, c=copy path) would speed up power users
-- [~] Generators show no preview before commit — users configure a color scale or type scale but can't see what tokens will be created until they confirm; a live preview of generated output would prevent trial-and-error
-- [ ] Validation-fix-revalidate loop is fully manual — after fixing a validation issue, users must manually switch back to Analytics and re-trigger validation; no auto-revalidation or "recheck this issue" action
+- [x] Generators show no preview before commit — users configure a color scale or type scale but can't see what tokens will be created until they confirm; a live preview of generated output would prevent trial-and-error
+- [~] Validation-fix-revalidate loop is fully manual — after fixing a validation issue, users must manually switch back to Analytics and re-trigger validation; no auto-revalidation or "recheck this issue" action
 - [ ] Selection Inspector create-and-bind requires tab switch — when binding a token that doesn't exist yet, users must leave Inspect tab, create token in Tokens tab, return to Inspect, re-bind; an inline "Create & Bind" flow would eliminate this context switch
 - [ ] Remap bindings has no token autocomplete — the remap panel requires typing exact token paths manually with no search/autocomplete, making it error-prone for large token sets
 - [ ] Export has no batch copy or download — exporting to multiple platforms requires toggling each one individually, then expanding each file and clicking "Copy" one at a time; no "Copy All" or download-as-zip

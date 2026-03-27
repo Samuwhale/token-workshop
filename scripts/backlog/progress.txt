@@ -430,3 +430,13 @@
   - The codebase has two separate generator creation paths: TokenGeneratorDialog (full editor) and GraphPanel ApplyForm (quick templates). Features like preview need to be checked in both.
   - The `/api/generators/preview` endpoint accepts the same body shape as POST `/api/generators` (type, sourceToken, targetGroup, targetSet, config) and returns `{ count, tokens }`.
 ---
+
+## 2026-03-27 - Context menu has no letter-key accelerators
+- Added letter-key accelerators to both token and group context menus. Each menu item shows a right-aligned hint letter (e.g., R for Rename, C for Copy path) and pressing that key while the menu is open triggers the action.
+- Token menu keys: N=Create sibling, D=Duplicate, R=Rename, L=Link to token, M=Move to set, C=Copy path, V=Copy value, J=Copy as JSON
+- Group menu keys: N=New subgroup, R=Rename, E=Edit type & desc, M=Move to set, D=Duplicate, S=Set scopes, V=Create variables, Y=Create styles, G=Generate scale, X=Delete
+- Implementation uses `data-accel` attributes on buttons + a `keydown` listener in the existing useEffect that closes menus on outside click. Escape also closes.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3247 (token menu keydown), ~L3239 (group menu keydown), ~L4219 (token menu buttons), ~L3569 (group menu buttons)
+- **Learnings for future iterations:**
+  - Using `data-accel` attributes + `querySelector` is a clean pattern for keyboard accelerators on dynamic menus — avoids needing refs on every button or duplicating action logic.
+---

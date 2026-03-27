@@ -116,3 +116,10 @@ Already up to date.
 ===============================================================
   Claimed: Context menu has no letter-key accelerators — right-click menu shows 12+ items navigable only by arrow keys; adding letter-key access (d=delete, r=rename, c=copy path) would speed up power users
   Worktree: /tmp/backlog-44614-0odX4m
+
+  ✓ done: Context menu has no letter-key accelerators
+    Added letter-key accelerators to token and group context menus with visible hint labels (N/D/R/C/V/J/M/L for tokens, N/R/E/M/D/S/V/Y/G/X for groups). Uses data-accel attributes + keydown listener pattern.
+    29 turns · 266s · $1.02
+
+--- Merging: Context menu has no letter-key accelerators ---
+Already up to date.

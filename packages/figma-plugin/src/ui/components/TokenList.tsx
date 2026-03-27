@@ -3239,16 +3239,34 @@ function TokenTreeNode({
   useEffect(() => {
     if (!groupMenuPos) return;
     const close = () => setGroupMenuPos(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { close(); return; }
+      const key = e.key.toLowerCase();
+      const menuEl = document.querySelector('[data-context-menu="group"]');
+      if (!menuEl) return;
+      const btn = menuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
+      if (btn) { e.preventDefault(); btn.click(); }
+    };
     document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
   }, [groupMenuPos]);
 
-  // Close context menu on outside click
+  // Close context menu on outside click + letter-key accelerators
   useEffect(() => {
     if (!contextMenuPos) return;
     const close = () => setContextMenuPos(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { close(); return; }
+      const key = e.key.toLowerCase();
+      const menuEl = document.querySelector('[data-context-menu="token"]');
+      if (!menuEl) return;
+      const btn = menuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
+      if (btn) { e.preventDefault(); btn.click(); }
+    };
     document.addEventListener('click', close);
-    return () => document.removeEventListener('click', close);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
   }, [contextMenuPos]);
 
   // Scroll highlighted token into view (only when NOT in virtual scroll mode)
@@ -3551,36 +3569,40 @@ function TokenTreeNode({
         {groupMenuPos && (
           <div
             role="menu"
+            data-context-menu="group"
             className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[160px]"
             style={{ top: groupMenuPos.y, left: groupMenuPos.x }}
           >
             {onCreateGroup && (
               <button
                 role="menuitem"
+                data-accel="n"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => {
                   setGroupMenuPos(null);
                   onCreateGroup(node.path);
                 }}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                New subgroup…
+                <span>New subgroup…</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">N</span>
               </button>
             )}
             <button
               role="menuitem"
+              data-accel="r"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 setGroupMenuPos(null);
                 setRenameGroupVal(node.name);
                 setRenamingGroup(true);
               }}
-              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              Rename group
+              <span>Rename group</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">R</span>
             </button>
             <button
               role="menuitem"
+              data-accel="e"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 setGroupMenuPos(null);
@@ -3588,76 +3610,82 @@ function TokenTreeNode({
                 setGroupMetaDescription(node.$description ?? '');
                 setEditingGroupMeta(true);
               }}
-              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              Edit type &amp; description…
+              <span>Edit type &amp; description…</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">E</span>
             </button>
             <button
               role="menuitem"
+              data-accel="m"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 setGroupMenuPos(null);
                 onRequestMoveGroup?.(node.path);
               }}
-              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              Move group to set…
+              <span>Move group to set…</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">M</span>
             </button>
             <button
               role="menuitem"
+              data-accel="d"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 setGroupMenuPos(null);
                 onDuplicateGroup?.(node.path);
               }}
-              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              Duplicate group
+              <span>Duplicate group</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">D</span>
             </button>
             {onSetGroupScopes && (
               <button
                 role="menuitem"
+                data-accel="s"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => {
                   setGroupMenuPos(null);
                   onSetGroupScopes(node.path);
                 }}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Set scopes for group…
+                <span>Set scopes for group…</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">S</span>
               </button>
             )}
             {onSyncGroup && (
               <button
                 role="menuitem"
+                data-accel="v"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => {
                   setGroupMenuPos(null);
                   const count = node.children ? countTokensInGroup(node) : 0;
                   onSyncGroup(node.path, count);
                 }}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
               >
-                Create variables from group
+                <span>Create variables from group</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">V</span>
               </button>
             )}
             {onSyncGroupStyles && (
               <button
                 role="menuitem"
+                data-accel="y"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => {
                   setGroupMenuPos(null);
                   const count = node.children ? countTokensInGroup(node) : 0;
                   onSyncGroupStyles(node.path, count);
                 }}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Create styles from group
+                <span>Create styles from group</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">Y</span>
               </button>
             )}
             {onGenerateScaleFromGroup && (
               <button
                 role="menuitem"
+                data-accel="g"
                 onMouseDown={e => e.preventDefault()}
                 onClick={() => {
                   setGroupMenuPos(null);
@@ -3673,21 +3701,22 @@ function TokenTreeNode({
                   const dominant = Object.entries(types).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
                   onGenerateScaleFromGroup(node.path, dominant);
                 }}
-                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
               >
-                Generate scale from this group…
+                <span>Generate scale from this group…</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">G</span>
               </button>
             )}
             <button
               role="menuitem"
+              data-accel="x"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 setGroupMenuPos(null);
                 onDeleteGroup(node.path, node.name, leafCount);
               }}
-              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors border-t border-[var(--color-figma-border)]"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors border-t border-[var(--color-figma-border)]"
             >
-              Delete group
+              <span>Delete group</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">X</span>
             </button>
           </div>
         )}
@@ -4201,32 +4230,36 @@ function TokenTreeNode({
       {/* Right-click context menu */}
       {contextMenuPos && (
         <div
+          data-context-menu="token"
           className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[160px]"
           style={{ top: contextMenuPos.y, left: contextMenuPos.x }}
           onClick={e => e.stopPropagation()}
         >
           <button
-            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            data-accel="n"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               setContextMenuPos(null);
               onCreateSibling?.(nodeParentPath(node.path, node.name), node.$type || 'color');
             }}
           >
-            Create sibling
+            <span>Create sibling</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">N</span>
           </button>
           <button
-            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            data-accel="d"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               setContextMenuPos(null);
               onDuplicateToken?.(node.path);
             }}
           >
-            Duplicate token
+            <span>Duplicate token</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">D</span>
           </button>
           <button
-            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            data-accel="r"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               setContextMenuPos(null);
@@ -4253,43 +4286,47 @@ function TokenTreeNode({
               setRenamingToken(true);
             }}
           >
-            Rename token
+            <span>Rename token</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">R</span>
           </button>
           {!isAlias(node.$value) && (
             <button
-              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              data-accel="l"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               onMouseDown={e => e.preventDefault()}
               onClick={() => {
                 setContextMenuPos(null);
                 onExtractToAlias?.(node.path, node.$type, node.$value);
               }}
             >
-              Link to token
+              <span>Link to token</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">L</span>
             </button>
           )}
           <button
-            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            data-accel="m"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               setContextMenuPos(null);
               onRequestMoveToken?.(node.path);
             }}
           >
-            Move to set...
+            <span>Move to set...</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">M</span>
           </button>
           <div className="my-1 border-t border-[var(--color-figma-border)]" />
           <button
-            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            data-accel="c"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               navigator.clipboard.writeText(node.path).catch(() => {});
               setContextMenuPos(null);
             }}
           >
-            Copy token path
+            <span>Copy token path</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">C</span>
           </button>
           <button
-            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            data-accel="v"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               const val = typeof node.$value === 'string' ? node.$value : JSON.stringify(node.$value);
@@ -4297,10 +4334,11 @@ function TokenTreeNode({
               setContextMenuPos(null);
             }}
           >
-            Copy value
+            <span>Copy value</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">V</span>
           </button>
           <button
-            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            data-accel="j"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               const entry: Record<string, unknown> = { $value: node.$value, $type: node.$type };
@@ -4309,7 +4347,7 @@ function TokenTreeNode({
               setContextMenuPos(null);
             }}
           >
-            Copy as JSON
+            <span>Copy as JSON</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">J</span>
           </button>
         </div>
       )}

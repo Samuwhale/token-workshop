@@ -137,3 +137,16 @@ Already up to date.
 
 --- Merging: Generators show no preview before commit ---
 Already up to date.
+[main 17dca25] chore(backlog): done – Generators show no preview before commit
+ 5 files changed, 196 insertions(+), 6 deletions(-)
+
+## 2026-03-27 - Generators show no preview before commit
+- Added live preview to GraphPanel's ApplyForm (quick-start templates). When a user enters a source token and prefix, the form now calls `/api/generators/preview` with a 300ms debounce and renders a type-specific preview: color swatches for colorRamp, font-size samples for typeScale, horizontal bar charts for spacingScale, and a generic key-value list for other types. The "Apply template" button also shows the token count from the preview.
+- The TokenGeneratorDialog already had a full preview; this change brings the same capability to the template-based workflow in GraphPanel.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L328 (preview state + fetchPreview), ~L588 (preview rendering), ~L699 (button label)
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  5 items remaining
+===============================================================
+  Claimed: Validation-fix-revalidate loop is fully manual — after fixing a validation issue, users must manually switch back to Analytics and re-trigger validation; no auto-revalidation or "recheck this issue" action
+  Worktree: /tmp/backlog-44348-pAo13v
