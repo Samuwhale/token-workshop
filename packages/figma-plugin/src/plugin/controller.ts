@@ -70,7 +70,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       figma.ui.resize(msg.width, msg.height);
       break;
     case 'delete-orphan-variables':
-      await deleteOrphanVariables(msg.knownPaths);
+      await deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {});
       break;
     case 'scan-component-coverage':
       await scanComponentCoverage();
@@ -519,23 +519,27 @@ async function selectHeatmapNodes(nodeIds: string[]) {
 }
 
 // Delete Figma variables in TokenManager collection that are not in the known paths list
-async function deleteOrphanVariables(knownPaths: string[]) {
+async function deleteOrphanVariables(knownPaths: string[], collectionMap: Record<string, string> = {}) {
   try {
     const knownSet = new Set(knownPaths);
-    const collections = await figma.variables.getLocalVariableCollectionsAsync();
-    const tmCollection = collections.find(c => c.name === VARIABLE_COLLECTION_NAME);
-    if (!tmCollection) {
+    // All collection names managed by TokenManager: the default plus any custom-mapped names
+    const managedNames = new Set([VARIABLE_COLLECTION_NAME, ...Object.values(collectionMap)]);
+    const allCollections = await figma.variables.getLocalVariableCollectionsAsync();
+    const managedCollections = allCollections.filter(c => managedNames.has(c.name));
+    if (managedCollections.length === 0) {
       figma.ui.postMessage({ type: 'orphans-deleted', count: 0 });
       return;
     }
     let deleted = 0;
-    for (const varId of tmCollection.variableIds) {
-      const variable = await figma.variables.getVariableByIdAsync(varId);
-      if (!variable) continue;
-      const path = variable.name.replace(/\//g, '.');
-      if (!knownSet.has(path)) {
-        variable.remove();
-        deleted++;
+    for (const collection of managedCollections) {
+      for (const varId of collection.variableIds) {
+        const variable = await figma.variables.getVariableByIdAsync(varId);
+        if (!variable) continue;
+        const path = variable.name.replace(/\//g, '.');
+        if (!knownSet.has(path)) {
+          variable.remove();
+          deleted++;
+        }
       }
     }
     figma.ui.postMessage({ type: 'orphans-deleted', count: deleted });

@@ -638,7 +638,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               await new Promise<number>((resolve, reject) => {
                 const timeout = setTimeout(() => { orphansResolveRef.current = null; reject(new Error('Timeout')); }, 10000);
                 orphansResolveRef.current = (count) => { clearTimeout(timeout); resolve(count); };
-                parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths] } }, '*');
+                parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths], collectionMap } }, '*');
               });
               runReadinessChecks();
             } catch (e) {

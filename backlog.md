@@ -43,7 +43,7 @@
 ### QoL
 
 - [~] ThemeManager: No rename option for theme options — dimensions can be renamed but individual options (e.g. "Light", "Dark") cannot be renamed once created; users must delete and recreate them, losing all set assignments
-- [~] ThemeManager: No search or filter for sets within a theme option — when a project has 10+ sets, the set matrix in each theme option becomes a long unfiltered list with no way to find a specific set quickly
+- [x] ThemeManager: No search or filter for sets within a theme option — when a project has 10+ sets, the set matrix in each theme option becomes a long unfiltered list with no way to find a specific set quickly
 
 ### UX
 
@@ -87,7 +87,7 @@
 
 ### Bugs
 
-- [ ] ImportPanel: `conflictPaths` state is not cleared when changing the target set — old conflict list persists with the new set
+- [~] ImportPanel: `conflictPaths` state is not cleared when changing the target set — old conflict list persists with the new set
 - [ ] ImportPanel: `readTimeoutRef` is not cleared in cleanup when component unmounts — timer continues running in the background
 - [ ] ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers
 - [ ] ImportPanel: Figma Styles and JSON readers normalize paths identically — if a variable and style share a name like `color/primary`, they map to the same `color.primary` token path, creating silent conflicts

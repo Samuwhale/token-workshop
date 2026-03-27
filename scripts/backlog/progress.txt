@@ -328,3 +328,13 @@
   - `filteredOptSets` is used only for rendering; `optSets.indexOf(setName)` in up/down button disabled logic must still reference the full ordered list (reorder meaning stays correct even when filtered).
   - The ternary `{condition ? <empty> : array.map(...)}` pattern inside a JSX expression works cleanly — closing `})}` covers arrow function + map call + JSX brace.
 ---
+
+## 2026-03-27 - `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up
+- Updated `deleteOrphanVariables` to accept a `collectionMap: Record<string, string>` parameter. It now builds a set of all managed collection names (`VARIABLE_COLLECTION_NAME` + all values in `collectionMap`) and iterates over every managed collection when deleting orphans.
+- Updated the `delete-orphan-variables` message handler in controller.ts to pass `msg.collectionMap` to the function.
+- Updated `PublishPanel.tsx` to include `collectionMap` in the `delete-orphan-variables` message payload (the prop was already available).
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L73 (handler), ~L519 (function); `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L641 (message send)
+- **Learnings for future iterations:**
+  - `readFigmaVariables` already reads ALL local collections, so orphan detection in the UI is already correct; only the deletion step was scoped to just the default collection.
+  - The `collectionMap` prop was already available in `PublishPanel` — no new data fetching needed, just thread it through to the plugin message.
+---

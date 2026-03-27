@@ -34,3 +34,10 @@ Already up to date.
 ===============================================================
   Claimed: `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up
   Worktree: /tmp/backlog-59883-lpsjjB
+
+  ✓ done: `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up
+    Updated `deleteOrphanVariables` to accept and use `collectionMap`, iterating all managed collections (default + custom) when deleting orphans; updated message handler and PublishPanel to pass the map through.
+    18 turns · 130s · $0.45
+
+--- Merging: `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up ---
+Already up to date.

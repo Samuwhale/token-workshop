@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: ThemeManager: No search or filter for sets within a theme option — when a project has 10+ sets, the set matrix in each theme option becomes a long unfiltered list with no way to find a specific set quickly ---
 Already up to date.
+[main d662249] chore(backlog): done – ThemeManager: No search or filter for sets within a theme option — when a project has 10+ sets, the set matrix in each theme option becomes a long unfiltered list with no way to find a specific set quickly
+ 6 files changed, 50 insertions(+), 5 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - ThemeManager: No search or filter for sets within a theme option — when a project has 10+ sets, the set matrix in each theme option becomes a long unfiltered list with no way to find a specific set quickly
+- Added per-option set filter: a `setSearchTerms` state (`Record<string, string>`) keyed by `${dimId}:${optName}`, a text input shown in the legend bar when the project has ≥5 sets, and a `filteredOptSets` derived variable used for rendering. When no sets match the query, a "No sets match…" empty state is shown. The full `optSets` array is still used for up/down reorder disabled checks.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L77 (state), ~L597 (filteredOptSets), ~L651 (legend bar + filter input), ~L671 (conditional empty state + map)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  28 items remaining
+===============================================================
+  Claimed: ImportPanel: `conflictPaths` state is not cleared when changing the target set — old conflict list persists with the new set
+  Worktree: /tmp/backlog-59609-A9cEu5
