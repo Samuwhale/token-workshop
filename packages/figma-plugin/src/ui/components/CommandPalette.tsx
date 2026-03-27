@@ -93,15 +93,19 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
   const isTokenMode = query.startsWith('>');
   const tokenQuery = isTokenMode ? query.slice(1).trim() : '';
 
-  const filteredTokens = useMemo(() => {
-    if (!isTokenMode || !tokens.length) return [];
-    if (!tokenQuery) return tokens.slice(0, 30);
-    return tokens
+  const MAX_TOKEN_RESULTS = 100;
+
+  const { filteredTokens, totalTokenMatches } = useMemo(() => {
+    if (!isTokenMode || !tokens.length) return { filteredTokens: [], totalTokenMatches: 0 };
+    if (!tokenQuery) {
+      return { filteredTokens: tokens.slice(0, MAX_TOKEN_RESULTS), totalTokenMatches: tokens.length };
+    }
+    const matched = tokens
       .map(t => ({ t, score: fuzzyScore(tokenQuery, t.path) }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
-      .map(({ t }) => t)
-      .slice(0, 30);
+      .map(({ t }) => t);
+    return { filteredTokens: matched.slice(0, MAX_TOKEN_RESULTS), totalTokenMatches: matched.length };
   }, [isTokenMode, tokenQuery, tokens]);
 
   // Normal command search
@@ -278,6 +282,11 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                   )}
                 </div>
               ))}
+              {totalTokenMatches > MAX_TOKEN_RESULTS && (
+                <div className="px-3 py-2 text-center text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
+                  Showing {MAX_TOKEN_RESULTS} of {totalTokenMatches} — refine your search to see more
+                </div>
+              )}
             </>
           )}
 

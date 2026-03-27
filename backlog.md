@@ -26,9 +26,9 @@
 
 ### UX
 
-- [~] Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
+- [x] Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
 - [~] Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt
-- [ ] Tab badges disappear when overflow panel is open — Inspect selection count and Publish git-changes badges are hidden whenever any overflow panel is visible, losing important status signals
+- [~] Tab badges disappear when overflow panel is open — Inspect selection count and Publish git-changes badges are hidden whenever any overflow panel is visible, losing important status signals
 
 ---
 

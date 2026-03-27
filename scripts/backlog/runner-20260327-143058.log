@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 ===============================================================
   Claimed: Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
   Worktree: /tmp/backlog-98408-ABhwI8
+
+  ✓ done: Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
+    Increased cap to 100 and added a "Showing 100 of N — refine your search" footer when results are truncated
+    11 turns · 84s · $0.32
+
+--- Merging: Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist ---
+Already up to date.

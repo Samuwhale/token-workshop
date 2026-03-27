@@ -14,3 +14,12 @@
   - `fetch()` does NOT throw on HTTP error status codes — always check `response.ok`. This is the same recurring pattern across multiple backlog items.
   - Optimistic UI updates must be gated on `res.ok` or rolled back on failure; otherwise the UI temporarily lies to the user.
 ---
+
+## 2026-03-27 - Command palette token results capped at 30 with no scroll-for-more
+- Increased the cap from 30 to 100 results and added a "Showing 100 of N — refine your search to see more" footer when results are truncated.
+- `filteredTokens` useMemo now returns `{ filteredTokens, totalTokenMatches }` so the UI can show total count without re-filtering.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L96 (cap constant + useMemo), ~L280 (truncation footer)
+- **Learnings for future iterations:**
+  - When a list has a hard cap, always surface total match count alongside the shown count so users know results are truncated.
+  - Destructuring from useMemo (`const { a, b } = useMemo(...)`) is a clean pattern for returning multiple related values without two separate memos.
+---

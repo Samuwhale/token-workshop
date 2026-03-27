@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable ---
 Already up to date.
+[main 7ee477d] chore(backlog): done – Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
+ 6 files changed, 48 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Empty state disabled buttons only explain "Server offline" via hover tooltip
+- Added an inline info banner above the action buttons that renders only when `!connected`. The banner shows an info icon and the text "Server offline — start the local server to use these actions", making the offline reason visible without requiring hover.
+- Files changed: `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L33
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  90 items remaining
+===============================================================
+  Claimed: Tab badges disappear when overflow panel is open — Inspect selection count and Publish git-changes badges are hidden whenever any overflow panel is visible, losing important status signals
+  Worktree: /tmp/backlog-98901-4nqxSj
