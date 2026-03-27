@@ -89,3 +89,9 @@
 - **Learnings for future iterations:**
   - When adding correlationId to a sandbox→UI message round-trip, three places must change: (1) UI sender generates and stores cid, (2) sandbox handler receives and passes cid through, (3) UI message handler checks cid matches stored value.
 ---
+
+## 2026-03-27 - housekeeping: remove duplicate flattenTokenEntries in ThemeManager
+- Deleted the local `flattenTokenEntries` function (13 lines) and replaced its call site with `flattenTokenGroup` from `@tokenmanager/core`, matching the pattern used in App.tsx, ImportPanel, SyncPanel, and PasteTokensModal.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L36 (removed function), ~L1 (added import), ~L131 (updated call site)
+- **Why:** `flattenTokenEntries` was a reimplementation of `flattenTokenGroup` — same recursive DTCG group flattening, same `$`-prefix skip logic, different return shape (`{path, value}` vs `Map<string, DTCGToken>`). The call site only needed `path` and `$value`, so `for (const [path, token] of flattenTokenGroup(...))` with `token.$value` is a direct replacement.
+---

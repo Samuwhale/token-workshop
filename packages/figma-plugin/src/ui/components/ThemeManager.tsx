@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { flattenTokenGroup } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
 
 const STATE_LABELS: Record<string, string> = {
@@ -33,19 +34,6 @@ interface ThemeManagerProps {
 
 type CoverageMap = Record<string, Record<string, { uncovered: string[] }>>;
 
-function flattenTokenEntries(group: Record<string, any>, prefix = ''): Array<{ path: string; value: any }> {
-  const entries: Array<{ path: string; value: any }> = [];
-  for (const [key, value] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (value && typeof value === 'object' && '$value' in value) {
-      entries.push({ path, value: value.$value });
-    } else if (value && typeof value === 'object') {
-      entries.push(...flattenTokenEntries(value, path));
-    }
-  }
-  return entries;
-}
 
 function slugify(name: string): string {
   return name
@@ -128,8 +116,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
           if (r.ok) {
             const d = await r.json();
             const map: Record<string, any> = {};
-            for (const { path, value } of flattenTokenEntries(d.tokens || {})) {
-              map[path] = value;
+            for (const [path, token] of flattenTokenGroup(d.tokens || {})) {
+              map[path] = token.$value;
             }
             setTokenValues[s] = map;
           }
