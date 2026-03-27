@@ -80,7 +80,11 @@ export class TokenResolver {
     // Fresh color map — already-resolved tokens are skipped lazily in dfsResolve
     this.color = new Map();
     this.dfsResolve(path);
-    return this.resolved.get(path)!;
+    const result = this.resolved.get(path);
+    if (!result) {
+      throw new Error(`Failed to resolve token "${path}" — resolution completed but produced no value.`);
+    }
+    return result;
   }
 
   /** Get all token paths that directly reference this token (reverse dependencies). */

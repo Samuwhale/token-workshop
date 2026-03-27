@@ -122,6 +122,8 @@ export interface Token {
 export interface TokenGroup {
   $type?: TokenType;
   $description?: string;
+  $figmaCollection?: string;
+  $figmaMode?: string;
   [key: string]: Token | TokenGroup | TokenType | string | undefined;
 }
 

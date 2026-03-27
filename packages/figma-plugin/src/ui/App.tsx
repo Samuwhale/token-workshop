@@ -38,6 +38,9 @@ import { stableStringify } from './shared/utils';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { flattenTokenGroup } from '@tokenmanager/core';
 
+/** Valid set name: alphanumeric, hyphens, underscores, with `/` as folder separator. */
+const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null };
   static getDerivedStateFromError(error: Error) { return { error }; }
@@ -534,7 +537,7 @@ export function App() {
     if (!renamingSet) return;
     const newName = renameValue.trim();
     if (!newName || newName === renamingSet) { cancelRename(); return; }
-    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(newName)) {
+    if (!SET_NAME_RE.test(newName)) {
       setRenameError('Use letters, numbers, - and _ (/ for folders)');
       return;
     }
@@ -602,7 +605,7 @@ export function App() {
   const handleCreateSet = async () => {
     const name = newSetName.trim();
     if (!name) { setNewSetError('Name cannot be empty'); return; }
-    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(name)) { setNewSetError('Use letters, numbers, - and _ (/ for folders)'); return; }
+    if (!SET_NAME_RE.test(name)) { setNewSetError('Use letters, numbers, - and _ (/ for folders)'); return; }
     if (!connected) { setCreatingSet(false); return; }
     try {
       const res = await fetch(`${serverUrl}/api/sets`, {

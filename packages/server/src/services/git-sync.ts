@@ -111,7 +111,8 @@ export class GitSync {
         remoteOnly: remoteFiles.filter(f => !conflictSet.has(f)),
         conflicts: [...conflictSet],
       };
-    } catch {
+    } catch (err) {
+      console.warn('[GitSync] Failed to compute unified diff:', err);
       return { localOnly: [], remoteOnly: [], conflicts: [] };
     }
   }
@@ -123,16 +124,16 @@ export class GitSync {
       // Checkout individual files from remote
       const branch = await this.getCurrentBranch();
       for (const file of toPull) {
-        await this.git.raw(['checkout', `origin/${branch}`, '--', file]).catch(() => { /* ignore */ });
+        await this.git.raw(['checkout', `origin/${branch}`, '--', file]).catch((err) => { console.warn(`[GitSync] Failed to checkout file "${file}":`, err); });
       }
       await this.git.add(toPull);
-      await this.git.commit(`chore: pull ${toPull.length} file(s) from remote`).catch(() => { /* ignore */ });
+      await this.git.commit(`chore: pull ${toPull.length} file(s) from remote`).catch((err) => { console.warn('[GitSync] Pull commit failed (may have no changes):', err); });
     }
     // 'push' direction: stage only the selected files, commit, then push
     const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
     if (toPush.length > 0) {
       await this.git.add(toPush);
-      await this.git.commit(`chore: push ${toPush.length} file(s) to remote`).catch(() => { /* nothing new to commit */ });
+      await this.git.commit(`chore: push ${toPush.length} file(s) to remote`).catch((err) => { console.warn('[GitSync] Push commit failed (may have no changes):', err); });
       await this.git.push();
     }
   }

@@ -234,7 +234,7 @@ export class TokenStore {
   getSetDescriptions(): Record<string, string> {
     const result: Record<string, string> = {};
     for (const [name, set] of this.sets) {
-      const desc = (set.tokens as any).$description;
+      const desc = set.tokens.$description;
       if (typeof desc === 'string' && desc) {
         result[name] = desc;
       }
@@ -246,9 +246,9 @@ export class TokenStore {
     const set = this.sets.get(name);
     if (!set) throw new Error(`Set "${name}" not found`);
     if (description) {
-      (set.tokens as any).$description = description;
+      set.tokens.$description = description;
     } else {
-      delete (set.tokens as any).$description;
+      delete set.tokens.$description;
     }
     await this.saveSet(name);
   }
@@ -256,7 +256,7 @@ export class TokenStore {
   getSetCollectionNames(): Record<string, string> {
     const result: Record<string, string> = {};
     for (const [name, set] of this.sets) {
-      const col = (set.tokens as any).$figmaCollection;
+      const col = set.tokens.$figmaCollection;
       if (typeof col === 'string' && col) result[name] = col;
     }
     return result;
@@ -266,9 +266,9 @@ export class TokenStore {
     const set = this.sets.get(name);
     if (!set) throw new Error(`Set "${name}" not found`);
     if (collectionName) {
-      (set.tokens as any).$figmaCollection = collectionName;
+      set.tokens.$figmaCollection = collectionName;
     } else {
-      delete (set.tokens as any).$figmaCollection;
+      delete set.tokens.$figmaCollection;
     }
     await this.saveSet(name);
   }
@@ -276,7 +276,7 @@ export class TokenStore {
   getSetModeNames(): Record<string, string> {
     const result: Record<string, string> = {};
     for (const [name, set] of this.sets) {
-      const mode = (set.tokens as any).$figmaMode;
+      const mode = set.tokens.$figmaMode;
       if (typeof mode === 'string' && mode) result[name] = mode;
     }
     return result;
@@ -286,9 +286,9 @@ export class TokenStore {
     const set = this.sets.get(name);
     if (!set) throw new Error(`Set "${name}" not found`);
     if (modeName) {
-      (set.tokens as any).$figmaMode = modeName;
+      set.tokens.$figmaMode = modeName;
     } else {
-      delete (set.tokens as any).$figmaMode;
+      delete set.tokens.$figmaMode;
     }
     await this.saveSet(name);
   }
@@ -529,9 +529,10 @@ export class TokenStore {
     const matchAll = generatorId === '*';
     const results: Array<{ setName: string; path: string; generatorId: string }> = [];
     for (const [tokenPath, { token, setName }] of this.flatTokens) {
-      const ext = (token as any).$extensions?.['com.tokenmanager.generator'];
-      if (ext?.generatorId && (matchAll || ext.generatorId === generatorId)) {
-        results.push({ setName, path: tokenPath, generatorId: ext.generatorId });
+      const ext = token.$extensions?.['com.tokenmanager.generator'] as Record<string, unknown> | undefined;
+      const gid = ext?.generatorId;
+      if (typeof gid === 'string' && (matchAll || gid === generatorId)) {
+        results.push({ setName, path: tokenPath, generatorId: gid });
       }
     }
     return results;
@@ -1102,7 +1103,7 @@ export class TokenStore {
     // Walk back up and remove any parent group that is now empty.
     for (let i = chain.length - 1; i >= 0; i--) {
       const { obj, key } = chain[i];
-      if (Object.keys(obj[key]).length === 0) {
+      if (typeof obj[key] === 'object' && obj[key] !== null && Object.keys(obj[key]).length === 0) {
         delete obj[key];
       } else {
         break;

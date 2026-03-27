@@ -13,8 +13,16 @@ function fromLinear(c: number): number {
   return v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
 }
 
+/** Expand shorthand hex (3/4 chars) to full form (6/8 chars). */
+function expandHex(h: string): string {
+  if (h.length === 3 || h.length === 4) {
+    return [...h].map(c => c + c).join('');
+  }
+  return h;
+}
+
 export function hexToLab(hex: string): [number, number, number] | null {
-  const clean = hex.replace('#', '');
+  const clean = expandHex(hex.replace('#', ''));
   if (!/^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean)) return null;
   const r = toLinear(parseInt(clean.slice(0, 2), 16) / 255);
   const g = toLinear(parseInt(clean.slice(2, 4), 16) / 255);
@@ -49,8 +57,8 @@ export function labToHex(L: number, a: number, b: number): string {
  * https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
  */
 export function wcagLuminance(hex: string): number | null {
-  const clean = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
+  const clean = expandHex(hex.replace('#', ''));
+  if (!/^[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean)) return null;
   const r = toLinear(parseInt(clean.slice(0, 2), 16) / 255);
   const g = toLinear(parseInt(clean.slice(2, 4), 16) / 255);
   const b = toLinear(parseInt(clean.slice(4, 6), 16) / 255);
