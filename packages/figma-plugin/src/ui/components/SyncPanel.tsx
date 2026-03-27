@@ -635,7 +635,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
                         onClick={() => setVarDirs(Object.fromEntries(varRows.map(r => [r.path, action])))}
                         className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
                       >
-                        {action === 'push' ? '↑ Push all' : action === 'pull' ? '↓ Pull all' : 'Skip all'}
+                        {action === 'push' ? `↑ Push all (${varRows.length})` : action === 'pull' ? `↓ Pull all (${varRows.length})` : `Skip all (${varRows.length})`}
                       </button>
                     ))}
                   </div>

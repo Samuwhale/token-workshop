@@ -331,3 +331,10 @@
 - **Learnings for future iterations:**
   - Progress counts in the sync flow are layer counts (Figma nodes), not binding counts — controller iterates `nodes[]` and reports `nodes.length` as total.
 ---
+
+## 2026-03-27 - SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected
+- Added row count to each bulk action button label: "↑ Push all (N)", "↓ Pull all (N)", "Skip all (N)" where N = varRows.length. Users now see the affected count before clicking, without requiring a modal or disruptive confirmation step.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L617 (button label template literals)
+- **Learnings for future iterations:**
+  - For "select all" bulk actions, showing the count in the button label is the minimal UX improvement — the user can still abort by not pressing Apply. A modal confirmation is overkill since the action is reversible via individual row controls.
+---

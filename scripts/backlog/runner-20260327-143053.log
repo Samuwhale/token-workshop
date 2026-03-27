@@ -231,3 +231,10 @@ Already up to date.
 ===============================================================
   Claimed: SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected
   Worktree: /tmp/backlog-97955-rcGqdQ
+
+  ✓ done: SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected
+    Added row count to bulk action button labels: "↑ Push all (N)", "↓ Pull all (N)", "Skip all (N)" so users see the affected count before clicking
+    14 turns · 76s · $0.25
+
+--- Merging: SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected ---
+Already up to date.
