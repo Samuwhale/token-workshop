@@ -179,3 +179,16 @@ Already up to date.
 
 --- Merging: No theme preview mode — no way to preview token values with a theme applied before committing it as active ---
 Already up to date.
+[main 33720f8] chore(backlog): done – No theme preview mode — no way to preview token values with a theme applied before committing it as active
+ 7 files changed, 109 insertions(+), 27 deletions(-)
+
+## 2026-03-27 - No theme preview mode — no way to preview token values with a theme applied before committing it as active
+- Added hover-based theme preview: hovering over a theme option button sets `previewThemes[dim.id]` which merges with `activeThemes` to compute `themedAllTokensFlat`, showing that option's resolved values in the token list without persisting.
+- On mouse leave of the option group, `previewThemes[dim.id]` is cleared, reverting to the active theme values.
+- On click, the theme is committed (existing behavior), and `previewThemes` is cleared for that dimension.
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  55 items remaining
+===============================================================
+  Claimed: Sync progress doesn't clarify units — "45 / 120" doesn't say whether the count is layers or individual bindings; label the unit explicitly
+  Worktree: /tmp/backlog-98408-KwSxB2

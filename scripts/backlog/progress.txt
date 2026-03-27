@@ -316,3 +316,11 @@
   - The banner uses `pointer-events-none` so it doesn't interfere with the hover state that triggered it.
   - Clearing preview on click is important — without it, the preview state lingers after committing.
 ---
+
+## 2026-03-27 - SyncPanel variable sync has a 15-second timeout with no user-facing indication
+- Added a `varSyncElapsed` state + interval timer that starts when `varSyncing` becomes true. During the apply operation the status text below the Apply button changes from "Sending to Figma…" to "Ns… large sets can take up to 15s" after the first second, giving users a live elapsed counter and setting expectations. Improved the timeout error message to say "Figma did not respond within 15 seconds" with an actionable hint about applying a smaller selection. Separated the "apply timed out" branch from the generic "timed out" branch in the error display so each gets its own tailored message.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L67 (state), ~L119 (useEffect timer), ~L679 (status text), ~L601 (error messages)
+- **Learnings for future iterations:**
+  - For operations with a known hard timeout, show elapsed seconds live so users can see progress vs. a frozen UI. A simple `setInterval` + state counter is sufficient.
+  - When error strings from different code paths can collide on a substring match (e.g. both "apply timed out" and "read timed out" contain "timed out"), always match the more specific string first to give each path its own tailored message.
+---

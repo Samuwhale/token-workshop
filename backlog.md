@@ -35,7 +35,7 @@
 
 ### UX
 
-- [~] No theme preview mode — no way to preview token values with a theme applied before committing it as active
+- [x] No theme preview mode — no way to preview token values with a theme applied before committing it as active
 
 ---
 
@@ -50,7 +50,7 @@
 
 - [~] SyncPanel variable sync has a 15-second timeout with no user-facing indication of the threshold — for large token sets this feels like a hang before showing an unhelpful error
 - [~] SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected
-- [ ] Sync progress doesn't clarify units — "45 / 120" doesn't say whether the count is layers or individual bindings; label the unit explicitly
+- [~] Sync progress doesn't clarify units — "45 / 120" doesn't say whether the count is layers or individual bindings; label the unit explicitly
 
 ### UX
 

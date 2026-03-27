@@ -68,6 +68,8 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   const [varDirs, setVarDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
   const [varLoading, setVarLoading] = useState(false);
   const [varSyncing, setVarSyncing] = useState(false);
+  const [varSyncElapsed, setVarSyncElapsed] = useState(0);
+  const varSyncElapsedRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [varError, setVarError] = useState<string | null>(null);
   const [varChecked, setVarChecked] = useState(false);
   const [varSyncResult, setVarSyncResult] = useState<number | null>(null);
@@ -118,6 +120,17 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
     fetchStatus();
     return () => { fetchAbortRef.current?.abort(); };
   }, [fetchStatus]);
+
+  useEffect(() => {
+    if (varSyncing) {
+      setVarSyncElapsed(0);
+      varSyncElapsedRef.current = setInterval(() => setVarSyncElapsed(s => s + 1), 1000);
+    } else {
+      if (varSyncElapsedRef.current) { clearInterval(varSyncElapsedRef.current); varSyncElapsedRef.current = null; }
+      setVarSyncElapsed(0);
+    }
+    return () => { if (varSyncElapsedRef.current) { clearInterval(varSyncElapsedRef.current); varSyncElapsedRef.current = null; } };
+  }, [varSyncing]);
 
   const computeVarDiff = useCallback(async () => {
     if (!activeSet) return;
@@ -585,7 +598,10 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
               const raw = varError;
               let message = 'Sync failed.';
               let action = 'Try again or reload the plugin.';
-              if (raw.includes('timed out')) {
+              if (raw.includes('apply timed out')) {
+                message = 'Figma did not respond within 15 seconds.';
+                action = 'Large token sets can take longer — try applying a smaller selection, or reload the plugin and retry.';
+              } else if (raw.includes('timed out') || raw.includes('did not respond')) {
                 message = 'Could not read variables from Figma.';
                 action = 'Make sure the plugin is open and active, then try again.';
               } else if (raw.includes('Could not fetch local tokens') || raw.includes('fetch local tokens')) {
@@ -662,12 +678,16 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
 
                   <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
                     <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                      {varSyncCount === 0
-                        ? 'Nothing to apply — all skipped'
-                        : [
-                            varPushCount > 0 ? `↑ ${varPushCount} to Figma` : null,
-                            varPullCount > 0 ? `↓ ${varPullCount} to local` : null,
-                          ].filter(Boolean).join(' · ')
+                      {varSyncing
+                        ? varSyncElapsed > 0
+                          ? `${varSyncElapsed}s… large sets can take up to 15s`
+                          : 'Sending to Figma…'
+                        : varSyncCount === 0
+                          ? 'Nothing to apply — all skipped'
+                          : [
+                              varPushCount > 0 ? `↑ ${varPushCount} to Figma` : null,
+                              varPullCount > 0 ? `↓ ${varPullCount} to local` : null,
+                            ].filter(Boolean).join(' · ')
                       }
                     </span>
                     <button

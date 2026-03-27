@@ -183,3 +183,10 @@ Already up to date.
 ===============================================================
   Claimed: SyncPanel variable sync has a 15-second timeout with no user-facing indication of the threshold — for large token sets this feels like a hang before showing an unhelpful error
   Worktree: /tmp/backlog-97510-qJMFUO
+
+  ✓ done: SyncPanel variable sync has a 15-second timeout with no user-facing indication of the threshold — for large token sets this feels like a hang before showing an unhelpful error
+    Added live elapsed-seconds counter during sync ("Ns… large sets can take up to 15s") and improved the timeout error message to name the 15-second threshold with actionable guidance.
+    25 turns · 143s · $0.52
+
+--- Merging: SyncPanel variable sync has a 15-second timeout with no user-facing indication of the threshold — for large token sets this feels like a hang before showing an unhelpful error ---
+Already up to date.
