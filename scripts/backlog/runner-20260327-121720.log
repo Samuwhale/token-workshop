@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: ExportPanel unreachable — never imported or rendered in App.tsx ---
 Already up to date.
+[main be9d3c0] chore(backlog): done – ExportPanel unreachable — never imported or rendered in App.tsx
+ 6 files changed, 66 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - ExportPanel unreachable — never imported or rendered in App.tsx
+- Imported `ExportPanel` in App.tsx and wired it as an overflow panel accessible via the overflow menu ("Export" button) and the command palette ("Export Tokens" command).
+- Added `'export'` to the `OverflowPanel` type union.
+- Added overflow panel rendering block with back-button header following the same pattern as ImportPanel.
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  22 items remaining
+===============================================================
+  Claimed: [HIGH] Deep inspect "Go to token" button is permanently invisible — `SelectionInspector.tsx:1005-1007`: the parent `<div>` for each deep-inspect child row is missing the `group` Tailwind class, so `opacity-0 group-hover:opacity-100` on the navigate button never triggers; the button is hidden and unreachable at all times.
+  Worktree: /tmp/backlog-96806-yP53bK

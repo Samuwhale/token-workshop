@@ -264,3 +264,10 @@
   - Overflow panels follow a consistent pattern: type union entry + menu button + conditional render block with back-button header. Copy the Import panel block as a template.
   - Command palette handlers that reference overflow panels use `openOverflowPanel('name')` not `setActiveTab`.
 ---
+
+## 2026-03-27 - templateIdForTokenType fallback returns non-existent template ID
+- Already fixed in commit 870a1c3: `'modular-type-scale'` was changed to `'modular-type'` which matches the actual template id in `GRAPH_TEMPLATES`.
+- Files changed: none (already resolved)
+- **Learnings for future iterations:**
+  - Backlog items can become stale when prior sessions fix the same code path as a side-effect of related work.
+---

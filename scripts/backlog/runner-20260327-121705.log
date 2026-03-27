@@ -34,3 +34,10 @@ Already up to date.
 ===============================================================
   Claimed: [HIGH] `templateIdForTokenType` fallback returns non-existent template ID — `GraphPanel.tsx:600` returns `'modular-type-scale'` for non-color/dimension tokens but `GRAPH_TEMPLATES` has id `'modular-type'`; `find()` returns `undefined`, `initialTemplate` is set to `null`, and the pending-token-type hint is silently discarded when opening the Graph tab from a token's context menu.
   Worktree: /tmp/backlog-96047-ldODR7
+
+  ✓ done: templateIdForTokenType fallback returns non-existent template ID
+    stale — already fixed in commit 870a1c3 where 'modular-type-scale' was corrected to 'modular-type'
+    8 turns · 38s · $0.22
+
+--- Merging: templateIdForTokenType fallback returns non-existent template ID ---
+Already up to date.
