@@ -440,3 +440,10 @@
 - Files changed: `packages/figma-plugin/src/ui/hooks/useTokenNavigation.ts` ~L11,L22,L48; `packages/figma-plugin/src/ui/App.tsx` ~L205,L235
 - **Root cause:** `pathToSet` intentionally uses first-set-wins to build a flat cross-set alias map, but the same map was reused as a set-membership check — incorrect for shared paths.
 ---
+
+## 2026-03-27 - AnalyticsPanel fetch AbortController
+- Added `if (controller.signal.aborted) return;` guards after the `/api/sets` fetch resolves and after the `Promise.all` for all token sets resolves — prevents setState calls on unmounted component when user switches tabs mid-load.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L183,L205
+- **Learnings for future iterations:**
+  - `AbortController` + `signal` on fetches only prevents network activity from completing — if the response body has already been received, the signal won't stop downstream `setState` calls. Always add `if (controller.signal.aborted) return;` after each `await` in async effect loads.
+---

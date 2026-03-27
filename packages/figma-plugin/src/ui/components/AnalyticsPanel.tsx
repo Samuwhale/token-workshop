@@ -181,6 +181,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
 
     const load = async () => {
       const setsRes = await fetch(`${serverUrl}/api/sets`, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       const setsData = await setsRes.json();
       const sets: string[] = setsData.sets || [];
       const descriptions: Record<string, string> = setsData.descriptions || {};
@@ -203,6 +204,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           return { name, description: descriptions[name], total, byType };
         })
       );
+      if (controller.signal.aborted) return;
       setStats(results);
       setColorTokens(
         allColors
