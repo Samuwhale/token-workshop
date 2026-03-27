@@ -260,7 +260,12 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            tokens: mode.tokens.map(t => ({ path: t.path, $type: t.$type, $value: t.$value })),
+            tokens: mode.tokens.map(t => {
+              const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
+              if (t.$description) tok.$description = t.$description;
+              if (t.$scopes && t.$scopes.length > 0) tok.$scopes = t.$scopes;
+              return tok;
+            }),
             strategy: 'overwrite',
           }),
         }).catch(() => null);

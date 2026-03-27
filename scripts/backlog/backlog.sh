@@ -305,6 +305,10 @@ merge_worktree_to_main() {
   git -C "$WORKTREE_DIR" checkout HEAD -- scripts/backlog/patterns.md 2>/dev/null || true
 
   # 3. Commit code-only changes in worktree (detached HEAD)
+  # Remove node_modules symlink — .gitignore's `node_modules/` pattern
+  # matches directories but not symlinks, so git sees it as untracked.
+  rm -f "$WORKTREE_DIR/node_modules" 2>/dev/null
+
   local worktree_sha=""
   if [ -n "$(git -C "$WORKTREE_DIR" status --porcelain 2>/dev/null)" ]; then
     git -C "$WORKTREE_DIR" add -A 2>/dev/null

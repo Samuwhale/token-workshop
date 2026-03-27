@@ -176,7 +176,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/tokens/:set/batch — upsert multiple tokens in a single request
   fastify.post<{
     Params: { set: string };
-    Body: { tokens: Array<{ path: string; $type?: string; $value: unknown; $description?: string; $extensions?: Record<string, unknown> }>; strategy: 'skip' | 'overwrite' };
+    Body: { tokens: Array<{ path: string; $type?: string; $value: unknown; $description?: string; $scopes?: string[]; $extensions?: Record<string, unknown> }>; strategy: 'skip' | 'overwrite' };
   }>('/tokens/:set/batch', async (request, reply) => {
     const { set } = request.params;
     const { tokens, strategy } = request.body ?? {};

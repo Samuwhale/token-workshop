@@ -1,0 +1,8 @@
+
+## 2026-03-27 - ImportPanel: $description and $scopes lost on import
+- Bug: `mode.tokens.map()` in ImportPanel L263 only extracted `path`, `$type`, `$value`, silently dropping `$description` and `$scopes` that the controller reads from Figma variables (controller.ts L509-510).
+- Fix: Include `$description` (when non-empty) and `$scopes` (when non-empty array) in the batch POST body. Also added `$scopes` to the batch endpoint's TypeScript type annotation.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L263, `packages/server/src/routes/tokens.ts` ~L179
+- **Learnings for future iterations:**
+  - When mapping data for API calls, always check the source object for additional fields that should be forwarded — explicit destructuring/picking silently drops new fields added upstream.
+---
