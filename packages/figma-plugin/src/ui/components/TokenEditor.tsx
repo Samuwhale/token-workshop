@@ -1001,10 +1001,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
             onClick={() => setShowDependents(v => !v)}
             className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
-            <span>
+            <span className="flex items-center gap-1.5">
               Used by
               {dependentsLoading
-                ? <span className="ml-1 opacity-50">…</span>
+                ? <svg className="animate-spin shrink-0 opacity-50" width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>
                 : dependents.length > 0 ? ` (${dependents.length})` : ''}
             </span>
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${showDependents ? 'rotate-90' : ''}`} aria-hidden="true">
@@ -1014,7 +1014,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           {showDependents && (
             <div className="border-t border-[var(--color-figma-border)]">
               {dependentsLoading ? (
-                <p className="px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)] opacity-50">Loading…</p>
+                <div className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+                  <svg className="animate-spin shrink-0" width="10" height="10" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>
+                  Finding references…
+                </div>
               ) : dependents.length === 0 ? (
                 <p className="px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">Not referenced by any other token.</p>
               ) : (

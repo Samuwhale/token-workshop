@@ -243,3 +243,8 @@
   - `initialRef` type annotation must be updated when adding new fields to dirty-tracking; TypeScript catches missing fields at the assignment sites, not at `init.newField` reads.
   - Using option `name` as the mode key is the simplest approach; if cross-dimension collisions become a problem, switch to `${dim.id}/${option.name}` keys.
 ---
+## 2026-03-27 - ux-pass: "Used by" section loading state now shows spinner instead of faint "Loading…"
+- Replaced the plain opacity-50 "Loading…" paragraph inside the expanded dependents section with an animated spinner + "Finding references…" label, matching the plugin's established loading pattern. Also replaced the "…" text in the section header button with an inline spinner so loading state is visible even when the section is collapsed.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1006, ~L1016
+- **User impact:** Users opening the "Used by" section while it is loading now see a consistent spinner instead of ghostly dim text, giving clear feedback that work is in progress rather than appearing like an error or stale state.
+---
