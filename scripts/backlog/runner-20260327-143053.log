@@ -360,3 +360,16 @@ Already up to date.
 
 --- Merging: No search/filter in graph view — large dependency graphs have no way to locate a specific token node ---
 Already up to date.
+[main b69f3a9] chore(backlog): done – No search/filter in graph view — large dependency graphs have no way to locate a specific token node
+ 6 files changed, 149 insertions(+), 73 deletions(-)
+
+## 2026-03-27 - No search/filter in graph view — large dependency graphs have no way to locate a specific token node
+- Added a search bar to both the pipeline view (generators list) and the template browsing view in GraphPanel
+- Pipeline view: search filters generators by name, sourceToken, or targetGroup; shows "X of N generators" count when filtering; shows empty state when no matches
+- Template browsing: search filters by label, description, or generatorType; same empty-state pattern
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  20 items remaining
+===============================================================
+  Claimed: No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values
+  Worktree: /tmp/backlog-97955-tJRUq2

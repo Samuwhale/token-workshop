@@ -796,6 +796,64 @@ function GeneratorPipelineCard({ generator }: { generator: TokenGenerator }) {
 }
 
 // ---------------------------------------------------------------------------
+// SVG export
+// ---------------------------------------------------------------------------
+
+function exportGraphAsSVG(generators: TokenGenerator[], activeSet: string): void {
+  const boxW = 130;
+  const boxH = 28;
+  const boxR = 5;
+  const arrowW = 28;
+  const padX = 20;
+  const padY = 20;
+  const titleH = 32;
+  const rowGap = 10;
+  const svgW = padX * 2 + boxW * 3 + arrowW * 2;
+  const svgH = padY + titleH + generators.length * (boxH + rowGap) - (generators.length > 0 ? rowGap : 0) + padY;
+
+  const esc = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const trunc = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '\u2026' : s);
+
+  const box = (bx: number, by: number, label: string, accent = false) =>
+    `<rect x="${bx}" y="${by}" width="${boxW}" height="${boxH}" rx="${boxR}" fill="${accent ? '#eff6ff' : '#f9fafb'}" stroke="${accent ? '#93c5fd' : '#e5e7eb'}" stroke-width="1"/>` +
+    `<text x="${bx + boxW / 2}" y="${by + boxH / 2 + 4}" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9" fill="${accent ? '#1d4ed8' : '#374151'}">${esc(trunc(label, 18))}</text>`;
+
+  const arrow = (ax: number, ay: number) =>
+    `<line x1="${ax}" y1="${ay}" x2="${ax + arrowW - 5}" y2="${ay}" stroke="#9ca3af" stroke-width="1.5"/>` +
+    `<polygon points="${ax + arrowW - 5},${ay - 3} ${ax + arrowW},${ay} ${ax + arrowW - 5},${ay + 3}" fill="#9ca3af"/>`;
+
+  let rows = '';
+  generators.forEach((gen, i) => {
+    const y = padY + titleH + i * (boxH + rowGap);
+    const mid = y + boxH / 2;
+    const bx1 = padX;
+    const bx2 = padX + boxW + arrowW;
+    const bx3 = padX + boxW * 2 + arrowW * 2;
+    const sourceLabel = gen.sourceToken || 'standalone';
+    const genLabel = trunc(gen.name || getGeneratorTypeLabel(gen.type), 18);
+    const targetLabel = `${gen.targetGroup}.*`;
+    rows += box(bx1, y, sourceLabel) + arrow(bx1 + boxW, mid) + box(bx2, y, genLabel, true) + arrow(bx2 + boxW, mid) + box(bx3, y, targetLabel);
+  });
+
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">`,
+    `<rect width="${svgW}" height="${svgH}" fill="white"/>`,
+    `<text x="${padX}" y="${padY + 18}" font-family="system-ui,sans-serif" font-size="13" font-weight="600" fill="#111827">${esc(activeSet)} \u2014 Generator graph</text>`,
+    rows,
+    '</svg>',
+  ].join('\n');
+
+  const blob = new Blob([svg], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${activeSet}-graph.svg`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
@@ -910,14 +968,28 @@ export function GraphPanel({
               }
             </div>
           </div>
-          <button
-            onClick={() => { setBrowsingTemplates(true); setSearchQuery(''); }}
-            disabled={!connected}
-            className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Add another template"
-          >
-            + Template
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => exportGraphAsSVG(setGenerators, activeSet)}
+              className="p-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              title="Export graph as SVG"
+              aria-label="Export graph as SVG"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => setBrowsingTemplates(true)}
+              disabled={!connected}
+              className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Add another template"
+            >
+              + Template
+            </button>
+          </div>
         </div>
 
         {/* Search bar */}

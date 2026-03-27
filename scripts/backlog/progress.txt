@@ -416,3 +416,13 @@
   - Graph view has two distinct list surfaces: generator pipeline (filteredGenerators) and template browsing (filteredTemplates) — search state should be shared/reset between them to avoid stale queries when switching views
   - The "X of N" subtitle pattern (showing filtered count vs total) is a useful affordance in the header when a filter is active, without cluttering the UI at rest
 ---
+
+## 2026-03-27 - No graph export — no option to save the rendered graph as SVG or PNG for documentation
+- Added `exportGraphAsSVG(generators, activeSet)` helper that builds an SVG diagram (source→generator→target pipeline rows) and triggers a browser download as `<set>-graph.svg`. No external dependencies — pure SVG string construction with `Blob` + `URL.createObjectURL`.
+- Added a download icon button (↓ arrow SVG) in the pipeline view header alongside "+ Template", triggering the export.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L711 (exportGraphAsSVG function), ~L862 (export button in pipeline header)
+- **Learnings for future iterations:**
+  - Pure SVG export is straightforward for simple pipeline/graph layouts: build string with `<rect>`, `<text>`, `<line>`, `<polygon>` elements; download via Blob + anchor click.
+  - `URL.revokeObjectURL` should be called after `a.click()` to free the object URL immediately (click is synchronous for downloads in browsers).
+  - No `html2canvas` or external lib needed for structured data like pipeline diagrams — directly computed SVG is lighter and more reliable in a Figma plugin context.
+---

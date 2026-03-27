@@ -395,3 +395,10 @@ Already up to date.
 ===============================================================
   Claimed: No graph export — no option to save the rendered graph as SVG or PNG for documentation
   Worktree: /tmp/backlog-98408-7zfXKs
+
+  ✓ done: No graph export — no option to save the rendered graph as SVG or PNG for documentation
+    Added Export SVG button to pipeline header; downloads a programmatically-built SVG diagram of all generator pipelines with no external dependencies.
+    17 turns · 125s · $0.42
+
+--- Merging: No graph export — no option to save the rendered graph as SVG or PNG for documentation ---
+Already up to date.
