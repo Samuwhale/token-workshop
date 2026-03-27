@@ -368,3 +368,12 @@
 - Files changed: `packages/server/src/routes/docs.ts` ~L4-12; `packages/core/src/index.ts` ~L68
 - **Why:** `hexToLuminance` was a private reimplementation of `wcagLuminance` from color-math.ts — same WCAG algorithm, just not exported. The duplicate was unnecessary since the server already depends on `@tokenmanager/core`.
 ---
+
+## 2026-03-27 - DTCG JSON file import
+- Added "Import from JSON file" button to the source selection screen in ImportPanel. Clicking opens a hidden `<input type="file" accept=".json">`. On file selection, FileReader reads the file, parses JSON, flattens with `flattenTokenGroup`, and loads into the existing `tokens`/`selectedTokens` state — reusing the full styles-import list UI (token preview, type filter pills, conflict detection, target-set selector, batch import).
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L62,L166-200,L428-460
+- **Learnings for future iterations:**
+  - The styles import flow (`tokens` state + `executeImport`) is fully generic — any flat token list can reuse it by just populating `tokens` and `selectedTokens`.
+  - `flattenTokenGroup` handles both bare token groups and nested groups. Support `json.tokens ?? json` to accept both wrapped (`{ tokens: {...} }`) and bare DTCG files.
+  - `source` state drives the header label ("Figma Styles" vs "JSON File") — extend the union type when adding new sources.
+---

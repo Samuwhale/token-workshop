@@ -59,7 +59,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [error, setError] = useState<string | null>(null);
   const [targetSet, setTargetSet] = useState(() => lsGet(STORAGE_KEYS.IMPORT_TARGET_SET, 'imported'));
   const [sets, setSets] = useState<string[]>([]);
-  const [source, setSource] = useState<'variables' | 'styles' | null>(null);
+  const [source, setSource] = useState<'variables' | 'styles' | 'json' | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
@@ -160,6 +161,44 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setSuccessMessage(null);
     startReadTimeout();
     parent.postMessage({ pluginMessage: { type: 'read-styles' } }, '*');
+  };
+
+  const handleReadJson = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset so same file can be re-selected
+    e.target.value = '';
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const json = JSON.parse(reader.result as string);
+        // Support both bare token group and wrapped { tokens: ... }
+        const group = json.tokens ?? json;
+        const flat = flattenTokenGroup(group);
+        const importTokens: ImportToken[] = [];
+        for (const [path, token] of flat) {
+          importTokens.push({ path, $type: token.$type ?? 'unknown', $value: token.$value });
+        }
+        if (importTokens.length === 0) {
+          setError('No tokens found in file. Make sure it is a valid DTCG JSON file.');
+          return;
+        }
+        setSource('json');
+        setTokens(importTokens);
+        setSelectedTokens(new Set(importTokens.map(t => t.path)));
+        setTypeFilter(null);
+        setError(null);
+        setSuccessMessage(null);
+        setCollectionData([]);
+      } catch {
+        setError('Could not parse JSON file. Make sure it is valid JSON.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleBack = () => {
@@ -402,6 +441,33 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 <path d="M2 1l4 3-4 3V1z" />
               </svg>
             </button>
+            <button
+              onClick={handleReadJson}
+              className="flex items-center gap-3 px-3 py-3 rounded border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <div className="w-8 h-8 rounded bg-[#27ae60]/10 flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#27ae60" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <line x1="9" y1="15" x2="15" y2="15" />
+                </svg>
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from JSON file</div>
+                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Load a DTCG-format .json token file</div>
+              </div>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
+                <path d="M2 1l4 3-4 3V1z" />
+              </svg>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="sr-only"
+              onChange={handleJsonFileChange}
+            />
           </div>
         )}
 
@@ -527,7 +593,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 Back
               </button>
               <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">
-                Figma Styles
+                {source === 'json' ? 'JSON File' : 'Figma Styles'}
               </span>
             </div>
 
