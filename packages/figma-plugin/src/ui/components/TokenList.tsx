@@ -2078,6 +2078,7 @@ export function TokenList({
             const leaves = flattenLeafNodes(displayedTokens);
             const colorLeaves = leaves.filter(l => l.$type === 'color');
             if (colorLeaves.length === 0) {
+              const filterIsBlockingColors = typeFilter !== '' && typeFilter !== 'color';
               return (
                 <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -2085,14 +2086,29 @@ export function TokenList({
                     <circle cx="12" cy="12" r="4" />
                     <path d="M2 12h4M18 12h4M12 2v4M12 18v4" />
                   </svg>
-                  <p className="mt-2 text-[11px] font-medium">No color tokens to display</p>
-                  <p className="text-[10px] mt-0.5">Grid view shows color tokens as swatches</p>
-                  <button
-                    onClick={() => setViewMode('tree')}
-                    className="mt-3 px-2.5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                  >
-                    Switch to Tree view
-                  </button>
+                  {filterIsBlockingColors ? (
+                    <>
+                      <p className="mt-2 text-[11px] font-medium">No color tokens match current filter</p>
+                      <p className="text-[10px] mt-0.5">Grid view only shows color swatches — clear the type filter to see them</p>
+                      <button
+                        onClick={() => setTypeFilter('')}
+                        className="mt-3 px-2.5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        Clear type filter
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="mt-2 text-[11px] font-medium">No color tokens to display</p>
+                      <p className="text-[10px] mt-0.5">Grid view shows color tokens as swatches</p>
+                      <button
+                        onClick={() => setViewMode('tree')}
+                        className="mt-3 px-2.5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        Switch to Tree view
+                      </button>
+                    </>
+                  )}
                 </div>
               );
             }

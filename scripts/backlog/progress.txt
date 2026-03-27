@@ -411,3 +411,10 @@
 - Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L38
 - **Why:** The import was dead — `STORAGE_KEY` never appears in the file body after the import line. It shadowed the real constant and could cause confusion about which export to use.
 ---
+
+## 2026-03-27 - Grid view: when a type filter is active and no color tokens match, distinguish between "no color tokens exist" vs "none match current filter"
+- Added `filterIsBlockingColors` check (`typeFilter !== '' && typeFilter !== 'color'`) in the grid view empty state. When true, shows "No color tokens match current filter" with a "Clear type filter" button. When false (no filter or color-specific filter), shows the existing "No color tokens to display" message with "Switch to Tree view".
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2080
+- **Learnings for future iterations:**
+  - Grid view only renders color tokens, so a non-color typeFilter will always produce an empty grid. The check `typeFilter !== '' && typeFilter !== 'color'` is the minimal condition for "filter is the culprit".
+---
