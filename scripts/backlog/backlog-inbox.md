@@ -1,0 +1,1 @@
+- [ ] Client URL encoding inconsistency — many handlers still use raw `${setName}/${tokenPath}` (no encodeURIComponent) for DELETE and other requests; if set names can contain `/`, these URLs would be misparsed. Audit and normalize.

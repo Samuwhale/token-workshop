@@ -278,3 +278,10 @@
   - `executeTokenRename` is called both from the confirmation dialog and directly, so adding undo there covers both paths (confirmed + unconfirmed renames).
   - For drag-and-drop moves, collect the `moves` array before issuing API calls so both restore and redo can replay the exact set of renames.
 ---
+
+## 2026-03-27 - bugfix-pass: wildcard route params slash→dot normalization
+- Bug: The server's wildcard `*` route handlers for `/tokens/:set/*` and `/tokens/:set/dependents/*` passed `request.params['*']` directly to token store functions which split on `.`. But several client call sites encode token paths as slash-separated URLs (e.g., `colors/primary/accent` from `path.split('.').map(encodeURIComponent).join('/')`). This caused: (1) `handleInlineSave` PATCH calls to return 404 and silently fail — inline edits appeared to save but values reverted on refresh; (2) `handleConfirmPromote` PATCH calls to silently fail; (3) the `getDependents` check to always return 0 — the "N tokens reference this token" confirmation dialog was never shown before renames.
+- Fix: Added `.split('/').join('.')` normalization to `request.params['*']` in all 5 wildcard route handlers (dependents GET, token GET/POST/PATCH/DELETE). Dot-separated paths (no `/`) are unaffected; slash-separated paths are converted to dot-separated before store lookup.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L173, ~L259, ~L283, ~L316, ~L343
+- **Root cause:** Two URL-construction conventions coexisted in the client — some handlers used raw dot-separated paths, others (inline save, promote-to-alias) used per-segment `encodeURIComponent` joined with `/`. The server never normalized between them.
+---

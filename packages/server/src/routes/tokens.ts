@@ -170,7 +170,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /api/tokens/:set/dependents/* — get tokens that reference a given token path (cross-set)
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/dependents/*', async (request, reply) => {
-    const tokenPath = request.params['*'];
+    const tokenPath = request.params['*'].split('/').join('.');
     if (!tokenPath) {
       return reply.status(400).send({ error: 'Token path is required' });
     }
@@ -256,7 +256,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/tokens/:set/* — get single token by path
   fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/*', async (request, reply) => {
     const { set } = request.params;
-    const tokenPath = request.params['*'];
+    const tokenPath = request.params['*'].split('/').join('.');
     if (!tokenPath) {
       return reply.status(400).send({ error: 'Token path is required' });
     }
@@ -280,7 +280,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     '/tokens/:set/*',
     async (request, reply) => {
       const { set } = request.params;
-      const tokenPath = request.params['*'];
+      const tokenPath = request.params['*'].split('/').join('.');
       if (!tokenPath) {
         return reply.status(400).send({ error: 'Token path is required' });
       }
@@ -313,7 +313,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     '/tokens/:set/*',
     async (request, reply) => {
       const { set } = request.params;
-      const tokenPath = request.params['*'];
+      const tokenPath = request.params['*'].split('/').join('.');
       if (!tokenPath) {
         return reply.status(400).send({ error: 'Token path is required' });
       }
@@ -340,7 +340,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   // DELETE /api/tokens/:set/* — delete token
   fastify.delete<{ Params: { set: string; '*': string } }>('/tokens/:set/*', async (request, reply) => {
     const { set } = request.params;
-    const tokenPath = request.params['*'];
+    const tokenPath = request.params['*'].split('/').join('.');
     if (!tokenPath) {
       return reply.status(400).send({ error: 'Token path is required' });
     }
