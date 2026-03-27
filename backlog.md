@@ -112,7 +112,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] Circular alias reference detection — creating a cycle (token A references B which references A) is not caught at edit time; the resolver silently returns unresolved and lint picks it up later; the editor should detect and block cycles immediately (`core/resolver.ts`, `figma-plugin/TokenEditor.tsx`)
 
-- [ ] Selective export by set or group — `POST /api/export` always exports every token across all sets; there is no way to export a single set or a subtree of tokens; this is a basic workflow when sharing only part of a design system with a team (`server/routes/export.ts`, `figma-plugin/ExportPanel.tsx`)
+- [x] Selective export by set or group — `POST /api/export` always exports every token across all sets; there is no way to export a single set or a subtree of tokens; this is a basic workflow when sharing only part of a design system with a team (`server/routes/export.ts`, `figma-plugin/ExportPanel.tsx`)
 
 - [ ] Token ordering within a group — tokens within a group are rendered in whatever order they appear in the JSON file; there is no way to reorder them via the UI, making it hard to control the visual hierarchy of a group (e.g. putting `default` before `hover` before `active`) (`TokenList.tsx`, `server/token-store.ts`)
 
@@ -169,3 +169,10 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [ ] PreviewPanel template empty states — "No color tokens found" gives code snippet but no button to switch to Tokens tab; user is left without an action path
 - [ ] ExportPanel "Clear" vs "Refresh" buttons — both are tiny unlabeled-feeling actions next to each other; consider a single "Reload" that re-reads from Figma (making "Clear" redundant since data is non-destructive)
 - [ ] ImportPanel styles — "Import from Figma Styles" button style is visually weaker than the Variables button, suggesting it's a secondary option even when it's equally valid
+
+- [HIGH] ExportPanel unreachable — `ExportPanel` is a fully-built 815-line component that is never imported or rendered in `App.tsx`; users have no way to access platform export (CSS/Dart/Swift/Android/JSON) or Figma variable import from the plugin UI (`packages/figma-plugin/src/ui/components/ExportPanel.tsx`)
+- [ ] Platform selection not persisted between plugin sessions — `ExportPanel` initializes `selected` to `new Set(['css'])` on every mount with no localStorage; users must re-select platforms each time they re-open the plugin (`ExportPanel.tsx:51`)
+- [ ] Collection name collision when saving Figma variables to server — `collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase()` can map two differently-named Figma collections to the same set name (e.g. "My Colors" and "My-Colors" → both "my-colors"), silently overwriting the first set during batch save with no warning (`ExportPanel.tsx:240`)
+- [ ] Docs page renders alias token values as raw `{reference}` strings — `/docs/:set` serves raw `$value` fields without resolving aliases, so alias tokens display as literal `{some.path}` text instead of resolved values, making the style guide misleading for alias-heavy token sets (`server/routes/docs.ts`, `server/services/token-store.ts`)
+- [ ] Spacing/dimension tokens with `rem` or `%` units render as near-zero bars in docs — `renderSpacingTokens` uses `parseFloat("1rem")` → `1`, showing a 1px bar for a `1rem` token; the text label is correct but the visual representation is wrong (`server/routes/docs.ts:85-86`)
+- [ ] Token set key collision silently discards tokens on export — `Object.assign(merged, tokenGroup)` in `exportTokens` overwrites top-level DTCG group keys when two sets share a group name (e.g. both have a `color` group), dropping the first set's tokens with no warning or error (`server/services/style-dict.ts:151-153`)

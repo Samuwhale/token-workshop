@@ -55,6 +55,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
+  // Set filter state
+  const [availableSets, setAvailableSets] = useState<string[]>([]);
+  const [selectedSets, setSelectedSets] = useState<Set<string> | null>(null); // null = all sets
+
   // Figma variables export state
   const [figmaLoading, setFigmaLoading] = useState(false);
   const [figmaCollections, setFigmaCollections] = useState<ExportedCollection[]>([]);
@@ -84,6 +88,32 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     return () => window.removeEventListener('message', handler);
   }, [figmaLoading]);
 
+  // Fetch available sets when connected
+  useEffect(() => {
+    if (!connected) return;
+    fetch(`${serverUrl}/api/sets`)
+      .then(r => r.json())
+      .then((data: { sets?: string[] }) => {
+        setAvailableSets(data.sets || []);
+      })
+      .catch(() => { /* ignore — sets filter will be hidden */ });
+  }, [connected, serverUrl]);
+
+  const toggleSet = (name: string) => {
+    setSelectedSets(prev => {
+      // If currently "all", transition to all-except-toggled
+      const base = prev ?? new Set(availableSets);
+      const next = new Set(base);
+      if (next.has(name)) {
+        next.delete(name);
+      } else {
+        next.add(name);
+      }
+      // If all sets are selected again, reset to null (= all)
+      return next.size === availableSets.length ? null : next;
+    });
+  };
+
   const togglePlatform = (id: string) => {
     setSelected(prev => {
       const next = new Set(prev);
@@ -103,10 +133,12 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     setResults([]);
 
     try {
+      const body: { platforms: string[]; sets?: string[] } = { platforms: Array.from(selected) };
+      if (selectedSets !== null) body.sets = Array.from(selectedSets);
       const res = await fetch(`${serverUrl}/api/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platforms: Array.from(selected) }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -438,6 +470,56 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               </div>
             </div>
 
+            {availableSets.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                    Token Sets
+                  </div>
+                  <button
+                    onClick={() => setSelectedSets(null)}
+                    className="text-[9px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                  >
+                    {selectedSets === null ? `All (${availableSets.length})` : `${(selectedSets).size} of ${availableSets.length} — reset`}
+                  </button>
+                </div>
+                <div className="flex flex-col gap-1">
+                  {availableSets.map(setName => {
+                    const isSelected = selectedSets === null || selectedSets.has(setName);
+                    return (
+                      <label
+                        key={setName}
+                        className={`group flex items-center gap-2.5 px-3 py-1.5 rounded-md border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
+                            : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
+                        }`}
+                      >
+                        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                          isSelected
+                            ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
+                            : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
+                        }`}>
+                          {isSelected && (
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M20 6L9 17l-5-5" />
+                            </svg>
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSet(setName)}
+                          className="sr-only"
+                        />
+                        <span className="text-[11px] text-[var(--color-figma-text)] font-mono truncate">{setName}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {results.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -765,7 +847,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             disabled={selected.size === 0 || exporting}
             className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
           >
-            {exporting ? 'Exporting…' : selected.size === 0 ? 'Select a platform to export' : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
+            {exporting ? 'Exporting…' : selected.size === 0 ? 'Select a platform to export' : selectedSets !== null ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}` : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
           </button>
         )}
         {mode === 'figma-variables' && figmaCollections.length === 0 && !figmaLoading && (

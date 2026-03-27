@@ -1,14 +1,18 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { exportTokens, type ExportPlatform } from '../services/style-dict.js';
+import type { TokenGroup } from '@tokenmanager/core';
 
 const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json'];
 
 export const exportRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/export — export tokens to specified platforms
-  fastify.post<{ Body: { platforms: ExportPlatform[] } }>(
+  // Optional body fields:
+  //   sets: string[]  — export only these token sets (default: all sets)
+  //   group: string   — export only this dot-separated sub-group within each set (e.g. "color.brand")
+  fastify.post<{ Body: { platforms: ExportPlatform[]; sets?: string[]; group?: string } }>(
     '/export',
     async (request, reply) => {
-      const { platforms } = request.body || {};
+      const { platforms, sets, group } = request.body || {};
 
       if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
         return reply.status(400).send({
@@ -27,7 +31,40 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       try {
-        const tokenData = fastify.tokenStore.getAllTokenData();
+        const allTokenData = fastify.tokenStore.getAllTokenData();
+
+        // Filter by sets (if provided, only include the specified sets)
+        let tokenData: Record<string, TokenGroup> = allTokenData;
+        if (sets && sets.length > 0) {
+          tokenData = {};
+          for (const setName of sets) {
+            if (allTokenData[setName]) {
+              tokenData[setName] = allTokenData[setName];
+            }
+          }
+        }
+
+        // Filter by group (navigate nested dot-separated path within each set)
+        if (group) {
+          const segments = group.split('.');
+          const filtered: Record<string, TokenGroup> = {};
+          for (const [setName, tokens] of Object.entries(tokenData)) {
+            let current: TokenGroup | undefined = tokens;
+            for (const seg of segments) {
+              if (current && typeof current === 'object' && seg in current) {
+                current = (current as Record<string, unknown>)[seg] as TokenGroup | undefined;
+              } else {
+                current = undefined;
+                break;
+              }
+            }
+            if (current && typeof current === 'object') {
+              filtered[setName] = current;
+            }
+          }
+          tokenData = filtered;
+        }
+
         const results = await exportTokens(tokenData, platforms);
         return { results };
       } catch (err) {

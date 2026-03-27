@@ -316,3 +316,12 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: ExportPanel is a fully-built 815-line component that is completely unreachable — it is never imported or used in App.tsx, meaning the entire platform export and Figma variable import flow is inaccessible to users
 ---
+
+## 2026-03-27 - Selective export by set or group
+- Added `sets?: string[]` and `group?: string` optional params to `POST /api/export`. Server filters `getAllTokenData()` down to the requested sets, then navigates the nested TokenGroup tree for the group prefix before passing to `exportTokens()`.
+- Added set selector UI in ExportPanel platforms mode: fetches `/api/sets` on mount, shows checkboxes for each token set (all checked by default), passes `sets` array in export body when a subset is selected. Export button label shows "X Platforms · Y Sets" when filtering.
+- Files changed: `packages/server/src/routes/export.ts` ~L1, `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L58
+- **Learnings for future iterations:**
+  - `GET /api/sets` returns `{ sets: string[], descriptions: {}, counts: {} }` — `sets` is a flat string array, not an array of objects.
+  - "null = all sets" pattern (null means no filter applied, Set<string> means explicit selection) avoids having to compare set sizes to detect "all selected" state — except on toggle we do size-compare to reset back to null.
+---
