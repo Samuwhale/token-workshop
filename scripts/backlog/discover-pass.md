@@ -8,13 +8,21 @@ Codebase patterns are injected into your system prompt. Recent progress log is a
 
 ## Goal
 
-Find **3–8 concrete, actionable issues** in ONE focused area and write them to `backlog-inbox.md`. Good targets:
+Find **3–8 concrete, actionable issues** in ONE focused area and write them to `backlog-inbox.md`. Think like a power user who manages hundreds of design tokens daily — what's missing, what's painful, what would make this the best tool in its category?
 
-- **Functional gaps** — features the app is missing that users would expect (e.g. no way to do X, no feedback when Y fails)
-- **UX gaps** — unclear flows, missing affordances, confusing labels, no empty states, no confirmation before destructive actions
-- **QoL gaps** — extra clicks, no keyboard shortcuts, fields that don't auto-focus, things that should be smarter
+**Prioritize feature and UX gaps over code issues.** The goal is to make the tool more capable and delightful, not just correct.
+
+Good targets (in priority order):
+
+- **Missing features** — things a power user would expect to exist but don't (batch operations, keyboard shortcuts, search, quick actions, drag-and-drop, undo, copy/paste tokens). Think: "what can Figma's native variable UI do that we can't?" and "what can we do that Figma's native UI can't?"
+- **Workflow friction** — things that take 5 clicks when they should take 1, flows that break your focus, missing "fast paths" for common operations
+- **UX gaps** — unclear flows, missing affordances, confusing labels, no empty states, no confirmation before destructive actions, poor information hierarchy
+- **QoL gaps** — fields that don't auto-focus, things that should be smarter, missing preview, no inline editing, no contextual help
+- **Functional gaps** — no feedback when something fails, no way to recover from mistakes, operations that should be reversible but aren't
 - **Code correctness** — edge cases that aren't handled, inputs that aren't validated, silent error swallowing
-- **Bugs** — logic that is clearly wrong, states that can get stuck, race conditions, off-by-ones
+- **Bugs** — logic that is clearly wrong, states that can get stuck, race conditions
+
+**Be bold.** "Add keyboard shortcut support for all token CRUD operations" is a valid item. "Add drag-and-drop reordering for token groups" is a valid item. We are building the best tool, not just patching the current one.
 
 ---
 
@@ -49,7 +57,8 @@ Find **3–8 concrete, actionable issues** in ONE focused area and write them to
 - Write only to `backlog-inbox.md` and `scripts/backlog/progress.txt`.
 - Each item must be a complete, standalone sentence — the agent that picks it up won't have your context.
 - Do not duplicate items already in `backlog.md` (check for similar wording before writing).
-- Aim for 3–8 items. More is not better — only write issues that are real and worth fixing.
+- Aim for 3–8 items. More is not better — only write issues that are real and worth acting on.
+- Feature and UX items should outnumber bug/code items. If you found 6 bugs and 0 features, you're looking at the wrong level — step back and think about the user's workflow.
 - If the area you chose is already well-covered by existing backlog items, pick a different area.
 
 ---

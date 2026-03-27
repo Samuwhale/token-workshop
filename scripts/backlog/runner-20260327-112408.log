@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: `useThemeSwitcher` stale active-theme cleanup uses `setActiveThemesState` instead of `setActiveThemes` — removed dimensions are cleaned from React state but persist in localStorage and Figma clientStorage, causing phantom theme selections to reappear on next load (`useThemeSwitcher.ts:53-60`)
   Worktree: /tmp/backlog-75957-B5m0Bh
+
+  ✓ done: `useThemeSwitcher` stale active-theme cleanup uses `setActiveThemesState` instead of `setActiveThemes`
+    Added localStorage and Figma clientStorage persistence inside the functional updater at useThemeSwitcher.ts:58-60, so cleaned theme state no longer reverts on reload.
+    23 turns · 143s · $0.59
+
+--- Merging: `useThemeSwitcher` stale active-theme cleanup uses `setActiveThemesState` instead of `setActiveThemes` ---
+Already up to date.

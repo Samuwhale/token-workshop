@@ -39,3 +39,17 @@ Already up to date.
 
 --- Merging: ThemeManager handleDrop (set reorder) doesn't check res.ok ---
 Already up to date.
+[main 1d76d34] chore(backlog): done – ThemeManager handleDrop (set reorder) doesn't check res.ok
+ 7 files changed, 107 insertions(+), 4 deletions(-)
+ create mode 100644 scripts/backlog/feature-pass.md
+
+## 2026-03-27 - ThemeManager `handleDrop` (set reorder) doesn't check `res.ok`
+- Added `res.ok` check after the POST to save reordered sets. On failure (HTTP error or network error), the optimistic state update is rolled back by restoring `previousOrder`. Error message includes server response body for debugging.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L346 (save previousOrder), ~L358 (res.ok check + rollback)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  11 items remaining
+===============================================================
+  Claimed: `useThemeSwitcher` theme fetch failure is silently swallowed by `.catch(() => {})` — if `/api/themes` returns an error or the server is temporarily unreachable, dimensions silently remain empty with no user-visible error message or retry affordance (`useThemeSwitcher.ts:63`)
+  Worktree: /tmp/backlog-75264-ZL5DRf

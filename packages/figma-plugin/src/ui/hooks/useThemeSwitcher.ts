@@ -55,6 +55,9 @@ export function useThemeSwitcher(
               next[dim.id] = prev[dim.id];
             }
           }
+          // Persist cleaned map to localStorage + Figma clientStorage
+          lsSetJson(STORAGE_KEYS.ACTIVE_THEMES, next);
+          parent.postMessage({ pluginMessage: { type: 'set-active-themes', themes: next } }, '*');
           return next;
         });
       })
