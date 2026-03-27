@@ -31,7 +31,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] Rename "Graph" tab to "Generators" — the current label doesn't communicate purpose to new users; the tab hosts generator templates and the pipeline dependency view, not a graph of token relationships (`App.tsx:132-136`)
 - [x] Publish tab dirty indicator — show a small dot badge on the Publish tab when there are uncommitted local git changes, matching the pattern VS Code uses for modified editor tabs; gives users a heads-up without switching to the tab
 - [x] "···" theme-manage button needs accessible label/tooltip — the ellipsis button in the theme switcher bar (`App.tsx:1819-1825`) has no `title` or `aria-label`; at minimum add `title="Manage theme dimensions"`
-- [~] Keyboard shortcut discovery — add a "Keyboard shortcuts…" entry to the Cmd+K command palette that lists all registered shortcuts; currently they're completely undiscoverable unless the user already knows them
+- [x] Keyboard shortcut discovery — add a "Keyboard shortcuts…" entry to the Cmd+K command palette that lists all registered shortcuts; currently they're completely undiscoverable unless the user already knows them
 
 ---
 
@@ -45,7 +45,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] `wcagLuminance` returns 0 for invalid input instead of erroring — causes incorrect contrast ratios (`core/generator-engine.ts:274`)
 - [x] `clearAll` on token-store doesn't call `rebuildFlatTokens`/`rebuildResolver` — stale resolver persists until next file write (`server/token-store.ts:231-241`)
 - [~] `updateAliasRefs` misses aliases referencing the group itself (not a child) because `oldPrefix` always has a trailing dot (`server/token-store.ts:443`)
-- [ ] `createToken` for a new set triggers 3 rebuilds: createSet + saveSet + watcher (`server/token-store.ts:297-310`)
+- [~] `createToken` for a new set triggers 3 rebuilds: createSet + saveSet + watcher (`server/token-store.ts:297-310`)
 - [ ] Missing `return` after error `reply.send()` in sets.ts PATCH handlers and export.ts — could cause "reply already sent" (`server/routes/sets.ts:60,83`, `server/routes/export.ts:34`)
 - [ ] `deleteTokenAtPath` leaves empty parent group objects `{}` in the JSON file (`server/token-store.ts:760-773`)
 - [ ] ImportPanel conflict check only looks at top-level keys, misses nested token paths (`figma-plugin/ImportPanel.tsx:321-324`)
