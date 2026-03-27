@@ -560,3 +560,18 @@ Already up to date.
 
 --- Merging: PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view ---
 Already up to date.
+[main 5936049] chore(backlog): done – PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view
+ 4 files changed, 33 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view
+- Replaced the alias-skip logic in `colorGroups` with a `resolveAlias` memo that follows alias chains (`{path}` → lookup in `allTokensFlat` → recurse) up to the concrete hex value. Circular/unresolvable aliases are still skipped (`continue`). Alias tokens now appear in the palette with their resolved color.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L94
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 28 / 90  (claude)  —  0
+0 items remaining
+===============================================================
+./scripts/backlog/backlog.sh: line 696: [: 0
+0: integer expression expected
+No items available to claim (all in-progress or empty). Exiting.

@@ -134,6 +134,106 @@ export class GeneratorService {
   }
 
   /**
+   * Update generator references when a token set is renamed.
+   * Updates targetSet for any generator pointing at the old set name.
+   * Returns the count of generators updated.
+   */
+  async updateSetName(oldSetName: string, newSetName: string): Promise<number> {
+    let count = 0;
+    for (const [id, gen] of this.generators) {
+      if (gen.targetSet === oldSetName) {
+        this.generators.set(id, { ...gen, targetSet: newSetName });
+        count++;
+      }
+    }
+    if (count > 0) await this.saveGenerators();
+    return count;
+  }
+
+  /**
+   * Update generator references when a single token path changes.
+   * Updates sourceToken for exact path matches.
+   * Returns the count of generators updated.
+   */
+  async updateTokenPaths(pathMap: Map<string, string>): Promise<number> {
+    let count = 0;
+    for (const [id, gen] of this.generators) {
+      if (gen.sourceToken && pathMap.has(gen.sourceToken)) {
+        this.generators.set(id, { ...gen, sourceToken: pathMap.get(gen.sourceToken)! });
+        count++;
+      }
+    }
+    if (count > 0) await this.saveGenerators();
+    return count;
+  }
+
+  /**
+   * Update generator references when a token group is renamed.
+   * Updates sourceToken (prefix match) and targetGroup (exact or prefix match).
+   * Returns the count of generators updated.
+   */
+  async updateGroupPath(oldGroupPath: string, newGroupPath: string): Promise<number> {
+    let count = 0;
+    const prefix = oldGroupPath + '.';
+    for (const [id, gen] of this.generators) {
+      const updates: Partial<TokenGenerator> = {};
+      if (gen.sourceToken) {
+        if (gen.sourceToken === oldGroupPath) {
+          updates.sourceToken = newGroupPath;
+        } else if (gen.sourceToken.startsWith(prefix)) {
+          updates.sourceToken = newGroupPath + gen.sourceToken.slice(oldGroupPath.length);
+        }
+      }
+      if (gen.targetGroup === oldGroupPath) {
+        updates.targetGroup = newGroupPath;
+      } else if (gen.targetGroup.startsWith(prefix)) {
+        updates.targetGroup = newGroupPath + gen.targetGroup.slice(oldGroupPath.length);
+      }
+      if (Object.keys(updates).length > 0) {
+        this.generators.set(id, { ...gen, ...updates });
+        count++;
+      }
+    }
+    if (count > 0) await this.saveGenerators();
+    return count;
+  }
+
+  /**
+   * Update generator references after a bulk find/replace rename operation.
+   * Applies the same string transformation to sourceToken and targetGroup.
+   * Returns the count of generators updated.
+   */
+  async updateBulkTokenPaths(find: string, replace: string, isRegex = false): Promise<number> {
+    let pattern: RegExp | null = null;
+    if (isRegex) {
+      try {
+        pattern = new RegExp(find, 'g');
+      } catch {
+        return 0;
+      }
+    }
+    const apply = (s: string): string =>
+      pattern ? s.replace(pattern!, replace) : s.split(find).join(replace);
+
+    let count = 0;
+    for (const [id, gen] of this.generators) {
+      const updates: Partial<TokenGenerator> = {};
+      if (gen.sourceToken) {
+        const next = apply(gen.sourceToken);
+        if (next !== gen.sourceToken) updates.sourceToken = next;
+      }
+      const nextGroup = apply(gen.targetGroup);
+      if (nextGroup !== gen.targetGroup) updates.targetGroup = nextGroup;
+      if (Object.keys(updates).length > 0) {
+        this.generators.set(id, { ...gen, ...updates });
+        count++;
+      }
+    }
+    if (count > 0) await this.saveGenerators();
+    return count;
+  }
+
+  /**
    * Set or clear a per-step override on a generator.
    * Pass null to remove the override for that step.
    */

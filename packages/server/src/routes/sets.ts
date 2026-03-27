@@ -86,6 +86,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
 
     try {
       await fastify.tokenStore.renameSet(name, newName);
+      await fastify.generatorService.updateSetName(name, newName);
       return { renamed: true, oldName: name, newName };
     } catch (err) {
       const msg = getErrorMessage(err);

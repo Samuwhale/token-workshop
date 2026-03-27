@@ -43,6 +43,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       try {
         const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath);
+        await fastify.generatorService.updateGroupPath(oldGroupPath, newGroupPath);
         return result;
       } catch (err) {
         const msg = getErrorMessage(err);
@@ -166,6 +167,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
     try {
       const result = await fastify.tokenStore.bulkRename(set, find, replace, isRegex);
+      await fastify.generatorService.updateBulkTokenPaths(find, replace, isRegex ?? false);
       return result;
     } catch (err) {
       const msg = getErrorMessage(err);
@@ -237,6 +239,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       }
       try {
         const result = await fastify.tokenStore.renameToken(set, oldPath, newPath);
+        await fastify.generatorService.updateTokenPaths(new Map([[oldPath, newPath]]));
         return result;
       } catch (err) {
         const msg = getErrorMessage(err);

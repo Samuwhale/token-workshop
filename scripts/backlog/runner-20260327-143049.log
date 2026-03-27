@@ -448,3 +448,10 @@ Already up to date.
 ===============================================================
   Claimed: Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations
   Worktree: /tmp/backlog-97510-AKiD4c
+
+  ✓ done: Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations
+    Added 4 methods to GeneratorService (updateSetName, updateTokenPaths, updateGroupPath, updateBulkTokenPaths) and wired them into the 4 rename routes so $generators.json sourceToken/targetGroup/targetSet stay in sync after any rename operation.
+    47 turns · 418s · $1.58
+
+--- Merging: Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations ---
+Already up to date.
