@@ -252,3 +252,9 @@
 - **Learnings for future iterations:**
   - When two versions differ in richness (one is a superset), keep the richer version in shared utils and have the simpler consumer extract only what it needs (e.g. `.total`).
 ---
+
+## 2026-03-27 - ux-pass: git status letter badges have hover tooltips explaining M/A/D/?
+- Added `title` attributes to the git status letter badges in the "Uncommitted changes" list in SyncPanel. M/A/D/? are standard git shorthand that non-git-savvy users won't recognize. Hovering now shows: "Modified — has uncommitted changes", "Added — staged for commit", "Deleted — removed from repository", "Untracked — new file not yet staged".
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L768
+- **User impact:** Users who aren't familiar with git status codes can now hover the letter badge to understand what state each file is in, without leaving the plugin.
+---
