@@ -86,3 +86,10 @@
 - **Learnings for future iterations:**
   - Straightforward label rename — no logic changes needed, just string literals in JSX.
 ---
+
+## 2026-03-27 - SyncPanel sync result — show "Synced N variables" inline confirmation
+- Added `varSyncResult` state (number | null) that captures the count of pushed+pulled rows after `applyVarDiff` completes. Displayed as a green success line above the existing "Local tokens match Figma variables" message. Auto-clears after 4 seconds via `setTimeout`.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L71 (state), ~L276 (set result), ~L689 (render)
+- **Learnings for future iterations:**
+  - The SyncPanel post-sync state is controlled by `varChecked && varRows.length === 0` — adding transient feedback requires a separate state variable since the rows are already cleared.
+---

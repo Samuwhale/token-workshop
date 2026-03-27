@@ -70,6 +70,8 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   const [varSyncing, setVarSyncing] = useState(false);
   const [varError, setVarError] = useState<string | null>(null);
   const [varChecked, setVarChecked] = useState(false);
+  const [varSyncResult, setVarSyncResult] = useState<number | null>(null);
+  const varSyncResultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const varPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
   const applyPendingRef = useRef<Map<string, { resolve: () => void; reject: (err: Error) => void }>>(new Map());
 
@@ -270,9 +272,13 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
         });
       }
 
+      const syncedCount = pushRows.length + pullRows.length;
       setVarRows([]);
       setVarDirs({});
       setVarChecked(true);
+      setVarSyncResult(syncedCount);
+      if (varSyncResultTimer.current) clearTimeout(varSyncResultTimer.current);
+      varSyncResultTimer.current = setTimeout(() => setVarSyncResult(null), 4000);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Variable sync applied' } }, '*');
     } catch (err) {
       setVarError(err instanceof Error ? err.message : 'An unexpected error occurred');
@@ -678,11 +684,21 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
 
             {!varLoading && !varError && (
               varChecked && varRows.length === 0 ? (
-                <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  Local tokens match Figma variables.
+                <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex flex-col gap-1.5">
+                  {varSyncResult !== null && (
+                    <div className="flex items-center gap-1.5 text-[var(--color-figma-success)]">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0" aria-hidden="true">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                      Synced {varSyncResult} variable{varSyncResult !== 1 ? 's' : ''}.
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    Local tokens match Figma variables.
+                  </div>
                 </div>
               ) : !varChecked && varRows.length === 0 ? (
                 <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
