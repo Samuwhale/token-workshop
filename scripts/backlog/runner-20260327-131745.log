@@ -170,3 +170,17 @@ Already up to date.
 
 --- Merging: Remap bindings has no token autocomplete ---
 Already up to date.
+[main d32d28e] chore(backlog): done – Remap bindings has no token autocomplete
+ 7 files changed, 163 insertions(+), 11 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/RemapAutocompleteInput.tsx
+
+## 2026-03-27 - Remap bindings has no token autocomplete
+- Created `RemapAutocompleteInput` component: a text input with a dropdown of matching token paths that appears as the user types. Shows color swatches and type badges. Supports keyboard navigation (arrow keys, Enter to select, Escape to dismiss).
+- Replaced both "from" and "to" plain `<input>` elements in the remap panel with `RemapAutocompleteInput`, passing the existing `tokenMap` prop for suggestions.
+- Files changed: `packages/figma-plugin/src/ui/components/RemapAutocompleteInput.tsx` (new), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L571
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  1 items remaining
+===============================================================
+  Claimed: Deep Inspect mode has no keyboard shortcut — toggling deep inspection requires clicking a small button; a keyboard shortcut would streamline the inspect workflow
+  Worktree: /tmp/backlog-44614-E2Ia2k

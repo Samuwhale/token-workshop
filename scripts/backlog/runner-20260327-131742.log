@@ -170,3 +170,10 @@ Already up to date.
 ===============================================================
   Claimed: Export has no batch copy or download — exporting to multiple platforms requires toggling each one individually, then expanding each file and clicking "Copy" one at a time; no "Copy All" or download-as-zip
   Worktree: /tmp/backlog-44348-eGwFog
+
+  ✓ done: Export has no batch copy or download
+    stale — already done. ExportPanel already has "Copy All" and "Download ZIP" batch buttons in the sticky footer, using a pure-JS ZIP builder.
+    12 turns · 160s · $0.71
+
+--- Merging: Export has no batch copy or download ---
+Already up to date.

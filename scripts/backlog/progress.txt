@@ -272,3 +272,10 @@
   - The remap panel inputs are inside a `flex items-center gap-1` row — the autocomplete dropdown needs `relative` on the wrapper and `absolute z-50` on the dropdown to overlay correctly without pushing sibling elements.
   - Using `onBlur` with a `setTimeout(150)` delay is necessary to allow `onMouseDown` on dropdown items to fire before the dropdown closes.
 ---
+
+## 2026-03-27 - Export has no batch copy or download
+- Already implemented. ExportPanel.tsx has both "Copy All" (L917-926, handler at L349) and "Download ZIP" (L927-938, handler at L313) buttons in the sticky footer. They appear when platform export results exist. The ZIP builder (`buildZipBlob` at L49-112) is a pure-JS implementation. The "Copy All" handler concatenates all files with platform/path comment headers.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+  - Always check current code before assuming a backlog item is still valid — batch export features were added when ExportPanel was first built.
+---
