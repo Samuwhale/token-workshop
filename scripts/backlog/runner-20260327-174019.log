@@ -16,3 +16,25 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: No aria-live regions for toast notifications — SuccessToast, UndoToast, and error toasts appear visually but are not announced to screen readers; adding `aria-live="polite"` or `role="status"` to toast containers would make the plugin accessible ---
 Already up to date.
+[main 0052c67] chore(backlog): done – No aria-live regions for toast notifications — SuccessToast, UndoToast, and error toasts appear visually but are not announced to screen readers; adding `aria-live="polite"` or `role="status"` to toast containers would make the plugin accessible
+ 12 files changed, 167 insertions(+), 14 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260327-154953.log
+ create mode 100644 scripts/backlog/runner-20260327-155000.log
+ create mode 100644 scripts/backlog/runner-20260327-174019.log
+ create mode 100644 scripts/backlog/runner-20260327-174023.log
+ create mode 100644 scripts/backlog/runner-20260327-174026.log
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 15 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-27 - No aria-live regions for toast notifications — SuccessToast, UndoToast, and error toasts appear visually but are not announced to screen readers
+- Added `role="status"` and `aria-live="polite"` to the root `<div>` of both SuccessToast and UndoToast components. This covers error toasts as well since SuccessToast handles both `variant="success"` and `variant="error"`.
+- Files changed: `packages/figma-plugin/src/ui/components/SuccessToast.tsx` ~L29, `packages/figma-plugin/src/ui/components/UndoToast.tsx` ~L21
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  43 items remaining
+===============================================================
+  Claimed: [HIGH] Build-time "Cannot access 'X' before initialization" TDZ errors — minifier can hoist declarations into a temporal dead zone when circular imports or re-export patterns exist; audit circular dependencies with `madge --circular` and break cycles
+  Worktree: /tmp/backlog-91651-lwnY6L

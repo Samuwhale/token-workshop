@@ -245,60 +245,63 @@ export class TokenResolver {
     this.color.set(path, Color.Gray);
     this.dfsStack.push(path);
 
-    // Visit all dependencies first
-    const deps = this.dependencies.get(path) ?? new Set<string>();
-    for (const dep of deps) {
-      const depColor = this.color.get(dep);
-      if (depColor === Color.Gray) {
-        // Reconstruct the cycle from the stack
-        const cycleStart = this.dfsStack.indexOf(dep);
-        const cyclePath = cycleStart >= 0
-          ? [...this.dfsStack.slice(cycleStart), dep]
-          : [path, dep];
-        throw new Error(
-          `Circular reference: ${cyclePath.join(' → ')}`,
-        );
-      }
-      if ((depColor === Color.White || depColor === undefined) && !this.resolved.has(dep)) {
-        this.dfsResolve(dep);
-      }
-    }
-
-    // All deps are resolved — resolve this token
-    let resolvedValue = this.resolveValue(token.$value, path);
-    const $type = this.resolveType(token, path);
-
-    // Apply color modifiers if present
-    const tokenmanagerExt = token.$extensions?.tokenmanager as Record<string, unknown> | undefined;
-    const modifiers = tokenmanagerExt?.colorModifier;
-    if (Array.isArray(modifiers) && $type === 'color' && typeof resolvedValue === 'string') {
-      resolvedValue = applyColorModifiers(resolvedValue, modifiers as ColorModifierOp[]);
-    }
-
-    // Store formula metadata in $extensions so export can output calc() expressions
-    const isFormulaToken = typeof token.$value === 'string' && isFormula(token.$value);
-    const extensions = isFormulaToken
-      ? {
-          ...token.$extensions,
-          tokenmanager: {
-            ...(tokenmanagerExt ?? {}),
-            formula: token.$value,
-          },
+    try {
+      // Visit all dependencies first
+      const deps = this.dependencies.get(path) ?? new Set<string>();
+      for (const dep of deps) {
+        const depColor = this.color.get(dep);
+        if (depColor === Color.Gray) {
+          // Reconstruct the cycle from the stack
+          const cycleStart = this.dfsStack.indexOf(dep);
+          const cyclePath = cycleStart >= 0
+            ? [...this.dfsStack.slice(cycleStart), dep]
+            : [path, dep];
+          throw new Error(
+            `Circular reference: ${cyclePath.join(' → ')}`,
+          );
         }
-      : token.$extensions;
+        if ((depColor === Color.White || depColor === undefined) && !this.resolved.has(dep)) {
+          this.dfsResolve(dep);
+        }
+      }
 
-    this.resolved.set(path, {
-      path,
-      $type,
-      $value: resolvedValue as TokenValue,
-      $description: token.$description,
-      $extensions: extensions,
-      rawValue: token.$value,
-      setName: this.setName,
-    });
+      // All deps are resolved — resolve this token
+      let resolvedValue = this.resolveValue(token.$value, path);
+      const $type = this.resolveType(token, path);
 
-    this.dfsStack.pop();
-    this.color.set(path, Color.Black);
+      // Apply color modifiers if present
+      const tokenmanagerExt = token.$extensions?.tokenmanager as Record<string, unknown> | undefined;
+      const modifiers = tokenmanagerExt?.colorModifier;
+      if (Array.isArray(modifiers) && $type === 'color' && typeof resolvedValue === 'string') {
+        resolvedValue = applyColorModifiers(resolvedValue, modifiers as ColorModifierOp[]);
+      }
+
+      // Store formula metadata in $extensions so export can output calc() expressions
+      const isFormulaToken = typeof token.$value === 'string' && isFormula(token.$value);
+      const extensions = isFormulaToken
+        ? {
+            ...token.$extensions,
+            tokenmanager: {
+              ...(tokenmanagerExt ?? {}),
+              formula: token.$value,
+            },
+          }
+        : token.$extensions;
+
+      this.resolved.set(path, {
+        path,
+        $type,
+        $value: resolvedValue as TokenValue,
+        $description: token.$description,
+        $extensions: extensions,
+        rawValue: token.$value,
+        setName: this.setName,
+      });
+
+      this.color.set(path, Color.Black);
+    } finally {
+      this.dfsStack.pop();
+    }
   }
 
   // -----------------------------------------------------------------------

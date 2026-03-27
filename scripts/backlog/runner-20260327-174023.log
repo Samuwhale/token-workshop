@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 ===============================================================
   Claimed: [HIGH] TokenResolver `dfsStack` is not cleaned up on error — if `dfsResolve` throws, `this.dfsStack.pop()` is never reached, leaving stale entries that corrupt cycle detection in subsequent `resolve()` calls within the same resolver instance
   Worktree: /tmp/backlog-91967-LXSl0l
+
+  ✓ done: TokenResolver `dfsStack` is not cleaned up on error
+    Wrapped dfsResolve body in try/finally so dfsStack.pop() always runs, preventing stale entries from corrupting cycle detection on subsequent resolve() calls
+    8 turns · 58s · $0.19
+
+--- Merging: TokenResolver `dfsStack` is not cleaned up on error ---
+Already up to date.

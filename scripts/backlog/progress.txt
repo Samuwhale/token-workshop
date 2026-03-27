@@ -442,3 +442,11 @@
   - `role="status"` is equivalent to `aria-live="polite"` but including both is belt-and-suspenders for maximum screen reader compat.
   - Error toasts using `variant="error"` could also use `role="alert"` / `aria-live="assertive"` for more urgent announcements, but `polite` is acceptable for transient plugin notifications.
 ---
+
+## 2026-03-27 - TokenResolver `dfsStack` is not cleaned up on error
+- Wrapped the body of `dfsResolve` in a `try/finally` block so `this.dfsStack.pop()` always executes even when an exception is thrown (cycle detection error, unresolved reference, etc.). Moved `this.color.set(path, Color.Black)` inside the `try` so it only runs on success; the `finally` unconditionally pops the stack in all cases.
+- Files changed: `packages/core/src/resolver.ts` ~L239
+- **Learnings for future iterations:**
+  - DFS stack cleanup is safety-critical for correctness across multiple `resolve()` calls on the same instance — always use try/finally for push/pop pairs.
+  - The cycle path is reconstructed before the throw, so wrapping in try/finally does not affect the error message quality.
+---
