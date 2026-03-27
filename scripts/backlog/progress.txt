@@ -449,3 +449,10 @@
   - For modal/panel workflows, inline error display (inside the panel) is preferable to a global toast — the panel stays open after failure and the error is contextually placed near the retry button.
   - Always clear error state both when the panel first opens and when a new attempt starts, so stale errors from a previous session don't linger.
 ---
+
+## 2026-03-27 - Remap operation provides no error feedback
+- Added try/catch in `remapBindings` (controller.ts) to catch unexpected errors and send `remap-complete` with an `error` field; also calls `figma.notify` with `{ error: true }`. Added `error?: string` to `RemapCompleteMessage` type. In `SelectionInspector.tsx`, added `remapError` state, populated on error messages and cleared on new remap/panel open/selection change. Displayed error inline (truncated to 40 chars with full text in `title`) using `--color-figma-error`.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L174, `packages/figma-plugin/src/plugin/controller.ts` ~L1238, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L171, ~L209, ~L297, ~L309, ~L231, ~L627
+- **Learnings for future iterations:**
+  - Plugin controller functions that postMessage results should always be wrapped in try/catch so `*Running` states in the UI can be reset and errors surfaced even on unexpected failures.
+---

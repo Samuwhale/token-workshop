@@ -170,6 +170,7 @@ export function SelectionInspector({
   const [remapScope, setRemapScope] = useState<'selection' | 'page'>('page');
   const [remapRunning, setRemapRunning] = useState(false);
   const [remapResult, setRemapResult] = useState<{ updatedBindings: number; updatedNodes: number } | null>(null);
+  const [remapError, setRemapError] = useState<string | null>(null);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const prevNodeIdsRef = useRef<string>('');
@@ -208,7 +209,13 @@ export function SelectionInspector({
       const msg = event.data?.pluginMessage;
       if (msg?.type === 'remap-complete') {
         setRemapRunning(false);
-        setRemapResult({ updatedBindings: msg.updatedBindings, updatedNodes: msg.updatedNodes });
+        if (msg.error) {
+          setRemapError(msg.error);
+          setRemapResult(null);
+        } else {
+          setRemapResult({ updatedBindings: msg.updatedBindings, updatedNodes: msg.updatedNodes });
+          setRemapError(null);
+        }
       }
     };
     window.addEventListener('message', handler);
@@ -228,6 +235,7 @@ export function SelectionInspector({
       setNewTokenName('');
       setCreateError('');
       setRemapResult(null);
+      setRemapError(null);
     }
   }, [selectedNodes]);
 
@@ -295,6 +303,7 @@ export function SelectionInspector({
       : [{ from: '', to: '' }];
     setRemapRows(rows);
     setRemapResult(null);
+    setRemapError(null);
     setShowRemapPanel(true);
   };
 
@@ -308,6 +317,7 @@ export function SelectionInspector({
     if (Object.keys(validEntries).length === 0) return;
     setRemapRunning(true);
     setRemapResult(null);
+    setRemapError(null);
     parent.postMessage({ pluginMessage: { type: 'remap-bindings', remapMap: validEntries, scope: remapScope } }, '*');
   };
 
@@ -624,7 +634,12 @@ export function SelectionInspector({
               + Add row
             </button>
             <div className="flex items-center gap-1.5">
-              {remapResult && (
+              {remapError && (
+                <span className="text-[9px] text-[var(--color-figma-error)]" title={remapError}>
+                  Error: {remapError.length > 40 ? remapError.slice(0, 40) + '…' : remapError}
+                </span>
+              )}
+              {!remapError && remapResult && (
                 <span className={`text-[9px] ${remapResult.updatedBindings > 0 ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
                   {remapResult.updatedBindings > 0
                     ? `${remapResult.updatedBindings} binding${remapResult.updatedBindings !== 1 ? 's' : ''} remapped`

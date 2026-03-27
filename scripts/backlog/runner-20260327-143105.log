@@ -245,3 +245,17 @@ Already up to date.
 
 --- Merging: `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback ---
 Already up to date.
+[main dd1b2f8] chore(backlog): done – `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback
+ 7 files changed, 48 insertions(+), 10 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback
+- Added `groupScopesError` state to `useFigmaSync`. On catch, sets a human-readable error string instead of only logging. On apply start, clears the error. Exposed `groupScopesError` and `setGroupScopesError` from the hook. In App.tsx, destructured the new values, cleared the error when the panel opens (`onSetGroupScopes`), and added an inline red error banner between the checkboxes and the footer buttons when `groupScopesError` is non-null.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L17 (state), ~L62 (clear on start), ~L90 (set on error), ~L108 (return); `packages/figma-plugin/src/ui/App.tsx` ~L361 (destructure), ~L2197 (clear on open), ~L2535 (inline error UI)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  39 items remaining
+===============================================================
+  Claimed: Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text
+  Worktree: /tmp/backlog-98901-hHKcOZ

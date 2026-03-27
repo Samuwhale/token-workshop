@@ -175,4 +175,5 @@ export interface RemapCompleteMessage {
   type: 'remap-complete';
   updatedBindings: number;
   updatedNodes: number;
+  error?: string;
 }

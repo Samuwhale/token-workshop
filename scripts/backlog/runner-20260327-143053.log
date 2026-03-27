@@ -292,3 +292,10 @@ Already up to date.
 ===============================================================
   Claimed: Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong
   Worktree: /tmp/backlog-97955-Pop8cG
+
+  ✓ done: Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong
+    Added try/catch in remapBindings controller function with error postMessage; added remapError state in UI that displays inline error text with full message in tooltip
+    23 turns · 133s · $0.4
+
+--- Merging: Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong ---
+Already up to date.

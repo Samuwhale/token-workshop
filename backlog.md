@@ -79,7 +79,7 @@
 
 - [x] SemanticMappingDialog `handleCreate` never calls `setSaving(false)` on the success path — user sees perpetual loading spinner after tokens are created; only errors reset it
 - [x] `useFigmaSync` `handleSyncGroup` and `handleSyncGroupStyles` don't restore pending state on error — if sync fails, the UI is stuck in a loading state with no retry path
-- [~] `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback
+- [x] `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback
 
 ### QoL
 
@@ -87,7 +87,7 @@
 - [x] `handleApplyGroupScopes` sends one PATCH request per token in `Promise.all` with no batching — for groups with many tokens this is slow with no progress indicator
 - [~] No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
 - [~] New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`
-- [ ] Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text
+- [~] Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text
 
 ### UX
 
