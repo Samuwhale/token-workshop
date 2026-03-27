@@ -135,6 +135,32 @@ function injectFormulaCalc(obj: Record<string, any>): Record<string, any> {
   return result;
 }
 
+/**
+ * Recursively merge `src` into `dst` in-place. When both sides have a key
+ * and both values are plain objects (token groups, not leaf tokens), their
+ * contents are merged recursively. Otherwise the src value wins.
+ */
+function deepMergeInto(dst: Record<string, any>, src: Record<string, any>): void {
+  for (const [key, srcVal] of Object.entries(src)) {
+    const dstVal = dst[key];
+    if (
+      dstVal !== null &&
+      dstVal !== undefined &&
+      typeof dstVal === 'object' &&
+      !Array.isArray(dstVal) &&
+      !('$value' in dstVal) &&
+      typeof srcVal === 'object' &&
+      srcVal !== null &&
+      !Array.isArray(srcVal) &&
+      !('$value' in srcVal)
+    ) {
+      deepMergeInto(dstVal, srcVal);
+    } else {
+      dst[key] = srcVal;
+    }
+  }
+}
+
 export async function exportTokens(
   tokens: Record<string, TokenGroup>,
   platforms: ExportPlatform[],
@@ -146,10 +172,12 @@ export async function exportTokens(
 
   // Write tokens as a single JSON for Style Dictionary
   const tokenFile = path.join(tmpDir, 'tokens.json');
-  // Merge all sets into one object
+  // Deep-merge all sets into one object so that shared top-level group keys
+  // (e.g. two sets both have a `color` group) have their contents combined
+  // rather than the second set silently overwriting the first.
   const merged: Record<string, any> = {};
   for (const [_setName, tokenGroup] of Object.entries(tokens)) {
-    Object.assign(merged, tokenGroup);
+    deepMergeInto(merged, tokenGroup as Record<string, any>);
   }
   // Pre-resolve alias references inside gradient stop color fields so that
   // Style Dictionary receives concrete color values rather than {path} refs.

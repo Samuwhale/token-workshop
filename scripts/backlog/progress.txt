@@ -375,3 +375,11 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: `syncBindings` applies raw alias `$value` strings directly to `applyTokenValue` — alias tokens always fail silently during "Sync Selection/Page" with a misleading "check token types" error
 ---
+
+## 2026-03-27 - Token set key collision silently discards tokens on export
+- Replaced `Object.assign(merged, tokenGroup)` with a recursive `deepMergeInto(merged, tokenGroup)` call. Added the `deepMergeInto` helper that recursively merges plain-object token groups (non-token nodes without `$value`) and lets leaf tokens/arrays fall through to last-writer-wins. Two sets sharing a top-level group key (e.g. both have `color`) now have their contents combined rather than the second set overwriting the first.
+- Files changed: `packages/server/src/services/style-dict.ts` ~L138,L151
+- **Learnings for future iterations:**
+  - The guard for leaf tokens is `'$value' in obj` — DTCG tokens always have `$value`, groups never do. This is the reliable discriminator for deep-merge vs overwrite.
+  - Pre-existing TypeScript errors in the server package (unrelated to this change) cause `tsc --noEmit` to fail; the plugin build (`npm run build`) is the correct validator.
+---
