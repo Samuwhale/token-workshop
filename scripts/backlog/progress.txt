@@ -291,3 +291,13 @@
   - `useFigmaSync` handlers keep their original (incomplete) dep arrays (`[syncGroupPending, connected, serverUrl]`) intentionally — changing correctness of existing code is out of scope.
   - Remaining high-value extractions: `useSetManagement` (should be split into 4-5 sub-hooks), `useSettingsPanel` (5 states), `useTokenFlatMaps` (4 states + fetch effect).
 ---
+
+## 2026-03-27 - TokenGeneratorDialog 800+ lines — handles 7+ generator types in one component; should be split
+- Extracted all state, refs, effects, and handlers into `useGeneratorDialog` hook. Component becomes ~300 lines of JSX + hook call. Generator-type-specific logic was already in separate files under `generators/`; the split here is state/logic vs rendering.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` (new, ~240 lines), `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` (~340 lines, down from 663)
+- **Learnings for future iterations:**
+  - Helper functions used by both the hook and the component (detectGeneratorType, autoName, defaultConfigForType, constants) must be exported from the component file and imported by the hook — a minor reverse-direction import, but cleaner than a third shared file for this small set.
+  - `onClose` is only used in JSX (button handlers), so it stays as a prop; `onSaved` is called inside handleSave, so it moves into the hook params.
+  - The two identical `() => { setShowSemanticMapping(false); onSaved(...) }` lambdas in the original JSX collapse into a single `handleSemanticMappingClose` handler in the hook.
+  - The file was 663 lines at time of implementation (not 800+ as backlog stated — it had shrunk over prior sessions), but the extraction was still clearly worthwhile.
+---

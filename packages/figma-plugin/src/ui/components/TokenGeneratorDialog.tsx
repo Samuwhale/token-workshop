@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import type {
   TokenGenerator,
@@ -12,7 +11,6 @@ import type {
   CustomScaleConfig,
   ContrastCheckConfig,
   GeneratorConfig,
-  GeneratedTokenResult,
   GeneratorTemplate,
   InputTable,
   InputTableRow,
@@ -27,12 +25,13 @@ import { ZIndexConfigEditor, DEFAULT_Z_INDEX_CONFIG } from './generators/ZIndexG
 import { CustomScaleConfigEditor, DEFAULT_CUSTOM_CONFIG } from './generators/CustomScaleGenerator';
 import { ContrastCheckConfigEditor, ContrastCheckPreview, DEFAULT_CONTRAST_CHECK_CONFIG } from './generators/ContrastCheckGenerator';
 import { GenericPreview } from './generators/generatorShared';
+import { useGeneratorDialog } from '../hooks/useGeneratorDialog';
 
 // ---------------------------------------------------------------------------
 // Auto-detect helper
 // ---------------------------------------------------------------------------
 
-function detectGeneratorType(sourceTokenType: string, sourceTokenValue: any): GeneratorType {
+export function detectGeneratorType(sourceTokenType: string, sourceTokenValue: any): GeneratorType {
   if (sourceTokenType === 'color') return 'colorRamp';
   if (sourceTokenType === 'number') return 'opacityScale';
   if (sourceTokenType === 'dimension' || sourceTokenType === 'fontSize') {
@@ -48,13 +47,13 @@ function detectGeneratorType(sourceTokenType: string, sourceTokenValue: any): Ge
   return 'colorRamp';
 }
 
-function suggestTargetGroup(sourceTokenPath: string): string {
+export function suggestTargetGroup(sourceTokenPath: string): string {
   const parts = sourceTokenPath.split('.');
   if (parts.length <= 1) return sourceTokenPath;
   return parts.slice(0, -1).join('.');
 }
 
-function autoName(sourceTokenPath: string | undefined, type: GeneratorType): string {
+export function autoName(sourceTokenPath: string | undefined, type: GeneratorType): string {
   const typeLabels: Record<GeneratorType, string> = {
     colorRamp: 'Color Ramp',
     typeScale: 'Type Scale',
@@ -69,7 +68,7 @@ function autoName(sourceTokenPath: string | undefined, type: GeneratorType): str
   return typeLabels[type];
 }
 
-function defaultConfigForType(type: GeneratorType): GeneratorConfig {
+export function defaultConfigForType(type: GeneratorType): GeneratorConfig {
   switch (type) {
     case 'colorRamp': return { ...DEFAULT_COLOR_RAMP_CONFIG, steps: [...DEFAULT_COLOR_RAMP_CONFIG.steps] };
     case 'typeScale': return { ...DEFAULT_TYPE_SCALE_CONFIG, steps: DEFAULT_TYPE_SCALE_CONFIG.steps.map(s => ({ ...s })) };
@@ -100,7 +99,7 @@ export interface TokenGeneratorDialogProps {
   onSaved: (info?: { targetGroup: string }) => void;
 }
 
-const TYPE_LABELS: Record<GeneratorType, string> = {
+export const TYPE_LABELS: Record<GeneratorType, string> = {
   colorRamp: 'Color Ramp',
   typeScale: 'Type Scale',
   spacingScale: 'Spacing Scale',
@@ -112,13 +111,13 @@ const TYPE_LABELS: Record<GeneratorType, string> = {
 };
 
 // Types that require a source token
-const SOURCE_REQUIRED_TYPES: GeneratorType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale'];
+export const SOURCE_REQUIRED_TYPES: GeneratorType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale'];
 // Types that work standalone (no source)
-const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale', 'contrastCheck'];
+export const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale', 'contrastCheck'];
 // Types that work either way
-const FLEXIBLE_TYPES: GeneratorType[] = ['customScale'];
+export const FLEXIBLE_TYPES: GeneratorType[] = ['customScale'];
 
-const ALL_TYPES: GeneratorType[] = [
+export const ALL_TYPES: GeneratorType[] = [
   'colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale',
   'opacityScale', 'zIndexScale', 'customScale', 'contrastCheck',
 ];
@@ -193,7 +192,7 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
 export function TokenGeneratorDialog({
   serverUrl,
   sourceTokenPath,
-  sourceTokenType = '',
+  sourceTokenType,
   sourceTokenValue,
   allSets,
   activeSet,
@@ -202,223 +201,54 @@ export function TokenGeneratorDialog({
   onClose,
   onSaved,
 }: TokenGeneratorDialogProps) {
-  const isEditing = Boolean(existingGenerator);
-
-  const recommendedType = useMemo(() => {
-    if (sourceTokenPath && sourceTokenType) {
-      return detectGeneratorType(sourceTokenType, sourceTokenValue);
-    }
-    return undefined;
-  }, [sourceTokenPath, sourceTokenType, sourceTokenValue]);
-
-  const initialType: GeneratorType =
-    existingGenerator?.type ??
-    template?.generatorType ??
-    recommendedType ??
-    'customScale';
-
-  const [selectedType, setSelectedType] = useState<GeneratorType>(initialType);
-  const [name, setName] = useState(
-    existingGenerator?.name ??
-    (template ? template.label : autoName(sourceTokenPath, initialType))
-  );
-  const [targetSet, setTargetSet] = useState(existingGenerator?.targetSet ?? activeSet);
-  const [targetGroup, setTargetGroup] = useState(
-    existingGenerator?.targetGroup ??
-    (template ? template.defaultPrefix : (sourceTokenPath ? suggestTargetGroup(sourceTokenPath) : ''))
-  );
-
-  // Build per-type config map
-  const [configs, setConfigs] = useState<Partial<Record<GeneratorType, GeneratorConfig>>>(() => {
-    const base: Partial<Record<GeneratorType, GeneratorConfig>> = {};
-    for (const t of ALL_TYPES) {
-      if (existingGenerator?.type === t) {
-        base[t] = existingGenerator.config;
-      } else if (template?.generatorType === t) {
-        base[t] = template.config;
-      } else {
-        base[t] = defaultConfigForType(t);
-      }
-    }
-    return base;
+  const {
+    isEditing,
+    isMultiBrand,
+    typeNeedsSource,
+    hasSource,
+    availableTypes,
+    recommendedType,
+    currentConfig,
+    lockedCount,
+    selectedType,
+    name,
+    targetSet,
+    targetGroup,
+    inputTable,
+    targetSetTemplate,
+    pendingOverrides,
+    previewTokens,
+    previewLoading,
+    previewError,
+    saving,
+    saveError,
+    showSemanticMapping,
+    savedTokens,
+    savedTargetGroup,
+    handleTypeChange,
+    handleNameChange,
+    setTargetSet,
+    setTargetGroup,
+    setTargetSetTemplate,
+    handleConfigChange,
+    handleToggleMultiBrand,
+    setInputTable,
+    handleOverrideChange,
+    handleOverrideClear,
+    clearAllOverrides,
+    handleSave,
+    handleSemanticMappingClose,
+  } = useGeneratorDialog({
+    serverUrl,
+    sourceTokenPath,
+    sourceTokenType,
+    sourceTokenValue,
+    allSets,
+    activeSet,
+    existingGenerator,
+    template,
+    onSaved,
   });
-
-  // Local overrides state (for the "pending" state before save)
-  const [pendingOverrides, setPendingOverrides] = useState<Record<string, { value: unknown; locked: boolean }>>(
-    existingGenerator?.overrides ?? {}
-  );
-
-  // Multi-brand input table state
-  const [inputTable, setInputTable] = useState<InputTable | undefined>(
-    existingGenerator?.inputTable ?? undefined
-  );
-  const [targetSetTemplate, setTargetSetTemplate] = useState<string>(
-    existingGenerator?.targetSetTemplate ?? 'brands/{brand}'
-  );
-  const isMultiBrand = Boolean(inputTable);
-
-  // Preview state
-  const [previewTokens, setPreviewTokens] = useState<GeneratedTokenResult[]>([]);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewError, setPreviewError] = useState('');
-
-  // Save state
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState('');
-  // Semantic mapping flow (after successful create)
-  const [showSemanticMapping, setShowSemanticMapping] = useState(false);
-  const [savedTokens, setSavedTokens] = useState<GeneratedTokenResult[]>([]);
-  const [savedTargetGroup, setSavedTargetGroup] = useState('');
-
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  const nameWasAutoRef = useRef(!existingGenerator && !template);
-  const handleTypeChange = (type: GeneratorType) => {
-    setSelectedType(type);
-    if (nameWasAutoRef.current) setName(autoName(sourceTokenPath, type));
-  };
-
-  // Whether current type needs a source token
-  const typeNeedsSource = SOURCE_REQUIRED_TYPES.includes(selectedType);
-  const hasSource = Boolean(sourceTokenPath);
-
-  const fetchPreview = useCallback(() => {
-    if (isMultiBrand) {
-      setPreviewTokens([]);
-      setPreviewError('');
-      return;
-    }
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    debounceTimerRef.current = setTimeout(async () => {
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      setPreviewLoading(true);
-      setPreviewError('');
-      try {
-        const body = {
-          type: selectedType,
-          sourceToken: sourceTokenPath || undefined,
-          targetGroup,
-          targetSet,
-          config: configs[selectedType],
-          overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
-        };
-        const res = await fetch(`${serverUrl}/api/generators/preview`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          signal: controller.signal,
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({})) as { error?: string };
-          setPreviewError(data.error || `Preview failed (${res.status})`);
-          setPreviewTokens([]);
-        } else {
-          const data = await res.json() as { count: number; tokens: GeneratedTokenResult[] };
-          setPreviewTokens(data.tokens ?? []);
-        }
-      } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        setPreviewError(err instanceof Error ? err.message : 'Preview failed');
-        setPreviewTokens([]);
-      } finally {
-        setPreviewLoading(false);
-      }
-    }, 300);
-  }, [serverUrl, selectedType, sourceTokenPath, targetGroup, targetSet, configs, pendingOverrides, isMultiBrand]);
-
-  useEffect(() => {
-    fetchPreview();
-    return () => { if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current); };
-  }, [fetchPreview]);
-
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    };
-  }, []);
-
-  const handleOverrideChange = (stepName: string, value: string, locked: boolean) => {
-    setPendingOverrides(prev => ({ ...prev, [stepName]: { value, locked } }));
-  };
-
-  const handleOverrideClear = (stepName: string) => {
-    setPendingOverrides(prev => {
-      const next = { ...prev };
-      delete next[stepName];
-      return next;
-    });
-  };
-
-  const clearAllOverrides = () => setPendingOverrides({});
-  const lockedCount = Object.values(pendingOverrides).filter(o => o.locked).length;
-
-  const handleSave = async () => {
-    if (!targetGroup.trim()) { setSaveError('Target group is required.'); return; }
-    if (!name.trim()) { setSaveError('Generator name is required.'); return; }
-    if (!isMultiBrand && typeNeedsSource && !hasSource) { setSaveError('This generator type requires a source token.'); return; }
-    if (isMultiBrand && inputTable) {
-      if (!targetSetTemplate.trim()) { setSaveError('Target set template is required for multi-brand mode.'); return; }
-      if (inputTable.rows.some(r => !r.brand.trim())) { setSaveError('All brand rows must have a non-empty brand name.'); return; }
-    }
-    setSaving(true);
-    setSaveError('');
-    try {
-      const body = {
-        type: selectedType,
-        name: name.trim(),
-        sourceToken: isMultiBrand ? undefined : (sourceTokenPath || undefined),
-        targetSet,
-        targetGroup: targetGroup.trim(),
-        config: configs[selectedType],
-        overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
-        ...(isMultiBrand && inputTable ? { inputTable, targetSetTemplate: targetSetTemplate.trim() } : {}),
-      };
-      let res: Response;
-      if (isEditing && existingGenerator) {
-        res = await fetch(`${serverUrl}/api/generators/${existingGenerator.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-      } else {
-        res = await fetch(`${serverUrl}/api/generators`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-      }
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { error?: string };
-        setSaveError(data.error || `Failed to save (${res.status})`);
-        setSaving(false);
-        return;
-      }
-      // For new generators (not edits), offer semantic mapping if there are preview tokens
-      if (!isEditing && previewTokens.length > 0) {
-        setSavedTokens(previewTokens);
-        setSavedTargetGroup(targetGroup.trim());
-        setShowSemanticMapping(true);
-        setSaving(false);
-        return;
-      }
-      onSaved({ targetGroup: targetGroup.trim() });
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'An unexpected error occurred');
-      setSaving(false);
-    }
-  };
-
-  const currentConfig = configs[selectedType]!;
-  const handleConfigChange = (type: GeneratorType, cfg: GeneratorConfig) => {
-    setConfigs(prev => ({ ...prev, [type]: cfg }));
-  };
-
-  // Determine which types to show: if no source, only show standalone/flexible; if source, show all
-  const availableTypes = hasSource ? ALL_TYPES : [...STANDALONE_TYPES, ...FLEXIBLE_TYPES];
 
   if (showSemanticMapping) {
     return (
@@ -428,8 +258,8 @@ export function TokenGeneratorDialog({
         generatorType={selectedType}
         targetGroup={savedTargetGroup}
         targetSet={targetSet}
-        onClose={() => { setShowSemanticMapping(false); onSaved({ targetGroup: savedTargetGroup }); }}
-        onCreated={() => { setShowSemanticMapping(false); onSaved({ targetGroup: savedTargetGroup }); }}
+        onClose={handleSemanticMappingClose}
+        onCreated={handleSemanticMappingClose}
       />
     );
   }
@@ -577,7 +407,7 @@ export function TokenGeneratorDialog({
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Multi-brand inputs</span>
               <button
-                onClick={() => setInputTable(inputTable ? undefined : { inputKey: 'brandColor', rows: [] })}
+                onClick={handleToggleMultiBrand}
                 className="text-[9px] text-[var(--color-figma-accent)] hover:underline"
               >
                 {inputTable ? 'Disable' : 'Enable'}
@@ -631,7 +461,7 @@ export function TokenGeneratorDialog({
           {/* Name */}
           <div>
             <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Generator name</label>
-            <input type="text" value={name} onChange={e => { nameWasAutoRef.current = false; setName(e.target.value); }}
+            <input type="text" value={name} onChange={e => handleNameChange(e.target.value)}
               placeholder="My generator"
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]" />
           </div>
