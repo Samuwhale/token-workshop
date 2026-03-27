@@ -407,3 +407,10 @@ Already up to date.
 
 --- Merging: Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected ---
 Already up to date.
+[main 4a4c61e] chore(backlog): done – Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected
+ 7 files changed, 30 insertions(+), 2 deletions(-)
+
+## 2026-03-27 - Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected
+- Added dependent count to the type-change confirmation message in TokenEditor. When `pendingTypeChange` is shown and `dependents.length > 0`, a second line in amber text reads "N dependent token(s) reference this token and may break." The `dependents` state was already fetched from the API and available in scope.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L562
+- **Learnings for future iterations:**

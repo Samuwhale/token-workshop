@@ -958,7 +958,7 @@ export function App() {
     if (clearConfirmText !== 'DELETE') return;
     setClearing(true);
     try {
-      await fetch(`${serverUrl}/api/data`, { method: 'DELETE' });
+      await fetch(`${serverUrl}/api/data`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'DELETE' }) });
     } catch {
       // best-effort
     }

@@ -105,7 +105,11 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // DELETE /api/data — wipe all sets and themes (danger zone)
-  fastify.delete('/data', async (_request, reply) => {
+  // Requires body: { confirm: "DELETE" } to prevent accidental calls
+  fastify.delete<{ Body: { confirm?: string } }>('/data', async (request, reply) => {
+    if (request.body?.confirm !== 'DELETE') {
+      return reply.status(400).send({ error: 'Missing confirmation — send { confirm: "DELETE" } in the request body' });
+    }
     try {
       await fastify.tokenStore.clearAll();
       return { cleared: true };

@@ -305,3 +305,10 @@
   - The dependents data was already fetched and in state — the fix was purely additive to the existing confirmation UI.
   - Inline conditional rendering with `{dependents.length > 0 && (...)}` inside a `<p>` tag using `block mt-1` on the inner `<span>` gives a clean two-line confirmation message.
 ---
+
+## 2026-03-27 - DELETE /data endpoint has no server-side confirmation gate
+- Added server-side body validation: DELETE /api/data now requires `{ confirm: "DELETE" }` in the request body; returns 400 if missing. Updated the client handler to send this body.
+- Files changed: `packages/server/src/routes/sets.ts` ~L108, `packages/figma-plugin/src/ui/App.tsx` ~L961
+- **Learnings for future iterations:**
+  - A body-based confirmation token (`{ confirm: "DELETE" }`) is the simplest server-side gate for destructive endpoints — it mirrors the existing UI pattern and requires no extra round-trips or session state.
+---
