@@ -208,6 +208,7 @@ export function TokenList({
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [renameTokenConfirm, setRenameTokenConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null>(null);
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const lastSelectedPathRef = useRef<string | null>(null);
@@ -1214,20 +1215,24 @@ export function TokenList({
     const deletedPaths = deleteConfirm.type === 'bulk' ? deleteConfirm.paths : [];
 
     setDeleteConfirm(null);
+    setDeleteError(null);
     try {
       if (deletedType === 'token' || deletedType === 'group') {
-        await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath}`, { method: 'DELETE' });
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
       } else {
-        await Promise.all(
+        const results = await Promise.all(
           deletedPaths.map(path =>
             fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${path}`, { method: 'DELETE' })
           )
         );
+        const failed = results.filter(r => !r.ok);
+        if (failed.length > 0) throw new Error(`${failed.length} of ${results.length} deletes failed`);
         setSelectedPaths(new Set());
         setSelectMode(false);
       }
 
-      // Optimistically remove deleted paths from the tree so empty group headers vanish immediately
+      // Remove deleted paths from the tree so empty group headers vanish immediately
       if (deletedType === 'token' || deletedType === 'group') {
         setLocallyDeletedPaths(new Set([deletedPath]));
       } else {
@@ -1259,6 +1264,8 @@ export function TokenList({
       onRefresh();
     } catch (err) {
       console.error('Failed to delete:', err);
+      setDeleteError(err instanceof Error ? err.message : 'Delete failed');
+      onRefresh();
     }
   };
 
@@ -1904,6 +1911,13 @@ export function TokenList({
           </div>
         )}
       </div>
+      {/* Delete error banner */}
+      {deleteError && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)] text-white text-[11px]">
+          <span className="flex-1">Delete failed: {deleteError}</span>
+          <button onClick={() => setDeleteError(null)} className="opacity-70 hover:opacity-100 font-bold text-[13px] leading-none">&times;</button>
+        </div>
+      )}
       {/* Scrollable token content with virtual scroll */}
       <div
         ref={virtualListRef}

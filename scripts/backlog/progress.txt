@@ -7,3 +7,12 @@
 - Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L289 (saveBlockReason memo), ~L1349 (button label + title)
 - **User impact:** Users now see exactly what's blocking save without having to hunt through the form. Especially helpful for non-obvious blockers like circular alias references or invalid extensions JSON.
 ---
+
+## 2026-03-27 - TokenList: delete fails silently — if DELETE request fails the token is already removed from the UI
+- `executeDelete` now checks `response.ok` on all DELETE fetch calls and throws on non-2xx responses. For bulk deletes, counts failed responses and reports how many failed.
+- On failure: error is caught, `onRefresh()` is called to restore correct server state, and a red error banner is shown at the top of the token list with a dismiss button.
+- Added `deleteError` state and a dismissible error banner above the scroll container.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L211 (deleteError state), ~L1217-1264 (response.ok checks + error handling), ~L1920 (error banner)
+- **Learnings for future iterations:**
+  - `fetch()` does NOT throw on HTTP error status codes (4xx/5xx) — only on network errors. Always check `response.ok` after fetch calls to detect server-side failures.
+---
