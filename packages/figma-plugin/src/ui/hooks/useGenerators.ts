@@ -205,7 +205,7 @@ function computeDerivedPaths(generator: TokenGenerator): string[] {
 // Hook
 // ---------------------------------------------------------------------------
 
-export interface UseGeneratorsResult {
+interface UseGeneratorsResult {
   generators: TokenGenerator[];
   loading: boolean;
   refreshGenerators: () => void;

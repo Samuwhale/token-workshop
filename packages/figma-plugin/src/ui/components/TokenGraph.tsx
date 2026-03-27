@@ -64,7 +64,7 @@ function edgePath(x1: number, y1: number, x2: number, y2: number): string {
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
-export interface TokenGraphProps {
+interface TokenGraphProps {
   generators: TokenGenerator[];
   serverUrl: string;
   sets: string[];

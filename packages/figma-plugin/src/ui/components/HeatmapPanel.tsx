@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-export interface HeatmapNode {
+interface HeatmapNode {
   id: string;
   name: string;
   type: string;

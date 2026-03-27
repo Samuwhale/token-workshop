@@ -18,7 +18,7 @@ import {
   FLEXIBLE_TYPES,
 } from '../components/TokenGeneratorDialog';
 
-export interface UseGeneratorDialogParams {
+interface UseGeneratorDialogParams {
   serverUrl: string;
   sourceTokenPath?: string;
   sourceTokenName?: string;
@@ -31,7 +31,7 @@ export interface UseGeneratorDialogParams {
   onSaved: (info?: { targetGroup: string }) => void;
 }
 
-export interface UseGeneratorDialogReturn {
+interface UseGeneratorDialogReturn {
   // Derived
   isEditing: boolean;
   isMultiBrand: boolean;

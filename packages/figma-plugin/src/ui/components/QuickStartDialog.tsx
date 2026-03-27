@@ -227,7 +227,7 @@ function TemplateIcon({ id }: { id: string }) {
 // Component
 // ---------------------------------------------------------------------------
 
-export interface QuickStartDialogProps {
+interface QuickStartDialogProps {
   serverUrl: string;
   activeSet: string;
   allSets: string[];

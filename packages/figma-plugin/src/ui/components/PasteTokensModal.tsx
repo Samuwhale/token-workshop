@@ -5,7 +5,7 @@ import { flattenTokenGroup } from '@tokenmanager/core';
 // Parsing
 // ---------------------------------------------------------------------------
 
-export interface ParsedToken {
+interface ParsedToken {
   path: string;
   $type: string;
   $value: unknown;
@@ -47,7 +47,7 @@ function flattenDTCG(obj: Record<string, unknown>): ParsedToken[] {
   return results;
 }
 
-export function parseInput(raw: string): ParseResult {
+function parseInput(raw: string): ParseResult {
   const trimmed = raw.trim();
   if (!trimmed) return { tokens: [], errors: [], format: 'empty' };
 
