@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: ThemeManager: No rename option for theme options ---
 Already up to date.
+[main f0f4fe1] chore(backlog): done – ThemeManager: No rename option for theme options
+ 7 files changed, 145 insertions(+), 2 deletions(-)
+
+## 2026-03-27 - ThemeManager: No rename option for theme options
+- Added rename option feature: inline edit form (input + Save/Cancel) in option header row, triggered by a new pencil icon button that appears on hover (alongside existing duplicate/delete buttons). Enter/Escape key bindings match dimension rename UX.
+- Added `PUT /api/themes/dimensions/:id/options/:optionName` endpoint in server routes that renames an option in-place, preserving its `sets` config. Returns 409 on name conflict.
+- After successful rename, `optionSetOrders` key is updated client-side to preserve set ordering state.
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  26 items remaining
+===============================================================
+  Claimed: ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers
+  Worktree: /tmp/backlog-59311-OzmVuO

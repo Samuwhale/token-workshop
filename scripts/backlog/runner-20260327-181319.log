@@ -48,3 +48,16 @@ Already up to date.
 - Updated `deleteOrphanVariables` to accept a `collectionMap: Record<string, string>` parameter. It now builds a set of all managed collection names (`VARIABLE_COLLECTION_NAME` + all values in `collectionMap`) and iterates over every managed collection when deleting orphans.
 - Updated the `delete-orphan-variables` message handler in controller.ts to pass `msg.collectionMap` to the function.
 - Updated `PublishPanel.tsx` to include `collectionMap` in the `delete-orphan-variables` message payload (the prop was already available).
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  27 items remaining
+===============================================================
+  Claimed: ImportPanel: `readTimeoutRef` is not cleared in cleanup when component unmounts — timer continues running in the background
+  Worktree: /tmp/backlog-59883-iV0O2M
+
+  ✓ done: ImportPanel: `readTimeoutRef` is not cleared in cleanup when component unmounts — timer continues running in the background
+    stale — already done. The useEffect cleanup at ImportPanel.tsx ~L192 already clears readTimeoutRef on unmount.
+    6 turns · 36s · $0.14
+
+--- Merging: ImportPanel: `readTimeoutRef` is not cleared in cleanup when component unmounts — timer continues running in the background ---
+Already up to date.

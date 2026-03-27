@@ -348,3 +348,10 @@
   - Option rename requires a ternary in the header JSX wrapping both the name+badges div AND the action buttons — wrap both in a `<>` fragment as the false branch so the actions disappear while renaming
   - `optionSetOrders` uses option name as a key, so renaming requires updating the key immediately on the client after a successful PUT to avoid losing custom ordering
 ---
+
+## 2026-03-27 - ImportPanel: `readTimeoutRef` is not cleared in cleanup when component unmounts
+- Stale — already done. The `useEffect` cleanup at ImportPanel.tsx ~L192 already calls `if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current)` on unmount. This was included alongside previous timer-related fixes.
+- Files changed: none
+- **Learnings for future iterations:**
+  - When a timer/ref cleanup bug is reported, check both the message handler paths AND the `useEffect` return cleanup — they may have been fixed together in an earlier session.
+---
