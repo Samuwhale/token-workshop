@@ -456,3 +456,13 @@
   - When auto-expanding problem indicators, compute the initial Set right after data fetch and call setState once — avoids a separate useEffect dependency chain.
   - Changing accordion state from `string | null` to `Set<string>` enables multi-open without requiring any JSX restructuring.
 ---
+
+## 2026-03-27 - Drag-to-reorder set precedence has no keyboard alternative
+- Added "← Move left" and "Move right →" items to the set tab context menu in App.tsx (accessible via the "..." button on each tab, which is keyboard-reachable via Tab). Items are disabled at the boundaries. Uses a new `handleReorderSet(setName, direction)` function that calls the same `PUT /api/sets/reorder` API as drag-drop.
+- Added `handleKeyboardReorder(dimId, optionName, setName, direction)` to ThemeManager.tsx for theme option set ordering. Added ↑↓ arrow buttons to each set row that appear on row hover (using `group/setrow` + `opacity-0 group-hover/setrow:opacity-100 focus-within:opacity-100`), disabled at boundaries.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L594 (handleReorderSet), ~L1480 (menu items); `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L424 (handleKeyboardReorder), ~L685 (↑↓ buttons)
+- **Learnings for future iterations:**
+  - Context menu (the "..." button) is the natural keyboard-accessible hub for set-level operations; adding menu items there is the right pattern for App.tsx tabs.
+  - For ThemeManager vertical set rows, small ↑↓ buttons with `opacity-0 group-hover/setrow:opacity-100 focus-within:opacity-100` keeps the UI clean while being discoverable via keyboard focus.
+  - `group/setrow` named group avoids conflicts with other `group` usages in deeply nested JSX.
+---

@@ -59,7 +59,7 @@
 ### UX
 
 - [x] ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance
-- [~] ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
+- [x] ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
 - [~] No theme preview mode — no way to preview token values with a theme applied before committing it as active
 - [~] "Add option" form resets after each addition — creating multiple dimension options requires re-opening the form each time; batch-add would be faster
 
@@ -69,7 +69,7 @@
 
 ### Bugs
 
-- [ ] 10-second Figma correlation timeout has no loading indicator — the sync panel waits for a Figma response with no spinner; users see a frozen UI
+- [~] 10-second Figma correlation timeout has no loading indicator — the sync panel waits for a Figma response with no spinner; users see a frozen UI
 - [ ] Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert
 
 ### QoL

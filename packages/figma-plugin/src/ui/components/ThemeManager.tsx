@@ -445,6 +445,46 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     setDragOver(null);
   };
 
+  const handleKeyboardReorder = async (dimId: string, optionName: string, setName: string, direction: 'up' | 'down') => {
+    const dim = dimensions.find(d => d.id === dimId);
+    const opt = dim?.options.find(o => o.name === optionName);
+    if (!opt) return;
+    const order = [...(optionSetOrders[dimId]?.[optionName] || sets)];
+    const idx = order.indexOf(setName);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= order.length) return;
+    const newOrder = [...order];
+    newOrder.splice(idx, 1);
+    newOrder.splice(targetIdx, 0, setName);
+    const previousOrder = order;
+    setOptionSetOrders(prev => ({
+      ...prev,
+      [dimId]: { ...(prev[dimId] || {}), [optionName]: newOrder },
+    }));
+    const reorderedSets: Record<string, 'enabled' | 'disabled' | 'source'> = {};
+    for (const s of newOrder) {
+      reorderedSets[s] = opt.sets[s] ?? 'disabled';
+    }
+    try {
+      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: optionName, sets: reorderedSets }),
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(body || `Server returned ${res.status}`);
+      }
+    } catch (err) {
+      setOptionSetOrders(prev => ({
+        ...prev,
+        [dimId]: { ...(prev[dimId] || {}), [optionName]: previousOrder },
+      }));
+      setError(err instanceof Error ? err.message : 'Failed to save set order');
+    }
+  };
+
   if (!connected) {
     return (
       <div className="flex items-center justify-center py-12 text-[var(--color-figma-text-secondary)] text-[11px]">
@@ -626,7 +666,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                       onDragOver={e => handleDragOver(e, dim.id, opt.name, setName)}
                                       onDrop={e => handleDrop(e, dim.id, opt.name, setName)}
                                       onDragEnd={handleDragEnd}
-                                      className={`flex items-center justify-between px-3 py-1 transition-colors ${
+                                      className={`group/setrow flex items-center justify-between px-3 py-1 transition-colors ${
                                         isDropTarget
                                           ? 'bg-[var(--color-figma-accent)]/10 border-l-2 border-l-[var(--color-figma-accent)]'
                                           : isDragging
@@ -662,6 +702,24 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                             {STATE_LABELS[s]}
                                           </button>
                                         ))}
+                                      </div>
+                                      <div className="flex flex-col ml-1 opacity-0 group-hover/setrow:opacity-100 focus-within:opacity-100 transition-opacity">
+                                        <button
+                                          onClick={() => handleKeyboardReorder(dim.id, opt.name, setName, 'up')}
+                                          disabled={optSets.indexOf(setName) === 0}
+                                          title="Move up (higher precedence)"
+                                          className="px-0.5 py-px text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                                        >
+                                          <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M4 0L8 5H0z"/></svg>
+                                        </button>
+                                        <button
+                                          onClick={() => handleKeyboardReorder(dim.id, opt.name, setName, 'down')}
+                                          disabled={optSets.indexOf(setName) === optSets.length - 1}
+                                          title="Move down (lower precedence)"
+                                          className="px-0.5 py-px text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] disabled:opacity-30 disabled:cursor-not-allowed leading-none"
+                                        >
+                                          <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M4 5L0 0h8z"/></svg>
+                                        </button>
                                       </div>
                                     </div>
                                   );

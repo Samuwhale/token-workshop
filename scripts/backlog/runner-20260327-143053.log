@@ -198,3 +198,16 @@ Already up to date.
 
 --- Merging: ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option ---
 Already up to date.
+[main eede152] chore(backlog): done – ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
+ 6 files changed, 48 insertions(+), 9 deletions(-)
+
+## 2026-03-27 - ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
+- Changed `expandedCoverage` and `expandedStale` from `string | null` (single accordion) to `Set<string>` (multi-open). After computing coverage, all option keys with gaps are automatically added to `expandedCoverage` so the token lists are visible on load. Toggle buttons now use `Set.has/add/delete` pattern. Stale-sets section remains user-controlled (not auto-expanded).
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L63 (state types), ~L145 (auto-expand after fetch), ~L538 (toggle handler), ~L548 (toggle handler), ~L651 (render condition), ~L664 (render condition)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  59 items remaining
+===============================================================
+  Claimed: 10-second Figma correlation timeout has no loading indicator — the sync panel waits for a Figma response with no spinner; users see a frozen UI
+  Worktree: /tmp/backlog-97955-B1aYv0

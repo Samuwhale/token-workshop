@@ -596,6 +596,28 @@ export function App() {
     setDragOverSetName(null);
   };
 
+  const handleReorderSet = async (setName: string, direction: 'left' | 'right') => {
+    const idx = sets.indexOf(setName);
+    if (idx === -1) return;
+    const targetIdx = direction === 'left' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= sets.length) return;
+    const newOrder = [...sets];
+    newOrder.splice(idx, 1);
+    newOrder.splice(targetIdx, 0, setName);
+    setSets(newOrder);
+    setTabMenuOpen(null);
+    try {
+      await fetch(`${serverUrl}/api/sets/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: newOrder }),
+      });
+      setSuccessToast('Set order updated');
+    } catch {
+      refreshTokens();
+    }
+  };
+
   const handleSetDrop = async (e: React.DragEvent, targetSetName: string) => {
     e.preventDefault();
     if (!dragSetName || dragSetName === targetSetName) { handleSetDragEnd(); return; }
@@ -1452,6 +1474,24 @@ export function App() {
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Duplicate
+              </button>
+              <button
+                role="menuitem"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleReorderSet(tabMenuOpen!, 'left')}
+                disabled={sets.indexOf(tabMenuOpen!) === 0}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                ← Move left
+              </button>
+              <button
+                role="menuitem"
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => handleReorderSet(tabMenuOpen!, 'right')}
+                disabled={sets.indexOf(tabMenuOpen!) === sets.length - 1}
+                className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Move right →
               </button>
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
