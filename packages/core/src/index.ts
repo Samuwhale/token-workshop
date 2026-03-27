@@ -13,7 +13,7 @@ export {
   STROKE_STYLE_KEYWORDS,
   DEFAULTS,
   REFERENCE_REGEX,
-  REFERENCE_GLOBAL_REGEX,
+  makeReferenceGlobalRegex,
 } from './constants.js';
 export type { DimensionUnit, StrokeStyleKeyword } from './constants.js';
 

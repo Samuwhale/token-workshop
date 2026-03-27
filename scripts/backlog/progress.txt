@@ -481,3 +481,11 @@
 - **Learnings for future iterations:**
   - When a backlog item mentions "pervasive" type issues, always grep the exact files first before planning implementation.
 ---
+
+## 2026-03-27 - REFERENCE_GLOBAL_REGEX module-level stateful regex
+- The `makeReferenceGlobalRegex()` factory was added to `constants.ts` in a prior session but callers were never migrated — `REFERENCE_GLOBAL_REGEX` was still imported and used in 3 files while no longer being exported from `constants.ts`. Updated all callers to use `makeReferenceGlobalRegex()`: replaced import + usage in `dtcg-types.ts` (2 call sites), `resolver.ts` (2 call sites), and `style-dict.ts` (1 call site). Updated `index.ts` to export `makeReferenceGlobalRegex` instead of the removed `REFERENCE_GLOBAL_REGEX`.
+- Files changed: `packages/core/src/dtcg-types.ts` ~L10,L72,L74; `packages/core/src/resolver.ts` ~L10,L201,L323; `packages/server/src/services/style-dict.ts` ~L6,L121; `packages/core/src/index.ts` ~L16
+- **Learnings for future iterations:**
+  - A prior session's progress.txt entry saying "all callers updated" was incorrect — verify by grepping for old symbol names before marking stale.
+  - When a factory replaces a module-level constant, the old export must be removed from the barrel (`index.ts`) too, or external packages keep using the stale import name.
+---

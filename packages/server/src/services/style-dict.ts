@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import type { TokenGroup } from '@tokenmanager/core';
-import { REFERENCE_GLOBAL_REGEX, resolveRefValue } from '@tokenmanager/core';
+import { makeReferenceGlobalRegex, resolveRefValue } from '@tokenmanager/core';
 
 export type ExportPlatform = 'css' | 'dart' | 'ios-swift' | 'android' | 'json';
 
@@ -118,7 +118,7 @@ function injectFormulaCalc(obj: Record<string, any>): Record<string, any> {
         // Check for formula metadata
         const formula = val.$extensions?.tokenmanager?.formula;
         if (typeof formula === 'string') {
-          const cssFormula = formula.replace(REFERENCE_GLOBAL_REGEX, (_m: string, refPath: string) => {
+          const cssFormula = formula.replace(makeReferenceGlobalRegex(), (_m: string, refPath: string) => {
             return `var(--${refPath.replace(/\./g, '-')})`;
           });
           result[key] = { ...val, $value: `calc(${cssFormula})` };

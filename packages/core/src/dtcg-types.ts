@@ -7,7 +7,7 @@
  * Spec: https://tr.designtokens.org/format/
  */
 
-import { REFERENCE_REGEX, REFERENCE_GLOBAL_REGEX } from './constants.js';
+import { REFERENCE_REGEX, makeReferenceGlobalRegex } from './constants.js';
 
 // ---------------------------------------------------------------------------
 // File-format interfaces
@@ -69,9 +69,9 @@ export function isFormula(value: unknown): value is string {
   if (typeof value !== 'string') return false;
   if (REFERENCE_REGEX.test(value)) return false; // pure alias
   // Must contain at least one {ref}
-  if (!value.match(REFERENCE_GLOBAL_REGEX)) return false;
+  if (!value.match(makeReferenceGlobalRegex())) return false;
   // Must have at least one math operator outside of braces
-  const withoutRefs = value.replace(REFERENCE_GLOBAL_REGEX, '');
+  const withoutRefs = value.replace(makeReferenceGlobalRegex(), '');
   return /[+\-*/^()]/.test(withoutRefs);
 }
 

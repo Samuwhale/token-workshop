@@ -7,7 +7,7 @@
  */
 
 import { isReference, isFormula, parseReference } from './dtcg-types.js';
-import { TOKEN_TYPES, REFERENCE_GLOBAL_REGEX } from './constants.js';
+import { TOKEN_TYPES, makeReferenceGlobalRegex } from './constants.js';
 import { evalExpr } from './eval-expr.js';
 import { applyColorModifiers } from './color-modifier.js';
 import type { ColorModifierOp } from './types.js';
@@ -198,7 +198,7 @@ export class TokenResolver {
 
     // Extract all {ref} tokens from formula strings
     if (typeof value === 'string' && isFormula(value)) {
-      const matches = value.matchAll(new RegExp(REFERENCE_GLOBAL_REGEX.source, 'g'));
+      const matches = value.matchAll(makeReferenceGlobalRegex());
       for (const m of matches) {
         refs.add(m[1]);
       }
@@ -320,7 +320,7 @@ export class TokenResolver {
 
     // Formula evaluation: substitute all {ref} tokens with their numeric values
     if (typeof value === 'string' && isFormula(value)) {
-      const substituted = value.replace(new RegExp(REFERENCE_GLOBAL_REGEX.source, 'g'), (_match, refPath: string) => {
+      const substituted = value.replace(makeReferenceGlobalRegex(), (_match, refPath: string) => {
         const resolved = this.resolved.get(refPath);
         if (!resolved) {
           throw new Error(
