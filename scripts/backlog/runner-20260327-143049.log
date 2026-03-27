@@ -414,3 +414,16 @@ Already up to date.
 
 --- Merging: DELETE /data endpoint has no server-side confirmation gate — a single accidental API call permanently deletes all token sets and themes ---
 Already up to date.
+[main cd27749] chore(backlog): done – DELETE /data endpoint has no server-side confirmation gate — a single accidental API call permanently deletes all token sets and themes
+ 8 files changed, 30 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - DELETE /data endpoint has no server-side confirmation gate
+- Added server-side body validation: DELETE /api/data now requires `{ confirm: "DELETE" }` in the request body; returns 400 if missing. Updated the client handler to send this body.
+- Files changed: `packages/server/src/routes/sets.ts` ~L108, `packages/figma-plugin/src/ui/App.tsx` ~L961
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  10 items remaining
+===============================================================
+  Claimed: Identical fetch-and-error pattern duplicated across 10+ call sites — the `fetch → check res.ok → catch → show error` sequence is copy-pasted; extract a shared `apiFetch` utility
+  Worktree: /tmp/backlog-97510-gpLbeH

@@ -312,3 +312,10 @@
 - **Learnings for future iterations:**
   - A body-based confirmation token (`{ confirm: "DELETE" }`) is the simplest server-side gate for destructive endpoints — it mirrors the existing UI pattern and requires no extra round-trips or session state.
 ---
+
+## 2026-03-27 - SyncPanel.tsx is dead code (1167 lines) — exported but never imported; appears superseded by PublishPanel; should be removed
+- Deleted `packages/figma-plugin/src/ui/components/SyncPanel.tsx` (1167 lines). Confirmed via grep that the file had zero imports in any other `.ts`/`.tsx` file before deletion.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` (deleted)
+- **Learnings for future iterations:**
+  - A quick grep for the component name across all TS/TSX files is sufficient to confirm dead code before deletion — no plan agent needed for straightforward removals.
+---

@@ -95,10 +95,10 @@
 
 ### QoL
 
-- [~] DELETE /data endpoint has no server-side confirmation gate — a single accidental API call permanently deletes all token sets and themes
+- [x] DELETE /data endpoint has no server-side confirmation gate — a single accidental API call permanently deletes all token sets and themes
 - [~] SyncPanel.tsx is dead code (1167 lines) — exported but never imported; appears superseded by PublishPanel; should be removed
 - [~] Git commit allows submit with empty message — the commit form doesn't disable the button when the message field is blank
-- [ ] No publish dry-run — no way to preview what a Git push or Figma variable publish will change before executing
+- [~] No publish dry-run — no way to preview what a Git push or Figma variable publish will change before executing
 
 ---
 
@@ -106,7 +106,7 @@
 
 ### Redundancy & Duplication
 
-- [ ] Identical fetch-and-error pattern duplicated across 10+ call sites — the `fetch → check res.ok → catch → show error` sequence is copy-pasted; extract a shared `apiFetch` utility
+- [~] Identical fetch-and-error pattern duplicated across 10+ call sites — the `fetch → check res.ok → catch → show error` sequence is copy-pasted; extract a shared `apiFetch` utility
 - [ ] `err instanceof Error ? err.message : 'An unexpected error occurred'` repeated 20+ times — extract to a `getErrorMessage(err)` helper
 
 ### Performance
