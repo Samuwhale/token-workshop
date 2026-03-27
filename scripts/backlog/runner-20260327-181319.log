@@ -96,3 +96,9 @@ Already up to date.
 - Added `markDuplicatePaths` helper that detects tokens sharing the same normalized path and annotates each with a `_warning` field ("Path conflict: multiple tokens share '...' — only the last will be saved")
 - Applied `markDuplicatePaths` in both the `styles-read` message handler and `processJsonFile` after building the token list
 - Added a warning banner above the token list that appears whenever any loaded tokens have path conflicts
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  16 items remaining
+===============================================================
+  Claimed: Export route merges all sets into one namespace with silent overwrites — `deepMergeInto` merges all requested sets into a single flat object, so if two sets define the same token path, the second silently overwrites the first with no warning
+  Worktree: /tmp/backlog-59883-MyALbX

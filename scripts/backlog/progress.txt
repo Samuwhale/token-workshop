@@ -267,3 +267,11 @@
   - The `figmaLoading` spinner in the same file was already the correct reference pattern — arc path `M21 12a9 9 0 11-6.219-8.56` with `className="animate-spin"` on a 10×10 SVG.
   - When adding a spinner to a button, also add `flex items-center justify-center gap-1.5` to the button's className.
 ---
+
+## 2026-03-27 - ExportPanel: Duplicate PLATFORMS constant — the same `PLATFORMS` array is defined identically in both `ExportPanel.tsx` and `PublishPanel.tsx`; should be extracted to a shared constant to avoid drift
+- Created `packages/figma-plugin/src/ui/shared/platforms.ts` exporting `Platform` interface and `PLATFORMS` constant. Removed both from `ExportPanel.tsx` and `PublishPanel.tsx` and replaced with imports.
+- Files changed: `packages/figma-plugin/src/ui/shared/platforms.ts` (new), `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L1, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1
+- **Learnings for future iterations:**
+  - Shared UI constants/interfaces for panels belong in `src/ui/shared/` — one file per concern (e.g., `platforms.ts`)
+  - Use `import type` for interface-only imports to keep the bundle clean
+---

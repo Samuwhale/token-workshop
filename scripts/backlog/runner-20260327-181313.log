@@ -118,3 +118,16 @@ Already up to date.
 
 --- Merging: ExportPanel: No loading indicator during platform export — the `handleExport` call sets `exporting` state but the UI does not show a spinner or progress message while waiting for the server response ---
 Already up to date.
+[main 6286708] chore(backlog): done – ExportPanel: No loading indicator during platform export — the `handleExport` call sets `exporting` state but the UI does not show a spinner or progress message while waiting for the server response
+ 4 files changed, 50 insertions(+), 6 deletions(-)
+
+## 2026-03-27 - ExportPanel: No loading indicator during platform export — the `handleExport` call sets `exporting` state but the UI does not show a spinner or progress message while waiting for the server response
+- Added animate-spin spinner SVG to all three `exporting`-state buttons: the "Re-export" button (results view), the initial export button (empty results view), and the "Save to Token Server" button (figma-variables mode). Each button got `flex items-center justify-center gap-1.5` and a conditional spinner + text fragment matching the existing `figmaLoading` spinner pattern already used in the same file.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L935 (Re-export button), ~L944 (initial export button), ~L992 (Save to Token Server button)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  15 items remaining
+===============================================================
+  Claimed: No token search highlighting — filtering tokens by name narrows the list but doesn't highlight the matching substring in results, making it hard to spot the exact match in large sets
+  Worktree: /tmp/backlog-59311-WuIKqC

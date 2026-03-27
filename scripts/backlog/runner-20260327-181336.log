@@ -89,3 +89,10 @@ Already up to date.
 ===============================================================
   Claimed: ExportPanel: Duplicate PLATFORMS constant — the same `PLATFORMS` array is defined identically in both `ExportPanel.tsx` and `PublishPanel.tsx`; should be extracted to a shared constant to avoid drift
   Worktree: /tmp/backlog-60772-vX6Grj
+
+  ✓ done: ExportPanel: Duplicate PLATFORMS constant — the same `PLATFORMS` array is defined identically in both `ExportPanel.tsx` and `PublishPanel.tsx`; should be extracted to a shared constant to avoid drift
+    Extracted Platform interface and PLATFORMS array to packages/figma-plugin/src/ui/shared/platforms.ts; both panels now import from there
+    13 turns · 57s · $0.22
+
+--- Merging: ExportPanel: Duplicate PLATFORMS constant — the same `PLATFORMS` array is defined identically in both `ExportPanel.tsx` and `PublishPanel.tsx`; should be extracted to a shared constant to avoid drift ---
+Already up to date.
