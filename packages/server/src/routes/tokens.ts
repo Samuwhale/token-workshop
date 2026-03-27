@@ -133,6 +133,26 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // PATCH /api/tokens/:set/groups/meta — update $type and/or $description on a group
+  fastify.patch<{
+    Params: { set: string };
+    Body: { groupPath?: string; $type?: string | null; $description?: string | null };
+  }>('/tokens/:set/groups/meta', async (request, reply) => {
+    const { set } = request.params;
+    const { groupPath = '', $type, $description } = request.body ?? {};
+    if ($type !== undefined && $type !== null && !TOKEN_TYPE_VALUES.has($type)) {
+      return reply.status(400).send({ error: `Invalid $type "${$type}": must be a valid DTCG token type` });
+    }
+    try {
+      await fastify.tokenStore.updateGroup(set, groupPath, { $type, $description });
+      return { updated: true, groupPath, set };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+      return reply.status(500).send({ error: 'Failed to update group metadata', detail: msg });
+    }
+  });
+
   // POST /api/tokens/:set/bulk-rename — rename tokens by find/replace pattern
   fastify.post<{
     Params: { set: string };

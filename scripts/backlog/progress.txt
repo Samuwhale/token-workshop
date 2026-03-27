@@ -337,3 +337,17 @@
   - The flatItems `.map()` needed to change from `({ node, depth }) => (...)` to `({ node, depth }) => { ... return (...); }` to compute sibling index inline per row.
   - Up/down buttons only render as defined callbacks (not disabled buttons), so `TokenTreeNode` needs no knowledge of sort state — the parent simply passes `undefined` instead of a callback when sort is active.
 ---
+
+## 2026-03-27 - Group $type and $description editing
+- Added full UI and backend support for editing `$type` and `$description` on DTCG token groups
+- `buildTree` now passes `$description` for group nodes (was already passing `$type`)
+- Added `updateGroup(setName, groupPath, meta)` service method in `token-store.ts` — navigates to group via `getObjectAtPath`, mutates/deletes `$type`/`$description`, saves and rebuilds
+- Added `PATCH /api/tokens/:set/groups/meta` route with `$type` validation against `TOKEN_TYPE_VALUES`
+- Group header shows a dimmed italic `$type` badge when set (with tooltip "inherited by all children")
+- "Edit type & description…" menu item in the group context menu opens an inline panel with a `<select>` for `$type` and a text `<input>` for `$description`; saving/cancelling closes the panel
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L138, `packages/server/src/services/token-store.ts` ~L864, `packages/server/src/routes/tokens.ts` ~L136, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L870,2093,2753,2818,3058,3170,3028,3311
+- **Learnings for future iterations:**
+  - `getObjectAtPath` is private in `token-store.ts` — new service methods that need to navigate to a group can call it directly since they live in the same class.
+  - Empty string `$type` from the `<select>` "(none)" option should be converted to `null` before sending so the server deletes the key rather than storing an empty string.
+  - The inline meta-editing panel lives *outside* the group header `<div>` (after the context menu block) so clicks inside it don't trigger the expand/collapse toggle.
+---

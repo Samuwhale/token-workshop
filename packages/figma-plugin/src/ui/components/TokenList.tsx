@@ -868,6 +868,23 @@ export function TokenList({
     onRefresh();
   }, [connected, serverUrl, setName, onRefresh]);
 
+  const handleUpdateGroupMeta = useCallback(async (
+    groupPath: string,
+    meta: { $type?: string | null; $description?: string | null },
+  ) => {
+    if (!connected) return;
+    const res = await fetch(`${serverUrl}/api/tokens/${setName}/groups/meta`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupPath, ...meta }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      throw new Error(data.error || 'Failed to update group metadata');
+    }
+    onRefresh();
+  }, [connected, serverUrl, setName, onRefresh]);
+
   const handleCreateGroup = useCallback(async (parent: string, name: string) => {
     if (!connected || !name.trim()) return;
     const groupPath = parent ? `${parent}.${name.trim()}` : name.trim();
@@ -2074,6 +2091,7 @@ export function TokenList({
                 onCreateSibling={handleOpenCreateSibling}
                 onCreateGroup={(parentPath) => setNewGroupDialogParent(parentPath)}
                 onRenameGroup={handleRenameGroup}
+                onUpdateGroupMeta={handleUpdateGroupMeta}
                 onRequestMoveGroup={handleRequestMoveGroup}
                 onRequestMoveToken={handleRequestMoveToken}
                 onDuplicateGroup={handleDuplicateGroup}
@@ -2701,6 +2719,7 @@ function TokenTreeNode({
   onCreateSibling,
   onCreateGroup,
   onRenameGroup,
+  onUpdateGroupMeta,
   onRequestMoveGroup,
   onRequestMoveToken,
   onDuplicateGroup,
@@ -2751,6 +2770,7 @@ function TokenTreeNode({
   onCreateSibling?: (groupPath: string, tokenType: string) => void;
   onCreateGroup?: (parentGroupPath: string) => void;
   onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;
+  onUpdateGroupMeta?: (groupPath: string, meta: { $type?: string | null; $description?: string | null }) => Promise<void>;
   onRequestMoveGroup?: (groupPath: string) => void;
   onRequestMoveToken?: (tokenPath: string) => void;
   onDuplicateGroup?: (groupPath: string) => void;
@@ -2807,6 +2827,10 @@ function TokenTreeNode({
   const [renameGroupVal, setRenameGroupVal] = useState('');
   const renameGroupInputRef = useRef<HTMLInputElement>(null);
   const renameGroupEscapedRef = useRef(false);
+  const [editingGroupMeta, setEditingGroupMeta] = useState(false);
+  const [groupMetaType, setGroupMetaType] = useState('');
+  const [groupMetaDescription, setGroupMetaDescription] = useState('');
+  const [groupMetaSaving, setGroupMetaSaving] = useState(false);
 
   // Token rename state
   const [renamingToken, setRenamingToken] = useState(false);
@@ -2985,6 +3009,21 @@ function TokenTreeNode({
       onRenameGroup?.(node.path, newGroupPath);
     };
 
+    const handleSaveGroupMeta = async () => {
+      setGroupMetaSaving(true);
+      try {
+        await onUpdateGroupMeta?.(node.path, {
+          $type: groupMetaType || null,
+          $description: groupMetaDescription || null,
+        });
+        setEditingGroupMeta(false);
+      } catch (err) {
+        console.error('Failed to save group metadata:', err);
+      } finally {
+        setGroupMetaSaving(false);
+      }
+    };
+
     return (
       <div>
         <div
@@ -3058,6 +3097,14 @@ function TokenTreeNode({
           {!renamingGroup && node.children && (
             <span className={`text-[9px] ml-1 shrink-0 ${leafCount === 0 ? 'text-[var(--color-figma-text-secondary)] opacity-50 italic' : 'text-[var(--color-figma-text-secondary)]'}`}>
               {leafCount === 0 ? 'empty' : `(${leafCount})`}
+            </span>
+          )}
+          {!renamingGroup && node.$type && (
+            <span
+              className="text-[9px] shrink-0 text-[var(--color-figma-text-secondary)] italic ml-0.5 opacity-60"
+              title={`$type: ${node.$type} (inherited by all children)`}
+            >
+              {node.$type}
             </span>
           )}
           {!selectMode && !renamingGroup && (
@@ -3147,6 +3194,19 @@ function TokenTreeNode({
               className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               Rename group
+            </button>
+            <button
+              role="menuitem"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                setGroupMenuPos(null);
+                setGroupMetaType(node.$type ?? '');
+                setGroupMetaDescription(node.$description ?? '');
+                setEditingGroupMeta(true);
+              }}
+              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Edit type &amp; description…
             </button>
             <button
               role="menuitem"
@@ -3248,6 +3308,69 @@ function TokenTreeNode({
           </div>
         )}
 
+        {editingGroupMeta && (
+          <div
+            className="mx-2 mb-1 p-2 rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5"
+            style={{ marginLeft: `${depth * 16 + 8}px` }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Group metadata</div>
+            <div className="flex items-center gap-1.5">
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 shrink-0">$type</label>
+              <select
+                value={groupMetaType}
+                onChange={e => setGroupMetaType(e.target.value)}
+                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+              >
+                <option value="">(none)</option>
+                <option value="color">color</option>
+                <option value="dimension">dimension</option>
+                <option value="fontFamily">fontFamily</option>
+                <option value="fontWeight">fontWeight</option>
+                <option value="duration">duration</option>
+                <option value="cubicBezier">cubicBezier</option>
+                <option value="number">number</option>
+                <option value="string">string</option>
+                <option value="boolean">boolean</option>
+                <option value="shadow">shadow</option>
+                <option value="gradient">gradient</option>
+                <option value="typography">typography</option>
+                <option value="border">border</option>
+                <option value="strokeStyle">strokeStyle</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 shrink-0">$description</label>
+              <input
+                type="text"
+                value={groupMetaDescription}
+                onChange={e => setGroupMetaDescription(e.target.value)}
+                placeholder="Optional description…"
+                className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); handleSaveGroupMeta(); }
+                  if (e.key === 'Escape') setEditingGroupMeta(false);
+                }}
+              />
+            </div>
+            <div className="flex gap-1 justify-end">
+              <button
+                onClick={() => setEditingGroupMeta(false)}
+                className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveGroupMeta}
+                disabled={groupMetaSaving}
+                className="px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:opacity-90 disabled:opacity-40"
+              >
+                {groupMetaSaving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {!skipChildren && isExpanded && node.children?.map(child => (
           <TokenTreeNode
             key={child.path}
@@ -3270,6 +3393,7 @@ function TokenTreeNode({
             onCreateSibling={onCreateSibling}
             onCreateGroup={onCreateGroup}
             onRenameGroup={onRenameGroup}
+            onUpdateGroupMeta={onUpdateGroupMeta}
             onRequestMoveGroup={onRequestMoveGroup}
             onRequestMoveToken={onRequestMoveToken}
             onDuplicateGroup={onDuplicateGroup}

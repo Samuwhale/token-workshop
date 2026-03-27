@@ -863,6 +863,34 @@ export class TokenStore {
     this.emit({ type: 'token-updated', setName });
   }
 
+  async updateGroup(
+    setName: string,
+    groupPath: string,
+    meta: { $type?: string | null; $description?: string | null },
+  ): Promise<void> {
+    const set = this.sets.get(setName);
+    if (!set) throw new Error(`Set "${setName}" not found`);
+    let group: Record<string, any>;
+    if (!groupPath) {
+      group = set.tokens as Record<string, any>;
+    } else {
+      const found = this.getObjectAtPath(set.tokens, groupPath);
+      if (!found) throw new Error(`Group "${groupPath}" not found in set "${setName}"`);
+      group = found;
+    }
+    if ('$type' in meta) {
+      if (meta.$type == null) delete group.$type;
+      else group.$type = meta.$type;
+    }
+    if ('$description' in meta) {
+      if (meta.$description == null || meta.$description === '') delete group.$description;
+      else group.$description = meta.$description;
+    }
+    await this.saveSet(setName);
+    this.rebuildFlatTokens();
+    this.emit({ type: 'token-updated', setName, tokenPath: groupPath });
+  }
+
   private getObjectAtPath(tokens: TokenGroup, path: string): Record<string, any> | undefined {
     const parts = path.split('.');
     let current: any = tokens;

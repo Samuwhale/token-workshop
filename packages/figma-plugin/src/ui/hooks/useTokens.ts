@@ -135,6 +135,7 @@ function buildTree(group: Record<string, any>, prefix = ''): TokenNode[] {
         path,
         name: key,
         $type: value.$type,
+        $description: value.$description,
         isGroup: true,
         children: buildTree(value, path),
       });
