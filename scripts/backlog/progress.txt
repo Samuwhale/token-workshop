@@ -397,3 +397,11 @@
 - **Learnings for future iterations:**
   - TokenCanvas empty state is self-contained in a single early-return block — no prop threading needed.
 ---
+
+## 2026-03-27 - Silent failure in SelectionInspector binding operations — `remove-binding` and `apply-binding` messages have no error callback, so failures are invisible to the user
+- Added try/catch to `removeBinding` with `figma.notify(..., { error: true })` on failure. Updated `applyToSelection` to collect per-node errors and show distinct notifications: full-failure shows error toast, partial-failure shows count summary, success unchanged. Also included `errors` array in `applied-to-selection` postMessage for future UI use.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L744,L761
+- **Learnings for future iterations:**
+  - `figma.notify(msg, { error: true })` is the Figma-native way to surface plugin-side errors — use it instead of silent `console.error`. No UI changes needed for basic error visibility.
+  - For partial failures (some nodes succeed, some fail), distinguish full-failure (error toast) from partial-failure (info toast with count).
+---

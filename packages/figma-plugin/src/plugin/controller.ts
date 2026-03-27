@@ -742,26 +742,45 @@ async function applyToSelection(tokenPath: string, tokenType: string, targetProp
   }
 
   let applied = 0;
+  const errors: string[] = [];
   for (const node of selection) {
     try {
       await applyTokenValue(node, targetProperty, resolvedValue, tokenType);
       node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, targetProperty, tokenPath);
       applied++;
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${node.name}: ${msg}`);
       console.error(`Failed to apply ${tokenPath} to ${node.name}:`, err);
     }
   }
 
-  figma.notify(`Applied ${tokenPath} to ${applied} layer(s)`);
-  figma.ui.postMessage({ type: 'applied-to-selection', count: applied });
+  if (applied === 0 && errors.length > 0) {
+    figma.notify(`Failed to apply ${tokenPath}: ${errors[0]}`, { error: true });
+  } else if (errors.length > 0) {
+    figma.notify(`Applied ${tokenPath} to ${applied} layer(s); ${errors.length} failed`);
+  } else {
+    figma.notify(`Applied ${tokenPath} to ${applied} layer(s)`);
+  }
+  figma.ui.postMessage({ type: 'applied-to-selection', count: applied, errors });
   await getSelection();
 }
 
 // Remove a token binding from selected nodes
 async function removeBinding(property: string) {
   const selection = figma.currentPage.selection;
+  const errors: string[] = [];
   for (const node of selection) {
-    node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
+    try {
+      node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`${node.name}: ${msg}`);
+      console.error(`Failed to remove binding for ${property} on ${node.name}:`, err);
+    }
+  }
+  if (errors.length > 0) {
+    figma.notify(`Failed to remove binding: ${errors[0]}`, { error: true });
   }
   await getSelection();
 }
