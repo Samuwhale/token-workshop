@@ -44,11 +44,11 @@ function validateSets(sets: Record<string, unknown>): string | null {
 
 export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fastify, opts) => {
   const tokenDir = path.resolve(opts.tokenDir);
+  const store = createDimensionsStore(tokenDir);
 
   // GET /api/themes — list dimensions
   fastify.get('/themes', async (_request, reply) => {
     try {
-      const store = createDimensionsStore(tokenDir);
       const dimensions = await store.load();
       return { dimensions };
     } catch (err) {
@@ -69,7 +69,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       return reply.status(400).send({ error: 'Dimension name is required' });
     }
     try {
-      const store = createDimensionsStore(tokenDir);
       const dimensions = await store.load();
       if (dimensions.some(d => d.id === id)) {
         return reply.status(409).send({ error: `Dimension with id "${id}" already exists` });
@@ -91,7 +90,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       return reply.status(400).send({ error: 'Dimension name is required' });
     }
     try {
-      const store = createDimensionsStore(tokenDir);
       const dimensions = await store.load();
       const idx = dimensions.findIndex(d => d.id === id);
       if (idx === -1) {
@@ -109,7 +107,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
   fastify.delete<{ Params: { id: string } }>('/themes/dimensions/:id', async (request, reply) => {
     const { id } = request.params;
     try {
-      const store = createDimensionsStore(tokenDir);
       const dimensions = await store.load();
       const filtered = dimensions.filter(d => d.id !== id);
       if (filtered.length === dimensions.length) {
@@ -138,7 +135,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       if (setsError) return reply.status(400).send({ error: setsError });
 
       try {
-        const store = createDimensionsStore(tokenDir);
         const dimensions = await store.load();
         const dimIdx = dimensions.findIndex(d => d.id === id);
         if (dimIdx === -1) {
@@ -166,7 +162,6 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     async (request, reply) => {
       const { id, optionName } = request.params;
       try {
-        const store = createDimensionsStore(tokenDir);
         const dimensions = await store.load();
         const dimIdx = dimensions.findIndex(d => d.id === id);
         if (dimIdx === -1) {

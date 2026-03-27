@@ -242,3 +242,10 @@
   - The lint dot was already visible while browsing (not gated by showIssuesOnly) — the real gap was visual clarity, not visibility logic.
   - The warning triangle SVG `M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94...` is the canonical warning icon used throughout App.tsx; reuse it for consistency.
 ---
+
+## 2026-03-27 - Move token to group via drag-and-drop
+- Already implemented: token rows are draggable (`draggable={!selectMode}`) with `application/x-token-drag` MIME type; group headers have `onDragOver`/`onDragLeave`/`onDrop` handlers with accent ring highlight; `handleDropOnGroup` builds the new path and calls the rename API.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+  - Full drag-to-group was added in a prior session alongside the select-mode drag-to-reorder; the two are disambiguated by the `draggable={!selectMode}` toggle on token rows and the `application/x-token-drag` MIME type guard on group drop targets.
+---

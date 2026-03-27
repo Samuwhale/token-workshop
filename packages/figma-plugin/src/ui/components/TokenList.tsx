@@ -62,7 +62,7 @@ interface TokenListProps {
 }
 
 type DeleteConfirm =
-  | { type: 'token'; path: string }
+  | { type: 'token'; path: string; orphanCount: number }
   | { type: 'group'; path: string; name: string; tokenCount: number }
   | { type: 'bulk'; paths: string[]; orphanCount: number };
 
@@ -936,8 +936,14 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
 
   const requestDeleteToken = useCallback((path: string) => {
     if (!connected) return;
-    setDeleteConfirm({ type: 'token', path });
-  }, [connected]);
+    const orphanCount = Object.entries(allTokensFlat).filter(([tokenPath, token]) => {
+      if (tokenPath === path) return false;
+      const val = token.$value;
+      if (typeof val !== 'string' || !val.startsWith('{')) return false;
+      return val.slice(1, -1) === path;
+    }).length;
+    setDeleteConfirm({ type: 'token', path, orphanCount });
+  }, [connected, allTokensFlat]);
 
   const requestDeleteGroup = useCallback((path: string, name: string, tokenCount: number) => {
     if (!connected) return;
@@ -1256,9 +1262,12 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     if (!deleteConfirm) return null;
     if (deleteConfirm.type === 'token') {
       const name = deleteConfirm.path.split('.').pop() ?? deleteConfirm.path;
+      const { orphanCount } = deleteConfirm;
       return {
         title: `Delete "${name}"?`,
-        description: `Token path: ${deleteConfirm.path}`,
+        description: orphanCount > 0
+          ? `${orphanCount} other token${orphanCount !== 1 ? 's' : ''} reference this and will become broken.`
+          : `Token path: ${deleteConfirm.path}`,
         confirmLabel: 'Delete',
       };
     }
