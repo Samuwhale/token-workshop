@@ -132,7 +132,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] AnalyticsPanel fetch AbortController — fetches all sets' tokens in parallel with no AbortController; setState on unmounted component if user switches tabs (`figma-plugin/AnalyticsPanel.tsx:201-264`)
 - [x] AliasAutocomplete entries not memoized — `entries` recomputed every render without `useMemo`; expensive for large token sets (`figma-plugin/AliasAutocomplete.tsx`)
-- [ ] LintConfigStore shallow cache reference — `LintConfigStore.load()` returns shallow reference to cached config; callers can corrupt the cache (`server/lint.ts:63-72`)
+- [x] LintConfigStore shallow cache reference — `LintConfigStore.load()` returns shallow reference to cached config; callers can corrupt the cache (`server/lint.ts:63-72`)
 - [ ] `validateAllTokens` hardcodes depth > 3 — should read limit from lint config instead of hardcoding (`server/lint.ts:338`)
 - [ ] Pervasive `as any` casts in generator-service and routes — bypasses type safety across the plugin boundary (`generator-service.ts`, `generators route`, `sets route`, `tokens route`, `controller.ts`)
 - [ ] REFERENCE_GLOBAL_REGEX module-level stateful regex — `/g` flag creates a latent `.lastIndex` hazard if `.test()` or `.exec()` are used directly (`core/constants.ts:118`)

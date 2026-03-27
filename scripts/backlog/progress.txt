@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - LintConfigStore shallow cache reference
+- Changed `save()` to clone the incoming config before storing: `this.config = structuredClone(config)`. Previously `this.config = config` stored the caller's reference directly, so any mutation by the caller after `save()` would corrupt the in-memory cache. `load()` already returned a `structuredClone`; `save()` now does the same on the write side.
+- Files changed: `packages/server/src/services/lint.ts` ~L76
+- **Learnings for future iterations:**
+  - Both read and write paths of a cache store need defensive cloning — `load()` returning a clone is not sufficient if `save()` stores a raw reference.
+---
+
 ## 2026-03-27 - AliasAutocomplete entries not memoized
 - Stale item: `entries` is already wrapped in `useMemo([allTokensFlat, query, filterType])` at line 27 of `AliasAutocomplete.tsx`. No changes needed.
 - Files changed: none
