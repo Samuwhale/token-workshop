@@ -17,3 +17,19 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 --- Merging: deleteToken emits no SSE change event ---
 Created autostash: a1e5265
 Current branch main is up to date.
+[main d960c73] chore(backlog): done – deleteToken emits no SSE change event
+ 5 files changed, 52 insertions(+), 3 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260327-131740.log
+ create mode 100644 scripts/backlog/runner-20260327-131742.log
+ create mode 100644 scripts/backlog/runner-20260327-131745.log
+
+## 2026-03-27 - deleteToken emits no SSE change event
+- Already fixed in commit f81f8e3. `deleteToken` at token-store.ts:541 now calls `this.emit({ type: 'token-updated', setName, tokenPath })` after successful deletion.
+- Files changed: none (already done)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  17 items remaining
+===============================================================
+  Claimed: [HIGH] `deleteTokensByGeneratorId` emits no SSE change event — after bulk-deleting generator-tagged tokens (token-store.ts:511-534), no `this.emit()` call is made, so clients won't refresh after generator output is cleaned up
+  Worktree: /tmp/backlog-44614-WnUIW7

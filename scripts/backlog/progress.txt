@@ -328,3 +328,10 @@
 - **Learnings for future iterations:**
   - Check git log for recent commits before starting work — the fix may already be merged.
 ---
+
+## 2026-03-27 - ThemeManager `handleSetState` doesn't check `res.ok`
+- Already implemented: `handleSetState` (L302-331) checks `res.ok` at L320, rolls back optimistic state via `previousDimensions` at L321, parses server error body at L322, and displays it via `setError` at L323. The catch block at L327-330 also rolls back and shows network errors.
+- Files changed: none (stale item)
+- **Learnings for future iterations:**
+  - Always check if the item is already fixed before implementing — previous sessions may have addressed it (likely fixed during the `handleDrop` res.ok fix session).
+---
