@@ -69,3 +69,10 @@ Already up to date.
 ===============================================================
   Claimed: useGenerators GeneratorType union is missing server-supported types — the UI hook defines `GeneratorType` with only 8 types (missing `accessibleColorPair`, `darkModeInversion`, `responsiveScale`), so `computeDerivedPaths` silently returns empty arrays for those generators
   Worktree: /tmp/backlog-60772-Weiot5
+
+  ✓ done: useGenerators GeneratorType union is missing server-supported types — the UI hook defines `GeneratorType` with only 8 types (missing `accessibleColorPair`, `darkModeInversion`, `responsiveScale`), so `computeDerivedPaths` silently returns empty arrays for those generators
+    Added 3 missing types to GeneratorType union, added their config interfaces, updated GeneratorConfig union, and added computeDerivedPaths cases for each
+    18 turns · 80s · $0.29
+
+--- Merging: useGenerators GeneratorType union is missing server-supported types — the UI hook defines `GeneratorType` with only 8 types (missing `accessibleColorPair`, `darkModeInversion`, `responsiveScale`), so `computeDerivedPaths` silently returns empty arrays for those generators ---
+Already up to date.

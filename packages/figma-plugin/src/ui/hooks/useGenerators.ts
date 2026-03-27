@@ -12,6 +12,9 @@ export type GeneratorType =
   | 'borderRadiusScale'
   | 'zIndexScale'
   | 'customScale'
+  | 'accessibleColorPair'
+  | 'darkModeInversion'
+  | 'responsiveScale'
   | 'contrastCheck';
 
 export interface ColorRampConfig {
@@ -90,6 +93,27 @@ export interface ContrastCheckConfig {
   levels: ('AA' | 'AAA')[];
 }
 
+export interface AccessibleColorPairConfig {
+  contrastLevel: 'AA' | 'AAA';
+  backgroundStep: string;
+  foregroundStep: string;
+}
+
+export interface DarkModeInversionConfig {
+  stepName: string;
+  chromaBoost: number;
+}
+
+export interface ResponsiveScaleStep {
+  name: string;
+  multiplier: number;
+}
+
+export interface ResponsiveScaleConfig {
+  steps: ResponsiveScaleStep[];
+  unit: 'px' | 'rem';
+}
+
 export type GeneratorConfig =
   | ColorRampConfig
   | TypeScaleConfig
@@ -98,6 +122,9 @@ export type GeneratorConfig =
   | BorderRadiusScaleConfig
   | ZIndexScaleConfig
   | CustomScaleConfig
+  | AccessibleColorPairConfig
+  | DarkModeInversionConfig
+  | ResponsiveScaleConfig
   | ContrastCheckConfig;
 
 export interface StepOverride {
@@ -190,6 +217,18 @@ function computeDerivedPaths(generator: TokenGenerator): string[] {
     }
   } else if (type === 'customScale') {
     const cfg = config as CustomScaleConfig;
+    for (const step of cfg.steps) {
+      paths.push(`${targetGroup}.${step.name}`);
+    }
+  } else if (type === 'accessibleColorPair') {
+    const cfg = config as AccessibleColorPairConfig;
+    paths.push(`${targetGroup}.${cfg.backgroundStep}`);
+    paths.push(`${targetGroup}.${cfg.foregroundStep}`);
+  } else if (type === 'darkModeInversion') {
+    const cfg = config as DarkModeInversionConfig;
+    paths.push(`${targetGroup}.${cfg.stepName}`);
+  } else if (type === 'responsiveScale') {
+    const cfg = config as ResponsiveScaleConfig;
     for (const step of cfg.steps) {
       paths.push(`${targetGroup}.${step.name}`);
     }

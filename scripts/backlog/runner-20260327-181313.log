@@ -97,3 +97,17 @@ Already up to date.
 
 --- Merging: ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active ---
 Already up to date.
+[main 8027e91] chore(backlog): done – ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active
+ 6 files changed, 36 insertions(+), 7 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active
+- Changed mode row styling to use `bg-[var(--color-figma-accent)]/5` background for enabled rows (subtle accent tint) and `bg-transparent opacity-50` for disabled rows. Also added `line-through` to the mode name text when disabled, and hid the "new"/"existing" badge for disabled rows (they won't be imported so the badge is misleading).
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L748
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  19 items remaining
+===============================================================
+  Claimed: ExportPanel: No loading indicator during platform export — the `handleExport` call sets `exporting` state but the UI does not show a spinner or progress message while waiting for the server response
+  Worktree: /tmp/backlog-59311-71Hy58

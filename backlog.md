@@ -99,7 +99,7 @@
 
 ### UX
 
-- [~] ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active
+- [x] ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active
 
 ---
 
@@ -130,7 +130,7 @@
 
 ### UX
 
-- [ ] ExportPanel: No loading indicator during platform export — the `handleExport` call sets `exporting` state but the UI does not show a spinner or progress message while waiting for the server response
+- [~] ExportPanel: No loading indicator during platform export — the `handleExport` call sets `exporting` state but the UI does not show a spinner or progress message while waiting for the server response
 
 ---
 

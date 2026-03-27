@@ -395,3 +395,14 @@
   - `line-through` on disabled mode name reinforces "this will be skipped" without adding extra UI elements.
   - Hiding status badges (new/existing) for disabled modes avoids showing information that is irrelevant (those modes won't be imported).
 ---
+
+## 2026-03-27 - useGenerators GeneratorType union is missing server-supported types — the UI hook defines `GeneratorType` with only 8 types (missing `accessibleColorPair`, `darkModeInversion`, `responsiveScale`), so `computeDerivedPaths` silently returns empty arrays for those generators
+- Added `accessibleColorPair`, `darkModeInversion`, `responsiveScale` to the `GeneratorType` union in `useGenerators.ts`
+- Added config interfaces `AccessibleColorPairConfig`, `DarkModeInversionConfig`, `ResponsiveScaleStep`, `ResponsiveScaleConfig` (matching definitions in `@tokenmanager/core`)
+- Added the three types to the `GeneratorConfig` union
+- Added `computeDerivedPaths` cases: `accessibleColorPair` emits `backgroundStep`/`foregroundStep` paths; `darkModeInversion` emits single `stepName` path; `responsiveScale` emits paths for each step by name
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L7 (union), ~L82 (interfaces), ~L93 (GeneratorConfig), ~L215 (computeDerivedPaths)
+- **Learnings for future iterations:**
+  - The plugin defines all types inline (see comment at top of file: "do not import from @tokenmanager/core in the plugin") — always mirror core type changes into useGenerators.ts manually
+  - `accessibleColorPair` generates exactly 2 tokens (background + foreground), not a variable-length array — handle these non-array cases explicitly
+---
