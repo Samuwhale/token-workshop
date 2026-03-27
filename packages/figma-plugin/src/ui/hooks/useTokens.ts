@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
-import { countLeafNodes } from '../shared/colorUtils';
 
 export interface TokenNode {
   path: string;
@@ -50,22 +49,8 @@ export function useTokens(serverUrl: string, connected: boolean) {
         if (gen !== fetchGenRef.current) return;
         setTokens(buildTree(tokensData.tokens || {}));
 
-        // Fetch counts for all sets in parallel
-        const counts: Record<string, number> = {};
-        await Promise.all(
-          allSets.map(async (setName) => {
-            if (setName === current) {
-              counts[setName] = countLeafNodes(tokensData.tokens || {}).total;
-            } else {
-              const res = await fetch(`${serverUrl}/api/tokens/${setName}`, { signal: AbortSignal.timeout(5000) });
-              if (!res.ok) return;
-              const data = await res.json();
-              counts[setName] = countLeafNodes(data.tokens || {}).total;
-            }
-          })
-        );
         if (gen !== fetchGenRef.current) return;
-        setSetTokenCounts(counts);
+        setSetTokenCounts(setsData.counts || {});
       }
     } catch (err) {
       console.error('Failed to fetch tokens:', err);

@@ -266,3 +266,19 @@
 - Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L768
 - **User impact:** Users who aren't familiar with git status codes can now hover the letter badge to understand what state each file is in, without leaving the plugin.
 ---
+
+## 2026-03-27 - Controller `findVariable` loads ALL local Figma variables once per token in `applyVariables`
+- Renamed `findVariable` to `findVariableInList(variables, collectionId, name)` (now synchronous). In `applyVariables`, added a single `await figma.variables.getLocalVariablesAsync()` call before the token loop, passing the result to every `findVariableInList` call.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L138, ~L1076
+- **Learnings for future iterations:**
+  - `figma.variables.getLocalVariablesAsync()` is a full IPC call each time — caching it before any loop over tokens is always a win.
+  - When a helper's only job is "fetch + search", split into fetch-once + synchronous search to enable caching at the call site.
+---
+
+## 2026-03-27 - `stableStringify` exported from `colorUtils.ts` — JSON serialization utility doesn't belong in a color math module
+- Created `src/ui/shared/utils.ts` with `stableStringify` moved from `colorUtils.ts`. Updated all three consumers (App.tsx, TokenList.tsx, ThemeCompare.tsx) to import from `utils.ts`. Removed the function and its stale JSDoc from `colorUtils.ts`. Updated the codebase pattern in `patterns.md` to reflect the new location.
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` (new), `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L1, `packages/figma-plugin/src/ui/App.tsx` ~L32, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L13, `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L4
+- **Learnings for future iterations:**
+  - A linter/formatter runs automatically on file save and may revert or reformat changes — always re-read a file before editing if a prior edit was rejected.
+  - When moving a shared utility, update `patterns.md` entries that reference the old path so future agents don't import from the wrong location.
+---

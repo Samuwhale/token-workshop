@@ -5,7 +5,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/sets', async () => {
     const sets = await fastify.tokenStore.getSets();
     const descriptions = fastify.tokenStore.getSetDescriptions();
-    return { sets, descriptions };
+    const counts = fastify.tokenStore.getSetCounts();
+    return { sets, descriptions, counts };
   });
 
   // GET /api/sets/:name — get a set
