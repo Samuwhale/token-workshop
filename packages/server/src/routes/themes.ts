@@ -13,23 +13,27 @@ interface DimensionsStore {
 
 function createDimensionsStore(tokenDir: string): DimensionsStore {
   const filePath = path.join(tokenDir, '$themes.json');
+  let cache: ThemeDimension[] | null = null;
 
   return {
     filePath,
 
     async load(): Promise<ThemeDimension[]> {
+      if (cache !== null) return cache;
       try {
         const content = await fs.readFile(filePath, 'utf-8');
         const data = JSON.parse(content) as ThemesFile;
-        return data.$themes || [];
+        cache = data.$themes || [];
       } catch {
-        return [];
+        cache = [];
       }
+      return cache;
     },
 
     async save(dimensions: ThemeDimension[]): Promise<void> {
       const data: ThemesFile = { $themes: dimensions };
       await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+      cache = dimensions;
     },
   };
 }

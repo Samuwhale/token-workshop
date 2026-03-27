@@ -275,3 +275,11 @@
   - Shared UI constants/interfaces for panels belong in `src/ui/shared/` — one file per concern (e.g., `platforms.ts`)
   - Use `import type` for interface-only imports to keep the bundle clean
 ---
+
+## 2026-03-27 - Theme dimensions store reads `$themes.json` from disk on every GET request — `createDimensionsStore` has no in-memory cache; each `load()` call re-reads and re-parses the file
+- Added `let cache: ThemeDimension[] | null = null` to `createDimensionsStore` closure. `load()` returns `cache` immediately if non-null; populates it on first disk read. `save()` writes to disk then updates `cache` to the new value.
+- Files changed: `packages/server/src/routes/themes.ts` ~L14 (createDimensionsStore)
+- **Learnings for future iterations:**
+  - The store is created once per server start (`const store = createDimensionsStore(tokenDir)` at plugin registration), so a closure variable is the right scope for the cache — no module-level singleton needed.
+  - `save()` must update the cache to the exact array passed in (not re-read from disk) to keep cache consistent without an extra I/O round-trip.
+---

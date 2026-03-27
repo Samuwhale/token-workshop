@@ -96,3 +96,17 @@ Already up to date.
 
 --- Merging: ExportPanel: Duplicate PLATFORMS constant — the same `PLATFORMS` array is defined identically in both `ExportPanel.tsx` and `PublishPanel.tsx`; should be extracted to a shared constant to avoid drift ---
 Already up to date.
+[main cc81b7d] chore(backlog): done – ExportPanel: Duplicate PLATFORMS constant — the same `PLATFORMS` array is defined identically in both `ExportPanel.tsx` and `PublishPanel.tsx`; should be extracted to a shared constant to avoid drift
+ 9 files changed, 56 insertions(+), 34 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/platforms.ts
+
+## 2026-03-27 - ExportPanel: Duplicate PLATFORMS constant — the same `PLATFORMS` array is defined identically in both `ExportPanel.tsx` and `PublishPanel.tsx`; should be extracted to a shared constant to avoid drift
+- Created `packages/figma-plugin/src/ui/shared/platforms.ts` exporting `Platform` interface and `PLATFORMS` constant. Removed both from `ExportPanel.tsx` and `PublishPanel.tsx` and replaced with imports.
+- Files changed: `packages/figma-plugin/src/ui/shared/platforms.ts` (new), `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L1, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  14 items remaining
+===============================================================
+  Claimed: No "duplicate token" or "create sibling" action — creating a variant of an existing token requires manually entering the full path from scratch instead of forking from the current token
+  Worktree: /tmp/backlog-60772-C9NExm
