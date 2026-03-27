@@ -397,3 +397,15 @@
   - The alias chip (`!aliasMode && reference`) is shown when a token loads with an alias value before the user has toggled alias mode. `aliasMode` starts `false` even for alias tokens — it's an editing-mode toggle, not a read-only display flag.
   - The "Resolves to" inline box (inside `aliasMode` block) is for the editing flow; the chip with hover popover is for the read-only view.
 ---
+
+## 2026-03-27 - `contrastLevel` and `levels` config fields defined in generator types but never read by the engine
+- Wired up both config fields to their respective generator functions:
+  1. `runContrastCheckGenerator`: `config.levels` now determines the failure threshold — AAA present → 7.0:1, AA only → 4.5:1. `isOverridden` reflects the strictest configured level.
+  2. `runAccessibleColorPairGenerator`: `config.contrastLevel` now determines the failure threshold (AA → 4.5, AAA → 7.0). `isOverridden` is set on the foreground token when the achieved contrast falls short.
+  3. `ContrastCheckPreview` UI: summary banner and row highlighting now use the configured `levels` threshold rather than hardcoded AA. Level badges are conditionally rendered based on `config.levels`.
+  4. `ContrastCheckConfigEditor` inline ratio indicator also respects `config.levels` threshold.
+- Files changed: `packages/core/src/generator-engine.ts` ~L299,L398; `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L458,L486,L683
+- **Learnings for future iterations:**
+  - When `levels: ['AA', 'AAA']`, the strictest enforced threshold is AAA (7.0). Check `levels.includes('AAA')` first.
+  - The `isOverridden` field on `GeneratedTokenResult` doubles as a "contrast failure" indicator for contrast-check and accessible-color-pair generators — document this dual use.
+---

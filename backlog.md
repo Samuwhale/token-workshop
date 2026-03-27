@@ -101,7 +101,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### Bugs
 
 - [x] `contrastCheck` generator type missing from `computeResultsWithValue` switch — will throw "Unknown generator type" for multi-brand contrast check generators (`server/generator-service.ts:408-481`)
-- [~] `contrastLevel` and `levels` config fields defined in generator types but never read by the engine — always hardcodes AA 4.5 threshold (`core/generator-types.ts:165,219`, `core/generator-engine.ts:291,393`)
+- [x] `contrastLevel` and `levels` config fields defined in generator types but never read by the engine — always hardcodes AA 4.5 threshold (`core/generator-types.ts:165,219`, `core/generator-engine.ts:291,393`)
 - [x] `getGeneratorTypeLabel` missing `'contrastCheck'` case — returns `undefined` in GraphPanel UI (`figma-plugin/GraphPanel.tsx:171-181`)
 
 ### UX
