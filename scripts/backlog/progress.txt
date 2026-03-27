@@ -395,3 +395,9 @@
   - `getOrCreateCollection` caches by name using a `Map` seeded from the initial `getLocalVariableCollectionsAsync()` call — no extra async per token.
   - SyncPanel is exported but not currently imported anywhere in App.tsx — still updated for consistency.
 ---
+
+## 2026-03-27 - ux-pass: grid view empty state now has "Switch to Tree view" button
+- When grid view is active but no color tokens exist in the set, the empty state previously showed only an icon and two lines of text — leaving the user with no actionable escape. Added a "Switch to Tree view" button that calls `setViewMode('tree')` directly. This is the most natural next action (browse all token types, not just colors), and its label makes the cause of the empty state clear: this is a *view filter*, not a missing-data problem.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1980
+- **User impact:** User no longer has to hunt for the view mode toggle buttons at the top of the panel — they get a direct escape hatch at the point of confusion.
+---

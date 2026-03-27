@@ -1987,6 +1987,12 @@ export function TokenList({
                   </svg>
                   <p className="mt-2 text-[11px] font-medium">No color tokens to display</p>
                   <p className="text-[10px] mt-0.5">Grid view shows color tokens as swatches</p>
+                  <button
+                    onClick={() => setViewMode('tree')}
+                    className="mt-3 px-2.5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  >
+                    Switch to Tree view
+                  </button>
                 </div>
               );
             }
