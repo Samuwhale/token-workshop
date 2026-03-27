@@ -387,3 +387,12 @@
   - For destructive one-click actions, an inline expand-in-place confirmation (showing a list of affected items) is more appropriate than a modal — it keeps the user in context and shows exactly what will change without obscuring the rest of the UI.
   - Changing a related selection (canonical radio) should auto-dismiss a pending confirmation to prevent acting on stale preview data.
 ---
+
+## 2026-03-27 - Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers
+- The table markup (`<table>`, `<thead>`, `<tbody>`, `<th>`, `<td>`) was already present. Fixed the remaining semantic gaps: added `aria-label` to the table, `scope="col"` to all column `<th>` cells with `aria-label={token.path}` for text fallback, converted row-header `<td>` to `<th scope="row">`, added `aria-label` with contrast ratio and WCAG level to data cells, added `aria-hidden="true"` to decorative color swatches, and labelled diagonal "same token" cells.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L720
+- **Learnings for future iterations:**
+  - When column headers contain only visual content (color swatches), add `aria-label` with the token path so screen readers announce something meaningful.
+  - Row headers in data tables should use `<th scope="row">` not `<td>` — even when they contain mixed content (icon + label).
+  - `aria-hidden="true"` on decorative elements (color swatches) prevents screen readers from announcing hex values or empty strings for inline elements.
+---

@@ -232,3 +232,10 @@ Already up to date.
 ===============================================================
   Claimed: Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers
   Worktree: /tmp/backlog-98408-DDrPFy
+
+  ✓ done: Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers
+    Table markup already existed; fixed semantic gaps: aria-label on table, scope attributes on all th elements, th scope="row" for row headers, aria-label with ratio+level on data cells, aria-hidden on decorative swatches
+    8 turns · 67s · $0.2
+
+--- Merging: Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers ---
+Already up to date.

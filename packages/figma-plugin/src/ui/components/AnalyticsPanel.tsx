@@ -718,13 +718,13 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           </button>
           {showContrastMatrix && (
             <div className="overflow-auto max-h-80 p-2">
-              <table className="text-[8px] border-collapse">
+              <table className="text-[8px] border-collapse" aria-label="Color contrast matrix — rows are foreground tokens, columns are background tokens">
                 <thead>
                   <tr>
-                    <th className="px-1 py-0.5 text-left text-[var(--color-figma-text-secondary)] font-normal sticky left-0 bg-[var(--color-figma-bg)]">FG \ BG</th>
+                    <th scope="col" className="px-1 py-0.5 text-left text-[var(--color-figma-text-secondary)] font-normal sticky left-0 bg-[var(--color-figma-bg)]">FG \ BG</th>
                     {colorTokens.map(bg => (
-                      <th key={bg.path} title={bg.path} className="px-1 py-0.5 text-center font-normal max-w-[40px]">
-                        <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] mx-auto" style={{ background: bg.hex }} />
+                      <th key={bg.path} scope="col" aria-label={bg.path} title={bg.path} className="px-1 py-0.5 text-center font-normal max-w-[40px]">
+                        <div className="w-4 h-4 rounded border border-[var(--color-figma-border)] mx-auto" style={{ background: bg.hex }} aria-hidden="true" />
                       </th>
                     ))}
                   </tr>
@@ -732,20 +732,21 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                 <tbody>
                   {colorTokens.map(fg => (
                     <tr key={fg.path}>
-                      <td className="px-1 py-0.5 sticky left-0 bg-[var(--color-figma-bg)]">
+                      <th scope="row" className="px-1 py-0.5 sticky left-0 bg-[var(--color-figma-bg)] font-normal">
                         <div className="flex items-center gap-1">
-                          <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: fg.hex }} />
+                          <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: fg.hex }} aria-hidden="true" />
                           <span className="text-[var(--color-figma-text-secondary)] truncate max-w-[60px]" title={fg.path}>{fg.path.split('.').pop()}</span>
                         </div>
-                      </td>
+                      </th>
                       {colorTokens.map(bg => {
-                        if (fg.path === bg.path) return <td key={bg.path} className="px-1 py-0.5 text-center bg-[var(--color-figma-bg-hover)]">—</td>;
+                        if (fg.path === bg.path) return <td key={bg.path} className="px-1 py-0.5 text-center bg-[var(--color-figma-bg-hover)]" aria-label="same token">—</td>;
                         const r = wcagContrast(fg.hex, bg.hex);
                         const aa = r !== null && r >= 4.5;
                         const aaa = r !== null && r >= 7;
+                        const level = aaa ? 'AAA' : aa ? 'AA' : 'Fail';
                         return (
-                          <td key={bg.path} title={`${fg.path} on ${bg.path}: ${r?.toFixed(2)}:1`} className={`px-1 py-0.5 text-center ${aaa ? 'bg-[var(--color-figma-success)]/20' : aa ? 'bg-[var(--color-figma-warning)]/10' : 'bg-[var(--color-figma-error)]/10'}`}>
-                            <span className={aaa ? 'text-[var(--color-figma-success)]' : aa ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-error)]'}>
+                          <td key={bg.path} title={`${fg.path} on ${bg.path}: ${r?.toFixed(2)}:1`} aria-label={`${fg.path} on ${bg.path}: ${r !== null ? `${r.toFixed(2)}:1 ${level}` : 'unavailable'}`} className={`px-1 py-0.5 text-center ${aaa ? 'bg-[var(--color-figma-success)]/20' : aa ? 'bg-[var(--color-figma-warning)]/10' : 'bg-[var(--color-figma-error)]/10'}`}>
+                            <span className={aaa ? 'text-[var(--color-figma-success)]' : aa ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-error)]'} aria-hidden="true">
                               {r !== null ? r.toFixed(1) : '—'}
                             </span>
                           </td>

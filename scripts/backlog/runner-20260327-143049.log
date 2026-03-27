@@ -232,3 +232,16 @@ Already up to date.
 
 --- Merging: AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets ---
 Already up to date.
+[main 9b21b80] chore(backlog): done – AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets
+ 6 files changed, 71 insertions(+), 11 deletions(-)
+
+## 2026-03-27 - AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets
+- Added an inline confirmation step before executing deduplication. Clicking "Deduplicate (N → reference)" now opens an inline preview panel showing the canonical token path and a list of every token that will be aliased (path + set). Only after clicking "Confirm" does the PATCH request fire. A "Cancel" button dismisses the preview. Changing the canonical radio selection also auto-dismisses the confirmation to avoid stale previews.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L73 (confirmDedup state), ~L824 (confirmation UI replacing direct button)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  47 items remaining
+===============================================================
+  Claimed: Component coverage analysis has no progress indicator — scanning runs with no feedback until results appear
+  Worktree: /tmp/backlog-97510-4DV0M7
