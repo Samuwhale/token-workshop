@@ -10,83 +10,22 @@ import type {
   ZIndexScaleConfig,
   CustomScaleConfig,
   ContrastCheckConfig,
-  GeneratorConfig,
   GeneratorTemplate,
   InputTable,
   InputTableRow,
 } from '../hooks/useGenerators';
 
-import { ColorRampConfigEditor, ColorSwatchPreview, DEFAULT_COLOR_RAMP_CONFIG } from './generators/ColorRampGenerator';
-import { TypeScaleConfigEditor, TypeScalePreview, DEFAULT_TYPE_SCALE_CONFIG } from './generators/TypeScaleGenerator';
-import { SpacingScaleConfigEditor, SpacingPreview, DEFAULT_SPACING_SCALE_CONFIG } from './generators/SpacingScaleGenerator';
-import { OpacityScaleConfigEditor, OpacityPreview, DEFAULT_OPACITY_SCALE_CONFIG } from './generators/OpacityScaleGenerator';
-import { BorderRadiusConfigEditor, DEFAULT_BORDER_RADIUS_CONFIG } from './generators/BorderRadiusGenerator';
-import { ZIndexConfigEditor, DEFAULT_Z_INDEX_CONFIG } from './generators/ZIndexGenerator';
-import { CustomScaleConfigEditor, DEFAULT_CUSTOM_CONFIG } from './generators/CustomScaleGenerator';
-import { ContrastCheckConfigEditor, ContrastCheckPreview, DEFAULT_CONTRAST_CHECK_CONFIG } from './generators/ContrastCheckGenerator';
+import { ColorRampConfigEditor, ColorSwatchPreview } from './generators/ColorRampGenerator';
+import { TypeScaleConfigEditor, TypeScalePreview } from './generators/TypeScaleGenerator';
+import { SpacingScaleConfigEditor, SpacingPreview } from './generators/SpacingScaleGenerator';
+import { OpacityScaleConfigEditor, OpacityPreview } from './generators/OpacityScaleGenerator';
+import { BorderRadiusConfigEditor } from './generators/BorderRadiusGenerator';
+import { ZIndexConfigEditor } from './generators/ZIndexGenerator';
+import { CustomScaleConfigEditor } from './generators/CustomScaleGenerator';
+import { ContrastCheckConfigEditor, ContrastCheckPreview } from './generators/ContrastCheckGenerator';
 import { GenericPreview } from './generators/generatorShared';
+import { ALL_TYPES, SOURCE_REQUIRED_TYPES, STANDALONE_TYPES } from './generators/generatorUtils';
 import { useGeneratorDialog } from '../hooks/useGeneratorDialog';
-
-// ---------------------------------------------------------------------------
-// Auto-detect helper
-// ---------------------------------------------------------------------------
-
-export function detectGeneratorType(sourceTokenType: string, sourceTokenValue: any): GeneratorType {
-  if (sourceTokenType === 'color') return 'colorRamp';
-  if (sourceTokenType === 'number') return 'opacityScale';
-  if (sourceTokenType === 'dimension' || sourceTokenType === 'fontSize') {
-    let numVal = 0;
-    if (typeof sourceTokenValue === 'number') numVal = sourceTokenValue;
-    else if (typeof sourceTokenValue === 'string') {
-      numVal = parseFloat(sourceTokenValue) || 0;
-    } else if (sourceTokenValue && typeof sourceTokenValue === 'object') {
-      numVal = parseFloat(sourceTokenValue.value) || 0;
-    }
-    return numVal < 50 ? 'typeScale' : 'spacingScale';
-  }
-  return 'colorRamp';
-}
-
-export function suggestTargetGroup(sourceTokenPath: string, sourceTokenName?: string): string {
-  if (sourceTokenName) {
-    // Use the known leaf name to correctly compute the parent, even when the
-    // name contains literal dots (e.g. "1.5").
-    if (sourceTokenPath.length <= sourceTokenName.length) return sourceTokenPath;
-    return sourceTokenPath.slice(0, sourceTokenPath.length - sourceTokenName.length - 1);
-  }
-  // Fallback: split on dots (may be wrong if a segment contains a literal dot)
-  const parts = sourceTokenPath.split('.');
-  if (parts.length <= 1) return sourceTokenPath;
-  return parts.slice(0, -1).join('.');
-}
-
-export function autoName(sourceTokenPath: string | undefined, type: GeneratorType): string {
-  const typeLabels: Record<GeneratorType, string> = {
-    colorRamp: 'Color Ramp',
-    typeScale: 'Type Scale',
-    spacingScale: 'Spacing Scale',
-    opacityScale: 'Opacity Scale',
-    borderRadiusScale: 'Border Radius Scale',
-    zIndexScale: 'Z-Index Scale',
-    customScale: 'Custom Scale',
-    contrastCheck: 'Contrast Check',
-  };
-  if (sourceTokenPath) return `${sourceTokenPath} ${typeLabels[type]}`;
-  return typeLabels[type];
-}
-
-export function defaultConfigForType(type: GeneratorType): GeneratorConfig {
-  switch (type) {
-    case 'colorRamp': return { ...DEFAULT_COLOR_RAMP_CONFIG, steps: [...DEFAULT_COLOR_RAMP_CONFIG.steps] };
-    case 'typeScale': return { ...DEFAULT_TYPE_SCALE_CONFIG, steps: DEFAULT_TYPE_SCALE_CONFIG.steps.map(s => ({ ...s })) };
-    case 'spacingScale': return { ...DEFAULT_SPACING_SCALE_CONFIG, steps: DEFAULT_SPACING_SCALE_CONFIG.steps.map(s => ({ ...s })) };
-    case 'opacityScale': return { steps: DEFAULT_OPACITY_SCALE_CONFIG.steps.map(s => ({ ...s })) };
-    case 'borderRadiusScale': return { ...DEFAULT_BORDER_RADIUS_CONFIG, steps: DEFAULT_BORDER_RADIUS_CONFIG.steps.map(s => ({ ...s })) };
-    case 'zIndexScale': return { steps: DEFAULT_Z_INDEX_CONFIG.steps.map(s => ({ ...s })) };
-    case 'customScale': return { ...DEFAULT_CUSTOM_CONFIG, steps: DEFAULT_CUSTOM_CONFIG.steps.map(s => ({ ...s })) };
-    case 'contrastCheck': return { ...DEFAULT_CONTRAST_CHECK_CONFIG, steps: [] };
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Main dialog
@@ -117,18 +56,6 @@ export const TYPE_LABELS: Record<GeneratorType, string> = {
   customScale: 'Custom',
   contrastCheck: 'Contrast Check',
 };
-
-// Types that require a source token
-export const SOURCE_REQUIRED_TYPES: GeneratorType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale'];
-// Types that work standalone (no source)
-export const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale', 'contrastCheck'];
-// Types that work either way
-export const FLEXIBLE_TYPES: GeneratorType[] = ['customScale'];
-
-export const ALL_TYPES: GeneratorType[] = [
-  'colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale',
-  'opacityScale', 'zIndexScale', 'customScale', 'contrastCheck',
-];
 
 // ---------------------------------------------------------------------------
 // InputTableEditor sub-component

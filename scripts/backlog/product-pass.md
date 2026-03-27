@@ -33,7 +33,9 @@ Items can range from small to ambitious — don't artificially limit scope:
 
 3. **Write findings** — for each issue found, append a line to `backlog-inbox.md`:
    - Normal: `- [ ] Short title — one sentence describing the gap and where it is`
-   - High priority (data loss risk, broken flow): `- [HIGH] Short title — one sentence`
+   - High priority (data loss risk, broken flow): `- [ ] [HIGH] Short title — one sentence`
+
+   **Format matters:** Every item MUST start with `- [ ] `. High-priority items use `- [ ] [HIGH]`. Do NOT use `- [HIGH]` or other formats — they will be normalised but may lose the tag.
 
    Don't artificially limit scope. If the tool needs a feature, write it down — the implementing agent will figure out the details.
 

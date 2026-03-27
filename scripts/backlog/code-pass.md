@@ -35,7 +35,9 @@ Items can range from quick fixes to larger refactors:
 
 3. **Write findings** — for each issue found, append a line to `backlog-inbox.md`:
    - Normal: `- [ ] Short title — one sentence describing the issue and where it is`
-   - High priority (data loss, crash, security): `- [HIGH] Short title — one sentence`
+   - High priority (data loss, crash, security): `- [ ] [HIGH] Short title — one sentence`
+
+   **Format matters:** Every item MUST start with `- [ ] `. High-priority items use `- [ ] [HIGH]`. Do NOT use `- [HIGH]`, `- [BUG]`, or `- [!]` — those formats will be normalised but may lose the tag.
 
 4. **Document** — append to `scripts/backlog/progress.txt`:
 

@@ -125,8 +125,8 @@ CLAIMED_ITEM=""  # Tracks claimed item for EXIT-trap cleanup
 claim_next_item() {
   acquire_lock "$BACKLOG_LOCKDIR" || return 1
 
-  # HIGH/P0 items take priority
-  local item_line=$(grep -n -m1 -E '^\- \[ \] \[(HIGH|P0)\]' "$BACKLOG_FILE" 2>/dev/null || true)
+  # HIGH/P0/BUG items take priority
+  local item_line=$(grep -n -m1 -E '^\- \[ \] \[(HIGH|P0|BUG)\]' "$BACKLOG_FILE" 2>/dev/null || true)
   if [ -z "$item_line" ]; then
     item_line=$(grep -n -m1 -E '^\- \[ \]' "$BACKLOG_FILE" 2>/dev/null || true)
   fi
@@ -406,16 +406,42 @@ drain_inbox() {
   echo ""
   echo "--- Inbox has new items — triaging into backlog.md ---"
 
-  # Normalise priority items: `- [HIGH] …` → `- [ ] [HIGH] …`
+  # Normalise all list items to `- [ ] …` format so claim_next_item can find them.
+  #   - [HIGH] …  → - [ ] [HIGH] …
+  #   - [P0] …    → - [ ] [P0] …
+  #   - [BUG] …   → - [ ] [BUG] …
+  #   - [!] …     → - [ ] …          (strip failed marker — re-enter as todo)
   local inbox_tmp=$(mktemp "$INBOX_FILE.XXXXXX")
-  sed 's/^- \[\(HIGH\|P0\)\] /- [ ] [\1] /' "$INBOX_FILE" > "$inbox_tmp" \
+  sed -E \
+    -e 's/^- \[(HIGH|P0|BUG)\] /- [ ] [\1] /' \
+    -e 's/^- \[!\] /- [ ] /' \
+    "$INBOX_FILE" > "$inbox_tmp" \
     && mv "$inbox_tmp" "$INBOX_FILE" \
     || rm -f "$inbox_tmp"
 
-  HIGH_ITEMS=$(grep -E '^\- \[ \] \[(HIGH|P0)\]' "$INBOX_FILE" 2>/dev/null || true)
-  OTHER_ITEMS=$(grep -E '^\- \[ \]' "$INBOX_FILE" | grep -vE '\[(HIGH|P0)\]' 2>/dev/null || true)
+  # Dedup: drop inbox items whose title (first ~60 chars after checkbox) already
+  # appears in backlog.md (any state: [ ], [~], [x], [!]).  This prevents
+  # discovery passes from re-adding items that are already queued or done.
+  local dedup_tmp=$(mktemp "$INBOX_FILE.XXXXXX")
+  local skipped=0
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^-\ \[.\] ]]; then
+      # Extract a signature: strip checkbox + optional priority tag, take first 60 chars
+      local sig=$(echo "$line" | sed -E 's/^- \[.\] (\[(HIGH|P0|BUG)\] )?//' | cut -c1-60)
+      if grep -qF "$sig" "$BACKLOG_FILE" 2>/dev/null; then
+        skipped=$((skipped + 1))
+        continue
+      fi
+    fi
+    printf '%s\n' "$line"
+  done < "$INBOX_FILE" > "$dedup_tmp"
+  mv "$dedup_tmp" "$INBOX_FILE" || rm -f "$dedup_tmp"
+  [ "$skipped" -gt 0 ] && echo "  → $skipped duplicate item(s) skipped"
 
-  # HIGH/P0: insert before the first [ ] item so the agent picks them next.
+  HIGH_ITEMS=$(grep -E '^\- \[ \] \[(HIGH|P0|BUG)\]' "$INBOX_FILE" 2>/dev/null || true)
+  OTHER_ITEMS=$(grep -E '^\- \[ \]' "$INBOX_FILE" | grep -vE '\[(HIGH|P0|BUG)\]' 2>/dev/null || true)
+
+  # HIGH/P0/BUG: insert before the first [ ] item so the agent picks them next.
   if [ -n "$HIGH_ITEMS" ]; then
     FIRST_TODO_LINE=$(grep -n -m1 '^\- \[ \]' "$BACKLOG_FILE" | cut -d: -f1)
     if [ -n "$FIRST_TODO_LINE" ]; then
@@ -424,11 +450,11 @@ drain_inbox() {
       TAIL=$(tail -n +"$FIRST_TODO_LINE" "$BACKLOG_FILE")
       TMPFILE=$(mktemp "$BACKLOG_FILE.XXXXXX")
       printf '%s\n%s\n%s' "$HEAD" "$HIGH_ITEMS" "$TAIL" > "$TMPFILE" && mv "$TMPFILE" "$BACKLOG_FILE" || rm -f "$TMPFILE"
-      echo "  → $(echo "$HIGH_ITEMS" | wc -l | tr -d ' ') HIGH/P0 item(s) inserted at top of queue"
+      echo "  → $(echo "$HIGH_ITEMS" | wc -l | tr -d ' ') priority item(s) inserted at top of queue"
     else
       echo "" >> "$BACKLOG_FILE"
       echo "$HIGH_ITEMS" >> "$BACKLOG_FILE"
-      echo "  → HIGH/P0 item(s) appended (no existing [ ] items found)"
+      echo "  → Priority item(s) appended (no existing [ ] items found)"
     fi
   fi
 
@@ -436,7 +462,7 @@ drain_inbox() {
   if [ -n "$OTHER_ITEMS" ]; then
     echo "" >> "$BACKLOG_FILE"
     echo "$OTHER_ITEMS" >> "$BACKLOG_FILE"
-    echo "  → Normal item(s) appended to bottom"
+    echo "  → $(echo "$OTHER_ITEMS" | wc -l | tr -d ' ') normal item(s) appended to bottom"
   fi
 
   : > "$INBOX_FILE"

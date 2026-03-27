@@ -230,3 +230,17 @@
   - `fs.mkdir(dir, { recursive: true })` is idempotent and safe to call before every write — no need to check existence first.
   - `fs.rmdir(dir)` only succeeds on empty directories, making it a safe way to prune empty parent dirs without accidentally deleting content.
 ---
+
+## 2026-03-27 - product-pass: workflow friction (core tokens + advanced features)
+- Areas explored: TokenList.tsx, TokenEditor.tsx, App.tsx (shell/tabs/sets), GraphPanel.tsx, TokenGeneratorDialog.tsx, ColorScaleGenerator.tsx, AnalyticsPanel.tsx, HeatmapPanel.tsx, SelectionInspector.tsx, PreviewPanel.tsx, ExportPanel.tsx, CommandPalette.tsx
+- Found 12 items — written to backlog-inbox.md
+- Notable: create-and-bind in Selection Inspector requires a full tab round-trip; generators have no preview-before-commit; search/filter state is lost on set switch
+---
+
+## 2026-03-27 - PublishPanel: varCorrelationIdRef/varReadResolveRef shared ref concurrency bug
+- Replaced single-slot `varCorrelationIdRef` + `varReadResolveRef` refs with a Map-based `varPendingRef` (keyed by unique correlation ID), matching the pattern already used in SyncPanel.tsx. Both `computeVarDiff` and `runReadinessChecks` now store their resolve callbacks independently in the Map, so concurrent calls no longer overwrite each other.
+- Updated the `variables-read` message handler to look up the resolver by correlation ID from the Map instead of checking against a single ref.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L211 (ref declaration), ~L351 (computeVarDiff), ~L577 (runReadinessChecks), ~L413 (message handler)
+- **Learnings for future iterations:**
+  - When multiple async operations share a "pending callback" ref, always use a Map keyed by correlation ID rather than a single-slot ref. SyncPanel already had this pattern; PublishPanel was the straggler.
+---

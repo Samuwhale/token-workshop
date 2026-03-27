@@ -1,0 +1,19 @@
+./scripts/backlog/backlog.sh: line 203: [: 0
+0: integer expression expected
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 27
+  Completed total: 181 (next code pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  27 items remaining
+===============================================================
+  Claimed: [HIGH] `varCorrelationIdRef` and `varReadResolveRef` are shared between `computeVarDiff` and `runReadinessChecks` — if both are called concurrently (auto-run on mount + manual click), the second call overwrites the shared ref and the first promise never resolves, causing a silent hang or timeout (`SyncPanel.tsx:L68-69, L243-258`)
+  Worktree: /tmp/backlog-96047-xvKCdb
+
+  ✓ done: varCorrelationIdRef and varReadResolveRef shared ref concurrency bug
+    Replaced single-slot varCorrelationIdRef/varReadResolveRef with Map-based varPendingRef in PublishPanel.tsx so concurrent computeVarDiff and runReadinessChecks calls each get their own resolver keyed by correlation ID.
+    25 turns · 192s · $0.78
+
+--- Merging: varCorrelationIdRef and varReadResolveRef shared ref concurrency bug ---
+Already up to date.

@@ -16,7 +16,7 @@ import {
   SOURCE_REQUIRED_TYPES,
   STANDALONE_TYPES,
   FLEXIBLE_TYPES,
-} from '../components/TokenGeneratorDialog';
+} from '../components/generators/generatorUtils';
 
 interface UseGeneratorDialogParams {
   serverUrl: string;
