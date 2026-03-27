@@ -225,3 +225,10 @@ Already up to date.
 ===============================================================
   Claimed: AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets
   Worktree: /tmp/backlog-97510-Z5cSP1
+
+  ✓ done: AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets
+    Added inline confirmation step with preview of affected tokens (path + set → alias) before executing deduplication; Cancel and canonical-change both dismiss the preview
+    18 turns · 116s · $0.32
+
+--- Merging: AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets ---
+Already up to date.

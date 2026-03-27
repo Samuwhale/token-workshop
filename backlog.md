@@ -56,7 +56,7 @@
 
 - [x] SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator — users can't tell if the current diff is still valid after making changes
 - [x] No pause/cancel for in-progress sync — once a bulk sync starts there's no way to stop it; a cancel button would prevent wasted time on wrong-set syncs
-- [~] No dry-run mode — no way to preview what a sync will change before it touches Figma objects
+- [x] No dry-run mode — no way to preview what a sync will change before it touches Figma objects
 
 ---
 
@@ -68,7 +68,7 @@
 - [~] AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets
 - [~] No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel
 - [~] Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers
-- [ ] No export validation report — no way to save or share current validation results as JSON or CSV
+- [~] No export validation report — no way to save or share current validation results as JSON or CSV
 - [ ] Component coverage analysis has no progress indicator — scanning runs with no feedback until results appear
 
 ---

@@ -379,3 +379,11 @@
   - Two-step confirm pattern: replace the primary action button's `onClick` with `() => setPreviewMode(true)`, render a preview panel when `previewMode && !syncing`, and inside that panel call the real action. This pattern works for any destructive operation that already has diff state.
   - Default direction fallback for preview rows must match the diff-row defaults used in the list (`figma-only` defaults to `pull`, everything else to `push`).
 ---
+
+## 2026-03-27 - AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets
+- Added an inline confirmation step before executing deduplication. Clicking "Deduplicate (N → reference)" now opens an inline preview panel showing the canonical token path and a list of every token that will be aliased (path + set). Only after clicking "Confirm" does the PATCH request fire. A "Cancel" button dismisses the preview. Changing the canonical radio selection also auto-dismisses the confirmation to avoid stale previews.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L73 (confirmDedup state), ~L824 (confirmation UI replacing direct button)
+- **Learnings for future iterations:**
+  - For destructive one-click actions, an inline expand-in-place confirmation (showing a list of affected items) is more appropriate than a modal — it keeps the user in context and shows exactly what will change without obscuring the rest of the UI.
+  - Changing a related selection (canonical radio) should auto-dismiss a pending confirmation to prevent acting on stale preview data.
+---

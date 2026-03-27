@@ -71,6 +71,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [allColorTokens, setAllColorTokens] = useState<{ path: string; set: string; hex: string }[]>([]);
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [deduplicating, setDeduplicating] = useState<string | null>(null); // hex key being deduplicated
+  const [confirmDedup, setConfirmDedup] = useState<{ hex: string; canonical: { path: string; set: string }; others: { path: string; set: string }[] } | null>(null);
   const [canonicalPick, setCanonicalPick] = useState<Record<string, string>>(() =>
     lsGetJson<Record<string, string>>(STORAGE_KEYS.ANALYTICS_CANONICAL, {})
   ); // hex → chosen canonical path
@@ -800,7 +801,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                               name={`canonical-${hex}`}
                               value={t.path}
                               checked={canonical === t.path}
-                              onChange={() => setCanonicalPick(prev => ({ ...prev, [hex]: t.path }))}
+                              onChange={() => { setCanonicalPick(prev => ({ ...prev, [hex]: t.path })); if (confirmDedup?.hex === hex) setConfirmDedup(null); }}
                               className="w-3 h-3"
                             />
                             <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{t.path}</span>
@@ -821,13 +822,43 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                         </div>
                       ))}
                     </div>
-                    <button
-                      disabled={isDeduplying}
-                      onClick={() => handleDeduplicate(hex, canonicalToken, others)}
-                      className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-                    >
-                      {isDeduplying ? 'Deduplicating…' : `Deduplicate (${others.length} → reference)`}
-                    </button>
+                    {confirmDedup?.hex === hex ? (
+                      <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/5">
+                        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                          This will replace {others.length} token{others.length !== 1 ? 's' : ''} with an alias to <span className="font-mono text-[var(--color-figma-text)]">{canonicalToken.path}</span>:
+                        </p>
+                        <ul className="flex flex-col gap-0.5 pl-2">
+                          {others.map(o => (
+                            <li key={o.path} className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">
+                              {o.path} <span className="text-[9px] text-[var(--color-figma-text-secondary)]">({o.set})</span> → <span className="text-[var(--color-figma-text)]">{`{${canonicalToken.path}}`}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="flex gap-2 mt-0.5">
+                          <button
+                            disabled={isDeduplying}
+                            onClick={() => { handleDeduplicate(hex, canonicalToken, others); setConfirmDedup(null); }}
+                            className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+                          >
+                            {isDeduplying ? 'Deduplicating…' : 'Confirm'}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDedup(null)}
+                            className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        disabled={isDeduplying}
+                        onClick={() => setConfirmDedup({ hex, canonical: canonicalToken, others })}
+                        className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+                      >
+                        {isDeduplying ? 'Deduplicating…' : `Deduplicate (${others.length} → reference)`}
+                      </button>
+                    )}
                   </div>
                 );
               })}

@@ -258,3 +258,17 @@ Already up to date.
 
 --- Merging: No dry-run mode — no way to preview what a sync will change before it touches Figma objects ---
 Already up to date.
+[main c3e3e9c] chore(backlog): done – No dry-run mode — no way to preview what a sync will change before it touches Figma objects
+ 6 files changed, 118 insertions(+), 25 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - No dry-run mode — no way to preview what a sync will change before it touches Figma objects
+- Added a two-step preview/confirm flow to the Figma variable sync footer. Clicking "Preview N changes" now opens an inline preview panel showing exactly which tokens will be pushed to Figma (with before→after values) and which will be pulled to local, before any Figma objects are touched. A "Confirm & Apply" button executes; "Cancel" returns to the diff list. The `computeVarDiff` call also resets `varPreviewMode` so re-checking always starts fresh.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L68 (state), ~L140 (reset on recompute), ~L680 (preview panel + footer swap)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  48 items remaining
+===============================================================
+  Claimed: No export validation report — no way to save or share current validation results as JSON or CSV
+  Worktree: /tmp/backlog-97955-mwbG1a
