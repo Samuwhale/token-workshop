@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, GeneratorType, GeneratorConfig } from '../hooks/useGenerators';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
 
 // ---------------------------------------------------------------------------
 // Graph template definitions
@@ -344,6 +344,76 @@ function ApplyForm({
   const [applying, setApplying] = useState(false);
   const [error, setError] = useState('');
 
+  // Live preview state
+  const [previewTokens, setPreviewTokens] = useState<GeneratedTokenResult[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const fetchPreview = useCallback(() => {
+    // Need a source token (if required) and prefix to preview
+    if (template.requiresSource && !sourceToken.trim()) {
+      setPreviewTokens([]);
+      setPreviewError('');
+      return;
+    }
+    if (!prefix.trim()) {
+      setPreviewTokens([]);
+      setPreviewError('');
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setPreviewLoading(true);
+      setPreviewError('');
+      try {
+        const body = {
+          type: template.generatorType,
+          sourceToken: template.requiresSource ? sourceToken.trim() : undefined,
+          targetGroup: prefix.trim(),
+          targetSet: activeSet,
+          config: template.config,
+        };
+        const res = await fetch(`${serverUrl}/api/generators/preview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({})) as { error?: string };
+          setPreviewError(data.error || `Preview failed (${res.status})`);
+          setPreviewTokens([]);
+        } else {
+          const data = await res.json() as { count: number; tokens: GeneratedTokenResult[] };
+          setPreviewTokens(data.tokens ?? []);
+        }
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setPreviewError(err instanceof Error ? err.message : 'Preview failed');
+        setPreviewTokens([]);
+      } finally {
+        setPreviewLoading(false);
+      }
+    }, 300);
+  }, [serverUrl, template, sourceToken, prefix, activeSet]);
+
+  useEffect(() => {
+    fetchPreview();
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [fetchPreview]);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
   const handleApply = async () => {
     if (template.requiresSource && !sourceToken.trim()) {
       setError('Source token path is required');
@@ -515,6 +585,96 @@ function ApplyForm({
           </div>
         )}
 
+        {/* Live preview */}
+        {(previewTokens.length > 0 || previewLoading || previewError) && (
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                Preview
+                {previewTokens.length > 0 && <span className="ml-1 normal-case text-[var(--color-figma-text)]">({previewTokens.length} tokens)</span>}
+              </span>
+              {previewLoading && (
+                <svg className="w-3 h-3 animate-spin text-[var(--color-figma-text-secondary)]" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+              )}
+            </div>
+            {previewError && (
+              <div className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-1.5">{previewError}</div>
+            )}
+            {!previewError && previewTokens.length > 0 && (
+              <div className="border border-[var(--color-figma-border)] rounded p-2 bg-[var(--color-figma-bg-secondary)]">
+                {template.generatorType === 'colorRamp' && (
+                  <div>
+                    <div className="flex gap-0.5 rounded overflow-hidden h-6">
+                      {previewTokens.map(t => (
+                        <div key={t.stepName} className="flex-1 min-w-0" style={{ background: String(t.value) }} title={`${t.stepName}: ${String(t.value)}`} />
+                      ))}
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-[8px] text-[var(--color-figma-text-secondary)]">{previewTokens[0]?.stepName}</span>
+                      <span className="text-[8px] text-[var(--color-figma-text-secondary)]">{previewTokens[previewTokens.length - 1]?.stepName}</span>
+                    </div>
+                  </div>
+                )}
+                {template.generatorType === 'typeScale' && (
+                  <div className="flex flex-col gap-1">
+                    {previewTokens.map(t => {
+                      const val = typeof t.value === 'object' && t.value !== null && 'value' in (t.value as any)
+                        ? `${(t.value as any).value}${(t.value as any).unit || ''}`
+                        : String(t.value);
+                      return (
+                        <div key={t.stepName} className="flex items-baseline gap-2">
+                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-8 text-right font-mono shrink-0">{t.stepName}</span>
+                          <span className="text-[var(--color-figma-text)] font-medium truncate" style={{ fontSize: val }}>{val}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {template.generatorType === 'spacingScale' && (
+                  <div className="flex flex-col gap-1">
+                    {previewTokens.map(t => {
+                      const val = typeof t.value === 'object' && t.value !== null && 'value' in (t.value as any)
+                        ? (t.value as any).value
+                        : (typeof t.value === 'number' ? t.value : parseFloat(String(t.value)));
+                      const label = typeof t.value === 'object' && t.value !== null && 'value' in (t.value as any)
+                        ? `${(t.value as any).value}${(t.value as any).unit || ''}`
+                        : String(t.value);
+                      const maxVal = Math.max(...previewTokens.map(tk => {
+                        const v = typeof tk.value === 'object' && tk.value !== null && 'value' in (tk.value as any)
+                          ? (tk.value as any).value : (typeof tk.value === 'number' ? tk.value : parseFloat(String(tk.value)));
+                        return typeof v === 'number' && !isNaN(v) ? v : 0;
+                      }));
+                      const pct = maxVal > 0 && typeof val === 'number' && !isNaN(val) ? (val / maxVal) * 100 : 0;
+                      return (
+                        <div key={t.stepName} className="flex items-center gap-2">
+                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-8 text-right font-mono shrink-0">{t.stepName}</span>
+                          <div className="flex-1 h-2 rounded-sm bg-[var(--color-figma-border)] overflow-hidden">
+                            <div className="h-full rounded-sm bg-[var(--color-figma-accent)]" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-[8px] text-[var(--color-figma-text-tertiary)] font-mono w-10 text-right shrink-0">{label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {template.generatorType !== 'colorRamp' && template.generatorType !== 'typeScale' && template.generatorType !== 'spacingScale' && (
+                  <div className="flex flex-col gap-0.5">
+                    {previewTokens.map(t => (
+                      <div key={t.stepName} className="flex items-center justify-between text-[9px]">
+                        <span className="font-mono text-[var(--color-figma-text-secondary)]">{t.stepName}</span>
+                        <span className="font-mono text-[var(--color-figma-text)]">{String(t.value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {error && (
           <p className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 px-2 py-1.5 rounded">
             {error}
@@ -536,7 +696,7 @@ function ApplyForm({
           disabled={applying || (template.requiresSource && !sourceToken.trim()) || !prefix.trim()}
           className="w-full py-2 px-3 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors mt-auto"
         >
-          {applying ? 'Applying…' : 'Apply template'}
+          {applying ? 'Applying…' : previewTokens.length > 0 ? `Apply template (${previewTokens.length} tokens)` : 'Apply template'}
         </button>
       </div>
     </div>

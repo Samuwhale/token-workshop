@@ -421,3 +421,12 @@
 - **Learnings for future iterations:**
   - TokenEditor initializes `reference` and `aliasMode` via `useState` initializers — to support initial values from props, use lazy initializer functions rather than effects to avoid flash of non-alias state.
 ---
+
+## 2026-03-27 - Generators show no preview before commit
+- Added live preview to GraphPanel's ApplyForm (quick-start templates). When a user enters a source token and prefix, the form now calls `/api/generators/preview` with a 300ms debounce and renders a type-specific preview: color swatches for colorRamp, font-size samples for typeScale, horizontal bar charts for spacingScale, and a generic key-value list for other types. The "Apply template" button also shows the token count from the preview.
+- The TokenGeneratorDialog already had a full preview; this change brings the same capability to the template-based workflow in GraphPanel.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L328 (preview state + fetchPreview), ~L588 (preview rendering), ~L699 (button label)
+- **Learnings for future iterations:**
+  - The codebase has two separate generator creation paths: TokenGeneratorDialog (full editor) and GraphPanel ApplyForm (quick templates). Features like preview need to be checked in both.
+  - The `/api/generators/preview` endpoint accepts the same body shape as POST `/api/generators` (type, sourceToken, targetGroup, targetSet, config) and returns `{ count, tokens }`.
+---

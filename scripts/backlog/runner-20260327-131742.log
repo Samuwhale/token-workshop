@@ -116,3 +116,24 @@ Already up to date.
 
 --- Merging: No "Create as alias" fast path ---
 Already up to date.
+[main 4275faf] chore(backlog): done – No "Create as alias" fast path
+ 8 files changed, 67 insertions(+), 11 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - No "Create as alias" fast path
+- Added "Alias to this token" context menu item on every token row. Right-clicking a token and selecting it opens the create form (or side-panel editor) with the value pre-filled as `{token.path}` and the type matched, so the user only needs to type the new alias path and press Enter.
+- Extended `onCreateNew` callback to accept `initialValue` parameter, and added `initialValue` prop to TokenEditor that auto-activates alias mode when the value looks like `{...}`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L4218 (context menu item), ~L57 (prop type), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L107 (initialValue prop), ~L133 (alias mode init), `packages/figma-plugin/src/ui/App.tsx` ~L209 (editingToken type), ~L2007 (onCreateNew wiring), ~L2026 (initialValue passthrough)
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  6 items remaining
+===============================================================
+  Claimed: Generators show no preview before commit — users configure a color scale or type scale but can't see what tokens will be created until they confirm; a live preview of generated output would prevent trial-and-error
+  Worktree: /tmp/backlog-44348-exGDFa
+
+  ✓ done: Generators show no preview before commit
+    Added live preview to GraphPanel ApplyForm (template workflow) with debounced /api/generators/preview calls and type-specific rendering (color swatches, type scale samples, spacing bar charts). TokenGeneratorDialog already had preview; this completes coverage for both generator creation paths.
+    25 turns · 225s · $1.26
+
+--- Merging: Generators show no preview before commit ---
+Already up to date.
