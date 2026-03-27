@@ -33,3 +33,10 @@ Already up to date.
 ===============================================================
   Claimed: Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt
   Worktree: /tmp/backlog-97510-DiE0iT
+
+  ✓ done: Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt
+    Added markDisconnected() + AbortController wiring to useServerConnection; in-flight fetches now use AbortSignal.any([timeout, disconnectSignal]) and call markDisconnected() on network errors, making the existing reconnect banner appear immediately instead of waiting up to 5s for the next health poll
+    42 turns · 541s · $1.47
+
+--- Merging: Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt ---
+Already up to date.

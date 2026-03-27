@@ -46,8 +46,8 @@
 ### QoL
 
 - [x] BatchEditor doesn't return focus to an input field after a successful operation — breaks workflow when performing multiple sequential edits
-- [~] ColorPicker eyedropper button has no active/success state indicator — users can't tell if their click activated the picker or if they need to retry
-- [ ] No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
+- [x] ColorPicker eyedropper button has no active/success state indicator — users can't tell if their click activated the picker or if they need to retry
+- [~] No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
 - [ ] Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
 - [ ] Context menu disabled in select mode — right-clicking while checkboxes are visible returns early; users lose copy/rename/delete for individual tokens
 - [ ] Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format

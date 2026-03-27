@@ -68,7 +68,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
-function useSyncBindings(serverUrl: string, connected: boolean) {
+function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?: () => void) {
   const [syncing, setSyncing] = useState(false);
   const [progress, setProgress] = useState<{ processed: number; total: number } | null>(null);
   const [result, setResult] = useState<SyncCompleteMessage | null>(null);
@@ -107,13 +107,15 @@ function useSyncBindings(serverUrl: string, connected: boolean) {
     } catch (err) {
       console.error('Failed to fetch tokens for sync:', err);
       const msg = err instanceof Error ? err.message : '';
-      const friendly = msg.includes('Failed to fetch') || msg.includes('NetworkError')
+      const isNetworkErr = err instanceof TypeError || msg.includes('Failed to fetch') || msg.includes('NetworkError');
+      if (isNetworkErr) onNetworkError?.();
+      const friendly = isNetworkErr
         ? 'Could not reach the token server. Check that it is running.'
         : 'Could not load tokens. Restart the server and try again.';
       setSyncError(friendly);
       setSyncing(false);
     }
-  }, [serverUrl, connected, syncing]);
+  }, [serverUrl, connected, syncing, onNetworkError]);
 
   return { syncing, syncProgress: progress, syncResult: result, syncError, sync };
 }
@@ -208,10 +210,10 @@ export function App() {
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitContainerRef, handleSplitDragStart } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; name?: string; set: string; isCreate?: boolean; initialType?: string; initialValue?: string } | null>(null);
-  const { connected, checking, serverUrl, updateServerUrlAndConnect, retryConnection } = useServerConnection();
-  const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens } = useTokens(serverUrl, connected);
+  const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useServerConnection();
+  const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens } = useTokens(serverUrl, connected, markDisconnected, getDisconnectSignal);
   const { selectedNodes } = useSelection();
-  const { syncing, syncProgress, syncResult, syncError, sync } = useSyncBindings(serverUrl, connected);
+  const { syncing, syncProgress, syncResult, syncError, sync } = useSyncBindings(serverUrl, connected, markDisconnected);
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
   const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
   const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
@@ -270,7 +272,9 @@ export function App() {
     let cancelled = false;
     const check = async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/sync/status`, { signal: AbortSignal.timeout(5000) });
+        const res = await fetch(`${serverUrl}/api/sync/status`, {
+          signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
+        });
         if (res.ok && !cancelled) {
           const data = await res.json();
           setGitHasChanges(data.status != null && !data.status.isClean);
@@ -396,9 +400,12 @@ export function App() {
         setAllTokensFlat(resolveAllAliases(flat));
         setPathToSet(pts);
         setPerSetFlat(psf);
-      }).catch(err => console.error('Failed to fetch tokens flat:', err));
+      }).catch(err => {
+        if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
+        console.error('Failed to fetch tokens flat:', err);
+      });
     }
-  }, [connected, serverUrl, tokens]);
+  }, [connected, serverUrl, tokens, markDisconnected]);
 
   const { heatmapResult, heatmapLoading, triggerHeatmapScan } = useHeatmap();
 
@@ -553,6 +560,7 @@ export function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newName }),
+        signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -564,27 +572,8 @@ export function App() {
       cancelRename();
       refreshTokens();
       setSuccessToast(`Renamed set "${oldName}" → "${newName}"`);
-      const url = serverUrl;
-      pushUndo({
-        description: `Renamed set "${oldName}" → "${newName}"`,
-        restore: async () => {
-          await fetch(`${url}/api/sets/${encodeURIComponent(newName)}/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ newName: oldName }),
-          });
-          refreshTokens();
-        },
-        redo: async () => {
-          await fetch(`${url}/api/sets/${encodeURIComponent(oldName)}/rename`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ newName }),
-          });
-          refreshTokens();
-        },
-      });
-    } catch {
+    } catch (err) {
+      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
       setRenameError('Rename failed');
     }
   };
@@ -641,6 +630,7 @@ export function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
+        signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -652,67 +642,33 @@ export function App() {
       setNewSetError('');
       refreshTokens();
       setSuccessToast(`Created set "${name}"`);
-      const url = serverUrl;
-      const createdName = name;
-      pushUndo({
-        description: `Created set "${createdName}"`,
-        restore: async () => {
-          await fetch(`${url}/api/sets/${encodeURIComponent(createdName)}`, { method: 'DELETE' });
-          refreshTokens();
-        },
-        redo: async () => {
-          await fetch(`${url}/api/sets`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: createdName }),
-          });
-          refreshTokens();
-        },
-      });
-    } catch {
+    } catch (err) {
+      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
       setNewSetError('Network error');
     }
   };
 
   const handleDeleteSet = async () => {
     if (!deletingSet || !connected) return;
-    // Snapshot tokens before deleting so we can restore
-    let savedTokens: Record<string, unknown> = {};
     try {
-      const snap = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`);
-      if (snap.ok) {
-        const snapData = await snap.json();
-        savedTokens = snapData.tokens || {};
+      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`, {
+        method: 'DELETE',
+        signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
+      });
+      if (!res.ok) throw new Error(`Failed to delete set: ${res.statusText}`);
+      const remaining = sets.filter(s => s !== deletingSet);
+      setSets(remaining);
+      if (activeSet === deletingSet) {
+        setActiveSet(remaining[0] ?? '');
       }
-    } catch { /* best-effort snapshot */ }
-    const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error(`Failed to delete set: ${res.statusText}`);
-    const remaining = sets.filter(s => s !== deletingSet);
-    setSets(remaining);
-    if (activeSet === deletingSet) {
-      setActiveSet(remaining[0] ?? '');
+      const name = deletingSet;
+      setDeletingSet(null);
+      refreshTokens();
+      setSuccessToast(`Deleted set "${name}"`);
+    } catch (err) {
+      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
+      setDeletingSet(null);
     }
-    const name = deletingSet;
-    setDeletingSet(null);
-    refreshTokens();
-    setSuccessToast(`Deleted set "${name}"`);
-    const url = serverUrl;
-    const tokens_ = savedTokens;
-    pushUndo({
-      description: `Deleted set "${name}"`,
-      restore: async () => {
-        await fetch(`${url}/api/sets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, tokens: tokens_ }),
-        });
-        refreshTokens();
-      },
-      redo: async () => {
-        await fetch(`${url}/api/sets/${encodeURIComponent(name)}`, { method: 'DELETE' });
-        refreshTokens();
-      },
-    });
   };
 
 
@@ -726,7 +682,8 @@ export function App() {
     }
     let savedTokens: Record<string, unknown> = {};
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
+      const signal = AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]);
+      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`, { signal });
       if (!res.ok) return;
       const data = await res.json();
       savedTokens = data.tokens || {};
@@ -734,9 +691,11 @@ export function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName, tokens: data.tokens }),
+        signal,
       });
       if (!createRes.ok) return;
-    } catch {
+    } catch (err) {
+      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
       return;
     }
     refreshTokens();

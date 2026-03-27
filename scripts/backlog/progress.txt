@@ -416,3 +416,17 @@
 - **Learnings for future iterations:**
   - When clearing form fields after a successful async operation, pair the state resets with a `setTimeout(() => inputRef.current?.focus(), 0)` so focus lands after the re-render caused by those state updates.
 ---
+
+## 2026-03-27 - Connection-drop mid-operation has no recovery
+- Added `markDisconnected()` to `useServerConnection.ts`: immediately flips `connected` to `false`, fires the disconnect AbortController, and triggers an immediate health re-check — so the existing reconnect banner appears at once rather than waiting up to 5 s for the next health poll.
+- Added `getDisconnectSignal()` getter: returns the current `AbortController.signal` for the active connection; callers combine it with `AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()])` so in-flight fetches are cancelled the moment the health poll detects a drop.
+- Health poll now tracks a `prevConnected` flag and calls `fireDisconnect()` on the false → false transition so in-flight requests are aborted when the poller itself detects the outage.
+- Updated `useTokens.ts`: accepts optional `onNetworkError` and `getDisconnectSignal` params; `refreshTokens` uses `AbortSignal.any` with the disconnect signal and calls `onNetworkError()` (→ `markDisconnected`) on `TypeError` / "Failed to fetch".
+- Wired `markDisconnected` + `getDisconnectSignal` into key App.tsx mutation operations (rename set, create set, delete set, duplicate set) and background fetches (git sync status, `fetchAllTokensFlatWithSets`). Each adds `AbortSignal.any([timeout, getDisconnectSignal()])` to the fetch and calls `markDisconnected()` in the catch block on network errors.
+- The existing `!connected` banner (with Retry + Change URL links) serves as the reconnect prompt — no new UI needed; the improvement is that it now appears immediately on mid-operation failure instead of on the next health-poll cycle.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useServerConnection.ts` (full rewrite), `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L50 (refreshTokens), `packages/figma-plugin/src/ui/App.tsx` ~L71 (useSyncBindings), ~L214 (hook call), ~L273 (git sync fetch), ~L394 (fetchAllTokensFlatWithSets), ~L552 (handleRenameConfirm), ~L620 (handleCreateSet), ~L641 (handleDeleteSet), ~L665 (handleDuplicateSet)
+- **Learnings for future iterations:**
+  - `AbortSignal.any([AbortSignal.timeout(N), disconnectSignal])` is the correct pattern to abort on either timeout OR explicit disconnect — already used in `useLint.ts`, now applied consistently.
+  - Reading `disconnectControllerRef.current.signal` at the CALL SITE (via a `getDisconnectSignal()` getter) rather than capturing it in a closure avoids stale-signal issues between React renders.
+  - The 5-second health-check poll means users can be stuck for up to 5 s before the disconnect banner appears. `markDisconnected()` bridges this gap for synchronous error paths; the getter + `AbortSignal.any` bridges it for the fetch timeout path.
+---

@@ -76,3 +76,17 @@ Already up to date.
 
 --- Merging: ColorPicker eyedropper button has no active/success state indicator — users can't tell if their click activated the picker or if they need to retry ---
 Already up to date.
+[main e8390c8] chore(backlog): done – ColorPicker eyedropper button has no active/success state indicator — users can't tell if their click activated the picker or if they need to retry
+ 5 files changed, 62 insertions(+), 10 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - BatchEditor doesn't return focus to an input field after a successful operation
+- Added `useRef` to the description input and findText input. After a fully-successful `handleApply`, focus returns to the description input; after a fully-successful `handleRename`, focus returns to the find input. Both use `setTimeout(0, ...)` so focus fires after React's re-render.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1 (import), ~L78 (refs), ~L202 (apply focus), ~L288 (rename focus), ~L308 (ref on description input), ~L421 (ref on findText input)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  81 items remaining
+===============================================================
+  Claimed: No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
+  Worktree: /tmp/backlog-97955-gELnZc

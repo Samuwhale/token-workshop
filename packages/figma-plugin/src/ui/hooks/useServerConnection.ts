@@ -10,6 +10,23 @@ export function useServerConnection() {
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
+  // AbortController that fires when the server goes offline.
+  // In-flight fetch calls should combine this signal via AbortSignal.any() so they
+  // are cancelled immediately when the health check detects a disconnect rather than
+  // waiting for their own timeouts.
+  const disconnectControllerRef = useRef(new AbortController());
+
+  /** Returns the current disconnect signal.  Read this at fetch-call time. */
+  const getDisconnectSignal = useCallback((): AbortSignal => {
+    return disconnectControllerRef.current.signal;
+  }, []);
+
+  /** Abort all in-flight requests and replace the controller for future fetches. */
+  const fireDisconnect = useCallback(() => {
+    disconnectControllerRef.current.abort();
+    disconnectControllerRef.current = new AbortController();
+  }, []);
+
   const updateServerUrl = useCallback((url: string) => {
     lsSet(STORAGE_KEYS.SERVER_URL, url);
     setServerUrl(url);
@@ -31,6 +48,22 @@ export function useServerConnection() {
     setChecking(false);
   }, [checkConnection]);
 
+  /**
+   * Immediately mark the server as disconnected and begin a reconnection check.
+   * Call this from any fetch error handler when a mid-operation network failure
+   * is detected so the disconnect banner appears right away instead of waiting
+   * for the next 5-second health poll.
+   */
+  const markDisconnected = useCallback(() => {
+    fireDisconnect();
+    setConnected(false);
+    setChecking(true);
+    checkConnection(serverUrlRef.current).then(ok => {
+      setConnected(ok);
+      setChecking(false);
+    });
+  }, [fireDisconnect, checkConnection]);
+
   /** Save a new URL and immediately test connectivity. Returns the result. */
   const updateServerUrlAndConnect = useCallback(async (url: string): Promise<boolean> => {
     updateServerUrl(url);
@@ -43,13 +76,28 @@ export function useServerConnection() {
 
   useEffect(() => {
     let cancelled = false;
+    let prevConnected: boolean | null = null;
 
     const check = async () => {
       try {
         const res = await fetch(`${serverUrl}/api/health`, { signal: AbortSignal.timeout(2000) });
-        if (!cancelled) setConnected(res.ok);
+        const ok = res.ok;
+        if (!cancelled) {
+          if (prevConnected === true && !ok) {
+            // Just went offline — abort any in-flight requests immediately.
+            fireDisconnect();
+          }
+          setConnected(ok);
+          prevConnected = ok;
+        }
       } catch {
-        if (!cancelled) setConnected(false);
+        if (!cancelled) {
+          if (prevConnected === true) {
+            fireDisconnect();
+          }
+          setConnected(false);
+          prevConnected = false;
+        }
       }
     };
 
@@ -60,7 +108,7 @@ export function useServerConnection() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [serverUrl]);
+  }, [serverUrl, fireDisconnect]);
 
-  return { connected, checking, serverUrl, updateServerUrlAndConnect, retryConnection };
+  return { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection };
 }

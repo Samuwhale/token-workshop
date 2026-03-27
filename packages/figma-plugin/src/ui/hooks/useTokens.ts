@@ -33,7 +33,12 @@ export interface TokenNode {
   isGroup: boolean;
 }
 
-export function useTokens(serverUrl: string, connected: boolean) {
+export function useTokens(
+  serverUrl: string,
+  connected: boolean,
+  onNetworkError?: () => void,
+  getDisconnectSignal?: () => AbortSignal,
+) {
   const [sets, setSets] = useState<string[]>([]);
   const [activeSet, setActiveSetState] = useState<string>(() => lsGet(STORAGE_KEYS.ACTIVE_SET, ''));
   const setActiveSet = (s: string) => {
@@ -50,8 +55,12 @@ export function useTokens(serverUrl: string, connected: boolean) {
   const refreshTokens = useCallback(async () => {
     if (!connected) return;
     const gen = ++fetchGenRef.current;
+    const disconnectSig = getDisconnectSignal?.();
+    const signal = (disconnectSig != null)
+      ? AbortSignal.any([AbortSignal.timeout(5000), disconnectSig])
+      : AbortSignal.timeout(5000);
     try {
-      const setsRes = await fetch(`${serverUrl}/api/sets`, { signal: AbortSignal.timeout(5000) });
+      const setsRes = await fetch(`${serverUrl}/api/sets`, { signal });
       if (!setsRes.ok) return;
       const setsData = await setsRes.json();
       const allSets: string[] = setsData.sets || [];
@@ -65,7 +74,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
         const current = activeSet || allSets[0];
         if (!activeSet) setActiveSet(current);
 
-        const tokensRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal: AbortSignal.timeout(5000) });
+        const tokensRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
         if (!tokensRes.ok) return;
         const tokensData = await tokensRes.json();
         if (gen !== fetchGenRef.current) return;
@@ -75,9 +84,12 @@ export function useTokens(serverUrl: string, connected: boolean) {
         setSetTokenCounts(setsData.counts || {});
       }
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      const isNetworkErr = err instanceof TypeError || (err instanceof Error && (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')));
+      if (isNetworkErr) onNetworkError?.();
       console.error('Failed to fetch tokens:', err);
     }
-  }, [serverUrl, connected, activeSet]);
+  }, [serverUrl, connected, activeSet, onNetworkError, getDisconnectSignal]);
 
   useEffect(() => {
     refreshTokens();
