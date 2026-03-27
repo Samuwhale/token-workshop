@@ -84,9 +84,9 @@
 ### QoL
 
 - [~] Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong
-- [~] `handleApplyGroupScopes` sends one PATCH request per token in `Promise.all` with no batching — for groups with many tokens this is slow with no progress indicator
+- [x] `handleApplyGroupScopes` sends one PATCH request per token in `Promise.all` with no batching — for groups with many tokens this is slow with no progress indicator
 - [~] No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
-- [ ] New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`
+- [~] New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`
 - [ ] Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text
 
 ### UX

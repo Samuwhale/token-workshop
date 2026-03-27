@@ -15,7 +15,7 @@ export function useFigmaSync(
   const [groupScopesPath, setGroupScopesPath] = useState<string | null>(null);
   const [groupScopesSelected, setGroupScopesSelected] = useState<string[]>([]);
   const [groupScopesApplying, setGroupScopesApplying] = useState(false);
-  const [groupScopesProgress, setGroupScopesProgress] = useState<{ done: number; total: number } | null>(null);
+  const [groupScopesError, setGroupScopesError] = useState<string | null>(null);
 
   const handleSyncGroup = useCallback(async () => {
     if (!syncGroupPending || !connected) return;
@@ -62,7 +62,7 @@ export function useFigmaSync(
   const handleApplyGroupScopes = useCallback(async () => {
     if (!groupScopesPath || !connected) return;
     setGroupScopesApplying(true);
-    setGroupScopesProgress(null);
+    setGroupScopesError(null);
     try {
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Failed to fetch tokens');
@@ -103,6 +103,7 @@ export function useFigmaSync(
       setGroupScopesSelected([]);
     } catch (err) {
       console.error('Failed to apply group scopes:', err);
+      setGroupScopesError(err instanceof Error ? err.message : 'Failed to apply scopes');
     } finally {
       setGroupScopesApplying(false);
       setGroupScopesProgress(null);
@@ -119,7 +120,8 @@ export function useFigmaSync(
     groupScopesSelected,
     setGroupScopesSelected,
     groupScopesApplying,
-    groupScopesProgress,
+    groupScopesError,
+    setGroupScopesError,
     handleSyncGroup,
     handleSyncGroupStyles,
     handleApplyGroupScopes,

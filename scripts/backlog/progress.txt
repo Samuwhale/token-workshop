@@ -441,3 +441,11 @@
   - Sequential batched `await` loop with `setGroupScopesProgress` after each batch gives smooth incremental feedback without flooding the server.
   - Clear progress state in `finally` so the button resets cleanly on both success and error.
 ---
+
+## 2026-03-27 - `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback
+- Added `groupScopesError` state to `useFigmaSync`. On catch, sets a human-readable error string instead of only logging. On apply start, clears the error. Exposed `groupScopesError` and `setGroupScopesError` from the hook. In App.tsx, destructured the new values, cleared the error when the panel opens (`onSetGroupScopes`), and added an inline red error banner between the checkboxes and the footer buttons when `groupScopesError` is non-null.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L17 (state), ~L62 (clear on start), ~L90 (set on error), ~L108 (return); `packages/figma-plugin/src/ui/App.tsx` ~L361 (destructure), ~L2197 (clear on open), ~L2535 (inline error UI)
+- **Learnings for future iterations:**
+  - For modal/panel workflows, inline error display (inside the panel) is preferable to a global toast — the panel stays open after failure and the error is contextually placed near the retry button.
+  - Always clear error state both when the panel first opens and when a new attempt starts, so stale errors from a previous session don't linger.
+---

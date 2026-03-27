@@ -238,3 +238,10 @@ Already up to date.
 ===============================================================
   Claimed: `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback
   Worktree: /tmp/backlog-98901-eJWL3R
+
+  ✓ done: `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback
+    Added groupScopesError state to useFigmaSync; on failure sets a readable message instead of console-only; App.tsx shows an inline red error banner in the scopes panel above the action buttons
+    25 turns · 119s · $0.46
+
+--- Merging: `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback ---
+Already up to date.

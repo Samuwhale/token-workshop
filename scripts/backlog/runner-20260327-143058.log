@@ -301,3 +301,16 @@ Already up to date.
 
 --- Merging: handleApplyGroupScopes sends one PATCH request per token in Promise.all with no batching — for groups with many tokens this is slow with no progress indicator ---
 Already up to date.
+[main ac81891] chore(backlog): done – handleApplyGroupScopes sends one PATCH request per token in Promise.all with no batching — for groups with many tokens this is slow with no progress indicator
+ 7 files changed, 55 insertions(+), 12 deletions(-)
+
+## 2026-03-27 - handleApplyGroupScopes sends one PATCH request per token with no batching or progress indicator
+- Replaced flat `Promise.all` with a batched loop (batch size 5). Added `groupScopesProgress: { done, total }` state. Button label updates to "Applying… 3/10" as batches complete, falling back to plain "Applying…" until `total` is known.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L17 (state), ~L62 (handler), ~L118 (return); `packages/figma-plugin/src/ui/App.tsx` ~L361 (destructure), ~L2544 (button label)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  40 items remaining
+===============================================================
+  Claimed: New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`
+  Worktree: /tmp/backlog-98408-9DMdxe
