@@ -351,3 +351,11 @@
   - Empty string `$type` from the `<select>` "(none)" option should be converted to `null` before sending so the server deletes the key rather than storing an empty string.
   - The inline meta-editing panel lives *outside* the group header `<div>` (after the context menu block) so clicks inside it don't trigger the expand/collapse toggle.
 ---
+
+## 2026-03-27 - housekeeping: remove duplicate hexToLuminance in docs.ts
+- Removed local `hexToLuminance` function (9 lines) from `packages/server/src/routes/docs.ts`
+- Added `wcagLuminance` to exports in `packages/core/src/index.ts`
+- Updated `contrastRatio` in docs.ts to call `wcagLuminance` from `@tokenmanager/core`
+- Files changed: `packages/server/src/routes/docs.ts` ~L4-12; `packages/core/src/index.ts` ~L68
+- **Why:** `hexToLuminance` was a private reimplementation of `wcagLuminance` from color-math.ts — same WCAG algorithm, just not exported. The duplicate was unnecessary since the server already depends on `@tokenmanager/core`.
+---

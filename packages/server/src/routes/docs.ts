@@ -1,19 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import type { DTCGToken } from '@tokenmanager/core';
-
-function hexToLuminance(hex: string): number | null {
-  const clean = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
-  const r = parseInt(clean.slice(0, 2), 16) / 255;
-  const g = parseInt(clean.slice(2, 4), 16) / 255;
-  const b = parseInt(clean.slice(4, 6), 16) / 255;
-  const lin = (c: number) => c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
-}
+import { wcagLuminance } from '@tokenmanager/core';
 
 function contrastRatio(hex1: string, hex2: string): number | null {
-  const l1 = hexToLuminance(hex1);
-  const l2 = hexToLuminance(hex2);
+  const l1 = wcagLuminance(hex1);
+  const l2 = wcagLuminance(hex2);
   if (l1 === null || l2 === null) return null;
   const [li, da] = l1 > l2 ? [l1, l2] : [l2, l1];
   return (li + 0.05) / (da + 0.05);
