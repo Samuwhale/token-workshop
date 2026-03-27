@@ -79,6 +79,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const readTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSourceRef = useRef<'variables' | 'styles' | null>(null);
   const correlationIdRef = useRef<string | null>(null);
+  const targetSetRef = useRef(targetSet);
   const [existingPaths, setExistingPaths] = useState<Set<string> | null>(null);
   const [existingPathsFetching, setExistingPathsFetching] = useState(false);
   const existingPathsCacheRef = useRef<{ set: string; paths: Set<string> } | null>(null);
@@ -134,6 +135,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
 
   // Re-run preview when target set changes while tokens are loaded
   useEffect(() => {
+    targetSetRef.current = targetSet;
+    setConflictPaths(null);
     if (tokens.length > 0) {
       existingPathsCacheRef.current = null;
       prefetchExistingPaths(targetSet);
@@ -512,16 +515,20 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setError(null);
     setSuccessMessage(null);
     setCheckingConflicts(true);
+    const checkingForSet = targetSet;
 
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`);
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(checkingForSet)}`);
       if (res.ok) {
         const data = await res.json();
         const existing = new Set(flattenTokenGroup(data.tokens || {}).keys());
         const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
         const conflicts = tokensToImport.filter(t => existing.has(t.path)).map(t => t.path);
         if (conflicts.length > 0) {
-          setConflictPaths(conflicts);
+          // Discard results if the user changed the target set while the fetch was in flight
+          if (checkingForSet === targetSetRef.current) {
+            setConflictPaths(conflicts);
+          }
           return;
         }
       }

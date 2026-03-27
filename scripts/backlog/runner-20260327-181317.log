@@ -30,3 +30,10 @@ Already up to date.
 ===============================================================
   Claimed: ImportPanel: `conflictPaths` state is not cleared when changing the target set — old conflict list persists with the new set
   Worktree: /tmp/backlog-59609-A9cEu5
+
+  ✓ done: ImportPanel: `conflictPaths` state is not cleared when changing the target set — old conflict list persists with the new set
+    Added `setConflictPaths(null)` + `targetSetRef` update to the `targetSet` useEffect; fixed race condition in handleImportStyles to discard stale conflict results when the set changed during fetch
+    21 turns · 219s · $0.55
+
+--- Merging: ImportPanel: `conflictPaths` state is not cleared when changing the target set — old conflict list persists with the new set ---
+Already up to date.

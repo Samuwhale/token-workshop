@@ -45,3 +45,13 @@
 - **Learnings for future iterations:**
   - No new patterns — straightforward controlled input + filter on existing `useMemo` chain.
 ---
+
+## 2026-03-27 - ImportPanel: `conflictPaths` state is not cleared when changing the target set — old conflict list persists with the new set
+- Added `setConflictPaths(null)` to the existing `useEffect` that fires on `targetSet` changes, making the clear authoritative regardless of how `targetSet` was changed
+- Added `targetSetRef` (useRef) to track the current targetSet value; updated it in the same useEffect alongside the clear
+- Fixed race condition in `handleImportStyles`: captured `checkingForSet = targetSet` at call time and discarded stale async results by checking `checkingForSet === targetSetRef.current` after the fetch resolves
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L79 (targetSetRef), ~L137 (useEffect update), ~L527 (race condition guard)
+- **Learnings for future iterations:**
+  - React state in async closures is always the value at call time — use a `useRef` updated in a `useEffect` to always access the latest state value after an `await`
+  - A `useEffect` that fires on state change is the most defensive place to clear derived state (like `conflictPaths`) — covers all code paths including ones not yet written
+---
