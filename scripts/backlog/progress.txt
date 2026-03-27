@@ -39,3 +39,9 @@
 - **Learnings for future iterations:**
   - The batch endpoint uses `strategy: 'overwrite' | 'skip'` — the original per-token POST had implicit overwrite semantics, so `'overwrite'` is the correct strategy for variable import.
 ---
+
+## 2026-03-27 - discover-pass: server token-store and token routes
+- Area: `packages/server/src/services/token-store.ts`, `packages/server/src/routes/tokens.ts`, `packages/server/src/routes/sets.ts`
+- Found 7 items — written to backlog-inbox.md
+- Notable: `deleteToken` and `deleteTokensByGeneratorId` are the only mutation methods that don't emit SSE change events — all other CRUD operations do. Also `moveToken`/`moveGroup` can silently overwrite tokens in the target set.
+---
