@@ -744,6 +744,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 : 'Importing…'
               : `Import ${totalEnabledTokens} token${totalEnabledTokens !== 1 ? 's' : ''} into ${totalEnabledSets} set${totalEnabledSets !== 1 ? 's' : ''}`}
           </button>
+          {importing && importProgress && importProgress.total > 0 && (
+            <div className="w-full h-1.5 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[var(--color-figma-accent)] transition-all duration-300"
+                style={{ width: `${Math.round((importProgress.done / importProgress.total) * 100)}%` }}
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -851,6 +859,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                     : 'Overwrite all'}
                 </button>
               </div>
+              {importing && importProgress && importProgress.total > 0 && (
+                <div className="w-full h-1.5 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[var(--color-figma-accent)] transition-all duration-300"
+                    style={{ width: `${Math.round((importProgress.done / importProgress.total) * 100)}%` }}
+                  />
+                </div>
+              )}
               <button
                 onClick={() => setConflictPaths(null)}
                 disabled={importing}
@@ -873,6 +889,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                     : 'Importing…'
                   : `Import ${selectedTokens.size} token${selectedTokens.size !== 1 ? 's' : ''} to "${targetSet}"`}
             </button>
+          )}
+          {importing && importProgress && importProgress.total > 0 && (
+            <div className="w-full h-1.5 rounded-full bg-[var(--color-figma-border)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[var(--color-figma-accent)] transition-all duration-300"
+                style={{ width: `${Math.round((importProgress.done / importProgress.total) * 100)}%` }}
+              />
+            </div>
           )}
         </div>
       )}

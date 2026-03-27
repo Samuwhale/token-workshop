@@ -270,3 +270,11 @@
 - **Learnings for future iterations:**
   - The "+" for creating a new set is an `<option value="__new__">` inside the `<select>`, not a separate button. Adding a parallel clickable `<button>` in hint text that calls the same `setNewSetInputVisible(true)` gives a second discovery path without duplicating logic.
 ---
+
+## 2026-03-27 - ImportPanel: show progress bar using existing importProgress state during token import
+- Added a visual progress bar (accent-colored, 6px tall, rounded) below import buttons in all three footer sections: variables import, conflict resolution (skip/overwrite), and styles import. The bar appears only when `importing && importProgress && importProgress.total > 0`, using `importProgress.done / importProgress.total` for width percentage with a smooth 300ms CSS transition.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L747 (variables footer), ~L861 (conflict footer), ~L893 (styles footer)
+- **Learnings for future iterations:**
+  - The `importProgress` state is `{ done: number; total: number } | null` — guard on `total > 0` to avoid division by zero.
+  - Three independent footer sections in ImportPanel each show import status text; all three need the progress bar for consistency.
+---

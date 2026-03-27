@@ -116,7 +116,7 @@ Items spotted during UX passes but out of scope for that session.
 - [x] ImportPanel: disabled "Read from Figma" button has no tooltip explaining it's always enabled (reads from the currently open file) — users may think they need to do something first
 - [x] ImportPanel: `targetSet` dropdown in styles import shows "Select a set" placeholder but the only way to create a new set is a small "+" button that's easy to miss — consider inline hint text
 
-- [ ] ImportPanel: show progress bar using existing `importProgress` state during token import — long imports feel stuck with only "Importing…" text
+- [x] ImportPanel: show progress bar using existing `importProgress` state during token import — long imports feel stuck with only "Importing…" text
 - [ ] Grid view empty state: distinguish "no color tokens exist in this set" from "filters hide all color tokens" — current message always says "Grid view shows color tokens as swatches" regardless of cause
 - [ ] ExportPanel: "Read Variables from Figma" button has no loading indicator — clicking it gives no immediate feedback
 
