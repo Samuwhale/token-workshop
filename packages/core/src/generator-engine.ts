@@ -269,9 +269,9 @@ export function runCustomScaleGenerator(
  * Compute the WCAG relative luminance of a hex color.
  * https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
  */
-function wcagLuminance(hex: string): number {
+function wcagLuminance(hex: string): number | null {
   const clean = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{6}/.test(clean)) return 0;
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
   const toLinear = (c: number) =>
     c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   const r = toLinear(parseInt(clean.slice(0, 2), 16) / 255);
@@ -294,6 +294,7 @@ export function runAccessibleColorPairGenerator(
   targetGroup: string,
 ): GeneratedTokenResult[] {
   const bgLum = wcagLuminance(sourceHex);
+  if (bgLum === null) return [];
 
   // Contrast against white: (1.0 + 0.05) / (bgLum + 0.05)
   const contrastWithWhite = 1.05 / (bgLum + 0.05);
@@ -400,7 +401,7 @@ export function runContrastCheckGenerator(
   return steps.map(step => {
     const fgLum = wcagLuminance(step.hex);
     let ratio: number | null = null;
-    if (fgLum !== null) {
+    if (fgLum !== null && bgLum !== null) {
       const [lighter, darker] = fgLum > bgLum ? [fgLum, bgLum] : [bgLum, fgLum];
       ratio = parseFloat(((lighter + 0.05) / (darker + 0.05)).toFixed(2));
     }

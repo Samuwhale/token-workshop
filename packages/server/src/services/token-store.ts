@@ -235,7 +235,7 @@ export class TokenStore {
       await fs.unlink(filePath).catch(() => {});
     }
     this.sets.clear();
-    this.flatTokens.clear();
+    this.rebuildFlatTokens();
     const themesPath = path.join(this.dir, '$themes.json');
     await fs.unlink(themesPath).catch(() => {});
   }

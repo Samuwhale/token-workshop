@@ -94,3 +94,10 @@
 - **Learnings for future iterations:**
   - Silent fallthrough (`break` on null) vs throw is a common inconsistency in switch-case modifier chains — scan all cases when fixing one
 ---
+
+## 2026-03-27 - `clearAll` on token-store doesn't call `rebuildFlatTokens`/`rebuildResolver`
+- Replaced `this.flatTokens.clear()` with `this.rebuildFlatTokens()` in `clearAll()`. Since `this.sets` is already cleared before the call, `rebuildFlatTokens` rebuilds both `flatTokens` and the resolver to an empty state — matching the behavior of every other mutating method in the store.
+- Files changed: `packages/server/src/services/token-store.ts` ~L237
+- **Learnings for future iterations:**
+  - `rebuildFlatTokens` always calls `rebuildResolver` internally — prefer it over manually clearing `flatTokens` to keep resolver in sync.
+---
