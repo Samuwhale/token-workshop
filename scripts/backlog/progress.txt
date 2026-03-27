@@ -102,3 +102,10 @@
 - **Learnings for future iterations:**
   - When removing a value from a hook's return, check that internal consumers (other functions in the same hook) still have access via closure — only the external export needs removal.
 ---
+
+## 2026-03-27 - Remove unnecessary `rgbToHsl` export in `colorUtils.ts`
+- Removed `export` keyword from `rgbToHsl` function — it was only used internally by `hexToHsl` in the same file.
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L91
+- **Learnings for future iterations:**
+  - Build validation blocked by pre-existing `@tokenmanager/core` package resolution issue in worktree. TypeScript type-check confirmed no errors from the change itself. Grep confirmed no external imports of `rgbToHsl`.
+---

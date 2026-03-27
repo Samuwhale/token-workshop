@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Remove unnecessary `rgbToHsl` export in `colorUtils.ts` — only used internally by `hexToHsl` in the same file
   Worktree: /tmp/backlog-74807-FyjJes
+
+  ✓ done: Remove unnecessary `rgbToHsl` export in `colorUtils.ts`
+    Removed `export` from `rgbToHsl` — only used internally by `hexToHsl` in the same file. Grep confirmed zero external imports.
+    27 turns · 164s · $0.62
+
+--- Merging: Remove unnecessary `rgbToHsl` export in `colorUtils.ts` ---
+Already up to date.

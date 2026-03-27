@@ -88,7 +88,7 @@ export function rgbToHex(r: number, g: number, b: number): string {
 // ---------------------------------------------------------------------------
 
 /** sRGB (0-1 each) → HSL. H in 0-360, S/L in 0-100. */
-export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   const l = (max + min) / 2;
   if (max === min) return { h: 0, s: 0, l: l * 100 };

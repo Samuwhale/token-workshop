@@ -16,3 +16,19 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Remove unused `updateServerUrl` from `useServerConnection` return ---
 Already up to date.
+[main 9f09716] chore(backlog): done – Remove unused `updateServerUrl` from `useServerConnection` return
+ 8 files changed, 75 insertions(+), 2 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260327-112348.log
+ create mode 100644 scripts/backlog/runner-20260327-112354.log
+ create mode 100644 scripts/backlog/runner-20260327-112408.log
+
+## 2026-03-27 - Remove unused `updateServerUrl` from `useServerConnection` return
+- Removed `updateServerUrl` from the return object of `useServerConnection`. The function is still defined internally and used by `updateServerUrlAndConnect`, but no caller ever destructured it from the hook's return value.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useServerConnection.ts` ~L65 (return object)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  14 items remaining
+===============================================================
+  Claimed: ThemeManager `handleDrop` (set reorder) doesn't check `res.ok` — after drag-and-drop reordering, the POST to save new order silently fails on server error; local state is already updated optimistically with no rollback (`ThemeManager.tsx:376-384`)
+  Worktree: /tmp/backlog-75264-LDjvRX
