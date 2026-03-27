@@ -122,3 +122,16 @@ Already up to date.
 
 --- Merging: No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants ---
 Already up to date.
+[main 5c2fdb7] chore(backlog): done – No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
+ 5 files changed, 83 insertions(+), 12 deletions(-)
+
+## 2026-03-27 - No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
+- Added `handleDuplicateOption(dimId, optionName)` that clones the option's sets config, generates a unique name (`"<name> copy"`, `"<name> copy 2"`, etc.), and POSTs it via the existing `/api/themes/dimensions/:id/options` endpoint.
+- Added a duplicate (copy) icon button to the option header row in ThemeManager, shown on hover alongside the existing delete button. Wrapped both in a shared `opacity-0 group-hover/opt:opacity-100` div.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L278 (handler), ~L557 (button)
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  65 items remaining
+===============================================================
+  Claimed: Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
+  Worktree: /tmp/backlog-97510-UV7i67

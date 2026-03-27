@@ -158,3 +158,10 @@ Already up to date.
 ===============================================================
   Claimed: Theme references stale sets — if a token set is deleted externally, theme configurations still reference it with no validation or warning; applying the theme silently skips the missing set
   Worktree: /tmp/backlog-98901-ppULPN
+
+  ✓ done: Theme references stale sets — if a token set is deleted externally, theme configurations still reference it with no validation or warning; applying the theme silently skips the missing set
+    Added red "X deleted sets" warning badge to ThemeManager option headers; clicking expands a list of the missing set names with explanation that they're silently skipped
+    20 turns · 186s · $0.63
+
+--- Merging: Theme references stale sets — if a token set is deleted externally, theme configurations still reference it with no validation or warning; applying the theme silently skips the missing set ---
+Already up to date.

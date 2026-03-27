@@ -394,3 +394,14 @@
   - The POST options endpoint doubles as create and update — same endpoint used by `handleAddOption` and `handleSetState`. Passing a new name creates a new option.
   - The option header row uses `group/opt` class on the outer div; fade-in buttons must be in a shared wrapper to avoid separate opacity transitions fighting each other.
 ---
+
+## 2026-03-27 - Theme references stale sets — no validation or warning
+- Added stale set detection to ThemeManager: when a theme option references sets (with 'enabled' or 'source' status) that no longer exist in the available sets list, a red "X deleted sets" badge appears on the option header.
+- Clicking the badge expands a detail section listing the missing set names with an explanation that their tokens are silently skipped when applying the theme.
+- Added `expandedStale` state alongside existing `expandedCoverage` state.
+- Stale detection: `Object.entries(opt.sets).filter(([s, status]) => !sets.includes(s) && status !== 'disabled')`
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L65 (expandedStale state), ~L497-504 (staleSetNames/hasStale computation), ~L520-532 (stale badge in option header), ~L623-635 (expanded stale detail section)
+- **Learnings for future iterations:**
+  - ThemeManager receives `sets: string[]` as a prop — this is the authoritative list of currently existing sets. Cross-referencing `opt.sets` keys against this prop is sufficient to detect stale references at render time with no additional API calls.
+  - Disabled stale sets (status 'disabled') are not flagged — only 'enabled' and 'source' status sets matter because those would have contributed tokens.
+---

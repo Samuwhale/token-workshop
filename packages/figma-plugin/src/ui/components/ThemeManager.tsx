@@ -62,6 +62,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
   // Coverage gaps
   const [coverage, setCoverage] = useState<CoverageMap>({});
   const [expandedCoverage, setExpandedCoverage] = useState<string | null>(null); // `${dimId}:${optionName}`
+  const [expandedStale, setExpandedStale] = useState<string | null>(null); // `${dimId}:${optionName}`
 
   // Per-option set ordering (determines override precedence)
   const [optionSetOrders, setOptionSetOrders] = useState<Record<string, Record<string, string[]>>>({});
@@ -521,6 +522,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
                     {dim.options.map(opt => {
                       const covKey = `${dim.id}:${opt.name}`;
                       const hasUncovered = (coverage[dim.id]?.[opt.name]?.uncovered.length ?? 0) > 0;
+                      const staleSetNames = Object.entries(opt.sets)
+                        .filter(([s, status]) => !sets.includes(s) && status !== 'disabled')
+                        .map(([s]) => s);
+                      const hasStale = staleSetNames.length > 0;
                       const optSets = optionSetOrders[dim.id]?.[opt.name] || sets;
                       return (
                         <div key={opt.name} className="group/opt">
@@ -536,6 +541,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
                                 >
                                   <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                   {coverage[dim.id][opt.name].uncovered.length} gaps
+                                </button>
+                              )}
+                              {hasStale && (
+                                <button
+                                  onClick={() => setExpandedStale(expandedStale === covKey ? null : covKey)}
+                                  className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] border border-[var(--color-figma-error)]/40 hover:bg-[var(--color-figma-error)]/25 transition-colors flex-shrink-0"
+                                  title={`${staleSetNames.length} set${staleSetNames.length !== 1 ? 's' : ''} referenced here no longer exist`}
+                                >
+                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                  {staleSetNames.length} deleted set{staleSetNames.length !== 1 ? 's' : ''}
                                 </button>
                               )}
                             </div>
@@ -642,6 +657,19 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
                               <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
                                 {coverage[dim.id][opt.name].uncovered.map(p => (
                                   <div key={p} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate">{p}</div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {expandedStale === covKey && hasStale && (
+                            <div className="border-t border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/10 px-3 py-2">
+                              <div className="text-[10px] font-medium text-[var(--color-figma-error)] mb-1">
+                                Deleted sets ({staleSetNames.length})
+                              </div>
+                              <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These sets are referenced as active or base in this option but no longer exist. Their tokens are silently skipped when applying this theme.</p>
+                              <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
+                                {staleSetNames.map(s => (
+                                  <div key={s} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate" title={s}>{s}</div>
                                 ))}
                               </div>
                             </div>

@@ -52,8 +52,8 @@
 
 ### QoL
 
-- [~] No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
-- [ ] Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
+- [x] No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
+- [~] Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
 - [ ] Drag-to-reorder set precedence has no keyboard alternative — reordering relies exclusively on pointer drag; keyboard-only users can't change precedence
 
 ### UX
