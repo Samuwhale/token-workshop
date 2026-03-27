@@ -83,6 +83,8 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   const varSyncResultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const varPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
   const applyPendingRef = useRef<Map<string, { resolve: () => void; reject: (err: Error) => void }>>(new Map());
+  const syncCancelledRef = useRef(false);
+  const syncFetchAbortRef = useRef<AbortController | null>(null);
 
   // Publish readiness state
   const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
@@ -253,9 +255,21 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
     return () => window.removeEventListener('message', handler);
   }, []);
 
+  const cancelVarSync = useCallback(() => {
+    syncCancelledRef.current = true;
+    syncFetchAbortRef.current?.abort();
+    for (const [cid, { reject }] of applyPendingRef.current) {
+      reject(new Error('cancelled'));
+      applyPendingRef.current.delete(cid);
+    }
+  }, []);
+
   const applyVarDiff = useCallback(async () => {
     const dirsSnapshot = varDirs;
     const rowsSnapshot = varRows;
+    syncCancelledRef.current = false;
+    const fetchController = new AbortController();
+    syncFetchAbortRef.current = fetchController;
     setVarSyncing(true);
     setVarError(null);
     try {
@@ -283,6 +297,8 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
         });
       }
 
+      if (syncCancelledRef.current) return;
+
       if (pullRows.length > 0) {
         await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/batch`, {
           method: 'POST',
@@ -295,8 +311,11 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
               $value: r.figmaValue ?? '',
             })),
           }),
+          signal: fetchController.signal,
         });
       }
+
+      if (syncCancelledRef.current) return;
 
       const syncedCount = pushRows.length + pullRows.length;
       setVarRows([]);
@@ -307,7 +326,9 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
       varSyncResultTimer.current = setTimeout(() => setVarSyncResult(null), 4000);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Variable sync applied' } }, '*');
     } catch (err) {
-      setVarError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      if (!syncCancelledRef.current) {
+        setVarError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      }
     } finally {
       setVarSyncing(false);
     }
@@ -711,18 +732,28 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
                             ].filter(Boolean).join(' · ')
                       }
                     </span>
-                    <button
-                      onClick={applyVarDiff}
-                      disabled={varSyncing || varSyncCount === 0}
-                      className="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                    >
-                      {varSyncing ? (
-                        <>
-                          <div className="w-2.5 h-2.5 rounded-full border-[1.5px] border-white/40 border-t-white animate-spin shrink-0" aria-hidden="true" />
-                          Syncing…
-                        </>
-                      ) : `Apply ${varSyncCount > 0 ? varSyncCount + ' change' + (varSyncCount !== 1 ? 's' : '') : ''}`}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {varSyncing && (
+                        <button
+                          onClick={cancelVarSync}
+                          className="inline-flex items-center text-[10px] px-2.5 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <button
+                        onClick={applyVarDiff}
+                        disabled={varSyncing || varSyncCount === 0}
+                        className="inline-flex items-center gap-1.5 text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                      >
+                        {varSyncing ? (
+                          <>
+                            <div className="w-2.5 h-2.5 rounded-full border-[1.5px] border-white/40 border-t-white animate-spin shrink-0" aria-hidden="true" />
+                            Syncing…
+                          </>
+                        ) : `Apply ${varSyncCount > 0 ? varSyncCount + ' change' + (varSyncCount !== 1 ? 's' : '') : ''}`}
+                      </button>
+                    </div>
                   </div>
                 </>
               );

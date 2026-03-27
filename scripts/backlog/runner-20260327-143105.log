@@ -205,3 +205,16 @@ Already up to date.
 
 --- Merging: Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert ---
 Already up to date.
+[main 4815aab] chore(backlog): done – Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert
+ 7 files changed, 207 insertions(+), 65 deletions(-)
+
+## 2026-03-27 - Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert
+- Added snapshot-based rollback to both sync operations in controller.ts:
+  1. `applyVariables()`: Before the token loop, records `{modeId: value}` snapshots of all pre-existing variables and tracks IDs of any newly created variables/collections. On error, restores original variable values and removes newly created variables/collections; reports `rolledBack: true/false` in the `apply-variables-error` message.
+  2. `syncBindings()`: Added `captureNodeProps()` / `restoreNodeProps()` helpers. Before processing each node, snapshots the property values that its bindings will modify (fills, strokes, padding, etc.) via JSON round-trip. Wrapped the batch loop in a try/catch; on unexpected outer error, restores all node snapshots and emits `sync-complete` with `rolledBack` status + Figma notification.
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  50 items remaining
+===============================================================
+  Claimed: No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel
+  Worktree: /tmp/backlog-98901-gW8RWD

@@ -212,3 +212,10 @@ Already up to date.
 ===============================================================
   Claimed: No pause/cancel for in-progress sync — once a bulk sync starts there's no way to stop it; a cancel button would prevent wasted time on wrong-set syncs
   Worktree: /tmp/backlog-98408-wNPEck
+
+  ✓ done: No pause/cancel for in-progress sync — once a bulk sync starts there's no way to stop it; a cancel button would prevent wasted time on wrong-set syncs
+    Added Cancel button in the sync footer that aborts push-phase (rejects pending Figma promise) and pull-phase (AbortController on fetch), stopping at the next safe checkpoint without showing an error.
+    17 turns · 190s · $0.57
+
+--- Merging: No pause/cancel for in-progress sync — once a bulk sync starts there's no way to stop it; a cancel button would prevent wasted time on wrong-set syncs ---
+Already up to date.

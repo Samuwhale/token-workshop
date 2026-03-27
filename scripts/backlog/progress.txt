@@ -360,3 +360,13 @@
   - Rollback code should be in the catch block OUTSIDE the main try, with its own inner try/catch to prevent rollback errors from hiding the original error.
   - New collections should only be removed on rollback if they're empty (newly created variables may have already been deleted).
 ---
+
+## 2026-03-27 - No pause/cancel for in-progress sync — once a bulk sync starts there's no way to stop it; a cancel button would prevent wasted time on wrong-set syncs
+- Added Cancel button that appears next to the Syncing… button during an active variable sync. Clicking it sets `syncCancelledRef`, aborts the pull-phase fetch, and rejects any pending Figma apply promise — stopping the sync at the earliest safe checkpoint without showing an error to the user.
+- Added two refs: `syncCancelledRef` (boolean flag checked between phases) and `syncFetchAbortRef` (AbortController passed to the pull fetch). Added `cancelVarSync` callback that sets the flag, aborts the fetch, and rejects pending Figma promises.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L78 (refs), ~L245 (cancelVarSync), ~L254 (applyVarDiff), ~L712 (Cancel button UI)
+- **Learnings for future iterations:**
+  - Two-phase async operations (message-passing + fetch) need two cancellation mechanisms: reject the pending promise map for the message-passing phase, and abort an AbortController for the fetch phase.
+  - Check `syncCancelledRef.current` between phases (not inside the promise) to avoid race conditions.
+  - Suppress error display on cancellation with `if (!syncCancelledRef.current)` in the catch block — cancellation is intentional, not an error.
+---
