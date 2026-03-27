@@ -50,7 +50,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [~] Theme dimension switcher: use segmented controls instead of dropdowns — dimensions with ≤5 options should render as inline pill/radio buttons so all options are visible at a glance without clicking; fall back to dropdown only for 6+ options (`App.tsx:1770-1814`)
+- [x] Theme dimension switcher: use segmented controls instead of dropdowns — dimensions with ≤5 options should render as inline pill/radio buttons so all options are visible at a glance without clicking; fall back to dropdown only for 6+ options (`App.tsx:1770-1814`)
 - [~] Collapse theme switcher bar to a badge at narrow plugin widths — the dimensions row wraps to multiple lines at small widths (≤360px), consuming 3+ rows of vertical space; collapse to a single "Light · Brand A" badge that expands on click (`App.tsx:1772-1827`)
 
 ---

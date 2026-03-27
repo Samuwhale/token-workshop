@@ -1,6 +1,14 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - Theme dimension switcher: use segmented controls instead of dropdowns
+- Dimensions with ≤5 options now render as an inline segmented control (connected pill buttons with shared border). Each option including "None" is always visible. Clicking a pill selects it immediately without a dropdown. Dimensions with 6+ options retain the existing dropdown.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1853
+- **Learnings for future iterations:**
+  - Segmented control pattern: wrap pills in `flex rounded overflow-hidden border border-[var(--color-figma-border)]`; each button gets `border-r border-[var(--color-figma-border)]` except the last; active pill uses accent bg, inactive uses bg-secondary.
+  - The threshold (≤5) applies to `dim.options.length`, not counting the "None" option.
+---
+
 ## 2026-03-27 - Composite token sub-property references
 - Added a `SubPropInput` component (above `TypographyEditor`) that renders a text input accepting either raw values or `{path.to.token}` alias syntax, showing `AliasAutocomplete` when `{` is typed.
 - Updated `TypographyEditor`, `ShadowEditor`, `BorderEditor` to accept `allTokensFlat` and `pathToSet` props and use `SubPropInput` for all text/number sub-property fields (fontFamily, fontSize, lineHeight, letterSpacing, offsetX, offsetY, blur, spread, color). Dimension fields (fontSize, width) conditionally render the original number+unit-select when not an alias, or `SubPropInput` when the stored value starts with `{`. Color fields hide the swatch when value is an alias.

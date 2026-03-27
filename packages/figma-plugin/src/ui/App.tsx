@@ -312,6 +312,7 @@ export function App() {
     && overflowPanel === null
     && activeTab === 'tokens'
     && (tokens.length > 0 || createFromEmpty);
+  const isNarrow = windowWidth <= 360;
 
   // Theme switcher state (multi-dimensional)
   type ThemeOption = { name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> };
@@ -340,6 +341,7 @@ export function App() {
   }, []);
   const [openDimDropdown, setOpenDimDropdown] = useState<string | null>(null);
   const dimDropdownRef = useRef<HTMLDivElement>(null);
+  const [dimBarExpanded, setDimBarExpanded] = useState(false);
 
   // Fetch dimensions
   useEffect(() => {
@@ -1853,6 +1855,38 @@ export function App() {
                   {dimensions.map(dim => {
                     const activeOption = activeThemes[dim.id];
                     const isOpen = openDimDropdown === dim.id;
+                    if (dim.options.length <= 5) {
+                      return (
+                        <div key={dim.id} className="flex items-center gap-1">
+                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{dim.name}:</span>
+                          <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)]">
+                            <button
+                              onClick={() => { const next = { ...activeThemes }; delete next[dim.id]; setActiveThemes(next); }}
+                              className={`px-2 py-0.5 text-[10px] transition-colors border-r border-[var(--color-figma-border)] ${
+                                !activeOption
+                                  ? 'bg-[var(--color-figma-accent)] text-white font-medium'
+                                  : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                              }`}
+                            >
+                              None
+                            </button>
+                            {dim.options.map((opt, i) => (
+                              <button
+                                key={opt.name}
+                                onClick={() => setActiveThemes({ ...activeThemes, [dim.id]: opt.name })}
+                                className={`px-2 py-0.5 text-[10px] transition-colors ${i < dim.options.length - 1 ? 'border-r border-[var(--color-figma-border)]' : ''} ${
+                                  activeOption === opt.name
+                                    ? 'bg-[var(--color-figma-accent)] text-white font-medium'
+                                    : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                                }`}
+                              >
+                                {opt.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={dim.id} className="relative flex items-center gap-1">
                         <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{dim.name}:</span>
