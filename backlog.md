@@ -65,7 +65,7 @@
 
 ### UX
 
-- [~] No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
+- [x] No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
 
 ---
 

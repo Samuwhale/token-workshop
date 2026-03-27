@@ -65,6 +65,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [failedImportPaths, setFailedImportPaths] = useState<string[]>([]);
+  const [succeededImportCount, setSucceededImportCount] = useState<number>(0);
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
@@ -300,7 +301,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       if (firstSet) onImportComplete(firstSet);
       setCollectionData([]);
       setSource(null);
-      if (failedCount > 0) setFailedImportPaths(failedPaths);
+      if (failedCount > 0) { setFailedImportPaths(failedPaths); setSucceededImportCount(importedTokens); }
       const successMsg = failedCount > 0
         ? `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''} — ${failedCount} token${failedCount !== 1 ? 's' : ''} could not be saved`
         : `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
@@ -534,7 +535,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             <div className="text-[11px] text-[var(--color-figma-success)] font-medium text-center">{successMessage}</div>
             {failedImportPaths.length > 0 && (
               <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
-                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium mb-1">Failed tokens:</div>
+                <div className="flex items-center gap-3 mb-1.5">
+                  <span className="text-[10px] text-[var(--color-figma-success)] font-medium">
+                    ✓ {succeededImportCount} succeeded
+                  </span>
+                  <span className="text-[10px] text-[var(--color-figma-error)] font-medium">
+                    ✗ {failedImportPaths.length} failed
+                  </span>
+                </div>
                 <ul className="text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
                   {failedImportPaths.slice(0, 5).map(p => (
                     <li key={p} className="font-mono truncate" title={p}>{p}</li>
@@ -546,7 +554,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               </div>
             )}
             <button
-              onClick={() => { setSuccessMessage(null); setFailedImportPaths([]); }}
+              onClick={() => { setSuccessMessage(null); setFailedImportPaths([]); setSucceededImportCount(0); }}
               className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
               Import more

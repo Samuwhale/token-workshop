@@ -300,3 +300,14 @@
   - For bulk undo of N property operations, snapshot all N bindings into a closure array before posting the message, then restore them with N sequential `apply-to-selection` posts in the undo handler.
   - "Clear all" button should only be shown when `totalBindings > 0` — no point displaying it for nodes with no bindings.
 ---
+
+## 2026-03-27 - ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded
+- Added `succeededImportCount` state to track how many tokens imported successfully during a partial failure
+- In `handleImportVariables`, set `succeededImportCount(importedTokens)` alongside `setFailedImportPaths` when failures exist
+- Updated the partial failure detail panel to show "✓ X succeeded  ✗ Y failed" counts at the top before listing failed paths
+- Clear `succeededImportCount` on dismiss alongside the other state resets
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L67 (state), ~L302 (set on import), ~L535 (display panel)
+- **Learnings for future iterations:**
+  - The variables import batch flow tracks `importedTokens` (count of successful imports) but loses it after `setSuccessMessage` — always keep numeric outcomes in dedicated state rather than encoding them only into message strings
+  - The styles/json import path (`executeImport`) does not have per-token failure granularity since the whole batch either succeeds or throws — no `failedImportPaths` are set there, so this panel only appears for the variables import path
+---

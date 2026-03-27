@@ -319,3 +319,10 @@ Already up to date.
 
 --- Merging: No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one ---
 Already up to date.
+[main 1e7adcf] chore(backlog): done – No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
+ 9 files changed, 107 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
+- Added a "Clear all" button in the SelectionInspector sync controls toolbar, visible when `totalBindings > 0`. Clicking it sends `clear-all-bindings` to the plugin, which iterates `ALL_BINDABLE_PROPERTIES` and calls `setSharedPluginData(..., '')` for each. Supports undo: snapshots all non-mixed bindings before clearing and re-applies them via `apply-to-selection` messages on restore.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L134 (new ClearAllBindingsMessage), `packages/figma-plugin/src/plugin/controller.ts` ~L44 (case handler) and ~L877 (clearAllBindings function), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L287 (handleClearAllBindings) and ~L608 (Clear all button)
+- **Learnings for future iterations:**
