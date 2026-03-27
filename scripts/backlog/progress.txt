@@ -124,3 +124,10 @@
 - **Learnings for future iterations:**
   - When renaming a group, aliases can reference the group path itself (e.g. `{colors}`) not just children (`{colors.red}`). Always handle the exact-match case separately from the prefix-with-dot case.
 ---
+
+## 2026-03-27 - Missing `return` after error `reply.send()` in sets.ts PATCH handlers and export.ts
+- Added `return` before `reply.status(500).send(...)` at sets.ts L60 (PATCH metadata handler), sets.ts L83 (POST rename handler), and export.ts L34 (POST export handler) to prevent "reply already sent" errors
+- Files changed: `packages/server/src/routes/sets.ts` ~L60,L83; `packages/server/src/routes/export.ts` ~L34
+- **Learnings for future iterations:**
+  - Fastify handlers that call `reply.send()` without `return` will continue executing after the response is sent, potentially triggering a second send and a "reply already sent" error. Always use `return reply.status(...).send(...)` in async handlers.
+---

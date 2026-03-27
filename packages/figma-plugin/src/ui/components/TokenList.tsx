@@ -10,7 +10,7 @@ import { QuickStartDialog } from './QuickStartDialog';
 import { BatchEditor } from './BatchEditor';
 import { TokenCanvas } from './TokenCanvas';
 import { TokenGraph } from './TokenGraph';
-import { hexToRgb, rgbToLab, colorDeltaE, stableStringify } from '../shared/colorUtils';
+import { hexToRgb, colorDeltaE, stableStringify } from '../shared/colorUtils';
 import { ValuePreview } from './ValuePreview';
 import { ColorPicker } from './ColorPicker';
 import type { SortOrder } from './tokenListUtils';
@@ -69,7 +69,6 @@ type DeleteConfirm =
 // ---------------------------------------------------------------------------
 // Color matching helpers for "Promote to Semantic" (US-026)
 // ---------------------------------------------------------------------------
-// hexToRgb, rgbToLab, colorDeltaE are imported from ../shared/colorUtils
 
 /** Find alias refs in JSON text that don't resolve to any known token path. */
 function validateJsonRefs(text: string, allTokensFlat: Record<string, any>): string[] {

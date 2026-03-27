@@ -31,7 +31,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         const results = await exportTokens(tokenData, platforms);
         return { results };
       } catch (err) {
-        reply.status(500).send({ error: 'Failed to export tokens', detail: String(err) });
+        return reply.status(500).send({ error: 'Failed to export tokens', detail: String(err) });
       }
     },
   );

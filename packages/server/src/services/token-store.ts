@@ -765,17 +765,27 @@ export class TokenStore {
 
   private deleteTokenAtPath(group: TokenGroup, tokenPath: string): boolean {
     const parts = tokenPath.split('.');
+    // Track the chain of parent objects so we can prune empty groups after deletion.
+    const chain: Array<{ obj: any; key: string }> = [];
     let current: any = group;
     for (let i = 0; i < parts.length - 1; i++) {
       if (!current[parts[i]]) return false;
+      chain.push({ obj: current, key: parts[i] });
       current = current[parts[i]];
     }
     const last = parts[parts.length - 1];
-    if (last in current) {
-      delete current[last];
-      return true;
+    if (!(last in current)) return false;
+    delete current[last];
+    // Walk back up and remove any parent group that is now empty.
+    for (let i = chain.length - 1; i >= 0; i--) {
+      const { obj, key } = chain[i];
+      if (Object.keys(obj[key]).length === 0) {
+        delete obj[key];
+      } else {
+        break;
+      }
     }
-    return false;
+    return true;
   }
 
   private async saveSet(name: string): Promise<void> {

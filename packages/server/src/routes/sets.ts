@@ -57,7 +57,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     } catch (err: any) {
       const msg: string = err?.message ?? String(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      reply.status(500).send({ error: 'Failed to update metadata', detail: msg });
+      return reply.status(500).send({ error: 'Failed to update metadata', detail: msg });
     }
   });
 
@@ -80,7 +80,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       const msg: string = err?.message ?? String(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
-      reply.status(500).send({ error: 'Failed to rename set', detail: msg });
+      return reply.status(500).send({ error: 'Failed to rename set', detail: msg });
     }
   });
 
