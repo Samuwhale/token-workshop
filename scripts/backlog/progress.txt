@@ -433,3 +433,10 @@
   - Raw JSON textarea approach works well for arbitrary structured data: live-validate on `onChange`, disable save on error, merge at save time with `Object.assign`. Pair with `extensionsJsonError` state feeding both inline error text and `canSave` guard.
   - `initialRef` type must be updated whenever new editable state fields are added to the editor — otherwise TypeScript won't enforce tracking initial vs. current values.
 ---
+
+## 2026-03-27 - bugfix-pass: cross-set pending highlight stuck for shared token paths
+- Bug: When navigating from the cross-set search to a token in a non-first set (e.g., navigating to `color.background.primary` in the "dark" set when "light" is first), the token was never highlighted. `useTokenNavigation` resolves the pending highlight by checking `pathToSet[pendingHighlight] === activeSet`, but `fetchAllTokensFlatWithSets` uses "first-set-wins" semantics (`if (!(path in pathToSet)) pathToSet[path] = setName`), so shared paths always map to the first set. The effect condition never matched for the second set.
+- Fix: Added `pendingHighlightSet` state to `useTokenNavigation`. Added `setPendingHighlightForSet(path, targetSet)` helper that sets both states. Changed effect condition to `(pendingHighlightSet ?? pathToSet[path]) === activeSet`. `handleNavigateToSet` in App.tsx now calls `setPendingHighlightForSet` instead of bare `setPendingHighlight` so the explicit target set is stored.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenNavigation.ts` ~L11,L22,L48; `packages/figma-plugin/src/ui/App.tsx` ~L205,L235
+- **Root cause:** `pathToSet` intentionally uses first-set-wins to build a flat cross-set alias map, but the same map was reused as a set-membership check — incorrect for shared paths.
+---

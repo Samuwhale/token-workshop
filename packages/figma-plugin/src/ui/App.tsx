@@ -202,7 +202,7 @@ export function App() {
   const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
   const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
   const [filteredSetCount, setFilteredSetCount] = useState<number | null>(null);
-  const { highlightedToken, setHighlightedToken, pendingHighlight, setPendingHighlight, createFromEmpty, setCreateFromEmpty, handleNavigateToAlias } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens);
+  const { highlightedToken, setHighlightedToken, pendingHighlight, setPendingHighlight, setPendingHighlightForSet, createFromEmpty, setCreateFromEmpty, handleNavigateToAlias } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -232,10 +232,10 @@ export function App() {
     if (targetSet === activeSet) {
       setHighlightedToken(tokenPath);
     } else {
-      setPendingHighlight(tokenPath);
+      setPendingHighlightForSet(tokenPath, targetSet);
       setActiveSet(targetSet);
     }
-  }, [activeSet, setHighlightedToken, setPendingHighlight, setActiveSet]);
+  }, [activeSet, setHighlightedToken, setPendingHighlightForSet, setActiveSet]);
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const [validateKey, setValidateKey] = useState(0);
   const [analyticsIssueCount, setAnalyticsIssueCount] = useState<number | null>(null);
