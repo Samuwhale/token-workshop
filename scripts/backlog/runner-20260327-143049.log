@@ -427,3 +427,10 @@ Already up to date.
 ===============================================================
   Claimed: Identical fetch-and-error pattern duplicated across 10+ call sites — the `fetch → check res.ok → catch → show error` sequence is copy-pasted; extract a shared `apiFetch` utility
   Worktree: /tmp/backlog-97510-gpLbeH
+
+  ✓ done: Identical fetch-and-error pattern duplicated across 10+ call sites — the `fetch → check res.ok → catch → show error` sequence is copy-pasted; extract a shared `apiFetch` utility
+    Created apiFetch<T> + ApiError in shared/apiFetch.ts; migrated 10 call sites across useGeneratorDialog.ts, App.tsx, ExportPanel.tsx, ImportPanel.tsx — build passes
+    56 turns · 414s · $1.56
+
+--- Merging: Identical fetch-and-error pattern duplicated across 10+ call sites — the `fetch → check res.ok → catch → show error` sequence is copy-pasted; extract a shared `apiFetch` utility ---
+Already up to date.

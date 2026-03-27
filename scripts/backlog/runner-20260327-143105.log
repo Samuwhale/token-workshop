@@ -479,3 +479,16 @@ Already up to date.
 
 --- Merging: `flattenLeafNodes` recomputed multiple times per render without memoization — recursive O(n) walk called at 4+ sites in TokenList on every render cycle ---
 Already up to date.
+[main 39ce384] chore(backlog): done – `flattenLeafNodes` recomputed multiple times per render without memoization — recursive O(n) walk called at 4+ sites in TokenList on every render cycle
+ 5 files changed, 34 insertions(+), 17 deletions(-)
+
+## 2026-03-27 - `flattenLeafNodes` recomputed multiple times per render without memoization
+- Added `const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens])` right after the `displayedTokens` useMemo. Replaced all 9 inline `flattenLeafNodes(displayedTokens)` call sites with `displayedLeafNodes`. Updated dep arrays in `useEffect`, `useMemo`, and `useCallback` to reference `displayedLeafNodes` instead of `displayedTokens` where the leaf list is the actual dependency.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L703
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 24 / 90  (claude)  —  5 items remaining
+===============================================================
+  Claimed: DELETE /api/sets/:name does not check if generators reference this set as `targetSet` before allowing deletion — leaves orphaned generators that error on next run
+  Worktree: /tmp/backlog-98901-c9oqXW

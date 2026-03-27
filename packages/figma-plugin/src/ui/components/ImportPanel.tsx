@@ -1,6 +1,7 @@
 import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
@@ -105,25 +106,20 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   };
 
   // Fetch available sets
-  const fetchSets = () => {
+  const fetchSets = async () => {
     if (!connected) return;
     setSetsError(null);
-    fetch(`${serverUrl}/api/sets`)
-      .then(res => {
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        const fetchedSets: string[] = data.sets || [];
-        setSets(fetchedSets);
-        setTargetSet(prev => {
-          if (fetchedSets.includes(prev)) return prev;
-          return fetchedSets[0] ?? prev;
-        });
-      })
-      .catch((err) => {
-        setSetsError(getErrorMessage(err, 'Failed to load sets'));
+    try {
+      const data = await apiFetch<{ sets?: string[] }>(`${serverUrl}/api/sets`);
+      const fetchedSets: string[] = data.sets || [];
+      setSets(fetchedSets);
+      setTargetSet(prev => {
+        if (fetchedSets.includes(prev)) return prev;
+        return fetchedSets[0] ?? prev;
       });
+    } catch (err) {
+      setSetsError(err instanceof Error ? err.message : 'Failed to load sets');
+    }
   };
   useEffect(() => {
     fetchSets();
@@ -356,34 +352,39 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       setImportProgress({ done: 0, total: allModes.length });
 
       for (const { mode, setName } of allModes) {
-        // Ensure set exists
-        const setRes = await fetch(`${serverUrl}/api/sets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: setName }),
-        });
-        if (!setRes.ok && setRes.status !== 409) {
-          throw new Error(`Failed to create set "${setName}": ${setRes.statusText}`);
+        // Ensure set exists (409 = already exists, which is fine)
+        try {
+          await apiFetch(`${serverUrl}/api/sets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: setName }),
+          });
+        } catch (err) {
+          if (!(err instanceof ApiError && err.status === 409)) {
+            throw new Error(`Failed to create set "${setName}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+          }
         }
 
         // Import tokens via batch endpoint
-        const batchRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tokens: mode.tokens.map(t => {
-              const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
-              if (t.$description) tok.$description = t.$description;
-              if (t.$scopes && t.$scopes.length > 0) tok.$scopes = t.$scopes;
-              return tok;
-            }),
-            strategy: 'overwrite',
-          }),
-        }).catch(() => null);
-        if (batchRes && batchRes.ok) {
-          const { imported } = await batchRes.json() as { imported: number; skipped: number };
+        try {
+          const { imported } = await apiFetch<{ imported: number; skipped: number }>(
+            `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tokens: mode.tokens.map(t => {
+                  const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
+                  if (t.$description) tok.$description = t.$description;
+                  if (t.$scopes && t.$scopes.length > 0) tok.$scopes = t.$scopes;
+                  return tok;
+                }),
+                strategy: 'overwrite',
+              }),
+            },
+          );
           importedTokens += imported;
-        } else {
+        } catch {
           for (const t of mode.tokens) failedPaths.push(t.path);
         }
         importedSets++;
@@ -461,32 +462,33 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
       setImportProgress({ done: 0, total: tokensToImport.length });
 
-      const setRes = await fetch(`${serverUrl}/api/sets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: targetSet }),
-      });
-      if (!setRes.ok && setRes.status !== 409) {
-        throw new Error(`Failed to create set "${targetSet}": ${setRes.statusText}`);
+      try {
+        await apiFetch(`${serverUrl}/api/sets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: targetSet }),
+        });
+      } catch (err) {
+        if (!(err instanceof ApiError && err.status === 409)) {
+          throw new Error(`Failed to create set "${targetSet}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+        }
       }
 
-      const batchRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tokens: tokensToImport.map(t => {
-            const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
-            if (t._warning) tok.$description = t._warning;
-            return tok;
+      const { imported } = await apiFetch<{ imported: number; skipped: number }>(
+        `${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tokens: tokensToImport.map(t => {
+              const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
+              if (t._warning) tok.$description = t._warning;
+              return tok;
+            }),
+            strategy,
           }),
-          strategy,
-        }),
-      });
-      if (!batchRes.ok) {
-        const errBody = await batchRes.json().catch(() => ({ error: batchRes.statusText }));
-        throw new Error(`Import failed: ${(errBody as { error?: string }).error ?? batchRes.statusText}`);
-      }
-      const { imported } = await batchRes.json() as { imported: number; skipped: number };
+        },
+      );
       setImportProgress({ done: tokensToImport.length, total: tokensToImport.length });
 
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Imported ${imported} tokens to "${targetSet}"` } }, '*');

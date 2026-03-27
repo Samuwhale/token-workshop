@@ -1,5 +1,6 @@
 import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 
 interface ExportPanelProps {
@@ -215,16 +216,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     try {
       const body: { platforms: string[]; sets?: string[] } = { platforms: Array.from(selected) };
       if (selectedSets !== null) body.sets = Array.from(selectedSets);
-      const res = await fetch(`${serverUrl}/api/export`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Export failed');
-      }
-      const data = await res.json();
+      const data = await apiFetch<{ results?: { platform: string; files: { path: string; content: string }[] }[] }>(
+        `${serverUrl}/api/export`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+      );
       const flatFiles: { platform: string; path: string; content: string }[] = [];
       for (const result of data.results || []) {
         for (const file of result.files || []) {
@@ -418,15 +413,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           return token;
         });
 
-        const batchRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tokens: batchTokens, strategy: 'overwrite' }),
         });
-        if (!batchRes.ok) {
-          const detail = await batchRes.json().catch(() => ({}));
-          throw new Error(`Failed to save tokens for "${setName}": ${(detail as any).error ?? batchRes.statusText}`);
-        }
       }
 
       const totalVars = figmaCollections.reduce((sum, c) => sum + c.variables.length, 0);

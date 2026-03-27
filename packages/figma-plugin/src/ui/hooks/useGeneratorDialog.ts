@@ -1,5 +1,6 @@
 import { getErrorMessage } from '../shared/utils';
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { apiFetch } from '../shared/apiFetch';
 import type {
   TokenGenerator,
   GeneratorType,
@@ -209,20 +210,11 @@ export function useGeneratorDialog({
           config: configs[selectedType],
           overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
         };
-        const res = await fetch(`${serverUrl}/api/generators/preview`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          signal: controller.signal,
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({})) as { error?: string };
-          setPreviewError(data.error || `Preview failed (${res.status})`);
-          setPreviewTokens([]);
-        } else {
-          const data = await res.json() as { count: number; tokens: GeneratedTokenResult[] };
-          setPreviewTokens(data.tokens ?? []);
-        }
+        const data = await apiFetch<{ count: number; tokens: GeneratedTokenResult[] }>(
+          `${serverUrl}/api/generators/preview`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal },
+        );
+        setPreviewTokens(data.tokens ?? []);
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
         setPreviewError(getErrorMessage(err, 'Preview failed'));
@@ -326,26 +318,14 @@ export function useGeneratorDialog({
         overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
         ...(isMultiBrand && inputTable ? { inputTable, targetSetTemplate: targetSetTemplate.trim() } : {}),
       };
-      let res: Response;
-      if (isEditing && existingGenerator) {
-        res = await fetch(`${serverUrl}/api/generators/${existingGenerator.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-      } else {
-        res = await fetch(`${serverUrl}/api/generators`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-      }
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { error?: string };
-        setSaveError(data.error || `Failed to save (${res.status})`);
-        setSaving(false);
-        return;
-      }
+      const saveUrl = isEditing && existingGenerator
+        ? `${serverUrl}/api/generators/${existingGenerator.id}`
+        : `${serverUrl}/api/generators`;
+      const savedGen = await apiFetch<{ id: string }>(saveUrl, {
+        method: isEditing && existingGenerator ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
       if (!isEditing) {
         let tokensForMapping = previewTokens;
         // In multi-brand mode, previewTokens is always [] because fetchPreview
@@ -353,7 +333,6 @@ export function useGeneratorDialog({
         // so the semantic mapping dialog can still be offered.
         if (tokensForMapping.length === 0 && isMultiBrand) {
           try {
-            const savedGen = await res.json() as { id: string };
             const tokensRes = await fetch(`${serverUrl}/api/generators/${savedGen.id}/tokens`);
             if (tokensRes.ok) {
               const tokensData = await tokensRes.json() as { tokens: GeneratedTokenResult[] };

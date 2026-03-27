@@ -342,3 +342,14 @@
 - **Learnings for future iterations:**
   - When memoizing a derived value that replaces a dep, update ALL dep arrays that previously listed the parent (`displayedTokens`) but only needed the derived result — otherwise the hooks still re-run on every `displayedTokens` change regardless.
 ---
+
+## 2026-03-27 - Identical fetch-and-error pattern duplicated across 10+ call sites — extract a shared `apiFetch` utility
+- Created `packages/figma-plugin/src/ui/shared/apiFetch.ts` exporting `ApiError` (extends Error, adds `status`) and `apiFetch<T>(url, options?)` which throws `ApiError` on non-OK responses after extracting `{ error }` from the response body.
+- Updated 10 call sites across 4 files: `useGeneratorDialog.ts` (preview fetch, save fetch), `App.tsx` (rename set, create set, delete set), `ExportPanel.tsx` (export endpoint, batch save), `ImportPanel.tsx` (fetchSets, Figma Variables import batch, JSON/styles import batch). Each site had its own `res.ok` check + `res.json().catch(() => ({}))` error extraction — now replaced with a single `await apiFetch(...)` call.
+- The 409-conflict case in set creation was preserved using `catch (err) { if (!(err instanceof ApiError && err.status === 409)) throw ... }`.
+- Files changed: `packages/figma-plugin/src/ui/shared/apiFetch.ts` (new), `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L1,L211,L320, `packages/figma-plugin/src/ui/App.tsx` ~L40,L565,L657,L673, `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L1,L217,L420, `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L1,L107,L355,L463
+- **Learnings for future iterations:**
+  - `ApiError` should extend `Error` and carry `status: number` — this lets callers distinguish "network down" (TypeError) from "server error" (ApiError) and allows status-based logic (e.g. 409 = already exists = OK).
+  - When a call site has `if (!res.ok) { ... return; }` and a separate `res.json()` on success, `apiFetch` simplifies it to a single awaited call whose return value is the parsed JSON.
+  - Best-effort batch loops (where per-item failures push to `failedPaths` rather than aborting) still benefit from `apiFetch` — just wrap each iteration in `try/catch`.
+---

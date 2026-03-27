@@ -37,7 +37,8 @@ import { useThemeSwitcher } from './hooks/useThemeSwitcher';
 import { useFigmaSync } from './hooks/useFigmaSync';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
-import { stableStringify, adaptShortcut, getErrorMessage } from './shared/utils';
+import { stableStringify, adaptShortcut } from './shared/utils';
+import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { flattenTokenGroup } from '@tokenmanager/core';
 
@@ -569,17 +570,12 @@ export function App() {
     }
     if (!connected) { cancelRename(); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(renamingSet)}/rename`, {
+      await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(renamingSet)}/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newName }),
         signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        setRenameError(data.error || 'Rename failed');
-        return;
-      }
       const oldName = renamingSet;
       if (activeSet === renamingSet) setActiveSet(newName);
       cancelRename();
@@ -587,7 +583,7 @@ export function App() {
       setSuccessToast(`Renamed set "${oldName}" → "${newName}"`);
     } catch (err) {
       if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
-      setRenameError('Rename failed');
+      setRenameError(err instanceof Error ? err.message : 'Rename failed');
     }
   };
 
@@ -661,17 +657,12 @@ export function App() {
     if (!SET_NAME_RE.test(name)) { setNewSetError('Use letters, numbers, - and _ (/ for folders)'); return; }
     if (!connected) { setCreatingSet(false); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/sets`, {
+      await apiFetch(`${serverUrl}/api/sets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
         signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setNewSetError((data as any).error || 'Failed to create set');
-        return;
-      }
       setCreatingSet(false);
       setNewSetName('');
       setNewSetError('');
@@ -679,18 +670,17 @@ export function App() {
       setSuccessToast(`Created set "${name}"`);
     } catch (err) {
       if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
-      setNewSetError('Network error');
+      setNewSetError(err instanceof Error ? err.message : 'Network error');
     }
   };
 
   const handleDeleteSet = async () => {
     if (!deletingSet || !connected) return;
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`, {
+      await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`, {
         method: 'DELETE',
         signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
       });
-      if (!res.ok) throw new Error(`Failed to delete set: ${res.statusText}`);
       const remaining = sets.filter(s => s !== deletingSet);
       setSets(remaining);
       if (activeSet === deletingSet) {
