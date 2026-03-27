@@ -117,3 +117,17 @@ Already up to date.
 
 --- Merging: Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown ---
 Already up to date.
+[main f23abb5] chore(backlog): done – Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
+ 6 files changed, 34 insertions(+), 5 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
+- Fixed `displayedLeafPaths` useMemo to use `crossSetResults.map(r => r.path)` when `crossSetResults !== null`, falling back to the existing `flattenLeafNodes(displayedTokens)` for normal mode. This makes the count display and select-all/deselect-all in the select-mode toolbar correctly reflect cross-set results.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1428
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  75 items remaining
+===============================================================
+  Claimed: ColorPicker hex input silently rejects invalid values — typing "#GGGGGG" shows no error message, no red border, just nothing happening
+  Worktree: /tmp/backlog-97955-KhApto

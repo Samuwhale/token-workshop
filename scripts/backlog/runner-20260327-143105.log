@@ -97,3 +97,10 @@ Already up to date.
 ===============================================================
   Claimed: Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
   Worktree: /tmp/backlog-98901-mkTEYe
+
+  ✓ done: Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
+    Added 3 new format options to the context menu: CSS var (var(--x-y)), SCSS var ($x-y), and alias ref ({x.y}), each with an inline preview of the formatted value
+    13 turns · 118s · $0.34
+
+--- Merging: Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format ---
+Already up to date.

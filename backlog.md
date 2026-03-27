@@ -28,12 +28,12 @@
 - [x] No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
 - [~] Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
 - [~] Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
-- [~] Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
+- [x] Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
 - [~] Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
 
 ### UX
 
-- [ ] ColorPicker hex input silently rejects invalid values — typing "#GGGGGG" shows no error message, no red border, just nothing happening
+- [~] ColorPicker hex input silently rejects invalid values — typing "#GGGGGG" shows no error message, no red border, just nothing happening
 - [ ] BatchEditor opacity allows out-of-range values (e.g. "150") that silently clamp to the slider max — disconnect between typed value and displayed result
 - [ ] BatchEditor scaling dimension tokens containing aliases (e.g. `{spacing.base} * 2`) fails silently with no feedback about why
 - [ ] PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive — mixing formats gives confusing results

@@ -291,3 +291,17 @@
 - **Learnings for future iterations:**
   - Cross-set paths are not namespaced by set — identical paths in different sets are deduped in the Set. This is acceptable since the cross-set result rows are navigation buttons, not individually selectable items.
 ---
+
+## 2026-03-27 - Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
+- Expanded the "Copy token path" context menu section from a single button into four format options:
+  1. "Copy path" → dot notation `color.primary.500` (existing C shortcut kept)
+  2. "Copy as CSS var" → `var(--color-primary-500)` (dots replaced with hyphens)
+  3. "Copy as SCSS var" → `$color-primary-500` (dots replaced with hyphens, $ prefix)
+  4. "Copy as alias ref" → `{color.primary.500}` (wrapped in curly braces)
+- Each button shows a preview of the formatted value inline in muted text so users can see what they'll get before clicking.
+- The inline "Copy path" row button is unchanged (still copies dot notation — most common use case).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L4343
+- **Learnings for future iterations:**
+  - When expanding a single action into multiple format variants, showing a live preview of the formatted value in the menu label eliminates guesswork for users.
+  - Alias reference format `{token.path}` requires escaping in JSX — use a template literal inside a JSX expression: `` {`{${node.path}}`} ``.
+---

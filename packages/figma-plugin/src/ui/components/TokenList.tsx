@@ -4399,7 +4399,37 @@ function TokenTreeNode({
               setContextMenuPos(null);
             }}
           >
-            <span>Copy token path</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">C</span>
+            <span>Copy path <span className="text-[var(--color-figma-text-tertiary)]">({node.path})</span></span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">C</span>
+          </button>
+          <button
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              navigator.clipboard.writeText(`var(--${node.path.replace(/\./g, '-')})`).catch(() => {});
+              setContextMenuPos(null);
+            }}
+          >
+            <span>Copy as CSS var <span className="text-[var(--color-figma-text-tertiary)]">(var(--{node.path.replace(/\./g, '-')}))</span></span>
+          </button>
+          <button
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              navigator.clipboard.writeText(`$${node.path.replace(/\./g, '-')}`).catch(() => {});
+              setContextMenuPos(null);
+            }}
+          >
+            <span>Copy as SCSS var <span className="text-[var(--color-figma-text-tertiary)]">(${node.path.replace(/\./g, '-')})</span></span>
+          </button>
+          <button
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              navigator.clipboard.writeText(`{${node.path}}`).catch(() => {});
+              setContextMenuPos(null);
+            }}
+          >
+            <span>Copy as alias ref <span className="text-[var(--color-figma-text-tertiary)]">({`{${node.path}}`})</span></span>
           </button>
           <button
             data-accel="v"
