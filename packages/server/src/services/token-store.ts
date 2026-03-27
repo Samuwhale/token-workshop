@@ -108,6 +108,7 @@ export class TokenStore {
     });
 
     this.watcher.on('unlink', (filePath) => {
+      if (this._writingFiles.has(filePath as string)) return;
       const filename = path.basename(filePath as string);
       const name = filename.replace('.tokens.json', '');
       this.sets.delete(name);
@@ -232,7 +233,9 @@ export class TokenStore {
     const set = this.sets.get(name);
     if (!set) return false;
     const filePath = path.join(this.dir, `${name}.tokens.json`);
+    this._writingFiles.add(filePath);
     await fs.unlink(filePath);
+    setTimeout(() => this._writingFiles.delete(filePath), 500);
     this.sets.delete(name);
     this.rebuildFlatTokens();
     return true;
@@ -242,7 +245,9 @@ export class TokenStore {
     const names = Array.from(this.sets.keys());
     for (const name of names) {
       const filePath = path.join(this.dir, `${name}.tokens.json`);
+      this._writingFiles.add(filePath);
       await fs.unlink(filePath).catch(() => {});
+      setTimeout(() => this._writingFiles.delete(filePath), 500);
     }
     this.sets.clear();
     this.rebuildFlatTokens();
@@ -262,7 +267,9 @@ export class TokenStore {
     const newFilePath = path.join(this.dir, `${newName}.tokens.json`);
 
     // Write new file first (safe: new name doesn't exist yet)
+    this._writingFiles.add(newFilePath);
     await fs.writeFile(newFilePath, JSON.stringify(set.tokens, null, 2));
+    setTimeout(() => this._writingFiles.delete(newFilePath), 500);
 
     // Update $themes.json: replace all references to oldName with newName
     const themesPath = path.join(this.dir, '$themes.json');
@@ -291,7 +298,9 @@ export class TokenStore {
     this.sets.delete(oldName);
 
     // Delete old file
+    this._writingFiles.add(oldFilePath);
     await fs.unlink(oldFilePath);
+    setTimeout(() => this._writingFiles.delete(oldFilePath), 500);
 
     this.rebuildFlatTokens();
     this.emit({ type: 'set-removed', setName: oldName });

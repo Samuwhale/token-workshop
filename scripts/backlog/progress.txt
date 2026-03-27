@@ -284,3 +284,10 @@
   - `windowWidth` state already exists — `isNarrow = windowWidth <= 360` is a one-liner derived value, no extra state needed.
   - Ternary-within-JSX-conditional pattern: `{condition && (narrow ? <badge/> : <full/>)}` requires wrapping the ternary in parens so the outer `&&` returns one element.
 ---
+
+## 2026-03-27 - applyDiffChoices pushes entire repo instead of only selected files
+- Added `git.add(toPush)` and `git.commit(...)` before `git.push()` so only the files the user marked 'push' are staged and committed. The `.catch()` on commit handles the edge case where files are already committed.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L132
+- **Learnings for future iterations:**
+  - `simple-git`'s `push()` pushes whatever is already committed — always stage+commit specific files first when per-file granularity is required.
+---

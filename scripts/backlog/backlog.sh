@@ -366,8 +366,8 @@ cleanup_if_needed() {
 }
 
 # ─── Periodic maintenance passes ──────────────────────────────────
-# Every 10 items: housekeeping pass (dead code, smells, cleanup).
-# Every 5 items (non-10): UI/UX/QOL pass.
+# Every 6 items: housekeeping pass (dead code, smells, cleanup).
+# Every 3 items (non-6): UI/UX/QOL pass.
 # Each is a separate focused agent session — clean context window.
 
 run_special_pass() {
@@ -446,8 +446,8 @@ run_special_pass() {
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
 CURRENT_COUNT=$(get_completed_count)
-NEXT_PASS_IN=$(( 5 - (CURRENT_COUNT % 5) ))
-NEXT_PASS_TYPE=$( [ $(( (CURRENT_COUNT + NEXT_PASS_IN) % 10 )) -eq 0 ] && echo "housekeeping" || echo "ux" )
+NEXT_PASS_IN=$(( 3 - (CURRENT_COUNT % 3) ))
+NEXT_PASS_TYPE=$( [ $(( (CURRENT_COUNT + NEXT_PASS_IN) % 6 )) -eq 0 ] && echo "housekeeping" || echo "ux" )
 
 echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iterations: $MAX_ITERATIONS"
 echo "  Remaining items: $(remaining)"
@@ -576,12 +576,12 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
       # Milestone maintenance passes (skip if stop was requested)
       TOTAL_DONE=$(increment_completed_count)
-      if [ $((TOTAL_DONE % 5)) -eq 0 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
+      if [ $((TOTAL_DONE % 3)) -eq 0 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
         cleanup_if_needed
         # Non-blocking pass lock: if another runner is already running a pass, skip
         if mkdir "$PASS_LOCKDIR" 2>/dev/null; then
           echo $$ > "$PASS_LOCKDIR/pid"
-          if [ $((TOTAL_DONE % 10)) -eq 0 ]; then
+          if [ $((TOTAL_DONE % 6)) -eq 0 ]; then
             run_special_pass "housekeeping"
           else
             run_special_pass "ux"
