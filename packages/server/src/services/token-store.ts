@@ -90,6 +90,7 @@ export class TokenStore {
     });
 
     this.watcher.on('change', async (filePath) => {
+      if (this._writingFiles.has(filePath as string)) return;
       const filename = path.basename(filePath as string);
       await this.loadSet(filename).catch(err =>
         console.warn(`[TokenStore] Error reloading "${filename}":`, err),
@@ -98,6 +99,7 @@ export class TokenStore {
     });
 
     this.watcher.on('add', async (filePath) => {
+      if (this._writingFiles.has(filePath as string)) return;
       const filename = path.basename(filePath as string);
       await this.loadSet(filename).catch(err =>
         console.warn(`[TokenStore] Error loading new file "${filename}":`, err),
@@ -208,13 +210,20 @@ export class TokenStore {
     this.emit({ type: 'token-updated', setName: name });
   }
 
-  async createSet(name: string, tokens?: TokenGroup): Promise<TokenSet> {
+  /** Write set to disk and register in memory, but skip rebuildFlatTokens(). */
+  private async _createSetNoRebuild(name: string, tokens: TokenGroup = {}): Promise<TokenSet> {
     const filename = `${name}.tokens.json`;
     const filePath = path.join(this.dir, filename);
-    const tokenData = tokens || {};
-    await fs.writeFile(filePath, JSON.stringify(tokenData, null, 2));
-    const set: TokenSet = { name, tokens: tokenData, filePath };
+    this._writingFiles.add(filePath);
+    await fs.writeFile(filePath, JSON.stringify(tokens, null, 2));
+    setTimeout(() => this._writingFiles.delete(filePath), 500);
+    const set: TokenSet = { name, tokens, filePath };
     this.sets.set(name, set);
+    return set;
+  }
+
+  async createSet(name: string, tokens?: TokenGroup): Promise<TokenSet> {
+    const set = await this._createSetNoRebuild(name, tokens);
     this.rebuildFlatTokens();
     return set;
   }
@@ -303,7 +312,7 @@ export class TokenStore {
     token = this.enrichFormulaExtension(token);
     let set = this.sets.get(setName);
     if (!set) {
-      set = await this.createSet(setName);
+      set = await this._createSetNoRebuild(setName);
     }
     this.setTokenAtPath(set.tokens, tokenPath, token);
     await this.saveSet(setName);
@@ -319,7 +328,8 @@ export class TokenStore {
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     if ('$value' in token && token.$value !== undefined) {
       const enriched = this.enrichFormulaExtension({ $value: token.$value, $extensions: token.$extensions ?? existing.$extensions });
-      if (enriched.$extensions !== (token.$extensions ?? existing.$extensions)) {
+      const originalExtensions = token.$extensions ?? existing.$extensions;
+      if (JSON.stringify(enriched.$extensions) !== JSON.stringify(originalExtensions)) {
         token = { ...token, $extensions: enriched.$extensions };
       }
     }
@@ -793,7 +803,9 @@ export class TokenStore {
     const set = this.sets.get(name);
     if (!set) return;
     const filePath = path.join(this.dir, `${name}.tokens.json`);
+    this._writingFiles.add(filePath);
     await fs.writeFile(filePath, JSON.stringify(set.tokens, null, 2));
+    setTimeout(() => this._writingFiles.delete(filePath), 500);
   }
 
   // ----- SSE support -----

@@ -152,3 +152,19 @@
 - **Learnings for future iterations:**
   - The "track parent chain, then prune upwards" pattern is the standard approach for tree deletion with orphan cleanup: record `{ obj, key }` pairs on the way down, iterate in reverse on the way up, break as soon as a non-empty group is found.
 ---
+
+## 2026-03-27 - `createToken` for a new set triggers 3 rebuilds: createSet + saveSet + watcher
+- Extracted private `_createSetNoRebuild` that writes the file and registers the set in memory without calling `rebuildFlatTokens()`. `createSet` delegates to it and still calls rebuild. `createToken` calls `_createSetNoRebuild` instead of `createSet`, so only the single explicit `rebuildFlatTokens()` at the end fires.
+- Added `_writingFiles: Set<string>` tracking to `saveSet` and `_createSetNoRebuild` — file paths are added before `writeFile` and removed after 500ms (> the 200ms `awaitWriteFinish` stabilityThreshold). Watcher `change` and `add` callbacks now skip if the path is in `_writingFiles`, preventing the deferred watcher-triggered rebuild for all internal writes.
+- Files changed: `packages/server/src/services/token-store.ts` ~L26,L91,L99,L212,L222,L307,L795
+- **Learnings for future iterations:**
+  - The watcher's `awaitWriteFinish: { stabilityThreshold: 200 }` means watcher events fire ~200ms after the write — always use a timeout longer than this when clearing file-write tracking (500ms is safe).
+  - The existing `beginBatch`/`endBatch` mechanism only defers explicit `rebuildFlatTokens()` calls; it can't suppress watcher-triggered rebuilds. A `_writingFiles` guard is the right tool for suppressing own-write watcher events.
+---
+
+## 2026-03-27 - `enrichFormulaExtension` identity-comparison always evaluates to `true`
+- Replaced the object reference comparison (`!==`) with a `JSON.stringify` content comparison. Also extracted `originalExtensions` to a const to avoid computing `token.$extensions ?? existing.$extensions` twice.
+- Files changed: `packages/server/src/services/token-store.ts` ~L331
+- **Learnings for future iterations:**
+  - Object identity (`!==`) is never correct for comparing the "before" and "after" of a function that may return a new object — use `JSON.stringify` or a deep-equal for structural comparison.
+---
