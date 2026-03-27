@@ -271,3 +271,11 @@
   - `previewTokens[i].path` is the full dot-separated path — directly matchable against the flat map keys from the set fetch
   - The diff section should be gated on `overwrittenEntries.length > 0` (not `isEditing`) because both new and existing generators can overwrite tokens if the target group already has content
 ---
+
+## 2026-03-27 - No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation
+- Added a `useEffect` in `TokenEditor.tsx` that listens for `(metaKey || ctrlKey) + s` and calls `handleSave()` when the save button would be enabled (not saving, canSave, and has changes).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L392 (new useEffect after existing Escape handler)
+- **Learnings for future iterations:**
+  - TokenEditor already had an Escape keydown useEffect — the Cmd+S shortcut follows the same pattern as a separate useEffect.
+  - The save guard mirrors the button's disabled condition: `!saving && canSave && (isCreateMode ? editPath.trim() : isDirty)`.
+---

@@ -386,3 +386,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 51)
+[main 3dfe5b9] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 229 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values
+- Added `flattenTokenGroup` helper to `useGeneratorDialog.ts` to flatten the nested DTCG token group returned by `GET /api/tokens/:set`
+- Added `existingSetTokens` state that fetches and caches all tokens for `targetSet` whenever it changes
+- Computed `overwrittenEntries` (path, type, oldValue, newValue) by diffing `previewTokens` against `existingSetTokens`
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  15 items remaining
+===============================================================
+  Claimed: Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected
+  Worktree: /tmp/backlog-97955-oL1IF4

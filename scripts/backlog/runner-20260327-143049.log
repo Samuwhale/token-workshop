@@ -387,3 +387,10 @@ Already up to date.
 ===============================================================
   Claimed: No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation
   Worktree: /tmp/backlog-97510-sCys4S
+
+  ✓ done: No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation
+    Added Cmd+S / Ctrl+S shortcut to TokenEditor via a new keydown useEffect that calls handleSave() when the save action is available
+    9 turns · 105s · $0.32
+
+--- Merging: No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation ---
+Already up to date.

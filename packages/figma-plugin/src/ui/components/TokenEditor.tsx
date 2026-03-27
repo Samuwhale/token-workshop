@@ -398,6 +398,19 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     return () => window.removeEventListener('keydown', handler);
   }, [onBack, isDirty, showDiscardConfirm, showAutocomplete]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        if (!saving && canSave && (isCreateMode ? editPath.trim() : isDirty)) {
+          handleSave();
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [saving, canSave, isCreateMode, editPath, isDirty, handleSave]);
+
   const handleSave = async () => {
     if (isCreateMode && !editPath.trim()) {
       setError('Token path cannot be empty');
