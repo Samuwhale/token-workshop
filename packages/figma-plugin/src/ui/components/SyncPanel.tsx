@@ -236,7 +236,12 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
         const pending = applyPendingRef.current.get(msg.correlationId);
         if (pending) {
           applyPendingRef.current.delete(msg.correlationId);
-          pending.reject(new Error(msg.message ?? 'Figma variable apply failed'));
+          const rollbackNote = msg.rolledBack === true
+            ? ' (changes rolled back)'
+            : msg.rolledBack === false
+              ? ' (rollback failed — some changes may persist)'
+              : '';
+          pending.reject(new Error((msg.message ?? 'Figma variable apply failed') + rollbackNote));
         }
       }
       if (msg?.type === 'orphans-deleted' && orphansResolveRef.current) {

@@ -198,3 +198,10 @@ Already up to date.
 ===============================================================
   Claimed: Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert
   Worktree: /tmp/backlog-98901-7mC8P3
+
+  ✓ done: Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert
+    Added snapshot-based rollback to applyVariables() (variable valuesByMode snapshots + created variable/collection tracking) and syncBindings() (node property snapshots via JSON round-trip), with rollback status surfaced in UI error messages.
+    25 turns · 376s · $0.99
+
+--- Merging: Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert ---
+Already up to date.

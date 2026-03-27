@@ -211,3 +211,17 @@ Already up to date.
 
 --- Merging: SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator — users can't tell if the current diff is still valid after making changes ---
 Already up to date.
+[main 2064fab] chore(backlog): done – SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator — users can't tell if the current diff is still valid after making changes
+ 6 files changed, 68 insertions(+), 17 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator
+- Added `varCheckedAt` and `diffCheckedAt` timestamp state vars. Set them on successful completion of `computeVarDiff` and `computeDiff`. Displayed as a dim "HH:MM" time string to the left of each Re-check button (hidden while loading or before first check). Users can now see exactly when the diff was last computed and judge whether it's stale after making changes.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L46 (helper), ~L62 (diffCheckedAt state), ~L75 (varCheckedAt state), ~L190 (set on var diff), ~L425 (set on git diff), ~L592 (var diff UI), ~L1060 (remote diff UI)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  51 items remaining
+===============================================================
+  Claimed: AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets
+  Worktree: /tmp/backlog-97510-Z5cSP1

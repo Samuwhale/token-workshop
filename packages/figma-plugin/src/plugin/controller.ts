@@ -127,6 +127,11 @@ function sampleSelectionColor() {
 
 // Apply tokens as Figma variables
 async function applyVariables(tokens: any[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, correlationId?: string) {
+  // Rollback tracking — populated before any mutations occur
+  const variableSnapshots = new Map<string, Record<string, VariableValue>>(); // varId → {modeId → value}
+  const createdVariableIds: string[] = [];
+  const createdCollectionIds: string[] = [];
+
   try {
     // Get or create collection by name, with caching
     const existingCollections = await figma.variables.getLocalVariableCollectionsAsync();
@@ -138,6 +143,7 @@ async function applyVariables(tokens: any[], collectionMap: Record<string, strin
       let col = collectionCache.get(name);
       if (!col) {
         col = figma.variables.createVariableCollection(name);
+        createdCollectionIds.push(col.id);
         collectionCache.set(name, col);
       }
       return col;
@@ -169,9 +175,14 @@ async function applyVariables(tokens: any[], collectionMap: Record<string, strin
       let variable: Variable;
 
       if (existing) {
+        // Snapshot current values before modifying so we can roll back on error
+        if (!variableSnapshots.has(existing.id)) {
+          variableSnapshots.set(existing.id, { ...existing.valuesByMode });
+        }
         variable = existing;
       } else {
         variable = figma.variables.createVariable(token.path, collection, variableType);
+        createdVariableIds.push(variable.id);
       }
 
       // Resolve the target mode: use modeMap if provided, otherwise fall back to first mode
@@ -201,7 +212,37 @@ async function applyVariables(tokens: any[], collectionMap: Record<string, strin
 
     figma.ui.postMessage({ type: 'variables-applied', count: tokens.length, correlationId });
   } catch (error) {
-    figma.ui.postMessage({ type: 'apply-variables-error', message: String(error), correlationId });
+    // Attempt to roll back all changes made before the failure
+    let rolledBack = false;
+    try {
+      // Restore original values for variables that existed before this operation
+      for (const [varId, snapshot] of variableSnapshots) {
+        const v = await figma.variables.getVariableByIdAsync(varId);
+        if (v) {
+          for (const [modeId, value] of Object.entries(snapshot)) {
+            try { v.setValueForMode(modeId, value as VariableValue); } catch { /* ignore individual restore errors */ }
+          }
+        }
+      }
+      // Delete variables created during this operation (reverse order)
+      for (const varId of [...createdVariableIds].reverse()) {
+        const v = await figma.variables.getVariableByIdAsync(varId);
+        if (v) { try { v.remove(); } catch { /* ignore */ } }
+      }
+      // Delete collections created during this operation if they are now empty
+      for (const colId of [...createdCollectionIds].reverse()) {
+        const cols = await figma.variables.getLocalVariableCollectionsAsync();
+        const col = cols.find(c => c.id === colId);
+        if (col) {
+          const allVars = await figma.variables.getLocalVariablesAsync();
+          const hasVars = allVars.some(v => v.variableCollectionId === colId);
+          if (!hasVars) { try { col.remove(); } catch { /* ignore */ } }
+        }
+      }
+      rolledBack = true;
+    } catch { /* rollback itself failed — partial state may persist */ }
+
+    figma.ui.postMessage({ type: 'apply-variables-error', message: String(error), correlationId, rolledBack });
   }
 }
 
@@ -1245,6 +1286,36 @@ async function remapBindings(remapMap: Record<string, string>, scope: 'selection
   await getSelection();
 }
 
+// Snapshot readable properties of a node for the given binding keys.
+// JSON round-trip ensures arrays/objects are deep-copied.
+function captureNodeProps(node: SceneNode, bindingProps: string[]): Record<string, unknown> {
+  const snap: Record<string, unknown> = {};
+  for (const prop of bindingProps) {
+    try {
+      const val = (node as Record<string, unknown>)[prop];
+      if (val !== undefined) {
+        snap[prop] = JSON.parse(JSON.stringify(val));
+      }
+    } catch { /* skip unreadable or unserializable properties */ }
+  }
+  return snap;
+}
+
+// Restore previously captured node properties.
+async function restoreNodeProps(node: SceneNode, snap: Record<string, unknown>): Promise<void> {
+  for (const [prop, val] of Object.entries(snap)) {
+    try {
+      if ((prop === 'width' || prop === 'height') && 'resize' in node) {
+        const rn = node as SceneNode & { resize(w: number, h: number): void; width: number; height: number };
+        if (prop === 'width') rn.resize(val as number, rn.height);
+        else rn.resize(rn.width, val as number);
+      } else {
+        (node as Record<string, unknown>)[prop] = val;
+      }
+    } catch { /* ignore individual restore errors */ }
+  }
+}
+
 // Sync all bindings on the page or selection with latest token values
 async function syncBindings(tokenMap: Record<string, { $value: any; $type: string }>, scope: 'page' | 'selection') {
   let nodes: SceneNode[];
@@ -1277,83 +1348,114 @@ async function syncBindings(tokenMap: Record<string, { $value: any; $type: strin
   const missingTokens = new Set<string>();
   const BATCH_SIZE = 50;
 
-  for (let i = 0; i < nodes.length; i += BATCH_SIZE) {
-    const batch = nodes.slice(i, i + BATCH_SIZE);
+  // Pre-operation snapshots: keyed by node id so we can restore on unexpected failure
+  const nodeSnapshots = new Map<string, { node: SceneNode; props: Record<string, unknown> }>();
 
-    for (const node of batch) {
-      // Collect bindings, including legacy remapping
-      const bindings: Record<string, string> = {};
-      for (const prop of ALL_BINDABLE_PROPERTIES) {
-        const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
-        if (val) bindings[prop] = val;
-      }
-      for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
-        if (!bindings[newKey]) {
-          const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
-          if (val) {
-            bindings[newKey] = val;
-            // Migrate legacy key to new key
-            node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, newKey, val);
-            node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey, '');
+  try {
+    for (let i = 0; i < nodes.length; i += BATCH_SIZE) {
+      const batch = nodes.slice(i, i + BATCH_SIZE);
+
+      for (const node of batch) {
+        // Collect bindings, including legacy remapping
+        const bindings: Record<string, string> = {};
+        for (const prop of ALL_BINDABLE_PROPERTIES) {
+          const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop);
+          if (val) bindings[prop] = val;
+        }
+        for (const [legacyKey, newKey] of Object.entries(LEGACY_KEY_MAP)) {
+          if (!bindings[newKey]) {
+            const val = node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey);
+            if (val) {
+              bindings[newKey] = val;
+              // Migrate legacy key to new key
+              node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, newKey, val);
+              node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey, '');
+            }
           }
         }
-      }
 
-      for (const [prop, tokenPath] of Object.entries(bindings)) {
-        const entry = tokenMap[tokenPath];
-        if (!entry) {
-          missingTokens.add(tokenPath);
-          skipped++;
-          continue;
+        // Snapshot current property values before any mutations on this node
+        if (!nodeSnapshots.has(node.id)) {
+          nodeSnapshots.set(node.id, { node, props: captureNodeProps(node, Object.keys(bindings)) });
         }
-        // Resolve alias references before applying — raw alias strings like
-        // "{color.primary}" would cause a type mismatch in applyTokenValue.
-        let value = entry.$value;
-        let type = entry.$type;
-        if (isAlias(value)) {
-          const resolved = resolveTokenValue(value, type, tokenMap);
-          if (resolved.error) {
-            console.warn(`Alias resolution failed for ${tokenPath}: ${resolved.error}`);
+
+        for (const [prop, tokenPath] of Object.entries(bindings)) {
+          const entry = tokenMap[tokenPath];
+          if (!entry) {
+            missingTokens.add(tokenPath);
             skipped++;
             continue;
           }
-          value = resolved.value;
-          type = resolved.$type;
+          // Resolve alias references before applying — raw alias strings like
+          // "{color.primary}" would cause a type mismatch in applyTokenValue.
+          let value = entry.$value;
+          let type = entry.$type;
+          if (isAlias(value)) {
+            const resolved = resolveTokenValue(value, type, tokenMap);
+            if (resolved.error) {
+              console.warn(`Alias resolution failed for ${tokenPath}: ${resolved.error}`);
+              skipped++;
+              continue;
+            }
+            value = resolved.value;
+            type = resolved.$type;
+          }
+          try {
+            await applyTokenValue(node, prop, value, type);
+            updated++;
+          } catch (err) {
+            console.error(`Sync error on ${node.name}.${prop}:`, err);
+            errors++;
+          }
         }
-        try {
-          await applyTokenValue(node, prop, value, type);
-          updated++;
-        } catch (err) {
-          console.error(`Sync error on ${node.name}.${prop}:`, err);
-          errors++;
-        }
+      }
+
+      // Report progress
+      figma.ui.postMessage({
+        type: 'sync-progress',
+        processed: Math.min(i + BATCH_SIZE, nodes.length),
+        total: nodes.length,
+      });
+
+      // Yield between batches
+      if (i + BATCH_SIZE < nodes.length) {
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
       }
     }
 
-    // Report progress
+    const missingArr = [...missingTokens];
     figma.ui.postMessage({
-      type: 'sync-progress',
-      processed: Math.min(i + BATCH_SIZE, nodes.length),
-      total: nodes.length,
+      type: 'sync-complete',
+      updated,
+      skipped,
+      errors,
+      missingTokens: missingArr,
     });
 
-    // Yield between batches
-    if (i + BATCH_SIZE < nodes.length) {
-      await new Promise<void>(resolve => setTimeout(resolve, 0));
-    }
+    const summary = `Synced: ${updated} updated, ${skipped} skipped${errors ? `, ${errors} errors` : ''}`;
+    figma.notify(summary);
+  } catch (outerError) {
+    // An unexpected error broke out of the batch loop — roll back all node changes applied so far
+    let rolledBack = false;
+    try {
+      for (const { node, props } of nodeSnapshots.values()) {
+        await restoreNodeProps(node, props);
+      }
+      rolledBack = true;
+    } catch { /* rollback itself failed */ }
+
+    figma.ui.postMessage({
+      type: 'sync-complete',
+      updated: 0,
+      skipped: 0,
+      errors: nodes.length,
+      missingTokens: [],
+      error: String(outerError),
+      rolledBack,
+    });
+
+    figma.notify(`Sync failed — ${rolledBack ? 'changes rolled back' : 'partial changes may persist'}`, { error: true });
   }
-
-  const missingArr = [...missingTokens];
-  figma.ui.postMessage({
-    type: 'sync-complete',
-    updated,
-    skipped,
-    errors,
-    missingTokens: missingArr,
-  });
-
-  const summary = `Synced: ${updated} updated, ${skipped} skipped${errors ? `, ${errors} errors` : ''}`;
-  figma.notify(summary);
 }
 
 // Listen for selection changes

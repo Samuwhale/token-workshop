@@ -346,3 +346,17 @@
   - Static "last checked at HH:MM" is simpler than a ticking "X ago" timer and avoids needing setInterval + re-render overhead. Sufficient for diffs that users run manually.
   - Wrap the button in a `flex items-center gap-1.5` div to add inline metadata without changing button layout.
 ---
+
+## 2026-03-27 - Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert
+- Added snapshot-based rollback to both sync operations in controller.ts:
+  1. `applyVariables()`: Before the token loop, records `{modeId: value}` snapshots of all pre-existing variables and tracks IDs of any newly created variables/collections. On error, restores original variable values and removes newly created variables/collections; reports `rolledBack: true/false` in the `apply-variables-error` message.
+  2. `syncBindings()`: Added `captureNodeProps()` / `restoreNodeProps()` helpers. Before processing each node, snapshots the property values that its bindings will modify (fills, strokes, padding, etc.) via JSON round-trip. Wrapped the batch loop in a try/catch; on unexpected outer error, restores all node snapshots and emits `sync-complete` with `rolledBack` status + Figma notification.
+- Updated `SyncPanel.tsx` error handler to append "(changes rolled back)" or "(rollback failed — some changes may persist)" to the displayed error message.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L128 (applyVariables rollback), ~L1289 (captureNodeProps/restoreNodeProps helpers + syncBindings rollback)
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L214 (rollback note in error)
+- **Learnings for future iterations:**
+  - Figma variables expose `variable.valuesByMode` as a `Record<modeId, VariableValue>` — spread-copy it for a shallow snapshot that's sufficient for rollback since VariableValue is a scalar (number/string/boolean/RGBA).
+  - For node property snapshots, JSON.parse(JSON.stringify(val)) is the safest deep-copy for Paint arrays; direct spread misses nested objects in gradient stops.
+  - Rollback code should be in the catch block OUTSIDE the main try, with its own inner try/catch to prevent rollback errors from hiding the original error.
+  - New collections should only be removed on rollback if they're empty (newly created variables may have already been deleted).
+---
