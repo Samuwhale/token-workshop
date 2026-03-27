@@ -1833,6 +1833,17 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
               <path d="M8 11h6M11 8v6" />
             </svg>
             <p className="mt-2 text-[11px] font-medium">No tokens match your filters</p>
+            {searchQuery && connected && (
+              <button
+                onClick={() => {
+                  setNewTokenPath(searchQuery);
+                  setShowCreateForm(true);
+                }}
+                className="mt-2 px-3 py-1 rounded text-[10px] bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+              >
+                Create &ldquo;{searchQuery}&rdquo;
+              </button>
+            )}
             <button
               onClick={clearFilters}
               className="mt-2 px-3 py-1 rounded text-[10px] bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
@@ -3121,7 +3132,14 @@ function TokenTreeNode({
           </div>
         </>
       ) : (
-        <ValuePreview type={node.$type} value={displayValue} />
+        <button
+          onClick={e => { e.stopPropagation(); handleCopyValue(); }}
+          title={copiedWhat === 'value' ? 'Copied!' : 'Copy value'}
+          aria-label={copiedWhat === 'value' ? 'Value copied' : 'Copy value to clipboard'}
+          className={`shrink-0 rounded cursor-copy focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] transition-shadow ${copiedWhat === 'value' ? 'ring-1 ring-[var(--color-figma-success)]' : 'hover:ring-1 hover:ring-[var(--color-figma-accent)]/50'}`}
+        >
+          <ValuePreview type={node.$type} value={displayValue} />
+        </button>
       )}
 
       {/* Name and info — single-click applies (non-select mode), double-click edits */}

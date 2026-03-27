@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { resolveRefValue } from '@tokenmanager/core';
+import { resolveRefValue, evalExpr, isFormula } from '@tokenmanager/core';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { ConfirmModal } from './ConfirmModal';
 import type { TokenMapEntry } from '../../shared/types';
@@ -603,12 +603,12 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
               <ValueDiff type={tokenType} before={initialRef.current.value} after={value} />
             )}
             {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} />}
-            {tokenType === 'dimension' && <DimensionEditor value={value} onChange={setValue} />}
+            {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} />}
             {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-            {tokenType === 'number' && <NumberEditor value={value} onChange={setValue} />}
+            {tokenType === 'number' && <NumberEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} />}
             {tokenType === 'duration' && <DurationEditor value={value} onChange={setValue} />}
             {tokenType === 'fontFamily' && <FontFamilyEditor value={value} onChange={setValue} />}
             {tokenType === 'fontWeight' && <FontWeightEditor value={value} onChange={setValue} />}
@@ -1111,6 +1111,27 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 const inputClass = 'w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]';
 const labelClass = 'text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5';
 
+function resolveFormulaPreview(
+  formula: string,
+  allTokensFlat: Record<string, TokenMapEntry>,
+): { result: number | null; error: string | null } {
+  try {
+    const substituted = formula.replace(/{([^}]+)}/g, (_, refPath: string) => {
+      const entry = allTokensFlat[refPath];
+      if (!entry) return '0';
+      const v = entry.$value;
+      if (typeof v === 'number') return String(v);
+      if (typeof v === 'object' && v !== null && 'value' in v && typeof (v as { value: unknown }).value === 'number') {
+        return String((v as { value: number }).value);
+      }
+      return '0';
+    });
+    return { result: evalExpr(substituted), error: null };
+  } catch (e) {
+    return { result: null, error: e instanceof Error ? e.message : 'Invalid expression' };
+  }
+}
+
 function ColorSwatchButton({ color, onChange, className = 'w-8 h-8' }: { color: string; onChange: (hex: string) => void; className?: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -1221,33 +1242,77 @@ const UNIT_CONVERSIONS: Record<string, Record<string, (v: number) => number>> = 
   '%': { px: v => v, rem: v => v, em: v => v },
 };
 
-function DimensionEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function DimensionEditor({ value, onChange, allTokensFlat = {} }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry> }) {
   const val = typeof value === 'object' ? value : { value: value ?? 0, unit: 'px' };
-  const numVal = parseFloat(val.value) || 0;
+  const isFormulaValue = typeof val.value === 'string' && isFormula(val.value);
+  const [formulaMode, setFormulaMode] = useState(isFormulaValue);
+  const numVal = formulaMode ? 0 : (parseFloat(val.value) || 0);
+  const formulaStr = formulaMode ? (typeof val.value === 'string' ? val.value : '') : '';
+  const preview = formulaMode && formulaStr ? resolveFormulaPreview(formulaStr, allTokensFlat) : null;
 
   const handleUnitChange = (newUnit: string) => {
+    if (formulaMode) {
+      onChange({ ...val, unit: newUnit });
+      return;
+    }
     const convert = UNIT_CONVERSIONS[val.unit]?.[newUnit];
     const newValue = convert ? convert(numVal) : numVal;
     onChange({ value: newValue, unit: newUnit });
   };
 
+  const toggleFormulaMode = () => {
+    if (formulaMode) {
+      onChange({ value: preview?.result ?? 0, unit: val.unit });
+      setFormulaMode(false);
+    } else {
+      onChange({ value: String(numVal), unit: val.unit });
+      setFormulaMode(true);
+    }
+  };
+
   return (
-    <div className="flex gap-2">
-      <StepperInput
-        value={numVal}
-        onChange={v => onChange({ ...val, value: v })}
-        className="flex-1"
-      />
-      <select
-        value={val.unit}
-        onChange={e => handleUnitChange(e.target.value)}
-        className={inputClass + ' w-16'}
-      >
-        <option value="px">px</option>
-        <option value="rem">rem</option>
-        <option value="em">em</option>
-        <option value="%">%</option>
-      </select>
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-2 items-center">
+        {formulaMode ? (
+          <input
+            type="text"
+            value={formulaStr}
+            onChange={e => onChange({ ...val, value: e.target.value })}
+            placeholder="{spacing.base} * 2"
+            className={inputClass + ' flex-1 font-mono'}
+            autoFocus
+          />
+        ) : (
+          <StepperInput
+            value={numVal}
+            onChange={v => onChange({ ...val, value: v })}
+            className="flex-1"
+          />
+        )}
+        <select
+          value={val.unit}
+          onChange={e => handleUnitChange(e.target.value)}
+          className={inputClass + ' w-16'}
+        >
+          <option value="px">px</option>
+          <option value="rem">rem</option>
+          <option value="em">em</option>
+          <option value="%">%</option>
+        </select>
+        <button
+          type="button"
+          onClick={toggleFormulaMode}
+          title={formulaMode ? 'Switch to literal value' : 'Enter expression'}
+          className={`shrink-0 px-1.5 py-1 rounded text-[10px] font-mono border transition-colors ${formulaMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
+        >
+          fx
+        </button>
+      </div>
+      {formulaMode && formulaStr && (
+        <div className={`px-2 py-1 rounded text-[10px] font-mono ${preview?.error ? 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-accent)]/5 border border-[var(--color-figma-accent)]/20'}`}>
+          {preview?.error ? preview.error : `= ${preview?.result} ${val.unit}`}
+        </div>
+      )}
     </div>
   );
 }
@@ -1572,12 +1637,57 @@ function BorderEditor({ value, onChange, allTokensFlat, pathToSet }: { value: an
   );
 }
 
-function NumberEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+function NumberEditor({ value, onChange, allTokensFlat = {} }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry> }) {
+  const isFormulaValue = typeof value === 'string' && isFormula(value);
+  const [formulaMode, setFormulaMode] = useState(isFormulaValue);
+  const numVal = formulaMode ? 0 : (parseFloat(value) || 0);
+  const formulaStr = formulaMode ? (typeof value === 'string' ? value : '') : '';
+  const preview = formulaMode && formulaStr ? resolveFormulaPreview(formulaStr, allTokensFlat) : null;
+
+  const toggleFormulaMode = () => {
+    if (formulaMode) {
+      onChange(preview?.result ?? 0);
+      setFormulaMode(false);
+    } else {
+      onChange(String(numVal));
+      setFormulaMode(true);
+    }
+  };
+
   return (
-    <StepperInput
-      value={parseFloat(value) || 0}
-      onChange={onChange}
-    />
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-2 items-center">
+        {formulaMode ? (
+          <input
+            type="text"
+            value={formulaStr}
+            onChange={e => onChange(e.target.value)}
+            placeholder="{spacing.base} * 2"
+            className={inputClass + ' flex-1 font-mono'}
+            autoFocus
+          />
+        ) : (
+          <StepperInput
+            value={numVal}
+            onChange={onChange}
+            className="flex-1"
+          />
+        )}
+        <button
+          type="button"
+          onClick={toggleFormulaMode}
+          title={formulaMode ? 'Switch to literal value' : 'Enter expression'}
+          className={`shrink-0 px-1.5 py-1 rounded text-[10px] font-mono border transition-colors ${formulaMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
+        >
+          fx
+        </button>
+      </div>
+      {formulaMode && formulaStr && (
+        <div className={`px-2 py-1 rounded text-[10px] font-mono ${preview?.error ? 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-accent)]/5 border border-[var(--color-figma-accent)]/20'}`}>
+          {preview?.error ? preview.error : `= ${preview?.result}`}
+        </div>
+      )}
+    </div>
   );
 }
 

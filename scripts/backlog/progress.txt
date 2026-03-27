@@ -192,3 +192,11 @@
 - Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L13
 - **Why:** Dead import — `hexToRgb` was never referenced in the file body. A prior housekeeping pass removed `rgbToLab` from the same file; this removes the other stale symbol from the same import line.
 ---
+
+## 2026-03-27 - Empty search → offer "Create token" shortcut
+- When `displayedTokens.length === 0 && filtersActive` and `searchQuery` is non-empty, a primary-styled "Create '{query}'" button now appears above "Clear filters". Clicking it pre-fills `newTokenPath` with the search query and opens the inline create form.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1828
+- **Learnings for future iterations:**
+  - The empty-filter state block has access to `searchQuery`, `connected`, `setNewTokenPath`, and `setShowCreateForm` — all in scope, no extra props needed.
+  - Button is conditionally rendered only when both `searchQuery` is non-empty and `connected` is true (no server = can't create).
+---

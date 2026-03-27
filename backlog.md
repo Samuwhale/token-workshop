@@ -58,7 +58,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] Copy token path to clipboard on row hover — show a copy icon on hover in token list rows so users can quickly grab the dotted path; currently requires opening the editor or switching to JSON view (`TokenList.tsx`)
 - [~] Copy resolved value to clipboard — add a one-click copy affordance on the value preview chip in list rows; useful for extracting values into code without opening the editor
 - [~] `n` keyboard shortcut to open new-token form — when the token list has focus and no input is active, pressing `n` should open the create form with the currently focused group path pre-filled as the path prefix
-- [ ] Empty search → offer "Create token" shortcut — when a search returns zero results, show a hint button "No tokens found — create '{query}'?" to streamline the search-then-create workflow (`TokenList.tsx`)
+- [x] Empty search → offer "Create token" shortcut — when a search returns zero results, show a hint button "No tokens found — create '{query}'?" to streamline the search-then-create workflow (`TokenList.tsx`)
 
 ### UX
 
