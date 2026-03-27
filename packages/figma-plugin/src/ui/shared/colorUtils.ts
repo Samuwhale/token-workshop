@@ -44,15 +44,11 @@ function rgbToLab(r: number, g: number, b: number): { L: number; a: number; b: n
 export function hexToLab(hex: string): [number, number, number] | null {
   const clean = hex.replace('#', '');
   if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
-  const r = toLinear(parseInt(clean.slice(0, 2), 16) / 255);
-  const g = toLinear(parseInt(clean.slice(2, 4), 16) / 255);
-  const b = toLinear(parseInt(clean.slice(4, 6), 16) / 255);
-  // Use same matrix coefficients as rgbToLab for consistency
-  const X = (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047;
-  const Y = (0.2126729 * r + 0.7151522 * g + 0.0721750 * b) / 1.00000;
-  const Z = (0.0193339 * r + 0.1191920 * g + 0.9503041 * b) / 1.08883;
-  const f = (t: number) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
-  return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+  const r = parseInt(clean.slice(0, 2), 16) / 255;
+  const g = parseInt(clean.slice(2, 4), 16) / 255;
+  const b = parseInt(clean.slice(4, 6), 16) / 255;
+  const lab = rgbToLab(r, g, b);
+  return [lab.L, lab.a, lab.b];
 }
 
 export function labToHex(L: number, a: number, b: number): string {

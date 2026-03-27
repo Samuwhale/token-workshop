@@ -1,0 +1,1 @@
+- [ ] Centralize `normalizeHex` — `AnalyticsPanel.tsx` defines a local `normalizeHex` that could live in `colorUtils.ts` and be reused

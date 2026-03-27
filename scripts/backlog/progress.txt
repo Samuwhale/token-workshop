@@ -282,3 +282,9 @@
   - The existing `doAction('checkout', { branch, create: true })` path was already fully wired server-side — only the UI was missing.
   - Hiding the pending-checkout confirm (`!showNewBranch`) prevents two confirmation panels appearing simultaneously.
 ---
+
+## 2026-03-27 - housekeeping: deduplicate XYZ matrix math in hexToLab
+- `hexToLab` was reimplementing the same XYZ conversion (3 matrix coefficient lines + f-function) that already existed verbatim in `rgbToLab`. Refactored `hexToLab` to call `rgbToLab` directly and unpack the result.
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L44
+- **Why:** The comment in the original even said "Use same matrix coefficients as rgbToLab for consistency" — the code was self-aware of the duplication but hadn't been fixed.
+---
