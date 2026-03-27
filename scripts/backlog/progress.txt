@@ -378,3 +378,11 @@
   - Cache key is set name; switching sets auto-invalidates. Ref-based cache (`existingPathsCacheRef`) avoids re-fetching when the user toggles checkboxes.
   - Variables import reuses the already-loaded `sets` prop to show new/existing badges without any extra API calls — cross-reference prop data before adding fetch calls.
 ---
+
+## 2026-03-27 - Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
+- Added duplicate brand name validation in `handleSave` in `useGeneratorDialog.ts`, immediately after the existing empty-name check. Case-insensitive comparison; error message names the offending duplicate.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L257
+- **Learnings for future iterations:**
+  - All save-time validation for the generator dialog lives in `handleSave` in `useGeneratorDialog.ts` — that's the single right place to add brand row checks.
+  - Case-insensitive comparison prevents `Berry` / `berry` collisions that would produce identical set paths.
+---

@@ -375,3 +375,10 @@ Already up to date.
 ===============================================================
   Claimed: Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
   Worktree: /tmp/backlog-98408-xhR1n5
+
+  ✓ done: Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
+    Added case-insensitive duplicate brand name check in handleSave; shows error naming the offending duplicate before any save occurs
+    7 turns · 73s · $0.27
+
+--- Merging: Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation ---
+Already up to date.

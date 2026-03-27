@@ -254,6 +254,9 @@ export function useGeneratorDialog({
     if (isMultiBrand && inputTable) {
       if (!targetSetTemplate.trim()) { setSaveError('Target set template is required for multi-brand mode.'); return; }
       if (inputTable.rows.some(r => !r.brand.trim())) { setSaveError('All brand rows must have a non-empty brand name.'); return; }
+      const brandNames = inputTable.rows.map(r => r.brand.trim().toLowerCase());
+      const duplicate = brandNames.find((b, i) => brandNames.indexOf(b) !== i);
+      if (duplicate) { setSaveError(`Duplicate brand name "${inputTable.rows.find(r => r.brand.trim().toLowerCase() === duplicate)!.brand.trim()}" — each brand name must be unique.`); return; }
     }
     setSaving(true);
     setSaveError('');

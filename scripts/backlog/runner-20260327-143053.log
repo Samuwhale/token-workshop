@@ -339,3 +339,17 @@ Already up to date.
 
 --- Merging: No import preview — users can't review what will be created/overwritten before committing ---
 Already up to date.
+[main 96325d0] chore(backlog): done – No import preview — users can't review what will be created/overwritten before committing
+ 6 files changed, 128 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - No import preview — users can't review what will be created/overwritten before committing
+- Added pre-import preview summary for styles/JSON imports: eagerly fetches existing token paths for the target set and displays "X new · Y will overwrite" counts in the footer before the user clicks Import.
+- Added "(new)" / "(existing)" badge next to each mode's set name in the Variables import mapping UI, using the already-loaded `sets` list for zero-cost status indication.
+- Preview updates automatically when the target set changes or new tokens are loaded. Cache is invalidated after a successful import.
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  24 items remaining
+===============================================================
+  Claimed: No search/filter in graph view — large dependency graphs have no way to locate a specific token node
+  Worktree: /tmp/backlog-97955-cyXdvj
