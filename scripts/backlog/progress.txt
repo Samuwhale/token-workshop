@@ -87,3 +87,10 @@
   - For multi-char operators (`**`), tokenize as a single token with lookahead — never handle them inside a lower-precedence parse function
   - Exponentiation is right-associative: `parsePow` recurses into itself for the RHS, not into `parseUnary`
 ---
+
+## 2026-03-27 - `lighten`/`darken` color modifiers silently swallow invalid hex input while `mix` throws — inconsistent error handling
+- Changed `if (!lab) break` in both `lighten` and `darken` cases to `throw new Error(...)` matching the pattern already used by `mix`
+- Files changed: `packages/core/src/color-modifier.ts` ~L25,32
+- **Learnings for future iterations:**
+  - Silent fallthrough (`break` on null) vs throw is a common inconsistency in switch-case modifier chains — scan all cases when fixing one
+---
