@@ -476,7 +476,10 @@ function ApplyForm({
 
         {/* Target prefix */}
         <div>
-          <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-1">Token prefix</label>
+          <label className="block text-[10px] font-medium text-[var(--color-figma-text)] mb-1">
+            Token prefix
+            <span className="ml-1 text-[var(--color-figma-error)]">*</span>
+          </label>
           <input
             type="text"
             value={prefix}
@@ -515,6 +518,16 @@ function ApplyForm({
         {error && (
           <p className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 px-2 py-1.5 rounded">
             {error}
+          </p>
+        )}
+
+        {!applying && (template.requiresSource && !sourceToken.trim() || !prefix.trim()) && (
+          <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+            {template.requiresSource && !sourceToken.trim() && !prefix.trim()
+              ? 'Source token and token prefix are required.'
+              : template.requiresSource && !sourceToken.trim()
+                ? 'Source token is required.'
+                : 'Token prefix is required.'}
           </p>
         )}
 

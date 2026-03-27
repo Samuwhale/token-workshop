@@ -311,3 +311,9 @@
   - The batch endpoint accepts `{ strategy: 'skip' | 'overwrite', tokens: [...] }` — use `'overwrite'` for pull/sync operations where Figma values should win.
   - No error handling change needed: a single fetch failure surfaces the same way as before (caught by the outer try/catch).
 ---
+
+## 2026-03-27 - ux-pass: GraphPanel "Apply template" button disabled with no explanation
+- Added a `*` required marker to the "Token prefix" label (it was missing, unlike "Source token" which already had one). Added an inline hint paragraph above the "Apply template" button that shows a context-specific message when the button would be disabled due to empty required fields: "Source token is required.", "Token prefix is required.", or both combined. The hint is only visible when fields are empty and not currently applying.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L479, ~L515
+- **User impact:** Users who open a template form and try to click "Apply template" now immediately see which field(s) they need to fill in, rather than facing a grey disabled button with no explanation.
+---
