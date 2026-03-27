@@ -627,17 +627,30 @@ export class TokenStore {
     const exactMatch = `{${oldGroupPath}}`;
     const oldPrefix = `{${oldGroupPath}.`;
     const newPrefix = `{${newGroupPath}.`;
+    const updateString = (s: string): string | null => {
+      if (s === exactMatch) return `{${newGroupPath}}`;
+      if (s.startsWith(oldPrefix)) return newPrefix + s.slice(oldPrefix.length);
+      return null;
+    };
+    const updateCompositeValue = (obj: any) => {
+      for (const k of Object.keys(obj)) {
+        const v = obj[k];
+        if (typeof v === 'string') {
+          const replaced = updateString(v);
+          if (replaced !== null) { obj[k] = replaced; count++; }
+        } else if (typeof v === 'object' && v !== null) {
+          updateCompositeValue(v);
+        }
+      }
+    };
     const walk = (obj: any) => {
       for (const key of Object.keys(obj)) {
         const val = obj[key];
         if (key === '$value' && typeof val === 'string') {
-          if (val === exactMatch) {
-            obj[key] = `{${newGroupPath}}`;
-            count++;
-          } else if (val.startsWith(oldPrefix)) {
-            obj[key] = newPrefix + val.slice(oldPrefix.length);
-            count++;
-          }
+          const replaced = updateString(val);
+          if (replaced !== null) { obj[key] = replaced; count++; }
+        } else if (key === '$value' && typeof val === 'object' && val !== null) {
+          updateCompositeValue(val);
         } else if (typeof val === 'object' && val !== null) {
           walk(val);
         }
@@ -650,15 +663,32 @@ export class TokenStore {
   /** Update alias $value references using a full path map (oldPath -> newPath) */
   private updateBulkAliasRefs(group: any, pathMap: Map<string, string>): number {
     let count = 0;
+    const updateString = (s: string): string | null => {
+      if (s.startsWith('{') && s.endsWith('}')) {
+        const refPath = s.slice(1, -1);
+        if (pathMap.has(refPath)) return `{${pathMap.get(refPath)}}`;
+      }
+      return null;
+    };
+    const updateCompositeValue = (obj: any) => {
+      for (const k of Object.keys(obj)) {
+        const v = obj[k];
+        if (typeof v === 'string') {
+          const replaced = updateString(v);
+          if (replaced !== null) { obj[k] = replaced; count++; }
+        } else if (typeof v === 'object' && v !== null) {
+          updateCompositeValue(v);
+        }
+      }
+    };
     const walk = (obj: any) => {
       for (const key of Object.keys(obj)) {
         const val = obj[key];
-        if (key === '$value' && typeof val === 'string' && val.startsWith('{') && val.endsWith('}')) {
-          const refPath = val.slice(1, -1);
-          if (pathMap.has(refPath)) {
-            obj[key] = `{${pathMap.get(refPath)}}`;
-            count++;
-          }
+        if (key === '$value' && typeof val === 'string') {
+          const replaced = updateString(val);
+          if (replaced !== null) { obj[key] = replaced; count++; }
+        } else if (key === '$value' && typeof val === 'object' && val !== null) {
+          updateCompositeValue(val);
         } else if (typeof val === 'object' && val !== null) {
           walk(val);
         }

@@ -87,3 +87,16 @@ Already up to date.
 
 --- Merging: moveGroup doesn't check for path collisions in target set ---
 Already up to date.
+[main cd41b9d] chore(backlog): done – moveGroup doesn't check for path collisions in target set
+ 5 files changed, 44 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - moveGroup doesn't check for path collisions in target set
+- Added collision detection before moving tokens in both `moveGroup` and `moveToken` methods.
+- `moveGroup`: For empty groups, checks if `groupPath` exists in target. For leaf tokens, collects all conflicting paths and throws a descriptive error listing up to 5 collisions.
+- `moveToken`: Checks if `tokenPath` exists in target before beginning the batch operation.
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  2 items remaining
+===============================================================
+  Claimed: SyncPanel shows no empty state when first loaded — unclear whether "nothing to sync" or "run a check first"
+  Worktree: /tmp/backlog-7333-JV69Sf

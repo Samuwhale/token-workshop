@@ -203,3 +203,11 @@
 - **Learnings for future iterations:**
   - `pathExistsAt` is the canonical existence check for token paths — reuse it for all move/copy/rename operations.
 ---
+
+## 2026-03-27 - updateAliasRefs only handles simple string $value
+- Both `updateAliasRefs` and `updateBulkAliasRefs` now handle composite/object `$value` fields (e.g. shadow `{ color: "{color.primary}" }`). When `$value` is an object, a dedicated `updateCompositeValue` walker updates alias strings in all nested properties.
+- Previously, the walk function recursed into objects but only checked `key === '$value'` for string replacement, so sub-properties like `color`, `offsetX` inside composite values were never updated during renames.
+- Files changed: `packages/server/src/services/token-store.ts` ~L625 (updateAliasRefs), ~L665 (updateBulkAliasRefs)
+- **Learnings for future iterations:**
+  - DTCG composite tokens (shadow, typography, gradient) store `$value` as an object with sub-properties that can individually be alias references. Any code walking token values for alias refs must handle both string and object `$value`.
+---
