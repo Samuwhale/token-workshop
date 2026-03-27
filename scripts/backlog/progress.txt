@@ -331,3 +331,13 @@
   - Platform detection pattern: `typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)` works in both browser and SSR contexts.
   - Centralizing modifier key symbols in `shared/utils.ts` prevents future Mac-only symbol drift — all new shortcut displays should use `adaptShortcut()` or `modKey`/`shiftKey`.
 ---
+
+## 2026-03-27 - No success toasts for set operations
+- Created `SuccessToast` component (`packages/figma-plugin/src/ui/components/SuccessToast.tsx`) — a lightweight auto-dismissing (3s) toast with green checkmark, matching UndoToast styling.
+- Added `successToast` state to App.tsx and `setSuccessToast()` calls after successful create, rename, delete, reorder, merge, split, and duplicate set operations.
+- SuccessToast renders only when UndoToast is not visible, avoiding overlap since they share the same fixed position.
+- Files changed: `packages/figma-plugin/src/ui/components/SuccessToast.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L12, ~L225, ~L566, ~L634, ~L610, ~L652, ~L676, ~L765, ~L821, ~L2609
+- **Learnings for future iterations:**
+  - The UndoToast is exclusively for undo/redo operations. For non-undoable success feedback, use a separate auto-dismissing SuccessToast.
+  - When multiple toasts share the same fixed position, gate rendering with `!toastVisible` to avoid visual overlap.
+---

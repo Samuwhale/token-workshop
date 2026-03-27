@@ -9,6 +9,7 @@ import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { SelectionInspector } from './components/SelectionInspector';
 import { UndoToast } from './components/UndoToast';
+import { SuccessToast } from './components/SuccessToast';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmptyState } from './components/EmptyState';
 import { PasteTokensModal } from './components/PasteTokensModal';
@@ -222,6 +223,7 @@ export function App() {
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo();
+  const [successToast, setSuccessToast] = useState<string | null>(null);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
   const [showPasteModal, setShowPasteModal] = useState(false);
@@ -557,9 +559,11 @@ export function App() {
         setRenameError(data.error || 'Rename failed');
         return;
       }
+      const oldName = renamingSet;
       if (activeSet === renamingSet) setActiveSet(newName);
       cancelRename();
       refreshTokens();
+      setSuccessToast(`Renamed set "${oldName}" → "${newName}"`);
     } catch {
       setRenameError('Rename failed');
     }
@@ -601,6 +605,7 @@ export function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: newOrder }),
       });
+      setSuccessToast('Set order updated');
     } catch {
       refreshTokens(); // revert on failure
     }
@@ -626,6 +631,7 @@ export function App() {
       setNewSetName('');
       setNewSetError('');
       refreshTokens();
+      setSuccessToast(`Created set "${name}"`);
     } catch {
       setNewSetError('Network error');
     }
@@ -640,8 +646,10 @@ export function App() {
     if (activeSet === deletingSet) {
       setActiveSet(remaining[0] ?? '');
     }
+    const name = deletingSet;
     setDeletingSet(null);
     refreshTokens();
+    setSuccessToast(`Deleted set "${name}"`);
   };
 
 
@@ -667,6 +675,7 @@ export function App() {
       return;
     }
     refreshTokens();
+    setSuccessToast(`Duplicated set "${setName}" → "${newName}"`);
   };
 
   // Flatten a nested token object to { [dotPath]: tokenEntry }
@@ -748,10 +757,12 @@ export function App() {
         }
       }
       await Promise.all(writes);
+      const srcName = mergingSet;
       setMergingSet(null);
       setMergeChecked(false);
       setActiveSet(mergeTargetSet);
       refreshTokens();
+      setSuccessToast(`Merged "${srcName}" into "${mergeTargetSet}"`);
     } catch {
       // ignore
     } finally {
@@ -803,8 +814,11 @@ export function App() {
         const remaining = sets.filter(s => s !== splittingSet);
         if (activeSet === splittingSet) setActiveSet(remaining[0] ?? '');
       }
+      const name = splittingSet;
+      const count = splitPreview.length;
       setSplittingSet(null);
       refreshTokens();
+      setSuccessToast(`Split "${name}" into ${count} sets`);
     } catch {
       // ignore
     } finally {
@@ -2601,6 +2615,11 @@ export function App() {
           onRedo={executeRedo}
           undoCount={undoCount}
         />
+      )}
+
+      {/* Success toast for set operations */}
+      {successToast && !toastVisible && (
+        <SuccessToast message={successToast} onDismiss={() => setSuccessToast(null)} />
       )}
 
       {/* Resize handle */}

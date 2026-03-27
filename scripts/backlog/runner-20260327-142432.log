@@ -37,3 +37,17 @@ Already up to date.
 
 --- Merging: Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users ---
 Already up to date.
+[main 4b5f9e2] chore(backlog): done – Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
+ 12 files changed, 66 insertions(+), 16 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
+- Added platform detection utilities (`isMac`, `modKey`, `shiftKey`, `adaptShortcut`) to `shared/utils.ts`. `adaptShortcut` replaces ⌘→Ctrl+ and ⇧→Shift+ on non-Mac platforms, leaving Mac unchanged.
+- Updated `KeyboardShortcutsModal.tsx` to call `adaptShortcut(key)` at render time so all shortcut labels adapt per platform.
+- Updated all other files with hardcoded Mac symbols: `App.tsx` (command palette trigger, paste menu item, command entry shortcut), `EmptyState.tsx` (⌘N hint), `PasteTokensModal.tsx` (⌘↵ tooltip), `SelectionInspector.tsx` (⌘⇧D tooltip).
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  94 items remaining
+===============================================================
+  Claimed: Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
+  Worktree: /tmp/backlog-80241-iYEr3l

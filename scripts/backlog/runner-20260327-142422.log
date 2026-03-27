@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: No success toasts for set operations — create, rename, delete, reorder, merge, and split all succeed silently; only errors are surfaced, leaving users uncertain whether the action took effect
   Worktree: /tmp/backlog-79425-qAufML
+
+  ✓ done: No success toasts for set operations
+    Added SuccessToast component and success feedback for create, rename, delete, reorder, merge, split, and duplicate set operations. Auto-dismisses after 3s.
+    29 turns · 266s · $1.04
+
+--- Merging: No success toasts for set operations ---
+Already up to date.
