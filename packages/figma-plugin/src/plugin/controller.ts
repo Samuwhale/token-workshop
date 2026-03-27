@@ -23,7 +23,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       await readFigmaVariables(msg.correlationId);
       break;
     case 'read-styles':
-      await readFigmaStyles();
+      await readFigmaStyles(msg.correlationId);
       break;
     case 'export-all-variables':
       await exportAllVariables();
@@ -519,7 +519,7 @@ async function readFigmaVariables(correlationId?: string) {
 }
 
 // Read existing Figma styles as tokens
-async function readFigmaStyles() {
+async function readFigmaStyles(correlationId?: string) {
   const tokens: any[] = [];
 
   const paintStyles = await figma.getLocalPaintStylesAsync();
@@ -623,7 +623,7 @@ async function readFigmaStyles() {
     }
   }
 
-  figma.ui.postMessage({ type: 'styles-read', tokens });
+  figma.ui.postMessage({ type: 'styles-read', tokens, correlationId });
 }
 
 // Apply a resolved token value to a specific node property

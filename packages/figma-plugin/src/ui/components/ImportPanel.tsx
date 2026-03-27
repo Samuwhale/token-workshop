@@ -126,9 +126,10 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setModeEnabled(enabled);
         setLoading(false);
       }
-      if (msg.type === 'styles-read' && pendingSourceRef.current === 'styles') {
+      if (msg.type === 'styles-read' && pendingSourceRef.current === 'styles' && msg.correlationId === correlationIdRef.current) {
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
         pendingSourceRef.current = null;
+        correlationIdRef.current = null;
         setTokens(msg.tokens || []);
         setSelectedTokens(new Set((msg.tokens || []).map((t: ImportToken) => t.path)));
         setTypeFilter(null);
@@ -167,13 +168,15 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
 
   const handleReadStyles = () => {
     pendingSourceRef.current = 'styles';
+    const cid = `import-${Date.now()}-${Math.random()}`;
+    correlationIdRef.current = cid;
     setSource('styles');
     setLoading(true);
     setTokens([]);
     setError(null);
     setSuccessMessage(null);
     startReadTimeout();
-    parent.postMessage({ pluginMessage: { type: 'read-styles' } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'read-styles', correlationId: cid } }, '*');
   };
 
   const handleReadJson = () => {

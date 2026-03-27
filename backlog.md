@@ -128,8 +128,8 @@ Items spotted during UX passes but out of scope for that session.
 - [x] ImportPanel: `handleImportVariables` individual token failures (L254 `.catch(() => null)`) only increment a counter — user sees "3 failed" but has no way to know which tokens failed or why; consider collecting failed paths and showing them in the success message
 - [~] ImportPanel: `styles-read` message handler (L116) has no correlationId check — if user clicks "Read Styles" twice quickly, a stale response from the first read could be consumed by the second, potentially showing outdated data; `variables-read` already has correlationId protection (L96)
 
-- [~] Remove unnecessary exports from hook files — `UseGeneratorsResult`, `UseGeneratorDialogParams`, `UseGeneratorDialogReturn`, `TokenGraphProps`, `QuickStartDialogProps`, `ParsedToken`, `parseInput`, `HeatmapNode` are exported but only used internally
-- [ ] Consolidate duplicate `ThemeOption`/`ThemeDimension` types — defined identically in `useThemeSwitcher.ts`, `ThemeCompare.tsx`, and `ThemeManager.tsx`; consumers should import from one place
+- [x] Remove unnecessary exports from hook files — `UseGeneratorsResult`, `UseGeneratorDialogParams`, `UseGeneratorDialogReturn`, `TokenGraphProps`, `QuickStartDialogProps`, `ParsedToken`, `parseInput`, `HeatmapNode` are exported but only used internally
+- [~] Consolidate duplicate `ThemeOption`/`ThemeDimension` types — defined identically in `useThemeSwitcher.ts`, `ThemeCompare.tsx`, and `ThemeManager.tsx`; consumers should import from one place
 - [ ] Remove unused `updateServerUrl` from `useServerConnection` return — returned from hook but never destructured by any caller
 - [ ] Remove unnecessary `rgbToHsl` export in `colorUtils.ts` — only used internally by `hexToHsl` in the same file
 - [ ] Remove unused `allSets` param from `UseGeneratorDialogParams` — accepted in interface but never read by hook body

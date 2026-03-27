@@ -82,3 +82,10 @@
 - **Learnings for future iterations:**
   - Straightforward cleanup — grep for imports of each symbol to confirm none are used externally before removing exports.
 ---
+
+## 2026-03-27 - ImportPanel: `styles-read` message handler has no correlationId check
+- Added correlationId generation and check to `handleReadStyles` + `styles-read` handler, mirroring the existing `variables-read` pattern. Also updated `readFigmaStyles()` in `controller.ts` to accept and forward `correlationId` in the `styles-read` postMessage.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L128 (handler check), ~L167 (handleReadStyles); `packages/figma-plugin/src/plugin/controller.ts` ~L26 (pass cid to readFigmaStyles), ~L522 (function signature), ~L579 (include correlationId in postMessage)
+- **Learnings for future iterations:**
+  - When adding correlationId to a sandbox→UI message round-trip, three places must change: (1) UI sender generates and stores cid, (2) sandbox handler receives and passes cid through, (3) UI message handler checks cid matches stored value.
+---
