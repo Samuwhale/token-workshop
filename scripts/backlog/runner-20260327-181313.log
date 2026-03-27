@@ -158,3 +158,16 @@ Already up to date.
 
 --- Merging: No color harmony suggestions in ColorPicker — no complementary, triadic, or analogous color suggestions when editing a color token, making systematic palette design harder ---
 Already up to date.
+[main 1398f4f] chore(backlog): done – No color harmony suggestions in ColorPicker — no complementary, triadic, or analogous color suggestions when editing a color token, making systematic palette design harder
+ 6 files changed, 76 insertions(+), 35 deletions(-)
+
+## 2026-03-27 - No color harmony suggestions in ColorPicker — no complementary, triadic, or analogous color suggestions when editing a color token, making systematic palette design harder
+- Added a "Harmonies" section at the bottom of the ColorPicker popover with three labeled rows: Comp (complementary, +180° hue), Triad (triadic, +120°/+240°), Analog (analogous, ±30°). Each row shows clickable color swatches; the current base color is highlighted with an accent ring. Clicking a non-base swatch updates hue/sat/lit while preserving alpha.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L217, ~L415, ~L435
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  3 items remaining
+===============================================================
+  Claimed: No custom export path or selector template — all CSS exports use `:root` selector with no option for scoped output like `.light { --color: ... }` or custom folder structures
+  Worktree: /tmp/backlog-59311-YYeYTp

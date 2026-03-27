@@ -367,3 +367,11 @@
   - The base color swatch in each row uses `baseIndex` (not hex comparison) to correctly handle achromatic colors where multiple harmony variants resolve to the same hex.
   - Alpha is preserved when applying a harmony color because `applyHarmonyColor` only sets hue/sat/lit from the 6-char hex, leaving the alpha state untouched.
 ---
+
+## 2026-03-27 - ThemeManager has no search/filter for token sets — configuring dimension options with 50+ sets requires scrolling through the entire list with no way to filter by name
+- Replaced per-option set filter (one input per option, keyed by `covKey`) with a single per-dimension filter input shown once above all options. The dimension filter applies to all options within that dimension simultaneously, so typing once filters every option's set list. Filter is shown when `sets.length >= 5`.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L84, ~L654, ~L641, ~L739
+- **Learnings for future iterations:**
+  - The per-option filter already existed but was hidden inside the legend bar and independent per-option — unhelpful for 50+ sets across multiple options. Moving the filter to dimension scope (one input for all options) is the right UX for repeated scrolling problems.
+  - When replacing a scoped filter with a parent-scoped one, check: (1) state key changes, (2) all filter application sites, (3) empty-state messages that reference the old state key, (4) the removed UI markup.
+---

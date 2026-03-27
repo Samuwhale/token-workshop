@@ -152,3 +152,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager has no search/filter for token sets — configuring dimension options with 50+ sets requires scrolling through the entire list with no way to filter by name
   Worktree: /tmp/backlog-59609-uqpzUN
+
+  ✓ done: ThemeManager has no search/filter for token sets — configuring dimension options with 50+ sets requires scrolling through the entire list with no way to filter by name
+    Replaced per-option filter inputs with a single dimension-level filter input that simultaneously filters sets in all options of that dimension
+    21 turns · 124s · $0.48
+
+--- Merging: ThemeManager has no search/filter for token sets — configuring dimension options with 50+ sets requires scrolling through the entire list with no way to filter by name ---
+Already up to date.
