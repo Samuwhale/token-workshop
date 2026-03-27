@@ -472,3 +472,10 @@ Already up to date.
 ===============================================================
   Claimed: `flattenLeafNodes` recomputed multiple times per render without memoization — recursive O(n) walk called at 4+ sites in TokenList on every render cycle
   Worktree: /tmp/backlog-98901-h5NWf9
+
+  ✓ done: `flattenLeafNodes` recomputed multiple times per render without memoization — recursive O(n) walk called at 4+ sites in TokenList on every render cycle
+    Added single useMemo for displayedLeafNodes after displayedTokens; replaced all 9 flattenLeafNodes(displayedTokens) call sites and updated dep arrays accordingly
+    30 turns · 115s · $0.45
+
+--- Merging: `flattenLeafNodes` recomputed multiple times per render without memoization — recursive O(n) walk called at 4+ sites in TokenList on every render cycle ---
+Already up to date.

@@ -351,7 +351,7 @@ export function TokenList({
     if (e.key === 'c' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
       if (selectMode && selectedPaths.size > 0) {
         e.preventDefault();
-        const nodes = flattenLeafNodes(displayedTokens).filter(n => selectedPaths.has(n.path));
+        const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
         copyTokensAsJson(nodes);
         return;
       }
@@ -359,7 +359,7 @@ export function TokenList({
       if (!isTyping) {
         const focusedPath = (document.activeElement as HTMLElement)?.dataset?.tokenPath;
         if (focusedPath) {
-          const node = flattenLeafNodes(displayedTokens).find(n => n.path === focusedPath);
+          const node = displayedLeafNodes.find(n => n.path === focusedPath);
           if (node) {
             e.preventDefault();
             copyTokensAsJson([node]);
@@ -699,6 +699,9 @@ export function TokenList({
     return result;
   }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths]);
 
+  // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
+  const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
+
   // Cross-set search: search across all sets when toggled on
   const crossSetResults = useMemo(() => {
     if (!crossSetSearch || !searchQuery.trim() || !perSetFlat) return null;
@@ -719,8 +722,8 @@ export function TokenList({
   // Report filtered leaf count to parent so set tabs can show "X / Y"
   useEffect(() => {
     if (!onFilteredCountChange) return;
-    onFilteredCountChange(filtersActive ? flattenLeafNodes(displayedTokens).length : null);
-  }, [displayedTokens, filtersActive, onFilteredCountChange]);
+    onFilteredCountChange(filtersActive ? displayedLeafNodes.length : null);
+  }, [displayedLeafNodes, filtersActive, onFilteredCountChange]);
 
   // Flat list of visible nodes for virtual scrolling (respects expand/collapse state)
   const flatItems = useMemo(
@@ -1477,7 +1480,7 @@ export function TokenList({
       // Range-select from the anchor to the current path
       const orderedPaths = viewMode === 'tree'
         ? flatItems.filter(i => !i.node.isGroup).map(i => i.node.path)
-        : flattenLeafNodes(displayedTokens).map(n => n.path);
+        : displayedLeafNodes.map(n => n.path);
       const anchorIdx = orderedPaths.indexOf(lastSelectedPathRef.current);
       const targetIdx = orderedPaths.indexOf(path);
       if (anchorIdx !== -1 && targetIdx !== -1) {
@@ -1500,18 +1503,18 @@ export function TokenList({
       return next;
     });
     lastSelectedPathRef.current = path;
-  }, [selectMode, viewMode, flatItems, displayedTokens]);
+  }, [selectMode, viewMode, flatItems, displayedLeafNodes]);
 
   const displayedLeafPaths = useMemo(
     () => crossSetResults !== null
       ? new Set(crossSetResults.map(r => r.path))
-      : new Set(flattenLeafNodes(displayedTokens).map(n => n.path)),
-    [displayedTokens, crossSetResults]
+      : new Set(displayedLeafNodes.map(n => n.path)),
+    [displayedLeafNodes, crossSetResults]
   );
 
   const selectedLeafNodes = useMemo(
-    () => flattenLeafNodes(displayedTokens).filter(n => selectedPaths.has(n.path)),
-    [displayedTokens, selectedPaths]
+    () => displayedLeafNodes.filter(n => selectedPaths.has(n.path)),
+    [displayedLeafNodes, selectedPaths]
   );
 
   const handleSelectAll = () => {
@@ -1866,7 +1869,7 @@ export function TokenList({
                 </button>
                 <button
                   onClick={() => {
-                    const nodes = flattenLeafNodes(displayedTokens).filter(n => selectedPaths.has(n.path));
+                    const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
                     copyTokensAsJson(nodes);
                   }}
                   className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -2319,7 +2322,7 @@ export function TokenList({
         ) : viewMode === 'grid' ? (
           /* Grid view — color swatch palette */
           (() => {
-            const leaves = flattenLeafNodes(displayedTokens);
+            const leaves = displayedLeafNodes;
             const colorLeaves = leaves.filter(l => l.$type === 'color');
             if (colorLeaves.length === 0) {
               const filterIsBlockingColors = typeFilter !== '' && typeFilter !== 'color';
@@ -2444,7 +2447,7 @@ export function TokenList({
                 </tr>
               </thead>
               <tbody>
-                {flattenLeafNodes(displayedTokens).length === 0 && filtersActive ? (
+                {displayedLeafNodes.length === 0 && filtersActive ? (
                   <tr>
                     <td colSpan={showScopesCol ? 4 : 3} className="py-8 text-center text-[10px] text-[var(--color-figma-text-secondary)]">
                       No tokens match your filters —{' '}
@@ -2453,7 +2456,7 @@ export function TokenList({
                       </button>
                     </td>
                   </tr>
-                ) : flattenLeafNodes(displayedTokens).map(leaf => {
+                ) : displayedLeafNodes.map(leaf => {
                   const leafScopes = Array.isArray(leaf.$extensions?.['com.figma.scopes'])
                     ? (leaf.$extensions!['com.figma.scopes'] as string[])
                     : [];

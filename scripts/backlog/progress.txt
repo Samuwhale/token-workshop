@@ -335,3 +335,10 @@
   - The dependents data was already fetched and in state — the fix was purely additive to the existing confirmation UI.
   - Inline conditional rendering with `{dependents.length > 0 && (...)}` inside a `<p>` tag using `block mt-1` on the inner `<span>` gives a clean two-line confirmation message.
 ---
+
+## 2026-03-27 - `flattenLeafNodes` recomputed multiple times per render without memoization
+- Added `const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens])` right after the `displayedTokens` useMemo. Replaced all 9 inline `flattenLeafNodes(displayedTokens)` call sites with `displayedLeafNodes`. Updated dep arrays in `useEffect`, `useMemo`, and `useCallback` to reference `displayedLeafNodes` instead of `displayedTokens` where the leaf list is the actual dependency.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L703
+- **Learnings for future iterations:**
+  - When memoizing a derived value that replaces a dep, update ALL dep arrays that previously listed the parent (`displayedTokens`) but only needed the derived result — otherwise the hooks still re-run on every `displayedTokens` change regardless.
+---
