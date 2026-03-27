@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - Hide set precedence hint bar until drag starts
+- Changed render condition from `sets.length > 1` to `sets.length > 1 && dragSetName` so the hint bar only appears during an active drag operation
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1611
+- **Learnings for future iterations:**
+  - The existing `dragSetName` state (set on dragStart, cleared on dragEnd/drop) is the canonical drag-active signal — no new state needed.
+---
+
 ## 2026-03-27 - ThemeManager useEffect missing `onDimensionsChange` in dependency array
 - Added `onDimensionsChange` to the useEffect dependency array at ThemeManager.tsx:61
 - Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L61

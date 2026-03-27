@@ -22,12 +22,12 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
-- [~] Hide set precedence hint bar until drag starts — "← lower precedence · drag to reorder · higher precedence →" is always visible whenever there are 2+ sets; only show it during an active drag (or fade it in on first hover and dismiss after a few seconds) to reduce visual noise (`App.tsx:1612-1615`)
+- [x] Hide set precedence hint bar until drag starts — "← lower precedence · drag to reorder · higher precedence →" is always visible whenever there are 2+ sets; only show it during an active drag (or fade it in on first hover and dismiss after a few seconds) to reduce visual noise (`App.tsx:1612-1615`)
 - [~] Persist preview split-view panel ratio to localStorage — the split ratio resets to default on every reload (`App.tsx`, `showPreviewSplit` state)
 
 ### UX
 
-- [ ] Search match count per set — when filtering/searching tokens, set tabs only show static total count; should show filtered match count (e.g. "3 / 47") so users know which set to look in (`App.tsx:1657-1658`)
+- [~] Search match count per set — when filtering/searching tokens, set tabs only show static total count; should show filtered match count (e.g. "3 / 47") so users know which set to look in (`App.tsx:1657-1658`)
 - [ ] Rename "Graph" tab to "Generators" — the current label doesn't communicate purpose to new users; the tab hosts generator templates and the pipeline dependency view, not a graph of token relationships (`App.tsx:132-136`)
 - [ ] Publish tab dirty indicator — show a small dot badge on the Publish tab when there are uncommitted local git changes, matching the pattern VS Code uses for modified editor tabs; gives users a heads-up without switching to the tab
 - [ ] "···" theme-manage button needs accessible label/tooltip — the ellipsis button in the theme switcher bar (`App.tsx:1819-1825`) has no `title` or `aria-label`; at minimum add `title="Manage theme dimensions"`
