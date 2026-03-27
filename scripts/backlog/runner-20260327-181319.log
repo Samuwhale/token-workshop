@@ -109,3 +109,16 @@ Already up to date.
 
 --- Merging: Export route merges all sets into one namespace with silent overwrites — `deepMergeInto` merges all requested sets into a single flat object, so if two sets define the same token path, the second silently overwrites the first with no warning ---
 Already up to date.
+[main 8e5d64a] chore(backlog): done – Export route merges all sets into one namespace with silent overwrites — `deepMergeInto` merges all requested sets into a single flat object, so if two sets define the same token path, the second silently overwrites the first with no warning
+ 7 files changed, 64 insertions(+), 11 deletions(-)
+
+## 2026-03-27 - Export route merges all sets into one namespace with silent overwrites — `deepMergeInto` merges all requested sets into a single flat object, so if two sets define the same token path, the second silently overwrites the first with no warning
+- Added `conflicts: string[]` and `prefix: string` parameters to `deepMergeInto` so it tracks which token paths are overwritten during multi-set merges. Updated the merge loop in `exportTokens` to collect per-set conflicts, log server-side `console.warn` messages, and accumulate all warnings into a `warnings: string[]` field returned alongside `results`. Added `ExportTokensResult` interface. Updated the export route to destructure `{ results, warnings }` and include `warnings` in the response (omitted when empty).
+- Files changed: `packages/server/src/services/style-dict.ts` ~L10, ~L148, ~L185, `packages/server/src/routes/export.ts` ~L82
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  11 items remaining
+===============================================================
+  Claimed: Token delete does not warn about dependent tokens — deleting a token that other tokens alias silently breaks downstream references; the server should block or warn like it does for set deletion
+  Worktree: /tmp/backlog-59883-bzVlFj

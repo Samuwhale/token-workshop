@@ -91,3 +91,10 @@ Already up to date.
 ===============================================================
   Claimed: Batch editor find-and-replace has no regex support — only literal string matching is available, so common refactors like renaming `spacing.*` to `dimension.*` require manual work per token
   Worktree: /tmp/backlog-59609-bZtqOp
+
+  ✓ done: Batch editor find-and-replace has no regex support — only literal string matching is available, so common refactors like renaming `spacing.*` to `dimension.*` require manual work per token
+    Added .* toggle button inside find input; regex mode uses JS RegExp with g flag for both preview and rename, with inline error display for invalid patterns
+    14 turns · 102s · $0.33
+
+--- Merging: Batch editor find-and-replace has no regex support — only literal string matching is available, so common refactors like renaming `spacing.*` to `dimension.*` require manual work per token ---
+Already up to date.

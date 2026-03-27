@@ -298,3 +298,12 @@
   - Collecting conflicts via a passed-by-reference array (`conflicts: string[]`) is cleaner than returning them — avoids changing the recursive function's return type while still threading information out.
   - Spreading `...(warnings.length > 0 && { warnings })` keeps the response compact when there are no conflicts (omits the field entirely rather than sending an empty array).
 ---
+
+## 2026-03-27 - Batch editor find-and-replace has no regex support — only literal string matching is available, so common refactors like renaming `spacing.*` to `dimension.*` require manual work per token
+- Added a `.*` toggle button inside the find input field (right edge). When active, the find text is treated as a JavaScript regex (with `g` flag). Invalid patterns show an inline error below the row and disable the Rename button. Preview count uses `new RegExp(findText).test(path)`; the actual rename uses `path.replace(new RegExp(findText, 'g'), replaceText)` (supports capture group back-references like `$1`).
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L71, ~L125, ~L297, ~L509
+- **Learnings for future iterations:**
+  - Regex `g` flag must be freshly constructed per call in `handleRename` — reusing the same `/g` RegExp instance advances `lastIndex` across calls, producing incorrect matches. Use `new RegExp(findText, 'g')` inside the loop.
+  - `useMemo` for parsed regex needs to depend on `regexError` to avoid caching a stale invalid result; alternatively use a try/catch inside the memo.
+  - Position the toggle button with `absolute right-0.5` inside a `relative` wrapper div so the input's `pr-7` padding keeps text from sliding under the button.
+---

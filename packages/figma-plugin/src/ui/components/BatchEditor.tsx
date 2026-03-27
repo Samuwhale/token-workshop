@@ -70,6 +70,7 @@ export function BatchEditor({
   const [targetSet, setTargetSet] = useState('');
   const [findText, setFindText] = useState('');
   const [replaceText, setReplaceText] = useState('');
+  const [useRegex, setUseRegex] = useState(false);
   const [applying, setApplying] = useState(false);
   const [moving, setMoving] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -121,13 +122,28 @@ export function BatchEditor({
 
   const canMove = targetSet !== '' && !moving;
 
+  // Regex parsing for find/replace
+  const regexError = useMemo(() => {
+    if (!useRegex || !findText) return null;
+    try { new RegExp(findText); return null; } catch (e) { return (e as Error).message; }
+  }, [useRegex, findText]);
+
+  const parsedRegex = useMemo(() => {
+    if (!useRegex || !findText || regexError) return null;
+    try { return new RegExp(findText, 'g'); } catch { return null; }
+  }, [useRegex, findText, regexError]);
+
   // Find/replace: count tokens whose paths would change
   const renamePreview = useMemo(() => {
     if (!findText) return 0;
+    if (useRegex) {
+      if (regexError || !parsedRegex) return 0;
+      return selectedEntries.filter(({ path }) => new RegExp(findText).test(path)).length;
+    }
     return selectedEntries.filter(({ path }) => path.includes(findText)).length;
-  }, [findText, selectedEntries]);
+  }, [findText, useRegex, parsedRegex, regexError, selectedEntries]);
 
-  const canRename = findText !== '' && renamePreview > 0 && !renaming;
+  const canRename = findText !== '' && renamePreview > 0 && !renaming && !regexError;
 
   const encodedPath = (path: string) =>
     path.split('.').map(encodeURIComponent).join('/');
@@ -294,7 +310,9 @@ export function BatchEditor({
 
   const handleRename = async () => {
     if (!connected || !canRename) return;
-    const toRename = selectedEntries.filter(({ path }) => path.includes(findText));
+    const toRename = useRegex && parsedRegex
+      ? selectedEntries.filter(({ path }) => new RegExp(findText).test(path))
+      : selectedEntries.filter(({ path }) => path.includes(findText));
     setRenaming(true);
     setFeedback(null);
     try {
@@ -302,7 +320,9 @@ export function BatchEditor({
       let succeeded = 0;
       let failed = 0;
       for (const { path } of toRename) {
-        const newPath = path.split(findText).join(replaceText);
+        const newPath = useRegex && parsedRegex
+          ? path.replace(new RegExp(findText, 'g'), replaceText)
+          : path.split(findText).join(replaceText);
         if (newPath !== path) {
           try {
             const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
@@ -508,14 +528,31 @@ export function BatchEditor({
         {/* Find / Replace rename */}
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Find/replace</span>
-          <input
-            ref={findTextRef}
-            type="text"
-            value={findText}
-            onChange={e => setFindText(e.target.value)}
-            placeholder="find in path…"
-            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
-          />
+          <div className="flex-1 min-w-0 relative">
+            <input
+              ref={findTextRef}
+              type="text"
+              value={findText}
+              onChange={e => setFindText(e.target.value)}
+              placeholder="find in path…"
+              className={`w-full h-6 pl-1.5 pr-7 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none ${
+                regexError
+                  ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
+                  : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
+              }`}
+            />
+            <button
+              onClick={() => setUseRegex(v => !v)}
+              title={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
+              className={`absolute right-0.5 top-0.5 h-5 w-6 rounded text-[9px] font-mono flex items-center justify-center transition-colors ${
+                useRegex
+                  ? 'bg-[var(--color-figma-accent)] text-white'
+                  : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover,rgba(0,0,0,0.06))]'
+              }`}
+            >
+              .*
+            </button>
+          </div>
           <input
             type="text"
             value={replaceText}
@@ -526,12 +563,15 @@ export function BatchEditor({
           <button
             onClick={handleRename}
             disabled={!connected || !canRename}
-            title={!connected ? 'Not connected to server' : !findText ? 'Enter text to find in token paths' : renamePreview === 0 ? 'No selected tokens match the find text' : `Rename ${renamePreview} token path${renamePreview === 1 ? '' : 's'}`}
+            title={!connected ? 'Not connected to server' : !findText ? 'Enter text to find in token paths' : regexError ? `Invalid regex: ${regexError}` : renamePreview === 0 ? 'No selected tokens match the find text' : `Rename ${renamePreview} token path${renamePreview === 1 ? '' : 's'}`}
             className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {renaming ? '…' : `Rename${renamePreview > 0 ? ` ${renamePreview}` : ''}`}
           </button>
         </div>
+        {regexError && (
+          <div className="ml-[80px] text-[10px] text-[var(--color-figma-error)] leading-tight">{regexError}</div>
+        )}
 
         {/* Move to set — only when multiple sets exist */}
         {otherSets.length > 0 && (
