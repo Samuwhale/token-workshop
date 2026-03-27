@@ -372,3 +372,10 @@
 - **Learnings for future iterations:**
   - Always verify the current state before assuming a backlog item is still valid — this consolidation was already completed.
 ---
+
+## 2026-03-27 - Inline editing limited to color/boolean — string, dimension, and number tokens require opening the full editor panel
+- Already implemented. `INLINE_SIMPLE_TYPES` at TokenList.tsx ~L117 includes 'string', 'dimension', 'number' (and more). Click-to-edit span (~L3950), inline input (~L3925), `getEditableString()` (~L120), `parseInlineValue()` (~L132), and `handleInlineSave` (~L1019) are all wired up and functional.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Always verify backlog items against current code before implementing — features may have been added in prior sessions without marking the item done.
+---

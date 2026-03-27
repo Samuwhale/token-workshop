@@ -56,3 +56,23 @@ Already up to date.
 
 --- Merging: Consolidate duplicate ThemeOption/ThemeDimension types ---
 Already up to date.
+[main ae6e9aa] chore(backlog): done – Consolidate duplicate ThemeOption/ThemeDimension types
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - Consolidate duplicate ThemeOption/ThemeDimension types
+- Already done: types are defined once in `packages/core/src/types.ts` and all three consumers (`useThemeSwitcher.ts`, `ThemeCompare.tsx`, `ThemeManager.tsx`) already import from `@tokenmanager/core`.
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  11 items remaining
+===============================================================
+  Claimed: Inline editing limited to color/boolean — string, dimension, and number tokens require opening the full editor panel to change values; inline click-to-edit for simple scalar types would save a round-trip to the editor
+  Worktree: /tmp/backlog-44348-kCXqPj
+
+  ✓ done: Inline editing limited to color/boolean — string, dimension, and number tokens require opening the full editor panel
+    stale — already done. INLINE_SIMPLE_TYPES already includes string/dimension/number with full click-to-edit UI, parseInlineValue, and handleInlineSave wired up.
+    11 turns · 147s · $0.52
+
+--- Merging: Inline editing limited to color/boolean — string, dimension, and number tokens require opening the full editor panel ---
+Already up to date.
