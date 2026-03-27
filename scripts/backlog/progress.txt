@@ -228,3 +228,11 @@
 - Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L179, ~L232, ~L403; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L715, ~L722, ~L740, ~L751, ~L759, ~L876, ~L893, ~L904, ~L917, ~L932, ~L958; `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L49, ~L79, ~L105; `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L420
 - **Root cause:** The first bugfix pass caught 7 instances in create/delete handlers but missed the remaining ~15 URL constructions in group management, inline save, token fetch, and export paths. These were added at different times and weren't part of the original encoding sweep.
 ---
+
+## 2026-03-27 - POST /api/sync/push missing remote check
+- Added pre-flight `getRemote()` check to both `/sync/push` and `/sync/pull` endpoints. If no remote is configured, returns 400 with `{ error: "No remote configured", detail: "Set a remote URL via POST /api/sync/remote before pushing/pulling." }` instead of letting git throw a cryptic error wrapped in a 500.
+- Files changed: `packages/server/src/routes/sync.ts` ~L66-83
+- **Learnings for future iterations:**
+  - The `/sync/pull` endpoint had the same missing-remote issue as `/sync/push` — always check sibling endpoints for the same class of bug.
+  - Pre-existing TS errors in the server package (generators.ts, docs.ts, style-dict.ts) are from core type mismatches — not blockers for route-level changes.
+---

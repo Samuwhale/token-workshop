@@ -108,7 +108,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 Items spotted during UX passes but out of scope for that session.
 
-- [ ] `POST /api/sync/push` doesn't check whether a remote is configured before attempting push — git error from missing remote is wrapped in a generic "Failed to push" 500 with no actionable message (`server/routes/sync.ts:65-73`)
+- [x] `POST /api/sync/push` doesn't check whether a remote is configured before attempting push — git error from missing remote is wrapped in a generic "Failed to push" 500 with no actionable message (`server/routes/sync.ts:65-73`)
 - [ ] `POST /api/sync/remote` accepts any string as the remote URL with no format validation — an invalid value is passed directly to git, producing an unhelpful error message wrapped in a generic 500 (`server/routes/sync.ts:104-116`)
 - [HIGH] Bulk-rename regex has no ReDoS protection — `isRegex=true` with a catastrophic backtracking pattern (e.g. `(a+)+b`) applied to a large token set can hang the Node.js event loop (`server/services/token-store.ts:803-809`)
 

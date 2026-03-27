@@ -65,6 +65,13 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/sync/push — push to remote
   fastify.post('/sync/push', async (_request, reply) => {
     try {
+      const remote = await fastify.gitSync.getRemote();
+      if (!remote) {
+        return reply.status(400).send({
+          error: 'No remote configured',
+          detail: 'Set a remote URL via POST /api/sync/remote before pushing.',
+        });
+      }
       await fastify.gitSync.push();
       return { pushed: true };
     } catch (err) {
@@ -75,6 +82,13 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/sync/pull — pull from remote
   fastify.post('/sync/pull', async (_request, reply) => {
     try {
+      const remote = await fastify.gitSync.getRemote();
+      if (!remote) {
+        return reply.status(400).send({
+          error: 'No remote configured',
+          detail: 'Set a remote URL via POST /api/sync/remote before pulling.',
+        });
+      }
       await fastify.gitSync.pull();
       return { pulled: true };
     } catch (err) {
