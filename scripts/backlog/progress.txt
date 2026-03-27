@@ -1,6 +1,15 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - Cross-set token search
+- Added "All sets" toggle button to the search bar (only shown when `sets.length > 1`). When active with a non-empty query, replaces the token tree with a flat list grouped by set name. Each result row shows a color swatch (for color tokens), token path, and type badge. Clicking a result calls `onNavigateToSet(setName, path)` which switches to the target set and highlights the token (with pending-highlight support for cross-set navigation).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L42,L65,L180,L457,L567,L1750,L1830; `packages/figma-plugin/src/ui/App.tsx` ~L232,L2088
+- **Learnings for future iterations:**
+  - `perSetFlat` (`Record<string, Record<string, TokenMapEntry>>`) was already computed in App.tsx — just needed to be passed into TokenList via a new `data.perSetFlat` field.
+  - The pending-highlight pattern in `useTokenNavigation` handles deferred highlighting after a set switch — reuse `setPendingHighlight` + `setActiveSet` for any cross-set navigation action.
+  - Cross-set results view is a simple non-virtualized flat list; only per-set tree view needs virtual scroll.
+---
+
 ## 2026-03-27 - housekeeping: remove unused `rgbToHsl` import in ColorPicker.tsx
 - Removed `rgbToHsl` from the `colorUtils` import block in ColorPicker.tsx
 - Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L5

@@ -47,6 +47,7 @@ interface TokenListData {
   generators?: TokenGenerator[];
   derivedTokenPaths?: Set<string>;
   cascadeDiff?: Record<string, { before: any; after: any }>;
+  perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
 }
 
 interface TokenListActions {
@@ -64,6 +65,7 @@ interface TokenListActions {
   onRefreshGenerators?: () => void;
   onToggleIssuesOnly?: () => void;
   onFilteredCountChange?: (count: number | null) => void;
+  onNavigateToSet?: (setName: string, tokenPath: string) => void;
 }
 
 interface TokenListProps {
@@ -177,8 +179,8 @@ interface PromoteRow {
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
-  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff },
-  actions: { onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange },
+  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, perSetFlat },
+  actions: { onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
@@ -452,6 +454,8 @@ export function TokenList({
     try { sessionStorage.setItem('token-duplicates', v ? '1' : '0'); } catch {}
   }, []);
 
+  const [crossSetSearch, setCrossSetSearch] = useState(false);
+
   const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly;
 
   // Compute paths with lint violations for issues-only filter
@@ -560,6 +564,23 @@ export function TokenList({
     if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
     return result;
   }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths]);
+
+  // Cross-set search: search across all sets when toggled on
+  const crossSetResults = useMemo(() => {
+    if (!crossSetSearch || !searchQuery.trim() || !perSetFlat) return null;
+    const q = searchQuery.toLowerCase().trim();
+    const results: Array<{ setName: string; path: string; entry: TokenMapEntry }> = [];
+    for (const sn of sets) {
+      const setMap = perSetFlat[sn];
+      if (!setMap) continue;
+      for (const [path, entry] of Object.entries(setMap)) {
+        if (path.toLowerCase().includes(q)) {
+          results.push({ setName: sn, path, entry });
+        }
+      }
+    }
+    return results;
+  }, [crossSetSearch, searchQuery, perSetFlat, sets]);
 
   // Report filtered leaf count to parent so set tabs can show "X / Y"
   useEffect(() => {
@@ -1728,6 +1749,16 @@ export function TokenList({
                     <option key={t} value={t}>{t}</option>
                   ))}
                 </select>
+                {/* Cross-set search toggle (only with multiple sets) */}
+                {sets.length > 1 && (
+                  <button
+                    onClick={() => setCrossSetSearch(v => !v)}
+                    title={crossSetSearch ? 'Search current set only' : 'Search across all sets'}
+                    className={`shrink-0 px-1.5 py-1 rounded border text-[10px] outline-none cursor-pointer transition-colors ${crossSetSearch ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)]'}`}
+                  >
+                    All sets
+                  </button>
+                )}
                 {/* Active filter pills */}
                 {refFilter !== 'all' && (
                   <button
@@ -1778,7 +1809,42 @@ export function TokenList({
         className="flex-1 overflow-y-auto"
         onScroll={e => setVirtualScrollTop(e.currentTarget.scrollTop)}
       >
-        {inspectMode && selectedNodes.length === 0 ? (
+        {crossSetResults !== null ? (
+          /* Cross-set search results */
+          crossSetResults.length === 0 ? (
+            <div className="py-8 text-center text-[10px] text-[var(--color-figma-text-tertiary)]">
+              No tokens found across all sets
+            </div>
+          ) : (
+            <div>
+              {sets
+                .filter(sn => crossSetResults.some(r => r.setName === sn))
+                .map(sn => {
+                  const setResults = crossSetResults.filter(r => r.setName === sn);
+                  return (
+                    <div key={sn}>
+                      <div className="px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] sticky top-0 z-10">
+                        {sn} <span className="font-normal opacity-60">({setResults.length})</span>
+                      </div>
+                      {setResults.map(r => (
+                        <button
+                          key={r.path}
+                          onClick={() => onNavigateToSet?.(r.setName, r.path)}
+                          className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] border-b border-[var(--color-figma-border)]/50"
+                        >
+                          {r.entry.$type === 'color' && typeof r.entry.$value === 'string' && r.entry.$value.startsWith('#') && (
+                            <span className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]" style={{ background: r.entry.$value }} />
+                          )}
+                          <span className="flex-1 min-w-0 font-mono text-[10px] text-[var(--color-figma-text)] truncate">{r.path}</span>
+                          <span className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${TOKEN_TYPE_BADGE_CLASS[r.entry.$type] ?? 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>{r.entry.$type}</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+            </div>
+          )
+        ) : inspectMode && selectedNodes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M13 12H3"/>
