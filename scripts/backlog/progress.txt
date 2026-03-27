@@ -278,3 +278,13 @@
 - **Learnings for future iterations:**
   - When using Tailwind's `group-hover:` utility, always verify the nearest ancestor has the `group` class. Missing `group` makes hover-dependent children permanently invisible with no build-time or runtime error.
 ---
+
+## 2026-03-27 - handleCreateToken silently swallows server errors
+- Added `else` branch to check `res.ok === false`: parses JSON error body from server (falls back to `Server error (status)`) and sets `createError` state.
+- Added `catch` block to handle network failures (fetch throws), also setting `createError`.
+- The `createError` state was already rendered in the UI (red border + error text), so no markup changes needed.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L391-L401
+- **Learnings for future iterations:**
+  - `fetch()` does NOT throw on HTTP error status codes — always check `response.ok`. This is the same pattern as ImportPanel and TokenList fixes.
+  - The existing UI already had error display wired up via `createError` state — the bug was purely that the state was never set on failure.
+---

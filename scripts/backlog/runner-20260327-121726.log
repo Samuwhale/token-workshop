@@ -30,3 +30,10 @@ Already up to date.
 ===============================================================
   Claimed: [HIGH] `handleCreateToken` silently swallows server errors — `SelectionInspector.tsx:373-391`: when `res.ok` is false (e.g. 409 conflict when a token already exists, 500 on server error), the `createError` state is never set and `creating` resets to `false` with no feedback, leaving the user staring at a blank form with no indication of what went wrong.
   Worktree: /tmp/backlog-97357-a2Xgmx
+
+  ✓ done: handleCreateToken silently swallows server errors
+    Added else branch for !res.ok (parses server error body, sets createError) and catch block for network failures. Error UI was already wired up via createError state.
+    9 turns · 76s · $0.26
+
+--- Merging: handleCreateToken silently swallows server errors ---
+Already up to date.

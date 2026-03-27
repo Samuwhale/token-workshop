@@ -388,7 +388,16 @@ export function SelectionInspector({
         setCreateError('');
         setCreatedTokenPath(tokenPath);
         onTokenCreated();
+      } else {
+        let detail = `Server error (${res.status})`;
+        try {
+          const body = await res.json();
+          if (body.error) detail = body.error;
+        } catch { /* use default detail */ }
+        setCreateError(detail);
       }
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : 'Network request failed');
     } finally {
       setCreating(false);
     }

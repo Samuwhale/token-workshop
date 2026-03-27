@@ -36,3 +36,17 @@ Already up to date.
 
 --- Merging: Deep inspect "Go to token" button is permanently invisible ---
 Already up to date.
+[main 97adc85] chore(backlog): done – Deep inspect "Go to token" button is permanently invisible
+ 6 files changed, 31 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Deep inspect "Go to token" button is permanently invisible
+- Added missing `group` Tailwind class to the parent `<div>` of each deep-inspect child row so that `opacity-0 group-hover:opacity-100` on the navigate button triggers on hover.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L1028
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  20 items remaining
+===============================================================
+  Claimed: [HIGH] ThemeManager `executeDeleteDimension` and `executeDeleteOption` don't check `res.ok` — server rejection (404/500) is silently ignored while optimistic local state update removes the dimension/option from the UI; `fetchDimensions()` eventually restores it but user gets no error feedback (`ThemeManager.tsx:252-260, 297-310`)
+  Worktree: /tmp/backlog-96806-1pX00f
