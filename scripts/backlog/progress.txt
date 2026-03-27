@@ -31,3 +31,11 @@
 - **Learnings for future iterations:**
   - The variable compare and apply timeouts already had "is the plugin running?" hints — only the readiness check path was missing user-friendly messaging.
 ---
+
+## 2026-03-27 - ImportPanel: handleImportVariables N+1 POST requests
+- Replaced per-token POST loop (L259-270) with a single `/api/tokens/:set/batch` POST per mode, matching the pattern already used by `executeImport` (styles/JSON import).
+- The batch endpoint returns `{ imported, skipped }` which maps cleanly to the existing `importedTokens`/`failedTokens` counters.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L258
+- **Learnings for future iterations:**
+  - The batch endpoint uses `strategy: 'overwrite' | 'skip'` — the original per-token POST had implicit overwrite semantics, so `'overwrite'` is the correct strategy for variable import.
+---

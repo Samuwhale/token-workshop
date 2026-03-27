@@ -529,7 +529,11 @@ run_special_pass() {
   local saved_patterns_baseline="$PATTERNS_BASELINE"
   setup_worktree
   local pass_worktree="$WORKTREE_DIR"
+  local pass_progress_baseline="$PROGRESS_BASELINE"
+  local pass_patterns_baseline="$PATTERNS_BASELINE"
   WORKTREE_DIR="$saved_worktree"  # restore so EXIT trap doesn't touch pass worktree
+  PROGRESS_BASELINE="$saved_progress_baseline"
+  PATTERNS_BASELINE="$saved_patterns_baseline"
 
   local context_file
   context_file=$(mktemp)
@@ -568,12 +572,8 @@ run_special_pass() {
     echo "  WARNING: Rate limit hit during $pass_type pass — skipping"
     # Clean up pass worktree
     WORKTREE_DIR="$pass_worktree"
-    PROGRESS_BASELINE="$saved_progress_baseline"
-    PATTERNS_BASELINE="$saved_patterns_baseline"
     teardown_worktree
     WORKTREE_DIR="$saved_worktree"
-    PROGRESS_BASELINE="$saved_progress_baseline"
-    PATTERNS_BASELINE="$saved_patterns_baseline"
     return 0
   fi
 
@@ -587,8 +587,8 @@ run_special_pass() {
     [ -n "$pass_note" ] && echo "    $pass_note"
     # Merge pass worktree back to main
     WORKTREE_DIR="$pass_worktree"
-    PROGRESS_BASELINE="$saved_progress_baseline"
-    PATTERNS_BASELINE="$saved_patterns_baseline"
+    PROGRESS_BASELINE="$pass_progress_baseline"
+    PATTERNS_BASELINE="$pass_patterns_baseline"
     merge_worktree_to_main "chore(backlog): $pass_type pass – ${pass_item:-maintenance}" || \
       echo "  WARNING: Pass cherry-pick conflict — changes discarded"
     teardown_worktree

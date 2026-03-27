@@ -255,18 +255,21 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           throw new Error(`Failed to create set "${setName}": ${setRes.statusText}`);
         }
 
-        // Import tokens
-        for (const token of mode.tokens) {
-          const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${token.path}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: token.$type, $value: token.$value }),
-          }).catch(() => null);
-          if (res && res.ok) {
-            importedTokens++;
-          } else {
-            failedTokens++;
-          }
+        // Import tokens via batch endpoint
+        const batchRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tokens: mode.tokens.map(t => ({ path: t.path, $type: t.$type, $value: t.$value })),
+            strategy: 'overwrite',
+          }),
+        }).catch(() => null);
+        if (batchRes && batchRes.ok) {
+          const { imported, skipped } = await batchRes.json() as { imported: number; skipped: number };
+          importedTokens += imported;
+          failedTokens += skipped;
+        } else {
+          failedTokens += mode.tokens.length;
         }
         importedSets++;
         setImportProgress({ done: importedSets, total: allModes.length });

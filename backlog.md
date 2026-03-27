@@ -121,7 +121,7 @@ Items spotted during UX passes but out of scope for that session.
 - [x] PublishPanel: generic "An unexpected error occurred" errors give no context about which operation failed or why — include the HTTP status or operation name
 - [x] SyncPanel: readiness check timeout has no user messaging — if plugin fails to respond the spinner runs indefinitely with no "try reloading" hint
 
-- [ ] ImportPanel: `handleImportVariables` sends individual POST requests per token (L249-260) instead of using the batch endpoint — causes N+1 network round-trips for large Figma files; styles/JSON import already uses `/api/tokens/:set/batch` (L337-344)
+- [x] ImportPanel: `handleImportVariables` sends individual POST requests per token (L249-260) instead of using the batch endpoint — causes N+1 network round-trips for large Figma files; styles/JSON import already uses `/api/tokens/:set/batch` (L337-344)
 - [ ] ImportPanel: `$description` and `$scopes` read from Figma variables (controller.ts L509-510) are never included in the import POST body (L253) — imported tokens silently lose their descriptions and scoping metadata
 - [ ] ImportPanel: `commitNewSet` (L304) performs no validation on the new set name — invalid characters or empty-after-trim names are sent directly to the server; should validate against the set name regex before committing
 - [ ] ImportPanel: `readFigmaStyles` only reads the first paint from multi-fill styles (controller.ts L527) — gradient fills and multi-paint styles are silently converted to only their first solid fill, with no indication to the user that data was lost
