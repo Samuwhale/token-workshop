@@ -74,6 +74,7 @@ export function BatchEditor({
   const [moving, setMoving] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [showTypeConfirm, setShowTypeConfirm] = useState(false);
   const descriptionRef = useRef<HTMLInputElement>(null);
   const findTextRef = useRef<HTMLInputElement>(null);
 
@@ -106,6 +107,13 @@ export function BatchEditor({
 
   const otherSets = useMemo(() => sets.filter(s => s !== setName), [sets, setName]);
 
+  // For type-change confirmation: gather distinct current types of affected tokens
+  const typeChangeInfo = useMemo(() => {
+    if (!newType) return null;
+    const currentTypes = [...new Set(selectedEntries.map(x => x.entry.$type).filter(Boolean))];
+    return { currentTypes, count: selectedEntries.length };
+  }, [newType, selectedEntries]);
+
   const hasOp = description.trim() !== '' ||
     newType !== '' ||
     (allColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct))) ||
@@ -135,6 +143,14 @@ export function BatchEditor({
 
   const handleApply = async () => {
     if (!connected || applying || !hasOp) return;
+
+    // If a type change is included and we haven't confirmed yet, show the confirmation
+    if (newType !== '' && !showTypeConfirm) {
+      setShowTypeConfirm(true);
+      setFeedback(null);
+      return;
+    }
+    setShowTypeConfirm(false);
 
     type Op = { path: string; patch: Record<string, unknown>; oldEntry: TokenMapEntry };
     const ops: Op[] = [];
@@ -344,7 +360,7 @@ export function BatchEditor({
         <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Change type</span>
         <select
           value={newType}
-          onChange={e => setNewType(e.target.value)}
+          onChange={e => { setNewType(e.target.value); setShowTypeConfirm(false); }}
           className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
         >
           <option value="">— keep current —</option>
@@ -430,6 +446,36 @@ export function BatchEditor({
         </>
       )}
 
+      {/* Type-change confirmation banner */}
+      {showTypeConfirm && typeChangeInfo && (
+        <div className="rounded border border-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning-bg,rgba(245,158,11,0.08))] px-2 py-1.5 space-y-1">
+          <p className="text-[10px] text-[var(--color-figma-text)] leading-snug">
+            Change type of <strong>{typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}</strong>{' '}
+            {typeChangeInfo.currentTypes.length > 0 && (
+              <>from <strong>{typeChangeInfo.currentTypes.join(', ')}</strong>{' '}</>
+            )}
+            to <strong>{newType}</strong>?
+          </p>
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+            This may break alias references that depend on the current type.
+          </p>
+          <div className="flex gap-1.5 pt-0.5">
+            <button
+              onClick={handleApply}
+              className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+            >
+              Confirm
+            </button>
+            <button
+              onClick={() => setShowTypeConfirm(false)}
+              className="px-2 py-0.5 rounded text-[10px] font-medium border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Footer: feedback + Apply button */}
       <div className="flex items-center justify-between pt-0.5">
         {feedback ? (
@@ -450,7 +496,7 @@ export function BatchEditor({
         <button
           onClick={handleApply}
           disabled={applying || !connected || !hasOp}
-          title={!connected ? 'Not connected to server' : !hasOp ? 'Fill in at least one field above' : `Apply changes to ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'}`}
+          title={!connected ? 'Not connected to server' : !hasOp ? 'Fill in at least one field above' : newType !== '' && !showTypeConfirm ? `Change type of ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'} to ${newType} — click to review` : `Apply changes to ${selectedPaths.size} token${selectedPaths.size === 1 ? '' : 's'}`}
           className="px-3 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {applying ? 'Applying…' : `Apply to ${selectedPaths.size}`}

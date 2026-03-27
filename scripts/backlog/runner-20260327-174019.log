@@ -93,3 +93,17 @@ Already up to date.
 
 --- Merging: TokenList: Multi-select mode has no keyboard shortcut to enter/exit ---
 Already up to date.
+[main 263eb63] chore(backlog): done – TokenList: Multi-select mode has no keyboard shortcut to enter/exit
+ 7 files changed, 46 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - TokenList: Multi-select mode has no keyboard shortcut to enter/exit
+- Added 'M' key handler in `handleListKeyDown` to toggle multi-select mode (enter if off, exit+clear if on). The Escape handler to exit select mode already existed. Added two new entries to the Token List section of KeyboardShortcutsModal: `M → Toggle multi-select mode` and `Esc → Exit multi-select / close form`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L376 (m key handler); `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L44 (Token List shortcuts)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  35 items remaining
+===============================================================
+  Claimed: ThemeManager: No rename option for theme options — dimensions can be renamed but individual options (e.g. "Light", "Dark") cannot be renamed once created; users must delete and recreate them, losing all set assignments
+  Worktree: /tmp/backlog-91651-Dx093H

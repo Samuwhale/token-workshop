@@ -69,3 +69,10 @@ Already up to date.
 ===============================================================
   Claimed: BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens
   Worktree: /tmp/backlog-92215-uo6zPp
+
+  ✓ done: BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens
+    Added inline confirmation banner that intercepts Apply when a type change is selected, showing affected token count, current→new type transition, and an alias-breakage warning with Confirm/Cancel buttons.
+    13 turns · 94s · $0.3
+
+--- Merging: BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens ---
+Already up to date.

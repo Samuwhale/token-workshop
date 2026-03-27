@@ -27,7 +27,7 @@
 
 ### QoL
 
-- [~] TokenList: Multi-select mode has no keyboard shortcut to enter/exit — the select mode toggle is a small icon button (M) mentioned in the tooltip but not documented in KeyboardShortcutsModal, and there is no Escape-to-exit-select-mode handler
+- [x] TokenList: Multi-select mode has no keyboard shortcut to enter/exit — the select mode toggle is a small icon button (M) mentioned in the tooltip but not documented in KeyboardShortcutsModal, and there is no Escape-to-exit-select-mode handler
 - [~] BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens
 
 ### UX
@@ -42,7 +42,7 @@
 
 ### QoL
 
-- [ ] ThemeManager: No rename option for theme options — dimensions can be renamed but individual options (e.g. "Light", "Dark") cannot be renamed once created; users must delete and recreate them, losing all set assignments
+- [~] ThemeManager: No rename option for theme options — dimensions can be renamed but individual options (e.g. "Light", "Dark") cannot be renamed once created; users must delete and recreate them, losing all set assignments
 - [ ] ThemeManager: No search or filter for sets within a theme option — when a project has 10+ sets, the set matrix in each theme option becomes a long unfiltered list with no way to find a specific set quickly
 
 ### UX

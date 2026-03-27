@@ -285,3 +285,12 @@
   - The Escape-to-exit-select-mode handler was already in place — the item only needed the 'M' key entry shortcut and modal documentation.
   - When a button tooltip promises a keyboard shortcut (e.g. `title="Multi-select tokens (M)"`), always check `handleListKeyDown` — the handler is often the missing piece.
 ---
+
+## 2026-03-27 - BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens
+- Added inline confirmation banner in BatchEditor that intercepts the Apply action when `newType !== ''`. First click shows a warning banner listing how many tokens are affected, their current types, the target type, and a note about potential alias breakage. A "Confirm" button proceeds with the apply; "Cancel" dismisses. The banner is cleared when the type dropdown changes.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L74 (showTypeConfirm state), ~L115 (typeChangeInfo useMemo), ~L145 (confirmation intercept in handleApply), ~L365 (select onChange clears confirm), ~L433 (confirmation banner JSX)
+- **Learnings for future iterations:**
+  - The intercept pattern (check flag → show confirm → re-call same handler to actually proceed) keeps confirmation logic self-contained within one handler without extracting a separate `applyCore` function.
+  - Showing "from X, Y to Z" requires computing distinct current types — `new Set(selectedEntries.map(x => x.entry.$type))` is sufficient.
+  - Reset `showTypeConfirm` in the type `select` onChange so a stale confirmation can't be confirmed after the user changes their mind.
+---
