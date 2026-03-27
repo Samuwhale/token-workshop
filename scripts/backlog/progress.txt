@@ -363,3 +363,9 @@
   - TokenList didn't previously have a message listener; adding one is safe as long as it filters by correlationId.
   - `doApplyVariables` helper extracted so the actual postMessage call is shared between the original fast path (now modal confirm) and future callers.
 ---
+
+## 2026-03-27 - discover-pass: ImportPanel.tsx
+- Area: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` + `packages/figma-plugin/src/plugin/controller.ts`
+- Found 8 items — written to backlog-inbox.md
+- Notable: timeout enforcement inconsistency between variables/styles/json paths (only variables has timeout), message handler doesn't clear `pendingSourceRef`, and potential silent conflicts from path normalization collision across sources.
+---
