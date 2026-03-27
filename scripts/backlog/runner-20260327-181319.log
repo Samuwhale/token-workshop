@@ -61,3 +61,17 @@ Already up to date.
 
 --- Merging: ImportPanel: `readTimeoutRef` is not cleared in cleanup when component unmounts — timer continues running in the background ---
 Already up to date.
+[main d3769b0] chore(backlog): done – ImportPanel: `readTimeoutRef` is not cleared in cleanup when component unmounts — timer continues running in the background
+ 5 files changed, 37 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - ImportPanel: `readTimeoutRef` is not cleared in cleanup when component unmounts
+- Stale — already done. The `useEffect` cleanup at ImportPanel.tsx ~L192 already calls `if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current)` on unmount. This was included alongside previous timer-related fixes.
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  25 items remaining
+===============================================================
+  Claimed: ImportPanel: Figma Styles and JSON readers normalize paths identically — if a variable and style share a name like `color/primary`, they map to the same `color.primary` token path, creating silent conflicts
+  Worktree: /tmp/backlog-59883-Sj8w6S

@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers
   Worktree: /tmp/backlog-59311-OzmVuO
+
+  ✓ done: ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers
+    stale — already done; startReadTimeout() is already called at ImportPanel.tsx ~L235 in handleReadStyles
+    7 turns · 43s · $0.16
+
+--- Merging: ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers ---
+Already up to date.

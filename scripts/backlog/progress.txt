@@ -355,3 +355,10 @@
 - **Learnings for future iterations:**
   - When a timer/ref cleanup bug is reported, check both the message handler paths AND the `useEffect` return cleanup — they may have been fixed together in an earlier session.
 ---
+
+## 2026-03-27 - ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers
+- Stale — `startReadTimeout()` is already called at ImportPanel.tsx ~L235 in `handleReadStyles`, immediately before the `read-styles` postMessage. The timeout and error message for styles are both already in place.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Verify current code state before assuming a bug exists — a prior backlog item (pendingSourceRef clear fix, commit 9b8f96a) likely added the timeout call as part of that fix
+---
