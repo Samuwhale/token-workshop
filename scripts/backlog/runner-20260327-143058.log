@@ -456,3 +456,10 @@ Already up to date.
 ===============================================================
   Claimed: Git commit allows submit with empty message — the commit form doesn't disable the button when the message field is blank
   Worktree: /tmp/backlog-98408-qCQ5Hc
+
+  ✓ done: Git commit allows submit with empty message — the commit form doesn't disable the button when the message field is blank
+    stale — already done; both SyncPanel and PublishPanel have disabled={!commitMsg.trim()} on the commit button
+    10 turns · 42s · $0.17
+
+--- Merging: Git commit allows submit with empty message — the commit form doesn't disable the button when the message field is blank ---
+Already up to date.
