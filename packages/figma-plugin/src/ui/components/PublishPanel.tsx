@@ -1,5 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
+
+function describeError(err: unknown, operation: string): string {
+  const detail = err instanceof Error ? err.message : String(err);
+  return `${operation} failed: ${detail}`;
+}
+
 /* ── Interfaces ──────────────────────────────────────────────────────────── */
 
 interface PublishPanelProps {
@@ -254,7 +261,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
-      setGitError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setGitError(describeError(err, 'Fetch git status'));
     } finally {
       if (!signal.aborted) setGitLoading(false);
     }
@@ -288,7 +295,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Git ${action} completed` } }, '*');
       fetchStatus();
     } catch (err) {
-      setGitError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setGitError(describeError(err, `Git ${action}`));
     } finally {
       setActionLoading(null);
     }
@@ -308,7 +315,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       for (const f of data.conflicts) choices[f] = 'skip';
       setDiffChoices(choices);
     } catch (err) {
-      setGitError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setGitError(describeError(err, 'Compute diff'));
     } finally {
       setDiffLoading(false);
     }
@@ -327,7 +334,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       setDiffView(null);
       fetchStatus();
     } catch (err) {
-      setGitError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setGitError(describeError(err, 'Apply diff'));
     } finally {
       setApplyingDiff(false);
     }
@@ -391,7 +398,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       }
       setVarDirs(dirs);
     } catch (err) {
-      setVarError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setVarError(describeError(err, 'Compare variables'));
     } finally {
       setVarLoading(false);
     }
@@ -456,7 +463,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       setVarChecked(true);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Variable sync applied' } }, '*');
     } catch (err) {
-      setVarError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setVarError(describeError(err, 'Apply variable sync'));
     } finally {
       setVarSyncing(false);
     }
@@ -517,7 +524,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       }
       setStyleDirs(dirs);
     } catch (err) {
-      setStyleError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setStyleError(describeError(err, 'Compare styles'));
     } finally {
       setStyleLoading(false);
     }
@@ -556,7 +563,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       setStyleChecked(true);
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Style sync applied' } }, '*');
     } catch (err) {
-      setStyleError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setStyleError(describeError(err, 'Apply style sync'));
     } finally {
       setStyleSyncing(false);
     }
@@ -647,7 +654,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       ];
       setReadinessChecks(checks);
     } catch (err) {
-      setReadinessError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setReadinessError(describeError(err, 'Readiness checks'));
     } finally {
       setReadinessLoading(false);
     }
@@ -689,7 +696,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       if (flatFiles.length > 0) setExpandedFile(flatFiles[0].path);
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Exported ${flatFiles.length} file(s)` } }, '*');
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setExportError(describeError(err, 'Export'));
     } finally {
       setExporting(false);
     }

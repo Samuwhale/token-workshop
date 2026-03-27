@@ -8,3 +8,11 @@
 - **Learnings for future iterations:**
   - `fetch()` does NOT throw on HTTP error status codes — always check `response.ok`. This is the same pattern as the TokenList delete fix.
 ---
+
+## 2026-03-27 - PublishPanel: generic "An unexpected error occurred" errors give no context
+- Added `describeError(err, operation)` helper that formats all errors as `"<Operation> failed: <detail>"`.
+- Replaced all 10 generic catch-block fallbacks with operation-specific labels: Fetch git status, Git ${action}, Compute diff, Apply diff, Compare variables, Apply variable sync, Compare styles, Apply style sync, Readiness checks, Export.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L5 (helper), ~L263–L698 (10 catch blocks)
+- **Learnings for future iterations:**
+  - A small `describeError(err, op)` helper is cleaner than 10 inline ternaries and ensures consistent formatting across all catch blocks.
+---

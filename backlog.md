@@ -118,7 +118,7 @@ Items spotted during UX passes but out of scope for that session.
 
 - [x] TokenList: delete fails silently — if DELETE request fails the token is already removed from the UI; no error is shown and the stale state persists until next refresh
 - [x] ImportPanel: unhandled fetch failure when loading set list — `.catch(() => {})` means the set dropdown silently shows nothing if the API is unreachable
-- [ ] PublishPanel: generic "An unexpected error occurred" errors give no context about which operation failed or why — include the HTTP status or operation name
+- [x] PublishPanel: generic "An unexpected error occurred" errors give no context about which operation failed or why — include the HTTP status or operation name
 - [ ] SyncPanel: readiness check timeout has no user messaging — if plugin fails to respond the spinner runs indefinitely with no "try reloading" hint
 
 - [ ] ImportPanel: `handleImportVariables` sends individual POST requests per token (L249-260) instead of using the batch endpoint — causes N+1 network round-trips for large Figma files; styles/JSON import already uses `/api/tokens/:set/batch` (L337-344)
