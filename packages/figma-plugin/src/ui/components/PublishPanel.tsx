@@ -200,6 +200,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const [applyingDiff, setApplyingDiff] = useState(false);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [, setTick] = useState(0);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const knownFilesRef = useRef<Set<string>>(new Set());
 
   // ── Variable sync state ──
   const [varRows, setVarRows] = useState<VarDiffRow[]>([]);
@@ -742,6 +744,26 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       ]
     : [];
 
+  // Keep selectedFiles in sync with allChanges: auto-check new files, prune gone ones
+  useEffect(() => {
+    const currentSet = new Set(allChanges.map(c => c.file));
+    setSelectedFiles(prev => {
+      const next = new Set(prev);
+      // Remove files no longer in the working tree
+      for (const f of next) {
+        if (!currentSet.has(f)) next.delete(f);
+      }
+      // Auto-check files appearing for the first time
+      for (const f of currentSet) {
+        if (!knownFilesRef.current.has(f)) {
+          next.add(f);
+          knownFilesRef.current.add(f);
+        }
+      }
+      return next;
+    });
+  }, [allChanges]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /* ── Not connected ─────────────────────────────────────────────────────── */
 
   if (!connected) {
@@ -1167,13 +1189,41 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               {/* Changed files */}
               {allChanges.length > 0 && (
                 <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-                  <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
-                    Uncommitted changes
+                  <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium flex items-center justify-between">
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={allChanges.length > 0 && selectedFiles.size === allChanges.length}
+                        ref={el => { if (el) el.indeterminate = selectedFiles.size > 0 && selectedFiles.size < allChanges.length; }}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setSelectedFiles(new Set(allChanges.map(c => c.file)));
+                          } else {
+                            setSelectedFiles(new Set());
+                          }
+                        }}
+                        className="w-3 h-3"
+                      />
+                      Uncommitted changes
+                    </label>
+                    <span className="text-[9px] opacity-60">{selectedFiles.size}/{allChanges.length} selected</span>
                   </div>
                   <div className="max-h-28 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
                     {allChanges.map((change, i) => (
-                      <div key={i} className="flex items-center gap-2 px-3 py-1">
-                        <span className={`text-[9px] font-mono font-bold w-3 ${
+                      <label key={i} className="flex items-center gap-2 px-3 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)]">
+                        <input
+                          type="checkbox"
+                          checked={selectedFiles.has(change.file)}
+                          onChange={e => {
+                            setSelectedFiles(prev => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(change.file); else next.delete(change.file);
+                              return next;
+                            });
+                          }}
+                          className="w-3 h-3 flex-shrink-0"
+                        />
+                        <span className={`text-[9px] font-mono font-bold w-3 flex-shrink-0 ${
                           change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
                           change.status === 'A' ? 'text-[var(--color-figma-success)]' :
                           change.status === 'D' ? 'text-[var(--color-figma-error)]' :
@@ -1182,7 +1232,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                           {change.status}
                         </span>
                         <span className="text-[10px] text-[var(--color-figma-text)] truncate">{change.file}</span>
-                      </div>
+                      </label>
                     ))}
                   </div>
                 </div>
@@ -1202,15 +1252,15 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       placeholder="Describe your changes\u2026"
                       className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
                       onKeyDown={e => {
-                        if (e.key === 'Enter' && commitMsg.trim()) doAction('commit', { message: commitMsg }).then(() => setCommitMsg(''));
+                        if (e.key === 'Enter' && commitMsg.trim() && selectedFiles.size > 0) doAction('commit', { message: commitMsg, files: [...selectedFiles] }).then(() => setCommitMsg(''));
                       }}
                     />
                     <button
-                      onClick={() => doAction('commit', { message: commitMsg }).then(() => setCommitMsg(''))}
-                      disabled={!commitMsg.trim() || actionLoading !== null}
+                      onClick={() => doAction('commit', { message: commitMsg, files: [...selectedFiles] }).then(() => setCommitMsg(''))}
+                      disabled={!commitMsg.trim() || selectedFiles.size === 0 || actionLoading !== null}
                       className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
-                      {actionLoading === 'commit' ? 'Committing\u2026' : 'Commit changes'}
+                      {actionLoading === 'commit' ? 'Committing\u2026' : `Commit ${selectedFiles.size === allChanges.length ? 'all' : selectedFiles.size} file${selectedFiles.size === 1 ? '' : 's'}`}
                     </button>
                   </div>
                 </div>

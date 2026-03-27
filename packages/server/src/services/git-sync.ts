@@ -27,8 +27,12 @@ export class GitSync {
     return this.git.status();
   }
 
-  async commit(message: string): Promise<string> {
-    await this.git.add('.');
+  async commit(message: string, files?: string[]): Promise<string> {
+    if (files && files.length > 0) {
+      await this.git.add(files);
+    } else {
+      await this.git.add('.');
+    }
     const result = await this.git.commit(message);
     return result.commit;
   }

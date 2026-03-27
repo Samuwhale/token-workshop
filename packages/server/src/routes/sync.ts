@@ -47,15 +47,15 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // POST /api/sync/commit — commit with message
-  fastify.post<{ Body: { message: string } }>('/sync/commit', async (request, reply) => {
-    const { message } = request.body || {};
+  // POST /api/sync/commit — commit with message, optional files array for selective staging
+  fastify.post<{ Body: { message: string; files?: string[] } }>('/sync/commit', async (request, reply) => {
+    const { message, files } = request.body || {};
     if (!message) {
       return reply.status(400).send({ error: 'Commit message is required' });
     }
 
     try {
-      const commitHash = await fastify.gitSync.commit(message);
+      const commitHash = await fastify.gitSync.commit(message, files);
       return { commit: commitHash, message };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to commit', detail: String(err) });

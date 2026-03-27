@@ -95,11 +95,11 @@
 ### QoL
 
 - [x] ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable
-- [~] ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior
+- [x] ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior
 
 ### UX
 
-- [ ] ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active
+- [~] ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active
 
 ---
 

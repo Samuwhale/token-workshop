@@ -76,3 +76,17 @@ Already up to date.
 
 --- Merging: ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior ---
 Already up to date.
+[main 6936301] chore(backlog): done – ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior
+ 5 files changed, 34 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior
+- Added an inline amber warning message below the new-set-name input: "Set already exists — tokens will be merged in" when `newSetDraft.trim()` matches a name in the `sets` array. The warning only shows when there is no format error, the draft is non-empty, and the name is already present in the sets list. The user can still proceed (not blocked), matching the pattern of the variables-mode "existing" badge already present in the same file.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L990
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  22 items remaining
+===============================================================
+  Claimed: ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active
+  Worktree: /tmp/backlog-59311-hUrHES

@@ -377,3 +377,12 @@
   - The variables-mode already had "existing" / "new" badges per row (~L761-764). The gap was only in the styles/JSON "new set" creation input.
   - Warn but don't block — importing to an existing set is a valid merge operation. Use amber warning color, not danger red.
 ---
+
+## 2026-03-27 - Git sync `commit` always stages all files with `git add .`
+- Added selective file staging: `GitSync.commit()` now accepts optional `files?: string[]`; if provided, stages only those paths via `git.add(files)`, otherwise falls back to `git.add('.')`. Server route updated to accept `files` in request body. UI updated with checkboxes in the "Uncommitted changes" list — all files pre-checked, indeterminate state for partial selection, select-all toggle in header, "N/M selected" counter, and the commit button label reflects "Commit all" vs "Commit N files". New files appearing in git status are auto-checked; files that disappear (after a commit) are pruned. User's manual unchecks are preserved across status refreshes.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L30; `packages/server/src/routes/sync.ts` ~L51; `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L202 (state), ~L746 (useEffect), ~L1185 (file list with checkboxes), ~L1218 (commit button)
+- **Learnings for future iterations:**
+  - Tracking "seen files" via a `useRef<Set<string>>` lets you auto-check newly-appeared files while preserving user's manual unchecks across periodic status refreshes
+  - `indeterminate` on a checkbox element must be set via a `ref` callback — it's not a React-controlled prop
+  - Commit button label showing "Commit all" vs "Commit N files" gives clear feedback about partial selection
+---

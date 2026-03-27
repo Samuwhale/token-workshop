@@ -49,3 +49,10 @@ Already up to date.
 ===============================================================
   Claimed: Git sync `commit` always stages all files with `git add .` — stages ALL untracked/modified files in the token directory (including non-token files) even when the user only changed a single token; no way to commit selectively
   Worktree: /tmp/backlog-60772-PvmO62
+
+  ✓ done: Git sync `commit` always stages all files with `git add .`
+    Added checkboxes to file list so users can selectively stage files; commit passes chosen files to server which stages only those via git.add(files) instead of git.add('.')
+    25 turns · 263s · $0.78
+
+--- Merging: Git sync `commit` always stages all files with `git add .` ---
+Already up to date.
