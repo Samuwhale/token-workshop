@@ -1,0 +1,12 @@
+./scripts/backlog/backlog.sh: line 203: [: 0
+0: integer expression expected
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 20
+  Completed total: 192 (next code pass in 3 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  20 items remaining
+===============================================================
+  Claimed: [HIGH] `syncBindings` applies raw `$value` without resolving aliases — `controller.ts:1234`: alias tokens (e.g. `$value: "{color.primary}"`) are passed directly to `applyTokenValue` which treats the string literally, producing a type mismatch that increments `errors`; the user sees "X bindings failed — check token types" when the real fix is that aliases need to be resolved before sync.
+  Worktree: /tmp/backlog-44118-yKbDOQ

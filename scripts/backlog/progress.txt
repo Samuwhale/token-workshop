@@ -321,3 +321,10 @@
   - When mutating in-memory state before a persist operation, always wrap both mutation and persist in a try/catch with rollback logic to maintain consistency on failure.
   - The `filteredRenames` array conveniently holds both old paths and token values, making rollback straightforward — restore old path with original token, delete new path.
 ---
+
+## 2026-03-27 - deleteToken emits no SSE change event
+- Already fixed in commit f81f8e3. `deleteToken` at token-store.ts:541 now calls `this.emit({ type: 'token-updated', setName, tokenPath })` after successful deletion.
+- Files changed: none (already done)
+- **Learnings for future iterations:**
+  - Check git log for recent commits before starting work — the fix may already be merged.
+---

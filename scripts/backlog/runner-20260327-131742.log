@@ -1,0 +1,11 @@
+NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 19
+  Completed total: 192 (next code pass in 3 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  19 items remaining
+===============================================================
+  Claimed: [HIGH] ThemeManager `handleSetState` doesn't check `res.ok` — a server-rejected set state toggle (e.g. 400 from invalid status) appears to succeed because `fetch` doesn't throw on HTTP errors; the catch block only handles network failures, not HTTP error responses (`ThemeManager.tsx:326-337`)
+  Worktree: /tmp/backlog-44348-r4aLCt

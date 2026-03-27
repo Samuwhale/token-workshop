@@ -1,0 +1,19 @@
+NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 18
+  Completed total: 192 (next code pass in 3 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  18 items remaining
+===============================================================
+  Claimed: [HIGH] `deleteToken` emits no SSE change event — `createToken`, `updateToken`, and `batchUpsertTokens` all call `this.emit()` but `deleteToken` (token-store.ts:483-492) does not, so SSE-connected clients are never notified when a token is deleted
+  Worktree: /tmp/backlog-44614-SOkvNZ
+
+  ✓ done: deleteToken emits no SSE change event
+    stale — already done in commit f81f8e3; deleteToken at token-store.ts:541 already emits SSE event
+    6 turns · 39s · $0.22
+
+--- Merging: deleteToken emits no SSE change event ---
+Created autostash: a1e5265
+Current branch main is up to date.
