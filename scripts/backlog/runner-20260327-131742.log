@@ -96,3 +96,16 @@ Already up to date.
 
 --- Merging: Arrow left/right don't expand/collapse groups ---
 Already up to date.
+[main 594ce47] chore(backlog): done – Arrow left/right don't expand/collapse groups
+ 6 files changed, 94 insertions(+), 6 deletions(-)
+
+## 2026-03-27 - Arrow left/right don't expand/collapse groups
+- Added ArrowLeft/ArrowRight keyboard handling for tree navigation in `handleListKeyDown`:
+  - ArrowRight on collapsed group: expands it. On expanded group: moves focus to first child.
+  - ArrowLeft on expanded group: collapses it. On collapsed group: moves focus to parent group.
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  8 items remaining
+===============================================================
+  Claimed: No "Create as alias" fast path — creating an alias token requires: open editor, toggle alias mode, type reference path, save; a direct "Create Alias" action or right-click "Alias to this token" would cut this to 1-2 steps
+  Worktree: /tmp/backlog-44348-UGSvYc

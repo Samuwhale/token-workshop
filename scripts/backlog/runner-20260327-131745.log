@@ -96,3 +96,10 @@ Already up to date.
 ===============================================================
   Claimed: Search resets on set switch — filter/search text is lost when switching between sets; users working across multiple sets must re-type their search each time
   Worktree: /tmp/backlog-44614-2thA8R
+
+  ✓ done: Search resets on set switch
+    stale — already done. Commit e753631 added sessionStorage persistence for search/filter state across set switches.
+    18 turns · 236s · $0.83
+
+--- Merging: Search resets on set switch ---
+Already up to date.

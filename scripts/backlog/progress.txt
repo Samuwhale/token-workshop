@@ -406,3 +406,10 @@
   - Standard tree keyboard pattern: Right=expand/descend, Left=collapse/ascend. WAI-ARIA TreeView spec is the reference.
   - The original Up/Down only queried `[data-token-path]`, skipping group rows entirely — groups were only focusable via Tab, not arrow keys.
 ---
+
+## 2026-03-27 - Search resets on set switch
+- Already implemented. Commit `e753631` ("Filter Persistence Across Set Switches") added sessionStorage persistence for search query, ref filter, and show-duplicates (shared across sets), plus localStorage per-set persistence for type filter. TokenList does not unmount during set switches (old tokens remain until new data arrives), so React state is also preserved. The `clearFilters` function (user-triggered) is the only code that resets search to empty.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+  - Before implementing, check `git log -S` for existing implementations — filter persistence was already added
+---
