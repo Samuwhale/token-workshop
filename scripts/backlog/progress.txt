@@ -460,3 +460,11 @@
   - When a utility file already contains all the building blocks, prefer inlining the derived helper rather than importing it from an external package — avoids module init ordering issues in vite singlefile bundles.
   - `function` declarations are hoisted and TDZ-safe; `const`/`let` are not. Prefer `function` declarations in utility files to avoid ordering surprises.
 ---
+
+## 2026-03-27 - ImportPanel: Handler for `styles-read` message does not clear `pendingSourceRef` before processing
+- Fixed `styles-read` handler in `useEffect` message listener: removed `pendingSourceRef.current === 'styles'` from the guard condition (correlationId alone is the authoritative match), and moved `pendingSourceRef.current = null` + `correlationIdRef.current = null` to the very top of the handler body (before `clearTimeout`). This ensures a second `styles-read` response with the same correlationId is processed rather than silently dropped because `pendingSourceRef` was already cleared.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L176
+- **Learnings for future iterations:**
+  - When a message handler uses two guard conditions (pendingRef + correlationId), a duplicate or delayed response may slip through one condition even if the other still matches. Use the most specific identifier (correlationId) as the sole guard; the secondary flag (pendingSourceRef) is redundant and introduces fragility.
+  - Always clear mutable refs as the very FIRST action inside a handler body — before clearTimeout or any state updates — so no downstream code observes stale state.
+---

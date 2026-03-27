@@ -171,7 +171,7 @@
 - [x] PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view
 
 - [!] Cannot access 'Wr' before initialization — runtime error, likely a circular dependency or hoisting issue with a minified identifier; needs source-map / unminified stack trace to locate the declaration. Once fixed, audit the codebase for similar initialization-order issues (other circular deps, `let`/`const` accessed before declaration across module boundaries).
-- [~] [HIGH] Build-time "Cannot access 'X' before initialization" TDZ errors — minifier can hoist declarations into a temporal dead zone when circular imports or re-export patterns exist; audit circular dependencies with `madge --circular` and break cycles
+- [x] [HIGH] Build-time "Cannot access 'X' before initialization" TDZ errors — minifier can hoist declarations into a temporal dead zone when circular imports or re-export patterns exist; audit circular dependencies with `madge --circular` and break cycles
 - [ ] Export route merges all sets into one namespace with silent overwrites — `deepMergeInto` merges all requested sets into a single flat object, so if two sets define the same token path, the second silently overwrites the first with no warning
 
 - [~] Deep Inspect mode has no keyboard shortcut — toggling deep inspection requires clicking a small button; a keyboard shortcut would streamline the inspect workflow

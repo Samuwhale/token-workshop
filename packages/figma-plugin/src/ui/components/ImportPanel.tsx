@@ -173,10 +173,10 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setModeEnabled(enabled);
         setLoading(false);
       }
-      if (msg.type === 'styles-read' && pendingSourceRef.current === 'styles' && msg.correlationId === correlationIdRef.current) {
-        if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
+      if (msg.type === 'styles-read' && msg.correlationId != null && msg.correlationId === correlationIdRef.current) {
         pendingSourceRef.current = null;
         correlationIdRef.current = null;
+        if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
         setTokens(msg.tokens || []);
         setSelectedTokens(new Set((msg.tokens || []).map((t: ImportToken) => t.path)));
         setTypeFilter(null);
