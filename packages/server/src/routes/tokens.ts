@@ -261,6 +261,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
         return reply.status(500).send({ error: msg });
       }
     },

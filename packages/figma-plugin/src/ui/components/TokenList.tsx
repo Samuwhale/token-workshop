@@ -891,11 +891,21 @@ export function TokenList({
 
   const handleConfirmMoveToken = useCallback(async () => {
     if (!movingToken || !moveTargetSet || !connected) { setMovingToken(null); return; }
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tokenPath: movingToken, targetSet: moveTargetSet }),
-    });
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenPath: movingToken, targetSet: moveTargetSet }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: `Move failed (${res.status})` }));
+        alert(body.error || `Move failed (${res.status})`);
+        return;
+      }
+    } catch {
+      alert('Move failed: network error');
+      return;
+    }
     setMovingToken(null);
     onRefresh();
   }, [movingToken, moveTargetSet, connected, serverUrl, setName, onRefresh]);

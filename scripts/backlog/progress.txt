@@ -302,3 +302,13 @@
 - **Learnings for future iterations:**
   - The existing `deleteToken` method (single-token delete) was already fixed in a prior session. This bulk-delete variant had the same omission.
 ---
+
+## 2026-03-27 - moveToken silently overwrites target
+- Server-side guard already existed at `token-store.ts:881` (`pathExistsAt` check). Two fixes applied:
+  1. Route handler now returns 409 Conflict for "already exists" errors instead of generic 500.
+  2. Client `handleConfirmMoveToken` now checks `res.ok` and shows the server error message via `alert()` instead of silently ignoring failures.
+- Files changed: `packages/server/src/routes/tokens.ts` ~L264 (409 status), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L892 (error handling)
+- **Learnings for future iterations:**
+  - The server-side `moveToken` already had a guard, but the route and client didn't surface the error — always check all three layers (service, route, client).
+  - `fetch()` does NOT throw on HTTP error status — must check `res.ok` (same pattern as ImportPanel and delete fixes).
+---
