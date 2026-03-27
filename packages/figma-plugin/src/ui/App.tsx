@@ -2086,35 +2086,12 @@ export function App() {
               <div className="flex h-full overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <TokenList
-                    tokens={tokens}
-                    setName={activeSet}
-                    sets={sets}
-                    serverUrl={serverUrl}
-                    connected={connected}
-                    selectedNodes={selectedNodes}
-                    allTokensFlat={themedAllTokensFlat}
-                    onEdit={(path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }}
-                    onCreateNew={(initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType })}
-                    onRefresh={refreshAll}
-                    onTokenCreated={(path) => setHighlightedToken(path)}
-                    lintViolations={lintViolations}
-                    onPushUndo={pushUndo}
+                    ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
+                    data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined }}
+                    actions={{ onEdit: (path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount }}
                     defaultCreateOpen={createFromEmpty}
                     highlightedToken={editingToken?.path ?? highlightedToken}
-                    onNavigateToAlias={handleNavigateToAlias}
-                    onClearHighlight={() => setHighlightedToken(null)}
-                    onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
-                    onSyncGroupStyles={(groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount })}
-                    onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
-                    onGenerateScaleFromGroup={(groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }}
-                    syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
-                    generators={generators}
-                    onRefreshGenerators={refreshGenerators}
-                    derivedTokenPaths={derivedTokenPaths}
                     showIssuesOnly={showIssuesOnly}
-                    onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
-                    cascadeDiff={cascadeDiff ?? undefined}
-                    onFilteredCountChange={setFilteredSetCount}
                   />
                 </div>
                 <div className="w-60 shrink-0 border-l border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex flex-col overflow-hidden">
@@ -2137,35 +2114,12 @@ export function App() {
               </div>
             ) : (
               <TokenList
-                tokens={tokens}
-                setName={activeSet}
-                sets={sets}
-                serverUrl={serverUrl}
-                connected={connected}
-                selectedNodes={selectedNodes}
-                allTokensFlat={themedAllTokensFlat}
-                onEdit={(path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }}
-                onCreateNew={(initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType })}
-                onRefresh={refreshAll}
-                onTokenCreated={(path) => setHighlightedToken(path)}
-                lintViolations={lintViolations}
-                onPushUndo={pushUndo}
+                ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
+                data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined }}
+                actions={{ onEdit: (path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount }}
                 defaultCreateOpen={createFromEmpty}
                 highlightedToken={highlightedToken}
-                onNavigateToAlias={handleNavigateToAlias}
-                onClearHighlight={() => setHighlightedToken(null)}
-                onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
-                onSyncGroupStyles={(groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount })}
-                onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
-                onGenerateScaleFromGroup={(groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }}
-                syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
-                generators={generators}
-                onRefreshGenerators={refreshGenerators}
-                derivedTokenPaths={derivedTokenPaths}
                 showIssuesOnly={showIssuesOnly}
-                onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
-                cascadeDiff={cascadeDiff ?? undefined}
-                onFilteredCountChange={setFilteredSetCount}
               />
             )
           )}
@@ -2173,35 +2127,12 @@ export function App() {
             <div ref={splitContainerRef} className="flex flex-col h-full overflow-hidden">
               <div style={{ height: `${splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
                 <TokenList
-                  tokens={tokens}
-                  setName={activeSet}
-                  sets={sets}
-                  serverUrl={serverUrl}
-                  connected={connected}
-                  selectedNodes={selectedNodes}
-                  allTokensFlat={themedAllTokensFlat}
-                  onEdit={(path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }}
-                  onCreateNew={(initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType })}
-                  onRefresh={refreshAll}
-                  onTokenCreated={(path) => setHighlightedToken(path)}
-                  lintViolations={lintViolations}
-                  onPushUndo={pushUndo}
+                  ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
+                  data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined }}
+                  actions={{ onEdit: (path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount }}
                   defaultCreateOpen={createFromEmpty}
                   highlightedToken={highlightedToken}
-                  onNavigateToAlias={handleNavigateToAlias}
-                  onClearHighlight={() => setHighlightedToken(null)}
-                  onSyncGroup={(groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount })}
-                  onSyncGroupStyles={(groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount })}
-                  onSetGroupScopes={(groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }}
-                  onGenerateScaleFromGroup={(groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }}
-                  syncSnapshot={Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined}
-                  generators={generators}
-                  onRefreshGenerators={refreshGenerators}
-                  derivedTokenPaths={derivedTokenPaths}
                   showIssuesOnly={showIssuesOnly}
-                  onToggleIssuesOnly={() => setShowIssuesOnly(v => !v)}
-                  cascadeDiff={cascadeDiff ?? undefined}
-                  onFilteredCountChange={setFilteredSetCount}
                 />
               </div>
               <div

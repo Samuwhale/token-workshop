@@ -1,6 +1,15 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - TokenList accepts 30+ props — strong signal for context/state management extraction
+- Grouped the 30-prop flat interface into 3 sub-interfaces (`TokenListCtx`, `TokenListData`, `TokenListActions`) plus 3 remaining flat props (`defaultCreateOpen`, `highlightedToken`, `showIssuesOnly`). Used nested destructuring with aliases in the function signature so the entire 3553-line body is unchanged — all local variable names remain identical.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L33-93, ~L177; `packages/figma-plugin/src/ui/App.tsx` ~L2088, ~L2116, ~L2129
+- **Learnings for future iterations:**
+  - Nested destructuring with aliases (`ctx: { setName, sets }`) is the safest way to group props on a large component — zero changes needed inside the body, only the interface and the one destructuring line change.
+  - The key gotcha is preserving inline defaults: `lintViolations = []` must move from the function signature into the nested destructuring (`data: { lintViolations = [], ... }`), not be lost.
+  - All three call sites in App.tsx were nearly identical; the only meaningful variance was `highlightedToken` (site 1 used `editingToken?.path ?? highlightedToken`) and `onTokenCreated` (absent from sites 2 and 3).
+---
+
 ## 2026-03-27 - `FlatToken` interface in docs.ts duplicates core types — will drift
 - Replaced the local 6-line `interface FlatToken` with `type FlatToken = DTCGToken & { path: string; $type: string }`, importing `DTCGToken` from `@tokenmanager/core`. This means any additions to `DTCGToken` (e.g. `$extensions`) are inherited automatically.
 - Files changed: `packages/server/src/routes/docs.ts` ~L1, ~L21

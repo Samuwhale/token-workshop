@@ -30,36 +30,48 @@ import type { LintViolation } from '../hooks/useLint';
 const VIRTUAL_ITEM_HEIGHT = 28; // px per row (approximate; overscan compensates for taller rows)
 const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the viewport
 
-interface TokenListProps {
-  tokens: TokenNode[];
+interface TokenListCtx {
   setName: string;
   sets: string[];
   serverUrl: string;
   connected: boolean;
   selectedNodes: SelectionNodeInfo[];
+}
+
+interface TokenListData {
+  tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
+  lintViolations?: LintViolation[];
+  syncSnapshot?: Record<string, string>;
+  generators?: TokenGenerator[];
+  derivedTokenPaths?: Set<string>;
+  cascadeDiff?: Record<string, { before: any; after: any }>;
+}
+
+interface TokenListActions {
   onEdit: (path: string) => void;
   onCreateNew?: (initialPath?: string, initialType?: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onTokenCreated?: (path: string) => void;
-  defaultCreateOpen?: boolean;
-  highlightedToken?: string | null;
   onNavigateToAlias?: (path: string) => void;
   onClearHighlight?: () => void;
-  lintViolations?: LintViolation[];
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   onGenerateScaleFromGroup?: (groupPath: string, tokenType: string | null) => void;
-  syncSnapshot?: Record<string, string>;
-  generators?: TokenGenerator[];
   onRefreshGenerators?: () => void;
-  derivedTokenPaths?: Set<string>;
-  showIssuesOnly?: boolean;
   onToggleIssuesOnly?: () => void;
-  cascadeDiff?: Record<string, { before: any; after: any }>;
   onFilteredCountChange?: (count: number | null) => void;
+}
+
+interface TokenListProps {
+  ctx: TokenListCtx;
+  data: TokenListData;
+  actions: TokenListActions;
+  defaultCreateOpen?: boolean;
+  highlightedToken?: string | null;
+  showIssuesOnly?: boolean;
 }
 
 type DeleteConfirm =
@@ -162,7 +174,14 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, syncSnapshot, generators, onRefreshGenerators, derivedTokenPaths, showIssuesOnly, onToggleIssuesOnly, cascadeDiff, onFilteredCountChange }: TokenListProps) {
+export function TokenList({
+  ctx: { setName, sets, serverUrl, connected, selectedNodes },
+  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff },
+  actions: { onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange },
+  defaultCreateOpen,
+  highlightedToken,
+  showIssuesOnly,
+}: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
