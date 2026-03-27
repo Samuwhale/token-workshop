@@ -1117,8 +1117,9 @@ export function App() {
       path,
       type: entry.$type,
       value: typeof entry.$value === 'string' ? entry.$value : JSON.stringify(entry.$value),
+      set: pathToSet[path],
     }));
-  }, [allTokensFlat]);
+  }, [allTokensFlat, pathToSet]);
 
   return (
     <div className="relative flex flex-col h-screen">

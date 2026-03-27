@@ -151,3 +151,10 @@ Already up to date.
 ===============================================================
   Claimed: CommandPalette token results don't show which set a token belongs to — when the same path exists in multiple sets, users can't distinguish between them in search results
   Worktree: /tmp/backlog-60772-ul8TTp
+
+  ✓ done: CommandPalette token results don't show which set a token belongs to — when the same path exists in multiple sets, users can't distinguish between them in search results
+    Added set badge to token rows: `set?` field on TokenEntry, populated from pathToSet in App.tsx, displayed as a right-aligned pill in CommandPalette token results
+    15 turns · 66s · $0.3
+
+--- Merging: CommandPalette token results don't show which set a token belongs to — when the same path exists in multiple sets, users can't distinguish between them in search results ---
+Already up to date.

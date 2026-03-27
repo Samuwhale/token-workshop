@@ -57,6 +57,7 @@ export interface TokenEntry {
   path: string;
   type: string;
   value?: string;
+  set?: string;
 }
 
 interface CommandPaletteProps {
@@ -272,6 +273,11 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                       {token.type}
                     </span>
                     <span className="text-[11px] font-mono truncate">{token.path}</span>
+                    {token.set && (
+                      <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 font-medium ml-auto ${idx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                        {token.set}
+                      </span>
+                    )}
                   </button>
                   {onCopyTokenValue && token.value != null && (
                     <button

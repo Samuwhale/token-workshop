@@ -55,3 +55,11 @@
   - React state in async closures is always the value at call time — use a `useRef` updated in a `useEffect` to always access the latest state value after an `await`
   - A `useEffect` that fires on state change is the most defensive place to clear derived state (like `conflictPaths`) — covers all code paths including ones not yet written
 ---
+
+## 2026-03-27 - CommandPalette token results don't show which set a token belongs to — when the same path exists in multiple sets, users can't distinguish between them in search results
+- Added `set?: string` field to `TokenEntry` interface in CommandPalette.tsx. In App.tsx, populated `set: pathToSet[path]` in the `paletteTokens` useMemo (also added `pathToSet` to the dependency array). In CommandPalette.tsx token result rows, added a set-name badge after the token path — styled as a secondary pill that floats right using `ml-auto`, matching active/inactive color states.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L56, ~L272; `packages/figma-plugin/src/ui/App.tsx` ~L1115
+- **Learnings for future iterations:**
+  - `pathToSet` was already computed and available in App.tsx for the `onGoToToken` handler — adding set info to token entries just required passing it through the existing `TokenEntry` shape.
+  - Using `ml-auto` on the set badge pushes it to the right within the flex row, cleanly separating it from the token path without interfering with the copy-value/CSS buttons.
+---
