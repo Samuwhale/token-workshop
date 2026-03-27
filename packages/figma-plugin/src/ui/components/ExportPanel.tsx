@@ -834,7 +834,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             </button>
             <button
               onClick={handleExport}
-              disabled={selected.size === 0 || exporting}
+              disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting}
               className="flex-1 px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
             >
               {exporting ? 'Exporting…' : 'Re-export'}
@@ -844,10 +844,10 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         {mode === 'platforms' && results.length === 0 && (
           <button
             onClick={handleExport}
-            disabled={selected.size === 0 || exporting}
+            disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting}
             className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
           >
-            {exporting ? 'Exporting…' : selected.size === 0 ? 'Select a platform to export' : selectedSets !== null ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}` : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
+            {exporting ? 'Exporting…' : selected.size === 0 ? 'Select a platform to export' : selectedSets !== null && selectedSets.size === 0 ? 'Select at least one set' : selectedSets !== null ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}` : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
           </button>
         )}
         {mode === 'figma-variables' && figmaCollections.length === 0 && !figmaLoading && (

@@ -1,6 +1,12 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - ux-pass: ExportPanel export button disabled when all token sets are deselected
+- Added `selectedSets !== null && selectedSets.size === 0` to the disabled condition on both the primary Export button and the Re-export button. Also updated the primary button label to show "Select at least one set" in that state, giving the user clear guidance instead of a silent failed export.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L837, ~L847-850
+- **User impact:** Previously, deselecting all token sets left the Export button enabled — clicking it would send `sets: []` to the server and produce 0 output files with no explanation. Now the button is disabled with a descriptive label until at least one set is selected.
+---
+
 ## 2026-03-27 - TokenList 30+ props — strong signal for context/state management extraction
 - Stale — already done. Props were grouped into `TokenListCtx` (5 fields), `TokenListData` (10 fields), and `TokenListActions` (15 fields) sub-interfaces in commit `4f44f2e`. The progress.txt entry was trimmed in a subsequent archive pass, leaving the backlog item stuck at `[~]`.
 - Files changed: none (already implemented)
@@ -300,4 +306,11 @@
   - `onClose` is only used in JSX (button handlers), so it stays as a prop; `onSaved` is called inside handleSave, so it moves into the hook params.
   - The two identical `() => { setShowSemanticMapping(false); onSaved(...) }` lambdas in the original JSX collapse into a single `handleSemanticMappingClose` handler in the hook.
   - The file was 663 lines at time of implementation (not 800+ as backlog stated — it had shrunk over prior sessions), but the extraction was still clearly worthwhile.
+---
+
+## 2026-03-27 - CSS injection via token values in docs.ts
+- Stale — already done. Commit `bc58ad6` previously fixed this: `escapeCssValue` is defined at L21-23 and applied to all style attribute interpolations in `renderColorTokens` (L35), `renderTypographyTokens` (L57), and spacing uses a sanitized numeric clamp. No changes needed.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+  - When a backlog item references a specific line range (e.g. `docs.ts:70-71`) and the fix is already present, check `git log --follow` to confirm — the prior fix commit will be visible.
 ---
