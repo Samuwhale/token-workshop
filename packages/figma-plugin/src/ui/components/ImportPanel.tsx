@@ -405,20 +405,20 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             </div>
             <button
               onClick={handleReadVariables}
-              className="flex items-center gap-3 px-3 py-3 rounded bg-[var(--color-figma-accent)] hover:opacity-90 transition-opacity"
+              className="flex items-center gap-3 px-3 py-3 rounded border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              <div className="w-8 h-8 rounded bg-white/20 flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+              <div className="w-8 h-8 rounded bg-[var(--color-figma-accent)]/10 flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                   <line x1="3" y1="9" x2="21" y2="9" />
                   <line x1="9" y1="3" x2="9" y2="21" />
                 </svg>
               </div>
               <div className="flex-1 text-left">
-                <div className="text-[11px] font-medium text-white">Import from Figma Variables</div>
-                <div className="text-[9px] text-white/70">Map collections + modes to token sets</div>
+                <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from Figma Variables</div>
+                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Map collections + modes to token sets</div>
               </div>
-              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-white/70">
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
                 <path d="M2 1l4 3-4 3V1z" />
               </svg>
             </button>

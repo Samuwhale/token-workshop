@@ -324,3 +324,11 @@
 - **Learnings for future iterations:**
   - When "Reload" already resets state internally (setFigmaCollections([])), a separate "Clear" adds no value — the two actions collapse into one.
 ---
+
+## 2026-03-27 - ImportPanel styles — "Import from Figma Styles" button style is visually weaker than the Variables button, suggesting it's a secondary option even when it's equally valid
+- Changed the Variables button from filled accent style (`bg-[var(--color-figma-accent)]`, white text) to the same ghost/outline style (`border border-[var(--color-figma-border)]`, themed text) used by the Styles and JSON buttons. Updated icon stroke from `"white"` to `"var(--color-figma-accent)"`, text from `text-white` to `text-[var(--color-figma-text)]`, and icon bg from `bg-white/20` to `bg-[var(--color-figma-accent)]/10` to preserve color identity.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L406-424
+- **Learnings for future iterations:**
+  - When a filled-accent button sits alongside ghost buttons on a source-selection screen, the ghost style is the right equalizer — all options get the same weight, with colored icons providing visual differentiation.
+  - Preserve color identity (accent-colored icon + tinted bg) when demoting a filled button to ghost to avoid making it look completely plain.
+---
