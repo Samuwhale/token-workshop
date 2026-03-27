@@ -346,3 +346,10 @@ Already up to date.
 ===============================================================
   Claimed: Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
   Worktree: /tmp/backlog-97510-gWSiXo
+
+  ✓ done: Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
+    Added +/− buttons, percentage label (click to fit/reset), and ctrl+wheel zoom to the pipeline view header. CSS zoom property applied to cards container; range 50%–200%.
+    15 turns · 102s · $0.35
+
+--- Merging: Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection ---
+Already up to date.

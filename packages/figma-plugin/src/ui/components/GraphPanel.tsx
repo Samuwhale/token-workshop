@@ -801,6 +801,23 @@ export function GraphPanel({
   const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(initialTemplate);
   const [browsingTemplates, setBrowsingTemplates] = useState(false);
   const [justApplied, setJustApplied] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const graphScrollRef = useRef<HTMLDivElement>(null);
+
+  const clampZoom = (z: number) => Math.max(0.5, Math.min(2, Math.round(z * 10) / 10));
+
+  const handleWheel = useCallback((e: WheelEvent) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    setZoom(prev => clampZoom(prev - e.deltaY * 0.001));
+  }, []);
+
+  useEffect(() => {
+    const el = graphScrollRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
 
   const handleSelectTemplate = (template: GraphTemplate) => {
     setSelectedTemplate(template);
@@ -840,7 +857,7 @@ export function GraphPanel({
   // Pipeline view — generators exist (and not browsing templates)
   if (setGenerators.length > 0 && !browsingTemplates) {
     return (
-      <div className="flex flex-col h-full overflow-y-auto">
+      <div className="flex flex-col h-full overflow-hidden" ref={graphScrollRef}>
         <div className="px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0 flex items-center justify-between">
           <div>
             <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Graph</div>
@@ -848,18 +865,50 @@ export function GraphPanel({
               {setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''} in <span className="font-mono">{activeSet}</span>
             </div>
           </div>
-          <button
-            onClick={() => setBrowsingTemplates(true)}
-            disabled={!connected}
-            className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            title="Add another template"
-          >
-            + Template
-          </button>
+          <div className="flex items-center gap-1.5">
+            {/* Zoom controls */}
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={() => setZoom(prev => clampZoom(prev - 0.1))}
+                disabled={zoom <= 0.5}
+                className="w-5 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Zoom out"
+                aria-label="Zoom out"
+              >
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><rect x="1" y="3.5" width="6" height="1" rx="0.5"/></svg>
+              </button>
+              <button
+                onClick={() => setZoom(1)}
+                className="text-[9px] tabular-nums text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] px-1 py-0.5 rounded transition-colors min-w-[30px] text-center"
+                title="Fit to view (reset zoom)"
+                aria-label="Reset zoom to 100%"
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+              <button
+                onClick={() => setZoom(prev => clampZoom(prev + 0.1))}
+                disabled={zoom >= 2}
+                className="w-5 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Zoom in"
+                aria-label="Zoom in"
+              >
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><rect x="1" y="3.5" width="6" height="1" rx="0.5"/><rect x="3.5" y="1" width="1" height="6" rx="0.5"/></svg>
+              </button>
+            </div>
+            <div className="w-px h-3 bg-[var(--color-figma-border)]" />
+            <button
+              onClick={() => setBrowsingTemplates(true)}
+              disabled={!connected}
+              className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Add another template"
+            >
+              + Template
+            </button>
+          </div>
         </div>
 
         {justApplied && (
-          <div className="mx-3 mt-3 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center gap-1.5">
+          <div className="mx-3 mt-3 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center gap-1.5 shrink-0">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M20 6L9 17l-5-5" />
             </svg>
@@ -867,10 +916,12 @@ export function GraphPanel({
           </div>
         )}
 
-        <div className="flex-1 p-3 flex flex-col gap-2">
-          {setGenerators.map(gen => (
-            <GeneratorPipelineCard key={gen.id} generator={gen} />
-          ))}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-3 flex flex-col gap-2 origin-top" style={{ zoom }}>
+            {setGenerators.map(gen => (
+              <GeneratorPipelineCard key={gen.id} generator={gen} />
+            ))}
+          </div>
         </div>
       </div>
     );

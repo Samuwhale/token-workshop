@@ -386,3 +386,14 @@
   - All save-time validation for the generator dialog lives in `handleSave` in `useGeneratorDialog.ts` — that's the single right place to add brand row checks.
   - Case-insensitive comparison prevents `Berry` / `berry` collisions that would produce identical set paths.
 ---
+
+## 2026-03-27 - Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
+- Added zoom state (default 1.0, range 0.5–2.0) to the pipeline view in `GraphPanel`.
+- Added +/− icon buttons and a percentage label (click to reset to 100%) in the pipeline view header toolbar, alongside a vertical divider and the existing "+ Template" button.
+- Applied `style={{ zoom }}` to the cards container (CSS `zoom` property — layout-aware, no transform offset issues).
+- Wired `ctrl+wheel` / `cmd+wheel` on the scroll container via a non-passive `wheel` listener (`useRef` + `useEffect`).
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L801 (new state/refs/handlers), ~L856 (zoom controls in header), ~L905 (zoom applied to cards wrapper)
+- **Learnings for future iterations:**
+  - CSS `zoom` property is the cleanest approach for scaling a scrollable list — unlike `transform: scale`, it participates in layout so the scroll container height adjusts correctly.
+  - Non-passive `wheel` listener is required to call `preventDefault()` for zoom; must be added via `useEffect` with `{ passive: false }`, not via JSX `onWheel`.
+---

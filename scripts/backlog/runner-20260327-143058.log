@@ -382,3 +382,16 @@ Already up to date.
 
 --- Merging: Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation ---
 Already up to date.
+[main 0178dcd] chore(backlog): done – Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
+ 6 files changed, 35 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
+- Added duplicate brand name validation in `handleSave` in `useGeneratorDialog.ts`, immediately after the existing empty-name check. Case-insensitive comparison; error message names the offending duplicate.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L257
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  23 items remaining
+===============================================================
+  Claimed: No graph export — no option to save the rendered graph as SVG or PNG for documentation
+  Worktree: /tmp/backlog-98408-7zfXKs
