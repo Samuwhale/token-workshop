@@ -190,3 +190,17 @@ Already up to date.
 
 --- Merging: SyncPanel variable sync has a 15-second timeout with no user-facing indication of the threshold — for large token sets this feels like a hang before showing an unhelpful error ---
 Already up to date.
+[main dc166be] chore(backlog): done – SyncPanel variable sync has a 15-second timeout with no user-facing indication of the threshold — for large token sets this feels like a hang before showing an unhelpful error
+ 6 files changed, 58 insertions(+), 10 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - SyncPanel variable sync has a 15-second timeout with no user-facing indication
+- Added a `varSyncElapsed` state + interval timer that starts when `varSyncing` becomes true. During the apply operation the status text below the Apply button changes from "Sending to Figma…" to "Ns… large sets can take up to 15s" after the first second, giving users a live elapsed counter and setting expectations. Improved the timeout error message to say "Figma did not respond within 15 seconds" with an actionable hint about applying a smaller selection. Separated the "apply timed out" branch from the generic "timed out" branch in the error display so each gets its own tailored message.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L67 (state), ~L119 (useEffect timer), ~L679 (status text), ~L601 (error messages)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  54 items remaining
+===============================================================
+  Claimed: SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator — users can't tell if the current diff is still valid after making changes
+  Worktree: /tmp/backlog-97510-MrZCtq

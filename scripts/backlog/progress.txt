@@ -324,3 +324,10 @@
   - For operations with a known hard timeout, show elapsed seconds live so users can see progress vs. a frozen UI. A simple `setInterval` + state counter is sufficient.
   - When error strings from different code paths can collide on a substring match (e.g. both "apply timed out" and "read timed out" contain "timed out"), always match the more specific string first to give each path its own tailored message.
 ---
+
+## 2026-03-27 - Sync progress doesn't clarify units
+- Added " layers" unit label to the sync progress display: "Syncing... 45/120 layers" instead of "Syncing... 45/120". The controller counts Figma nodes (layers), confirmed by inspecting the batch loop in controller.ts.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L506
+- **Learnings for future iterations:**
+  - Progress counts in the sync flow are layer counts (Figma nodes), not binding counts — controller iterates `nodes[]` and reports `nodes.length` as total.
+---

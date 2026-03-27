@@ -503,7 +503,7 @@ export function SelectionInspector({
         </button>
         {syncing && syncProgress ? (
           <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-            Syncing... {syncProgress.processed}/{syncProgress.total}
+            Syncing... {syncProgress.processed}/{syncProgress.total} layers
           </span>
         ) : syncError ? (
           <span className="text-[9px] text-[var(--color-figma-error)]" title={syncError}>

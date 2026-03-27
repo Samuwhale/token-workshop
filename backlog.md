@@ -48,13 +48,13 @@
 
 ### QoL
 
-- [~] SyncPanel variable sync has a 15-second timeout with no user-facing indication of the threshold — for large token sets this feels like a hang before showing an unhelpful error
+- [x] SyncPanel variable sync has a 15-second timeout with no user-facing indication of the threshold — for large token sets this feels like a hang before showing an unhelpful error
 - [~] SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected
 - [~] Sync progress doesn't clarify units — "45 / 120" doesn't say whether the count is layers or individual bindings; label the unit explicitly
 
 ### UX
 
-- [ ] SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator — users can't tell if the current diff is still valid after making changes
+- [~] SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator — users can't tell if the current diff is still valid after making changes
 - [ ] No pause/cancel for in-progress sync — once a bulk sync starts there's no way to stop it; a cancel button would prevent wasted time on wrong-set syncs
 - [ ] No dry-run mode — no way to preview what a sync will change before it touches Figma objects
 

@@ -192,3 +192,10 @@ Already up to date.
 ===============================================================
   Claimed: Sync progress doesn't clarify units — "45 / 120" doesn't say whether the count is layers or individual bindings; label the unit explicitly
   Worktree: /tmp/backlog-98408-KwSxB2
+
+  ✓ done: Sync progress doesn't clarify units — "45 / 120" doesn't say whether the count is layers or individual bindings; label the unit explicitly
+    Added " layers" unit label to progress display in SelectionInspector.tsx — now shows "Syncing... 45/120 layers"
+    12 turns · 44s · $0.21
+
+--- Merging: Sync progress doesn't clarify units — "45 / 120" doesn't say whether the count is layers or individual bindings; label the unit explicitly ---
+Already up to date.
