@@ -32,3 +32,10 @@ Already up to date.
 ===============================================================
   Claimed: QuickStart dialog has no "back to templates" step — once a template is selected and TokenGeneratorDialog opens, the only way to pick a different template is to close and reopen the whole dialog
   Worktree: /tmp/backlog-79767-Tw5r26
+
+  ✓ done: QuickStart dialog has no "back to templates" step
+    Added onBack prop to TokenGeneratorDialog with a back arrow button in the header. QuickStartDialog now passes separate onBack (returns to template list) and onClose (closes entire dialog) callbacks.
+    21 turns · 207s · $0.82
+
+--- Merging: QuickStart dialog has no "back to templates" step ---
+Already up to date.

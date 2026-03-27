@@ -310,3 +310,13 @@
 - **Learnings for future iterations:**
   - The EmptyState has two template paths: "Use a preset" (opens QuickStartDialog only) and "Generate tokens from template" (switches tab). Both should open the dialog for a seamless UX.
 ---
+
+## 2026-03-27 - QuickStart dialog has no "back to templates" step
+- Added `onBack` prop to `TokenGeneratorDialog`. When provided, renders a back arrow button in the header next to the title.
+- Updated `QuickStartDialog` to pass `onBack={() => setSelectedTemplate(null)}` (returns to template list) and `onClose={onClose}` (closes entire dialog). Previously `onClose` served double duty and showed an X icon for both actions.
+- Now the header shows: [back arrow] [title] ... [X close]. Back returns to template picker; X closes the whole QuickStart flow.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L45 (prop), ~L139 (destructure), ~L215 (back button)
+- Files changed: `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx` ~L255 (onBack/onClose split)
+- **Learnings for future iterations:**
+  - When a dialog serves as a step in a multi-step flow, pass separate `onBack` and `onClose` callbacks rather than overloading `onClose`. This makes the navigation intent clear in both code and UI.
+---

@@ -42,6 +42,8 @@ export interface TokenGeneratorDialogProps {
   existingGenerator?: TokenGenerator;
   /** Pre-fill from a quick-start template */
   template?: GeneratorTemplate;
+  /** When provided, shows a back arrow to return to the previous step (e.g. template picker) */
+  onBack?: () => void;
   onClose: () => void;
   onSaved: (info?: { targetGroup: string }) => void;
 }
@@ -134,6 +136,7 @@ export function TokenGeneratorDialog({
   activeSet,
   existingGenerator,
   template,
+  onBack,
   onClose,
   onSaved,
 }: TokenGeneratorDialogProps) {
@@ -206,17 +209,24 @@ export function TokenGeneratorDialog({
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)] shrink-0">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
-              {isEditing ? 'Edit Generator' : template ? template.label : 'New Token Generator'}
-            </span>
-            {sourceTokenPath ? (
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate max-w-[220px]">
-                {sourceTokenPath}
-              </span>
-            ) : (
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Standalone generator</span>
+          <div className="flex items-center gap-2">
+            {onBack && (
+              <button onClick={onBack} aria-label="Back to templates" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+              </button>
             )}
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                {isEditing ? 'Edit Generator' : template ? template.label : 'New Token Generator'}
+              </span>
+              {sourceTokenPath ? (
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate max-w-[220px]">
+                  {sourceTokenPath}
+                </span>
+              ) : (
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Standalone generator</span>
+              )}
+            </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>

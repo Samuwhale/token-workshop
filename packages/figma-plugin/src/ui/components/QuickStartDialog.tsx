@@ -252,7 +252,8 @@ export function QuickStartDialog({
         activeSet={activeSet}
         allSets={allSets}
         template={selectedTemplate}
-        onClose={() => setSelectedTemplate(null)}
+        onBack={() => setSelectedTemplate(null)}
+        onClose={onClose}
         onSaved={(info) => {
           const firstStep = stepNames[0];
           const firstPath = info?.targetGroup && firstStep
