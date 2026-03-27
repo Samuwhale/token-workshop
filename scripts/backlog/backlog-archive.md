@@ -242,3 +242,26 @@ Completed items removed from backlog.md to keep it lean.
 - [x] Validation-fix-revalidate loop is fully manual — after fixing a validation issue, users must manually switch back to Analytics and re-trigger validation; no auto-revalidation or "recheck this issue" action
 - [x] Remap bindings has no token autocomplete — the remap panel requires typing exact token paths manually with no search/autocomplete, making it error-prone for large token sets
 - [x] Export has no batch copy or download — exporting to multiple platforms requires toggling each one individually, then expanding each file and clicking "Copy" one at a time; no "Copy All" or download-as-zip
+
+## Archived 2026-03-27 (21 items)
+- [x] Virtual-scroll row height mismatch — `VIRTUAL_ITEM_HEIGHT` is hardcoded to 28 px, but rows with chain/alias badges render at ~48–56 px, causing misaligned scroll positions
+- [x] No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
+- [x] Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
+- [x] Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
+- [x] Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
+- [x] Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
+- [x] ColorPicker hex input silently rejects invalid values — typing "#GGGGGG" shows no error message, no red border, just nothing happening
+- [x] BatchEditor opacity allows out-of-range values (e.g. "150") that silently clamp to the slider max — disconnect between typed value and displayed result
+- [x] BatchEditor scaling dimension tokens containing aliases (e.g. `{spacing.base} * 2`) fails silently with no feedback about why
+- [x] PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive — mixing formats gives confusing results
+- [x] Find-and-replace has no confirmation step — bulk rename applies immediately with no preview-and-confirm modal, making accidental mass renames easy
+- [x] Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
+- [x] No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation
+- [x] Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
+- [x] Theme references stale sets — if a token set is deleted externally, theme configurations still reference it with no validation or warning; applying the theme silently skips the missing set
+- [x] No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
+- [x] Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
+- [x] Drag-to-reorder set precedence has no keyboard alternative — reordering relies exclusively on pointer drag; keyboard-only users can't change precedence
+- [x] ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance
+- [x] ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
+- [x] "Add option" form resets after each addition — creating multiple dimension options requires re-opening the form each time; batch-add would be faster
