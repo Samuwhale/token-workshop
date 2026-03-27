@@ -128,7 +128,7 @@ Items spotted during UX passes but out of scope for that session.
 - [x] Generator route accepts unknown `type` without input validation — `generators.ts:46` and `generators.ts:78` pass the raw `type` string directly to `generatorService.create()` / `generatorService.preview()` without checking it against the known `GeneratorType` union; an unknown type reaches the service's `default: throw` branch and returns a 500 Internal Server Error instead of a 400 Bad Request with a descriptive message.
 - [x] Multi-brand mode silently skips the semantic mapping dialog — `useGeneratorDialog.ts:290` shows `SemanticMappingDialog` only when `previewTokens.length > 0`; in multi-brand mode `fetchPreview` always clears `previewTokens` to `[]` (line 161), so the semantic alias creation step is never offered to the user even when a color-ramp template with semantic layers was selected.
 
-- [ ] Centralize `normalizeHex` — `AnalyticsPanel.tsx` defines a local `normalizeHex` that could live in `colorUtils.ts` and be reused
+- [x] Centralize `normalizeHex` — `AnalyticsPanel.tsx` defines a local `normalizeHex` that could live in `colorUtils.ts` and be reused
 
 - [ ] ImportPanel conflict buttons — "Skip conflicts" / "Overwrite all" labels don't explain whether non-conflicting tokens are still imported; rename to "Skip & import new" / "Overwrite & import all"
 - [ ] SyncPanel sync result — after applyVarDiff completes, panel silently resets with no success message; show a brief "Synced N variables" inline confirmation

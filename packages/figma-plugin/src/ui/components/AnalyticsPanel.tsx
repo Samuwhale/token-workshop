@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { hexToLuminance, wcagContrast, hexToLstar, countLeafNodes } from '../shared/colorUtils';
+import { hexToLuminance, wcagContrast, hexToLstar, countLeafNodes, normalizeHex } from '../shared/colorUtils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
 
 interface ValidationIssue {
@@ -27,12 +27,6 @@ interface AnalyticsPanelProps {
 }
 
 
-function normalizeHex(hex: string): string {
-  const h = hex.replace('#', '').toLowerCase();
-  if (h.length === 3) return '#' + h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-  if (h.length === 4) return '#' + h[0] + h[0] + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
-  return '#' + h;
-}
 
 /** Human-friendly rule labels & descriptions for validation issues */
 const RULE_LABELS: Record<string, { label: string; tip: string }> = {

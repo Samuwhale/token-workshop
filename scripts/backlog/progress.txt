@@ -66,3 +66,10 @@
   - When multi-brand mode skips a live-preview step, any post-save flow that depends on preview data needs a fallback fetch from the server. The generator is already run on creation (server line 106-107), so `GET /generators/:id/tokens` is available immediately.
   - `fetch` Response body can only be consumed once — safe to call `res.json()` on the success path only if the error path (which also calls `res.json()`) returns early.
 ---
+
+## 2026-03-27 - Centralize `normalizeHex`
+- Moved local `normalizeHex` from `AnalyticsPanel.tsx` into `colorUtils.ts` as a shared export, then imported it back.
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L19, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L2
+- **Learnings for future iterations:**
+  - Only one consumer existed; the move is still worthwhile for discoverability alongside other hex helpers.
+---

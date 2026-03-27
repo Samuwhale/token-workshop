@@ -16,6 +16,14 @@ function fromLinear(c: number): number {
 // Hex parsing
 // ---------------------------------------------------------------------------
 
+/** Expand shorthand hex (#abc → #aabbcc, #abcd → #aabbccdd) and lowercase. */
+export function normalizeHex(hex: string): string {
+  const h = hex.replace('#', '').toLowerCase();
+  if (h.length === 3) return '#' + h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  if (h.length === 4) return '#' + h[0] + h[0] + h[1] + h[1] + h[2] + h[2] + h[3] + h[3];
+  return '#' + h;
+}
+
 export function hexToRgb(hex: string): { r: number; g: number; b: number; a?: number } | null {
   const h = hex.replace('#', '');
   if (h.length !== 6 && h.length !== 8) return null;
