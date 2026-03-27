@@ -270,3 +270,17 @@
 - **Learnings for future iterations:**
   - Fastify plugin options (like `tokenDir`) are resolved once at registration time — any store/client built from them can safely be created at plugin level and reused across handlers.
 ---
+
+## 2026-03-27 - housekeeping: remove unused imports in TokenEditor.tsx
+- Removed `hexToLuminance` from `colorUtils` import and `GeneratorType` from `useGenerators` import
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L7,L12
+- **Why:** Both symbols appeared only in import statements and were never referenced in the 2100+ line file. Dead import left from previous refactoring.
+---
+
+## 2026-03-27 - Collapse theme switcher bar to a badge at narrow plugin widths
+- At windowWidth ≤360px with dimensions configured, the theme bar collapses to a single-line badge showing active selections (e.g. "Light · Brand A") with a chevron-down. Clicking expands to the full bar with an up-chevron collapse button appended. At >360px the bar renders normally. Added `isNarrow` derived bool and `dimBarExpanded` state.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L315,L342,L1844
+- **Learnings for future iterations:**
+  - `windowWidth` state already exists — `isNarrow = windowWidth <= 360` is a one-liner derived value, no extra state needed.
+  - Ternary-within-JSX-conditional pattern: `{condition && (narrow ? <badge/> : <full/>)}` requires wrapping the ternary in parens so the outer `&&` returns one element.
+---

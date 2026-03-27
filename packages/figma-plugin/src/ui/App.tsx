@@ -1842,6 +1842,23 @@ export function App() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Theme/Mode switcher — always visible on tokens tab */}
           {activeTab === 'tokens' && overflowPanel === null && (
+            isNarrow && dimensions.length > 0 && !dimBarExpanded ? (
+              <button
+                onClick={() => setDimBarExpanded(true)}
+                className="flex shrink-0 items-center gap-1.5 px-2 py-1 w-full bg-[var(--color-figma-bg)] border-b border-[var(--color-figma-border)] text-left"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+                  <circle cx="3.5" cy="5" r="2.5"/>
+                  <circle cx="6.5" cy="5" r="2.5"/>
+                </svg>
+                <span className="text-[9px] text-[var(--color-figma-text-secondary)] truncate flex-1">
+                  {dimensions.map(d => activeThemes[d.id]).filter(Boolean).join(' · ') || 'None'}
+                </span>
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="shrink-0 text-[var(--color-figma-text-tertiary)]">
+                  <path d="M1 3l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            ) : (
             <div ref={dimDropdownRef} className="flex shrink-0 flex-wrap items-center gap-1.5 px-2 py-1 bg-[var(--color-figma-bg)] border-b border-[var(--color-figma-border)]">
               <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0 flex items-center gap-1">
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
@@ -1950,7 +1967,20 @@ export function App() {
                   + Add theme
                 </button>
               )}
+              {isNarrow && dimBarExpanded && (
+                <button
+                  onClick={() => setDimBarExpanded(false)}
+                  className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors px-1"
+                  title="Collapse"
+                  aria-label="Collapse theme bar"
+                >
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                    <path d="M1 5l3-3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
             </div>
+            )
           )}
           <div className="flex-1 overflow-y-auto">
           {/* Overflow panels */}

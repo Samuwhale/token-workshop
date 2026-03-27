@@ -4,12 +4,12 @@ import { AliasAutocomplete } from './AliasAutocomplete';
 import { ConfirmModal } from './ConfirmModal';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
-import { hexToLuminance, wcagContrast, applyColorModifiers } from '../shared/colorUtils';
+import { wcagContrast, applyColorModifiers } from '../shared/colorUtils';
 import { ColorPicker } from './ColorPicker';
 import type { ColorModifierOp } from '../shared/colorUtils';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { ValueDiff } from './ValueDiff';
-import type { GeneratorType, TokenGenerator } from '../hooks/useGenerators';
+import type { TokenGenerator } from '../hooks/useGenerators';
 
 // ---------------------------------------------------------------------------
 // Figma variable scopes by token type
