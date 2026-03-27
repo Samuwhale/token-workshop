@@ -979,16 +979,16 @@ export class TokenStore {
       }
     }
 
-    // Apply: set new paths first, then remove old ones
-    for (const { newPath, token } of filteredRenames) {
-      this.setTokenAtPath(set.tokens, newPath, token);
-    }
-    for (const { oldPath } of filteredRenames) {
-      this.deleteTokenAtPath(set.tokens, oldPath);
-    }
-
     this.beginBatch();
     try {
+      // Apply: set new paths first, then remove old ones
+      for (const { newPath, token } of filteredRenames) {
+        this.setTokenAtPath(set.tokens, newPath, token);
+      }
+      for (const { oldPath } of filteredRenames) {
+        this.deleteTokenAtPath(set.tokens, oldPath);
+      }
+
       await this.saveSet(setName);
 
       // Update alias references across all sets
@@ -1006,6 +1006,13 @@ export class TokenStore {
 
       this.rebuildFlatTokens();
       return { renamed: filteredRenames.length, skipped, aliasesUpdated };
+    } catch (err) {
+      // Revert in-memory mutations: restore old tokens, remove new paths
+      for (const { oldPath, newPath, token } of filteredRenames) {
+        this.setTokenAtPath(set.tokens, oldPath, token);
+        this.deleteTokenAtPath(set.tokens, newPath);
+      }
+      throw err;
     } finally {
       this.endBatch();
     }

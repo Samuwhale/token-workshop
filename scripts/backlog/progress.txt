@@ -312,3 +312,12 @@
   - The server-side `moveToken` already had a guard, but the route and client didn't surface the error — always check all three layers (service, route, client).
   - `fetch()` does NOT throw on HTTP error status — must check `res.ok` (same pattern as ImportPanel and delete fixes).
 ---
+
+## 2026-03-27 - bulkRename mutates in-memory tree before beginBatch/saveSet
+- Moved `setTokenAtPath`/`deleteTokenAtPath` mutations from before `beginBatch()` to inside the `try` block, so mutations only happen after `beginBatch()`.
+- Added `catch` block that reverts in-memory mutations (restores old paths, deletes new paths) before re-throwing, ensuring the store stays consistent with disk if `saveSet` fails.
+- Files changed: `packages/server/src/services/token-store.ts` ~L982-L1015
+- **Learnings for future iterations:**
+  - When mutating in-memory state before a persist operation, always wrap both mutation and persist in a try/catch with rollback logic to maintain consistency on failure.
+  - The `filteredRenames` array conveniently holds both old paths and token values, making rollback straightforward — restore old path with original token, delete new path.
+---
