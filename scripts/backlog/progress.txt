@@ -359,3 +359,10 @@
   - Alias detection is simple: `typeof v === 'string' && v.includes('{')` — covers pure aliases `{token}` and formula strings `{token} * 2`
   - The early-return at `ops.length === 0` needs its own feedback path for the all-aliases case — without it, clicking Apply does nothing visibly
 ---
+
+## 2026-03-27 - Find-and-replace has no confirmation step — bulk rename applies immediately with no preview-and-confirm modal
+- Stale — already implemented. The modal at TokenList.tsx ~L2892 already has a full preview-and-confirm flow: live diff list showing oldPath → newPath for every affected token (with red/green segment highlights), conflict detection with warning badges, empty-replacement warning, and an explicit "Rename N" confirmation button that only enables when there are actionable matches.
+- Files changed: none
+- **Learnings for future iterations:**
+  - The find-replace preview (frPreview useMemo ~L1586) and modal (~L2892) were built out in an earlier session; the backlog item predates this work.
+---
