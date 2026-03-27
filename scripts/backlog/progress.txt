@@ -347,3 +347,10 @@
 - Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L37
 - **Root cause:** The per-set collection name feature was added to the callback body but the developer forgot to update the dependency array, so the new closure variables were never tracked by React.
 ---
+
+## 2026-03-27 - Collection name collision when saving Figma variables to server
+- Before the save loop in `handleSaveToServer`, compute all slugs and build a Map<slug, collectionNames[]>. Any slug with more than one source collection triggers an early `throw new Error(...)` listing the conflicting pairs (e.g. `"My Colors" and "My-Colors" → "my-colors"`). No data is written if a collision exists.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L362
+- **Learnings for future iterations:**
+  - Collision checks should always run before any side effects (network writes). Build the full slug→names map, filter for length > 1, then abort with a descriptive message before touching the server.
+---

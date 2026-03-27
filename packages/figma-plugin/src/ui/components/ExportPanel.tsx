@@ -358,6 +358,22 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     setError(null);
 
     try {
+      // Detect slug collisions before saving anything
+      const slugMap = new Map<string, string[]>();
+      for (const collection of figmaCollections) {
+        const slug = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
+        const existing = slugMap.get(slug) ?? [];
+        existing.push(collection.name);
+        slugMap.set(slug, existing);
+      }
+      const collisions = [...slugMap.entries()].filter(([, names]) => names.length > 1);
+      if (collisions.length > 0) {
+        const details = collisions
+          .map(([slug, names]) => `"${names.join('" and "')}" → "${slug}"`)
+          .join('; ');
+        throw new Error(`Collection name collision: ${details}. Rename one collection before saving.`);
+      }
+
       for (const collection of figmaCollections) {
         const setName = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
 
