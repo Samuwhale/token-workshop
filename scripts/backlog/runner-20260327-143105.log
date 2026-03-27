@@ -124,3 +124,16 @@ Already up to date.
 
 --- Merging: BatchEditor opacity allows out-of-range values (e.g. "150") that silently clamp to the slider max — disconnect between typed value and displayed result ---
 Already up to date.
+[main b2ed82c] chore(backlog): done – BatchEditor opacity allows out-of-range values (e.g. "150") that silently clamp to the slider max — disconnect between typed value and displayed result
+ 6 files changed, 55 insertions(+), 6 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - BatchEditor opacity allows out-of-range values (e.g. "150") that silently clamp to the slider max
+- Fixed disconnect between typed opacity value and slider display. Three changes:
+  1. Slider `value` now uses `Math.min(100, Math.max(0, ...))` so it always reflects the true clamped position.
+  2. Number input gains an `onBlur` handler that clamps and rounds the value to [0, 100] when the user leaves the field.
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  72 items remaining
+===============================================================
+  Claimed: PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive — mixing formats gives confusing results

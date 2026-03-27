@@ -201,6 +201,7 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
   const [alpha, setAlpha] = useState(parseAlpha(value));
   const [space, setSpace] = useState<ColorSpace>('hex');
   const [hexInput, setHexInput] = useState(value);
+  const [hexInputError, setHexInputError] = useState(false);
   const [alphaInput, setAlphaInput] = useState(() => Math.round(parseAlpha(value) * 100) + '%');
   const alphaEditing = useRef(false);
   const [eyedropperState, setEyedropperState] = useState<'idle' | 'waiting' | 'success'>('idle');
@@ -231,6 +232,7 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
       setAlpha(newAlpha);
       if (!alphaEditing.current) setAlphaInput(Math.round(newAlpha * 100) + '%');
       setHexInput(value);
+      setHexInputError(false);
     }
   }, [value]);
 
@@ -319,7 +321,11 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
     const trimmed = text.trim();
     setHexInput(trimmed);
     const clean = trimmed.startsWith('#') ? trimmed : '#' + trimmed;
-    if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean)) {
+    const isValid = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean);
+    // Show error only when value is long enough to be complete but invalid
+    const isComplete = clean.length >= 7;
+    setHexInputError(isComplete && !isValid);
+    if (isValid) {
       const hsl = hexToHsl(clean);
       if (hsl) {
         if (hsl.s > 0.5) setHue(hsl.h);
@@ -479,7 +485,8 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
             type="text"
             value={hexInput}
             onChange={e => onHexInputChange(e.target.value)}
-            className={inputClass + ' text-left'}
+            className={inputClass + ' text-left' + (hexInputError ? ' !border-red-500' : '')}
+            title={hexInputError ? 'Invalid hex color — use #RRGGBB or #RRGGBBAA' : undefined}
           />
         </div>
       ) : (

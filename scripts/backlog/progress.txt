@@ -327,3 +327,11 @@
   - HTML `min`/`max` attributes on `type="number"` inputs do not prevent typing out-of-range values; clamp must be done explicitly in `onBlur` (or `onChange`).
   - Clamp-on-blur is better UX than clamp-on-change because it lets users type freely without intermediate values being reset mid-keystroke.
 ---
+
+## 2026-03-27 - ColorPicker hex input silently rejects invalid values
+- Added `hexInputError` state to `ColorPicker.tsx`. `onHexInputChange` now sets the error when the input is ≥7 chars (complete hex length) but doesn't match `#RRGGBB` / `#RRGGBBAA`. The hex `<input>` gets `!border-red-500` when invalid and a tooltip explaining the expected format. Error resets on valid input or when the prop value syncs in from outside.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L203 (hexInputError state), ~L318 (onHexInputChange), ~L480 (hex input className/title), ~L234 (reset on prop sync)
+- **Learnings for future iterations:**
+  - Only show the error after the value is "complete" (length ≥ 7 with the `#` prefix) — partial values while typing should not trigger the error.
+  - Tailwind's `!border-red-500` important modifier is needed to override the focus border that `inputClass` sets via `focus:border-[var(--color-figma-accent)]`.
+---

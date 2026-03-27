@@ -131,3 +131,10 @@ Already up to date.
 ===============================================================
   Claimed: ColorPicker hex input silently rejects invalid values — typing "#GGGGGG" shows no error message, no red border, just nothing happening
   Worktree: /tmp/backlog-97955-KhApto
+
+  ✓ done: ColorPicker hex input silently rejects invalid values — typing "#GGGGGG" shows no error message, no red border, just nothing happening
+    Added hexInputError state; hex input now shows red border + tooltip when value is complete-length but invalid (e.g. #GGGGGG)
+    16 turns · 85s · $0.29
+
+--- Merging: ColorPicker hex input silently rejects invalid values — typing "#GGGGGG" shows no error message, no red border, just nothing happening ---
+Already up to date.
