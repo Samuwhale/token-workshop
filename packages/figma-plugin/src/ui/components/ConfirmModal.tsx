@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 interface ConfirmModalProps {
   title: string;
   description?: string;
+  children?: ReactNode;
   confirmLabel: string;
   cancelLabel?: string;
   danger?: boolean;
@@ -13,6 +15,7 @@ interface ConfirmModalProps {
 export function ConfirmModal({
   title,
   description,
+  children,
   confirmLabel,
   cancelLabel = 'Cancel',
   danger = false,
@@ -62,6 +65,7 @@ export function ConfirmModal({
               {description}
             </p>
           )}
+          {children}
         </div>
         {error && (
           <p className="px-4 pb-2 text-[10px] text-[var(--color-figma-error)]">{error}</p>

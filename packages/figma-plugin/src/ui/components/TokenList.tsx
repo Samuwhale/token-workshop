@@ -179,7 +179,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<{ type: 'variables' | 'styles'; count: number } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
-  const [renameTokenConfirm, setRenameTokenConfirm] = useState<{ oldPath: string; newPath: string; depCount: number } | null>(null);
+  const [renameTokenConfirm, setRenameTokenConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null>(null);
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
@@ -714,9 +714,9 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     if (!connected) return;
     const encodedPath = oldPath.split('.').map(encodeURIComponent).join('/');
     const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedPath}`);
-    const data = res.ok ? await res.json() as { count: number } : { count: 0 };
+    const data = res.ok ? await res.json() as { count: number; dependents: Array<{ path: string; setName: string }> } : { count: 0, dependents: [] };
     if (data.count > 0) {
-      setRenameTokenConfirm({ oldPath, newPath, depCount: data.count });
+      setRenameTokenConfirm({ oldPath, newPath, depCount: data.count, deps: data.dependents ?? [] });
     } else {
       await executeTokenRename(oldPath, newPath);
     }
@@ -2123,7 +2123,17 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
           confirmLabel="Rename and update references"
           onConfirm={() => executeTokenRename(renameTokenConfirm.oldPath, renameTokenConfirm.newPath)}
           onCancel={() => setRenameTokenConfirm(null)}
-        />
+        >
+          {renameTokenConfirm.deps.length > 0 && (
+            <div className="mt-2 max-h-[120px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+              {renameTokenConfirm.deps.map((dep, i) => (
+                <div key={i} className="px-2 py-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)] last:border-b-0 truncate" title={`${dep.setName}: ${dep.path}`}>
+                  <span className="text-[var(--color-figma-text-tertiary)]">{dep.setName}/</span>{dep.path}
+                </div>
+              ))}
+            </div>
+          )}
+        </ConfirmModal>
       )}
 
       {/* Extract to reference modal */}
@@ -3317,8 +3327,12 @@ function TokenTreeNode({
                   else if (v.suggestedFix === 'add-description') onEdit(node.path);
                 }}
                 title={lintViolations.map(v => `${v.severity}: ${v.message}`).join('\n')}
-                className={`w-2 h-2 rounded-full shrink-0 ${worstSeverity === 'error' ? 'bg-[var(--color-figma-error)]' : worstSeverity === 'warning' ? 'bg-[var(--color-figma-warning)]' : 'bg-[var(--color-figma-text-tertiary)]'}`}
-              />
+                className={`shrink-0 flex items-center justify-center ${worstSeverity === 'error' ? 'text-[var(--color-figma-error)]' : worstSeverity === 'warning' ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
+                </svg>
+              </button>
             )}
             {count && (
               <span className="w-2 h-2 rounded-full bg-[var(--color-figma-accent)] shrink-0" title={`${count} tokens share this value`} />

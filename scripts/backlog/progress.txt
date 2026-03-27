@@ -226,3 +226,11 @@
   - `data-group-path` and `data-token-path` attributes on DOM elements are the clean way to derive context at keypress time without adding extra state.
   - For finding "deepest ancestor group" from a token path, query all `[data-group-path]` elements, filter by prefix match, sort descending by path length.
 ---
+
+## 2026-03-27 - Rename remap preview
+- Updated `renameTokenConfirm` state to include `deps: Array<{path, setName}>`. Updated `handleRenameToken` to store the full `dependents` array from the API response. Added a scrollable list (max-h 120px) of affected token paths as `children` of `ConfirmModal`, showing `setName/path` per row. Also added `children?: ReactNode` prop to `ConfirmModal` rendered between description and action buttons.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L182,L717,L2120; `packages/figma-plugin/src/ui/components/ConfirmModal.tsx` ~L4,L11,L64
+- **Learnings for future iterations:**
+  - `ConfirmModal` now accepts optional `children` for richer confirmation dialogs — useful pattern for any confirm that needs contextual preview content.
+  - The `/dependents/*` API already returns the full `Array<{path, setName}>` — only the count was being stored before.
+---
