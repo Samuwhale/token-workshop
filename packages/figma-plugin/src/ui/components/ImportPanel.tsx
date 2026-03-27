@@ -845,7 +845,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                     ? importProgress
                       ? `Importing ${importProgress.done}/${importProgress.total}…`
                       : 'Importing…'
-                    : 'Skip conflicts'}
+                    : 'Skip & import new'}
                 </button>
                 <button
                   onClick={() => executeImport('overwrite')}
@@ -856,7 +856,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                     ? importProgress
                       ? `Importing ${importProgress.done}/${importProgress.total}…`
                       : 'Importing…'
-                    : 'Overwrite all'}
+                    : 'Overwrite & import all'}
                 </button>
               </div>
               {importing && importProgress && importProgress.total > 0 && (

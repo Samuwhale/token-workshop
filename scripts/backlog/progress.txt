@@ -79,3 +79,10 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: ThemeManager has the same `res.ok` unchecked pattern across 4 different mutation handlers (delete dimension, delete option, toggle set state, reorder sets) — all optimistically update local state without verifying the server accepted the change. Also, `useThemeSwitcher` stale cleanup uses the wrong setter so cleaned themes persist in storage.
 ---
+
+## 2026-03-27 - ImportPanel conflict buttons label rename
+- Renamed "Skip conflicts" → "Skip & import new" and "Overwrite all" → "Overwrite & import all" so users understand non-conflicting tokens are still imported in both cases.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L848, ~L859
+- **Learnings for future iterations:**
+  - Straightforward label rename — no logic changes needed, just string literals in JSX.
+---

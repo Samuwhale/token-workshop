@@ -130,7 +130,7 @@ Items spotted during UX passes but out of scope for that session.
 
 - [x] Centralize `normalizeHex` — `AnalyticsPanel.tsx` defines a local `normalizeHex` that could live in `colorUtils.ts` and be reused
 
-- [ ] ImportPanel conflict buttons — "Skip conflicts" / "Overwrite all" labels don't explain whether non-conflicting tokens are still imported; rename to "Skip & import new" / "Overwrite & import all"
+- [x] ImportPanel conflict buttons — "Skip conflicts" / "Overwrite all" labels don't explain whether non-conflicting tokens are still imported; rename to "Skip & import new" / "Overwrite & import all"
 - [ ] SyncPanel sync result — after applyVarDiff completes, panel silently resets with no success message; show a brief "Synced N variables" inline confirmation
 - [ ] ExportPanel From-Figma empty state — "Connect to server" message is misleading when the actual issue is Figma variables not being loaded; clarify the error text
 
@@ -158,3 +158,10 @@ Items spotted during UX passes but out of scope for that session.
 - [ ] Remove unused `updateServerUrl` from `useServerConnection` return — returned from hook but never destructured by any caller
 - [ ] Remove unnecessary `rgbToHsl` export in `colorUtils.ts` — only used internally by `hexToHsl` in the same file
 - [ ] Remove unused `allSets` param from `UseGeneratorDialogParams` — accepted in interface but never read by hook body
+
+- [HIGH] ThemeManager `executeDeleteDimension` and `executeDeleteOption` don't check `res.ok` — server rejection (404/500) is silently ignored while optimistic local state update removes the dimension/option from the UI; `fetchDimensions()` eventually restores it but user gets no error feedback (`ThemeManager.tsx:252-260, 297-310`)
+- [HIGH] ThemeManager `handleSetState` doesn't check `res.ok` — a server-rejected set state toggle (e.g. 400 from invalid status) appears to succeed because `fetch` doesn't throw on HTTP errors; the catch block only handles network failures, not HTTP error responses (`ThemeManager.tsx:326-337`)
+- [ ] ThemeManager `handleDrop` (set reorder) doesn't check `res.ok` — after drag-and-drop reordering, the POST to save new order silently fails on server error; local state is already updated optimistically with no rollback (`ThemeManager.tsx:376-384`)
+- [ ] ThemeCompare path display uses `diff.path.split('.')` to extract parent/leaf segments — breaks for tokens with dots in segment names (e.g. `spacing.1.5` shows parent `spacing.1` and leaf `5` instead of parent `spacing` and leaf `1.5`); should use `nodeParentPath`/`formatDisplayPath` from tokenListUtils (`ThemeCompare.tsx:230-232`)
+- [ ] `useThemeSwitcher` stale active-theme cleanup uses `setActiveThemesState` instead of `setActiveThemes` — removed dimensions are cleaned from React state but persist in localStorage and Figma clientStorage, causing phantom theme selections to reappear on next load (`useThemeSwitcher.ts:53-60`)
+- [ ] `useThemeSwitcher` theme fetch failure is silently swallowed by `.catch(() => {})` — if `/api/themes` returns an error or the server is temporarily unreachable, dimensions silently remain empty with no user-visible error message or retry affordance (`useThemeSwitcher.ts:63`)
