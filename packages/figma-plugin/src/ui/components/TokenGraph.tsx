@@ -119,10 +119,27 @@ export function TokenGraph({
   // Delete
   // -------------------------------------------------------------------------
   const handleDelete = useCallback(async (id: string, name: string) => {
-    if (!window.confirm(`Delete generator "${name}"?\n\nTokens it created will remain but will no longer update automatically.`)) return;
+    if (!window.confirm(`Delete generator "${name}"?`)) return;
+
+    // Check for derived tokens and offer cleanup
+    let deleteTokens = false;
+    try {
+      const res = await fetch(`${serverUrl}/api/generators/${id}/tokens`);
+      if (res.ok) {
+        const data = await res.json();
+        const count = data.count ?? 0;
+        if (count > 0) {
+          deleteTokens = window.confirm(
+            `This generator created ${count} token(s).\n\nAlso delete them? (Cancel = keep tokens)`,
+          );
+        }
+      }
+    } catch { /* proceed without cleanup */ }
+
     setDeletingId(id);
     try {
-      await fetch(`${serverUrl}/api/generators/${id}`, { method: 'DELETE' });
+      const qs = deleteTokens ? '?deleteTokens=true' : '';
+      await fetch(`${serverUrl}/api/generators/${id}${qs}`, { method: 'DELETE' });
       onRefreshGenerators();
       onRefresh();
     } finally {

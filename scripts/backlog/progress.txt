@@ -19,6 +19,23 @@
   - `window.confirm()` is the simplest confirmation pattern for destructive actions in the Figma plugin UI — no need for a custom modal component.
 ---
 
+## 2026-03-27 - No way to identify and clean up derived tokens after deleting a generator
+- Added `findTokensByGeneratorId(id)` and `deleteTokensByGeneratorId(id)` methods to `TokenStore` to scan flat token map for `$extensions["com.tokenmanager.generator"].generatorId` matches. Supports `'*'` wildcard to find all tagged tokens.
+- Added three new API endpoints:
+  - `GET /api/generators/:id/tokens` — list tokens created by a specific generator (works even after generator deletion by scanning token metadata)
+  - `GET /api/generators/orphaned-tokens` — find all tokens whose generatorId doesn't match any existing generator
+  - `DELETE /api/generators/orphaned-tokens` — bulk-delete all orphaned generator tokens
+- Enhanced `DELETE /api/generators/:id` with `?deleteTokens=true` query param to optionally clean up derived tokens in one request.
+- Updated TokenGraph UI `handleDelete`: after confirming generator deletion, fetches derived token count and shows a second confirm dialog offering to delete them. User can choose to keep or remove orphaned tokens.
+- Files changed:
+  - `packages/server/src/services/token-store.ts` ~L494 (findTokensByGeneratorId, deleteTokensByGeneratorId)
+  - `packages/server/src/routes/generators.ts` ~L43 (orphaned-tokens GET/DELETE), ~L138 (/:id/tokens GET), ~L144 (DELETE with deleteTokens query)
+  - `packages/figma-plugin/src/ui/components/TokenGraph.tsx` ~L121 (handleDelete with token cleanup flow)
+- **Learnings for future iterations:**
+  - Fastify static routes (`/generators/orphaned-tokens`) must be registered before parameterized (`/generators/:id`) — same registration-order principle as documented for token routes.
+  - `window.confirm` two-step pattern (confirm action → confirm side effect) is a clean UX for "delete X and optionally Y" without needing a custom modal.
+---
+
 ## 2026-03-27 - Duplicate targetGroup values across generators corrupt dependency resolution
 - Changed `producerByGroup` in `buildDependencyOrder()` from `Map<string, string>` to `Map<string, Set<string>>` so that multiple generators sharing the same `targetGroup` are all registered as producers.
 - Updated the edge-building loop to iterate over all producer IDs per group instead of a single one, ensuring correct dependency edges and topological ordering.

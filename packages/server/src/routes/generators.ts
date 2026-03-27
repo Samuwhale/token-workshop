@@ -40,6 +40,30 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     return fastify.generatorService.getAll();
   });
 
+  // GET /api/generators/orphaned-tokens — find tokens whose generator no longer exists
+  fastify.get('/generators/orphaned-tokens', async () => {
+    const allGenerators = fastify.generatorService.getAll();
+    const activeIds = new Set(allGenerators.map((g: { id: string }) => g.id));
+    const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
+    const orphaned = allTagged.filter((t) => !activeIds.has(t.generatorId));
+    return { count: orphaned.length, tokens: orphaned };
+  });
+
+  // DELETE /api/generators/orphaned-tokens — delete all orphaned generator tokens
+  fastify.delete('/generators/orphaned-tokens', async () => {
+    const allGenerators = fastify.generatorService.getAll();
+    const activeIds = new Set(allGenerators.map((g: { id: string }) => g.id));
+    const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
+    const orphanIds = new Set(
+      allTagged.filter((t) => !activeIds.has(t.generatorId)).map((t) => t.generatorId),
+    );
+    let totalDeleted = 0;
+    for (const gid of orphanIds) {
+      totalDeleted += await fastify.tokenStore.deleteTokensByGeneratorId(gid);
+    }
+    return { deleted: totalDeleted };
+  });
+
   // POST /api/generators — create a new generator and run it immediately
   fastify.post<{ Body: CreateBody }>('/generators', async (request, reply) => {
     const { type, sourceToken, targetSet, targetGroup, name, config, overrides, inputTable, targetSetTemplate } = request.body ?? {} as CreateBody;
@@ -111,14 +135,27 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // DELETE /api/generators/:id — delete generator (does NOT delete derived tokens)
-  fastify.delete<{ Params: { id: string } }>('/generators/:id', async (request, reply) => {
-    const deleted = await fastify.generatorService.delete(request.params.id);
-    if (!deleted) {
-      return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
-    }
-    return { deleted: true, id: request.params.id };
+  // GET /api/generators/:id/tokens — list tokens created by a generator
+  fastify.get<{ Params: { id: string } }>('/generators/:id/tokens', async (request) => {
+    const tokens = fastify.tokenStore.findTokensByGeneratorId(request.params.id);
+    return { generatorId: request.params.id, count: tokens.length, tokens };
   });
+
+  // DELETE /api/generators/:id — delete generator, optionally delete derived tokens
+  fastify.delete<{ Params: { id: string }; Querystring: { deleteTokens?: string } }>(
+    '/generators/:id',
+    async (request, reply) => {
+      const deleted = await fastify.generatorService.delete(request.params.id);
+      if (!deleted) {
+        return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
+      }
+      let tokensDeleted = 0;
+      if (request.query.deleteTokens === 'true') {
+        tokensDeleted = await fastify.tokenStore.deleteTokensByGeneratorId(request.params.id);
+      }
+      return { deleted: true, id: request.params.id, tokensDeleted };
+    },
+  );
 
   // POST /api/generators/:id/run — manually re-run a generator
   fastify.post<{ Params: { id: string } }>('/generators/:id/run', async (request, reply) => {

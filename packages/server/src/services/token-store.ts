@@ -491,6 +491,48 @@ export class TokenStore {
     return deleted;
   }
 
+  /**
+   * Find tokens tagged with a generatorId.
+   * Pass '*' to find ALL tokens that have any generatorId.
+   */
+  findTokensByGeneratorId(generatorId: string): Array<{ setName: string; path: string; generatorId: string }> {
+    const matchAll = generatorId === '*';
+    const results: Array<{ setName: string; path: string; generatorId: string }> = [];
+    for (const [tokenPath, { token, setName }] of this.flatTokens) {
+      const ext = (token as any).$extensions?.['com.tokenmanager.generator'];
+      if (ext?.generatorId && (matchAll || ext.generatorId === generatorId)) {
+        results.push({ setName, path: tokenPath, generatorId: ext.generatorId });
+      }
+    }
+    return results;
+  }
+
+  /** Delete all tokens tagged with a given generatorId. Returns count of deleted tokens. */
+  async deleteTokensByGeneratorId(generatorId: string): Promise<number> {
+    const tokens = this.findTokensByGeneratorId(generatorId);
+    if (tokens.length === 0) return 0;
+
+    this.beginBatch();
+    const setsToSave = new Set<string>();
+    let deleted = 0;
+    try {
+      for (const { setName, path: tokenPath } of tokens) {
+        const set = this.sets.get(setName);
+        if (!set) continue;
+        if (this.deleteTokenAtPath(set.tokens, tokenPath)) {
+          setsToSave.add(setName);
+          deleted++;
+        }
+      }
+      for (const setName of setsToSave) {
+        await this.saveSet(setName);
+      }
+    } finally {
+      this.endBatch();
+    }
+    return deleted;
+  }
+
   async resolveTokens(): Promise<ResolvedToken[]> {
     if (!this.resolver) {
       return [];
