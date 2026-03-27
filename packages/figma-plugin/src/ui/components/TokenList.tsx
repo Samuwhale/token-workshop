@@ -231,6 +231,7 @@ export function TokenList({
   const [newGroupDialogParent, setNewGroupDialogParent] = useState<string | null>(null);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupError, setNewGroupError] = useState('');
+  const [copyFeedback, setCopyFeedback] = useState(false);
 
   const generatorsBySource = useMemo(() => {
     const map = new Map<string, TokenGenerator[]>();
@@ -332,6 +333,28 @@ export function TokenList({
       return;
     }
 
+    // Cmd/Ctrl+C: copy selected tokens as DTCG JSON
+    if (e.key === 'c' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+      if (selectMode && selectedPaths.size > 0) {
+        e.preventDefault();
+        const nodes = flattenLeafNodes(displayedTokens).filter(n => selectedPaths.has(n.path));
+        copyTokensAsJson(nodes);
+        return;
+      }
+      // Single focused token row — copy that token
+      if (!isTyping) {
+        const focusedPath = (document.activeElement as HTMLElement)?.dataset?.tokenPath;
+        if (focusedPath) {
+          const node = flattenLeafNodes(displayedTokens).find(n => n.path === focusedPath);
+          if (node) {
+            e.preventDefault();
+            copyTokensAsJson([node]);
+            return;
+          }
+        }
+      }
+    }
+
     // Don't handle shortcuts when typing in a form field
     if (isTyping) return;
 
@@ -388,7 +411,7 @@ export function TokenList({
         next?.scrollIntoView({ block: 'nearest' });
       }
     }
-  }, [showCreateForm, selectMode, handleOpenCreateSibling]);
+  }, [showCreateForm, selectMode, selectedPaths, displayedTokens, copyTokensAsJson, handleOpenCreateSibling]);
 
   // Expand ancestor groups when navigating to a highlighted token
   useEffect(() => {
@@ -1357,6 +1380,30 @@ export function TokenList({
     }
   };
 
+  /** Build nested DTCG JSON from a list of token nodes and copy to clipboard. */
+  const copyTokensAsJson = useCallback((nodes: TokenNode[]) => {
+    if (nodes.length === 0) return;
+    // Build a nested DTCG object from flat token paths
+    const root: Record<string, any> = {};
+    for (const node of nodes) {
+      if (node.isGroup) continue;
+      const segments = node.path.split('.');
+      let cursor = root;
+      for (let i = 0; i < segments.length - 1; i++) {
+        if (!(segments[i] in cursor)) cursor[segments[i]] = {};
+        cursor = cursor[segments[i]];
+      }
+      const leaf: Record<string, unknown> = { $value: node.$value, $type: node.$type };
+      if (node.$description) leaf.$description = node.$description;
+      cursor[segments[segments.length - 1]] = leaf;
+    }
+    const json = JSON.stringify(root, null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 1500);
+    }).catch(() => {});
+  }, []);
+
   const flattenTokens = (nodes: TokenNode[]): any[] => {
     const result: any[] = [];
     const walk = (list: TokenNode[]) => {
@@ -1652,6 +1699,15 @@ export function TokenList({
                   className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   Link to tokens
+                </button>
+                <button
+                  onClick={() => {
+                    const nodes = flattenLeafNodes(displayedTokens).filter(n => selectedPaths.has(n.path));
+                    copyTokensAsJson(nodes);
+                  }}
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  {copyFeedback ? 'Copied!' : 'Copy JSON'}
                 </button>
                 <button
                   onClick={requestBulkDelete}

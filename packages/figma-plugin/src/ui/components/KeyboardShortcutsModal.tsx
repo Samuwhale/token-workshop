@@ -32,6 +32,12 @@ const SECTIONS: ShortcutSection[] = [
     ],
   },
   {
+    header: 'Token List',
+    shortcuts: [
+      { keys: ['⌘C'], label: 'Copy selected tokens as JSON' },
+    ],
+  },
+  {
     header: 'Paste Modal',
     shortcuts: [
       { keys: ['⌘↵'], label: 'Confirm paste' },

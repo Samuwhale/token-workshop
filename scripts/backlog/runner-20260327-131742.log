@@ -76,3 +76,16 @@ Already up to date.
 
 --- Merging: Inline editing limited to color/boolean — string, dimension, and number tokens require opening the full editor panel ---
 Already up to date.
+[main 30c397c] chore(backlog): done – Inline editing limited to color/boolean — string, dimension, and number tokens require opening the full editor panel
+ 4 files changed, 30 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - Inline editing limited to color/boolean — string, dimension, and number tokens require opening the full editor panel
+- Already implemented. `INLINE_SIMPLE_TYPES` at TokenList.tsx ~L117 includes 'string', 'dimension', 'number' (and more). Click-to-edit span (~L3950), inline input (~L3925), `getEditableString()` (~L120), `parseInlineValue()` (~L132), and `handleInlineSave` (~L1019) are all wired up and functional.
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  10 items remaining
+===============================================================
+  Claimed: Arrow left/right don't expand/collapse groups — when a group row is focused via keyboard, left/right arrows do nothing; they should collapse/expand the group (standard tree keyboard pattern)
+  Worktree: /tmp/backlog-44348-ctgtu3

@@ -75,3 +75,10 @@ Already up to date.
 ===============================================================
   Claimed: No copy/paste for tokens (Cmd+C/V) — users can paste via a dedicated modal (Cmd+Shift+V) but there's no way to copy selected tokens as JSON to clipboard; common "duplicate across sets" workflow requires the Move dialog instead of copy-paste
   Worktree: /tmp/backlog-44614-kq3SiP
+
+  ✓ done: No copy/paste for tokens (Cmd+C/V)
+    Added Cmd+C to copy selected tokens as nested DTCG JSON to clipboard (multi-select or single focused row), plus a "Copy JSON" toolbar button in select mode, compatible with existing Cmd+Shift+V paste modal
+    35 turns · 275s · $1.48
+
+--- Merging: No copy/paste for tokens (Cmd+C/V) ---
+Already up to date.

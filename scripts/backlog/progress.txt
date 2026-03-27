@@ -379,3 +379,18 @@
 - **Learnings for future iterations:**
   - Always verify backlog items against current code before implementing — features may have been added in prior sessions without marking the item done.
 ---
+
+## 2026-03-27 - No copy/paste for tokens (Cmd+C/V)
+- Added Cmd+C (Ctrl+C) keyboard shortcut to copy selected tokens as nested DTCG JSON to clipboard. Works in two modes:
+  1. Select mode with multiple tokens selected → copies all selected tokens
+  2. Single focused token row (no select mode) → copies just that token
+- Added "Copy JSON" button to the select mode toolbar (shows "Copied!" feedback for 1.5s)
+- Output format is nested DTCG JSON compatible with the Paste Tokens modal (Cmd+Shift+V), enabling cross-set copy-paste workflow
+- Added "Copy selected tokens as JSON" entry to KeyboardShortcutsModal under new "Token List" section
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L234 (copyFeedback state), ~L1381 (copyTokensAsJson helper), ~L336 (Cmd+C handler in handleListKeyDown), ~L1705 (Copy JSON toolbar button)
+- Files changed: `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L34 (Token List shortcuts section)
+- **Learnings for future iterations:**
+  - The `handleListKeyDown` callback intentionally places Cmd+C before the `isTyping` guard so it works even when a form field is focused during select mode
+  - `flattenLeafNodes(displayedTokens)` is the canonical way to get all visible leaf tokens for operations like copy/select-all
+  - Token paths use dots as separators but segment names can contain dots — the nested DTCG build uses `path.split('.')` which is sufficient here because the paste modal's DTCG parser handles the nested structure correctly
+---
