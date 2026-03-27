@@ -47,7 +47,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] `updateAliasRefs` misses aliases referencing the group itself (not a child) because `oldPrefix` always has a trailing dot (`server/token-store.ts:443`)
 - [~] `createToken` for a new set triggers 3 rebuilds: createSet + saveSet + watcher (`server/token-store.ts:297-310`)
 - [x] Missing `return` after error `reply.send()` in sets.ts PATCH handlers and export.ts — could cause "reply already sent" (`server/routes/sets.ts:60,83`, `server/routes/export.ts:34`)
-- [~] `deleteTokenAtPath` leaves empty parent group objects `{}` in the JSON file (`server/token-store.ts:760-773`)
+- [x] `deleteTokenAtPath` leaves empty parent group objects `{}` in the JSON file (`server/token-store.ts:760-773`)
 - [~] ImportPanel conflict check only looks at top-level keys, misses nested token paths (`figma-plugin/ImportPanel.tsx:321-324`)
 - [ ] `enrichFormulaExtension` identity-comparison always evaluates to `true`, causing every formula update to overwrite `$extensions` even when unchanged (`server/token-store.ts:321`)
 
