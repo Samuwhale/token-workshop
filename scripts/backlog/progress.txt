@@ -1,6 +1,16 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - TokenGeneratorDialog is ~800+ lines handling 7+ generator types in one component
+- Extracted all 8 generator types into separate files under `generators/` subfolder. Each file contains the default config constant, preset constants, config editor component, and preview component for that type. Shared primitives (`formatValue`, `OverrideRow`, `OverrideTable`, `GenericPreview`) moved to `generators/generatorShared.tsx`. `SpacingPreview` exported from `SpacingScaleGenerator.tsx` and reused by `borderRadiusScale` in the parent. Parent dialog shrank from 1722 lines to 662 lines with zero behavior changes.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` (rewritten), `generators/generatorShared.tsx` (new), `generators/ColorRampGenerator.tsx` (new), `generators/TypeScaleGenerator.tsx` (new), `generators/SpacingScaleGenerator.tsx` (new), `generators/OpacityScaleGenerator.tsx` (new), `generators/BorderRadiusGenerator.tsx` (new), `generators/ZIndexGenerator.tsx` (new), `generators/CustomScaleGenerator.tsx` (new), `generators/ContrastCheckGenerator.tsx` (new)
+- **Learnings for future iterations:**
+  - The cleanest split for a multi-type dialog: one file per generator type (default config + presets + config editor + preview), one shared file for cross-generator primitives, and the parent dialog only keeps dialog-level state, helpers, and orchestration JSX.
+  - When a preview component is shared across two types (SpacingPreview for spacing+borderRadius), export it from the semantically "owning" generator file and import it in the parent — no need for a separate shared home.
+  - No barrel `index.ts` needed; direct imports from each generator file keep tree-shaking clean and avoid circular import risk.
+  - All external callers continue to `import { TokenGeneratorDialog } from './TokenGeneratorDialog'` with zero changes.
+---
+
 ## 2026-03-27 - TokenList accepts 30+ props — strong signal for context/state management extraction
 - Grouped the 30-prop flat interface into 3 sub-interfaces (`TokenListCtx`, `TokenListData`, `TokenListActions`) plus 3 remaining flat props (`defaultCreateOpen`, `highlightedToken`, `showIssuesOnly`). Used nested destructuring with aliases in the function signature so the entire 3553-line body is unchanged — all local variable names remain identical.
 - Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L33-93, ~L177; `packages/figma-plugin/src/ui/App.tsx` ~L2088, ~L2116, ~L2129
