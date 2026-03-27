@@ -38,7 +38,7 @@
 
 ### Bugs
 
-- [~] `themedAllTokensFlat` drops tokens outside themed sets — `useThemeSwitcher` builds `merged` from only the sets referenced by active theme options; tokens in sets not assigned to any dimension are silently excluded from the themed view, rather than being included as a base layer
+- [x] `themedAllTokensFlat` drops tokens outside themed sets — `useThemeSwitcher` builds `merged` from only the sets referenced by active theme options; tokens in sets not assigned to any dimension are silently excluded from the themed view, rather than being included as a base layer
 
 ### QoL
 
@@ -47,8 +47,8 @@
 
 ### UX
 
-- [ ] ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons
-- [ ] ThemeCompare: No export or copy of diff results — users can see which tokens differ between two theme options but cannot copy or export the comparison, making it hard to share with teammates or create tickets from it
+- [~] ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons
+- [~] ThemeCompare: No export or copy of diff results — users can see which tokens differ between two theme options but cannot copy or export the comparison, making it hard to share with teammates or create tickets from it
 
 ---
 

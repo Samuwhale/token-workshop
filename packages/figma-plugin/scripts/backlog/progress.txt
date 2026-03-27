@@ -38,3 +38,10 @@
   - The UI and plugin controller live in different compile units (iframe vs Figma sandbox) and thus need separate shared utility files (`src/ui/shared/utils.ts` vs `src/shared/utils.ts`). Never import UI shared utils into the plugin sandbox.
   - When a fallback in the UI is `String(err)` rather than a static string, pass it explicitly: `getErrorMessage(err, String(err))`.
 ---
+
+## 2026-03-27 - ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path
+- Added a `searchQuery` state and a text search input above the type-filter row in the summary bar. `filteredDiffs` now applies both the type filter and the case-insensitive path substring filter. The input uses `type="search"` and placeholder "Filter by token path…".
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L84 (state), ~L133 (filteredDiffs), ~L195 (search input)
+- **Learnings for future iterations:**
+  - No new patterns — straightforward controlled input + filter on existing `useMemo` chain.
+---

@@ -82,6 +82,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
   const [optionKeyA, setOptionKeyA] = useState<string>('');
   const [optionKeyB, setOptionKeyB] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const flatOptions = useMemo(() => buildFlatOptions(dimensions), [dimensions]);
 
@@ -131,9 +132,13 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
   }, [diffs]);
 
   const filteredDiffs = useMemo(() => {
-    if (typeFilter === 'all') return diffs;
-    return diffs.filter(d => d.type === typeFilter);
-  }, [diffs, typeFilter]);
+    let result = typeFilter === 'all' ? diffs : diffs.filter(d => d.type === typeFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(d => d.path.toLowerCase().includes(q));
+    }
+    return result;
+  }, [diffs, typeFilter, searchQuery]);
 
   const canCompare = optionKeyA && optionKeyB && optionKeyA !== optionKeyB;
 
@@ -187,7 +192,15 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
       ) : (
         <>
           {/* Summary + filter bar */}
-          <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          <div className="shrink-0 px-3 pt-1.5 pb-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] space-y-1.5">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Filter by token path…"
+              className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none"
+            />
+            <div className="flex items-center gap-2">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
               {filteredDiffs.length === diffs.length
                 ? `${diffs.length} differing token${diffs.length !== 1 ? 's' : ''}`
@@ -217,6 +230,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
                   {t}
                 </button>
               ))}
+            </div>
             </div>
           </div>
 

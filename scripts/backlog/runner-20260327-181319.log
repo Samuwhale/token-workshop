@@ -1,0 +1,18 @@
+NOTE: 4 [~] item(s) found — skipping reset (7 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+  Remaining items: 33
+  Completed total: 323 (next product pass in 1 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  33 items remaining
+===============================================================
+  Claimed: ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons
+  Worktree: /tmp/backlog-59883-1eIVHd
+
+  ✓ done: ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons
+    Added a text search input above the type-filter row; filteredDiffs now filters by case-insensitive path substring in addition to the existing type filter
+    12 turns · 67s · $0.24
+
+--- Merging: ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons ---
+Already up to date.

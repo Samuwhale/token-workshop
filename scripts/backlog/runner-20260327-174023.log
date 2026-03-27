@@ -56,3 +56,91 @@ Already up to date.
 
 --- Merging: `themedAllTokensFlat` drops tokens outside themed sets ---
 Already up to date.
+[main fef3c38] chore(backlog): done – `themedAllTokensFlat` drops tokens outside themed sets
+ 6 files changed, 48 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - `themedAllTokensFlat` drops tokens outside themed sets
+- Added a base layer pass before applying themed sets: collect all set names referenced by any dimension option into `themedSets`, then seed `merged` with every token whose set is NOT in `themedSets`. The existing source→enabled overlay logic then applies on top, so unthemed tokens are always included as a foundation.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L94 (themedAllTokensFlat useMemo)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  33 items remaining
+===============================================================
+  Claimed: ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons
+  Worktree: /tmp/backlog-91967-ICrT9m
+
+  · unknown
+    16 turns · 69s · $0.29
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-27 - `themedAllTokensFlat` drops tokens outside themed sets
+- Added a base layer pass before applying themed sets: collect all set names referenced by any dimension option into `themedSets`, then seed `merged` with every token whose set is NOT in `themedSets`. The existing source→enabled overlay logic then applies on top, so unthemed tokens are always included as a foundation.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L94 (themedAllTokensFlat useMemo)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  33 items remaining
+===============================================================
+  Claimed: ThemeCompare: No search or path filter — the diff view shows all differing tokens but provides no text search to find a specific token path, making it hard to locate a particular difference in large theme comparisons
+  Worktree: /tmp/backlog-91967-CD2enA
+
+  · unknown
+    1 turns · 0s · $0
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-27 - `themedAllTokensFlat` drops tokens outside themed sets
+- Added a base layer pass before applying themed sets: collect all set names referenced by any dimension option into `themedSets`, then seed `merged` with every token whose set is NOT in `themedSets`. The existing source→enabled overlay logic then applies on top, so unthemed tokens are always included as a foundation.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L94 (themedAllTokensFlat useMemo)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  34 items remaining
+===============================================================
+  Claimed: ThemeManager: No rename option for theme options — dimensions can be renamed but individual options (e.g. "Light", "Dark") cannot be renamed once created; users must delete and recreate them, losing all set assignments
+  Worktree: /tmp/backlog-91967-IO6UkA
+
+  · unknown
+    1 turns · 0s · $0
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-27 - `themedAllTokensFlat` drops tokens outside themed sets
+- Added a base layer pass before applying themed sets: collect all set names referenced by any dimension option into `themedSets`, then seed `merged` with every token whose set is NOT in `themedSets`. The existing source→enabled overlay logic then applies on top, so unthemed tokens are always included as a foundation.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L94 (themedAllTokensFlat useMemo)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  34 items remaining
+===============================================================
+  Claimed: ThemeManager: No search or filter for sets within a theme option — when a project has 10+ sets, the set matrix in each theme option becomes a long unfiltered list with no way to find a specific set quickly
+  Worktree: /tmp/backlog-91967-tA1uJd
+
+WARNING: Rate limit hit — unclaiming item and waiting 60s before retry.
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  35 items remaining
+===============================================================
+  Claimed: ThemeManager: No rename option for theme options — dimensions can be renamed but individual options (e.g. "Light", "Dark") cannot be renamed once created; users must delete and recreate them, losing all set assignments
+  Worktree: /tmp/backlog-91967-y9BnGr
+
+  · unknown
+    1 turns · 0s · $0
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-27 - `themedAllTokensFlat` drops tokens outside themed sets
+- Added a base layer pass before applying themed sets: collect all set names referenced by any dimension option into `themedSets`, then seed `merged` with every token whose set is NOT in `themedSets`. The existing source→enabled overlay logic then applies on top, so unthemed tokens are always included as a foundation.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L94 (themedAllTokensFlat useMemo)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  35 items remaining
+===============================================================
+  Claimed: ThemeManager: No rename option for theme options — dimensions can be renamed but individual options (e.g. "Light", "Dark") cannot be renamed once created; users must delete and recreate them, losing all set assignments
+  Worktree: /tmp/backlog-91967-vOBi7Y
+
+  · unknown
+    1 turns · 0s · $0
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+FATAL: 5 consecutive failures — stopping to avoid wasting resources.
+  Check recent items in backlog.md for patterns (stale references, recurring build errors, etc.)
