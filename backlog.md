@@ -101,36 +101,13 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### Correctness & Safety
 
 - [HIGH] `varCorrelationIdRef` and `varReadResolveRef` are shared between `computeVarDiff` and `runReadinessChecks` — if both are called concurrently (auto-run on mount + manual click), the second call overwrites the shared ref and the first promise never resolves, causing a silent hang or timeout (`SyncPanel.tsx:L68-69, L243-258`)
-- [x] `applyVarDiff` push is fire-and-forget: postMessage `apply-variables` is sent but the function never waits for a response from the plugin — state is cleared and "Variable sync applied" is shown regardless of whether Figma accepted the changes (`SyncPanel.tsx:L219-235`)
-- [x] Commit form appears when only untracked (`?`) files are present — `status.isClean` is false for untracked files, so the commit form renders, but clicking "Commit" will fail (nothing staged); should show the form only when there are staged or tracked-modified files, or auto-stage tracked changes (`SyncPanel.tsx:L792`)
-- [x] No "Create new branch" UI in SyncPanel — the server's `POST /api/sync/checkout` accepts `create: true` and `createBranch` exists on `gitSync`, but the branch selector only switches between existing branches; there is no way to start a new branch from the plugin (`SyncPanel.tsx:L744-756`, `sync.ts:L138`)
-- [x] `applyVarDiff` pull side sends one PATCH per token with `Promise.all` instead of using the batch endpoint — the `POST /api/tokens/:set/batch` route added for ImportPanel is not used here; large token sets will fire many concurrent requests (`SyncPanel.tsx:L223-229`)
-- [x] `runReadinessChecks` is never triggered automatically — unlike `computeVarDiff` which runs on mount, the publish readiness section always shows "Readiness unknown" until the user manually clicks "Run checks"; the status bar's readiness dot is always grey on first open (`SyncPanel.tsx:L243`, compare with L182-184)
-
-- [x] PreviewPanel template empty states — "No color tokens found" gives code snippet but no button to switch to Tokens tab; user is left without an action path
-- [x] ExportPanel "Clear" vs "Refresh" buttons — both are tiny unlabeled-feeling actions next to each other; consider a single "Reload" that re-reads from Figma (making "Clear" redundant since data is non-destructive)
-- [x] ImportPanel styles — "Import from Figma Styles" button style is visually weaker than the Variables button, suggesting it's a secondary option even when it's equally valid
 
 - [HIGH] ExportPanel unreachable — `ExportPanel` is a fully-built 815-line component that is never imported or rendered in `App.tsx`; users have no way to access platform export (CSS/Dart/Swift/Android/JSON) or Figma variable import from the plugin UI (`packages/figma-plugin/src/ui/components/ExportPanel.tsx`)
-- [x] Platform selection not persisted between plugin sessions — `ExportPanel` initializes `selected` to `new Set(['css'])` on every mount with no localStorage; users must re-select platforms each time they re-open the plugin (`ExportPanel.tsx:51`)
-- [x] Collection name collision when saving Figma variables to server — `collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase()` can map two differently-named Figma collections to the same set name (e.g. "My Colors" and "My-Colors" → both "my-colors"), silently overwriting the first set during batch save with no warning (`ExportPanel.tsx:240`)
-- [x] Docs page renders alias token values as raw `{reference}` strings — `/docs/:set` serves raw `$value` fields without resolving aliases, so alias tokens display as literal `{some.path}` text instead of resolved values, making the style guide misleading for alias-heavy token sets (`server/routes/docs.ts`, `server/services/token-store.ts`)
-- [x] Spacing/dimension tokens with `rem` or `%` units render as near-zero bars in docs — `renderSpacingTokens` uses `parseFloat("1rem")` → `1`, showing a 1px bar for a `1rem` token; the text label is correct but the visual representation is wrong (`server/routes/docs.ts:85-86`)
-- [x] Token set key collision silently discards tokens on export — `Object.assign(merged, tokenGroup)` in `exportTokens` overwrites top-level DTCG group keys when two sets share a group name (e.g. both have a `color` group), dropping the first set's tokens with no warning or error (`server/services/style-dict.ts:151-153`)
 
 # Backlog Inbox
 
 Items spotted during UX passes but out of scope for that session.
 
-- [x] SelectionInspector "No tokens applied" state — add a small icon and a "Go to Tokens tab" button so users know exactly where to act (currently just two lines of text with no visual anchor or escape hatch)
-- [x] TokenCanvas empty state is very bare ("No tokens to display") — add an icon and a hint about why (e.g. canvas view renders token relationships)
-- [x] Silent failure in SelectionInspector binding operations — `remove-binding` and `apply-binding` messages have no error callback, so failures are invisible to the user
-- [x] Grid view: when a type filter is active and no color tokens match, distinguish between "no color tokens exist" vs "none match current filter" — the current message conflates both
-
-- [x] `POST /api/export` group filter silently returns empty when path matches nothing — if `group` doesn't exist in any set, `tokenData` becomes `{}` and export runs with empty data producing zero-byte output files with no error or warning (`server/routes/export.ts:48-65`)
-- [x] `POST /api/export` group filter splits on `.` but token segment names can contain literal dots — `group="spacing.1.5"` navigates `spacing → 1 → 5` instead of `spacing → 1.5`, silently returning empty results (`server/routes/export.ts:49`)
-- [x] SSE `/events` onChange callback has no try/catch — if `JSON.stringify(event)` throws or `reply.raw.write()` errors on a broken socket, the uncaught exception propagates up with no cleanup (`server/routes/sse.ts:15-16`)
-- [x] SSE `/events` race condition: a token change event can fire between the `close` event firing and `unsubscribe()` executing, calling `reply.raw.write()` on an already-ended stream (`server/routes/sse.ts:24-28`)
 - [ ] `POST /api/sync/push` doesn't check whether a remote is configured before attempting push — git error from missing remote is wrapped in a generic "Failed to push" 500 with no actionable message (`server/routes/sync.ts:65-73`)
 - [ ] `POST /api/sync/remote` accepts any string as the remote URL with no format validation — an invalid value is passed directly to git, producing an unhelpful error message wrapped in a generic 500 (`server/routes/sync.ts:104-116`)
 - [HIGH] Bulk-rename regex has no ReDoS protection — `isRegex=true` with a catastrophic backtracking pattern (e.g. `(a+)+b`) applied to a large token set can hang the Node.js event loop (`server/services/token-store.ts:803-809`)
