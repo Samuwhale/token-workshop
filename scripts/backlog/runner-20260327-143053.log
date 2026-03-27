@@ -36,3 +36,23 @@ Already up to date.
 
 --- Merging: Find-and-replace silently swallows invalid regex — if the user enables regex mode and enters a malformed pattern, `new RegExp()` throws and the preview returns empty with no error ---
 Already up to date.
+[main 26294fb] chore(backlog): done – Find-and-replace silently swallows invalid regex — if the user enables regex mode and enters a malformed pattern, `new RegExp()` throws and the preview returns empty with no error
+ 6 files changed, 42 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - Find-and-replace silently swallows invalid regex
+- Added `frRegexError` useMemo that validates the regex pattern when `frIsRegex` is true. When the pattern is invalid, the error message from `new RegExp()` is surfaced in the UI using `--color-figma-error` styling instead of the misleading "No token paths match." message. `frPreview` now short-circuits early when `frRegexError` is set.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1544 (frRegexError memo), ~L2880 (UI error display)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  83 items remaining
+===============================================================
+  Claimed: BatchEditor doesn't return focus to an input field after a successful operation — breaks workflow when performing multiple sequential edits
+  Worktree: /tmp/backlog-97955-uEBeco
+
+  ✓ done: BatchEditor doesn't return focus to an input field after a successful operation — breaks workflow when performing multiple sequential edits
+    Added refs to description and findText inputs; after successful apply/rename, setTimeout(0) refocuses the relevant input for sequential editing flow
+    12 turns · 86s · $0.29
+
+--- Merging: BatchEditor doesn't return focus to an input field after a successful operation — breaks workflow when performing multiple sequential edits ---
+Already up to date.

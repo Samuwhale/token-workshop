@@ -409,3 +409,10 @@
 - **Learnings for future iterations:**
   - useMemo can't set state as a side effect — add a separate memo for derived error state rather than trying to signal errors from within another memo's return value.
 ---
+
+## 2026-03-27 - BatchEditor doesn't return focus to an input field after a successful operation
+- Added `useRef` to the description input and findText input. After a fully-successful `handleApply`, focus returns to the description input; after a fully-successful `handleRename`, focus returns to the find input. Both use `setTimeout(0, ...)` so focus fires after React's re-render.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1 (import), ~L78 (refs), ~L202 (apply focus), ~L288 (rename focus), ~L308 (ref on description input), ~L421 (ref on findText input)
+- **Learnings for future iterations:**
+  - When clearing form fields after a successful async operation, pair the state resets with a `setTimeout(() => inputRef.current?.focus(), 0)` so focus lands after the re-render caused by those state updates.
+---

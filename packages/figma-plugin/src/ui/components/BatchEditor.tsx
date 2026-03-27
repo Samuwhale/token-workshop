@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
 
@@ -74,6 +74,8 @@ export function BatchEditor({
   const [moving, setMoving] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const descriptionRef = useRef<HTMLInputElement>(null);
+  const findTextRef = useRef<HTMLInputElement>(null);
 
   const selectedEntries = useMemo(() => (
     [...selectedPaths]
@@ -201,6 +203,7 @@ export function BatchEditor({
         setOpacityPct('');
         setScaleFactor('');
         setNewType('');
+        setTimeout(() => descriptionRef.current?.focus(), 0);
       } else if (succeeded === 0) {
         setFeedback({ ok: false, msg: `Failed to update all ${failed} token${failed === 1 ? '' : 's'}` });
       } else {
@@ -282,6 +285,7 @@ export function BatchEditor({
         setFeedback({ ok: true, msg: `Renamed ${succeeded} token${succeeded === 1 ? '' : 's'}` });
         setFindText('');
         setReplaceText('');
+        setTimeout(() => findTextRef.current?.focus(), 0);
       } else if (succeeded === 0) {
         setFeedback({ ok: false, msg: `Failed to rename all ${failed} token${failed === 1 ? '' : 's'}` });
       } else {
@@ -300,6 +304,7 @@ export function BatchEditor({
       <div className="flex items-center gap-2">
         <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Description</span>
         <input
+          ref={descriptionRef}
           type="text"
           value={description}
           onChange={e => setDescription(e.target.value)}
@@ -410,6 +415,7 @@ export function BatchEditor({
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Find/replace</span>
           <input
+            ref={findTextRef}
             type="text"
             value={findText}
             onChange={e => setFindText(e.target.value)}
