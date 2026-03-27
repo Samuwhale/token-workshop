@@ -396,3 +396,10 @@
   - Row headers in data tables should use `<th scope="row">` not `<td>` — even when they contain mixed content (icon + label).
   - `aria-hidden="true"` on decorative elements (color swatches) prevents screen readers from announcing hex values or empty strings for inline elements.
 ---
+
+## 2026-03-27 - SemanticMappingDialog handleCreate never calls setSaving(false) on success path
+- Added `setSaving(false)` before `onCreated(created)` on the success path so the loading spinner clears after tokens are created.
+- Files changed: `packages/figma-plugin/src/ui/components/SemanticMappingDialog.tsx` ~L205
+- **Learnings for future iterations:**
+  - When `setSaving(false)` only appears in the catch block, the success path leaves the spinner running indefinitely. Always ensure state resets happen in both success and error paths (or use a `finally` block).
+---

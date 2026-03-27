@@ -239,3 +239,23 @@ Already up to date.
 
 --- Merging: Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers ---
 Already up to date.
+[main 274d215] chore(backlog): done – Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers
+ 6 files changed, 43 insertions(+), 13 deletions(-)
+
+## 2026-03-27 - Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers
+- The table markup (`<table>`, `<thead>`, `<tbody>`, `<th>`, `<td>`) was already present. Fixed the remaining semantic gaps: added `aria-label` to the table, `scope="col"` to all column `<th>` cells with `aria-label={token.path}` for text fallback, converted row-header `<td>` to `<th scope="row">`, added `aria-label` with contrast ratio and WCAG level to data cells, added `aria-hidden="true"` to decorative color swatches, and labelled diagonal "same token" cells.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L720
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  46 items remaining
+===============================================================
+  Claimed: SemanticMappingDialog `handleCreate` never calls `setSaving(false)` on the success path — user sees perpetual loading spinner after tokens are created; only errors reset it
+  Worktree: /tmp/backlog-98408-2f3IL6
+
+  ✓ done: SemanticMappingDialog `handleCreate` never calls `setSaving(false)` on the success path — user sees perpetual loading spinner after tokens are created; only errors reset it
+    Added setSaving(false) before onCreated(created) on the success path so the spinner clears after tokens are created
+    8 turns · 36s · $0.14
+
+--- Merging: SemanticMappingDialog `handleCreate` never calls `setSaving(false)` on the success path — user sees perpetual loading spinner after tokens are created; only errors reset it ---
+Already up to date.

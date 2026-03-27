@@ -202,6 +202,7 @@ export function SemanticMappingDialog({
         }
         created++;
       }
+      setSaving(false);
       onCreated(created);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create tokens');
