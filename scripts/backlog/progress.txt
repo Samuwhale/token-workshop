@@ -260,3 +260,11 @@
   - `TokenEntry` lives in `CommandPalette.tsx` — extending it with optional fields is the right place, not App.tsx.
   - Raw `$value` can be any DTCG type (string, number, object) — stringify non-strings for clipboard copy.
 ---
+
+## 2026-03-27 - resolveAllAliases does not recurse into composite token sub-properties
+- Added `resolveObjectSubprops` helper that iterates over an object's properties and resolves any alias strings using `resolveTokenValue`. Updated `resolveAllAliases` to apply this helper when the resolved value is a plain object or an array of objects (covers typography, border, shadow, gradient). Replaced the previous gradient-specific handling with the general approach.
+- Files changed: `packages/figma-plugin/src/shared/resolveAlias.ts` ~L83
+- **Learnings for future iterations:**
+  - Composite token $value is an object (or array of objects for multi-shadow); top-level `isAlias` check only catches alias strings, not objects with aliased sub-properties.
+  - `resolveTokenValue` already handles alias chains, so calling it per sub-property correctly follows multi-hop alias chains.
+---

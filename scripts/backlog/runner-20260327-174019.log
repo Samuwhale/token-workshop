@@ -72,3 +72,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥22) ---
   → Archived 22 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 56)
+[main 67053f1] chore(backlog): archive 22 completed items + trim progress
+ 5 files changed, 31 insertions(+), 251 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - CommandPalette: No "Copy token value" action for token search results
+- Added a "Val" button to each token row in the command palette token search mode (">"). Clicking it copies the raw token value to the clipboard. Added `value?: string` to `TokenEntry`, `onCopyTokenValue` prop to `CommandPalette`, included `value` in `paletteTokens` (serialized via `JSON.stringify` for non-string values), and wired the handler in App.tsx. The "Val" button appears before the "CSS" button in each row.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L57, ~L282; `packages/figma-plugin/src/ui/App.tsx` ~L1116, ~L2730
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  38 items remaining
+===============================================================
+  Claimed: TokenList: Multi-select mode has no keyboard shortcut to enter/exit — the select mode toggle is a small icon button (M) mentioned in the tooltip but not documented in KeyboardShortcutsModal, and there is no Escape-to-exit-select-mode handler
+  Worktree: /tmp/backlog-91651-4qAySy

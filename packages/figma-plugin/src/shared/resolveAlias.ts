@@ -80,6 +80,29 @@ export function resolveTokenValue(
   };
 }
 
+/** Resolve alias strings in the direct properties of a plain object. */
+function resolveObjectSubprops(
+  obj: Record<string, any>,
+  tokenMap: Record<string, TokenMapEntry>,
+): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (isAlias(val)) {
+      const refPath = extractAliasPath(val)!;
+      const refEntry = tokenMap[refPath];
+      if (refEntry) {
+        const refResult = resolveTokenValue(refEntry.$value, refEntry.$type, tokenMap);
+        out[key] = refResult.value ?? val;
+      } else {
+        out[key] = val;
+      }
+    } else {
+      out[key] = val;
+    }
+  }
+  return out;
+}
+
 export function resolveAllAliases(
   tokenMap: Record<string, TokenMapEntry>,
 ): Record<string, TokenMapEntry> {
@@ -88,20 +111,19 @@ export function resolveAllAliases(
     const result = resolveTokenValue(entry.$value, entry.$type, tokenMap);
     let resolvedValue = result.value ?? entry.$value;
 
-    // Resolve alias references embedded in gradient stop colors.
-    // GradientValue is a flat GradientStop[], not { stops: GradientStop[] }.
-    if (entry.$type === 'gradient' && Array.isArray(resolvedValue)) {
-      resolvedValue = resolvedValue.map((stop: any) => {
-        if (typeof stop.color === 'string' && stop.color.startsWith('{') && stop.color.endsWith('}')) {
-          const refPath = stop.color.slice(1, -1);
-          const refEntry = tokenMap[refPath];
-          if (refEntry) {
-            const refResult = resolveTokenValue(refEntry.$value, refEntry.$type, tokenMap);
-            return { ...stop, color: refResult.value ?? stop.color };
-          }
-        }
-        return stop;
-      });
+    // Resolve alias references embedded in composite token sub-properties
+    // (typography, border, shadow, gradient, etc. where $value is an object
+    // or array of objects with individually aliased properties).
+    if (resolvedValue !== null && typeof resolvedValue === 'object') {
+      if (Array.isArray(resolvedValue)) {
+        resolvedValue = (resolvedValue as any[]).map((item: any) =>
+          item !== null && typeof item === 'object' && !Array.isArray(item)
+            ? resolveObjectSubprops(item, tokenMap)
+            : item,
+        );
+      } else {
+        resolvedValue = resolveObjectSubprops(resolvedValue, tokenMap);
+      }
     }
 
     resolved[path] = {

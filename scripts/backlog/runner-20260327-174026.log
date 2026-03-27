@@ -49,3 +49,10 @@ Already up to date.
 ===============================================================
   Claimed: `resolveAllAliases` in the plugin does not recurse into composite token sub-properties — composite tokens (typography, shadow, border) with individually aliased sub-properties (e.g. `fontSize: "{type.base}"`) are not resolved, so the theme preview shows raw `{ref}` strings instead of values
   Worktree: /tmp/backlog-92215-vwx7WN
+
+  ✓ done: resolveAllAliases does not recurse into composite token sub-properties
+    Added resolveObjectSubprops helper; resolveAllAliases now resolves alias strings within composite token sub-properties (typography, shadow, border, gradient)
+    7 turns · 63s · $0.19
+
+--- Merging: resolveAllAliases does not recurse into composite token sub-properties ---
+Already up to date.
