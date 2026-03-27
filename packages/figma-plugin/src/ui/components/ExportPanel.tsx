@@ -443,19 +443,12 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     return String(modeVal.resolvedValue);
   };
 
-  if (!connected) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 gap-2">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-          <line x1="1" y1="1" x2="23" y2="23" />
-        </svg>
-        <div className="text-[11px] text-[var(--color-figma-text-secondary)]">
-          Connect to server to export tokens
-        </div>
-      </div>
-    );
-  }
+  // When not connected, default to figma-variables mode since it doesn't require a server
+  useEffect(() => {
+    if (!connected && mode === 'platforms') {
+      setMode('figma-variables');
+    }
+  }, [connected]);
 
   return (
     <div className="flex flex-col h-full">
@@ -475,10 +468,14 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         <div className="flex rounded-md bg-[var(--color-figma-bg-secondary)] p-0.5 gap-0.5">
           <button
             onClick={() => setMode('platforms')}
+            disabled={!connected}
+            title={!connected ? 'Connect to server to use platform export' : undefined}
             className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-[10px] font-medium transition-all ${
-              mode === 'platforms'
-                ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
-                : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+              !connected
+                ? 'opacity-40 cursor-not-allowed text-[var(--color-figma-text-tertiary)]'
+                : mode === 'platforms'
+                  ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
+                  : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
             }`}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1002,11 +999,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             </button>
             <button
               onClick={handleSaveToServer}
-              disabled={exporting}
+              disabled={exporting || !connected}
               className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
-              title="Create or update tokens in your local token server from these Figma variables"
+              title={!connected ? 'Connect to server to save tokens' : 'Create or update tokens in your local token server from these Figma variables'}
             >
-              {exporting ? 'Saving…' : 'Save to Token Server'}
+              {exporting ? 'Saving…' : !connected ? 'Save to Token Server (offline)' : 'Save to Token Server'}
             </button>
           </>
         )}

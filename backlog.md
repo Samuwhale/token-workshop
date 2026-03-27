@@ -132,7 +132,7 @@ Items spotted during UX passes but out of scope for that session.
 
 - [x] ImportPanel conflict buttons — "Skip conflicts" / "Overwrite all" labels don't explain whether non-conflicting tokens are still imported; rename to "Skip & import new" / "Overwrite & import all"
 - [x] SyncPanel sync result — after applyVarDiff completes, panel silently resets with no success message; show a brief "Synced N variables" inline confirmation
-- [ ] ExportPanel From-Figma empty state — "Connect to server" message is misleading when the actual issue is Figma variables not being loaded; clarify the error text
+- [x] ExportPanel From-Figma empty state — "Connect to server" message is misleading when the actual issue is Figma variables not being loaded; clarify the error text
 
 - [HIGH] `handleCreateToken` silently swallows server errors — `SelectionInspector.tsx:373-391`: when `res.ok` is false (e.g. 409 conflict when a token already exists, 500 on server error), the `createError` state is never set and `creating` resets to `false` with no feedback, leaving the user staring at a blank form with no indication of what went wrong.
 - [HIGH] Deep inspect "Go to token" button is permanently invisible — `SelectionInspector.tsx:1005-1007`: the parent `<div>` for each deep-inspect child row is missing the `group` Tailwind class, so `opacity-0 group-hover:opacity-100` on the navigate button never triggers; the button is hidden and unreachable at all times.
