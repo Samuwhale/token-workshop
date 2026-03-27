@@ -314,3 +314,10 @@ Already up to date.
 ===============================================================
   Claimed: New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`
   Worktree: /tmp/backlog-98408-9DMdxe
+
+  ✓ done: New-token form doesn't suggest a path based on the bound property
+    Pre-fills path as namespace.layerSlug (e.g. color.button-primary) or namespace.layerSlug.suffix (e.g. spacing.card.padding-top) using the selected Figma layer name
+    12 turns · 173s · $0.51
+
+--- Merging: New-token form doesn't suggest a path based on the bound property ---
+Already up to date.

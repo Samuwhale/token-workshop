@@ -268,3 +268,11 @@
 - **Learnings for future iterations:**
   - When a timeout invalidates a pending request, always null out all correlation/pending refs in the timeout callback — not just the timeout ref itself. This prevents late responses from matching the stale correlation check.
 ---
+
+## 2026-03-27 - New-token form doesn't suggest a path based on the bound property
+- Added `slugifyLayerName` and `suggestTokenPath` helpers. When `openCreateFromProp` is triggered for a single selected node, the path field is pre-filled as `{namespace}.{layerSlug}` (e.g. `color.button-primary`) or `{namespace}.{layerSlug}.{suffix}` for properties needing disambiguation (e.g. `spacing.card.padding-top`). Falls back to the generic SUGGESTED_NAMES path when multiple nodes are selected.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L119 (helpers), ~L341 (openCreateFromProp)
+- **Learnings for future iterations:**
+  - SUGGESTED_NAMES already existed with generic paths — the fix needed only to extract the namespace prefix and splice in the layer slug, not replace the whole mapping.
+  - Use a PROP_SUFFIX map for properties that share a namespace (e.g., stroke and fill both under "color") so each property gets a distinct leaf when the layer name is the middle segment.
+---

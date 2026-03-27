@@ -134,6 +134,35 @@ const SUGGESTED_NAMES: Record<BindableProperty, string> = {
   visible: 'other.visibility',
 };
 
+// Property suffix for disambiguation when multiple properties share the same namespace
+const PROP_SUFFIX: Partial<Record<BindableProperty, string>> = {
+  stroke: 'stroke',
+  width: 'width',
+  height: 'height',
+  paddingTop: 'padding-top',
+  paddingRight: 'padding-right',
+  paddingBottom: 'padding-bottom',
+  paddingLeft: 'padding-left',
+  itemSpacing: 'gap',
+  cornerRadius: 'radius',
+  strokeWeight: 'stroke-weight',
+};
+
+function slugifyLayerName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || 'layer';
+}
+
+function suggestTokenPath(prop: BindableProperty, layerName: string): string {
+  const namespace = SUGGESTED_NAMES[prop].split('.')[0];
+  const slug = slugifyLayerName(layerName);
+  const suffix = PROP_SUFFIX[prop];
+  return suffix ? `${namespace}.${slug}.${suffix}` : `${namespace}.${slug}`;
+}
+
 export function SelectionInspector({
   selectedNodes,
   tokenMap,
@@ -324,7 +353,11 @@ export function SelectionInspector({
   const openCreateFromProp = (prop: BindableProperty) => {
     cancelBind();
     setCreatingFromProp(prop);
-    setNewTokenName(SUGGESTED_NAMES[prop] || 'token.new-token');
+    const singleNode = rootNodes.length === 1 ? rootNodes[0] : null;
+    const suggested = singleNode?.name
+      ? suggestTokenPath(prop, singleNode.name)
+      : SUGGESTED_NAMES[prop] || 'token.new-token';
+    setNewTokenName(suggested);
   };
 
   const openBindFromProp = (prop: BindableProperty) => {

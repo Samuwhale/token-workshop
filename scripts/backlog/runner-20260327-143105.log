@@ -292,3 +292,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 51)
+[main 3e44fa7] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 230 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - ImportPanel `readTimeoutRef` is never cleared when the message handler successfully receives data
+- Cleared `pendingSourceRef` and `correlationIdRef` inside the timeout callback so that any late-arriving messages no longer match the stale handler conditions and are silently dropped. Previously, these refs remained set after timeout fired, allowing a slow-but-eventual response to update state while the timeout error message was still displayed.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L149
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  36 items remaining
+===============================================================
+  Claimed: ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded — unclear what was partially imported
+  Worktree: /tmp/backlog-98901-sN6pJk
