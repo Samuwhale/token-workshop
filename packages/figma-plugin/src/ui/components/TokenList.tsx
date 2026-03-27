@@ -1561,6 +1561,7 @@ export function TokenList({
             selectedPaths={selectedPaths}
             allTokensFlat={allTokensFlat}
             setName={setName}
+            sets={sets}
             serverUrl={serverUrl}
             connected={connected}
             onApply={onRefresh}

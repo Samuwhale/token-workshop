@@ -2,10 +2,19 @@ import { useState, useMemo } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
 
+const DTCG_TYPES = [
+  'color', 'dimension', 'fontFamily', 'fontWeight', 'duration', 'cubicBezier',
+  'number', 'strokeStyle', 'border', 'transition', 'shadow', 'gradient',
+  'typography', 'fontStyle', 'letterSpacing', 'lineHeight', 'percentage',
+  'string', 'boolean', 'link', 'textDecoration', 'textTransform', 'custom',
+  'composition', 'asset',
+] as const;
+
 interface BatchEditorProps {
   selectedPaths: Set<string>;
   allTokensFlat: Record<string, TokenMapEntry>;
   setName: string;
+  sets: string[];
   serverUrl: string;
   connected: boolean;
   onApply: () => void;
@@ -48,6 +57,7 @@ export function BatchEditor({
   selectedPaths,
   allTokensFlat,
   setName,
+  sets,
   serverUrl,
   connected,
   onApply,
@@ -56,7 +66,13 @@ export function BatchEditor({
   const [description, setDescription] = useState('');
   const [opacityPct, setOpacityPct] = useState('');
   const [scaleFactor, setScaleFactor] = useState('');
+  const [newType, setNewType] = useState('');
+  const [targetSet, setTargetSet] = useState('');
+  const [findText, setFindText] = useState('');
+  const [replaceText, setReplaceText] = useState('');
   const [applying, setApplying] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const selectedEntries = useMemo(() => (
@@ -76,9 +92,33 @@ export function BatchEditor({
     [selectedEntries]
   );
 
+  const otherSets = useMemo(() => sets.filter(s => s !== setName), [sets, setName]);
+
   const hasOp = description.trim() !== '' ||
+    newType !== '' ||
     (allColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct))) ||
     (allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0);
+
+  const canMove = targetSet !== '' && !moving;
+
+  // Find/replace: count tokens whose paths would change
+  const renamePreview = useMemo(() => {
+    if (!findText) return 0;
+    return selectedEntries.filter(({ path }) => path.includes(findText)).length;
+  }, [findText, selectedEntries]);
+
+  const canRename = findText !== '' && renamePreview > 0 && !renaming;
+
+  const encodedPath = (path: string) =>
+    path.split('.').map(encodeURIComponent).join('/');
+
+  const patchToken = async (path: string, body: Record<string, unknown>) => {
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath(path)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  };
 
   const handleApply = async () => {
     if (!connected || applying || !hasOp) return;
@@ -91,6 +131,10 @@ export function BatchEditor({
 
       if (description.trim()) {
         patch.$description = description.trim();
+      }
+
+      if (newType !== '') {
+        patch.$type = newType;
       }
 
       if (allColors && opacityPct !== '') {
@@ -125,15 +169,6 @@ export function BatchEditor({
     setApplying(true);
     setFeedback(null);
 
-    const patchToken = async (path: string, body: Record<string, unknown>) => {
-      const encoded = path.split('.').map(encodeURIComponent).join('/');
-      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encoded}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-    };
-
     try {
       await Promise.all(ops.map(({ path, patch }) => patchToken(path, patch)));
 
@@ -157,11 +192,64 @@ export function BatchEditor({
       setDescription('');
       setOpacityPct('');
       setScaleFactor('');
+      setNewType('');
       onApply();
     } catch {
       setFeedback({ ok: false, msg: 'Error — check server connection' });
     } finally {
       setApplying(false);
+    }
+  };
+
+  const handleMove = async () => {
+    if (!connected || !canMove) return;
+    setMoving(true);
+    setFeedback(null);
+    try {
+      await Promise.all(
+        selectedEntries.map(({ path }) =>
+          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokenPath: path, targetSet }),
+          })
+        )
+      );
+      setFeedback({ ok: true, msg: `Moved ${selectedEntries.length} token${selectedEntries.length === 1 ? '' : 's'} to "${targetSet}"` });
+      setTargetSet('');
+      onApply();
+    } catch {
+      setFeedback({ ok: false, msg: 'Move failed — check server connection' });
+    } finally {
+      setMoving(false);
+    }
+  };
+
+  const handleRename = async () => {
+    if (!connected || !canRename) return;
+    const toRename = selectedEntries.filter(({ path }) => path.includes(findText));
+    setRenaming(true);
+    setFeedback(null);
+    try {
+      // Rename sequentially to avoid conflicts when paths share prefixes
+      for (const { path } of toRename) {
+        const newPath = path.split(findText).join(replaceText);
+        if (newPath !== path) {
+          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldPath: path, newPath }),
+          });
+        }
+      }
+      setFeedback({ ok: true, msg: `Renamed ${toRename.length} token${toRename.length === 1 ? '' : 's'}` });
+      setFindText('');
+      setReplaceText('');
+      onApply();
+    } catch {
+      setFeedback({ ok: false, msg: 'Rename failed — check server connection' });
+    } finally {
+      setRenaming(false);
     }
   };
 
@@ -178,6 +266,21 @@ export function BatchEditor({
           placeholder="Set on all selected…"
           className="flex-1 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
         />
+      </div>
+
+      {/* Change $type */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Change type</span>
+        <select
+          value={newType}
+          onChange={e => setNewType(e.target.value)}
+          className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+        >
+          <option value="">— keep current —</option>
+          {DTCG_TYPES.map(t => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
       </div>
 
       {/* Opacity — only when all selected tokens are colors */}
@@ -251,6 +354,60 @@ export function BatchEditor({
         >
           {applying ? 'Applying…' : `Apply to ${selectedPaths.size}`}
         </button>
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-[var(--color-figma-border)] pt-1 space-y-1.5">
+        {/* Find / Replace rename */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Find/replace</span>
+          <input
+            type="text"
+            value={findText}
+            onChange={e => setFindText(e.target.value)}
+            placeholder="find in path…"
+            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+          />
+          <input
+            type="text"
+            value={replaceText}
+            onChange={e => setReplaceText(e.target.value)}
+            placeholder="replace with…"
+            className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+          />
+          <button
+            onClick={handleRename}
+            disabled={!connected || !canRename}
+            title={findText && renamePreview === 0 ? 'No selected tokens match the find text' : `Rename ${renamePreview} token path${renamePreview === 1 ? '' : 's'}`}
+            className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {renaming ? '…' : `Rename${renamePreview > 0 ? ` ${renamePreview}` : ''}`}
+          </button>
+        </div>
+
+        {/* Move to set — only when multiple sets exist */}
+        {otherSets.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Move to set</span>
+            <select
+              value={targetSet}
+              onChange={e => setTargetSet(e.target.value)}
+              className="flex-1 h-6 px-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+            >
+              <option value="">— choose set —</option>
+              {otherSets.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleMove}
+              disabled={!connected || !canMove || moving}
+              className="shrink-0 px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {moving ? '…' : 'Move'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

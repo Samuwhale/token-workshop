@@ -410,3 +410,17 @@
   - The `modeMap` flows from server metadata → `useTokens` hook → App.tsx → all panel components → `apply-variables` message → controller, mirroring the exact same path as `collectionMap`.
   - Fall back to `collection.modes[0].modeId` when no modeMap entry exists so single-mode setups are unaffected.
 ---
+
+## 2026-03-27 - Bulk token operations: move to set, find/replace rename, change $type
+- Added three new bulk operations to `BatchEditor.tsx`:
+  1. **Change $type**: dropdown of all DTCG types; integrates with existing PATCH-based Apply button. Cleared after apply.
+  2. **Find/Replace rename**: two text inputs + "Rename N" button; calls `POST /api/tokens/:set/tokens/rename` sequentially per affected token (sequential to avoid path-prefix conflicts). Preview count shown on button.
+  3. **Move to set**: set dropdown + "Move" button; calls `POST /api/tokens/:set/tokens/move` in parallel. Hidden when only one set exists.
+  The move/rename operations share a separate feedback line with the existing Apply feedback.
+- Added `sets: string[]` prop to `BatchEditorProps` and passed it from `TokenList.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` (full rewrite), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1560
+- **Learnings for future iterations:**
+  - Server already had `POST .../tokens/move` and `POST .../tokens/rename` endpoints — no server changes needed.
+  - Rename must be sequential (not `Promise.all`) when paths share segment prefixes, otherwise second rename may not find the path.
+  - $type change should be added to the PATCH-based Apply (not a separate button) since it's just another field in the token patch.
+---
