@@ -53,3 +53,10 @@ Already up to date.
 ===============================================================
   Claimed: Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
   Worktree: /tmp/backlog-97510-Evl0eO
+
+  ✓ done: Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
+    Added −/+ stepper widget for number, dimension, fontWeight, and duration types; dimension also shows the unit suffix label; uses onMouseDown+preventDefault to avoid blur-save while stepping
+    13 turns · 291s · $0.72
+
+--- Merging: Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal ---
+Already up to date.

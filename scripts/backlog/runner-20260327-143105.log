@@ -104,3 +104,10 @@ Already up to date.
 
 --- Merging: Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format ---
 Already up to date.
+[main b301588] chore(backlog): done – Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
+ 6 files changed, 69 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
+- Expanded the "Copy token path" context menu section from a single button into four format options:
+  1. "Copy path" → dot notation `color.primary.500` (existing C shortcut kept)
+  2. "Copy as CSS var" → `var(--color-primary-500)` (dots replaced with hyphens)

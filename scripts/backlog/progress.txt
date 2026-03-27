@@ -305,3 +305,14 @@
   - When expanding a single action into multiple format variants, showing a live preview of the formatted value in the menu label eliminates guesswork for users.
   - Alias reference format `{token.path}` requires escaping in JSX — use a template literal inside a JSX expression: `` {`{${node.path}}`} ``.
 ---
+
+## 2026-03-27 - Inline editing limited to colors — only color tokens get the inline swatch picker
+- Added a stepper widget (−/+buttons around a number input) for `number`, `dimension`, `fontWeight`, and `duration` token types when inline editing is active.
+- `dimension` tokens additionally show the unit suffix (e.g. `px`, `rem`) as a read-only label between the input and `+` button.
+- `+`/`−` buttons use `onMouseDown` + `e.preventDefault()` to avoid triggering the input's blur/save handler while stepping.
+- `string`, `fontFamily`, and `asset` types continue to use the existing plain text input.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3326 (stepper helpers), ~L4100 (stepper widget JSX)
+- **Learnings for future iterations:**
+  - Using `onMouseDown` + `e.preventDefault()` on stepper buttons prevents the focused input from firing `onBlur`, which is the correct pattern for any inline numeric stepper next to a controlled input.
+  - Dimension values in `inlineEditValue` are stored as strings like "16px" — parse with regex to extract numeric and unit parts, then reassemble on change.
+---

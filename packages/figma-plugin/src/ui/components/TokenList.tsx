@@ -3372,6 +3372,21 @@ function TokenTreeNode({
     onInlineSave?.(node.path, node.$type!, parsed);
   }, [inlineEditActive, inlineEditValue, node, onInlineSave]);
 
+  // Stepper helpers for number/dimension/fontWeight/duration inline editing
+  const isNumericInlineType = node.$type === 'number' || node.$type === 'dimension' || node.$type === 'fontWeight' || node.$type === 'duration';
+  const dimParts = node.$type === 'dimension' && inlineEditActive
+    ? (inlineEditValue.trim().match(/^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/) ?? null)
+    : null;
+  const stepInlineValue = (delta: number) => {
+    if (node.$type === 'dimension') {
+      const m = inlineEditValue.trim().match(/^(-?\d*\.?\d+)\s*([a-zA-Z%]*)$/);
+      if (m) setInlineEditValue(`${Math.round((parseFloat(m[1]) + delta) * 100) / 100}${m[2] || 'px'}`);
+    } else {
+      const n = parseFloat(inlineEditValue);
+      if (!isNaN(n)) setInlineEditValue(String(Math.round((n + delta) * 100) / 100));
+    }
+  };
+
   // Sync state indicator
   const syncChanged = !node.isGroup && syncSnapshot && node.path in syncSnapshot
     && syncSnapshot[node.path] !== stableStringify(node.$value);
@@ -4136,23 +4151,66 @@ function TokenTreeNode({
           {formatValue(node.$type, displayValue)}
         </button>
       ) : canInlineEdit && node.$type !== 'color' && inlineEditActive ? (
-        <input
-          type={node.$type === 'number' || node.$type === 'fontWeight' || node.$type === 'duration' ? 'number' : 'text'}
-          value={inlineEditValue}
-          onChange={e => setInlineEditValue(e.target.value)}
-          onBlur={() => {
-            if (inlineEditEscapedRef.current) { inlineEditEscapedRef.current = false; return; }
-            handleInlineSubmit();
-          }}
-          onKeyDown={e => {
-            if (e.key === 'Enter') { e.preventDefault(); handleInlineSubmit(); }
-            if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditActive(false); }
-            e.stopPropagation();
-          }}
-          onClick={e => e.stopPropagation()}
-          autoFocus
-          className="text-[11px] text-[var(--color-figma-text)] shrink-0 w-[96px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none"
-        />
+        isNumericInlineType ? (
+          <div className="flex items-center shrink-0 gap-0.5" onClick={e => e.stopPropagation()}>
+            <button
+              type="button"
+              onMouseDown={e => { e.preventDefault(); stepInlineValue(-1); }}
+              tabIndex={-1}
+              className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-[11px] font-medium leading-none select-none shrink-0"
+            >−</button>
+            <input
+              type="number"
+              value={node.$type === 'dimension' ? (dimParts ? dimParts[1] : inlineEditValue) : inlineEditValue}
+              onChange={e => {
+                if (node.$type === 'dimension') {
+                  const unit = dimParts ? (dimParts[2] || 'px') : 'px';
+                  setInlineEditValue(`${e.target.value}${unit}`);
+                } else {
+                  setInlineEditValue(e.target.value);
+                }
+              }}
+              onBlur={() => {
+                if (inlineEditEscapedRef.current) { inlineEditEscapedRef.current = false; return; }
+                handleInlineSubmit();
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); handleInlineSubmit(); }
+                if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditActive(false); }
+                e.stopPropagation();
+              }}
+              autoFocus
+              className="text-[11px] text-[var(--color-figma-text)] w-[52px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            {node.$type === 'dimension' && dimParts && dimParts[2] && (
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{dimParts[2]}</span>
+            )}
+            <button
+              type="button"
+              onMouseDown={e => { e.preventDefault(); stepInlineValue(1); }}
+              tabIndex={-1}
+              className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-[11px] font-medium leading-none select-none shrink-0"
+            >+</button>
+          </div>
+        ) : (
+          <input
+            type="text"
+            value={inlineEditValue}
+            onChange={e => setInlineEditValue(e.target.value)}
+            onBlur={() => {
+              if (inlineEditEscapedRef.current) { inlineEditEscapedRef.current = false; return; }
+              handleInlineSubmit();
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); handleInlineSubmit(); }
+              if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditActive(false); }
+              e.stopPropagation();
+            }}
+            onClick={e => e.stopPropagation()}
+            autoFocus
+            className="text-[11px] text-[var(--color-figma-text)] shrink-0 w-[96px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none"
+          />
+        )
       ) : isAlias(node.$value) && !isBrokenAlias ? (
         <span
           className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
