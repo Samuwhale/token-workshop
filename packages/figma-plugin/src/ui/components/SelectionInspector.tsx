@@ -368,7 +368,7 @@ export function SelectionInspector({
 
     setCreating(true);
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${activeSet}/${tokenPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${tokenPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $type: tokenType, $value: tokenValue }),

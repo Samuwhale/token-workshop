@@ -33,9 +33,9 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'Set name is required' });
     }
 
-    // Validate name (alphanumeric, dashes, underscores)
-    if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
-      return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, and underscores' });
+    // Validate name (alphanumeric, dashes, underscores; / for folder hierarchy)
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(name)) {
+      return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, underscores, and / for folders' });
     }
 
     try {
@@ -79,8 +79,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     if (!newName) {
       return reply.status(400).send({ error: 'newName is required' });
     }
-    if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
-      return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, and underscores' });
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(newName)) {
+      return reply.status(400).send({ error: 'Set name must contain only alphanumeric characters, dashes, underscores, and / for folders' });
     }
 
     try {

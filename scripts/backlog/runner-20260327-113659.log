@@ -107,3 +107,19 @@ Already up to date.
 
 --- Merging: SyncPanel shows no empty state when first loaded ---
 Already up to date.
+[main c9cc10e] chore(backlog): done – SyncPanel shows no empty state when first loaded
+ 6 files changed, 45 insertions(+), 2 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - SyncPanel shows no empty state when first loaded
+- Added inline loading indicators (spinner + descriptive text) inside the body of both "Token differences" and "Publish Readiness" boxes when their respective checks are running. Previously the body was blank during loading — only the button text changed to "Checking…".
+- The existing "Click Compare…" / "Click Run checks…" prompts were already present for the unchecked state but were hidden by `!varLoading`/`!readinessLoading` guards during auto-run. The new loading indicators fill that gap.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L685 (var diff loading), ~L790 (readiness loading)
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  0
+0 items remaining
+===============================================================
+./scripts/backlog/backlog.sh: line 670: [: 0
+0: integer expression expected
+No items available to claim (all in-progress or empty). Exiting.

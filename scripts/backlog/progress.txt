@@ -219,3 +219,14 @@
 - **Learnings for future iterations:**
   - When a panel auto-runs a check on mount, any empty-state message guarded by `!loading` will never be visible. Always add a separate loading-state block that renders during the check.
 ---
+
+## 2026-03-27 - Set name validation rejects `/` but UI expects folder-structured names
+- Updated validation regex from `^[a-zA-Z0-9_-]+$` to `^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$` in 5 locations (2 in sets.ts routes, 3 in token-store.ts methods).
+- Updated token-store file I/O to support subdirectory storage: `_createSetNoRebuild` and `saveSet` now `mkdir -p` parent dirs; `listTokenFiles` walks subdirs recursively; file watcher uses `**/*.tokens.json` glob; `deleteSet` and `renameSet` clean up empty parent dirs.
+- Added `encodeURIComponent()` around set name variables in ~27 API URL templates across App.tsx and 8 component/hook files to ensure `/` in names is properly escaped in URL paths.
+- Files changed: `packages/server/src/routes/sets.ts` ~L37,82; `packages/server/src/services/token-store.ts` ~L49-70,86,303,347,405,449,1044; `packages/figma-plugin/src/ui/App.tsx` ~L543-824; plus ColorScaleGenerator, AnalyticsPanel, ThemeManager, SyncPanel, ImportPanel, PublishPanel, SelectionInspector, TokenList, useFigmaSync
+- **Learnings for future iterations:**
+  - `encodeURIComponent` is needed for ANY user-controlled string in URL path segments — Fastify's `:name` param won't match raw `/` in the URL path.
+  - `fs.mkdir(dir, { recursive: true })` is idempotent and safe to call before every write — no need to check existence first.
+  - `fs.rmdir(dir)` only succeeds on empty directories, making it a safe way to prune empty parent dirs without accidentally deleting content.
+---

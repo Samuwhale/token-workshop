@@ -703,7 +703,7 @@ export function TokenList({
 
     if (extractMode === 'new') {
       if (!newPrimitivePath.trim()) { setExtractError('Enter a path for the new primitive token.'); return; }
-      const createRes = await fetch(`${serverUrl}/api/tokens/${newPrimitiveSet}/${newPrimitivePath.trim()}`, {
+      const createRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(newPrimitiveSet)}/${newPrimitivePath.trim()}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $type: extractToken.$type, $value: extractToken.$value }),

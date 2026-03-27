@@ -540,7 +540,7 @@ export function App() {
     }
     if (!connected) { cancelRename(); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${renamingSet}/rename`, {
+      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(renamingSet)}/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newName }),
@@ -627,7 +627,7 @@ export function App() {
   const handleDeleteSet = async () => {
     if (!deletingSet || !connected) return;
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${deletingSet}`, { method: 'DELETE' });
+      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`Failed to delete set: ${res.statusText}`);
     } catch {
       setDeletingSet(null);
@@ -652,7 +652,7 @@ export function App() {
       newName = `${setName}-copy-${i++}`;
     }
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${setName}`);
+      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
       if (!res.ok) return;
       const data = await res.json();
       const createRes = await fetch(`${serverUrl}/api/sets`, {
@@ -691,8 +691,8 @@ export function App() {
     setMergeLoading(true);
     try {
       const [srcRes, tgtRes] = await Promise.all([
-        fetch(`${serverUrl}/api/sets/${mergingSet}`),
-        fetch(`${serverUrl}/api/sets/${mergeTargetSet}`),
+        fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
+        fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`),
       ]);
       const srcData = await srcRes.json();
       const tgtData = await tgtRes.json();
@@ -723,7 +723,7 @@ export function App() {
     if (!mergingSet || !mergeTargetSet || !connected) return;
     setMergeLoading(true);
     try {
-      const tgtRes = await fetch(`${serverUrl}/api/sets/${mergeTargetSet}`);
+      const tgtRes = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
       const tgtData = await tgtRes.json();
       const tgtFlat = flattenTokensObj(tgtData.tokens || {});
       const writes: Promise<any>[] = [];
@@ -731,14 +731,14 @@ export function App() {
         const conflict = mergeConflicts.find(c => c.path === path);
         if (conflict) {
           if (mergeResolutions[path] === 'source') {
-            writes.push(fetch(`${serverUrl}/api/tokens/${mergeTargetSet}/${path}`, {
+            writes.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),
             }));
           }
         } else if (!tgtFlat[path]) {
-          writes.push(fetch(`${serverUrl}/api/tokens/${mergeTargetSet}/${path}`, {
+          writes.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),
@@ -761,7 +761,7 @@ export function App() {
     setTabMenuOpen(null);
     if (!connected) return;
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${setName}`);
+      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
       const data = await res.json();
       const tokenRoot = data.tokens || {};
       const preview = Object.entries(tokenRoot)
@@ -784,7 +784,7 @@ export function App() {
     if (!splittingSet || !connected) return;
     setSplitLoading(true);
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${splittingSet}`);
+      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`);
       const data = await res.json();
       const tokenRoot = data.tokens || {};
       for (const { key, newName } of splitPreview) {
@@ -797,7 +797,7 @@ export function App() {
         });
       }
       if (splitDeleteOriginal) {
-        await fetch(`${serverUrl}/api/sets/${splittingSet}`, { method: 'DELETE' });
+        await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`, { method: 'DELETE' });
         const remaining = sets.filter(s => s !== splittingSet);
         if (activeSet === splittingSet) setActiveSet(remaining[0] ?? '');
       }
@@ -821,7 +821,7 @@ export function App() {
   const handleSaveMetadata = async () => {
     if (!editingMetadataSet || !connected) { setEditingMetadataSet(null); return; }
     try {
-      await fetch(`${serverUrl}/api/sets/${editingMetadataSet}/metadata`, {
+      await fetch(`${serverUrl}/api/sets/${encodeURIComponent(editingMetadataSet)}/metadata`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description: metadataDescription, figmaCollection: metadataCollectionName, figmaMode: metadataModeName }),

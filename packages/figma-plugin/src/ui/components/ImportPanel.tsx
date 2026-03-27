@@ -366,7 +366,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         throw new Error(`Failed to create set "${targetSet}": ${setRes.statusText}`);
       }
 
-      const batchRes = await fetch(`${serverUrl}/api/tokens/${targetSet}/batch`, {
+      const batchRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -47,25 +47,38 @@ export class TokenStore {
   }
 
   private async listTokenFiles(): Promise<string[]> {
-    try {
-      const entries = await fs.readdir(this.dir);
-      return entries.filter(f => f.endsWith('.tokens.json'));
-    } catch {
-      return [];
-    }
+    const results: string[] = [];
+    const walk = async (dir: string): Promise<void> => {
+      let entries: import('node:fs').Dirent[];
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          await walk(path.join(dir, entry.name));
+        } else if (entry.name.endsWith('.tokens.json')) {
+          // Return path relative to this.dir so loadSet works correctly
+          results.push(path.relative(this.dir, path.join(dir, entry.name)));
+        }
+      }
+    };
+    await walk(this.dir);
+    return results;
   }
 
-  private async loadSet(filename: string): Promise<void> {
-    const filePath = path.join(this.dir, filename);
+  private async loadSet(relativePath: string): Promise<void> {
+    const filePath = path.join(this.dir, relativePath);
     const content = await fs.readFile(filePath, 'utf-8');
     let tokens: TokenGroup;
     try {
       tokens = JSON.parse(content) as TokenGroup;
     } catch {
-      console.warn(`[TokenStore] Skipping malformed JSON in "${filename}"`);
+      console.warn(`[TokenStore] Skipping malformed JSON in "${relativePath}"`);
       return;
     }
-    const name = filename.replace('.tokens.json', '');
+    const name = relativePath.replace('.tokens.json', '');
     this.sets.set(name, { name, tokens, filePath });
   }
 
@@ -83,33 +96,33 @@ export class TokenStore {
   }
 
   private startWatching(): void {
-    this.watcher = watch(path.join(this.dir, '*.tokens.json'), {
+    this.watcher = watch(path.join(this.dir, '**/*.tokens.json'), {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 200 },
     });
 
     this.watcher.on('change', async (filePath) => {
       if (this._writingFiles.has(filePath as string)) return;
-      const filename = path.basename(filePath as string);
-      await this.loadSet(filename).catch(err =>
-        console.warn(`[TokenStore] Error reloading "${filename}":`, err),
+      const relativePath = path.relative(this.dir, filePath as string);
+      await this.loadSet(relativePath).catch(err =>
+        console.warn(`[TokenStore] Error reloading "${relativePath}":`, err),
       );
-      this.scheduleRebuild({ type: 'set-updated', setName: filename.replace('.tokens.json', '') });
+      this.scheduleRebuild({ type: 'set-updated', setName: relativePath.replace('.tokens.json', '') });
     });
 
     this.watcher.on('add', async (filePath) => {
       if (this._writingFiles.has(filePath as string)) return;
-      const filename = path.basename(filePath as string);
-      await this.loadSet(filename).catch(err =>
-        console.warn(`[TokenStore] Error loading new file "${filename}":`, err),
+      const relativePath = path.relative(this.dir, filePath as string);
+      await this.loadSet(relativePath).catch(err =>
+        console.warn(`[TokenStore] Error loading new file "${relativePath}":`, err),
       );
-      this.scheduleRebuild({ type: 'set-added', setName: filename.replace('.tokens.json', '') });
+      this.scheduleRebuild({ type: 'set-added', setName: relativePath.replace('.tokens.json', '') });
     });
 
     this.watcher.on('unlink', (filePath) => {
       if (this._writingFiles.has(filePath as string)) return;
-      const filename = path.basename(filePath as string);
-      const name = filename.replace('.tokens.json', '');
+      const relativePath = path.relative(this.dir, filePath as string);
+      const name = relativePath.replace('.tokens.json', '');
       this.sets.delete(name);
       this.scheduleRebuild({ type: 'set-removed', setName: name });
     });
@@ -303,6 +316,7 @@ export class TokenStore {
   private async _createSetNoRebuild(name: string, tokens: TokenGroup = {}): Promise<TokenSet> {
     const filename = `${name}.tokens.json`;
     const filePath = path.join(this.dir, filename);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
     this._writingFiles.add(filePath);
     await fs.writeFile(filePath, JSON.stringify(tokens, null, 2));
     setTimeout(() => this._writingFiles.delete(filePath), 500);
@@ -324,9 +338,23 @@ export class TokenStore {
     this._writingFiles.add(filePath);
     await fs.unlink(filePath);
     setTimeout(() => this._writingFiles.delete(filePath), 500);
+    await this.removeEmptyParentDirs(filePath);
     this.sets.delete(name);
     this.rebuildFlatTokens();
     return true;
+  }
+
+  /** Remove empty parent directories between filePath and this.dir */
+  private async removeEmptyParentDirs(filePath: string): Promise<void> {
+    let dir = path.dirname(filePath);
+    while (dir !== this.dir && dir.startsWith(this.dir)) {
+      try {
+        await fs.rmdir(dir); // only succeeds if empty
+      } catch {
+        break; // directory not empty or other error — stop
+      }
+      dir = path.dirname(dir);
+    }
   }
 
   async clearAll(): Promise<void> {
@@ -344,8 +372,8 @@ export class TokenStore {
   }
 
   async renameSet(oldName: string, newName: string): Promise<void> {
-    if (!/^[a-zA-Z0-9_-]+$/.test(newName)) {
-      throw new Error('Set name must contain only alphanumeric characters, dashes, and underscores');
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(newName)) {
+      throw new Error('Set name must contain only alphanumeric characters, dashes, underscores, and / for folders');
     }
     const set = this.sets.get(oldName);
     if (!set) throw new Error(`Set "${oldName}" not found`);
@@ -355,6 +383,7 @@ export class TokenStore {
     const newFilePath = path.join(this.dir, `${newName}.tokens.json`);
 
     // Write new file first (safe: new name doesn't exist yet)
+    await fs.mkdir(path.dirname(newFilePath), { recursive: true });
     this._writingFiles.add(newFilePath);
     await fs.writeFile(newFilePath, JSON.stringify(set.tokens, null, 2));
     setTimeout(() => this._writingFiles.delete(newFilePath), 500);
@@ -389,6 +418,7 @@ export class TokenStore {
     this._writingFiles.add(oldFilePath);
     await fs.unlink(oldFilePath);
     setTimeout(() => this._writingFiles.delete(oldFilePath), 500);
+    await this.removeEmptyParentDirs(oldFilePath);
 
     this.rebuildFlatTokens();
     this.emit({ type: 'set-removed', setName: oldName });
@@ -402,8 +432,8 @@ export class TokenStore {
   }
 
   async createToken(setName: string, tokenPath: string, token: Token): Promise<void> {
-    if (!/^[a-zA-Z0-9_-]+$/.test(setName)) {
-      throw new Error(`Invalid set name "${setName}". Only alphanumeric characters, dashes, and underscores are allowed.`);
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(setName)) {
+      throw new Error(`Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`);
     }
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     token = this.enrichFormulaExtension(token);
@@ -446,8 +476,8 @@ export class TokenStore {
     tokens: Array<{ path: string; token: Token }>,
     strategy: 'skip' | 'overwrite',
   ): Promise<{ imported: number; skipped: number }> {
-    if (!/^[a-zA-Z0-9_-]+$/.test(setName)) {
-      throw new Error(`Invalid set name "${setName}". Only alphanumeric characters, dashes, and underscores are allowed.`);
+    if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(setName)) {
+      throw new Error(`Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`);
     }
     let set = this.sets.get(setName);
     if (!set) {
@@ -1085,6 +1115,7 @@ export class TokenStore {
     const set = this.sets.get(name);
     if (!set) return;
     const filePath = path.join(this.dir, `${name}.tokens.json`);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
     this._writingFiles.add(filePath);
     await fs.writeFile(filePath, JSON.stringify(set.tokens, null, 2));
     setTimeout(() => this._writingFiles.delete(filePath), 500);

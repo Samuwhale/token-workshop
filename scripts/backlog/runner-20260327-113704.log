@@ -55,3 +55,10 @@ Already up to date.
 ===============================================================
   Claimed: Set name validation rejects `/` but UI expects folder-structured names — server routes (sets.ts:37, 82) and token-store.ts (L347, 405, 449) enforce `^[a-zA-Z0-9_-]+$`, but the UI's `buildSetFolderTree` (App.tsx:126) splits on `/` to create folder hierarchy; users can never create folder-structured sets through the API
   Worktree: /tmp/backlog-7690-PJ8XoW
+
+  ✓ done: Set name validation rejects `/` but UI expects folder-structured names
+    Updated validation regex to allow `/` in 5 server locations, added subdirectory file I/O support (recursive listing, mkdir, rmdir cleanup), and added encodeURIComponent to ~27 API URL templates across 10 UI files.
+    70 turns · 677s · $3.02
+
+--- Merging: Set name validation rejects `/` but UI expects folder-structured names ---
+Already up to date.

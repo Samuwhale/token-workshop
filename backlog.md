@@ -122,7 +122,7 @@ Items spotted during UX passes but out of scope for that session.
 - [HIGH] ThemeManager `handleSetState` doesn't check `res.ok` — a server-rejected set state toggle (e.g. 400 from invalid status) appears to succeed because `fetch` doesn't throw on HTTP errors; the catch block only handles network failures, not HTTP error responses (`ThemeManager.tsx:326-337`)
 
 - [BUG] Cannot access 'Wr' before initialization — runtime error, likely a circular dependency or hoisting issue with a minified identifier; needs source-map / unminified stack trace to locate the declaration. Once fixed, audit the codebase for similar initialization-order issues (other circular deps, `let`/`const` accessed before declaration across module boundaries).
-- [~] SyncPanel shows no empty state when first loaded — unclear whether "nothing to sync" or "run a check first"
+- [x] SyncPanel shows no empty state when first loaded — unclear whether "nothing to sync" or "run a check first"
 - [x] ConfirmModal error display doesn't handle long error text — single-line `<p>` with no wrapping or scroll for verbose errors
 
 - [x] PreviewPanel resolveValue: shadow/typography composite token values also produce [object Object] — needs structured formatting for shadow ({ offsetX, offsetY, blur, spread, color }) and typography ({ fontFamily, fontSize, ... }) objects
