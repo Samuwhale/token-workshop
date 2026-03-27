@@ -959,12 +959,22 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             {exporting ? 'Exporting…' : selected.size === 0 ? 'Select a platform to export' : selectedSets !== null && selectedSets.size === 0 ? 'Select at least one set' : selectedSets !== null ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}` : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
           </button>
         )}
-        {mode === 'figma-variables' && figmaCollections.length === 0 && !figmaLoading && (
+        {mode === 'figma-variables' && figmaCollections.length === 0 && (
           <button
             onClick={handleExportFigmaVariables}
-            className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+            disabled={figmaLoading}
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-70 transition-colors flex items-center justify-center gap-1.5"
           >
-            Read Variables from Figma
+            {figmaLoading ? (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
+                  <path d="M21 12a9 9 0 11-6.219-8.56" />
+                </svg>
+                Reading Variables…
+              </>
+            ) : (
+              'Read Variables from Figma'
+            )}
           </button>
         )}
         {mode === 'figma-variables' && figmaCollections.length > 0 && (

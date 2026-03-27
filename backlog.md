@@ -118,7 +118,7 @@ Items spotted during UX passes but out of scope for that session.
 
 - [x] ImportPanel: show progress bar using existing `importProgress` state during token import — long imports feel stuck with only "Importing…" text
 - [x] Grid view empty state: distinguish "no color tokens exist in this set" from "filters hide all color tokens" — current message always says "Grid view shows color tokens as swatches" regardless of cause
-- [ ] ExportPanel: "Read Variables from Figma" button has no loading indicator — clicking it gives no immediate feedback
+- [x] ExportPanel: "Read Variables from Figma" button has no loading indicator — clicking it gives no immediate feedback
 
 - [ ] `suggestTargetGroup` splits on literal dots in segment names — `TokenGeneratorDialog.tsx:52` uses `sourceTokenPath.split('.')` to compute the parent group; if a segment contains a literal dot (e.g. `spacing.1.5`), it returns `spacing.1` instead of `spacing` as the pre-filled target group, silently producing a wrong path.
 - [HIGH] `templateIdForTokenType` fallback returns non-existent template ID — `GraphPanel.tsx:600` returns `'modular-type-scale'` for non-color/dimension tokens but `GRAPH_TEMPLATES` has id `'modular-type'`; `find()` returns `undefined`, `initialTemplate` is set to `null`, and the pending-token-type hint is silently discarded when opening the Graph tab from a token's context menu.

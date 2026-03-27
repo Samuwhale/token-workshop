@@ -292,3 +292,10 @@
   - `sortedTokens` is the pre-filter source of truth; `displayedTokens` is post-filter. Compare both to distinguish "doesn't exist" from "filtered out."
   - `filtersActive` covers searchQuery, typeFilter, refFilter, showDuplicates, showIssuesOnly — use it as the broad "something is filtering" flag.
 ---
+
+## 2026-03-27 - ExportPanel: "Read Variables from Figma" button has no loading indicator
+- The footer button previously disappeared entirely when `figmaLoading` became true (condition was `&& !figmaLoading`). Changed the condition to always show the button when collections are empty, but disable it and show a spinner + "Reading Variables…" text when loading. Button uses `disabled:opacity-70` and `flex items-center justify-center gap-1.5` for the spinner layout.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L962
+- **Learnings for future iterations:**
+  - When a button triggers an async action and then hides itself via a loading guard, the fix is to keep the button visible but disabled with inline loading feedback, rather than relying solely on a content-area spinner.
+---
