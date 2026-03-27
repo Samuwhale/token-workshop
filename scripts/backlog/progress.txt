@@ -16,3 +16,10 @@
 - **Learnings for future iterations:**
   - When a panel has multiple modes/tabs, don't block the entire panel if only some modes require a dependency (like server connection). Disable the specific modes that need it instead.
 ---
+
+## 2026-03-27 - syncBindings with scope 'selection' skips children
+- Made `syncBindings` recurse into descendants of selected nodes, matching `remapBindings` behavior. Previously only directly selected nodes were synced; now selecting a frame syncs all bound children too.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L1203
+- **Learnings for future iterations:**
+  - When two functions handle the same `scope: 'selection' | 'page'` parameter, check that both gather nodes the same way. Easy to miss when they were written at different times.
+---

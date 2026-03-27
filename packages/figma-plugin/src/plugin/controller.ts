@@ -1201,7 +1201,16 @@ async function remapBindings(remapMap: Record<string, string>, scope: 'selection
 async function syncBindings(tokenMap: Record<string, { $value: any; $type: string }>, scope: 'page' | 'selection') {
   let nodes: SceneNode[];
   if (scope === 'selection') {
-    nodes = [...figma.currentPage.selection];
+    // Include the selected nodes AND all their descendants
+    const roots = [...figma.currentPage.selection];
+    const all: SceneNode[] = [];
+    for (const root of roots) {
+      all.push(root);
+      if ('findAll' in root) {
+        (root as FrameNode).findAll(() => true).forEach(n => all.push(n));
+      }
+    }
+    nodes = all;
   } else {
     nodes = figma.currentPage.findAll(node => {
       for (const prop of ALL_BINDABLE_PROPERTIES) {
