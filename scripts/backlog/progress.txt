@@ -425,3 +425,11 @@
   - The colorUtils `hexToHsl` returns `{ h, s, l }` (object), not a tuple — local callers that used tuple indexing (`hsl[1]`) need updating to property access.
   - `hexToRgb` in colorUtils already handles 8-char `#RRGGBBAA` hex, so the local `hex.slice(0, 7)` guard was unnecessary.
 ---
+
+## 2026-03-27 - `flattenTokensObj` re-implemented in App.tsx despite `flattenTokenGroup` from `@tokenmanager/core`
+- Replaced the local 12-line recursive implementation with a 5-line wrapper that delegates to `flattenTokenGroup` from `@tokenmanager/core`. Added import for `flattenTokenGroup`. Kept the same `Record<string, any>` return type so all 4 call sites needed no changes.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L32 (import), ~L918-L924 (implementation)
+- **Learnings for future iterations:**
+  - `flattenTokenGroup` returns `Map<string, DTCGToken>`; callers expecting `Record<string, any>` need a thin Map→object conversion. The wrapper pattern avoids touching callers.
+  - The local function had a `prefix` param used only recursively — no external callers passed it, so it could be safely dropped.
+---

@@ -916,16 +916,10 @@ export function App() {
   };
 
   // Flatten a nested token object to { [dotPath]: tokenEntry }
-  const flattenTokensObj = (obj: Record<string, any>, prefix = ''): Record<string, any> => {
+  const flattenTokensObj = (obj: Record<string, any>): Record<string, any> => {
     const flat: Record<string, any> = {};
-    for (const [key, val] of Object.entries(obj)) {
-      if (key.startsWith('$')) continue;
-      const path = prefix ? `${prefix}.${key}` : key;
-      if (val && typeof val === 'object' && '$value' in val) {
-        flat[path] = val;
-      } else if (val && typeof val === 'object') {
-        Object.assign(flat, flattenTokensObj(val, path));
-      }
+    for (const [path, token] of flattenTokenGroup(obj as any)) {
+      flat[path] = token;
     }
     return flat;
   };

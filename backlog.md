@@ -132,9 +132,9 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] `computeResults` and `computeResultsWithValue` are near-identical 200-line switch statements — should resolve source value first then call one shared switch (`server/generator-service.ts:401-483 vs 486-599`)
 - [x] `hexToHsl` duplicated in TokenCanvas.tsx when it already exists in `colorUtils.ts` (`figma-plugin/TokenCanvas.tsx:18-33`)
-- [~] `flattenTokensObj` re-implemented in App.tsx despite `flattenTokenGroup` from `@tokenmanager/core` (`figma-plugin/App.tsx:859-871`)
+- [x] `flattenTokensObj` re-implemented in App.tsx despite `flattenTokenGroup` from `@tokenmanager/core` (`figma-plugin/App.tsx:859-871`)
 - [~] `flattenForVarDiff` in SyncPanel is yet another flatten implementation (`figma-plugin/SyncPanel.tsx:42-57`)
-- [ ] `countLeafNodes` duplicated between `useTokens.ts:132-143` and AnalyticsPanel
+- [~] `countLeafNodes` duplicated between `useTokens.ts:132-143` and AnalyticsPanel
 - [ ] `toLinear` / `wcagLuminance` duplicated between `color-math.ts` and `generator-engine.ts:275` — new closure allocated per call
 - [ ] `formatValue` redefined locally in ExportPanel.tsx shadowing the one from `tokenListUtils.ts` (`figma-plugin/ExportPanel.tsx:305-309`)
 - [ ] `FlatToken` interface in docs.ts duplicates core types — will drift (`server/routes/docs.ts:21-26`)

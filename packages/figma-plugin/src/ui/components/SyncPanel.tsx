@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { flattenTokenGroup } from '@tokenmanager/core';
 
 interface GitStatus {
   isRepo: boolean;
@@ -39,22 +40,6 @@ interface ReadinessCheck {
   onFix?: () => void;
 }
 
-function flattenForVarDiff(
-  group: Record<string, any>,
-  prefix = ''
-): { path: string; value: string; type: string }[] {
-  const result: { path: string; value: string; type: string }[] = [];
-  for (const [key, val] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (val && typeof val === 'object' && '$value' in val) {
-      result.push({ path, value: String(val.$value), type: String(val.$type ?? 'string') });
-    } else if (val && typeof val === 'object') {
-      result.push(...flattenForVarDiff(val, path));
-    }
-  }
-  return result;
-}
 
 function truncateValue(v: string, max = 24): string {
   return v.length > max ? v.slice(0, max) + '…' : v;
@@ -151,7 +136,11 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
       const data = await res.json();
-      const localFlat = flattenForVarDiff(data.tokens || {});
+      const localFlat = [...flattenTokenGroup(data.tokens || {})].map(([path, token]) => ({
+        path,
+        value: String(token.$value),
+        type: String(token.$type ?? 'string'),
+      }));
 
       const figmaMap = new Map<string, { value: string; type: string }>(
         figmaTokens.map(t => [t.path, { value: String(t.$value ?? ''), type: String(t.$type ?? 'string') }])
@@ -271,7 +260,11 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
       const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
       const data = await res.json();
-      const localFlat = flattenForVarDiff(data.tokens || {});
+      const localFlat = [...flattenTokenGroup(data.tokens || {})].map(([path, token]) => ({
+        path,
+        value: String(token.$value),
+        type: String(token.$type ?? 'string'),
+      }));
 
       const figmaMap = new Map<string, any>(figmaTokens.map(t => [t.path, t]));
       const localPaths = new Set(localFlat.map(t => t.path));
