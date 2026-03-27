@@ -373,3 +373,9 @@
   - For Figma methods like `resize()` that exist at runtime but aren't on `SceneNode`, use `node as SceneNode & { resize(w, h): void; width: number; height: number }` — clearer than `as any` and self-documenting
   - `replace_all: true` in Edit tool does not always catch occurrences with different surrounding whitespace (indentation levels differ between methods in the same file) — verify with grep after
 ---
+
+## 2026-03-27 - discover-pass: SyncPanel.tsx + sync routes
+- Area: `packages/figma-plugin/src/ui/components/SyncPanel.tsx`, `packages/server/src/routes/sync.ts`
+- Found 7 items — written to backlog-inbox.md
+- Notable: `varCorrelationIdRef` and `varReadResolveRef` are shared between `computeVarDiff` and `runReadinessChecks` — a real concurrency bug where calling both simultaneously causes one to hang silently until the 10s timeout fires.
+---
