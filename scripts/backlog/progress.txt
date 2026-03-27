@@ -1,6 +1,14 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - onNavigateToAlias should scroll virtual list to highlighted row
+- Stale — already implemented. A `useLayoutEffect` at `TokenList.tsx` ~L566 watches `[highlightedToken, flatItems, viewMode]` and scrolls the virtual list to center the highlighted token. For tokens in collapsed groups, the separate `useEffect` at ~L350 expands ancestors first; the `useLayoutEffect` re-fires when `flatItems` changes and scrolls on the second render.
+- Files changed: none (code was present from the "Virtual scrolling for large token sets" commit)
+- **Learnings for future iterations:**
+  - When a `useLayoutEffect` depends on both `highlightedToken` AND `flatItems`, it automatically handles the collapsed-group case: fires once (idx=-1), then fires again after the expansion `useEffect` updates `expandedPaths` → new `flatItems` reference → scroll.
+  - `useLayoutEffect` deps should include all derived state (`flatItems`) that may be stale on first fire so the effect retries automatically.
+---
+
 ## 2026-03-27 - Theme dimension switcher: use segmented controls instead of dropdowns
 - Dimensions with ≤5 options now render as an inline segmented control (connected pill buttons with shared border). Each option including "None" is always visible. Clicking a pill selects it immediately without a dropdown. Dimensions with 6+ options retain the existing dropdown.
 - Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1853

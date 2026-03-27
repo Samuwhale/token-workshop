@@ -81,6 +81,7 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
   const [varError, setVarError] = useState<string | null>(null);
   const [varChecked, setVarChecked] = useState(false);
   const varReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
+  const varCorrelationIdRef = useRef<string | null>(null);
 
   // Publish readiness state
   const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
@@ -133,15 +134,18 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
     setVarChecked(false);
     try {
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
+        const cid = `sync-${Date.now()}-${Math.random()}`;
+        varCorrelationIdRef.current = cid;
         const timeout = setTimeout(() => {
           varReadResolveRef.current = null;
+          varCorrelationIdRef.current = null;
           reject(new Error('Figma read timed out — is the plugin running?'));
         }, 10000);
         varReadResolveRef.current = (tokens) => {
           clearTimeout(timeout);
           resolve(tokens);
         };
-        parent.postMessage({ pluginMessage: { type: 'read-variables' } }, '*');
+        parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
 
       const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
@@ -252,12 +256,15 @@ export function SyncPanel({ serverUrl, connected, activeSet }: SyncPanelProps) {
     setReadinessError(null);
     try {
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
+        const cid = `sync-${Date.now()}-${Math.random()}`;
+        varCorrelationIdRef.current = cid;
         const timeout = setTimeout(() => {
           varReadResolveRef.current = null;
+          varCorrelationIdRef.current = null;
           reject(new Error('Figma read timed out'));
         }, 10000);
         varReadResolveRef.current = (tokens) => { clearTimeout(timeout); resolve(tokens); };
-        parent.postMessage({ pluginMessage: { type: 'read-variables' } }, '*');
+        parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
 
       const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);

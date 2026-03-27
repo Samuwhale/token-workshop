@@ -35,7 +35,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] Rename remap preview — rename confirmation dialog shows dependent count but not which tokens will be updated; add a scrollable list of affected token paths so users can verify before confirming (`TokenList.tsx:2085-2090`)
 - [x] Inline lint violation indicator on token rows — violations currently only surface in AnalyticsPanel or behind the issues-only filter toggle; each violating row should show a subtle warning icon inline so problems are visible while browsing normally, not just when explicitly filtering (`TokenList.tsx`, `lintViolations` prop)
-- [~] `onNavigateToAlias` should scroll virtual list to highlighted row — clicking an alias `{path}` ref sets `highlightedToken` but doesn't scroll the virtual list viewport to make the highlighted row visible; row can be off-screen with no indication of where it is (`TokenList.tsx`, virtual scroll logic)
+- [x] `onNavigateToAlias` should scroll virtual list to highlighted row — clicking an alias `{path}` ref sets `highlightedToken` but doesn't scroll the virtual list viewport to make the highlighted row visible; row can be off-screen with no indication of where it is (`TokenList.tsx`, virtual scroll logic)
 - [x] Move token to group via drag-and-drop — moving a token to a different group currently requires manually editing its path; token rows should be draggable onto group header rows as a drop target, distinct from the existing select-mode drag-to-reorder (`TokenList.tsx`)
 
 ---
@@ -74,7 +74,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [ ] Click-to-navigate from analytics violations to the offending token — violation and duplicate entries in AnalyticsPanel are informational only; clicking one should close the panel, switch to Tokens tab, navigate to the set containing the token, and highlight the row (`figma-plugin/AnalyticsPanel.tsx`)
+- [~] Click-to-navigate from analytics violations to the offending token — violation and duplicate entries in AnalyticsPanel are informational only; clicking one should close the panel, switch to Tokens tab, navigate to the set containing the token, and highlight the row (`figma-plugin/AnalyticsPanel.tsx`)
 
 ---
 

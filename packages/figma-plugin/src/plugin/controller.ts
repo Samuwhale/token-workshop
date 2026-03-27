@@ -20,7 +20,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       await applyStyles(msg.tokens);
       break;
     case 'read-variables':
-      await readFigmaVariables();
+      await readFigmaVariables(msg.correlationId);
       break;
     case 'read-styles':
       await readFigmaStyles();
@@ -460,7 +460,7 @@ async function deleteOrphanVariables(knownPaths: string[]) {
 }
 
 // Read existing Figma variables as tokens
-async function readFigmaVariables() {
+async function readFigmaVariables(correlationId?: string) {
   const localCollections = await figma.variables.getLocalVariableCollectionsAsync();
   const collections: any[] = [];
 
@@ -487,7 +487,7 @@ async function readFigmaVariables() {
     collections.push({ name: collection.name, modes });
   }
 
-  figma.ui.postMessage({ type: 'variables-read', collections });
+  figma.ui.postMessage({ type: 'variables-read', collections, correlationId });
 }
 
 // Read existing Figma styles as tokens
