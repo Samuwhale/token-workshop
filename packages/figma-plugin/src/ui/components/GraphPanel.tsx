@@ -342,6 +342,7 @@ function ApplyForm({
   const [sourceToken, setSourceToken] = useState('');
   const [prefix, setPrefix] = useState(initialPrefix ?? template.defaultPrefix);
   const [applying, setApplying] = useState(false);
+  const applyingRef = useRef(false);
   const [error, setError] = useState('');
 
   // Live preview state
@@ -415,6 +416,7 @@ function ApplyForm({
   }, []);
 
   const handleApply = async () => {
+    if (applyingRef.current) return;
     if (template.requiresSource && !sourceToken.trim()) {
       setError('Source token path is required');
       return;
@@ -423,6 +425,7 @@ function ApplyForm({
       setError('Token prefix is required');
       return;
     }
+    applyingRef.current = true;
     setApplying(true);
     setError('');
     try {
@@ -481,6 +484,8 @@ function ApplyForm({
       onApplied();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to apply template');
+    } finally {
+      applyingRef.current = false;
       setApplying(false);
     }
   };

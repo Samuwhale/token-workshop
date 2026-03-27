@@ -354,3 +354,10 @@ Already up to date.
 ===============================================================
   Claimed: GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
   Worktree: /tmp/backlog-98408-5z37nM
+
+  ✓ done: GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
+    Added applyingRef guard to block rapid-click double-submissions before React re-renders; moved setApplying(false) to finally block
+    12 turns · 77s · $0.21
+
+--- Merging: GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications ---
+Already up to date.

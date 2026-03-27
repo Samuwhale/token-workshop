@@ -339,3 +339,12 @@
   - `figma.variables` API throws on Starter plan — wrap every call in try/catch and post an error message back; never let controller async functions crash silently.
   - Capture `pendingSourceRef.current` into a local variable before the setTimeout callback runs, since the ref is cleared inside the callback before `setError` is called.
 ---
+
+## 2026-03-27 - GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
+- Added `applyingRef` (useRef) as a synchronous guard at the top of `handleApply` — returns early if a request is already in flight, preventing duplicate POSTs before React re-renders with the disabled state.
+- Moved `setApplying(false)` from catch-only to `finally` so the button re-enables correctly on both success and failure paths.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L345 (applyingRef), ~L418 (guard), ~L482 (finally block)
+- **Learnings for future iterations:**
+  - `disabled` attribute alone is insufficient against rapid clicks — React state updates are async, so a second click can fire before the re-render propagates. Always pair `disabled={applying}` with a synchronous ref guard (`if (ref.current) return`) in the handler.
+  - Success paths that call `onApplied()` (which may unmount the component) should still reset loading state in `finally` to avoid stale state if the component stays mounted.
+---
