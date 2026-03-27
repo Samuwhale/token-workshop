@@ -35,7 +35,7 @@ import { useFigmaSync } from './hooks/useFigmaSync';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
 import { stableStringify } from './shared/utils';
-import { STORAGE_KEYS, STORAGE_KEY, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
+import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { flattenTokenGroup } from '@tokenmanager/core';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {

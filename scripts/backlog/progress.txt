@@ -405,3 +405,9 @@
   - `figma.notify(msg, { error: true })` is the Figma-native way to surface plugin-side errors — use it instead of silent `console.error`. No UI changes needed for basic error visibility.
   - For partial failures (some nodes succeed, some fail), distinguish full-failure (error toast) from partial-failure (info toast with count).
 ---
+
+## 2026-03-27 - housekeeping: remove unused STORAGE_KEY import in App.tsx
+- Removed `STORAGE_KEY` (singular) from the storage import on line 38 of App.tsx — only `STORAGE_KEYS` (plural) is used throughout the file
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L38
+- **Why:** The import was dead — `STORAGE_KEY` never appears in the file body after the import line. It shadowed the real constant and could cause confusion about which export to use.
+---
