@@ -110,3 +110,10 @@ Already up to date.
 ===============================================================
   Claimed: No "duplicate token" or "create sibling" action — creating a variant of an existing token requires manually entering the full path from scratch instead of forking from the current token
   Worktree: /tmp/backlog-60772-C9NExm
+
+  ✓ done: No "duplicate token" or "create sibling" action — creating a variant of an existing token requires manually entering the full path from scratch instead of forking from the current token
+    stale — already done; context menu has both "Create sibling" (N) and "Duplicate token" (D) actions, plus Cmd+D keyboard shortcut
+    10 turns · 100s · $0.35
+
+--- Merging: No "duplicate token" or "create sibling" action — creating a variant of an existing token requires manually entering the full path from scratch instead of forking from the current token ---
+Already up to date.

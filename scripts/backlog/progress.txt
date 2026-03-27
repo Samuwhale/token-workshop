@@ -283,3 +283,10 @@
   - The store is created once per server start (`const store = createDimensionsStore(tokenDir)` at plugin registration), so a closure variable is the right scope for the cache — no module-level singleton needed.
   - `save()` must update the cache to the exact array passed in (not re-read from disk) to keep cache consistent without an extra I/O round-trip.
 ---
+
+## 2026-03-27 - No "duplicate token" or "create sibling" action — creating a variant of an existing token requires manually entering the full path from scratch instead of forking from the current token
+- Already implemented: context menu has "Create sibling" (key N) and "Duplicate token" (key D) actions; `handleDuplicateToken` (appends `-copy` suffix, avoids collisions) and `handleOpenCreateSibling` (pre-fills creation form with parent path) are both wired up; Cmd+D keyboard shortcut also exists.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+  - Check context menu items AND keyboard shortcuts before implementing; the feature may already be present in both places.
+---

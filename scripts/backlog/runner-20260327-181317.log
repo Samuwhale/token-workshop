@@ -77,3 +77,17 @@ Already up to date.
 
 --- Merging: Theme dimensions store reads `$themes.json` from disk on every GET request — `createDimensionsStore` has no in-memory cache; each `load()` call re-reads and re-parses the file ---
 Already up to date.
+[main 4ce8b7b] chore(backlog): done – Theme dimensions store reads `$themes.json` from disk on every GET request — `createDimensionsStore` has no in-memory cache; each `load()` call re-reads and re-parses the file
+ 6 files changed, 38 insertions(+), 5 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Theme dimensions store reads `$themes.json` from disk on every GET request — `createDimensionsStore` has no in-memory cache; each `load()` call re-reads and re-parses the file
+- Added `let cache: ThemeDimension[] | null = null` to `createDimensionsStore` closure. `load()` returns `cache` immediately if non-null; populates it on first disk read. `save()` writes to disk then updates `cache` to the new value.
+- Files changed: `packages/server/src/routes/themes.ts` ~L14 (createDimensionsStore)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  13 items remaining
+===============================================================
+  Claimed: Batch editor find-and-replace has no regex support — only literal string matching is available, so common refactors like renaming `spacing.*` to `dimension.*` require manual work per token
+  Worktree: /tmp/backlog-59609-bZtqOp
