@@ -365,3 +365,10 @@
 - **Learnings for future iterations:**
   - Check git log for recent commits before starting work — items may already be resolved
 ---
+
+## 2026-03-27 - Consolidate duplicate ThemeOption/ThemeDimension types
+- Already done: types are defined once in `packages/core/src/types.ts` and all three consumers (`useThemeSwitcher.ts`, `ThemeCompare.tsx`, `ThemeManager.tsx`) already import from `@tokenmanager/core`.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Always verify the current state before assuming a backlog item is still valid — this consolidation was already completed.
+---

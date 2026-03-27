@@ -49,3 +49,10 @@ Already up to date.
 ===============================================================
   Claimed: Consolidate duplicate `ThemeOption`/`ThemeDimension` types — defined identically in `useThemeSwitcher.ts`, `ThemeCompare.tsx`, and `ThemeManager.tsx`; consumers should import from one place
   Worktree: /tmp/backlog-44348-v9ntpy
+
+  ✓ done: Consolidate duplicate ThemeOption/ThemeDimension types
+    stale — already done. Types defined once in @tokenmanager/core, all consumers already import from there.
+    7 turns · 44s · $0.2
+
+--- Merging: Consolidate duplicate ThemeOption/ThemeDimension types ---
+Already up to date.

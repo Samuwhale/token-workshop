@@ -61,3 +61,17 @@ Already up to date.
 
 --- Merging: bulkRename mutates in-memory tree before beginBatch/saveSet ---
 Already up to date.
+[main cfe2ed8] chore(backlog): done – bulkRename mutates in-memory tree before beginBatch/saveSet
+ 5 files changed, 30 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - bulkRename mutates in-memory tree before beginBatch/saveSet
+- Already fixed in commit ad771aa. The code now calls `beginBatch()` before mutations, wraps all `setTokenAtPath`/`deleteTokenAtPath` calls in a try/catch, and reverts in-memory mutations on error before re-throwing.
+- Files changed: `packages/server/src/services/token-store.ts` ~L982-L1018
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  12 items remaining
+===============================================================
+  Claimed: No copy/paste for tokens (Cmd+C/V) — users can paste via a dedicated modal (Cmd+Shift+V) but there's no way to copy selected tokens as JSON to clipboard; common "duplicate across sets" workflow requires the Move dialog instead of copy-paste
+  Worktree: /tmp/backlog-44614-kq3SiP
