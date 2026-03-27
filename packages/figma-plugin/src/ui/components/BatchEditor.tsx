@@ -53,6 +53,14 @@ function scaleValue(value: unknown, factor: number): unknown {
   return null;
 }
 
+const PREVIEW_MAX = 3;
+
+function formatValue(v: unknown): string {
+  if (v === null || v === undefined) return '—';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
 export function BatchEditor({
   selectedPaths,
   allTokensFlat,
@@ -114,6 +122,32 @@ export function BatchEditor({
     const currentTypes = [...new Set(selectedEntries.map(x => x.entry.$type).filter(Boolean))];
     return { currentTypes, count: selectedEntries.length };
   }, [newType, selectedEntries]);
+
+  // Dry-run: compute scaled values for preview
+  const scalePreview = useMemo(() => {
+    if (!allScalable || !scaleFactor) return null;
+    const factor = parseFloat(scaleFactor);
+    if (isNaN(factor) || factor <= 0) return null;
+    return selectedEntries
+      .map(({ path, entry }) => {
+        const scaled = scaleValue(entry.$value, factor);
+        if (scaled === null) return null;
+        return { path, from: entry.$value, to: scaled };
+      })
+      .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
+  }, [allScalable, scaleFactor, selectedEntries]);
+
+  // Dry-run: compute path changes for find/replace preview
+  const renameChanges = useMemo(() => {
+    if (!findText) return [];
+    return selectedEntries
+      .filter(({ path }) => path.includes(findText))
+      .map(({ path }) => ({
+        from: path,
+        to: path.split(findText).join(replaceText),
+      }))
+      .filter(({ from, to }) => from !== to);
+  }, [findText, replaceText, selectedEntries]);
 
   const hasOp = description.trim() !== '' ||
     newType !== '' ||
@@ -463,7 +497,30 @@ export function BatchEditor({
               </span>
             </div>
           )}
+          {scalePreview && scalePreview.length > 0 && (
+            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+              {scalePreview.slice(0, PREVIEW_MAX).map(({ path, from, to }) => (
+                <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">
+                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
+                  <span className="text-[var(--color-figma-text-secondary)] shrink-0">{formatValue(from)}</span>
+                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                  <span className="text-[var(--color-figma-text)] shrink-0 font-medium">{formatValue(to)}</span>
+                </div>
+              ))}
+              {scalePreview.length > PREVIEW_MAX && (
+                <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">and {scalePreview.length - PREVIEW_MAX} more…</div>
+              )}
+            </div>
+          )}
         </>
+      )}
+
+      {/* Type-change inline preview (before confirmation) */}
+      {newType !== '' && !showTypeConfirm && typeChangeInfo && typeChangeInfo.currentTypes.length > 0 && (
+        <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+          {typeChangeInfo.currentTypes.join(', ')} → <span className="text-[var(--color-figma-text)] font-medium">{newType}</span>
+          {' '}on {typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}
+        </div>
       )}
 
       {/* Type-change confirmation banner */}
@@ -569,8 +626,23 @@ export function BatchEditor({
             {renaming ? '…' : `Rename${renamePreview > 0 ? ` ${renamePreview}` : ''}`}
           </button>
         </div>
-        {regexError && (
-          <div className="ml-[80px] text-[10px] text-[var(--color-figma-error)] leading-tight">{regexError}</div>
+        {renameChanges.length > 0 && (
+          <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+            {renameChanges.slice(0, PREVIEW_MAX).map(({ from, to }) => (
+              <div key={from} className="text-[10px] leading-snug space-y-0">
+                <div className="flex items-center gap-1">
+                  <span className="text-[var(--color-figma-text-secondary)] truncate" title={from}>{from}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                  <span className="text-[var(--color-figma-text)] font-medium truncate" title={to}>{to}</span>
+                </div>
+              </div>
+            ))}
+            {renameChanges.length > PREVIEW_MAX && (
+              <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">and {renameChanges.length - PREVIEW_MAX} more…</div>
+            )}
+          </div>
         )}
 
         {/* Move to set — only when multiple sets exist */}

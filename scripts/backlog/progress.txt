@@ -325,3 +325,17 @@
   - The IIFE `{(() => { ... })()}` pattern in JSX works well for rendering logic that computes multiple intermediate values without needing a separate component or useMemo.
   - `wcagContrast` and `hexToLuminance` already existed and worked perfectly for the AA/AAA thresholds (4.5 and 7:1).
 ---
+
+## 2026-03-27 - Batch editor operations show no preview of affected tokens — scaling dimensions, changing types, or find-replacing paths execute immediately with no "these N tokens will change from X to Y" dry-run
+- Added three dry-run preview panels that appear inline as the user fills in fields, before any action is taken:
+  1. **Scale preview** (`scalePreview` useMemo): shows `tokenName: oldValue → newValue` for up to 3 tokens (+ "and N more"), rendered below the "Multiply by" input when a valid factor is entered.
+  2. **Find/replace path preview** (`renameChanges` useMemo): shows `old.path → new.path` for up to 3 matched paths below the find/replace inputs when `findText` matches selected tokens.
+  3. **Type-change inline hint**: a one-line note `"currentType → newType on N tokens"` shown directly below the type selector, before the confirmation banner appears.
+- Added `formatValue(v: unknown): string` helper to render token values (handles objects, primitives, null).
+- Added `PREVIEW_MAX = 3` constant to cap preview rows.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L56, ~L125, ~L139, ~L467, ~L583
+- **Learnings for future iterations:**
+  - useMemo dry-runs are cheap for this use case (no API calls); they run synchronously on each render as the user types, giving instant feedback.
+  - Showing only the leaf segment name (`.split('.').pop()`) for scale previews saves horizontal space; full path shown in `title` attribute for accessibility.
+  - Find/replace preview renders old+new on two lines per item since paths are long; single-line "from → to" overflows in the narrow plugin panel.
+---

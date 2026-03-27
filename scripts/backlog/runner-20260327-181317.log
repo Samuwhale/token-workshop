@@ -119,3 +119,16 @@ Already up to date.
 
 --- Merging: No color contrast checker in ColorPicker — editing a color token has no inline WCAG AA/AAA pass/fail indicator against common backgrounds, forcing users to check contrast separately ---
 Already up to date.
+[main 22c8659] chore(backlog): done – No color contrast checker in ColorPicker — editing a color token has no inline WCAG AA/AAA pass/fail indicator against common backgrounds, forcing users to check contrast separately
+ 6 files changed, 68 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - No color contrast checker in ColorPicker — editing a color token has no inline WCAG AA/AAA pass/fail indicator against common backgrounds
+- Added an inline WCAG contrast section at the bottom of ColorPicker, above the alpha row. Shows contrast ratio of the current color vs white and vs black backgrounds with AA (4.5:1) and AAA (7:1) pass/fail badges. Reused existing `wcagContrast` from colorUtils.ts.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L537
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  8 items remaining
+===============================================================
+  Claimed: CommandPalette token search capped at 100 results with no pagination — users with 500+ tokens can't find matches beyond the cap, and there's no indication results were truncated
+  Worktree: /tmp/backlog-59609-YlC8wq

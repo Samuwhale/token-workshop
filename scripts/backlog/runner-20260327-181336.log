@@ -130,3 +130,10 @@ Already up to date.
 ===============================================================
   Claimed: Batch editor operations show no preview of affected tokens — scaling dimensions, changing types, or find-replacing paths execute immediately with no "these N tokens will change from X to Y" dry-run
   Worktree: /tmp/backlog-60772-xI9Fhv
+
+  ✓ done: Batch editor operations show no preview of affected tokens — scaling dimensions, changing types, or find-replacing paths execute immediately with no "these N tokens will change from X to Y" dry-run
+    Added inline dry-run previews for scale (value→scaled), find/replace (old path→new path), and type change (currentType→newType), all computed via useMemo and shown before any action is taken
+    14 turns · 127s · $0.39
+
+--- Merging: Batch editor operations show no preview of affected tokens — scaling dimensions, changing types, or find-replacing paths execute immediately with no "these N tokens will change from X to Y" dry-run ---
+Already up to date.
