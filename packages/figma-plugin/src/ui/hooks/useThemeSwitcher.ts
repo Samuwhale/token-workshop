@@ -22,6 +22,9 @@ export function useThemeSwitcher(
     setActiveThemesState(map);
   };
 
+  // Preview state: hover over an option to see its values without committing
+  const [previewThemes, setPreviewThemes] = useState<Record<string, string>>({});
+
   // Load per-file active themes from clientStorage on mount
   useEffect(() => {
     parent.postMessage({ pluginMessage: { type: 'get-active-themes' } }, '*');
@@ -85,14 +88,16 @@ export function useThemeSwitcher(
     return () => document.removeEventListener('mousedown', handler);
   }, [openDimDropdown]);
 
-  // Compute theme-resolved allTokensFlat from all active dimension options
+  // Compute theme-resolved allTokensFlat from all active/preview dimension options
+  // Preview overrides active for the specific dimension being hovered
   const themedAllTokensFlat = useMemo(() => {
-    const activeEntries = Object.keys(activeThemes);
+    const effectiveThemes = { ...activeThemes, ...previewThemes };
+    const activeEntries = Object.keys(effectiveThemes);
     if (activeEntries.length === 0) return allTokensFlat;
     const merged: Record<string, TokenMapEntry> = {};
-    // Iterate dimensions in order; for each, apply the active option's source then enabled sets
+    // Iterate dimensions in order; for each, apply the effective option's source then enabled sets
     for (const dim of dimensions) {
-      const activeOptionName = activeThemes[dim.id];
+      const activeOptionName = effectiveThemes[dim.id];
       if (!activeOptionName) continue;
       const option = dim.options.find(o => o.name === activeOptionName);
       if (!option) continue;
@@ -113,13 +118,15 @@ export function useThemeSwitcher(
     }
     if (Object.keys(merged).length === 0) return allTokensFlat;
     return resolveAllAliases(merged);
-  }, [activeThemes, dimensions, allTokensFlat, pathToSet]);
+  }, [activeThemes, previewThemes, dimensions, allTokensFlat, pathToSet]);
 
   return {
     dimensions,
     setDimensions,
     activeThemes,
     setActiveThemes,
+    previewThemes,
+    setPreviewThemes,
     openDimDropdown,
     setOpenDimDropdown,
     dimBarExpanded,

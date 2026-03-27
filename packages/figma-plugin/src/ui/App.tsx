@@ -293,7 +293,7 @@ export function App() {
   const isNarrow = windowWidth <= 360;
 
   // Theme switcher state (multi-dimensional)
-  const { dimensions, setDimensions, activeThemes, setActiveThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themedAllTokensFlat, themesError, retryThemes } = useThemeSwitcher(serverUrl, connected, tokens, allTokensFlat, pathToSet);
+  const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themedAllTokensFlat, themesError, retryThemes } = useThemeSwitcher(serverUrl, connected, tokens, allTokensFlat, pathToSet);
 
   // Must be declared before cascadeDiff useMemo which references them
   const [dragSetName, setDragSetName] = useState<string | null>(null);
@@ -1782,35 +1782,49 @@ export function App() {
                 <>
                   {dimensions.map(dim => {
                     const activeOption = activeThemes[dim.id];
+                    const previewOption = previewThemes[dim.id];
                     const isOpen = openDimDropdown === dim.id;
                     if (dim.options.length <= 5) {
                       return (
-                        <div key={dim.id} className="flex items-center gap-1">
+                        <div
+                          key={dim.id}
+                          className="flex items-center gap-1"
+                          onMouseLeave={() => { const next = { ...previewThemes }; delete next[dim.id]; setPreviewThemes(next); }}
+                        >
                           <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{dim.name}:</span>
                           <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)]">
                             <button
                               onClick={() => { const next = { ...activeThemes }; delete next[dim.id]; setActiveThemes(next); }}
+                              onMouseEnter={() => { const next = { ...previewThemes }; delete next[dim.id]; setPreviewThemes(next); }}
                               className={`px-2 py-0.5 text-[10px] transition-colors border-r border-[var(--color-figma-border)] ${
-                                !activeOption
+                                !activeOption && !previewOption
                                   ? 'bg-[var(--color-figma-accent)] text-white font-medium'
                                   : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                               }`}
                             >
                               None
                             </button>
-                            {dim.options.map((opt, i) => (
-                              <button
-                                key={opt.name}
-                                onClick={() => setActiveThemes({ ...activeThemes, [dim.id]: opt.name })}
-                                className={`px-2 py-0.5 text-[10px] transition-colors ${i < dim.options.length - 1 ? 'border-r border-[var(--color-figma-border)]' : ''} ${
-                                  activeOption === opt.name
-                                    ? 'bg-[var(--color-figma-accent)] text-white font-medium'
-                                    : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                                }`}
-                              >
-                                {opt.name}
-                              </button>
-                            ))}
+                            {dim.options.map((opt, i) => {
+                              const isActive = activeOption === opt.name;
+                              const isPreviewing = previewOption === opt.name && previewOption !== activeOption;
+                              return (
+                                <button
+                                  key={opt.name}
+                                  onClick={() => { setActiveThemes({ ...activeThemes, [dim.id]: opt.name }); const next = { ...previewThemes }; delete next[dim.id]; setPreviewThemes(next); }}
+                                  onMouseEnter={() => setPreviewThemes({ ...previewThemes, [dim.id]: opt.name })}
+                                  title={isActive ? `${opt.name} (active)` : `Preview ${opt.name} — click to apply`}
+                                  className={`px-2 py-0.5 text-[10px] transition-colors ${i < dim.options.length - 1 ? 'border-r border-[var(--color-figma-border)]' : ''} ${
+                                    isActive
+                                      ? 'bg-[var(--color-figma-accent)] text-white font-medium'
+                                      : isPreviewing
+                                        ? 'bg-[var(--color-figma-accent)] text-white opacity-60'
+                                        : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                                  }`}
+                                >
+                                  {opt.name}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -1832,9 +1846,13 @@ export function App() {
                           </svg>
                         </button>
                         {isOpen && (
-                          <div className="absolute top-full left-0 mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[120px]">
+                          <div
+                            className="absolute top-full left-0 mt-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[120px]"
+                            onMouseLeave={() => { const next = { ...previewThemes }; delete next[dim.id]; setPreviewThemes(next); }}
+                          >
                             <button
                               onClick={() => { const next = { ...activeThemes }; delete next[dim.id]; setActiveThemes(next); setOpenDimDropdown(null); }}
+                              onMouseEnter={() => { const next = { ...previewThemes }; delete next[dim.id]; setPreviewThemes(next); }}
                               className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
                                 !activeOption ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
                               }`}
@@ -1844,12 +1862,17 @@ export function App() {
                             {dim.options.map(opt => (
                               <button
                                 key={opt.name}
-                                onClick={() => { setActiveThemes({ ...activeThemes, [dim.id]: opt.name }); setOpenDimDropdown(null); }}
-                                className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${
+                                onClick={() => { setActiveThemes({ ...activeThemes, [dim.id]: opt.name }); setOpenDimDropdown(null); const next = { ...previewThemes }; delete next[dim.id]; setPreviewThemes(next); }}
+                                onMouseEnter={() => setPreviewThemes({ ...previewThemes, [dim.id]: opt.name })}
+                                title={activeOption === opt.name ? `${opt.name} (active)` : `Preview ${opt.name} — click to apply`}
+                                className={`w-full text-left px-3 py-1.5 text-[10px] hover:bg-[var(--color-figma-bg-hover)] transition-colors flex items-center justify-between ${
                                   activeOption === opt.name ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'
                                 }`}
                               >
                                 {opt.name}
+                                {previewThemes[dim.id] === opt.name && activeOption !== opt.name && (
+                                  <span className="text-[8px] text-[var(--color-figma-text-tertiary)] ml-2 opacity-70">preview</span>
+                                )}
                               </button>
                             ))}
                           </div>
@@ -1893,6 +1916,24 @@ export function App() {
             </div>
             )
           )}
+          {/* Theme preview indicator — shown while hovering over an option that differs from active */}
+          {activeTab === 'tokens' && (() => {
+            const previewEntries = dimensions
+              .filter(d => previewThemes[d.id] && previewThemes[d.id] !== activeThemes[d.id])
+              .map(d => `${d.name}: ${previewThemes[d.id]}`);
+            if (previewEntries.length === 0) return null;
+            return (
+              <div className="flex shrink-0 items-center gap-1.5 px-2 py-0.5 bg-amber-50 border-b border-amber-200 text-[9px] text-amber-700 pointer-events-none select-none">
+                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+                  <circle cx="4" cy="4" r="3"/>
+                  <path d="M4 2.5v2M4 5.5v.5"/>
+                </svg>
+                <span>Previewing</span>
+                <span className="font-medium">{previewEntries.join(' · ')}</span>
+                <span className="opacity-60">— click to apply</span>
+              </div>
+            );
+          })()}
           <div className="flex-1 overflow-y-auto">
           {/* Overflow panels */}
           {overflowPanel === 'import' && (

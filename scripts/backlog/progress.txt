@@ -302,3 +302,17 @@
   - Use `inline-flex items-center gap-1.5` on buttons to cleanly support icon+text layout.
   - The readiness spinner condition had `&& readinessChecks.length === 0` which correctly prevented showing a blank spinner on re-check, but left no feedback at all — the fix is to keep showing the spinner and change the text to "Re-checking…" vs "Running checks…".
 ---
+
+## 2026-03-27 - No theme preview mode — no way to preview token values with a theme applied before committing it as active
+- Added hover-based theme preview: hovering over a theme option button sets `previewThemes[dim.id]` which merges with `activeThemes` to compute `themedAllTokensFlat`, showing that option's resolved values in the token list without persisting.
+- On mouse leave of the option group, `previewThemes[dim.id]` is cleared, reverting to the active theme values.
+- On click, the theme is committed (existing behavior), and `previewThemes` is cleared for that dimension.
+- Added a subtle amber banner below the theme bar showing "Previewing [Dim]: [Option] — click to apply" while hovering a non-active option.
+- For the dropdown variant (>5 options), hover on dropdown items also triggers preview, with a small "preview" label on the hovered item.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L19 (previewThemes state), ~L89 (effectiveThemes merge), ~L123 (return previewThemes/setPreviewThemes)
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L296 (destructure previewThemes), ~L1748 (onMouseLeave/Enter on option buttons), ~L1879 (preview banner)
+- **Learnings for future iterations:**
+  - The `previewThemes` state uses an empty object (not null) so `Object.keys(previewThemes).length > 0` is the check for active preview.
+  - The banner uses `pointer-events-none` so it doesn't interfere with the hover state that triggered it.
+  - Clearing preview on click is important — without it, the preview state lingers after committing.
+---

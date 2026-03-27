@@ -218,3 +218,16 @@ Already up to date.
 
 --- Merging: 10-second Figma correlation timeout has no loading indicator ---
 Already up to date.
+[main dbf1263] chore(backlog): done – 10-second Figma correlation timeout has no loading indicator
+ 5 files changed, 42 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - 10-second Figma correlation timeout has no loading indicator
+- Added two missing loading indicators in SyncPanel:
+  1. Apply button now shows an inline spinner + "Syncing…" during `varSyncing` (waiting for Figma apply-variables response). Changed button to `inline-flex` with a white spinner icon next to the text.
+  2. Readiness re-check now shows a spinner row ("Re-checking…") during `readinessLoading`, regardless of whether prior checks exist. Previously the spinner body was suppressed when `readinessChecks.length > 0`, leaving stale check results visible with no indication of ongoing work.
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  56 items remaining
+===============================================================
+  Claimed: SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected
+  Worktree: /tmp/backlog-97955-rcGqdQ

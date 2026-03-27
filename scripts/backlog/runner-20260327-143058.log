@@ -172,3 +172,10 @@ Already up to date.
 ===============================================================
   Claimed: No theme preview mode — no way to preview token values with a theme applied before committing it as active
   Worktree: /tmp/backlog-98408-beDie6
+
+  ✓ done: No theme preview mode — no way to preview token values with a theme applied before committing it as active
+    Added hover-based preview: hovering a theme option shows its resolved values in the token list via previewThemes state; amber banner indicates preview mode; click commits as before
+    29 turns · 309s · $0.93
+
+--- Merging: No theme preview mode — no way to preview token values with a theme applied before committing it as active ---
+Already up to date.
