@@ -351,14 +351,14 @@ merge_worktree_to_main() {
     if [ "$current_main" != "$WORKTREE_BASE_SHA" ]; then
       # Rebase the agent commit onto current main inside the worktree.
       # Worktrees share the .git object store, so current_main is already reachable.
-      if git -C "$WORKTREE_DIR" rebase "$current_main" --quiet 2>/dev/null; then
+      if git -C "$WORKTREE_DIR" rebase -X theirs "$current_main" --quiet 2>/dev/null; then
         worktree_sha=$(git -C "$WORKTREE_DIR" rev-parse HEAD 2>/dev/null || echo "")
       else
         git -C "$WORKTREE_DIR" rebase --abort 2>/dev/null || true
         # Fall through to cherry-pick — it may still succeed for non-overlapping changes
       fi
     fi
-    if ! git -C "$PROJECT_ROOT" cherry-pick --no-commit "$worktree_sha" 2>/dev/null; then
+    if ! git -C "$PROJECT_ROOT" cherry-pick --no-commit -X theirs "$worktree_sha" 2>/dev/null; then
       echo "  WARNING: Cherry-pick conflict — aborting merge"
       git -C "$PROJECT_ROOT" cherry-pick --abort 2>/dev/null || true
       git -C "$PROJECT_ROOT" reset --hard HEAD 2>/dev/null || true
