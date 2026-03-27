@@ -2099,6 +2099,7 @@ export function App() {
                     initialType={editingToken.initialType}
                     onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
                     onSaved={handleEditorSave}
+                    dimensions={dimensions}
                   />
                 </div>
               </div>
@@ -2268,6 +2269,7 @@ export function App() {
                 initialType={editingToken.initialType}
                 onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
                 onSaved={handleEditorSave}
+                dimensions={dimensions}
               />
             </div>
           </div>

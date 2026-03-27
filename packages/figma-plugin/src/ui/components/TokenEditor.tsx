@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { resolveRefValue, evalExpr, isFormula } from '@tokenmanager/core';
+import type { ThemeDimension } from '@tokenmanager/core';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { ConfirmModal } from './ConfirmModal';
 import type { TokenMapEntry } from '../../shared/types';
@@ -84,9 +85,11 @@ interface TokenEditorProps {
   onDirtyChange?: (dirty: boolean) => void;
   /** Called with the final saved path on a successful save so the parent can highlight it. */
   onSaved?: (savedPath: string) => void;
+  /** Theme dimensions used to show per-mode value overrides. */
+  dimensions?: ThemeDimension[];
 }
 
-export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, onDirtyChange, onSaved }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, onDirtyChange, onSaved, dimensions = [] }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -116,7 +119,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const bgInputRef = useRef<HTMLInputElement>(null);
   const [scopes, setScopes] = useState<string[]>([]);
   const [showScopes, setShowScopes] = useState(false);
-  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[] } | null>(null);
+  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[]; modeValues: Record<string, any> } | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -128,6 +131,8 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const [showDependents, setShowDependents] = useState(false);
   const [dependentsLoading, setDependentsLoading] = useState(false);
   const [showChainPopover, setShowChainPopover] = useState(false);
+  const [modeValues, setModeValues] = useState<Record<string, any>>({});
+  const [showModeValues, setShowModeValues] = useState(false);
 
   const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
@@ -157,6 +162,9 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         const savedModifiers = token?.$extensions?.tokenmanager?.colorModifier;
         const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? savedModifiers : [];
         setColorModifiers(loadedModifiers);
+        const savedModes = token?.$extensions?.tokenmanager?.modes;
+        const loadedModes: Record<string, any> = (savedModes && typeof savedModes === 'object' && !Array.isArray(savedModes)) ? savedModes as Record<string, any> : {};
+        setModeValues(loadedModes);
         const ref = typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}') ? token.$value : '';
         if (ref) setReference(ref);
         initialRef.current = {
@@ -166,6 +174,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           scopes: Array.isArray(savedScopes) ? savedScopes : [],
           type: token?.$type || 'string',
           colorModifiers: loadedModifiers,
+          modeValues: loadedModes,
         };
         if (typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}')) {
           setReference(token.$value);
@@ -213,9 +222,10 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       description !== init.description ||
       reference !== init.reference ||
       JSON.stringify(scopes) !== JSON.stringify(init.scopes) ||
-      JSON.stringify(colorModifiers) !== JSON.stringify(init.colorModifiers)
+      JSON.stringify(colorModifiers) !== JSON.stringify(init.colorModifiers) ||
+      JSON.stringify(modeValues) !== JSON.stringify(init.modeValues)
     );
-  }, [tokenType, value, description, reference, scopes, colorModifiers]);
+  }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues]);
 
   useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
@@ -278,6 +288,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
     setReference(init.reference);
     setScopes(init.scopes);
     setColorModifiers(init.colorModifiers);
+    setModeValues(init.modeValues);
     setAliasMode(!!init.reference);
   };
 
@@ -320,7 +331,11 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       if (description) body.$description = description;
       const extensions: Record<string, any> = {};
       if (scopes.length > 0) extensions['com.figma.scopes'] = scopes;
-      if (colorModifiers.length > 0) extensions.tokenmanager = { colorModifier: colorModifiers };
+      const tmExt: Record<string, any> = {};
+      if (colorModifiers.length > 0) tmExt.colorModifier = colorModifiers;
+      const cleanModes = Object.fromEntries(Object.entries(modeValues).filter(([, v]) => v !== '' && v !== undefined && v !== null));
+      if (Object.keys(cleanModes).length > 0) tmExt.modes = cleanModes;
+      if (Object.keys(tmExt).length > 0) extensions.tokenmanager = tmExt;
       if (Object.keys(extensions).length > 0) body.$extensions = extensions;
 
       const targetPath = isCreateMode ? editPath.trim() : tokenPath;
@@ -1056,6 +1071,74 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                   })}
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mode Values */}
+      {dimensions.length > 0 && (
+        <div className="border-t border-[var(--color-figma-border)]">
+          <button
+            type="button"
+            onClick={() => setShowModeValues(v => !v)}
+            className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+          >
+            <span>
+              Mode values
+              {Object.values(modeValues).filter(v => v !== '' && v !== undefined && v !== null).length > 0
+                ? ` (${Object.values(modeValues).filter(v => v !== '' && v !== undefined && v !== null).length} set)`
+                : ''}
+            </span>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showModeValues ? 'rotate-180' : ''}`}>
+              <path d="M2 3.5l3 3 3-3"/>
+            </svg>
+          </button>
+          {showModeValues && (
+            <div className="px-3 py-2 flex flex-col gap-3">
+              <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                Override the default value per mode. Leave empty to inherit the default value.
+              </p>
+              {dimensions.map(dim => (
+                <div key={dim.id}>
+                  <div className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide mb-1.5">{dim.name}</div>
+                  {dim.options.map(option => {
+                    const modeVal = modeValues[option.name] ?? '';
+                    const isColorVal = tokenType === 'color' && typeof modeVal === 'string' && modeVal.startsWith('#') && !modeVal.startsWith('{');
+                    return (
+                      <div key={option.name} className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[10px] text-[var(--color-figma-text)] w-16 shrink-0 truncate" title={option.name}>{option.name}</span>
+                        {isColorVal && (
+                          <div
+                            className="w-4 h-4 rounded-sm border border-white/40 ring-1 ring-[var(--color-figma-border)] shrink-0"
+                            style={{ backgroundColor: modeVal }}
+                            aria-hidden="true"
+                          />
+                        )}
+                        <input
+                          type="text"
+                          value={modeVal}
+                          onChange={e => setModeValues(prev => ({ ...prev, [option.name]: e.target.value }))}
+                          placeholder={aliasMode ? (reference || 'value or {alias}') : String(value !== '' && value !== undefined ? value : 'value or {alias}')}
+                          className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
+                        />
+                        {modeVal !== '' && (
+                          <button
+                            type="button"
+                            onClick={() => setModeValues(prev => { const next = { ...prev }; delete next[option.name]; return next; })}
+                            title={`Clear ${option.name} override`}
+                            className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
+                          >
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                              <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           )}
         </div>

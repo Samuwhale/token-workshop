@@ -433,3 +433,12 @@
   - `lsGet` with function overloads keeps the API ergonomic: callers that always need a string pass a fallback and get `string` back (no null check needed); optional callers get `string | null`.
   - `lsGetJson<T>(key, fallback)` collapses the common `try { JSON.parse(getItem(key) || '{}') } catch { {} }` pattern to one line.
 ---
+
+## 2026-03-27 - Per-mode token value editing
+- Added a collapsible "Mode values" section to TokenEditor that appears when Theme Dimensions exist. Each dimension is shown as a group with one text input per option, letting users enter a direct value or `{alias}` reference. Color hex inputs show a live swatch. Values are stored in `$extensions.tokenmanager.modes` (keyed by option name). Integrates with dirty-tracking, revert, and save/load logic. Passes `dimensions` prop from App.tsx which already fetches dimensions from `/api/themes`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L2,L88,L119,L132,L162,L213,L283,L330,L1063; `packages/figma-plugin/src/ui/App.tsx` ~L2102,L2270
+- **Learnings for future iterations:**
+  - Extensions already have a `tokenmanager` namespace (used by colorModifier); new fields go inside the same object — the save logic needed refactoring from `extensions.tokenmanager = { colorModifier }` to build `tmExt` first and assign at the end.
+  - `initialRef` type annotation must be updated when adding new fields to dirty-tracking; TypeScript catches missing fields at the assignment sites, not at `init.newField` reads.
+  - Using option `name` as the mode key is the simplest approach; if cross-dimension collisions become a problem, switch to `${dim.id}/${option.name}` keys.
+---

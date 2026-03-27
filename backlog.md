@@ -124,7 +124,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] `docs.ts` style attribute built with `escapeHtml` but not `escapeCssValue` — CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
 - [x] 15+ distinct localStorage keys scattered across components without centralized persistence utility
 
-- [ ] Per-mode token value editing — there is no way to set different `$value`s for the same token across different modes; mode-aware editing is a core DTCG use-case (e.g. light/dark, brand-A/brand-B) and should be surfaced in the token edit UI alongside the current single-value field
+- [x] Per-mode token value editing — there is no way to set different `$value`s for the same token across different modes; mode-aware editing is a core DTCG use-case (e.g. light/dark, brand-A/brand-B) and should be surfaced in the token edit UI alongside the current single-value field
 
 - [ ] Move single token to a different set — individual tokens can only be moved between groups (by editing the path prefix); there is no action to move a token to an entirely different set, even though group-level move exists (`server/routes/tokens.ts`, `TokenList.tsx` context menu)
 
