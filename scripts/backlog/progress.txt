@@ -319,3 +319,10 @@
 - Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L209
 - **User impact:** Users who type 0, a negative number, or garbage into the scale factor field now immediately see why Apply is blocked, instead of staring at a greyed-out button with no feedback.
 ---
+
+## 2026-03-27 - AliasAutocomplete `entries` recomputed every render without `useMemo`
+- Wrapped the `Object.entries(allTokensFlat).filter(...).slice(...)` computation in `useMemo` with deps `[allTokensFlat, query, filterType]`. Also added `useMemo` to the React import.
+- Files changed: `packages/figma-plugin/src/ui/components/AliasAutocomplete.tsx` ~L1, ~L28
+- **Learnings for future iterations:**
+  - `q` (the lowercased query) was hoisted out of the memoized callback — moved it inside the `useMemo` so it's properly scoped.
+---
