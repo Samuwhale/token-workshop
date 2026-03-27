@@ -3,6 +3,7 @@ import type { TokenMapEntry } from '../../shared/types';
 
 interface PreviewPanelProps {
   allTokensFlat: Record<string, TokenMapEntry>;
+  onGoToTokens?: () => void;
 }
 
 type Template = 'colors' | 'type-scale' | 'buttons' | 'forms' | 'card';
@@ -32,7 +33,7 @@ function resolveValue(value: unknown, type: string): string {
   return resolved;
 }
 
-export function PreviewPanel({ allTokensFlat }: PreviewPanelProps) {
+export function PreviewPanel({ allTokensFlat, onGoToTokens }: PreviewPanelProps) {
   const [template, setTemplate] = useState<Template>('colors');
   const [darkMode, setDarkMode] = useState(false);
 
@@ -130,8 +131,8 @@ export function PreviewPanel({ allTokensFlat }: PreviewPanelProps) {
             style={cssVars as React.CSSProperties}
             className={`rounded-lg overflow-hidden ${darkMode ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-900'}`}
           >
-            {template === 'colors' && <ColorsTemplate groups={colorGroups} darkMode={darkMode} />}
-            {template === 'type-scale' && <TypeScaleTemplate typeTokens={typeTokens} cssVars={cssVars} darkMode={darkMode} />}
+            {template === 'colors' && <ColorsTemplate groups={colorGroups} darkMode={darkMode} onGoToTokens={onGoToTokens} />}
+            {template === 'type-scale' && <TypeScaleTemplate typeTokens={typeTokens} cssVars={cssVars} darkMode={darkMode} onGoToTokens={onGoToTokens} />}
             {template === 'buttons' && <ButtonsTemplate darkMode={darkMode} />}
             {template === 'forms' && <FormsTemplate darkMode={darkMode} />}
             {template === 'card' && <CardTemplate darkMode={darkMode} />}
@@ -144,12 +145,20 @@ export function PreviewPanel({ allTokensFlat }: PreviewPanelProps) {
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 
-function ColorsTemplate({ groups, darkMode }: { groups: Record<string, { path: string; value: string }[]>; darkMode: boolean }) {
+function ColorsTemplate({ groups, darkMode, onGoToTokens }: { groups: Record<string, { path: string; value: string }[]>; darkMode: boolean; onGoToTokens?: () => void }) {
   const groupEntries = Object.entries(groups);
   if (groupEntries.length === 0) {
     return (
-      <div className={`p-4 text-[11px] ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
-        No color tokens found. Add tokens with <code className="font-mono">$type: "color"</code>.
+      <div className={`p-4 flex flex-col gap-2 text-[11px] ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+        <span>No color tokens found. Add tokens with <code className="font-mono">$type: &quot;color&quot;</code>.</span>
+        {onGoToTokens && (
+          <button
+            onClick={onGoToTokens}
+            className="self-start text-[11px] text-[var(--color-figma-accent)] hover:underline"
+          >
+            Go to Tokens →
+          </button>
+        )}
       </div>
     );
   }
@@ -187,15 +196,24 @@ function SwatchCell({ path, value, darkMode }: { path: string; value: string; da
 
 // ─── Type Scale ───────────────────────────────────────────────────────────────
 
-function TypeScaleTemplate({ typeTokens, cssVars, darkMode }: {
+function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens }: {
   typeTokens: [string, TokenMapEntry][];
   cssVars: Record<string, string>;
   darkMode: boolean;
+  onGoToTokens?: () => void;
 }) {
   if (typeTokens.length === 0) {
     return (
-      <div className={`p-4 text-[11px] ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
-        No fontSize tokens found. Add tokens with <code className="font-mono">$type: "fontSize"</code>.
+      <div className={`p-4 flex flex-col gap-2 text-[11px] ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+        <span>No fontSize tokens found. Add tokens with <code className="font-mono">$type: &quot;fontSize&quot;</code>.</span>
+        {onGoToTokens && (
+          <button
+            onClick={onGoToTokens}
+            className="self-start text-[11px] text-[var(--color-figma-accent)] hover:underline"
+          >
+            Go to Tokens →
+          </button>
+        )}
       </div>
     );
   }

@@ -1,6 +1,14 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - PreviewPanel template empty states — "No color tokens found" gives code snippet but no button to switch to Tokens tab
+- Added `onGoToTokens?: () => void` prop to `PreviewPanel` and threaded it into `ColorsTemplate` and `TypeScaleTemplate`. Both empty states now render a "Go to Tokens →" link button (styled with `text-[var(--color-figma-accent)] hover:underline`) that calls `onGoToTokens` when present. App.tsx passes `() => setActiveTab('tokens')` as the callback.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L4,L35,L133,L152,L199`; `packages/figma-plugin/src/ui/App.tsx` ~L2018
+- **Learnings for future iterations:**
+  - Optional callback props (`onGoToTokens?`) are the clean pattern for cross-panel navigation — no context or store needed for simple one-off actions.
+  - HTML entities (`&quot;`) are required inside JSX attribute strings shown in `<code>` blocks to avoid lint/JSX parse warnings.
+---
+
 ## 2026-03-27 - runReadinessChecks auto-trigger on mount
 - Added a `useEffect` that calls `runReadinessChecks()` on mount (when `connected && activeSet`), mirroring the existing auto-run pattern used for `computeVarDiff`. The readiness section now populates automatically and the status bar dot reflects real state on first open.
 - Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L188

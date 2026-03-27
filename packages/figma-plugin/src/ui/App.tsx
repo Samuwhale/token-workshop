@@ -2015,7 +2015,7 @@ export function App() {
                 onMouseDown={handleSplitDragStart}
               />
               <div className="flex-1 min-h-0 overflow-hidden">
-                <PreviewPanel allTokensFlat={allTokensFlat} />
+                <PreviewPanel allTokensFlat={allTokensFlat} onGoToTokens={() => setActiveTab('tokens')} />
               </div>
             </div>
           )}
