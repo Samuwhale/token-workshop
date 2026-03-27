@@ -1,42 +1,9 @@
 # Backlog Progress Log
 ---
 
-## 2026-03-27 - Bind search is capped at 12 results with no overflow indicator
-- Added overflow indicator showing "N more — type to refine" below the 12 visible candidates when the full result set exceeds 12. Computed total count before slicing so the message shows the exact number of hidden results.
-- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L688 (candidate computation), ~L920 (overflow indicator)
-- **Learnings for future iterations:**
-  - When `.slice()`-ing a list for display, always keep the pre-slice count accessible so overflow can be communicated to users.
----
-
-## 2026-03-27 - housekeeping: Remove duplicate `applyColorModifiers` / `ColorModifierOp` from colorUtils.ts
-- Removed ~35 lines of duplicated color modifier logic from `packages/figma-plugin/src/ui/shared/colorUtils.ts` (lines 246-284) and replaced with re-exports from `@tokenmanager/core`
-- The duplicate even had a comment saying "mirrors packages/core/src/color-modifier.ts" — it was an intentional copy that should have been an import
-- The implementations had subtle differences (core throws on invalid colors, local version silently continued; local version manually preserved alpha, core uses `setHexAlpha`)
-- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L246
-- **Why:** Duplicate logic across packages with divergent error handling — maintenance hazard and potential for inconsistent behavior
----
-
-## 2026-03-27 - ExportPanel From-Figma empty state misleading "Connect to server" message
-- The ExportPanel had an early-return guard that showed "Connect to server to export tokens" when not connected, blocking the entire panel — including the "From Figma" tab which doesn't require a server connection (copy as JSON works offline).
-- Fix: Removed the early-return guard. Instead, auto-switch to figma-variables mode when disconnected, disable the Platforms tab with a tooltip, and show "(offline)" on the Save to Token Server button with appropriate disabled state.
-- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L446 (early return removed, useEffect added), ~L468 (platforms tab disabled), ~L999 (save button disabled state)
-- **Learnings for future iterations:**
-  - When a panel has multiple modes/tabs, don't block the entire panel if only some modes require a dependency (like server connection). Disable the specific modes that need it instead.
----
-
-## 2026-03-27 - syncBindings with scope 'selection' skips children
-- Made `syncBindings` recurse into descendants of selected nodes, matching `remapBindings` behavior. Previously only directly selected nodes were synced; now selecting a frame syncs all bound children too.
-- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L1203
-- **Learnings for future iterations:**
-  - When two functions handle the same `scope: 'selection' | 'page'` parameter, check that both gather nodes the same way. Easy to miss when they were written at different times.
----
-
-## 2026-03-27 - openBindFromProp uses lastIndexOf('.') to derive parent group — breaks for dotted segment names
-- Replaced `lastIndexOf('.')` parent derivation with `nodeParentPath(binding, leafName)` using the token's DTCG key.
-- Added `$name` field to `TokenMapEntry` interface to carry the DTCG leaf key through the flat token map.
-- Wrote `flattenWithNames` helper in `useTokens.ts` that traverses the DTCG group like `flattenTokenGroup` but preserves each leaf's key as `$name`.
-- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L140, `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L7 (helper), ~L83, ~L128 (callsites), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L10 (import), ~L307 (fix)
-- **Learnings for future iterations:**
-  - `flattenTokenGroup` from core discards the DTCG key — it only returns `Map<path, token>`. When leaf names are needed downstream, a parallel traversal or extended flatten is required.
-  - The `$name` field on `TokenMapEntry` is optional, so existing code that creates entries without it continues to work.
+## 2026-03-27 - ux-pass: Save button shows specific block reason instead of generic "Complete required fields"
+- TokenEditor save button now displays the exact reason it's disabled: "Circular reference", "Fix extensions JSON", "Font family required", "Font size required", "Font family and size required", or "Enter a token path" — instead of the generic "Complete required fields" for all cases.
+- Added a `saveBlockReason` memo that evaluates the same conditions as `canSave` but returns a human-readable string. Button text and tooltip both use it.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L289 (saveBlockReason memo), ~L1349 (button label + title)
+- **User impact:** Users now see exactly what's blocking save without having to hunt through the form. Especially helpful for non-obvious blockers like circular alias references or invalid extensions JSON.
 ---

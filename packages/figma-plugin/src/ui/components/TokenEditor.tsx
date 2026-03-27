@@ -286,6 +286,23 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     return true;
   }, [aliasHasCycle, extensionsJsonError, tokenType, value, aliasMode]);
 
+  const saveBlockReason = useMemo(() => {
+    if (aliasHasCycle) return 'Circular reference';
+    if (extensionsJsonError) return 'Fix extensions JSON';
+    if (tokenType === 'typography' && !aliasMode) {
+      const v = typeof value === 'object' && value !== null ? value : {};
+      const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
+      const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
+      const missingFamily = !family || String(family).trim() === '';
+      const missingSize = fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0;
+      if (missingFamily && missingSize) return 'Font family and size required';
+      if (missingFamily) return 'Font family required';
+      if (missingSize) return 'Font size required';
+    }
+    if (isCreateMode && !editPath.trim()) return 'Enter a token path';
+    return null;
+  }, [aliasHasCycle, extensionsJsonError, tokenType, value, aliasMode, isCreateMode, editPath]);
+
   const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
     color: '#000000',
     dimension: { value: 0, unit: 'px' },
@@ -1333,12 +1350,13 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         <button
           onClick={handleSave}
           disabled={saving || !canSave || (!isCreateMode && !isDirty) || (isCreateMode && !editPath.trim())}
+          title={saveBlockReason || undefined}
           className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving
             ? (isCreateMode ? 'Creating…' : 'Saving…')
-            : (!canSave
-              ? 'Complete required fields'
+            : (saveBlockReason
+              ? saveBlockReason
               : (!isCreateMode && !isDirty ? 'No changes' : (isCreateMode ? 'Create' : 'Save changes')))}
         </button>
       </div>

@@ -1,0 +1,6 @@
+- [BUG] Cannot access 'Wr' before initialization — runtime error, likely a circular dependency or hoisting issue with a minified identifier; needs source-map / unminified stack trace to locate the declaration. Once fixed, audit the codebase for similar initialization-order issues (other circular deps, `let`/`const` accessed before declaration across module boundaries).
+- [ ] TokenList delete failure is silent — console.error but no user-visible feedback when token/group deletion fails (TokenList.tsx ~L1261)
+- [ ] SyncPanel shows no empty state when first loaded — unclear whether "nothing to sync" or "run a check first"
+- [ ] ImportPanel has unused `importProgress` state — progress indicator for large imports is declared but never set or displayed
+- [ ] BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed
+- [ ] ConfirmModal error display doesn't handle long error text — single-line `<p>` with no wrapping or scroll for verbose errors
