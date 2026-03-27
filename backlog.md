@@ -99,13 +99,13 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] `countLeafNodes` duplicated between `useTokens.ts:132-143` and AnalyticsPanel
 - [x] `toLinear` / `wcagLuminance` duplicated between `color-math.ts` and `generator-engine.ts:275` — new closure allocated per call
 - [x] `formatValue` redefined locally in ExportPanel.tsx shadowing the one from `tokenListUtils.ts` (`figma-plugin/ExportPanel.tsx:305-309`)
-- [~] `FlatToken` interface in docs.ts duplicates core types — will drift (`server/routes/docs.ts:21-26`)
+- [x] `FlatToken` interface in docs.ts duplicates core types — will drift (`server/routes/docs.ts:21-26`)
 - [~] `stableStringify` exported from `colorUtils.ts` — JSON serialization utility doesn't belong in a color math module
 
 ### Performance
 
 - [~] `useTokens.refreshTokens` fetches full token payload for every set just to count leaf nodes — server should provide counts in `/api/sets` response (`figma-plugin/useTokens.ts:52-67`)
-- [ ] Controller `findVariable` loads ALL local Figma variables to find one, called once per token in `applyVariables` — should cache variable list (`figma-plugin/controller.ts:1076-1079`)
+- [~] Controller `findVariable` loads ALL local Figma variables to find one, called once per token in `applyVariables` — should cache variable list (`figma-plugin/controller.ts:1076-1079`)
 - [ ] ExportPanel `handleSaveToServer` saves each variable sequentially with separate HTTP requests (`figma-plugin/ExportPanel.tsx:250-293`)
 - [ ] Color map reinitialized O(n) on every single-token `resolve()` call — wasteful for single lookups (`core/resolver.ts:80-84`)
 - [ ] `rebuildFlatTokens` called multiple times per batch operation without batching in `replaceSetTokens`, `renameGroup`, `moveGroup`, `bulkRename` (`server/token-store.ts`)

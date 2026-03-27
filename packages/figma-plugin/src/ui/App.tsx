@@ -29,7 +29,7 @@ import { useLint } from './hooks/useLint';
 import { useGenerators } from './hooks/useGenerators';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
-import { stableStringify } from './shared/colorUtils';
+import { stableStringify } from './shared/utils';
 import { flattenTokenGroup } from '@tokenmanager/core';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {

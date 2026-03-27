@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { DTCGToken } from '@tokenmanager/core';
 
 function hexToLuminance(hex: string): number | null {
   const clean = hex.replace('#', '');
@@ -18,12 +19,7 @@ function contrastRatio(hex1: string, hex2: string): number | null {
   return (li + 0.05) / (da + 0.05);
 }
 
-interface FlatToken {
-  path: string;
-  $type: string;
-  $value: unknown;
-  $description?: string;
-}
+type FlatToken = DTCGToken & { path: string; $type: string };
 
 
 function escapeHtml(s: string): string {

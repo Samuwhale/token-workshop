@@ -175,6 +175,14 @@ export class TokenStore {
     this.sets = newMap;
   }
 
+  getSetCounts(): Record<string, number> {
+    const result: Record<string, number> = {};
+    for (const [name, set] of this.sets) {
+      result[name] = flattenTokenGroup(set.tokens).size;
+    }
+    return result;
+  }
+
   getSetDescriptions(): Record<string, string> {
     const result: Record<string, string> = {};
     for (const [name, set] of this.sets) {

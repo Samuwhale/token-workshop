@@ -134,12 +134,15 @@ async function applyVariables(tokens: any[]) {
       collection = figma.variables.createVariableCollection(VARIABLE_COLLECTION_NAME);
     }
 
+    // Load all local variables once to avoid redundant async calls per token
+    const localVariables = await figma.variables.getLocalVariablesAsync();
+
     for (const token of tokens) {
       const variableType = mapTokenTypeToVariableType(token.$type);
       if (!variableType) continue;
 
       // Find existing or create new
-      const existing = await findVariable(collection.id, token.path);
+      const existing = findVariableInList(localVariables, collection.id, token.path);
       let variable: Variable;
 
       if (existing) {
@@ -1073,8 +1076,7 @@ function weightToFontStyle(weight: number | string): string {
   return 'Black';
 }
 
-async function findVariable(collectionId: string, name: string): Promise<Variable | null> {
-  const variables = await figma.variables.getLocalVariablesAsync();
+function findVariableInList(variables: Variable[], collectionId: string, name: string): Variable | null {
   return variables.find(v => v.variableCollectionId === collectionId && v.name === name) || null;
 }
 

@@ -1,6 +1,14 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - `FlatToken` interface in docs.ts duplicates core types — will drift
+- Replaced the local 6-line `interface FlatToken` with `type FlatToken = DTCGToken & { path: string; $type: string }`, importing `DTCGToken` from `@tokenmanager/core`. This means any additions to `DTCGToken` (e.g. `$extensions`) are inherited automatically.
+- Files changed: `packages/server/src/routes/docs.ts` ~L1, ~L21
+- **Learnings for future iterations:**
+  - `DTCGToken.$type` is optional in core but the docs route always needs a resolved type — the intersection `& { $type: string }` narrows it to required without duplicating fields.
+  - Pre-existing `generators.ts` error is unrelated; baseline error count unchanged before/after.
+---
+
 ## 2026-03-27 - `formatValue` redefined locally in ExportPanel.tsx shadowing the one from `tokenListUtils.ts`
 - Renamed the local `formatValue` to `formatModeValue` (signature `(modeVal: ExportedModeValue): string`) to eliminate the shadowing. The two functions serve different purposes and cannot be unified — the utility one formats raw token values by type, the local one resolves alias references from Figma's export format.
 - Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L305, ~L710
