@@ -465,3 +465,11 @@
   - The `loading` early-return pattern (`if (loading) return <spinner/>`) means sub-editors mount fresh when data arrives, so `autoFocus` on their inputs fires correctly without needing a `useEffect`.
   - Create mode already had `autoFocus` on the name/path input (line 452); only edit mode needed value-field focus.
 ---
+
+## 2026-03-27 - Settings page has no reset-to-defaults
+- Added "Reset to default" button in the Server section of Settings. Clicking it resets the server URL input to `http://localhost:9400`, saves it, and immediately attempts to reconnect (showing ok/fail feedback).
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1840
+- **Learnings for future iterations:**
+  - The Settings panel only has one user-configurable value (server URL). "Reset to defaults" scopes to that field only.
+  - Placed "Reset to default" as a secondary button alongside "Save & Connect" (flex row), keeping the primary action visually dominant.
+---

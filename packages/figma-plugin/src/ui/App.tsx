@@ -1837,17 +1837,33 @@ export function App() {
                       </p>
                     </div>
                   )}
-                  <button
-                    onClick={async () => {
-                      const url = serverUrlInput.trim() || 'http://localhost:9400';
-                      const ok = await updateServerUrlAndConnect(url);
-                      setConnectResult(ok ? 'ok' : 'fail');
-                    }}
-                    disabled={checking}
-                    className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-opacity"
-                  >
-                    {checking ? 'Connecting…' : 'Save & Connect'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        const defaultUrl = 'http://localhost:9400';
+                        setServerUrlInput(defaultUrl);
+                        setConnectResult(null);
+                        const ok = await updateServerUrlAndConnect(defaultUrl);
+                        setConnectResult(ok ? 'ok' : 'fail');
+                      }}
+                      disabled={checking}
+                      title="Reset server URL to http://localhost:9400"
+                      className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] disabled:opacity-50 transition-colors whitespace-nowrap"
+                    >
+                      Reset to default
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const url = serverUrlInput.trim() || 'http://localhost:9400';
+                        const ok = await updateServerUrlAndConnect(url);
+                        setConnectResult(ok ? 'ok' : 'fail');
+                      }}
+                      disabled={checking}
+                      className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-opacity"
+                    >
+                      {checking ? 'Connecting…' : 'Save & Connect'}
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="rounded border border-[var(--color-figma-error)] overflow-hidden opacity-80">

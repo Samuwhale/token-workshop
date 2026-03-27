@@ -120,7 +120,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] No backup/export-all as ZIP — the export panel has format options but no "export all sets as a ZIP archive" for full backup or handoff (`figma-plugin/ExportPanel.tsx`, `server/routes/export.ts`)
 - [x] Selection inspector empty state missing — the selection inspector shows nothing when no Figma node is selected; a prompt like "Select a layer to inspect token bindings" would reduce confusion
 - [x] Token editor does not auto-focus first field — opening the token editor requires a manual click to start typing; the name or value field should auto-focus on open (`figma-plugin/TokenEditor.tsx`)
-- [ ] Settings page has no reset-to-defaults — there is no way to reset all settings to their default values without manually clearing each field
+- [x] Settings page has no reset-to-defaults — there is no way to reset all settings to their default values without manually clearing each field
 
 - [HIGH] `varCorrelationIdRef` and `varReadResolveRef` are shared between `computeVarDiff` and `runReadinessChecks` — if both are called concurrently (auto-run on mount + manual click), the second call overwrites the shared ref and the first promise never resolves, causing a silent hang or timeout (`SyncPanel.tsx:L68-69, L243-258`)
 - [ ] Branch selector in SyncPanel triggers git checkout immediately on change with no confirmation — accidentally clicking a different branch in the `<select>` fires `doAction('checkout', ...)` instantly, with no undo and no warning about unsaved state (`SyncPanel.tsx:L748`)
