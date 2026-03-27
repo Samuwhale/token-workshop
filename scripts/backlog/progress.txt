@@ -291,3 +291,11 @@
 - **Learnings for future iterations:**
   - `simple-git`'s `push()` pushes whatever is already committed — always stage+commit specific files first when per-file granularity is required.
 ---
+
+## 2026-03-27 - File watcher fires on the server's own writes, causing redundant loadSet + rebuildFlatTokens + double SSE events
+- Added `_writingFiles` guard to the `unlink` watcher handler (previously only `change`/`add` were guarded). Also added `_writingFiles` tracking to `deleteSet`, `clearAll`, and `renameSet` (both the new file write and the old file unlink), so all server-initiated file operations are suppressed in the watcher.
+- Files changed: `packages/server/src/services/token-store.ts` ~L110,L232,L244,L265,L295
+- **Learnings for future iterations:**
+  - The `_writingFiles` set must cover deletions too, not just writes — use it for `fs.unlink` calls just like `fs.writeFile`. Add the path before the async op, remove after 500ms.
+  - The `unlink` handler was the only watcher handler missing the guard, since delete operations didn't track paths and the handler had no check.
+---
