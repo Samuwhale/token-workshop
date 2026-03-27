@@ -67,6 +67,7 @@ function useSyncBindings(serverUrl: string, connected: boolean) {
   const [syncing, setSyncing] = useState(false);
   const [progress, setProgress] = useState<{ processed: number; total: number } | null>(null);
   const [result, setResult] = useState<SyncCompleteMessage | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
   const clearTimer = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
@@ -92,6 +93,7 @@ function useSyncBindings(serverUrl: string, connected: boolean) {
   const sync = useCallback(async (scope: 'page' | 'selection') => {
     if (!connected || syncing) return;
     setSyncing(true);
+    setSyncError(null);
     setResult(null);
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
@@ -99,11 +101,16 @@ function useSyncBindings(serverUrl: string, connected: boolean) {
       parent.postMessage({ pluginMessage: { type: 'sync-bindings', tokenMap, scope } }, '*');
     } catch (err) {
       console.error('Failed to fetch tokens for sync:', err);
+      const msg = err instanceof Error ? err.message : '';
+      const friendly = msg.includes('Failed to fetch') || msg.includes('NetworkError')
+        ? 'Could not reach the token server. Check that it is running.'
+        : 'Could not load tokens. Restart the server and try again.';
+      setSyncError(friendly);
       setSyncing(false);
     }
   }, [serverUrl, connected, syncing]);
 
-  return { syncing, syncProgress: progress, syncResult: result, sync };
+  return { syncing, syncProgress: progress, syncResult: result, syncError, sync };
 }
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
@@ -199,7 +206,7 @@ export function App() {
   const { connected, checking, serverUrl, updateServerUrlAndConnect, retryConnection } = useServerConnection();
   const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens } = useTokens(serverUrl, connected);
   const { selectedNodes } = useSelection();
-  const { syncing, syncProgress, syncResult, sync } = useSyncBindings(serverUrl, connected);
+  const { syncing, syncProgress, syncResult, syncError, sync } = useSyncBindings(serverUrl, connected);
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
   const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
   const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
@@ -2001,6 +2008,7 @@ export function App() {
               syncing={syncing}
               syncProgress={syncProgress}
               syncResult={syncResult}
+              syncError={syncError}
               connected={connected}
               activeSet={activeSet}
               serverUrl={serverUrl}

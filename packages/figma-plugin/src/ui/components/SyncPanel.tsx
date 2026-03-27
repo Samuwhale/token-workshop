@@ -536,9 +536,27 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
               </button>
             </div>
 
-            {varError && (
-              <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{varError}</div>
-            )}
+            {varError && (() => {
+              const raw = varError;
+              let message = 'Sync failed.';
+              let action = 'Try again or reload the plugin.';
+              if (raw.includes('timed out')) {
+                message = 'Could not read variables from Figma.';
+                action = 'Make sure the plugin is open and active, then try again.';
+              } else if (raw.includes('Could not fetch local tokens') || raw.includes('fetch local tokens')) {
+                message = 'Could not load tokens from the server.';
+                action = 'Check that the token server is running, then retry.';
+              } else if (raw.includes('Failed to fetch') || raw.includes('NetworkError') || raw.includes('network')) {
+                message = 'Could not reach the token server.';
+                action = 'Check the server URL in settings and make sure the server is running.';
+              }
+              return (
+                <div className="mx-3 my-2 px-2 py-1.5 rounded border border-[var(--color-figma-error)]/40 bg-[var(--color-figma-error)]/5">
+                  <p className="text-[10px] text-[var(--color-figma-error)] font-medium">{message}</p>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{action}</p>
+                </div>
+              );
+            })()}
 
             {varRows.length > 0 && (() => {
               const localOnly = varRows.filter(r => r.cat === 'local-only');

@@ -369,3 +369,11 @@
 - Found 8 items — written to backlog-inbox.md
 - Notable: timeout enforcement inconsistency between variables/styles/json paths (only variables has timeout), message handler doesn't clear `pendingSourceRef`, and potential silent conflicts from path normalization collision across sources.
 ---
+
+## 2026-03-27 - Push-to-Figma errors show raw messages
+- Improved error UX across three paths: (1) `SyncPanel.tsx` `varError` now maps raw error messages to friendly explanations with suggested actions (timed out, server unreachable, fetch failed) displayed in a styled bordered box instead of plain red text. (2) `useSyncBindings` in `App.tsx` now captures fetch failures and exposes a `syncError` string (previously only logged to console with no UI). (3) `SelectionInspector.tsx` now shows `syncResult.errors > 0` as a red "X bindings failed — check token types" with tooltip explaining the likely cause (type mismatch), rather than silently ignoring the error count.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L539, `packages/figma-plugin/src/ui/App.tsx` ~L66-107, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L12-25, ~L476
+- **Learnings for future iterations:**
+  - `applyVarDiff` push direction is fire-and-forget (postMessage to plugin) — errors from the plugin controller are not returned; only pull-direction fetch errors and pre-send setup errors are catchable in the UI.
+  - `useSyncBindings` used to silently swallow fetch errors — always check hooks for missing error state before adding new error handling.
+---

@@ -16,6 +16,7 @@ interface SelectionInspectorProps {
   syncing: boolean;
   syncProgress: { processed: number; total: number } | null;
   syncResult: SyncCompleteMessage | null;
+  syncError?: string | null;
   connected: boolean;
   activeSet: string;
   serverUrl: string;
@@ -136,6 +137,7 @@ export function SelectionInspector({
   syncing,
   syncProgress,
   syncResult,
+  syncError,
   connected,
   activeSet,
   serverUrl,
@@ -473,11 +475,19 @@ export function SelectionInspector({
           <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
             Syncing... {syncProgress.processed}/{syncProgress.total}
           </span>
+        ) : syncError ? (
+          <span className="text-[9px] text-[var(--color-figma-error)]" title={syncError}>
+            Sync failed — {syncError}
+          </span>
         ) : syncResult ? (
-          <span className={`text-[9px] ${syncResult.missingTokens.length > 0 ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-success)]'}`}>
-            {syncResult.updated === 0 && syncResult.missingTokens.length === 0
-              ? 'Up to date'
-              : `Updated ${syncResult.updated} binding${syncResult.updated !== 1 ? 's' : ''}${syncResult.missingTokens.length > 0 ? ` (${syncResult.missingTokens.length} missing)` : ''}`
+          <span className={`text-[9px] ${syncResult.errors > 0 ? 'text-[var(--color-figma-error)]' : syncResult.missingTokens.length > 0 ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-success)]'}`}
+            title={syncResult.errors > 0 ? `${syncResult.errors} binding(s) could not be applied — the token type may not be compatible with the layer property` : undefined}
+          >
+            {syncResult.errors > 0
+              ? `${syncResult.errors} binding${syncResult.errors !== 1 ? 's' : ''} failed — check token types`
+              : syncResult.updated === 0 && syncResult.missingTokens.length === 0
+                ? 'Up to date'
+                : `Updated ${syncResult.updated} binding${syncResult.updated !== 1 ? 's' : ''}${syncResult.missingTokens.length > 0 ? ` (${syncResult.missingTokens.length} missing)` : ''}`
             }
           </span>
         ) : (
