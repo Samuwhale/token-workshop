@@ -139,10 +139,10 @@ Items spotted during UX passes but out of scope for that session.
 - [x] ThemeManager `handleDrop` (set reorder) doesn't check `res.ok` — after drag-and-drop reordering, the POST to save new order silently fails on server error; local state is already updated optimistically with no rollback (`ThemeManager.tsx:376-384`)
 - [~] ThemeCompare path display uses `diff.path.split('.')` to extract parent/leaf segments — breaks for tokens with dots in segment names (e.g. `spacing.1.5` shows parent `spacing.1` and leaf `5` instead of parent `spacing` and leaf `1.5`); should use `nodeParentPath`/`formatDisplayPath` from tokenListUtils (`ThemeCompare.tsx:230-232`)
 - [x] `useThemeSwitcher` stale active-theme cleanup uses `setActiveThemesState` instead of `setActiveThemes` — removed dimensions are cleaned from React state but persist in localStorage and Figma clientStorage, causing phantom theme selections to reappear on next load (`useThemeSwitcher.ts:53-60`)
-- [~] `useThemeSwitcher` theme fetch failure is silently swallowed by `.catch(() => {})` — if `/api/themes` returns an error or the server is temporarily unreachable, dimensions silently remain empty with no user-visible error message or retry affordance (`useThemeSwitcher.ts:63`)
+- [x] `useThemeSwitcher` theme fetch failure is silently swallowed by `.catch(() => {})` — if `/api/themes` returns an error or the server is temporarily unreachable, dimensions silently remain empty with no user-visible error message or retry affordance (`useThemeSwitcher.ts:63`)
 
 - [BUG] Cannot access 'Wr' before initialization — runtime error, likely a circular dependency or hoisting issue with a minified identifier; needs source-map / unminified stack trace to locate the declaration. Once fixed, audit the codebase for similar initialization-order issues (other circular deps, `let`/`const` accessed before declaration across module boundaries).
-- [ ] TokenList delete failure is silent — console.error but no user-visible feedback when token/group deletion fails (TokenList.tsx ~L1261)
+- [~] TokenList delete failure is silent — console.error but no user-visible feedback when token/group deletion fails (TokenList.tsx ~L1261)
 - [ ] SyncPanel shows no empty state when first loaded — unclear whether "nothing to sync" or "run a check first"
 - [ ] ImportPanel has unused `importProgress` state — progress indicator for large imports is declared but never set or displayed
 - [ ] BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed

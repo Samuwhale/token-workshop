@@ -140,3 +140,10 @@
 - **Learnings for future iterations:**
   - Same pattern as ImportPanel: add error state, check `res.ok`, extract fetch into named function for retry, expose error + retry from hook.
 ---
+
+## 2026-03-27 - ThemeCompare path display breaks for tokens with dots in segment names
+- Replaced `diff.path.split('.')` parent/leaf extraction with `nodeParentPath` + `formatDisplayPath` from `tokenListUtils.ts`. Added `name` field to diff objects sourced from `TokenMapEntry.$name`. Added `formatDisplayPath` tooltip to leaf span.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L1 (import), ~L103 (diff type + name field), ~L229 (parent/leaf extraction), ~L242 (tooltip)
+- **Learnings for future iterations:**
+  - `TokenMapEntry.$name` carries the original leaf segment name — use it instead of `path.split('.')` whenever you need to split a token path into parent + leaf.
+---

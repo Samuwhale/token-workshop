@@ -30,3 +30,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeCompare path display uses `diff.path.split('.')` to extract parent/leaf segments — breaks for tokens with dots in segment names (e.g. `spacing.1.5` shows parent `spacing.1` and leaf `5` instead of parent `spacing` and leaf `1.5`); should use `nodeParentPath`/`formatDisplayPath` from tokenListUtils (`ThemeCompare.tsx:230-232`)
   Worktree: /tmp/backlog-74807-AeER1P
+
+  ✓ done: ThemeCompare path display breaks for tokens with dots in segment names
+    Replaced split('.') with nodeParentPath/formatDisplayPath from tokenListUtils; added $name to diff objects for correct leaf extraction
+    46 turns · 307s · $1.15
+
+--- Merging: ThemeCompare path display breaks for tokens with dots in segment names ---
+Already up to date.

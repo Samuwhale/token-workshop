@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
+import { nodeParentPath, formatDisplayPath } from './tokenListUtils';
 import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 
 interface ThemeCompareProps {
@@ -101,6 +102,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
     const allPaths = new Set([...Object.keys(resolvedA), ...Object.keys(resolvedB)]);
     const result: Array<{
       path: string;
+      name: string;
       type: string;
       valueA: any;
       valueB: any;
@@ -113,6 +115,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
       if (stableStringify(valA) !== stableStringify(valB)) {
         result.push({
           path,
+          name: entA?.$name ?? entB?.$name ?? path.split('.').pop()!,
           type: entA?.$type ?? entB?.$type ?? 'unknown',
           valueA: valA,
           valueB: valB,
@@ -225,9 +228,8 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
               const hexB = isColor && typeof diff.valueB === 'string' ? diff.valueB : null;
               const labelA = formatValue(diff.valueA, diff.type);
               const labelB = formatValue(diff.valueB, diff.type);
-              const segments = diff.path.split('.');
-              const leaf = segments[segments.length - 1];
-              const parent = segments.slice(0, -1).join('.');
+              const leaf = diff.name;
+              const parent = nodeParentPath(diff.path, diff.name);
               return (
                 <div
                   key={diff.path}
@@ -237,7 +239,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
                     {parent && (
                       <span className="text-[9px] text-[var(--color-figma-text-tertiary)] truncate">{parent}.</span>
                     )}
-                    <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{leaf}</span>
+                    <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{leaf}</span>
                     <span className="ml-auto text-[8px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
                       {diff.type}
                     </span>

@@ -60,3 +60,17 @@ Already up to date.
 
 --- Merging: useThemeSwitcher theme fetch failure silently swallowed ---
 Already up to date.
+[main d191ab1] chore(backlog): done – useThemeSwitcher theme fetch failure silently swallowed
+ 10 files changed, 61 insertions(+), 17 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - useThemeSwitcher theme fetch failure silently swallowed
+- Replaced `.catch(() => {})` with proper error handling: checks `res.ok`, sets `themesError` state on failure, exposes `retryThemes` callback. App.tsx shows "Could not load themes" with a Retry button in the themes bar.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L15 (error state), ~L43 (fetchThemes callback + useEffect), ~L115 (return); `packages/figma-plugin/src/ui/App.tsx` ~L285 (destructure), ~L1630 (error UI)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  10 items remaining
+===============================================================
+  Claimed: TokenList delete failure is silent — console.error but no user-visible feedback when token/group deletion fails (TokenList.tsx ~L1261)
+  Worktree: /tmp/backlog-75264-7QCyLv
