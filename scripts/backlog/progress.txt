@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - bugfix-pass: templateIdForTokenType returns non-existent template ID
+- Bug: `templateIdForTokenType()` in GraphPanel.tsx returned `'modular-type-scale'` for non-color/dimension tokens, but the actual template ID in `GRAPH_TEMPLATES` is `'modular-type'`. This caused `GRAPH_TEMPLATES.find()` to return `undefined`, so the fallback picked `GRAPH_TEMPLATES[0]` (material-color) instead of the correct modular-type template when navigating to the Graph tab from a token's context menu.
+- Fix: Changed the return value from `'modular-type-scale'` to `'modular-type'` to match the actual template ID.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L613
+- **Root cause:** Template ID string was out of sync with the template definition — likely a typo or rename that wasn't updated in the mapping function.
+---
+
 ## 2026-03-27 - ux-pass: BatchEditor silent failures on Move, Rename, and Apply operations
 - All three batch operations (Apply, Move, Rename) in BatchEditor.tsx used `fetch()` without checking `res.ok`. Since `fetch` only rejects on network errors (not HTTP 4xx/5xx), server-side failures were silently treated as successes — the UI showed "Moved N tokens" or "Renamed N tokens" even when the server rejected the requests.
 - Changed all three handlers to validate HTTP response status and report partial failures accurately:
@@ -42,4 +49,11 @@
 - Files changed: `packages/server/src/services/generator-service.ts` ~L225-L253
 - **Learnings for future iterations:**
   - When building reverse-lookup maps (value → key), always consider whether the mapping is 1:1 or 1:N. Using `Map.set` for 1:N silently drops earlier entries — use `Map<K, Set<V>>` instead.
+---
+
+## 2026-03-27 - Generator route accepts unknown `type` without input validation
+- Added `VALID_GENERATOR_TYPES` array and early validation in both POST `/generators` (create) and POST `/generators/preview` routes. Unknown type values now return 400 Bad Request with a descriptive message listing valid types, instead of falling through to the service layer's `default: throw` which returned a generic 500 Internal Server Error.
+- Files changed: `packages/server/src/routes/generators.ts` ~L3 (constant), ~L84 (create validation), ~L115 (preview validation)
+- **Learnings for future iterations:**
+  - When a TypeScript union type is used as a route parameter but arrives as `string` at runtime, always validate before casting with `as`. The TS compiler can't catch invalid casts from `string` to a union, so runtime validation is the only defense.
 ---

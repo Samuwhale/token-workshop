@@ -610,7 +610,7 @@ export interface GraphPanelProps {
 function templateIdForTokenType(tokenType: string | null | undefined): string {
   if (tokenType === 'color') return 'material-color';
   if (tokenType === 'dimension') return 'tailwind-spacing';
-  return 'modular-type-scale';
+  return 'modular-type';
 }
 
 export function GraphPanel({

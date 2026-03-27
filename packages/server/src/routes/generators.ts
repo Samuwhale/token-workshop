@@ -1,6 +1,20 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { GeneratorType, GeneratorConfig, InputTable, TokenGenerator } from '@tokenmanager/core';
 
+const VALID_GENERATOR_TYPES: readonly string[] = [
+  'colorRamp',
+  'typeScale',
+  'spacingScale',
+  'opacityScale',
+  'borderRadiusScale',
+  'zIndexScale',
+  'customScale',
+  'accessibleColorPair',
+  'darkModeInversion',
+  'responsiveScale',
+  'contrastCheck',
+] as const;
+
 interface CreateBody {
   type: string;
   sourceToken?: string;
@@ -72,6 +86,11 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         error: 'type, targetSet, and targetGroup are required',
       });
     }
+    if (!VALID_GENERATOR_TYPES.includes(type)) {
+      return reply.status(400).send({
+        error: `Unknown generator type "${type}". Valid types: ${VALID_GENERATOR_TYPES.join(', ')}`,
+      });
+    }
     try {
       const generator = await fastify.generatorService.create({
         type: type as GeneratorType,
@@ -99,6 +118,11 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     const body = request.body ?? {} as PreviewBody;
     if (!body.type) {
       return reply.status(400).send({ error: 'type is required' });
+    }
+    if (!VALID_GENERATOR_TYPES.includes(body.type)) {
+      return reply.status(400).send({
+        error: `Unknown generator type "${body.type}". Valid types: ${VALID_GENERATOR_TYPES.join(', ')}`,
+      });
     }
     try {
       const results = await fastify.generatorService.preview(
