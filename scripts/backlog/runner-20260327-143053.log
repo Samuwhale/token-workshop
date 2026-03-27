@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback ---
 Already up to date.
+[main e406b1e] chore(backlog): done – Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback
+ 6 files changed, 159 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - Undo doesn't cover set-level operations
+- Added undo/redo support for all set-level operations: rename, delete, create, duplicate, merge, and split.
+- Rename: captures old/new names, restore renames back, redo renames forward.
+- Delete: snapshots tokens before deleting, restore recreates set via POST, redo deletes again.
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  86 items remaining
+===============================================================
+  Claimed: Find-and-replace silently swallows invalid regex — if the user enables regex mode and enters a malformed pattern, `new RegExp()` throws and the preview returns empty with no error
+  Worktree: /tmp/backlog-97955-ByAYwG

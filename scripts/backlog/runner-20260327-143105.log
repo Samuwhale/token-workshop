@@ -30,3 +30,10 @@ Already up to date.
 ===============================================================
   Claimed: Tab badges disappear when overflow panel is open — Inspect selection count and Publish git-changes badges are hidden whenever any overflow panel is visible, losing important status signals
   Worktree: /tmp/backlog-98901-4nqxSj
+
+  ✓ done: Tab badges disappear when overflow panel is open
+    stale — already done; both badges use !(activeTab === X && overflowPanel === null) which correctly shows them when any overflow panel is open
+    13 turns · 274s · $0.6
+
+--- Merging: Tab badges disappear when overflow panel is open ---
+Already up to date.

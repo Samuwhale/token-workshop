@@ -385,3 +385,10 @@
   - For undo of multi-step operations (merge, split), skip redo if the reverse would require re-fetching complex state — partial undo-only slots are supported by the UndoSlot interface (`redo` is optional).
   - Always capture necessary state (serverUrl, tokens) into local consts before pushing the undo slot, since the closure runs asynchronously after the handler completes.
 ---
+
+## 2026-03-27 - Tab badges disappear when overflow panel is open
+- Stale — already done. Both the Inspect selection count badge and Publish git-changes badge already use `!(activeTab === 'tab-id' && overflowPanel === null)` as their visibility condition, which correctly shows the badge whenever an overflow panel is open (even if you're on that tab). The inspect badge was added correctly in commit 6b215b7d and the publish badge in 7d1547fd — both with proper overflow panel handling from day one.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Badge conditions of the form `!(activeTab === X && overflowPanel === null)` are equivalent to `activeTab !== X || overflowPanel !== null` — they show the badge whenever the user is NOT currently viewing that tab's content unobstructed.
+---
