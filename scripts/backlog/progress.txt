@@ -405,3 +405,14 @@
   - ThemeManager receives `sets: string[]` as a prop — this is the authoritative list of currently existing sets. Cross-referencing `opt.sets` keys against this prop is sufficient to detect stale references at render time with no additional API calls.
   - Disabled stale sets (status 'disabled') are not flagged — only 'enabled' and 'source' status sets matter because those would have contributed tokens.
 ---
+
+## 2026-03-27 - Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
+- Added scroll anchor preservation: before any filter change (searchQuery, typeFilter, refFilter), the first visible item path is saved in `scrollAnchorPathRef`. After `flatItems` changes due to the filter, a `useLayoutEffect` scrolls to that item in the new list. If the anchor item isn't in the filtered results, scroll to top.
+- Used mutable refs (`virtualScrollTopRef`, `flatItemsRef`, `itemOffsetsRef`) synced every render to avoid stale closure issues in filter callbacks (which have empty deps arrays). Pattern: sync refs with `ref.current = value` immediately after useMemo in render body.
+- Added `isFilterChangeRef` boolean to gate the restoration layoutEffect so it only fires on filter changes, not on token data updates.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L263 (new refs), ~L542 (setSearchQuery), ~L556 (setTypeFilter), ~L570 (setRefFilter), ~L752 (ref sync), ~L779 (restoration useLayoutEffect), ~L2154 (onScroll ref sync)
+- **Learnings for future iterations:**
+  - Virtual scroll filter changes need explicit anchor preservation — the browser clamps scrollTop when content height shrinks, causing apparent position loss
+  - Use `isFilterChangeRef` boolean gate + `scrollAnchorPathRef` to distinguish filter-driven flatItems changes from token data changes in a shared useLayoutEffect
+  - Mutable refs synced during render (`flatItemsRef.current = flatItems`) are the correct pattern for callbacks that need latest values but can't safely add deps (TDZ or circular dep issues)
+---

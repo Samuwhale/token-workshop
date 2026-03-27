@@ -261,6 +261,12 @@ export function TokenList({
   const searchRef = useRef<HTMLInputElement>(null);
   const virtualListRef = useRef<HTMLDivElement>(null);
   const [virtualScrollTop, setVirtualScrollTop] = useState(0);
+  // Refs for scroll-position preservation across filter changes (avoids TDZ issues with stale closures)
+  const virtualScrollTopRef = useRef(0);
+  const flatItemsRef = useRef<Array<{ node: { path: string } }>>([]);
+  const itemOffsetsRef = useRef<number[]>([0]);
+  const scrollAnchorPathRef = useRef<string | null>(null);
+  const isFilterChangeRef = useRef(false);
 
   useEffect(() => {
     if (tokens.length === 0) return;
@@ -540,14 +546,35 @@ export function TokenList({
   }, [setName]);
 
   const setSearchQuery = useCallback((v: string) => {
+    const top = virtualScrollTopRef.current;
+    const items = flatItemsRef.current;
+    const offsets = itemOffsetsRef.current;
+    let firstIdx = 0;
+    while (firstIdx < items.length && offsets[firstIdx + 1] <= top) firstIdx++;
+    scrollAnchorPathRef.current = items[firstIdx]?.node.path ?? null;
+    isFilterChangeRef.current = true;
     setSearchQueryState(v);
     try { sessionStorage.setItem('token-search', v); } catch {}
   }, []);
   const setTypeFilter = useCallback((v: string) => {
+    const top = virtualScrollTopRef.current;
+    const items = flatItemsRef.current;
+    const offsets = itemOffsetsRef.current;
+    let firstIdx = 0;
+    while (firstIdx < items.length && offsets[firstIdx + 1] <= top) firstIdx++;
+    scrollAnchorPathRef.current = items[firstIdx]?.node.path ?? null;
+    isFilterChangeRef.current = true;
     setTypeFilterState(v);
     lsSet(STORAGE_KEY.tokenTypeFilter(setName), v);
   }, [setName]);
   const setRefFilter = useCallback((v: 'all' | 'aliases' | 'direct') => {
+    const top = virtualScrollTopRef.current;
+    const items = flatItemsRef.current;
+    const offsets = itemOffsetsRef.current;
+    let firstIdx = 0;
+    while (firstIdx < items.length && offsets[firstIdx + 1] <= top) firstIdx++;
+    scrollAnchorPathRef.current = items[firstIdx]?.node.path ?? null;
+    isFilterChangeRef.current = true;
     setRefFilterState(v);
     try { sessionStorage.setItem('token-ref-filter', v); } catch {}
   }, []);
@@ -722,6 +749,9 @@ export function TokenList({
     }
     return offsets;
   }, [flatItems, expandedChains]);
+  // Sync refs so filter callbacks can read latest values without stale closure issues
+  flatItemsRef.current = flatItems;
+  itemOffsetsRef.current = itemOffsets;
 
   // Map of group path ('' = root) → ordered child names, reflecting actual file order
   const siblingOrderMap = useMemo(() => {
@@ -746,6 +776,27 @@ export function TokenList({
     virtualListRef.current.scrollTop = targetScrollTop;
     setVirtualScrollTop(targetScrollTop);
   }, [highlightedToken, flatItems, itemOffsets, viewMode]);
+
+  // Restore scroll anchor after filter changes so the first visible item stays visible
+  useLayoutEffect(() => {
+    if (!isFilterChangeRef.current) return;
+    isFilterChangeRef.current = false;
+    const anchorPath = scrollAnchorPathRef.current;
+    scrollAnchorPathRef.current = null;
+    if (!virtualListRef.current) return;
+    if (anchorPath) {
+      const idx = flatItems.findIndex(item => item.node.path === anchorPath);
+      if (idx >= 0) {
+        const targetScrollTop = itemOffsets[idx];
+        virtualListRef.current.scrollTop = targetScrollTop;
+        setVirtualScrollTop(targetScrollTop);
+        return;
+      }
+    }
+    // Anchor not in filtered list — scroll to top of results
+    virtualListRef.current.scrollTop = 0;
+    setVirtualScrollTop(0);
+  }, [flatItems, itemOffsets]);
 
   const syncChangedCount = useMemo(() => {
     if (!syncSnapshot) return 0;
@@ -2100,7 +2151,7 @@ export function TokenList({
       <div
         ref={virtualListRef}
         className="flex-1 overflow-y-auto"
-        onScroll={e => setVirtualScrollTop(e.currentTarget.scrollTop)}
+        onScroll={e => { const top = e.currentTarget.scrollTop; virtualScrollTopRef.current = top; setVirtualScrollTop(top); }}
       >
         {crossSetResults !== null ? (
           /* Cross-set search results */

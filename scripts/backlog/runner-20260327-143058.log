@@ -131,3 +131,10 @@ Already up to date.
 ===============================================================
   Claimed: Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
   Worktree: /tmp/backlog-98408-gixzSq
+
+  ✓ done: Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
+    Saved first-visible-item as scroll anchor before filter changes; restored position in useLayoutEffect after flatItems updates; falls back to top when anchor item isn't in filtered results
+    23 turns · 338s · $0.84
+
+--- Merging: Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position ---
+Already up to date.

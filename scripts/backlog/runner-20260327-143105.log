@@ -165,3 +165,16 @@ Already up to date.
 
 --- Merging: Theme references stale sets — if a token set is deleted externally, theme configurations still reference it with no validation or warning; applying the theme silently skips the missing set ---
 Already up to date.
+[main b4c2eff] chore(backlog): done – Theme references stale sets — if a token set is deleted externally, theme configurations still reference it with no validation or warning; applying the theme silently skips the missing set
+ 6 files changed, 62 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - Theme references stale sets — no validation or warning
+- Added stale set detection to ThemeManager: when a theme option references sets (with 'enabled' or 'source' status) that no longer exist in the available sets list, a red "X deleted sets" badge appears on the option header.
+- Clicking the badge expands a detail section listing the missing set names with an explanation that their tokens are silently skipped when applying the theme.
+- Added `expandedStale` state alongside existing `expandedCoverage` state.
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  64 items remaining
+===============================================================
+  Claimed: Drag-to-reorder set precedence has no keyboard alternative — reordering relies exclusively on pointer drag; keyboard-only users can't change precedence
+  Worktree: /tmp/backlog-98901-GVKUtM
