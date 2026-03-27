@@ -73,3 +73,10 @@ Already up to date.
 ===============================================================
   Claimed: BatchEditor scaling dimension tokens containing aliases (e.g. `{spacing.base} * 2`) fails silently with no feedback about why
   Worktree: /tmp/backlog-97510-3WfR0O
+
+  ✓ done: BatchEditor scaling dimension tokens containing aliases (e.g. `{spacing.base} * 2`) fails silently with no feedback about why
+    Added alias detection (scaleAliasCount), inline warning below scale input, and skip-count in post-apply feedback; handled all-alias edge case that previously returned silently
+    11 turns · 140s · $0.39
+
+--- Merging: BatchEditor scaling dimension tokens containing aliases (e.g. `{spacing.base} * 2`) fails silently with no feedback about why ---
+Already up to date.

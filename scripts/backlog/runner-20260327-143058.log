@@ -118,3 +118,16 @@ Already up to date.
 
 --- Merging: Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels ---
 Already up to date.
+[main 8dc6fc7] chore(backlog): done – Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
+ 7 files changed, 81 insertions(+), 6 deletions(-)
+
+## 2026-03-27 - Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
+- Added keyboard navigation and ARIA labels to all three picker areas:
+  - **Color area (2D)**: `tabIndex={0}`, `role="group"`, `aria-label` with live sat/lit values. ArrowRight/Left adjust saturation ±1% (±10% with Shift). ArrowUp/Down adjust lightness ±1% (±10% with Shift).
+  - **Hue strip**: `tabIndex={0}`, `role="slider"`, `aria-valuenow/min/max`, ArrowLeft/Right adjust hue ±1° (±10° with Shift).
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  70 items remaining
+===============================================================
+  Claimed: Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
+  Worktree: /tmp/backlog-98408-gixzSq

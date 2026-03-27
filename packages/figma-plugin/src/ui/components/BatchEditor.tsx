@@ -94,6 +94,16 @@ export function BatchEditor({
     [selectedEntries]
   );
 
+  // Count scalable tokens whose values contain alias references (e.g. {spacing.base} * 2).
+  // scaleValue() returns null for these, so they'd be silently skipped without a warning.
+  const scaleAliasCount = useMemo(() => {
+    if (!allScalable) return 0;
+    return selectedEntries.filter(({ entry }) => {
+      const v = entry.$value;
+      return typeof v === 'string' && v.includes('{');
+    }).length;
+  }, [allScalable, selectedEntries]);
+
   const otherSets = useMemo(() => sets.filter(s => s !== setName), [sets, setName]);
 
   const hasOp = description.trim() !== '' ||
@@ -159,6 +169,7 @@ export function BatchEditor({
             patch.$value = scaled;
             patch.$type = entry.$type;
           }
+          // If scaled is null and the value contains an alias, we'll report it below.
         }
       }
 
@@ -167,7 +178,14 @@ export function BatchEditor({
       }
     }
 
-    if (ops.length === 0) return;
+    if (ops.length === 0) {
+      // If scale is the only op and all tokens have alias values, explain why nothing happened.
+      const scalingActive = allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
+      if (scalingActive && scaleAliasCount === selectedEntries.length) {
+        setFeedback({ ok: false, msg: 'Cannot scale — all selected tokens use alias values' });
+      }
+      return;
+    }
 
     setApplying(true);
     setFeedback(null);
@@ -197,8 +215,15 @@ export function BatchEditor({
         onApply();
       }
 
+      // When scaling, alias-valued tokens produce no patch entry and are not in ops at all.
+      const scalingActive = allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
+      const skippedAliases = scalingActive ? scaleAliasCount : 0;
+
       if (failed === 0) {
-        setFeedback({ ok: true, msg: `Applied to ${succeeded} token${succeeded === 1 ? '' : 's'}` });
+        const skipNote = skippedAliases > 0
+          ? ` (${skippedAliases} skipped — alias value${skippedAliases === 1 ? '' : 's'} can't be scaled)`
+          : '';
+        setFeedback({ ok: skippedAliases === 0, msg: `Applied to ${succeeded} token${succeeded === 1 ? '' : 's'}${skipNote}` });
         setDescription('');
         setOpacityPct('');
         setScaleFactor('');
@@ -368,30 +393,41 @@ export function BatchEditor({
 
       {/* Scale — only when all selected tokens are dimension or number */}
       {allScalable && (
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Multiply by</span>
-          <input
-            type="number"
-            min="0.001"
-            step="0.1"
-            value={scaleFactor}
-            onChange={e => setScaleFactor(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
-            placeholder="e.g. 1.5"
-            className={`w-24 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none ${
-              scaleFactor !== '' && (isNaN(parseFloat(scaleFactor)) || parseFloat(scaleFactor) <= 0)
-                ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
-                : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
-            }`}
-          />
-          {scaleFactor !== '' && (isNaN(parseFloat(scaleFactor)) || parseFloat(scaleFactor) <= 0) ? (
-            <span className="text-[10px] text-[var(--color-figma-error)]">must be &gt; 0</span>
-          ) : scaleFactor && !isNaN(parseFloat(scaleFactor)) ? (
-            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-              ×{scaleFactor}
-            </span>
-          ) : null}
-        </div>
+        <>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Multiply by</span>
+            <input
+              type="number"
+              min="0.001"
+              step="0.1"
+              value={scaleFactor}
+              onChange={e => setScaleFactor(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
+              placeholder="e.g. 1.5"
+              className={`w-24 h-6 px-1.5 rounded border bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text)] focus:outline-none ${
+                scaleFactor !== '' && (isNaN(parseFloat(scaleFactor)) || parseFloat(scaleFactor) <= 0)
+                  ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]'
+                  : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'
+              }`}
+            />
+            {scaleFactor !== '' && (isNaN(parseFloat(scaleFactor)) || parseFloat(scaleFactor) <= 0) ? (
+              <span className="text-[10px] text-[var(--color-figma-error)]">must be &gt; 0</span>
+            ) : scaleFactor && !isNaN(parseFloat(scaleFactor)) ? (
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                ×{scaleFactor}
+              </span>
+            ) : null}
+          </div>
+          {scaleAliasCount > 0 && (
+            <div className="flex items-start gap-2 ml-[88px]">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight">
+                {scaleAliasCount === selectedEntries.length
+                  ? 'All selected tokens use alias values and cannot be scaled.'
+                  : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} use alias values (e.g. {token} * 2) and will be skipped.`}
+              </span>
+            </div>
+          )}
+        </>
       )}
 
       {/* Footer: feedback + Apply button */}

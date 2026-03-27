@@ -29,7 +29,7 @@
 - [x] Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
 - [x] Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
 - [x] Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
-- [~] Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
+- [x] Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
 
 ### UX
 
@@ -38,7 +38,7 @@
 - [~] BatchEditor scaling dimension tokens containing aliases (e.g. `{spacing.base} * 2`) fails silently with no feedback about why
 - [~] PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive — mixing formats gives confusing results
 - [~] Find-and-replace has no confirmation step — bulk rename applies immediately with no preview-and-confirm modal, making accidental mass renames easy
-- [ ] Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
+- [~] Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
 - [ ] No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation
 - [ ] Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
 

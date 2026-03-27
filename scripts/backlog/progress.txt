@@ -348,3 +348,14 @@
   - Wrapping divs (not the canvas elements themselves) are the right place for tabIndex/ARIA — canvas has poor native a11y support.
   - Shift+Arrow for ×10 step is a standard keyboard pattern for sliders (matches native browser range input behavior).
 ---
+
+## 2026-03-27 - BatchEditor scaling dimension tokens containing aliases fails silently
+- Added `scaleAliasCount` useMemo to count dimension/number tokens with alias values (strings containing `{`)
+- Added inline warning below "Multiply by" input when alias tokens are selected: shows count and explains they'll be skipped
+- Updated post-apply feedback to include "(N skipped — alias values can't be scaled)" suffix when aliases were skipped
+- Handled the all-aliases edge case where `ops.length === 0` — now shows "Cannot scale — all selected tokens use alias values" instead of silently doing nothing
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L91 (scaleAliasCount useMemo), ~L170 (early-return feedback), ~L205 (skip note in success feedback), ~L386 (warning UI)
+- **Learnings for future iterations:**
+  - Alias detection is simple: `typeof v === 'string' && v.includes('{')` — covers pure aliases `{token}` and formula strings `{token} * 2`
+  - The early-return at `ops.length === 0` needs its own feedback path for the all-aliases case — without it, clicking Apply does nothing visibly
+---
