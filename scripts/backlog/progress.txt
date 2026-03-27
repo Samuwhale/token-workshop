@@ -339,3 +339,11 @@
   - Showing only the leaf segment name (`.split('.').pop()`) for scale previews saves horizontal space; full path shown in `title` attribute for accessibility.
   - Find/replace preview renders old+new on two lines per item since paths are long; single-line "from → to" overflows in the narrow plugin panel.
 ---
+
+## 2026-03-27 - CommandPalette token search capped at 100 results with no pagination — users with 500+ tokens can't find matches beyond the cap, and there's no indication results were truncated
+- Removed the 100-result cap when a search query is active (`tokenQuery` non-empty). All fuzzy-matched results are now returned sorted by score, so users always see every match. The 100-item cap is retained only for the no-query browse mode (when user typed `>` but no search term), where it prevents an overwhelming unfiltered list. Updated the truncation footer message to read "Showing first 100 of N tokens — type to search all" and to only appear in browse mode (not during active search).
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L98
+- **Learnings for future iterations:**
+  - The existing code already tracked `totalTokenMatches` and showed a truncation notice — the fix was just removing the `.slice(0, MAX)` when a query is present.
+  - Keeping a browse-mode cap (no query) is still good UX — an unfiltered list of 500+ tokens is not useful. The cap should only be lifted when search narrows and ranks results.
+---

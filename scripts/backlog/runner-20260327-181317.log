@@ -132,3 +132,10 @@ Already up to date.
 ===============================================================
   Claimed: CommandPalette token search capped at 100 results with no pagination — users with 500+ tokens can't find matches beyond the cap, and there's no indication results were truncated
   Worktree: /tmp/backlog-59609-YlC8wq
+
+  ✓ done: CommandPalette token search capped at 100 results with no pagination — users with 500+ tokens can't find matches beyond the cap, and there's no indication results were truncated
+    Removed the 100-result cap when a search query is active; cap now only applies to the no-query browse mode with an updated "type to search all" hint
+    8 turns · 60s · $0.2
+
+--- Merging: CommandPalette token search capped at 100 results with no pagination — users with 500+ tokens can't find matches beyond the cap, and there's no indication results were truncated ---
+Already up to date.
