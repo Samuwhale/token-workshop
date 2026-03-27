@@ -246,13 +246,14 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           body: JSON.stringify({ name: setName }),
         });
 
-        // Create/update each variable as a token
-        for (const variable of collection.variables) {
+        // Build all tokens and upsert in a single batch request
+        const batchTokens = collection.variables.map(variable => {
           const defaultMode = collection.modes[0];
           const defaultVal = variable.modeValues[defaultMode];
           const $value = defaultVal.isAlias ? defaultVal.reference : defaultVal.resolvedValue;
 
           const token: Record<string, any> = {
+            path: variable.path,
             $type: variable.$type,
             $value,
           };
@@ -275,21 +276,17 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             };
           }
 
-          const res = await fetch(`${serverUrl}/api/tokens/${setName}/${variable.path}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(token),
-          });
-          if (res.status === 409) {
-            const patchRes = await fetch(`${serverUrl}/api/tokens/${setName}/${variable.path}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(token),
-            });
-            if (!patchRes.ok) throw new Error(`Failed to update token ${variable.path}: ${patchRes.statusText}`);
-          } else if (!res.ok) {
-            throw new Error(`Failed to create token ${variable.path}: ${res.statusText}`);
-          }
+          return token;
+        });
+
+        const batchRes = await fetch(`${serverUrl}/api/tokens/${setName}/batch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tokens: batchTokens, strategy: 'overwrite' }),
+        });
+        if (!batchRes.ok) {
+          const detail = await batchRes.json().catch(() => ({}));
+          throw new Error(`Failed to save tokens for "${setName}": ${(detail as any).error ?? batchRes.statusText}`);
         }
       }
 

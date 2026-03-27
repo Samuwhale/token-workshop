@@ -290,3 +290,11 @@
   - `TokenStore` keeps all sets in memory; `flattenTokenGroup(set.tokens).size` is O(n) over the already-loaded data — no extra I/O needed.
   - The duplicate `gen !== fetchGenRef.current` guard after `setTokens` was redundant (there's already one above `setTokens`) but harmless; left it to preserve the check that appears after counts are set.
 ---
+
+## 2026-03-27 - ExportPanel `handleSaveToServer` saves each variable sequentially with separate HTTP requests
+- Replaced the per-variable POST+PATCH loop with a single `POST /api/tokens/:set/batch` call per collection using `strategy: 'overwrite'`. The batch endpoint was already implemented in `tokens.ts`.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L250
+- **Learnings for future iterations:**
+  - The `/tokens/:set/batch` endpoint already existed — always check tokens.ts for batch/bulk endpoints before assuming per-item requests are needed.
+  - `strategy: 'overwrite'` is the correct choice for Figma export sync (idempotent upsert).
+---
