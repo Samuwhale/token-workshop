@@ -203,12 +203,16 @@ export function TokenList({
   const [siblingPrefix, setSiblingPrefix] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<{ type: 'variables' | 'styles'; count: number } | null>(null);
+  const [varDiffPending, setVarDiffPending] = useState<{ added: number; modified: number; unchanged: number; flat: any[] } | null>(null);
+  const [varDiffLoading, setVarDiffLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [renameTokenConfirm, setRenameTokenConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null>(null);
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const lastSelectedPathRef = useRef<string | null>(null);
+  const varReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
+  const varReadCorrelIdRef = useRef<string | null>(null);
   const [dragSource, setDragSource] = useState<{ paths: string[]; names: string[] } | null>(null);
   const [dragOverGroup, setDragOverGroup] = useState<string | null>(null);
   const [showBatchEditor, setShowBatchEditor] = useState(false);
@@ -271,6 +275,19 @@ export function TokenList({
       sessionStorage.setItem(`token-expand:${setNameRef.current}`, JSON.stringify([...expandedPaths]));
     } catch {}
   }, [expandedPaths]);
+
+  useEffect(() => {
+    const handler = (ev: MessageEvent) => {
+      const msg = ev.data?.pluginMessage;
+      if (msg?.type === 'variables-read' && msg.correlationId === varReadCorrelIdRef.current && varReadResolveRef.current) {
+        varReadCorrelIdRef.current = null;
+        varReadResolveRef.current(msg.tokens ?? []);
+        varReadResolveRef.current = null;
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const handleToggleExpand = useCallback((path: string) => {
     setExpandedPaths(prev => {
@@ -1357,13 +1374,43 @@ export function TokenList({
       return { ...t, $value: resolved.value ?? t.$value, $type: resolved.$type };
     });
 
-  const handleApplyVariables = async () => {
-    setApplying(true);
-    const flat = resolveFlat(flattenTokens(tokens)).map((t: any) => ({ ...t, setName }));
+  const doApplyVariables = (flat: any[]) => {
     parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens: flat, collectionMap, modeMap } }, '*');
     setApplyResult({ type: 'variables', count: flat.length });
-    setTimeout(() => setApplying(false), 1500);
     setTimeout(() => setApplyResult(null), 3000);
+  };
+
+  const handleApplyVariables = async () => {
+    const flat = resolveFlat(flattenTokens(tokens)).map((t: any) => ({ ...t, setName }));
+    setVarDiffLoading(true);
+    try {
+      const figmaTokens: any[] = await new Promise((resolve, reject) => {
+        const cid = `tl-vars-${Date.now()}-${Math.random()}`;
+        const timeout = setTimeout(() => {
+          if (varReadCorrelIdRef.current === cid) {
+            varReadCorrelIdRef.current = null;
+            varReadResolveRef.current = null;
+          }
+          reject(new Error('timeout'));
+        }, 8000);
+        varReadCorrelIdRef.current = cid;
+        varReadResolveRef.current = (toks) => { clearTimeout(timeout); resolve(toks); };
+        parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
+      });
+      const figmaMap = new Map(figmaTokens.map((t: any) => [t.path, String(t.$value ?? '')]));
+      let added = 0, modified = 0, unchanged = 0;
+      for (const t of flat) {
+        if (!figmaMap.has(t.path)) added++;
+        else if (figmaMap.get(t.path) !== String(t.$value ?? '')) modified++;
+        else unchanged++;
+      }
+      setVarDiffPending({ added, modified, unchanged, flat });
+    } catch {
+      // Figma not reachable — show count-only confirmation
+      setVarDiffPending({ added: flat.length, modified: 0, unchanged: 0, flat });
+    } finally {
+      setVarDiffLoading(false);
+    }
   };
 
   const handleApplyStyles = async () => {
@@ -1757,7 +1804,7 @@ export function TokenList({
                     <button role="menuitem" onClick={() => { setShowScaffold(true); setMoreFiltersOpen(false); }} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]">Use preset…</button>
                     <button role="menuitem" onClick={() => { setShowFindReplace(true); setMoreFiltersOpen(false); }} disabled={!connected} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">Find &amp; Replace…</button>
                     <div className="border-t border-[var(--color-figma-border)] my-1" />
-                    <button role="menuitem" onClick={() => { handleApplyVariables(); setMoreFiltersOpen(false); }} disabled={applying || tokens.length === 0} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">Apply as Variables</button>
+                    <button role="menuitem" onClick={() => { setMoreFiltersOpen(false); handleApplyVariables(); }} disabled={applying || varDiffLoading || tokens.length === 0} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">{varDiffLoading ? 'Comparing…' : 'Apply as Variables'}</button>
                     <button role="menuitem" onClick={() => { handleApplyStyles(); setMoreFiltersOpen(false); }} disabled={applying || tokens.length === 0} className="px-3 py-1.5 text-left text-[10px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40">Apply as Styles</button>
                     <div className="border-t border-[var(--color-figma-border)] my-1" />
                     {refFilter === 'all' && (
@@ -2456,6 +2503,44 @@ export function TokenList({
               ))}
             </div>
           )}
+        </ConfirmModal>
+      )}
+
+      {/* Apply as Variables diff preview modal */}
+      {varDiffPending && (
+        <ConfirmModal
+          title="Apply as Figma Variables"
+          confirmLabel="Apply"
+          onConfirm={() => {
+            doApplyVariables(varDiffPending.flat);
+            setVarDiffPending(null);
+          }}
+          onCancel={() => setVarDiffPending(null)}
+        >
+          <div className="mt-2 text-[10px] space-y-1 text-[var(--color-figma-text-secondary)]">
+            <p>{varDiffPending.flat.length} token{varDiffPending.flat.length !== 1 ? 's' : ''} will be pushed to Figma:</p>
+            {(varDiffPending.added > 0 || varDiffPending.modified > 0 || varDiffPending.unchanged > 0) && (
+              <div className="mt-1.5 rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)] overflow-hidden">
+                {varDiffPending.added > 0 && (
+                  <div className="flex items-center gap-1.5 px-2 py-1">
+                    <span className="text-[var(--color-figma-success)] font-medium">+{varDiffPending.added}</span>
+                    <span>new variable{varDiffPending.added !== 1 ? 's' : ''} will be created</span>
+                  </div>
+                )}
+                {varDiffPending.modified > 0 && (
+                  <div className="flex items-center gap-1.5 px-2 py-1">
+                    <span className="text-yellow-600 font-medium">~{varDiffPending.modified}</span>
+                    <span>existing variable{varDiffPending.modified !== 1 ? 's' : ''} will be updated</span>
+                  </div>
+                )}
+                {varDiffPending.unchanged > 0 && (
+                  <div className="flex items-center gap-1.5 px-2 py-1 text-[var(--color-figma-text-tertiary)]">
+                    <span>{varDiffPending.unchanged} unchanged</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </ConfirmModal>
       )}
 

@@ -354,3 +354,12 @@
   - The token list context menu (search `{/* Right-click context menu */}`) already has path/JSON copy — check it before implementing copy features.
   - For "Copy value", stringify non-string values (objects, arrays) so the clipboard always contains a usable string.
 ---
+
+## 2026-03-27 - No diff preview before push to Figma
+- Added a diff preview modal to `handleApplyVariables` in TokenList.tsx. When user clicks "Apply as Variables", the plugin now first reads current Figma variables (via `read-variables` postMessage with correlationId), computes added/modified/unchanged counts, and shows a `ConfirmModal` with the breakdown before applying. Falls back to a count-only confirmation if Figma is unreachable (8s timeout).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L204-210, ~L213-215, ~L275-293, ~L1380-1415, ~L1807, ~L2509-2549
+- **Learnings for future iterations:**
+  - The `variables-read` message with correlationId is the existing pattern (SyncPanel) for reading Figma vars from the UI — reuse it with a unique correlation ID to avoid cross-component conflicts.
+  - TokenList didn't previously have a message listener; adding one is safe as long as it filters by correlationId.
+  - `doApplyVariables` helper extracted so the actual postMessage call is shared between the original fast path (now modal confirm) and future callers.
+---
