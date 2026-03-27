@@ -403,3 +403,11 @@
 - **Learnings for future iterations:**
   - When `setSaving(false)` only appears in the catch block, the success path leaves the spinner running indefinitely. Always ensure state resets happen in both success and error paths (or use a `finally` block).
 ---
+
+## 2026-03-27 - No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel
+- Added "Suppress all" button to each rule-group header in AnalyticsPanel. Restructured the header from a single full-width `<button>` to a `<div className="group/ruleheader">` wrapper containing the expand/collapse button (flex-1) and a hover-reveal "Suppress all" button on the right. Clicking "Suppress all" adds all issues in the group to `suppressedKeys` in one operation.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L497
+- **Learnings for future iterations:**
+  - Tailwind's arbitrary group variant (`group/ruleheader` + `group-hover/ruleheader:`) is the clean way to scope hover-reveal to a specific ancestor when the element already uses `group` for inner row hovers.
+  - A `<button>` cannot contain another `<button>` (invalid HTML). When a clickable header needs a nested action button, restructure to a `<div>` wrapper with two sibling buttons.
+---

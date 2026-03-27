@@ -495,28 +495,41 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                 return (
                   <div key={group.rule}>
                     {/* Rule group header */}
-                    <button
-                      onClick={() => setCollapsedRules(prev => {
-                        const next = new Set(prev);
-                        if (next.has(group.rule)) next.delete(group.rule); else next.add(group.rule);
-                        return next;
-                      })}
-                      aria-label={isCollapsed ? `Expand ${group.rule}` : `Collapse ${group.rule}`}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]/50 border-y border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    >
-                      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-                      <span className={`text-[9px] px-1 py-0.5 rounded border shrink-0 font-medium ${
-                        group.severity === 'error'
-                          ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5'
-                          : group.severity === 'warning'
-                          ? 'border-[var(--color-figma-warning)] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10'
-                          : 'border-[var(--color-figma-accent)]/50 text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
-                      }`}>
-                        {group.severity === 'error' ? 'Error' : group.severity === 'warning' ? 'Warn' : 'Info'}
-                      </span>
-                      <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 text-left">{group.label}</span>
-                      <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{group.issues.length}</span>
-                    </button>
+                    <div className="group/ruleheader flex items-center bg-[var(--color-figma-bg-secondary)]/50 border-y border-[var(--color-figma-border)]">
+                      <button
+                        onClick={() => setCollapsedRules(prev => {
+                          const next = new Set(prev);
+                          if (next.has(group.rule)) next.delete(group.rule); else next.add(group.rule);
+                          return next;
+                        })}
+                        aria-label={isCollapsed ? `Expand ${group.rule}` : `Collapse ${group.rule}`}
+                        className="flex-1 flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors min-w-0"
+                      >
+                        <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+                        <span className={`text-[9px] px-1 py-0.5 rounded border shrink-0 font-medium ${
+                          group.severity === 'error'
+                            ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5'
+                            : group.severity === 'warning'
+                            ? 'border-[var(--color-figma-warning)] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10'
+                            : 'border-[var(--color-figma-accent)]/50 text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5'
+                        }`}>
+                          {group.severity === 'error' ? 'Error' : group.severity === 'warning' ? 'Warn' : 'Info'}
+                        </span>
+                        <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 text-left">{group.label}</span>
+                        <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{group.issues.length}</span>
+                      </button>
+                      <button
+                        onClick={() => setSuppressedKeys(prev => {
+                          const next = new Set(prev);
+                          group.issues.forEach(issue => next.add(suppressKey(issue)));
+                          return next;
+                        })}
+                        className="opacity-0 group-hover/ruleheader:opacity-100 pointer-events-none group-hover/ruleheader:pointer-events-auto transition-opacity text-[9px] px-2 py-1.5 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] shrink-0 border-l border-[var(--color-figma-border)]"
+                        title={`Suppress all ${group.issues.length} ${group.label} findings`}
+                      >
+                        Suppress all
+                      </button>
+                    </div>
                     {/* Tip line */}
                     {!isCollapsed && group.tip && (
                       <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]/30 border-b border-[var(--color-figma-border)] flex items-center gap-1">

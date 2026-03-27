@@ -259,3 +259,17 @@ Already up to date.
 
 --- Merging: SemanticMappingDialog `handleCreate` never calls `setSaving(false)` on the success path — user sees perpetual loading spinner after tokens are created; only errors reset it ---
 Already up to date.
+[main 933a266] chore(backlog): done – SemanticMappingDialog `handleCreate` never calls `setSaving(false)` on the success path — user sees perpetual loading spinner after tokens are created; only errors reset it
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - SemanticMappingDialog handleCreate never calls setSaving(false) on success path
+- Added `setSaving(false)` before `onCreated(created)` on the success path so the loading spinner clears after tokens are created.
+- Files changed: `packages/figma-plugin/src/ui/components/SemanticMappingDialog.tsx` ~L205
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  45 items remaining
+===============================================================
+  Claimed: `useFigmaSync` `handleSyncGroup` and `handleSyncGroupStyles` don't restore pending state on error — if sync fails, the UI is stuck in a loading state with no retry path
+  Worktree: /tmp/backlog-98408-YyHAb9

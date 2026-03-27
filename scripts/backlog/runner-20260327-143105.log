@@ -218,3 +218,10 @@ Already up to date.
 ===============================================================
   Claimed: No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel
   Worktree: /tmp/backlog-98901-gW8RWD
+
+  ✓ done: No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel
+    Added hover-reveal "Suppress all" button to each rule-group header in AnalyticsPanel; restructured header from single button to div wrapper with two sibling buttons using Tailwind named group variant (group/ruleheader)
+    11 turns · 142s · $0.47
+
+--- Merging: No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel ---
+Already up to date.
