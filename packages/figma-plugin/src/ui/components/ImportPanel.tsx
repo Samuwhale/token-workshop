@@ -63,6 +63,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [source, setSource] = useState<'variables' | 'styles' | 'json' | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [failedImportPaths, setFailedImportPaths] = useState<string[]>([]);
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
@@ -234,9 +235,10 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const handleImportVariables = async () => {
     setImporting(true);
     setError(null);
+    setFailedImportPaths([]);
     let importedSets = 0;
     let importedTokens = 0;
-    let failedTokens = 0;
+    const failedPaths: string[] = [];
     try {
       const allModes = collectionData.flatMap(col =>
         col.modes
@@ -271,18 +273,18 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           }),
         }).catch(() => null);
         if (batchRes && batchRes.ok) {
-          const { imported, skipped } = await batchRes.json() as { imported: number; skipped: number };
+          const { imported } = await batchRes.json() as { imported: number; skipped: number };
           importedTokens += imported;
-          failedTokens += skipped;
         } else {
-          failedTokens += mode.tokens.length;
+          for (const t of mode.tokens) failedPaths.push(t.path);
         }
         importedSets++;
         setImportProgress({ done: importedSets, total: allModes.length });
       }
 
-      const notifyMsg = failedTokens > 0
-        ? `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''} (${failedTokens} failed)`
+      const failedCount = failedPaths.length;
+      const notifyMsg = failedCount > 0
+        ? `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''} (${failedCount} failed)`
         : `Imported ${importedTokens} tokens across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
       parent.postMessage({ pluginMessage: { type: 'notify', message: notifyMsg } }, '*');
       onImported();
@@ -290,8 +292,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       if (firstSet) onImportComplete(firstSet);
       setCollectionData([]);
       setSource(null);
-      const successMsg = failedTokens > 0
-        ? `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''} — ${failedTokens} token${failedTokens !== 1 ? 's' : ''} could not be saved`
+      if (failedCount > 0) setFailedImportPaths(failedPaths);
+      const successMsg = failedCount > 0
+        ? `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''} — ${failedCount} token${failedCount !== 1 ? 's' : ''} could not be saved`
         : `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
       setSuccessMessage(successMsg);
     } catch (err) {
@@ -517,8 +520,21 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               <path d="M6 10l3 3 5-5" stroke="var(--color-figma-success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div className="text-[11px] text-[var(--color-figma-success)] font-medium text-center">{successMessage}</div>
+            {failedImportPaths.length > 0 && (
+              <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium mb-1">Failed tokens:</div>
+                <ul className="text-[10px] text-[var(--color-figma-text-secondary)] space-y-0.5">
+                  {failedImportPaths.slice(0, 5).map(p => (
+                    <li key={p} className="font-mono truncate" title={p}>{p}</li>
+                  ))}
+                  {failedImportPaths.length > 5 && (
+                    <li className="italic">…and {failedImportPaths.length - 5} more</li>
+                  )}
+                </ul>
+              </div>
+            )}
             <button
-              onClick={() => setSuccessMessage(null)}
+              onClick={() => { setSuccessMessage(null); setFailedImportPaths([]); }}
               className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
               Import more

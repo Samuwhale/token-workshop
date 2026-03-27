@@ -54,3 +54,11 @@
 - **Learnings for future iterations:**
   - The set name regex `^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$` is used in at least 3 places (App.tsx rename, App.tsx create, ImportPanel create) — could be extracted to a shared constant if more usages appear
 ---
+
+## 2026-03-27 - ImportPanel: handleImportVariables individual token failures show "N failed" with no path info
+- Replaced `failedTokens` counter with `failedPaths: string[]` that collects token paths when a batch request fails entirely (network error or server error). Added `failedImportPaths` React state to persist paths after the import completes. Updated the success state UI to show a bordered list of up to 5 failed token paths (with "…and N more" for overflow) so the user can see exactly which tokens couldn't be saved.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L65 (failedImportPaths state), ~L235 (handleImportVariables — failedPaths array), ~L272 (collect paths on failure), ~L513 (success UI — failed path list)
+- **Learnings for future iterations:**
+  - The batch endpoint's `skipped` count (strategy='skip') was being incorrectly counted as `failedTokens`; with strategy='overwrite' it's always 0 — actual failures only occur when the whole HTTP request fails.
+  - When an entire batch fails, all `mode.tokens` paths are known client-side and can be collected without any server change.
+---

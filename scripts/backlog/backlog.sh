@@ -251,8 +251,10 @@ git_commit_and_push() {
 
 PROGRESS_BASELINE=0
 PATTERNS_BASELINE=0
+WORKTREE_BASE_SHA=""  # SHA the worktree was created at (for new-commit detection)
 
 setup_worktree() {
+  WORKTREE_BASE_SHA=$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null || echo "")
   WORKTREE_DIR=$(mktemp -d "/tmp/backlog-$$-XXXXXX")
   git -C "$PROJECT_ROOT" worktree add --detach "$WORKTREE_DIR" HEAD --quiet 2>/dev/null
   ln -s "$PROJECT_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
@@ -314,10 +316,10 @@ merge_worktree_to_main() {
     git -C "$WORKTREE_DIR" add -A 2>/dev/null
     git -C "$WORKTREE_DIR" commit -m "backlog agent work" --quiet 2>/dev/null || true
     worktree_sha=$(git -C "$WORKTREE_DIR" rev-parse HEAD 2>/dev/null || echo "")
-    # Verify the SHA is actually a new commit (not the base HEAD)
-    local base_sha
-    base_sha=$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null || echo "")
-    if [ "$worktree_sha" = "$base_sha" ]; then
+    # Verify the SHA is actually a new commit (not the base we started from).
+    # Compare against WORKTREE_BASE_SHA, NOT current main HEAD — main may have
+    # moved due to concurrent runners, which would give a false positive.
+    if [ "$worktree_sha" = "$WORKTREE_BASE_SHA" ]; then
       worktree_sha=""
     fi
   fi
@@ -531,13 +533,16 @@ run_special_pass() {
   local saved_worktree="$WORKTREE_DIR"
   local saved_progress_baseline="$PROGRESS_BASELINE"
   local saved_patterns_baseline="$PATTERNS_BASELINE"
+  local saved_base_sha="$WORKTREE_BASE_SHA"
   setup_worktree
   local pass_worktree="$WORKTREE_DIR"
   local pass_progress_baseline="$PROGRESS_BASELINE"
   local pass_patterns_baseline="$PATTERNS_BASELINE"
+  local pass_base_sha="$WORKTREE_BASE_SHA"
   WORKTREE_DIR="$saved_worktree"  # restore so EXIT trap doesn't touch pass worktree
   PROGRESS_BASELINE="$saved_progress_baseline"
   PATTERNS_BASELINE="$saved_patterns_baseline"
+  WORKTREE_BASE_SHA="$saved_base_sha"
 
   local context_file
   context_file=$(mktemp)
@@ -558,7 +563,6 @@ run_special_pass() {
     --output-format json \
     --json-schema "$JSON_SCHEMA" \
     --model "$MODEL" \
-    --fallback-model claude-haiku-4-5-20251001 \
     --append-system-prompt-file "$context_file" \
     < "$prompt_file" > "$agent_tmp" 2>"$agent_err") &
   local pass_pid=$!
@@ -593,6 +597,7 @@ run_special_pass() {
     WORKTREE_DIR="$pass_worktree"
     PROGRESS_BASELINE="$pass_progress_baseline"
     PATTERNS_BASELINE="$pass_patterns_baseline"
+    WORKTREE_BASE_SHA="$pass_base_sha"
     merge_worktree_to_main "chore(backlog): $pass_type pass – ${pass_item:-maintenance}" || \
       echo "  WARNING: Pass cherry-pick conflict — changes discarded"
     teardown_worktree
@@ -607,6 +612,7 @@ run_special_pass() {
   WORKTREE_DIR="$saved_worktree"
   PROGRESS_BASELINE="$saved_progress_baseline"
   PATTERNS_BASELINE="$saved_patterns_baseline"
+  WORKTREE_BASE_SHA="$saved_base_sha"
 }
 
 # JSON schema for structured agent output
@@ -691,7 +697,6 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       --output-format json \
       --json-schema "$JSON_SCHEMA" \
       --model "$MODEL" \
-      --fallback-model claude-haiku-4-5-20251001 \
       --append-system-prompt-file "$CONTEXT_FILE" \
       < "$SCRIPT_DIR/CLAUDE.md" > "$AGENT_TMP" 2>"$AGENT_ERR") &
     AGENT_PID=$!
@@ -712,12 +717,12 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       if echo "$COMBINED" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|billing|overloaded|capacity|too many requests|529|Claude\.ai/upgrade'; then
         rm -f "$AGENT_ERR"
         echo ""
-        echo "ERROR: Claude usage limit reached — stopping runner."
-        echo "  Unclaiming: $CLAIMED_ITEM"
+        echo "WARNING: Rate limit hit — unclaiming item and waiting 60s before retry."
         update_item_status " " "$CLAIMED_ITEM"
         CLAIMED_ITEM=""
         teardown_worktree
-        exit 2
+        sleep 60 || true
+        continue
       fi
     fi
     rm -f "$AGENT_ERR"
@@ -733,12 +738,12 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     # stop the runner rather than looping.
     if [ -z "$_S" ] && echo "$OUTPUT" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|overloaded|capacity|too many requests|529'; then
       echo ""
-      echo "ERROR: Claude usage limit reached — stopping runner."
-      echo "  Unclaiming: $CLAIMED_ITEM"
+      echo "WARNING: Rate limit hit — unclaiming item and waiting 60s before retry."
       update_item_status " " "$CLAIMED_ITEM"
       CLAIMED_ITEM=""
       teardown_worktree
-      exit 2
+      sleep 60 || true
+      continue
     fi
     case "$_S" in done) _ICON="✓" ;; failed) _ICON="✗" ;; *) _ICON="·" ;; esac
     echo ""
@@ -755,14 +760,15 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   case "$STATUS" in
     done)
       PUSH_ITEM="${ITEM_FROM_AGENT:-$CLAIMED_ITEM}"
-      update_item_status "x" "$CLAIMED_ITEM"
-      CLAIMED_ITEM=""  # prevent EXIT trap from unclaiming
       echo ""
       echo "--- Merging: $PUSH_ITEM ---"
-      if ! merge_worktree_to_main "chore(backlog): done – $PUSH_ITEM"; then
+      if merge_worktree_to_main "chore(backlog): done – $PUSH_ITEM"; then
+        update_item_status "x" "$CLAIMED_ITEM"
+      else
         echo "WARNING: Cherry-pick conflict — marking item failed"
-        update_item_status "!" "$PUSH_ITEM"
+        update_item_status "!" "$CLAIMED_ITEM"
       fi
+      CLAIMED_ITEM=""  # prevent EXIT trap from unclaiming
       teardown_worktree
 
       # Milestone maintenance passes (skip if stop was requested)
