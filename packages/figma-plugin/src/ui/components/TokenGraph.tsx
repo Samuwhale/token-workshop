@@ -118,7 +118,8 @@ export function TokenGraph({
   // -------------------------------------------------------------------------
   // Delete
   // -------------------------------------------------------------------------
-  const handleDelete = useCallback(async (id: string) => {
+  const handleDelete = useCallback(async (id: string, name: string) => {
+    if (!window.confirm(`Delete generator "${name}"?\n\nTokens it created will remain but will no longer update automatically.`)) return;
     setDeletingId(id);
     try {
       await fetch(`${serverUrl}/api/generators/${id}`, { method: 'DELETE' });
@@ -420,7 +421,7 @@ export function TokenGraph({
                 {/* ── Delete button ── */}
                 <button
                   data-node
-                  onClick={() => handleDelete(gen.id)}
+                  onClick={() => handleDelete(gen.id, gen.name)}
                   disabled={isDeleting}
                   style={{
                     position: 'absolute',

@@ -11,3 +11,10 @@
 - Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L115 (patchToken), ~L172 (handleApply), ~L208 (handleMove), ~L240 (handleRename)
 - **User impact:** Users now see accurate feedback when batch operations partially or fully fail, instead of false success messages. This prevents the confusing scenario where tokens appear moved/renamed in the UI but remain unchanged on the server.
 ---
+
+## 2026-03-27 - ux-pass: No confirmation before deleting a generator in TokenGraph
+- Added `window.confirm()` dialog before firing `DELETE /api/generators/:id`. The confirmation message includes the generator name and warns that derived tokens will remain but stop updating automatically.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGraph.tsx` ~L121 (handleDelete), ~L423 (onClick call site)
+- **Learnings for future iterations:**
+  - `window.confirm()` is the simplest confirmation pattern for destructive actions in the Figma plugin UI — no need for a custom modal component.
+---
