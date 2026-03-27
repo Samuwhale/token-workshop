@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 ===============================================================
   Claimed: Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
   Worktree: /tmp/backlog-98901-PTCCeH
+
+  ✓ done: Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
+    Added inline info banner above action buttons in EmptyState.tsx that renders when !connected, showing icon + "Server offline — start the local server to use these actions"
+    10 turns · 61s · $0.23
+
+--- Merging: Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable ---
+Already up to date.

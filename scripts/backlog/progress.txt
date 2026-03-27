@@ -348,3 +348,10 @@
 - **Learnings for future iterations:**
   - A small dot-grid SVG (6 rect elements in a 3×2 grid) is a clean, low-footprint resize grip that matches OS conventions and renders crisply at small sizes.
 ---
+
+## 2026-03-27 - Empty state disabled buttons only explain "Server offline" via hover tooltip
+- Added an inline info banner above the action buttons that renders only when `!connected`. The banner shows an info icon and the text "Server offline — start the local server to use these actions", making the offline reason visible without requiring hover.
+- Files changed: `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L33
+- **Learnings for future iterations:**
+  - Tooltip-only explanations for disabled states are insufficient; always pair disabled controls with an inline status message for discoverability.
+---

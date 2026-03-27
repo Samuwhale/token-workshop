@@ -16,3 +16,20 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: Resize handle is too small — the bottom-right drag handle is 12×12 px with no hover affordance; enlarge and show a cursor change on approach ---
 Already up to date.
+[main ab3e1bb] chore(backlog): done – Resize handle is too small — the bottom-right drag handle is 12×12 px with no hover affordance; enlarge and show a cursor change on approach
+ 12 files changed, 128 insertions(+), 7 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260327-143049.log
+ create mode 100644 scripts/backlog/runner-20260327-143053.log
+ create mode 100644 scripts/backlog/runner-20260327-143058.log
+ create mode 100644 scripts/backlog/runner-20260327-143105.log
+
+## 2026-03-27 - Resize handle is too small — the bottom-right drag handle is 12×12 px with no hover affordance; enlarge and show a cursor change on approach
+- Enlarged handle from `w-3 h-3` (12×12px) to `w-5 h-5` (20×20px). Added a 3×2 dot-grid SVG grip icon (10×10px) with `opacity-30 hover:opacity-80 transition-opacity` for a visible hover affordance. `cursor-nwse-resize` was already present.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L2628
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  91 items remaining
+===============================================================
+  Claimed: Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt
+  Worktree: /tmp/backlog-97510-DiE0iT
