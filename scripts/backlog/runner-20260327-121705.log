@@ -41,3 +41,16 @@ Already up to date.
 
 --- Merging: templateIdForTokenType fallback returns non-existent template ID ---
 Already up to date.
+[main a6b510e] chore(backlog): done – templateIdForTokenType fallback returns non-existent template ID
+ 5 files changed, 30 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - templateIdForTokenType fallback returns non-existent template ID
+- Already fixed in commit 870a1c3: `'modular-type-scale'` was changed to `'modular-type'` which matches the actual template id in `GRAPH_TEMPLATES`.
+- Files changed: none (already resolved)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  21 items remaining
+===============================================================
+  Claimed: [HIGH] `syncBindings` applies raw `$value` without resolving aliases — `controller.ts:1234`: alias tokens (e.g. `$value: "{color.primary}"`) are passed directly to `applyTokenValue` which treats the string literally, producing a type mismatch that increments `errors`; the user sees "X bindings failed — check token types" when the real fix is that aliases need to be resolved before sync.
+  Worktree: /tmp/backlog-96047-xnHA0P

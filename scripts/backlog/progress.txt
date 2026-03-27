@@ -271,3 +271,10 @@
 - **Learnings for future iterations:**
   - Backlog items can become stale when prior sessions fix the same code path as a side-effect of related work.
 ---
+
+## 2026-03-27 - Deep inspect "Go to token" button is permanently invisible
+- Added missing `group` Tailwind class to the parent `<div>` of each deep-inspect child row so that `opacity-0 group-hover:opacity-100` on the navigate button triggers on hover.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L1028
+- **Learnings for future iterations:**
+  - When using Tailwind's `group-hover:` utility, always verify the nearest ancestor has the `group` class. Missing `group` makes hover-dependent children permanently invisible with no build-time or runtime error.
+---

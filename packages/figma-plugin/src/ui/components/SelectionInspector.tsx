@@ -1025,7 +1025,7 @@ export function SelectionInspector({
               return (
                 <div
                   key={child.id}
-                  className="px-2 py-1.5 hover:bg-[var(--color-figma-bg-hover)] rounded"
+                  className="group px-2 py-1.5 hover:bg-[var(--color-figma-bg-hover)] rounded"
                   style={{ paddingLeft: `${8 + indent * 10}px` }}
                 >
                   <div className="flex items-center gap-1 mb-0.5">

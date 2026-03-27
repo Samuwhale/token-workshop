@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: [HIGH] Deep inspect "Go to token" button is permanently invisible — `SelectionInspector.tsx:1005-1007`: the parent `<div>` for each deep-inspect child row is missing the `group` Tailwind class, so `opacity-0 group-hover:opacity-100` on the navigate button never triggers; the button is hidden and unreachable at all times.
   Worktree: /tmp/backlog-96806-yP53bK
+
+  ✓ done: Deep inspect "Go to token" button is permanently invisible
+    Added missing `group` Tailwind class to the deep-inspect child row div at SelectionInspector.tsx:1028, enabling the opacity-0 group-hover:opacity-100 transition on the navigate button.
+    9 turns · 47s · $0.25
+
+--- Merging: Deep inspect "Go to token" button is permanently invisible ---
+Already up to date.
