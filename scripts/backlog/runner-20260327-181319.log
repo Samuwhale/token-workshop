@@ -41,3 +41,10 @@ Already up to date.
 
 --- Merging: `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up ---
 Already up to date.
+[main 807171c] chore(backlog): done – `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up
+ 7 files changed, 51 insertions(+), 16 deletions(-)
+
+## 2026-03-27 - `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up
+- Updated `deleteOrphanVariables` to accept a `collectionMap: Record<string, string>` parameter. It now builds a set of all managed collection names (`VARIABLE_COLLECTION_NAME` + all values in `collectionMap`) and iterates over every managed collection when deleting orphans.
+- Updated the `delete-orphan-variables` message handler in controller.ts to pass `msg.collectionMap` to the function.
+- Updated `PublishPanel.tsx` to include `collectionMap` in the `delete-orphan-variables` message payload (the prop was already available).

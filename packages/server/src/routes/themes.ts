@@ -156,6 +156,39 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     },
   );
 
+  // PUT /api/themes/dimensions/:id/options/:optionName — rename an option
+  fastify.put<{ Params: { id: string; optionName: string }; Body: { name: string } }>(
+    '/themes/dimensions/:id/options/:optionName',
+    async (request, reply) => {
+      const { id, optionName } = request.params;
+      const { name } = request.body || {};
+      if (!name || typeof name !== 'string') {
+        return reply.status(400).send({ error: 'New option name is required' });
+      }
+      const newName = name.trim();
+      try {
+        const dimensions = await store.load();
+        const dimIdx = dimensions.findIndex(d => d.id === id);
+        if (dimIdx === -1) {
+          return reply.status(404).send({ error: `Dimension "${id}" not found` });
+        }
+        const dim = dimensions[dimIdx];
+        const optIdx = dim.options.findIndex(o => o.name === optionName);
+        if (optIdx === -1) {
+          return reply.status(404).send({ error: `Option "${optionName}" not found in dimension "${id}"` });
+        }
+        if (newName !== optionName && dim.options.some(o => o.name === newName)) {
+          return reply.status(409).send({ error: `Option "${newName}" already exists in this dimension` });
+        }
+        dim.options[optIdx] = { ...dim.options[optIdx], name: newName };
+        await store.save(dimensions);
+        return { option: dim.options[optIdx] };
+      } catch (err) {
+        return reply.status(500).send({ error: 'Failed to rename option', detail: String(err) });
+      }
+    },
+  );
+
   // DELETE /api/themes/dimensions/:id/options/:optionName — remove an option
   fastify.delete<{ Params: { id: string; optionName: string } }>(
     '/themes/dimensions/:id/options/:optionName',

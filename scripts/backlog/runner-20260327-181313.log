@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 ===============================================================
   Claimed: ThemeManager: No rename option for theme options — dimensions can be renamed but individual options (e.g. "Light", "Dark") cannot be renamed once created; users must delete and recreate them, losing all set assignments
   Worktree: /tmp/backlog-59311-PBhtOD
+
+  ✓ done: ThemeManager: No rename option for theme options
+    Added inline rename form for theme options (pencil button on hover → input + Save/Cancel) matching the existing dimension rename UX, plus PUT /api/themes/dimensions/:id/options/:optionName server endpoint.
+    19 turns · 211s · $0.76
+
+--- Merging: ThemeManager: No rename option for theme options ---
+Already up to date.

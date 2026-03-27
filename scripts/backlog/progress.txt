@@ -338,3 +338,13 @@
   - `readFigmaVariables` already reads ALL local collections, so orphan detection in the UI is already correct; only the deletion step was scoped to just the default collection.
   - The `collectionMap` prop was already available in `PublishPanel` — no new data fetching needed, just thread it through to the plugin message.
 ---
+
+## 2026-03-27 - ThemeManager: No rename option for theme options
+- Added rename option feature: inline edit form (input + Save/Cancel) in option header row, triggered by a new pencil icon button that appears on hover (alongside existing duplicate/delete buttons). Enter/Escape key bindings match dimension rename UX.
+- Added `PUT /api/themes/dimensions/:id/options/:optionName` endpoint in server routes that renames an option in-place, preserving its `sets` config. Returns 409 on name conflict.
+- After successful rename, `optionSetOrders` key is updated client-side to preserve set ordering state.
+- Files changed: `packages/server/src/routes/themes.ts` ~L159 (new PUT endpoint); `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L53 (rename option state), ~L254 (startRenameOption/cancelRenameOption/executeRenameOption handlers), ~L655 (inline rename form in option header JSX), ~L695 (rename button in action row)
+- **Learnings for future iterations:**
+  - Option rename requires a ternary in the header JSX wrapping both the name+badges div AND the action buttons — wrap both in a `<>` fragment as the false branch so the actions disappear while renaming
+  - `optionSetOrders` uses option name as a key, so renaming requires updating the key immediately on the client after a successful PUT to avoid losing custom ordering
+---

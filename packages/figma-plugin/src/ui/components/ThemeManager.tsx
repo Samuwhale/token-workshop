@@ -54,6 +54,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [renameValue, setRenameValue] = useState('');
   const [renameError, setRenameError] = useState<string | null>(null);
 
+  // Rename option
+  const [renameOption, setRenameOption] = useState<{ dimId: string; optionName: string } | null>(null);
+  const [renameOptionValue, setRenameOptionValue] = useState('');
+  const [renameOptionError, setRenameOptionError] = useState<string | null>(null);
+
   // Delete confirm
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'dimension'; id: string } | { type: 'option'; dimId: string; optionName: string } | null>(null);
 
@@ -251,6 +256,57 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       fetchDimensions();
     } catch (err) {
       setRenameError(getErrorMessage(err, 'Rename failed'));
+    }
+  };
+
+  // --- Rename option ---
+
+  const startRenameOption = (dimId: string, optionName: string) => {
+    setRenameOption({ dimId, optionName });
+    setRenameOptionValue(optionName);
+    setRenameOptionError(null);
+  };
+
+  const cancelRenameOption = () => {
+    setRenameOption(null);
+    setRenameOptionValue('');
+    setRenameOptionError(null);
+  };
+
+  const executeRenameOption = async () => {
+    if (!renameOption) return;
+    const name = renameOptionValue.trim();
+    if (!name) { setRenameOptionError('Name cannot be empty'); return; }
+    if (name === renameOption.optionName) { cancelRenameOption(); return; }
+    const dim = dimensions.find(d => d.id === renameOption.dimId);
+    if (!dim) { cancelRenameOption(); return; }
+    if (dim.options.some(o => o.name === name)) {
+      setRenameOptionError(`Option "${name}" already exists`);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `${serverUrl}/api/themes/dimensions/${encodeURIComponent(renameOption.dimId)}/options/${encodeURIComponent(renameOption.optionName)}`,
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) },
+      );
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setRenameOptionError(d.error || 'Rename failed');
+        return;
+      }
+      // Update optionSetOrders key
+      setOptionSetOrders(prev => {
+        const next = { ...prev };
+        if (next[renameOption.dimId]?.[renameOption.optionName]) {
+          next[renameOption.dimId] = { ...next[renameOption.dimId], [name]: next[renameOption.dimId][renameOption.optionName] };
+          delete next[renameOption.dimId][renameOption.optionName];
+        }
+        return next;
+      });
+      cancelRenameOption();
+      fetchDimensions();
+    } catch (err) {
+      setRenameOptionError(getErrorMessage(err, 'Rename failed'));
     }
   };
 
@@ -601,6 +657,24 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         <div key={opt.name} className="group/opt">
                           {/* Option header row */}
                           <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]/50 border-t border-[var(--color-figma-border)]">
+                            {renameOption?.dimId === dim.id && renameOption?.optionName === opt.name ? (
+                              <div className="flex flex-col gap-1 flex-1">
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={renameOptionValue}
+                                    onChange={e => { setRenameOptionValue(e.target.value); setRenameOptionError(null); }}
+                                    onKeyDown={e => { if (e.key === 'Enter') executeRenameOption(); else if (e.key === 'Escape') cancelRenameOption(); }}
+                                    className={`flex-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${renameOptionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                                    autoFocus
+                                  />
+                                  <button onClick={executeRenameOption} disabled={!renameOptionValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[9px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
+                                  <button onClick={cancelRenameOption} className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
+                                </div>
+                                {renameOptionError && <p className="text-[9px] text-[var(--color-figma-error)]">{renameOptionError}</p>}
+                              </div>
+                            ) : (
+                            <>
                             <div className="flex items-center gap-1.5 flex-1 min-w-0">
                               <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{opt.name}</span>
                               {hasUncovered && (
@@ -626,6 +700,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             </div>
                             <div className="flex items-center gap-0.5 opacity-0 group-hover/opt:opacity-100">
                               <button
+                                onClick={() => startRenameOption(dim.id, opt.name)}
+                                className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
+                                title="Rename option"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                </svg>
+                              </button>
+                              <button
                                 onClick={() => handleDuplicateOption(dim.id, opt.name)}
                                 className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
                                 title="Duplicate option"
@@ -645,6 +729,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 </svg>
                               </button>
                             </div>
+                            </>
+                            )}
                           </div>
 
                           {/* Set matrix for this option */}

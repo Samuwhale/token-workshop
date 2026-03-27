@@ -56,7 +56,7 @@
 
 ### Bugs
 
-- [~] `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up
+- [x] `deleteOrphanVariables` only checks the default "TokenManager" collection — tokens synced to custom collection names (via `collectionMap`) will never be identified as orphans and can't be cleaned up
 - [x] `applyTextStyle` does not call `loadFontAsync` before setting font properties — Figma will throw if the font is not already loaded; the `applyTokenValue` path correctly loads fonts, but the style-creation path does not
 - [~] Git sync `commit` always stages all files with `git add .` — stages ALL untracked/modified files in the token directory (including non-token files) even when the user only changed a single token; no way to commit selectively
 
