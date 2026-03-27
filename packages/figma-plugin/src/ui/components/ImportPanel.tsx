@@ -77,6 +77,31 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const readTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSourceRef = useRef<'variables' | 'styles' | null>(null);
   const correlationIdRef = useRef<string | null>(null);
+  const [existingPaths, setExistingPaths] = useState<Set<string> | null>(null);
+  const [existingPathsFetching, setExistingPathsFetching] = useState(false);
+  const existingPathsCacheRef = useRef<{ set: string; paths: Set<string> } | null>(null);
+
+  // Pre-fetch existing token paths for the target set to show new vs. overwrite preview
+  const prefetchExistingPaths = (setName: string) => {
+    if (existingPathsCacheRef.current?.set === setName) {
+      setExistingPaths(existingPathsCacheRef.current.paths);
+      return;
+    }
+    setExistingPathsFetching(true);
+    fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`)
+      .then(res => {
+        if (!res.ok) return new Set<string>();
+        return res.json().then((data: { tokens?: Record<string, unknown> }) =>
+          new Set<string>(flattenTokenGroup(data.tokens ?? {}).keys())
+        );
+      })
+      .then(paths => {
+        existingPathsCacheRef.current = { set: setName, paths };
+        setExistingPaths(paths);
+      })
+      .catch(() => setExistingPaths(null))
+      .finally(() => setExistingPathsFetching(false));
+  };
 
   // Fetch available sets
   const fetchSets = () => {
@@ -102,6 +127,21 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   useEffect(() => {
     fetchSets();
   }, [serverUrl, connected]);
+
+  // Pre-fetch existing paths when tokens first load (styles / JSON)
+  useEffect(() => {
+    if (tokens.length > 0) {
+      prefetchExistingPaths(targetSet);
+    }
+  }, [tokens]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-run preview when target set changes while tokens are loaded
+  useEffect(() => {
+    if (tokens.length > 0) {
+      existingPathsCacheRef.current = null;
+      prefetchExistingPaths(targetSet);
+    }
+  }, [targetSet, serverUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for messages from sandbox
   useEffect(() => {
@@ -144,6 +184,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setSelectedTokens(new Set((msg.tokens || []).map((t: ImportToken) => t.path)));
         setTypeFilter(null);
         setLoading(false);
+        existingPathsCacheRef.current = null;
+        setExistingPaths(null);
       }
     };
 
@@ -223,6 +265,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setError(null);
         setSuccessMessage(null);
         setCollectionData([]);
+        existingPathsCacheRef.current = null;
+        setExistingPaths(null);
       } catch (err) {
         const detail = err instanceof SyntaxError ? err.message : String(err);
         setError(`Could not parse JSON file: ${detail}`);
@@ -273,6 +317,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setSource(null);
     setTypeFilter(null);
     setConflictPaths(null);
+    setExistingPaths(null);
   };
 
   // ── Variables import (multi-set) ──────────────────────────────────────────
@@ -285,6 +330,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     acc + col.modes
       .filter(m => modeEnabled[modeKey(col.name, m.modeId)])
       .reduce((a, m) => a + m.tokens.length, 0), 0);
+
+  // Preview counts for styles/JSON import
+  const previewNewCount = existingPaths !== null
+    ? [...selectedTokens].filter(p => !existingPaths.has(p)).length
+    : null;
+  const previewOverwriteCount = existingPaths !== null
+    ? [...selectedTokens].filter(p => existingPaths.has(p)).length
+    : null;
 
   const handleImportVariables = async () => {
     setImporting(true);
@@ -438,6 +491,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Imported ${imported} tokens to "${targetSet}"` } }, '*');
       onImported();
       onImportComplete(targetSet);
+      existingPathsCacheRef.current = null;
+      setExistingPaths(null);
       setTokens([]);
       setSource(null);
       setSuccessMessage(`Imported ${imported} token${imported !== 1 ? 's' : ''} to "${targetSet}"`);
@@ -700,6 +755,11 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                             <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
                               {mode.tokens.length} token{mode.tokens.length !== 1 ? 's' : ''}
                             </span>
+                            {sets.includes(setName) ? (
+                              <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-warning,#e8a100)] font-medium">existing</span>
+                            ) : setName ? (
+                              <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-success,#22c55e)]/10 text-[var(--color-figma-success,#16a34a)] font-medium">new</span>
+                            ) : null}
                           </div>
                           <div className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)]">
                             <span className="shrink-0">→</span>
@@ -957,6 +1017,40 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 </p>
               ) : (
                 <p className="text-[9px] text-[var(--color-figma-text-tertiary)] pl-[26px]">Pick an existing set or choose <button type="button" onClick={() => setNewSetInputVisible(true)} className="underline hover:text-[var(--color-figma-text-secondary)]">+ New set…</button> to create one</p>
+              )}
+            </div>
+          )}
+
+          {/* Import preview summary */}
+          {tokens.length > 0 && (existingPathsFetching || previewNewCount !== null) && (
+            <div className="flex items-center gap-2 text-[9px] py-0.5">
+              {existingPathsFetching ? (
+                <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens…</span>
+              ) : previewNewCount !== null && previewOverwriteCount !== null && (
+                <>
+                  {previewNewCount > 0 && (
+                    <span className="flex items-center gap-1 text-[var(--color-figma-success,#16a34a)]">
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                        <path d="M4 1v6M1 4h6" />
+                      </svg>
+                      {previewNewCount} new
+                    </span>
+                  )}
+                  {previewNewCount > 0 && previewOverwriteCount > 0 && (
+                    <span className="text-[var(--color-figma-border)]">·</span>
+                  )}
+                  {previewOverwriteCount > 0 && (
+                    <span className="flex items-center gap-1 text-[var(--color-figma-warning,#e8a100)]">
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                        <path d="M4 1v4M4 6.5v.5" />
+                      </svg>
+                      {previewOverwriteCount} will overwrite
+                    </span>
+                  )}
+                  {previewNewCount === 0 && previewOverwriteCount === 0 && (
+                    <span className="text-[var(--color-figma-text-secondary)]">No tokens selected</span>
+                  )}
+                </>
               )}
             </div>
           )}

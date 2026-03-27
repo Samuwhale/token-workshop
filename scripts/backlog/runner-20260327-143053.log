@@ -332,3 +332,10 @@ Already up to date.
 ===============================================================
   Claimed: No import preview — users can't review what will be created/overwritten before committing
   Worktree: /tmp/backlog-97955-stSxMY
+
+  ✓ done: No import preview — users can't review what will be created/overwritten before committing
+    Added "X new · Y will overwrite" preview summary to styles/JSON import footer (pre-fetches existing set tokens eagerly) and "(new)"/"(existing)" badges to Variables mode rows
+    31 turns · 272s · $0.98
+
+--- Merging: No import preview — users can't review what will be created/overwritten before committing ---
+Already up to date.

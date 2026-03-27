@@ -91,13 +91,13 @@
 ### Bugs
 
 - [x] GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
-- [~] Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing
+- [x] Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing
 - [~] Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
 
 ### UX
 
 - [~] GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
-- [ ] Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
+- [~] Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
 - [ ] No search/filter in graph view — large dependency graphs have no way to locate a specific token node
 - [ ] No graph export — no option to save the rendered graph as SVG or PNG for documentation
 - [ ] Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips

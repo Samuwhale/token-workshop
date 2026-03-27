@@ -367,3 +367,14 @@
   - TokenGeneratorDialog had inconsistent field error feedback: targetGroup had red border, name did not. Always check all required fields get the same treatment.
   - IIFE `{!saving && (() => { ... })()}` is a clean way to compute multi-branch JSX inline without extracting a helper variable when the logic is small.
 ---
+
+## 2026-03-27 - No import preview — users can't review what will be created/overwritten before committing
+- Added pre-import preview summary for styles/JSON imports: eagerly fetches existing token paths for the target set and displays "X new · Y will overwrite" counts in the footer before the user clicks Import.
+- Added "(new)" / "(existing)" badge next to each mode's set name in the Variables import mapping UI, using the already-loaded `sets` list for zero-cost status indication.
+- Preview updates automatically when the target set changes or new tokens are loaded. Cache is invalidated after a successful import.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L78 (new state), ~L83 (prefetchExistingPaths), ~L113 (tokens effect), ~L119 (targetSet effect), ~L148 (styles-read handler), ~L247 (json handler), ~L272 (handleBack), ~L291 (previewNewCount/previewOverwriteCount), ~L695 (variables mode badge), ~L956 (preview summary section)
+- **Learnings for future iterations:**
+  - The existing `handleImportStyles` already fetches conflicts at import time — the preview is additive and doesn't replace that safety check.
+  - Cache key is set name; switching sets auto-invalidates. Ref-based cache (`existingPathsCacheRef`) avoids re-fetching when the user toggles checkboxes.
+  - Variables import reuses the already-loaded `sets` prop to show new/existing badges without any extra API calls — cross-reference prop data before adding fetch calls.
+---

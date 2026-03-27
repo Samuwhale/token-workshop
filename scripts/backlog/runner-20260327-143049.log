@@ -333,3 +333,16 @@ Already up to date.
 
 --- Merging: Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing ---
 Already up to date.
+[main 871e497] chore(backlog): done – Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing
+ 6 files changed, 50 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing
+- Added inline hint message above footer buttons listing which required fields are missing (target group path / generator name / source token), matching the GraphPanel.tsx pattern.
+- Added red border to the generator name input when empty, consistent with the existing targetGroup red-border behavior.
+- Footer outer div changed from `flex gap-2` to `flex flex-col gap-2`; buttons wrapped in `<div className="flex gap-2">` to preserve layout.
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  25 items remaining
+===============================================================
+  Claimed: Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
+  Worktree: /tmp/backlog-97510-gWSiXo
