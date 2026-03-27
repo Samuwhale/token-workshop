@@ -1045,7 +1045,7 @@ export function TokenList({
     setCreateError('');
     const effectiveSet = setName || 'default';
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${effectiveSet}/${trimmedPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1075,11 +1075,11 @@ export function TokenList({
         onPushUndo({
           description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
           restore: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${capturedSet}/${createdPath}`, { method: 'DELETE' });
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${createdPath}`, { method: 'DELETE' });
             onRefresh();
           },
           redo: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${capturedSet}/${createdPath}`, {
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${createdPath}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: createdType, $value: createdValue }),
@@ -1100,7 +1100,7 @@ export function TokenList({
     setCreateError('');
     const effectiveSet = setName || 'default';
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${effectiveSet}/${trimmedPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1135,11 +1135,11 @@ export function TokenList({
         onPushUndo({
           description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
           restore: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${capturedSet}/${createdPath}`, { method: 'DELETE' });
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${createdPath}`, { method: 'DELETE' });
             onRefresh();
           },
           redo: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${capturedSet}/${createdPath}`, {
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${createdPath}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: createdType, $value: createdValue }),
@@ -1216,11 +1216,11 @@ export function TokenList({
     setDeleteConfirm(null);
     try {
       if (deletedType === 'token' || deletedType === 'group') {
-        await fetch(`${serverUrl}/api/tokens/${setName}/${deletedPath}`, { method: 'DELETE' });
+        await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath}`, { method: 'DELETE' });
       } else {
         await Promise.all(
           deletedPaths.map(path =>
-            fetch(`${serverUrl}/api/tokens/${setName}/${path}`, { method: 'DELETE' })
+            fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${path}`, { method: 'DELETE' })
           )
         );
         setSelectedPaths(new Set());
@@ -1244,7 +1244,7 @@ export function TokenList({
           restore: async () => {
             await Promise.all(
               captured.map(({ path, data }) =>
-                fetch(`${capturedUrl}/api/tokens/${capturedSet}/${path}`, {
+                fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${path}`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(data),

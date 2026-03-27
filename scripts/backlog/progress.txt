@@ -450,3 +450,10 @@
 - **Learnings for future iterations:**
   - When a backlog item says "empty state missing" for SelectionInspector, check `SelectionInspector.tsx` around the `!hasSelection` guard — the empty state was built before this item was filed.
 ---
+
+## 2026-03-27 - bugfix-pass: missing encodeURIComponent on setName in token create/delete/undo
+- Bug: Token create (POST), delete (DELETE), and their undo/redo closures in `TokenList.tsx` built URLs using raw `setName`/`effectiveSet`/`capturedSet` without `encodeURIComponent`. Same issue in `TokenEditor.tsx` delete handler. When a set name contains `/` (valid per the folder-hierarchy set name pattern `^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$`), the server's `:set` route param captures only the first segment, causing the request to hit the wrong set and/or wrong token path entirely.
+- Fix: Added `encodeURIComponent()` around `setName`/`effectiveSet`/`capturedSet` in all 7 affected URL constructions (4 in create handlers, 3 in delete/undo handlers).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1048, L1078, L1082, L1103, L1138, L1142, L1219, L1223, L1247; `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L344
+- **Root cause:** Most URL constructions in these files already used `encodeURIComponent(setName)` (added in earlier refactors), but the token create/delete handlers and their undo/redo closures were written or modified later and were missed in the encoding sweep.
+---

@@ -341,7 +341,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 
   const handleDelete = async () => {
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${setName}/${tokenPath}`, { method: 'DELETE' });
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPath}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
       onBack();
     } catch (err) {
