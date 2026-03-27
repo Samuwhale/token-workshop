@@ -35,3 +35,10 @@ Already up to date.
 ===============================================================
   Claimed: PreviewPanel resolveValue: shadow/typography composite token values also produce [object Object] — needs structured formatting for shadow ({ offsetX, offsetY, blur, spread, color }) and typography ({ fontFamily, fontSize, ... }) objects
   Worktree: /tmp/backlog-7690-cRGnB4
+
+  ✓ done: PreviewPanel resolveValue: shadow/typography composite token values produce [object Object]
+    Added formatCompositeValue() helper that formats DTCG shadow ({offsetX,offsetY,blur,spread,color}) and typography ({fontFamily,fontSize,fontWeight,lineHeight}) objects into CSS strings, with recursive dimension handling and array-of-shadows support.
+    34 turns · 218s · $0.96
+
+--- Merging: PreviewPanel resolveValue: shadow/typography composite token values produce [object Object] ---
+Already up to date.

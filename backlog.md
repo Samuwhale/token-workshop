@@ -123,10 +123,10 @@ Items spotted during UX passes but out of scope for that session.
 
 - [BUG] Cannot access 'Wr' before initialization — runtime error, likely a circular dependency or hoisting issue with a minified identifier; needs source-map / unminified stack trace to locate the declaration. Once fixed, audit the codebase for similar initialization-order issues (other circular deps, `let`/`const` accessed before declaration across module boundaries).
 - [~] SyncPanel shows no empty state when first loaded — unclear whether "nothing to sync" or "run a check first"
-- [~] ConfirmModal error display doesn't handle long error text — single-line `<p>` with no wrapping or scroll for verbose errors
+- [x] ConfirmModal error display doesn't handle long error text — single-line `<p>` with no wrapping or scroll for verbose errors
 
 - [~] PreviewPanel resolveValue: shadow/typography composite token values also produce [object Object] — needs structured formatting for shadow ({ offsetX, offsetY, blur, spread, color }) and typography ({ fontFamily, fontSize, ... }) objects
-- [ ] Many fetch URLs for token API use set name without encodeURIComponent (ThemeManager, PublishPanel, SyncPanel, AnalyticsPanel, useFigmaSync, ColorScaleGenerator, etc.) — would break if set names contain special characters like spaces or slashes
+- [~] Many fetch URLs for token API use set name without encodeURIComponent (ThemeManager, PublishPanel, SyncPanel, AnalyticsPanel, useFigmaSync, ColorScaleGenerator, etc.) — would break if set names contain special characters like spaces or slashes
 
 - [HIGH] `deleteToken` emits no SSE change event — `createToken`, `updateToken`, and `batchUpsertTokens` all call `this.emit()` but `deleteToken` (token-store.ts:483-492) does not, so SSE-connected clients are never notified when a token is deleted
 - [HIGH] `deleteTokensByGeneratorId` emits no SSE change event — after bulk-deleting generator-tagged tokens (token-store.ts:511-534), no `this.emit()` call is made, so clients won't refresh after generator output is cleaned up

@@ -46,3 +46,16 @@ Already up to date.
 
 --- Merging: ConfirmModal error display doesn't handle long error text ---
 Already up to date.
+[main a8b73cc] chore(backlog): done – ConfirmModal error display doesn't handle long error text
+ 5 files changed, 30 insertions(+), 2 deletions(-)
+
+## 2026-03-27 - ConfirmModal error display doesn't handle long error text
+- Added `break-words` for word wrapping, and `max-h-[80px] overflow-y-auto` so verbose error messages scroll instead of overflowing the fixed-width (240px) modal.
+- Files changed: `packages/figma-plugin/src/ui/components/ConfirmModal.tsx` ~L71
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  4 items remaining
+===============================================================
+  Claimed: Many fetch URLs for token API use set name without encodeURIComponent (ThemeManager, PublishPanel, SyncPanel, AnalyticsPanel, useFigmaSync, ColorScaleGenerator, etc.) — would break if set names contain special characters like spaces or slashes
+  Worktree: /tmp/backlog-7333-IvfSfF

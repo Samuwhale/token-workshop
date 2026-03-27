@@ -176,3 +176,12 @@
 - **Learnings for future iterations:**
   - Core package `tsc` fails with circular type errors; use `tsc --noCheck` to emit JS/declarations, then the plugin build succeeds.
 ---
+
+## 2026-03-27 - PreviewPanel resolveValue: shadow/typography composite token values produce [object Object]
+- Added `formatCompositeValue()` helper that formats structured DTCG objects into CSS strings: dimension `{value,unit}` → `"16px"`, shadow `{offsetX,offsetY,blur,spread,color}` → `"2px 4px 8px 0 #000"`, typography `{fontFamily,fontSize,fontWeight,lineHeight}` → `"600 16px/1.5 Inter"`.
+- Also handles arrays of shadows (→ comma-separated) for multi-layer shadow tokens.
+- Refactored `resolveValue` to delegate to `formatCompositeValue` for all object/array values before falling through to `String()`.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L25 (formatCompositeValue helper), ~L57 (resolveValue refactored)
+- **Learnings for future iterations:**
+  - DTCG composite types (shadow, typography, border, transition, gradient) store sub-values as nested dimension objects `{value, unit}`, so the formatter must recurse into sub-properties.
+---

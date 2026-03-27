@@ -21,12 +21,50 @@ function toCssVar(path: string): string {
   return `--${path.replace(/\./g, '-')}`;
 }
 
+/** Format a structured DTCG value object into a CSS-compatible string */
+function formatCompositeValue(value: Record<string, unknown>): string | null {
+  // Dimension: { value, unit } → "16px"
+  if ('value' in value && 'unit' in value) {
+    return `${value.value}${value.unit}`;
+  }
+  // Shadow: { offsetX, offsetY, blur, spread, color }
+  if ('offsetX' in value && 'offsetY' in value && 'color' in value) {
+    const s = value as Record<string, unknown>;
+    const ox = formatCompositeValue(s.offsetX as Record<string, unknown>) ?? String(s.offsetX ?? 0);
+    const oy = formatCompositeValue(s.offsetY as Record<string, unknown>) ?? String(s.offsetY ?? 0);
+    const bl = formatCompositeValue(s.blur as Record<string, unknown>) ?? String(s.blur ?? 0);
+    const sp = formatCompositeValue(s.spread as Record<string, unknown>) ?? String(s.spread ?? 0);
+    return `${ox} ${oy} ${bl} ${sp} ${s.color ?? ''}`.trim();
+  }
+  // Typography: { fontFamily, fontSize, fontWeight, lineHeight, letterSpacing }
+  if ('fontFamily' in value && 'fontSize' in value) {
+    const t = value as Record<string, unknown>;
+    const weight = t.fontWeight ?? '';
+    const size = typeof t.fontSize === 'object' && t.fontSize
+      ? formatCompositeValue(t.fontSize as Record<string, unknown>) ?? String(t.fontSize)
+      : String(t.fontSize ?? '');
+    const lh = t.lineHeight != null
+      ? `/${typeof t.lineHeight === 'object' ? formatCompositeValue(t.lineHeight as Record<string, unknown>) ?? String(t.lineHeight) : String(t.lineHeight)}`
+      : '';
+    const family = t.fontFamily ?? '';
+    return `${weight} ${size}${lh} ${family}`.trim();
+  }
+  return null;
+}
+
 /** Resolve a token value for use in CSS */
 function resolveValue(value: unknown, type: string): string {
-  // Dimension object: { value: number, unit: string } → "16px"
-  if (value && typeof value === 'object' && 'value' in value && 'unit' in value) {
-    const dim = value as { value: number; unit: string };
-    return `${dim.value}${dim.unit}`;
+  // Structured DTCG objects (dimension, shadow, typography, etc.)
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const formatted = formatCompositeValue(value as Record<string, unknown>);
+    if (formatted) return formatted;
+  }
+  // Array of shadows → comma-separated
+  if (Array.isArray(value)) {
+    const parts = value
+      .map(v => typeof v === 'object' && v ? formatCompositeValue(v as Record<string, unknown>) : null)
+      .filter(Boolean);
+    if (parts.length) return parts.join(', ');
   }
   const raw = String(value ?? '');
   // Alias: {path.here} → var(--path-here)
