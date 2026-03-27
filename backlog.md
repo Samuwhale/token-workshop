@@ -116,36 +116,13 @@ Items spotted during UX passes but out of scope for that session.
 - [HIGH] Deep inspect "Go to token" button is permanently invisible — `SelectionInspector.tsx:1005-1007`: the parent `<div>` for each deep-inspect child row is missing the `group` Tailwind class, so `opacity-0 group-hover:opacity-100` on the navigate button never triggers; the button is hidden and unreachable at all times.
 - [HIGH] `syncBindings` applies raw `$value` without resolving aliases — `controller.ts:1234`: alias tokens (e.g. `$value: "{color.primary}"`) are passed directly to `applyTokenValue` which treats the string literally, producing a type mismatch that increments `errors`; the user sees "X bindings failed — check token types" when the real fix is that aliases need to be resolved before sync.
 
-- [x] TokenList: delete fails silently — if DELETE request fails the token is already removed from the UI; no error is shown and the stale state persists until next refresh
-- [x] ImportPanel: unhandled fetch failure when loading set list — `.catch(() => {})` means the set dropdown silently shows nothing if the API is unreachable
-- [x] PublishPanel: generic "An unexpected error occurred" errors give no context about which operation failed or why — include the HTTP status or operation name
-- [x] SyncPanel: readiness check timeout has no user messaging — if plugin fails to respond the spinner runs indefinitely with no "try reloading" hint
-
-- [x] ImportPanel: `handleImportVariables` sends individual POST requests per token (L249-260) instead of using the batch endpoint — causes N+1 network round-trips for large Figma files; styles/JSON import already uses `/api/tokens/:set/batch` (L337-344)
-- [x] ImportPanel: `$description` and `$scopes` read from Figma variables (controller.ts L509-510) are never included in the import POST body (L253) — imported tokens silently lose their descriptions and scoping metadata
-- [x] ImportPanel: `commitNewSet` (L304) performs no validation on the new set name — invalid characters or empty-after-trim names are sent directly to the server; should validate against the set name regex before committing
-- [x] ImportPanel: `readFigmaStyles` only reads the first paint from multi-fill styles (controller.ts L527) — gradient fills and multi-paint styles are silently converted to only their first solid fill, with no indication to the user that data was lost
-- [x] ImportPanel: `handleImportVariables` individual token failures (L254 `.catch(() => null)`) only increment a counter — user sees "3 failed" but has no way to know which tokens failed or why; consider collecting failed paths and showing them in the success message
-- [x] ImportPanel: `styles-read` message handler (L116) has no correlationId check — if user clicks "Read Styles" twice quickly, a stale response from the first read could be consumed by the second, potentially showing outdated data; `variables-read` already has correlationId protection (L96)
-
-- [x] Remove unnecessary exports from hook files — `UseGeneratorsResult`, `UseGeneratorDialogParams`, `UseGeneratorDialogReturn`, `TokenGraphProps`, `QuickStartDialogProps`, `ParsedToken`, `parseInput`, `HeatmapNode` are exported but only used internally
 - [!] Consolidate duplicate `ThemeOption`/`ThemeDimension` types — defined identically in `useThemeSwitcher.ts`, `ThemeCompare.tsx`, and `ThemeManager.tsx`; consumers should import from one place
-- [x] Remove unused `updateServerUrl` from `useServerConnection` return — returned from hook but never destructured by any caller
-- [x] Remove unnecessary `rgbToHsl` export in `colorUtils.ts` — only used internally by `hexToHsl` in the same file
-- [x] Remove unused `allSets` param from `UseGeneratorDialogParams` — accepted in interface but never read by hook body
 
 - [HIGH] ThemeManager `executeDeleteDimension` and `executeDeleteOption` don't check `res.ok` — server rejection (404/500) is silently ignored while optimistic local state update removes the dimension/option from the UI; `fetchDimensions()` eventually restores it but user gets no error feedback (`ThemeManager.tsx:252-260, 297-310`)
 - [HIGH] ThemeManager `handleSetState` doesn't check `res.ok` — a server-rejected set state toggle (e.g. 400 from invalid status) appears to succeed because `fetch` doesn't throw on HTTP errors; the catch block only handles network failures, not HTTP error responses (`ThemeManager.tsx:326-337`)
-- [x] ThemeManager `handleDrop` (set reorder) doesn't check `res.ok` — after drag-and-drop reordering, the POST to save new order silently fails on server error; local state is already updated optimistically with no rollback (`ThemeManager.tsx:376-384`)
-- [x] ThemeCompare path display uses `diff.path.split('.')` to extract parent/leaf segments — breaks for tokens with dots in segment names (e.g. `spacing.1.5` shows parent `spacing.1` and leaf `5` instead of parent `spacing` and leaf `1.5`); should use `nodeParentPath`/`formatDisplayPath` from tokenListUtils (`ThemeCompare.tsx:230-232`)
-- [x] `useThemeSwitcher` stale active-theme cleanup uses `setActiveThemesState` instead of `setActiveThemes` — removed dimensions are cleaned from React state but persist in localStorage and Figma clientStorage, causing phantom theme selections to reappear on next load (`useThemeSwitcher.ts:53-60`)
-- [x] `useThemeSwitcher` theme fetch failure is silently swallowed by `.catch(() => {})` — if `/api/themes` returns an error or the server is temporarily unreachable, dimensions silently remain empty with no user-visible error message or retry affordance (`useThemeSwitcher.ts:63`)
 
 - [BUG] Cannot access 'Wr' before initialization — runtime error, likely a circular dependency or hoisting issue with a minified identifier; needs source-map / unminified stack trace to locate the declaration. Once fixed, audit the codebase for similar initialization-order issues (other circular deps, `let`/`const` accessed before declaration across module boundaries).
-- [x] TokenList delete failure is silent — console.error but no user-visible feedback when token/group deletion fails (TokenList.tsx ~L1261)
 - [~] SyncPanel shows no empty state when first loaded — unclear whether "nothing to sync" or "run a check first"
-- [x] ImportPanel has unused `importProgress` state — progress indicator for large imports is declared but never set or displayed
-- [~] BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed
 - [~] ConfirmModal error display doesn't handle long error text — single-line `<p>` with no wrapping or scroll for verbose errors
 
 - [ ] PreviewPanel resolveValue: shadow/typography composite token values also produce [object Object] — needs structured formatting for shadow ({ offsetX, offsetY, blur, spread, color }) and typography ({ fontFamily, fontSize, ... }) objects

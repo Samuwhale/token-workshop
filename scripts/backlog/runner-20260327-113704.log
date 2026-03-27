@@ -16,3 +16,8 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed ---
 Already up to date.
+[main c9a77bd] chore(backlog): done – BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed
+ 6 files changed, 50 insertions(+), 4 deletions(-)
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
