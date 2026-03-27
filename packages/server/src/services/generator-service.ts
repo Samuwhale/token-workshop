@@ -184,7 +184,9 @@ export class GeneratorService {
     try {
       order = this.buildDependencyOrder();
     } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       console.warn('[GeneratorService] Dependency graph error:', err);
+      tokenStore.emitEvent({ type: 'generator-error', setName: '', message: `Dependency graph error: ${message}` });
       return;
     }
 
@@ -209,9 +211,11 @@ export class GeneratorService {
       if (this.runningGenerators.has(genId)) continue;
       const gen = this.generators.get(genId);
       if (!gen) continue;
-      await this.executeGenerator(gen, tokenStore).catch(err =>
-        console.warn(`[GeneratorService] Generator "${genId}" failed after token update:`, err),
-      );
+      await this.executeGenerator(gen, tokenStore).catch(err => {
+        const message = err instanceof Error ? err.message : String(err);
+        console.warn(`[GeneratorService] Generator "${genId}" failed after token update:`, err);
+        tokenStore.emitEvent({ type: 'generator-error', setName: '', generatorId: genId, message });
+      });
     }
   }
 

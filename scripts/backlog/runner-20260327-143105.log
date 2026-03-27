@@ -457,3 +457,18 @@ Already up to date.
 
 --- Merging: Extract getErrorMessage helper to eliminate repeated ternary ---
 Already up to date.
+[main 3393d38] chore(backlog): done – Extract getErrorMessage helper to eliminate repeated ternary
+ 27 files changed, 111 insertions(+), 67 deletions(-)
+ create mode 100644 packages/figma-plugin/src/shared/utils.ts
+ create mode 100644 packages/server/src/utils.ts
+
+## 2026-03-27 - Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected
+- Added dependent count to the type-change confirmation message in TokenEditor. When `pendingTypeChange` is shown and `dependents.length > 0`, a second line in amber text reads "N dependent token(s) reference this token and may break." The `dependents` state was already fetched from the API and available in scope.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L562
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  7 items remaining
+===============================================================
+  Claimed: `flattenLeafNodes` recomputed multiple times per render without memoization — recursive O(n) walk called at 4+ sites in TokenList on every render cycle
+  Worktree: /tmp/backlog-98901-h5NWf9

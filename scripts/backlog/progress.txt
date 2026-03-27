@@ -326,3 +326,12 @@
   - The dependents data was already fetched and in state — the fix was purely additive to the existing confirmation UI.
   - Inline conditional rendering with `{dependents.length > 0 && (...)}` inside a `<p>` tag using `block mt-1` on the inner `<span>` gives a clean two-line confirmation message.
 ---
+  - A quick grep for the component name across all TS/TSX files is sufficient to confirm dead code before deletion — no plan agent needed for straightforward removals.
+---
+## 2026-03-27 - Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected
+- Added dependent count to the type-change confirmation message in TokenEditor. When `pendingTypeChange` is shown and `dependents.length > 0`, a second line in amber text reads "N dependent token(s) reference this token and may break." The `dependents` state was already fetched from the API and available in scope.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L562
+- **Learnings for future iterations:**
+  - The dependents data was already fetched and in state — the fix was purely additive to the existing confirmation UI.
+  - Inline conditional rendering with `{dependents.length > 0 && (...)}` inside a `<p>` tag using `block mt-1` on the inner `<span>` gives a clean two-line confirmation message.
+---

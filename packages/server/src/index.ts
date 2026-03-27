@@ -54,7 +54,11 @@ export async function startServer(config: ServerConfig) {
     if (event.type === 'token-updated' && event.tokenPath) {
       generatorService
         .runForSourceToken(event.tokenPath, tokenStore)
-        .catch(err => console.warn('[Generator] Auto-run failed:', err));
+        .catch(err => {
+          const message = err instanceof Error ? err.message : String(err);
+          console.warn('[Generator] Auto-run failed:', err);
+          tokenStore.emitEvent({ type: 'generator-error', setName: '', message });
+        });
     }
   });
 

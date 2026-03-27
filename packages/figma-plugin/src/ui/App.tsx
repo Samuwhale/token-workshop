@@ -23,6 +23,7 @@ import { HeatmapPanel } from './components/HeatmapPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
 import { ExportPanel } from './components/ExportPanel';
 import { useServerConnection } from './hooks/useServerConnection';
+import { useServerEvents } from './hooks/useServerEvents';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
 import { useUndo } from './hooks/useUndo';
@@ -226,6 +227,12 @@ export function App() {
   const [clearing, setClearing] = useState(false);
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo();
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
+  const onGeneratorError = useCallback(({ generatorId, message }: { generatorId?: string; message: string }) => {
+    const label = generatorId ? `Generator "${generatorId}" failed` : 'Generator auto-run failed';
+    setErrorToast(`${label}: ${message}`);
+  }, []);
+  useServerEvents(serverUrl, connected, onGeneratorError);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
   const [showPasteModal, setShowPasteModal] = useState(false);
@@ -2793,6 +2800,11 @@ export function App() {
       {/* Success toast for set operations */}
       {successToast && !toastVisible && (
         <SuccessToast message={successToast} onDismiss={() => setSuccessToast(null)} />
+      )}
+
+      {/* Error toast for generator auto-run failures */}
+      {errorToast && !toastVisible && !successToast && (
+        <SuccessToast message={errorToast} onDismiss={() => setErrorToast(null)} variant="error" timeout={8000} />
       )}
 
       {/* Resize handle */}

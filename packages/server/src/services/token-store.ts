@@ -1177,6 +1177,11 @@ export class TokenStore {
     }
   }
 
+  /** Emit an arbitrary event to all SSE listeners (e.g. generator-error). */
+  emitEvent(event: ChangeEvent): void {
+    this.emit(event);
+  }
+
   async shutdown(): Promise<void> {
     if (this._rebuildDebounceTimer !== null) {
       clearTimeout(this._rebuildDebounceTimer);
@@ -1187,7 +1192,9 @@ export class TokenStore {
 }
 
 export interface ChangeEvent {
-  type: 'set-added' | 'set-updated' | 'set-removed' | 'token-updated';
+  type: 'set-added' | 'set-updated' | 'set-removed' | 'token-updated' | 'generator-error';
   setName: string;
   tokenPath?: string;
+  generatorId?: string;
+  message?: string;
 }
