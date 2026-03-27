@@ -583,6 +583,12 @@ export class TokenStore {
     } finally {
       this.endBatch();
     }
+    if (deleted > 0) {
+      this.rebuildFlatTokens();
+      for (const setName of setsToSave) {
+        this.emit({ type: 'token-updated', setName });
+      }
+    }
     return deleted;
   }
 

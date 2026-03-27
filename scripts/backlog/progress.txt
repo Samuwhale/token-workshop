@@ -295,3 +295,10 @@
 - **Learnings for future iterations:**
   - When adding new store mutations, always check that `this.emit()` is called so SSE-connected clients stay in sync.
 ---
+
+## 2026-03-27 - deleteTokensByGeneratorId emits no SSE change event
+- Added `rebuildFlatTokens()` and `this.emit({ type: 'token-updated', setName })` for each affected set after `endBatch()` in `deleteTokensByGeneratorId`, matching the pattern used by all other mutation methods.
+- Files changed: `packages/server/src/services/token-store.ts` ~L583
+- **Learnings for future iterations:**
+  - The existing `deleteToken` method (single-token delete) was already fixed in a prior session. This bulk-delete variant had the same omission.
+---
