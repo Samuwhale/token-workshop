@@ -380,3 +380,9 @@ Already up to date.
 
 --- Merging: No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values ---
 Already up to date.
+[main a5338bf] chore(backlog): done – No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values
+ 7 files changed, 115 insertions(+), 3 deletions(-)
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 51)

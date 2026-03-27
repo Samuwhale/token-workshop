@@ -60,12 +60,7 @@
 
 ### QoL
 
-- [x] No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
-- [x] New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`
-
 ### UX
-
-- [x] No "clear all bindings" action — removing all bindings from a selection requires unbinding each property one-by-one
 
 ---
 
@@ -73,16 +68,7 @@
 
 ### Bugs
 
-- [x] ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded — unclear what was partially imported
-- [x] Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing
-
 ### UX
-
-- [x] ImportPanel JSON parse failure shows generic "Could not parse JSON file" with no detail about the syntax error location or what went wrong
-- [x] ImportPanel "Import from Figma Variables" gives no guidance about prerequisites — the only feedback is a 15-second timeout error if the plugin isn't set up correctly
-- [x] No import preview — users can't review what will be created/overwritten before committing
-- [x] No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options
-- [x] No drag-and-drop file upload — the file input is click-only with no dropzone affordance
 
 ---
 
@@ -90,19 +76,7 @@
 
 ### Bugs
 
-- [x] GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
-- [x] Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing
-- [x] Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
-
 ### UX
-
-- [x] GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
-- [x] Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
-- [x] No search/filter in graph view — large dependency graphs have no way to locate a specific token node
-- [x] No graph export — no option to save the rendered graph as SVG or PNG for documentation
-- [x] Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips
-- [x] Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
-- [~] No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values
 
 ---
 
@@ -110,7 +84,6 @@
 
 ### QoL
 
-- [x] TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain
 - [~] No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation
 - [~] No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version
 - [~] Circular-reference error doesn't identify the cycle — the error says "circular reference detected" but doesn't name which tokens form the loop
