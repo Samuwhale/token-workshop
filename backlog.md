@@ -108,7 +108,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] Controller `findVariable` loads ALL local Figma variables to find one, called once per token in `applyVariables` — should cache variable list (`figma-plugin/controller.ts:1076-1079`)
 - [x] ExportPanel `handleSaveToServer` saves each variable sequentially with separate HTTP requests (`figma-plugin/ExportPanel.tsx:250-293`)
 - [x] Color map reinitialized O(n) on every single-token `resolve()` call — wasteful for single lookups (`core/resolver.ts:80-84`)
-- [ ] `rebuildFlatTokens` called multiple times per batch operation without batching in `replaceSetTokens`, `renameGroup`, `moveGroup`, `bulkRename` (`server/token-store.ts`)
+- [x] `rebuildFlatTokens` called multiple times per batch operation without batching in `replaceSetTokens`, `renameGroup`, `moveGroup`, `bulkRename` (`server/token-store.ts`)
 - [x] AnalyticsPanel fetches all sets' tokens in parallel with no `AbortController` — setState on unmounted component if user switches tabs (`figma-plugin/AnalyticsPanel.tsx:201-264`)
 - [x] AliasAutocomplete `entries` recomputed every render without `useMemo` — expensive for large token sets (`figma-plugin/AliasAutocomplete.tsx`)
 - [x] `LintConfigStore.load()` returns shallow reference to cached config — callers can corrupt the cache (`server/lint.ts:63-72`)
@@ -116,7 +116,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Correctness & Safety
 
-- [~] Pervasive `as any` casts in generator-service.ts, generators route, sets route, tokens route, and controller.ts — bypasses type safety across the plugin boundary
+- [ ] Pervasive `as any` casts in generator-service.ts, generators route, sets route, tokens route, and controller.ts — bypasses type safety across the plugin boundary
 - [x] `REFERENCE_GLOBAL_REGEX` is a module-level stateful regex with `/g` flag — latent `.lastIndex` hazard if anyone uses `.test()` or `.exec()` directly (`core/constants.ts:118`)
 - [ ] App.tsx is a ~2000-line god component with 40+ useState declarations — should be decomposed into feature modules
 - [ ] TokenList accepts 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)
@@ -155,3 +155,15 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [ ] Bulk token operations beyond the current three — the batch editor only supports: add description, apply opacity (colors), scale values (dimensions/numbers); missing bulk operations for common tasks: move selection to a different set, rename by find/replace within selection, change `$type` across selection (`figma-plugin/BatchEditor.tsx:47-170`)
 
 - [ ] Arbitrary `$extensions` view and edit — the token editor only exposes `tokenmanager.colorModifier` and `com.figma.scopes`; all other extension data on a token is invisible and uneditable via UI, making it impossible to manage custom tooling extensions without editing the JSON file directly (`figma-plugin/TokenEditor.tsx:154-156`)
+
+- [ ] AnalyticsPanel fetch AbortController — fetches all sets' tokens in parallel with no AbortController; setState on unmounted component if user switches tabs (`figma-plugin/AnalyticsPanel.tsx:201-264`)
+- [ ] AliasAutocomplete entries not memoized — `entries` recomputed every render without `useMemo`; expensive for large token sets (`figma-plugin/AliasAutocomplete.tsx`)
+- [ ] LintConfigStore shallow cache reference — `LintConfigStore.load()` returns shallow reference to cached config; callers can corrupt the cache (`server/lint.ts:63-72`)
+- [ ] `validateAllTokens` hardcodes depth > 3 — should read limit from lint config instead of hardcoding (`server/lint.ts:338`)
+- [ ] Pervasive `as any` casts in generator-service and routes — bypasses type safety across the plugin boundary (`generator-service.ts`, `generators route`, `sets route`, `tokens route`, `controller.ts`)
+- [ ] REFERENCE_GLOBAL_REGEX module-level stateful regex — `/g` flag creates a latent `.lastIndex` hazard if `.test()` or `.exec()` are used directly (`core/constants.ts:118`)
+- [ ] App.tsx god component — ~2000-line component with 40+ useState declarations; should be decomposed into feature modules
+- [ ] TokenList 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)
+- [ ] TokenGeneratorDialog 800+ lines — handles 7+ generator types in one component; should be split (`figma-plugin/TokenGeneratorDialog.tsx`)
+- [ ] CSS injection via token values in docs.ts — style attribute built with `escapeHtml` but not `escapeCssValue`; CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
+- [ ] 15+ scattered localStorage keys — no centralized persistence utility; keys are spread across components without a single source of truth

@@ -214,8 +214,13 @@ export class TokenStore {
     const set = this.sets.get(name);
     if (!set) throw new Error(`Set "${name}" not found`);
     set.tokens = tokens;
-    await this.saveSet(name);
-    this.rebuildFlatTokens();
+    this.beginBatch();
+    try {
+      await this.saveSet(name);
+      this.rebuildFlatTokens();
+    } finally {
+      this.endBatch();
+    }
     this.emit({ type: 'token-updated', setName: name });
   }
 
@@ -560,36 +565,41 @@ export class TokenStore {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
     const leafTokens = this.collectGroupLeafTokens(set.tokens, oldGroupPath);
-    if (leafTokens.length === 0) {
-      const groupObj = this.getObjectAtPath(set.tokens, oldGroupPath);
-      if (!groupObj) throw new Error(`Group "${oldGroupPath}" not found`);
-      if (this.pathExistsAt(set.tokens, newGroupPath)) throw new Error(`Path "${newGroupPath}" already exists`);
-      this.setGroupAtPath(set.tokens, newGroupPath, groupObj);
+    this.beginBatch();
+    try {
+      if (leafTokens.length === 0) {
+        const groupObj = this.getObjectAtPath(set.tokens, oldGroupPath);
+        if (!groupObj) throw new Error(`Group "${oldGroupPath}" not found`);
+        if (this.pathExistsAt(set.tokens, newGroupPath)) throw new Error(`Path "${newGroupPath}" already exists`);
+        this.setGroupAtPath(set.tokens, newGroupPath, groupObj);
+        this.deleteTokenAtPath(set.tokens, oldGroupPath);
+        await this.saveSet(setName);
+        this.rebuildFlatTokens();
+        return { renamedCount: 0, aliasesUpdated: 0 };
+      }
+      for (const { relativePath } of leafTokens) {
+        const newPath = `${newGroupPath}.${relativePath}`;
+        if (this.getTokenAtPath(set.tokens, newPath)) {
+          throw new Error(`Token at path "${newPath}" already exists`);
+        }
+      }
+      for (const { relativePath, token } of leafTokens) {
+        this.setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, token);
+      }
       this.deleteTokenAtPath(set.tokens, oldGroupPath);
       await this.saveSet(setName);
-      this.rebuildFlatTokens();
-      return { renamedCount: 0, aliasesUpdated: 0 };
-    }
-    for (const { relativePath } of leafTokens) {
-      const newPath = `${newGroupPath}.${relativePath}`;
-      if (this.getTokenAtPath(set.tokens, newPath)) {
-        throw new Error(`Token at path "${newPath}" already exists`);
+      let aliasesUpdated = 0;
+      const setsToSave = new Set<string>();
+      for (const [sName, s] of this.sets) {
+        const changed = this.updateAliasRefs(s.tokens, oldGroupPath, newGroupPath);
+        if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
       }
+      for (const sName of setsToSave) await this.saveSet(sName);
+      this.rebuildFlatTokens();
+      return { renamedCount: leafTokens.length, aliasesUpdated };
+    } finally {
+      this.endBatch();
     }
-    for (const { relativePath, token } of leafTokens) {
-      this.setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, token);
-    }
-    this.deleteTokenAtPath(set.tokens, oldGroupPath);
-    await this.saveSet(setName);
-    let aliasesUpdated = 0;
-    const setsToSave = new Set<string>();
-    for (const [sName, s] of this.sets) {
-      const changed = this.updateAliasRefs(s.tokens, oldGroupPath, newGroupPath);
-      if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
-    }
-    for (const sName of setsToSave) await this.saveSet(sName);
-    this.rebuildFlatTokens();
-    return { renamedCount: leafTokens.length, aliasesUpdated };
   }
 
   async renameToken(setName: string, oldPath: string, newPath: string): Promise<{ aliasesUpdated: number }> {
@@ -620,24 +630,29 @@ export class TokenStore {
     const target = this.sets.get(toSet);
     if (!target) throw new Error(`Set "${toSet}" not found`);
     const leafTokens = this.collectGroupLeafTokens(source.tokens, groupPath);
-    if (leafTokens.length === 0) {
-      const groupObj = this.getObjectAtPath(source.tokens, groupPath);
-      if (!groupObj) throw new Error(`Group "${groupPath}" not found`);
-      this.setGroupAtPath(target.tokens, groupPath, groupObj);
+    this.beginBatch();
+    try {
+      if (leafTokens.length === 0) {
+        const groupObj = this.getObjectAtPath(source.tokens, groupPath);
+        if (!groupObj) throw new Error(`Group "${groupPath}" not found`);
+        this.setGroupAtPath(target.tokens, groupPath, groupObj);
+        this.deleteTokenAtPath(source.tokens, groupPath);
+        await this.saveSet(fromSet);
+        await this.saveSet(toSet);
+        this.rebuildFlatTokens();
+        return { movedCount: 0 };
+      }
+      for (const { relativePath, token } of leafTokens) {
+        this.setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, token);
+      }
       this.deleteTokenAtPath(source.tokens, groupPath);
       await this.saveSet(fromSet);
       await this.saveSet(toSet);
       this.rebuildFlatTokens();
-      return { movedCount: 0 };
+      return { movedCount: leafTokens.length };
+    } finally {
+      this.endBatch();
     }
-    for (const { relativePath, token } of leafTokens) {
-      this.setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, token);
-    }
-    this.deleteTokenAtPath(source.tokens, groupPath);
-    await this.saveSet(fromSet);
-    await this.saveSet(toSet);
-    this.rebuildFlatTokens();
-    return { movedCount: leafTokens.length };
   }
 
   async duplicateGroup(setName: string, groupPath: string): Promise<{ newGroupPath: string; count: number }> {
@@ -730,23 +745,29 @@ export class TokenStore {
     for (const { oldPath } of filteredRenames) {
       this.deleteTokenAtPath(set.tokens, oldPath);
     }
-    await this.saveSet(setName);
 
-    // Update alias references across all sets
-    const pathMap = new Map(filteredRenames.map(r => [r.oldPath, r.newPath]));
-    let aliasesUpdated = 0;
-    const setsToSave = new Set<string>();
-    for (const [sName, s] of this.sets) {
-      const changed = this.updateBulkAliasRefs(s.tokens, pathMap);
-      if (changed > 0) {
-        aliasesUpdated += changed;
-        setsToSave.add(sName);
+    this.beginBatch();
+    try {
+      await this.saveSet(setName);
+
+      // Update alias references across all sets
+      const pathMap = new Map(filteredRenames.map(r => [r.oldPath, r.newPath]));
+      let aliasesUpdated = 0;
+      const setsToSave = new Set<string>();
+      for (const [sName, s] of this.sets) {
+        const changed = this.updateBulkAliasRefs(s.tokens, pathMap);
+        if (changed > 0) {
+          aliasesUpdated += changed;
+          setsToSave.add(sName);
+        }
       }
-    }
-    for (const sName of setsToSave) await this.saveSet(sName);
+      for (const sName of setsToSave) await this.saveSet(sName);
 
-    this.rebuildFlatTokens();
-    return { renamed: filteredRenames.length, skipped, aliasesUpdated };
+      this.rebuildFlatTokens();
+      return { renamed: filteredRenames.length, skipped, aliasesUpdated };
+    } finally {
+      this.endBatch();
+    }
   }
 
   // ----- Formula metadata -----

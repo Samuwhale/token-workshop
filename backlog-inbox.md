@@ -1,11 +1,15 @@
-- [ ] AnalyticsPanel fetch AbortController — fetches all sets' tokens in parallel with no AbortController; setState on unmounted component if user switches tabs (`figma-plugin/AnalyticsPanel.tsx:201-264`)
-- [ ] AliasAutocomplete entries not memoized — `entries` recomputed every render without `useMemo`; expensive for large token sets (`figma-plugin/AliasAutocomplete.tsx`)
-- [ ] LintConfigStore shallow cache reference — `LintConfigStore.load()` returns shallow reference to cached config; callers can corrupt the cache (`server/lint.ts:63-72`)
-- [ ] `validateAllTokens` hardcodes depth > 3 — should read limit from lint config instead of hardcoding (`server/lint.ts:338`)
-- [ ] Pervasive `as any` casts in generator-service and routes — bypasses type safety across the plugin boundary (`generator-service.ts`, `generators route`, `sets route`, `tokens route`, `controller.ts`)
-- [ ] REFERENCE_GLOBAL_REGEX module-level stateful regex — `/g` flag creates a latent `.lastIndex` hazard if `.test()` or `.exec()` are used directly (`core/constants.ts:118`)
-- [ ] App.tsx god component — ~2000-line component with 40+ useState declarations; should be decomposed into feature modules
-- [ ] TokenList 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)
-- [ ] TokenGeneratorDialog 800+ lines — handles 7+ generator types in one component; should be split (`figma-plugin/TokenGeneratorDialog.tsx`)
-- [ ] CSS injection via token values in docs.ts — style attribute built with `escapeHtml` but not `escapeCssValue`; CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
-- [ ] 15+ scattered localStorage keys — no centralized persistence utility; keys are spread across components without a single source of truth
+- [ ] Active set tab not persisted — switching between token sets is not remembered across plugin re-opens; user always lands on the first tab (`figma-plugin/App.tsx`)
+- [ ] No bulk multi-select in token list — shift-click or ctrl-click to select a range of tokens for batch operations is missing; users must use the batch editor's own selection model which is separate from the token list (`figma-plugin/TokenList.tsx`)
+- [ ] No quick-copy of token path from list — right-clicking a token has no "Copy path" or "Copy value" option; users must open the editor and manually select the path text (`figma-plugin/TokenList.tsx` context menu)
+- [ ] No diff preview before push to Figma — pushing tokens to Figma applies changes immediately with no preview of what will change (added/removed/modified variables); a confirmation diff would prevent accidental overwrites (`figma-plugin/controller.ts`)
+- [ ] Push-to-Figma errors show raw messages — when sync fails, the raw controller error is shown without a user-friendly explanation or suggested action (`figma-plugin/App.tsx` sync error handling)
+- [ ] No pull-from-Figma action — sync is push-only; there is no way to import variable values from an existing Figma collection back into token files, blocking round-tripping (`figma-plugin/ImportPanel.tsx`, `figma-plugin/controller.ts`)
+- [ ] Generator output not previewed before applying — the token generator writes tokens immediately with no preview step showing the generated values before commit (`figma-plugin/TokenGeneratorDialog.tsx`)
+- [ ] No way to edit generator seed values after creation — once a generator is saved, seed values (base color, scale ratio, etc.) cannot be changed; users must delete and recreate (`figma-plugin/TokenGeneratorDialog.tsx`)
+- [ ] Lint results have no severity levels — all lint findings are treated equally with no warning vs error distinction, making it hard to prioritize (`server/lint.ts`, `figma-plugin/AnalyticsPanel.tsx`)
+- [ ] No way to suppress specific lint warnings — lint findings cannot be dismissed or suppressed per-item; every run shows the same findings even for intentional patterns (`server/lint.ts`)
+- [ ] Server connection status not visible in plugin header — there is no persistent indicator showing whether the local server is reachable; users only discover connectivity issues when an action fails (`figma-plugin/App.tsx`)
+- [ ] No backup/export-all as ZIP — the export panel has format options but no "export all sets as a ZIP archive" for full backup or handoff (`figma-plugin/ExportPanel.tsx`, `server/routes/export.ts`)
+- [ ] Selection inspector empty state missing — the selection inspector shows nothing when no Figma node is selected; a prompt like "Select a layer to inspect token bindings" would reduce confusion
+- [ ] Token editor does not auto-focus first field — opening the token editor requires a manual click to start typing; the name or value field should auto-focus on open (`figma-plugin/TokenEditor.tsx`)
+- [ ] Settings page has no reset-to-defaults — there is no way to reset all settings to their default values without manually clearing each field

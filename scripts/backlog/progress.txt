@@ -349,3 +349,12 @@
 - **Learnings for future iterations:**
   - The git status showed `packages/core/src/constants.ts` as already modified — this was the tell that the fix was in-flight before the session started.
 ---
+
+## 2026-03-27 - `rebuildFlatTokens` called multiple times per batch operation without batching in `replaceSetTokens`, `renameGroup`, `moveGroup`, `bulkRename`
+- Wrapped `replaceSetTokens`, `renameGroup`, `moveGroup`, and `bulkRename` in `this.beginBatch()` / `this.endBatch()` with try/finally (for methods with early returns). The internal `rebuildFlatTokens()` calls are now deferred when called inside an outer batch context, and the single rebuild is flushed by `endBatch()`.
+- Files changed: `packages/server/src/services/token-store.ts` ~L213, ~L563, ~L620, ~L741
+- **Learnings for future iterations:**
+  - The batch mechanism (`beginBatch`/`endBatch`) already guarded `rebuildFlatTokens()` via `_batchDepth` — wrapping methods in the batch pattern makes the nesting explicit and consistent with `batchUpsertTokens`.
+  - Methods with early returns need `try/finally` to ensure `endBatch()` is always called; the `finally` block fires even on `return` statements inside `try`.
+  - `endBatch()` only flushes when `_pendingRebuild === true` and `_batchDepth` reaches 0 — so calling `this.rebuildFlatTokens()` inside a batch correctly sets `_pendingRebuild = true` (deferred), and `endBatch()` picks it up.
+---
