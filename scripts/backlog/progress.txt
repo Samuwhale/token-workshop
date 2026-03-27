@@ -256,3 +256,10 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: `handleImportVariables` sends individual POST per token (N+1 problem) while the styles/JSON path already uses the batch endpoint. Also, `$description` and `$scopes` metadata from Figma variables are read by the controller but silently dropped during import.
 ---
+
+## 2026-03-27 - ImportPanel: disabled "Read from Figma" button has no tooltip
+- Added `title` tooltip attributes to both Figma import buttons ("Import from Figma Variables" and "Import from Figma Styles") explaining they read from the currently open file. Updated subtitle text to include "from this file" phrasing so users understand no prior action is needed.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L418, ~L437
+- **Learnings for future iterations:**
+  - The import source buttons are never disabled — the concern is purely about discoverability. A `title` tooltip is the lightest intervention.
+---

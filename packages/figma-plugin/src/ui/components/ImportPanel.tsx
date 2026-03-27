@@ -416,6 +416,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             </div>
             <button
               onClick={handleReadVariables}
+              title="Reads variables from the currently open Figma file"
               className="flex items-center gap-3 px-3 py-3 rounded border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               <div className="w-8 h-8 rounded bg-[var(--color-figma-accent)]/10 flex items-center justify-center">
@@ -427,7 +428,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               </div>
               <div className="flex-1 text-left">
                 <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from Figma Variables</div>
-                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Map collections + modes to token sets</div>
+                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Read variables from this file and map to token sets</div>
               </div>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
                 <path d="M2 1l4 3-4 3V1z" />
@@ -435,6 +436,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             </button>
             <button
               onClick={handleReadStyles}
+              title="Reads styles from the currently open Figma file"
               className="flex items-center gap-3 px-3 py-3 rounded border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
               <div className="w-8 h-8 rounded bg-[#9b59b6]/10 flex items-center justify-center">
@@ -446,7 +448,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               </div>
               <div className="flex-1 text-left">
                 <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from Figma Styles</div>
-                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Read paint, text, and effect styles</div>
+                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Read paint, text, and effect styles from this file</div>
               </div>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
                 <path d="M2 1l4 3-4 3V1z" />
