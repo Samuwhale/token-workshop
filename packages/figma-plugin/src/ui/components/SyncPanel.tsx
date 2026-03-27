@@ -861,7 +861,10 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
           )}
 
           {/* Commit */}
-          {!status.status?.isClean && (
+          {(status.status?.staged.length > 0 ||
+            status.status?.modified.length > 0 ||
+            status.status?.created.length > 0 ||
+            status.status?.deleted.length > 0) && (
             <div className="rounded border border-[var(--color-figma-border)] overflow-hidden mt-2">
               <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
                 Commit message

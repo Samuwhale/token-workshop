@@ -266,3 +266,11 @@
   - A separate `applyPendingRef` (vs reusing `varPendingRef`) is cleaner since the resolve signatures differ (`() => void` vs `(tokens) => void`).
   - The generic `error` postMessage in the controller was replaced with `apply-variables-error` to avoid cross-contaminating unrelated error handlers.
 ---
+
+## 2026-03-27 - Commit form appears when only untracked files present
+- Changed the commit form condition from `!status.status?.isClean` to explicitly check for staged, modified, created, or deleted files — excluding `not_added` (untracked `?`) files which cannot be committed without staging.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L864
+- **Learnings for future iterations:**
+  - `isClean` is `false` whenever there are any changes including untracked files. Always check specific arrays (`staged`, `modified`, `created`, `deleted`) when the intent is "has committable changes".
+  - The `not_added` array maps to git's `??` status — these require `git add` before they can be committed.
+---
