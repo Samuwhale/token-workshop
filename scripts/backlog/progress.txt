@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - "···" theme-manage button needs accessible label/tooltip
+- Added `title="Manage theme dimensions"` and `aria-label="Manage theme dimensions"` to the ellipsis button in the theme switcher bar (button already had `title="Manage themes"` from a prior partial fix — updated to the specified text and added aria-label)
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1867
+- **Learnings for future iterations:**
+  - `title` alone works as an accessible name for icon-only buttons, but adding `aria-label` ensures compatibility with all screen readers (some skip `title`). Use both for icon buttons.
+---
+
 ## 2026-03-27 - Hide set precedence hint bar until drag starts
 - Changed render condition from `sets.length > 1` to `sets.length > 1 && dragSetName` so the hint bar only appears during an active drag operation
 - Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1611
@@ -28,4 +35,15 @@
 - Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L134
 - **Learnings for future iterations:**
   - Tab labels are defined in a single TABS array at the top of App.tsx; the `id` stays unchanged (`'graph'`), only the `label` field needed updating.
+---
+
+## 2026-03-27 - Persist preview split-view panel ratio to localStorage
+- Replaced `showPreviewSplit` boolean state with localStorage-backed version (key `tm_preview_split`); added `setShowPreviewSplit` wrapper using `useCallback`.
+- Added `splitRatio` state (default 0.5, clamped 0.2–0.8) initialized from localStorage (key `tm_preview_split_ratio`).
+- Added `splitRatioRef`, `splitContainerRef`, and `handleSplitDragStart` for drag-to-resize; ratio saved to localStorage on mouseup.
+- Updated split view JSX: top panel uses `style={{ height: \`${splitRatio * 100}%\` }}`, drag handle div between panels, bottom panel uses `flex-1`.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L190, ~L2160
+- **Learnings for future iterations:**
+  - Save on mouseup (not mousemove) to avoid excessive localStorage writes during drag.
+  - Use a `ref` alongside state so the mouseup handler can read the latest ratio without stale closure.
 ---

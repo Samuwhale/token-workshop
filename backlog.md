@@ -23,7 +23,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### QoL
 
 - [x] Hide set precedence hint bar until drag starts — "← lower precedence · drag to reorder · higher precedence →" is always visible whenever there are 2+ sets; only show it during an active drag (or fade it in on first hover and dismiss after a few seconds) to reduce visual noise (`App.tsx:1612-1615`)
-- [~] Persist preview split-view panel ratio to localStorage — the split ratio resets to default on every reload (`App.tsx`, `showPreviewSplit` state)
+- [x] Persist preview split-view panel ratio to localStorage — the split ratio resets to default on every reload (`App.tsx`, `showPreviewSplit` state)
 
 ### UX
 

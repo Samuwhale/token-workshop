@@ -1864,7 +1864,8 @@ export function App() {
                   <button
                     onClick={() => setOverflowPanel('themes')}
                     className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors px-1"
-                    title="Manage themes"
+                    title="Manage theme dimensions"
+                    aria-label="Manage theme dimensions"
                   >
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
                       <circle cx="5" cy="2" r="1"/>
