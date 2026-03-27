@@ -12,13 +12,18 @@ export const sseRoutes: FastifyPluginAsync = async (fastify) => {
     // Send initial connection event
     reply.raw.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
+    let closed = false;
+
     const cleanup = () => {
+      if (closed) return;
+      closed = true;
       unsubscribe();
       clearInterval(keepAlive);
       reply.raw.end();
     };
 
     const unsubscribe = fastify.tokenStore.onChange((event) => {
+      if (closed) return;
       try {
         reply.raw.write(`data: ${JSON.stringify(event)}\n\n`);
       } catch (err) {
@@ -29,6 +34,7 @@ export const sseRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Keep alive ping every 15 seconds
     const keepAlive = setInterval(() => {
+      if (closed) return;
       try {
         reply.raw.write(': keepalive\n\n');
       } catch (err) {

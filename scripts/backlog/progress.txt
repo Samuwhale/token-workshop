@@ -440,3 +440,10 @@
   - SSE cleanup (unsubscribe + clearInterval + reply.raw.end) must be idempotent-safe — define a single `cleanup` fn and call it from both the `close` event and error paths.
   - `cleanup` can safely reference `const unsubscribe`/`keepAlive` declared after it, as long as it's only *called* after those are initialized (TDZ safe for deferred calls).
 ---
+
+## 2026-03-27 - SSE `/events` race condition: write on already-ended stream
+- Added a `closed` boolean flag checked before every `reply.raw.write()` call (in onChange, keepalive, and cleanup). Also made `cleanup()` idempotent with an early return if already closed. This prevents the race where an onChange callback fires between the `close` event and `unsubscribe()` completing.
+- Files changed: `packages/server/src/routes/sse.ts` ~L15-L42
+- **Learnings for future iterations:**
+  - SSE streams need a `closed` guard flag — Node.js `close` event + listener unsubscription is not atomic, so callbacks can fire on ended streams in the gap.
+---
