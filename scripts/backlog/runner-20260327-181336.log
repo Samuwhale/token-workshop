@@ -76,3 +76,16 @@ Already up to date.
 
 --- Merging: useGenerators GeneratorType union is missing server-supported types — the UI hook defines `GeneratorType` with only 8 types (missing `accessibleColorPair`, `darkModeInversion`, `responsiveScale`), so `computeDerivedPaths` silently returns empty arrays for those generators ---
 Already up to date.
+[main f614a4c] chore(backlog): done – useGenerators GeneratorType union is missing server-supported types — the UI hook defines `GeneratorType` with only 8 types (missing `accessibleColorPair`, `darkModeInversion`, `responsiveScale`), so `computeDerivedPaths` silently returns empty arrays for those generators
+ 6 files changed, 74 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - useGenerators GeneratorType union is missing server-supported types — the UI hook defines `GeneratorType` with only 8 types (missing `accessibleColorPair`, `darkModeInversion`, `responsiveScale`), so `computeDerivedPaths` silently returns empty arrays for those generators
+- Added `accessibleColorPair`, `darkModeInversion`, `responsiveScale` to the `GeneratorType` union in `useGenerators.ts`
+- Added config interfaces `AccessibleColorPairConfig`, `DarkModeInversionConfig`, `ResponsiveScaleStep`, `ResponsiveScaleConfig` (matching definitions in `@tokenmanager/core`)
+- Added the three types to the `GeneratorConfig` union
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  18 items remaining
+===============================================================
+  Claimed: ExportPanel: Duplicate PLATFORMS constant — the same `PLATFORMS` array is defined identically in both `ExportPanel.tsx` and `PublishPanel.tsx`; should be extracted to a shared constant to avoid drift
+  Worktree: /tmp/backlog-60772-vX6Grj

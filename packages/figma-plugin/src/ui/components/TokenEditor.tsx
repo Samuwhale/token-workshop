@@ -1,5 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { resolveRefValue, evalExpr, isFormula } from '@tokenmanager/core';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { AliasAutocomplete } from './AliasAutocomplete';
@@ -391,6 +391,23 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     }
   };
 
+  const handleToggleAlias = useCallback(() => {
+    const next = !aliasMode;
+    setAliasMode(next);
+    if (next) {
+      preAliasValueRef.current = value;
+      if (!reference) setReference('{');
+      setTimeout(() => { refInputRef.current?.focus(); }, 0);
+    } else {
+      if (preAliasValueRef.current !== null) {
+        setValue(preAliasValueRef.current);
+        preAliasValueRef.current = null;
+      }
+      setReference('');
+      setShowAutocomplete(false);
+    }
+  }, [aliasMode, value, reference]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -399,10 +416,14 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         if (showAutocomplete) { setShowAutocomplete(false); return; }
         handleBack();
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
+        e.preventDefault();
+        handleToggleAlias();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onBack, isDirty, showDiscardConfirm, showAutocomplete]);
+  }, [onBack, isDirty, showDiscardConfirm, showAutocomplete, handleToggleAlias]);
 
   const handleSave = async (forceOverwrite = false) => {
     if (isCreateMode && !editPath.trim()) {
@@ -615,22 +636,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               Reference
             </label>
             <button
-              onClick={() => {
-                const next = !aliasMode;
-                setAliasMode(next);
-                if (next) {
-                  preAliasValueRef.current = value;
-                  if (!reference) setReference('{');
-                  setTimeout(() => { refInputRef.current?.focus(); }, 0);
-                } else {
-                  if (preAliasValueRef.current !== null) {
-                    setValue(preAliasValueRef.current);
-                    preAliasValueRef.current = null;
-                  }
-                  setReference('');
-                  setShowAutocomplete(false);
-                }
-              }}
+              onClick={handleToggleAlias}
+              title={aliasMode ? 'Switch to direct value (⌘L)' : 'Switch to alias reference (⌘L)'}
               className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] border transition-colors ${aliasMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
             >
               <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

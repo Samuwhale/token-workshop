@@ -50,3 +50,10 @@ Already up to date.
 ===============================================================
   Claimed: No keyboard shortcut to toggle alias mode — switching between direct value and alias reference requires clicking the toggle button; a shortcut (e.g. Cmd+L) would speed up the most common editor workflow
   Worktree: /tmp/backlog-59609-txUaQK
+
+  ✓ done: No keyboard shortcut to toggle alias mode — switching between direct value and alias reference requires clicking the toggle button; a shortcut (e.g. Cmd+L) would speed up the most common editor workflow
+    Added Cmd+L (Ctrl+L on non-Mac) keyboard shortcut to toggle alias mode in TokenEditor; button title updated to show the shortcut hint
+    15 turns · 79s · $0.29
+
+--- Merging: No keyboard shortcut to toggle alias mode — switching between direct value and alias reference requires clicking the toggle button; a shortcut (e.g. Cmd+L) would speed up the most common editor workflow ---
+Already up to date.

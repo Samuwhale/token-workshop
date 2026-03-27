@@ -107,7 +107,7 @@
 
 ### Bugs
 
-- [~] useGenerators GeneratorType union is missing server-supported types — the UI hook defines `GeneratorType` with only 8 types (missing `accessibleColorPair`, `darkModeInversion`, `responsiveScale`), so `computeDerivedPaths` silently returns empty arrays for those generators
+- [x] useGenerators GeneratorType union is missing server-supported types — the UI hook defines `GeneratorType` with only 8 types (missing `accessibleColorPair`, `darkModeInversion`, `responsiveScale`), so `computeDerivedPaths` silently returns empty arrays for those generators
 
 ### UX
 
@@ -138,7 +138,7 @@
 
 ### Redundancy & Duplication
 
-- [ ] ExportPanel: Duplicate PLATFORMS constant — the same `PLATFORMS` array is defined identically in both `ExportPanel.tsx` and `PublishPanel.tsx`; should be extracted to a shared constant to avoid drift
+- [~] ExportPanel: Duplicate PLATFORMS constant — the same `PLATFORMS` array is defined identically in both `ExportPanel.tsx` and `PublishPanel.tsx`; should be extracted to a shared constant to avoid drift
 
 ### Performance
 

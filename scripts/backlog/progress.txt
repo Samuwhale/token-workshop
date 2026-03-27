@@ -406,3 +406,11 @@
   - The plugin defines all types inline (see comment at top of file: "do not import from @tokenmanager/core in the plugin") — always mirror core type changes into useGenerators.ts manually
   - `accessibleColorPair` generates exactly 2 tokens (background + foreground), not a variable-length array — handle these non-array cases explicitly
 ---
+
+## 2026-03-27 - No keyboard shortcut to toggle alias mode — switching between direct value and alias reference requires clicking the toggle button; a shortcut (e.g. Cmd+L) would speed up the most common editor workflow
+- Added `handleToggleAlias` useCallback encapsulating the toggle logic (previously inline in the button onClick). Wired button onClick to use it. Added `(e.metaKey || e.ctrlKey) && e.key === 'l'` handler to the existing keydown useEffect. Added title tooltip to the toggle button showing "⌘L" shortcut hint.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L2 (useCallback import), ~L394 (handleToggleAlias + keydown handler), ~L634 (button onClick + title)
+- **Learnings for future iterations:**
+  - Extracting inline toggle logic into a useCallback before adding keyboard handler keeps both the button and the keydown handler in sync without code duplication
+  - The existing global keydown useEffect is the right place to add shortcut keys — just extend its dependency array with the new callback
+---
