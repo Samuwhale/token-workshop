@@ -101,3 +101,19 @@
 - **Learnings for future iterations:**
   - `rebuildFlatTokens` always calls `rebuildResolver` internally — prefer it over manually clearing `flatTokens` to keep resolver in sync.
 ---
+
+## 2026-03-27 - `wcagLuminance` returns 0 for invalid input instead of erroring
+- Changed `wcagLuminance` return type from `number` to `number | null`, returning `null` for invalid hex input instead of `0`. Also fixed the regex to use `$` anchor (`/^[0-9a-fA-F]{6}$/`) to reject trailing garbage. Updated both callers: `runAccessibleColorPairGenerator` returns `[]` early when bgLum is null (consistent with `runDarkModeInversionGenerator` pattern); `runContrastCheckGenerator` already had dead `if (fgLum !== null)` check — fixed it to also guard against null bgLum by checking `fgLum !== null && bgLum !== null`.
+- Files changed: `packages/core/src/generator-engine.ts` ~L272, L296, L403
+- **Learnings for future iterations:**
+  - When a luminance/color utility silently returns a sentinel that equals a valid value (0 = luminance of black), null is the correct invalid signal — not 0 or NaN.
+  - Dead null checks in callers are a strong hint the original author intended the function to return null — use them as breadcrumbs.
+---
+
+## 2026-03-27 - Keyboard shortcut discovery
+- Added a "Keyboard shortcuts…" command entry (category: Help) to the Cmd+K command palette. When selected, a `KeyboardShortcutsModal` opens listing all registered shortcuts grouped by context: Global (⌘K, ⌘⇧V, ⌘Z, ⌘⇧Z/⌘Y), Navigation (⌘1–4 for tabs), Command Palette (↑↓, ↵, >, Esc), and Paste Modal (⌘↵).
+- Files changed: `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L18 (import), ~L267 (state), ~L1238 (command entry), ~L2682 (modal render)
+- **Learnings for future iterations:**
+  - The singlefile vite plugin inlines everything into `dist/ui.html`, not `dist/index.html`. Always grep `dist/ui.html` to verify content made it into the build.
+  - A modal opened from the command palette must set state in the `handler`, which runs after `onClose()` is called — so the palette closes first, then the modal appears. No extra sequencing needed.
+---

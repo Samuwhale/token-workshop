@@ -42,9 +42,9 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] Group-level "+" button hardcodes type to `'color'` — should infer type from children/siblings in the group (e.g. if all children are `dimension`, default to `dimension`) (`TokenList.tsx:2801`)
 - [x] `evalExpr` `**` operator has wrong precedence — `2 * 3 ** 4` evaluates to 1296 instead of 162 (`core/eval-expr.ts:47-51`). `parsePow` is a no-op; `^` is tokenized but never parsed
 - [x] `lighten`/`darken` color modifiers silently swallow invalid hex input while `mix` throws — inconsistent error handling (`core/color-modifier.ts:25,32`)
-- [~] `wcagLuminance` returns 0 for invalid input instead of erroring — causes incorrect contrast ratios (`core/generator-engine.ts:274`)
+- [x] `wcagLuminance` returns 0 for invalid input instead of erroring — causes incorrect contrast ratios (`core/generator-engine.ts:274`)
 - [x] `clearAll` on token-store doesn't call `rebuildFlatTokens`/`rebuildResolver` — stale resolver persists until next file write (`server/token-store.ts:231-241`)
-- [ ] `updateAliasRefs` misses aliases referencing the group itself (not a child) because `oldPrefix` always has a trailing dot (`server/token-store.ts:443`)
+- [~] `updateAliasRefs` misses aliases referencing the group itself (not a child) because `oldPrefix` always has a trailing dot (`server/token-store.ts:443`)
 - [ ] `createToken` for a new set triggers 3 rebuilds: createSet + saveSet + watcher (`server/token-store.ts:297-310`)
 - [ ] Missing `return` after error `reply.send()` in sets.ts PATCH handlers and export.ts — could cause "reply already sent" (`server/routes/sets.ts:60,83`, `server/routes/export.ts:34`)
 - [ ] `deleteTokenAtPath` leaves empty parent group objects `{}` in the JSON file (`server/token-store.ts:760-773`)

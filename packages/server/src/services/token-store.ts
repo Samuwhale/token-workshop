@@ -435,14 +435,20 @@ export class TokenStore {
   /** Update alias $value references from oldGroupPath to newGroupPath across a token tree */
   private updateAliasRefs(group: any, oldGroupPath: string, newGroupPath: string): number {
     let count = 0;
+    const exactMatch = `{${oldGroupPath}}`;
     const oldPrefix = `{${oldGroupPath}.`;
     const newPrefix = `{${newGroupPath}.`;
     const walk = (obj: any) => {
       for (const key of Object.keys(obj)) {
         const val = obj[key];
-        if (key === '$value' && typeof val === 'string' && val.startsWith(oldPrefix)) {
-          obj[key] = newPrefix + val.slice(oldPrefix.length);
-          count++;
+        if (key === '$value' && typeof val === 'string') {
+          if (val === exactMatch) {
+            obj[key] = `{${newGroupPath}}`;
+            count++;
+          } else if (val.startsWith(oldPrefix)) {
+            obj[key] = newPrefix + val.slice(oldPrefix.length);
+            count++;
+          }
         } else if (typeof val === 'object' && val !== null) {
           walk(val);
         }
