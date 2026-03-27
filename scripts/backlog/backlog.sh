@@ -54,6 +54,7 @@ GIT_LOCKDIR="$PROJECT_ROOT/.backlog-git.lock"
 COUNTER_FILE="$SCRIPT_DIR/.completed-count"
 ARCHIVE_FILE="$SCRIPT_DIR/backlog-archive.md"
 PASS_LOCKDIR="$PROJECT_ROOT/.backlog-pass.lock"
+WORKTREE_DIR=""  # Current agent worktree (cleaned up by EXIT trap)
 
 if [ ! -f "$BACKLOG_FILE" ]; then
   echo "Error: backlog.md not found at $PROJECT_ROOT"
@@ -169,6 +170,13 @@ cleanup_on_exit() {
     update_item_status " " "$CLAIMED_ITEM" 2>/dev/null || true
     CLAIMED_ITEM=""
   fi
+  # Tear down any active worktree
+  if [ -n "$WORKTREE_DIR" ] && [ -d "$WORKTREE_DIR" ]; then
+    rm -f "$WORKTREE_DIR/node_modules" 2>/dev/null
+    git -C "$PROJECT_ROOT" worktree remove "$WORKTREE_DIR" --force 2>/dev/null \
+      || { rm -rf "$WORKTREE_DIR"; git -C "$PROJECT_ROOT" worktree prune 2>/dev/null; }
+    WORKTREE_DIR=""
+  fi
   # Release pass lock if we hold it (stale lock has same pid-check as others)
   local pass_pid=$(cat "$PASS_LOCKDIR/pid" 2>/dev/null || echo "")
   if [ "$pass_pid" = "$$" ]; then
@@ -201,6 +209,9 @@ if [ "$STALE" -gt 0 ]; then
   fi
 fi
 
+# Clean up orphaned worktrees from crashed runners
+git -C "$PROJECT_ROOT" worktree prune 2>/dev/null
+
 # ─── Git helpers ──────────────────────────────────────────────────
 # Serialises git operations across runners and retries push with
 # rebase on conflict (non-fast-forward rejection).
@@ -217,6 +228,127 @@ git_commit_and_push() {
   git -C "$PROJECT_ROOT" add -A
   git -C "$PROJECT_ROOT" commit -m "$message" || { release_lock "$GIT_LOCKDIR"; return 0; }
 
+  local attempt=0
+  while [ $attempt -lt 3 ]; do
+    if git -C "$PROJECT_ROOT" push 2>/dev/null; then
+      release_lock "$GIT_LOCKDIR"
+      return 0
+    fi
+    attempt=$((attempt + 1))
+    git -C "$PROJECT_ROOT" pull --rebase --autostash 2>/dev/null || true
+    sleep $((attempt * 2))
+  done
+
+  echo "WARNING: Push failed after 3 attempts — changes committed locally"
+  release_lock "$GIT_LOCKDIR"
+}
+
+# ─── Worktree isolation ─────────────────────────────────────────
+# Each agent runs in a disposable git worktree so concurrent runners
+# never edit files in the same working directory. Code changes are
+# cherry-picked back to main; shared append-only files (progress.txt,
+# patterns.md) are extracted and appended separately to avoid conflicts.
+
+PROGRESS_BASELINE=0
+PATTERNS_BASELINE=0
+
+setup_worktree() {
+  WORKTREE_DIR=$(mktemp -d "/tmp/backlog-$$-XXXXXX")
+  git -C "$PROJECT_ROOT" worktree add --detach "$WORKTREE_DIR" HEAD --quiet 2>/dev/null
+  ln -s "$PROJECT_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
+  PROGRESS_BASELINE=$(wc -l < "$WORKTREE_DIR/scripts/backlog/progress.txt" 2>/dev/null || echo 0)
+  PATTERNS_BASELINE=$(wc -l < "$WORKTREE_DIR/scripts/backlog/patterns.md" 2>/dev/null || echo 0)
+  # Trim leading whitespace from wc -l on macOS
+  PROGRESS_BASELINE=$(echo "$PROGRESS_BASELINE" | tr -d ' ')
+  PATTERNS_BASELINE=$(echo "$PATTERNS_BASELINE" | tr -d ' ')
+}
+
+teardown_worktree() {
+  [ -z "$WORKTREE_DIR" ] || [ ! -d "$WORKTREE_DIR" ] && return 0
+  rm -f "$WORKTREE_DIR/node_modules" 2>/dev/null
+  git -C "$PROJECT_ROOT" worktree remove "$WORKTREE_DIR" --force 2>/dev/null \
+    || { rm -rf "$WORKTREE_DIR"; git -C "$PROJECT_ROOT" worktree prune 2>/dev/null; }
+  WORKTREE_DIR=""
+}
+
+# Merges agent changes from a worktree back into main.
+# Shared files (progress.txt, patterns.md) are extracted and appended
+# separately so they never conflict between concurrent agents.
+# Returns 0 on success, 1 on cherry-pick conflict.
+merge_worktree_to_main() {
+  local message="$1"
+  [ -z "$WORKTREE_DIR" ] || [ ! -d "$WORKTREE_DIR" ] && return 0
+
+  # 1. Extract shared-file additions (lines appended by the agent)
+  local progress_new="" patterns_new=""
+  local wt_progress="$WORKTREE_DIR/scripts/backlog/progress.txt"
+  local wt_patterns="$WORKTREE_DIR/scripts/backlog/patterns.md"
+
+  if [ -f "$wt_progress" ]; then
+    local current_lines
+    current_lines=$(wc -l < "$wt_progress" | tr -d ' ')
+    if [ "$current_lines" -gt "$PROGRESS_BASELINE" ]; then
+      progress_new=$(tail -n +$((PROGRESS_BASELINE + 1)) "$wt_progress")
+    fi
+  fi
+
+  if [ -f "$wt_patterns" ]; then
+    local current_lines
+    current_lines=$(wc -l < "$wt_patterns" | tr -d ' ')
+    if [ "$current_lines" -gt "$PATTERNS_BASELINE" ]; then
+      patterns_new=$(tail -n +$((PATTERNS_BASELINE + 1)) "$wt_patterns")
+    fi
+  fi
+
+  # 2. Restore shared files in worktree to HEAD so they're excluded from the code commit
+  git -C "$WORKTREE_DIR" checkout HEAD -- scripts/backlog/progress.txt 2>/dev/null || true
+  git -C "$WORKTREE_DIR" checkout HEAD -- scripts/backlog/patterns.md 2>/dev/null || true
+
+  # 3. Commit code-only changes in worktree (detached HEAD)
+  local worktree_sha=""
+  if [ -n "$(git -C "$WORKTREE_DIR" status --porcelain 2>/dev/null)" ]; then
+    git -C "$WORKTREE_DIR" add -A 2>/dev/null
+    git -C "$WORKTREE_DIR" commit -m "backlog agent work" --quiet 2>/dev/null || true
+    worktree_sha=$(git -C "$WORKTREE_DIR" rev-parse HEAD 2>/dev/null || echo "")
+    # Verify the SHA is actually a new commit (not the base HEAD)
+    local base_sha
+    base_sha=$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null || echo "")
+    if [ "$worktree_sha" = "$base_sha" ]; then
+      worktree_sha=""
+    fi
+  fi
+
+  # Nothing to merge?
+  if [ -z "$worktree_sha" ] && [ -z "$progress_new" ] && [ -z "$patterns_new" ]; then
+    return 0
+  fi
+
+  # 4. Merge back to main under git lock
+  acquire_lock "$GIT_LOCKDIR" || return 1
+
+  # Sync main with remote first
+  git -C "$PROJECT_ROOT" pull --rebase --autostash 2>/dev/null || true
+
+  # Cherry-pick code changes (if any)
+  if [ -n "$worktree_sha" ]; then
+    if ! git -C "$PROJECT_ROOT" cherry-pick --no-commit "$worktree_sha" 2>/dev/null; then
+      echo "  WARNING: Cherry-pick conflict — aborting merge"
+      git -C "$PROJECT_ROOT" cherry-pick --abort 2>/dev/null || true
+      git -C "$PROJECT_ROOT" reset --hard HEAD 2>/dev/null || true
+      release_lock "$GIT_LOCKDIR"
+      return 1
+    fi
+  fi
+
+  # Append shared-file additions to main repo copies
+  [ -n "$progress_new" ] && printf '%s\n' "$progress_new" >> "$PROGRESS_FILE"
+  [ -n "$patterns_new" ] && printf '%s\n' "$patterns_new" >> "$PATTERNS_FILE"
+
+  # Stage everything and commit
+  git -C "$PROJECT_ROOT" add -A 2>/dev/null
+  git -C "$PROJECT_ROOT" commit -m "$message" 2>/dev/null || { release_lock "$GIT_LOCKDIR"; return 0; }
+
+  # Push with retry (same logic as git_commit_and_push)
   local attempt=0
   while [ $attempt -lt 3 ]; do
     if git -C "$PROJECT_ROOT" push 2>/dev/null; then
@@ -390,6 +522,15 @@ run_special_pass() {
   echo "  ★ Maintenance Pass: $pass_type"
   echo "================================================================"
 
+  # Set up isolated worktree for the pass (use a local ref to avoid
+  # clobbering the outer WORKTREE_DIR used by the EXIT trap)
+  local saved_worktree="$WORKTREE_DIR"
+  local saved_progress_baseline="$PROGRESS_BASELINE"
+  local saved_patterns_baseline="$PATTERNS_BASELINE"
+  setup_worktree
+  local pass_worktree="$WORKTREE_DIR"
+  WORKTREE_DIR="$saved_worktree"  # restore so EXIT trap doesn't touch pass worktree
+
   local context_file
   context_file=$(mktemp)
   cat "$PATTERNS_FILE" > "$context_file"
@@ -401,7 +542,7 @@ run_special_pass() {
   agent_tmp=$(mktemp)
   agent_err=$(mktemp)
 
-  (trap '' INT; claude \
+  (cd "$pass_worktree" && trap '' INT; claude \
     --dangerously-skip-permissions \
     --print \
     --no-session-persistence \
@@ -425,6 +566,14 @@ run_special_pass() {
   # Rate-limit detection — warn and return so main loop can also detect on next item
   if echo "$pass_output $pass_err_text" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|billing|overloaded|capacity|too many requests|529|Claude\.ai/upgrade'; then
     echo "  WARNING: Rate limit hit during $pass_type pass — skipping"
+    # Clean up pass worktree
+    WORKTREE_DIR="$pass_worktree"
+    PROGRESS_BASELINE="$saved_progress_baseline"
+    PATTERNS_BASELINE="$saved_patterns_baseline"
+    teardown_worktree
+    WORKTREE_DIR="$saved_worktree"
+    PROGRESS_BASELINE="$saved_progress_baseline"
+    PATTERNS_BASELINE="$saved_patterns_baseline"
     return 0
   fi
 
@@ -436,10 +585,24 @@ run_special_pass() {
   if [ "$pass_status" = "done" ]; then
     echo "  ✓ $pass_type pass: ${pass_item:-done}"
     [ -n "$pass_note" ] && echo "    $pass_note"
-    git_commit_and_push "chore(backlog): $pass_type pass – ${pass_item:-maintenance}"
+    # Merge pass worktree back to main
+    WORKTREE_DIR="$pass_worktree"
+    PROGRESS_BASELINE="$saved_progress_baseline"
+    PATTERNS_BASELINE="$saved_patterns_baseline"
+    merge_worktree_to_main "chore(backlog): $pass_type pass – ${pass_item:-maintenance}" || \
+      echo "  WARNING: Pass cherry-pick conflict — changes discarded"
+    teardown_worktree
   else
     echo "  · $pass_type pass: ${pass_status:-no result} — ${pass_note:-skipped}"
+    # Discard pass worktree (no changes to merge)
+    WORKTREE_DIR="$pass_worktree"
+    teardown_worktree
   fi
+
+  # Restore outer worktree state
+  WORKTREE_DIR="$saved_worktree"
+  PROGRESS_BASELINE="$saved_progress_baseline"
+  PATTERNS_BASELINE="$saved_patterns_baseline"
 }
 
 # JSON schema for structured agent output
@@ -489,6 +652,10 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   fi
   echo "  Claimed: $CLAIMED_ITEM"
 
+  # ── Set up isolated worktree for the agent ──
+  setup_worktree
+  echo "  Worktree: $WORKTREE_DIR"
+
   # ── Run the agent ──
   # The claimed item is injected into the agent's context so it knows
   # exactly which item to work on without reading backlog.md.
@@ -496,7 +663,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     PROMPT_FILE=$(mktemp)
     cat "$SCRIPT_DIR/CLAUDE.md" > "$PROMPT_FILE"
     printf '\n---\n\n## Assigned Item\n\nWork on this specific item (already marked [~] in backlog.md):\n\n%s\n\nDo NOT pick a different item. Do NOT modify backlog.md.\n' "$CLAIMED_ITEM" >> "$PROMPT_FILE"
-    OUTPUT=$(cat "$PROMPT_FILE" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
+    OUTPUT=$(cat "$PROMPT_FILE" | (cd "$WORKTREE_DIR" && amp --dangerously-allow-all) 2>&1 | tee /dev/stderr) || true
     rm -f "$PROMPT_FILE"
   else
     # Build context file: patterns + recent progress + assigned item
@@ -511,7 +678,8 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     AGENT_ERR=$(mktemp)
     # Run agent in background so the parent's wait builtin is interruptible by
     # Ctrl+C (fires graceful_stop) without killing the agent process itself.
-    (trap '' INT; claude \
+    # Agent runs inside the worktree for file isolation.
+    (cd "$WORKTREE_DIR" && trap '' INT; claude \
       --dangerously-skip-permissions \
       --print \
       --no-session-persistence \
@@ -544,6 +712,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
         echo "  Unclaiming: $CLAIMED_ITEM"
         update_item_status " " "$CLAIMED_ITEM"
         CLAIMED_ITEM=""
+        teardown_worktree
         exit 2
       fi
     fi
@@ -564,6 +733,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       echo "  Unclaiming: $CLAIMED_ITEM"
       update_item_status " " "$CLAIMED_ITEM"
       CLAIMED_ITEM=""
+      teardown_worktree
       exit 2
     fi
     case "$_S" in done) _ICON="✓" ;; failed) _ICON="✗" ;; *) _ICON="·" ;; esac
@@ -584,8 +754,12 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       update_item_status "x" "$CLAIMED_ITEM"
       CLAIMED_ITEM=""  # prevent EXIT trap from unclaiming
       echo ""
-      echo "--- Pushing: $PUSH_ITEM ---"
-      git_commit_and_push "chore(backlog): done – $PUSH_ITEM"
+      echo "--- Merging: $PUSH_ITEM ---"
+      if ! merge_worktree_to_main "chore(backlog): done – $PUSH_ITEM"; then
+        echo "WARNING: Cherry-pick conflict — marking item failed"
+        update_item_status "!" "$PUSH_ITEM"
+      fi
+      teardown_worktree
 
       # Milestone maintenance passes (skip if stop was requested)
       TOTAL_DONE=$(increment_completed_count)
@@ -605,11 +779,13 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     failed)
       update_item_status "!" "$CLAIMED_ITEM"
       CLAIMED_ITEM=""
+      teardown_worktree
       ;;
     *)
       echo "WARNING: Agent returned unexpected status '$STATUS' — unclaiming item"
       update_item_status " " "$CLAIMED_ITEM"
       CLAIMED_ITEM=""
+      teardown_worktree
       ;;
   esac
 

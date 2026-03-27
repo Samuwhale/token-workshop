@@ -296,7 +296,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
         const cid = `sync-${Date.now()}-${Math.random()}`;
         const timeout = setTimeout(() => {
           varPendingRef.current.delete(cid);
-          reject(new Error('Figma read timed out'));
+          reject(new Error('Figma did not respond in time — try reloading the plugin.'));
         }, 10000);
         varPendingRef.current.set(cid, (tokens) => { clearTimeout(timeout); resolve(tokens); });
         parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
@@ -357,7 +357,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
             setOrphansDeleting(true);
             try {
               await new Promise<number>((resolve, reject) => {
-                const timeout = setTimeout(() => { orphansResolveRef.current = null; reject(new Error('Timeout')); }, 10000);
+                const timeout = setTimeout(() => { orphansResolveRef.current = null; reject(new Error('Figma did not respond in time — try reloading the plugin.')); }, 10000);
                 orphansResolveRef.current = (count) => { clearTimeout(timeout); resolve(count); };
                 parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths] } }, '*');
               });
@@ -729,7 +729,16 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
               </button>
             </div>
             {readinessError && (
-              <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{readinessError}</div>
+              <div className="px-3 py-2 flex items-start gap-2">
+                <span className="text-[10px] text-[var(--color-figma-error)] flex-1">{readinessError}</span>
+                <button
+                  onClick={runReadinessChecks}
+                  disabled={readinessLoading}
+                  className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 shrink-0 transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
             )}
             {readinessChecks.length > 0 && (
               <div className="divide-y divide-[var(--color-figma-border)]">

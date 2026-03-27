@@ -119,7 +119,7 @@ Items spotted during UX passes but out of scope for that session.
 - [x] TokenList: delete fails silently — if DELETE request fails the token is already removed from the UI; no error is shown and the stale state persists until next refresh
 - [x] ImportPanel: unhandled fetch failure when loading set list — `.catch(() => {})` means the set dropdown silently shows nothing if the API is unreachable
 - [x] PublishPanel: generic "An unexpected error occurred" errors give no context about which operation failed or why — include the HTTP status or operation name
-- [ ] SyncPanel: readiness check timeout has no user messaging — if plugin fails to respond the spinner runs indefinitely with no "try reloading" hint
+- [x] SyncPanel: readiness check timeout has no user messaging — if plugin fails to respond the spinner runs indefinitely with no "try reloading" hint
 
 - [ ] ImportPanel: `handleImportVariables` sends individual POST requests per token (L249-260) instead of using the batch endpoint — causes N+1 network round-trips for large Figma files; styles/JSON import already uses `/api/tokens/:set/batch` (L337-344)
 - [ ] ImportPanel: `$description` and `$scopes` read from Figma variables (controller.ts L509-510) are never included in the import POST body (L253) — imported tokens silently lose their descriptions and scoping metadata
@@ -147,3 +147,6 @@ Items spotted during UX passes but out of scope for that session.
 - [ ] ImportPanel has unused `importProgress` state — progress indicator for large imports is declared but never set or displayed
 - [ ] BatchEditor operations lack validation feedback — `hasOp` gates buttons but no explanation of what input is needed
 - [ ] ConfirmModal error display doesn't handle long error text — single-line `<p>` with no wrapping or scroll for verbose errors
+
+- [ ] PreviewPanel resolveValue: shadow/typography composite token values also produce [object Object] — needs structured formatting for shadow ({ offsetX, offsetY, blur, spread, color }) and typography ({ fontFamily, fontSize, ... }) objects
+- [ ] Many fetch URLs for token API use set name without encodeURIComponent (ThemeManager, PublishPanel, SyncPanel, AnalyticsPanel, useFigmaSync, ColorScaleGenerator, etc.) — would break if set names contain special characters like spaces or slashes

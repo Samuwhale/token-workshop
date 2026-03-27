@@ -23,3 +23,11 @@
 - Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L25
 - **Root cause:** The function assumed all token values were strings or numbers, but DTCG dimension values are structured objects.
 ---
+
+## 2026-03-27 - SyncPanel: readiness check timeout has no user messaging
+- Improved timeout error messages for readiness check (`runReadinessChecks` read-variables timeout) and orphan deletion timeout to say "Figma did not respond in time — try reloading the plugin." instead of generic "Figma read timed out" / "Timeout".
+- Added a Retry button next to the readiness error message so users can re-run checks without scrolling to the header button.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L299 (readiness timeout msg), ~L360 (orphan timeout msg), ~L731 (error UI with retry button)
+- **Learnings for future iterations:**
+  - The variable compare and apply timeouts already had "is the plugin running?" hints — only the readiness check path was missing user-friendly messaging.
+---
