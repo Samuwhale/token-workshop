@@ -944,6 +944,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
               onClick={handleExport}
               disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting}
               className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+              title="Re-fetch tokens from the server and regenerate all platform files"
             >
               {exporting ? 'Exporting…' : 'Re-export'}
             </button>

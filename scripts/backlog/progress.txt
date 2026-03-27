@@ -243,3 +243,10 @@
 - **Learnings for future iterations:**
   - Git remote URLs have 5 common schemes: https://, git@host:path (SCP-style SSH), ssh://, git://, file://. A simple regex array covers all of them without over-engineering.
 ---
+
+## 2026-03-27 - ExportPanel: "Re-export" button missing tooltip
+- Added `title` attribute to the Re-export button: "Re-fetch tokens from the server and regenerate all platform files". This clarifies that re-export pulls fresh data from the server, not just re-downloads cached results.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L946
+- **Learnings for future iterations:**
+  - The Re-export button is in the `mode === 'platforms' && results.length > 0` branch of the footer, distinct from the initial export button which is in the `results.length === 0` branch.
+---
