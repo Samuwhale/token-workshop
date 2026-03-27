@@ -369,3 +369,9 @@
 - **Learnings for future iterations:**
   - When rendering size-proportional visuals from token values, always strip and handle CSS units (px, rem, %, em) before calling `parseFloat`, otherwise unitful strings silently drop the unit and produce near-zero values.
 ---
+
+## 2026-03-27 - discover-pass: SelectionInspector.tsx
+- Area: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` + `packages/figma-plugin/src/plugin/controller.ts` (binding handlers)
+- Found 6 items — written to backlog-inbox.md
+- Notable: `syncBindings` applies raw alias `$value` strings directly to `applyTokenValue` — alias tokens always fail silently during "Sync Selection/Page" with a misleading "check token types" error
+---
