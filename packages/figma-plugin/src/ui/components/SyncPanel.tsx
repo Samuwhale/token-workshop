@@ -251,13 +251,18 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
       }
 
       if (pullRows.length > 0) {
-        await Promise.all(pullRows.map(r =>
-          fetch(`${serverUrl}/api/tokens/${activeSet}/${r.path}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaValue ?? '' }),
-          })
-        ));
+        await fetch(`${serverUrl}/api/tokens/${activeSet}/batch`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            strategy: 'overwrite',
+            tokens: pullRows.map(r => ({
+              path: r.path,
+              $type: r.figmaType ?? 'string',
+              $value: r.figmaValue ?? '',
+            })),
+          }),
+        });
       }
 
       setVarRows([]);

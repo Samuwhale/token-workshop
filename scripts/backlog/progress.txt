@@ -288,3 +288,11 @@
 - Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L44
 - **Why:** The comment in the original even said "Use same matrix coefficients as rgbToLab for consistency" — the code was self-aware of the duplication but hadn't been fixed.
 ---
+
+## 2026-03-27 - applyVarDiff pull side uses batch endpoint
+- Replaced `Promise.all` of individual PATCH requests with a single `POST /api/tokens/:set/batch` call using `strategy: 'overwrite'`. Maps `pullRows` to `{ path, $type, $value }` objects in the batch payload.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L253-260
+- **Learnings for future iterations:**
+  - The batch endpoint accepts `{ strategy: 'skip' | 'overwrite', tokens: [...] }` — use `'overwrite'` for pull/sync operations where Figma values should win.
+  - No error handling change needed: a single fetch failure surfaces the same way as before (caught by the outer try/catch).
+---
