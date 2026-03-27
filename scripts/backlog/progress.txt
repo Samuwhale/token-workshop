@@ -352,3 +352,11 @@
 - **Learnings for future iterations:**
   - When adding a new generator type, it must be added to BOTH `computeResults` AND `computeResultsWithValue`. The two switches must stay in sync.
 ---
+
+## 2026-03-27 - Auto-navigate to imported set after successful import
+- Added `onImportComplete: (targetSet: string) => void` prop to `ImportPanel`. Called it after `onImported()` in both `executeImport` (styles flow, passes `targetSet`) and `handleImportVariables` (variables flow, passes the first imported set name). In App.tsx, the handler calls `setOverflowPanel(null)`, `setActiveTab('tokens')`, and `setActiveSet(importedSet)` to close the Import panel and switch to the imported set.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L5,L44,L221,L302; `packages/figma-plugin/src/ui/App.tsx` ~L2002
+- **Learnings for future iterations:**
+  - For panel-to-app navigation after async operations, adding a typed callback prop (`onImportComplete`) is cleaner than lifting state or using context — keeps the panel self-contained.
+  - The variables import can create multiple sets; navigate to the first one (`allModes[0]?.setName`) as a best-effort default.
+---

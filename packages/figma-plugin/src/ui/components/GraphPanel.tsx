@@ -177,6 +177,7 @@ function getGeneratorTypeLabel(type: GeneratorType): string {
     case 'borderRadiusScale': return 'Border radius';
     case 'zIndexScale': return 'Z-index scale';
     case 'customScale': return 'Custom scale';
+    case 'contrastCheck': return 'Contrast check';
   }
 }
 

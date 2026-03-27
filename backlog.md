@@ -92,7 +92,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [~] Auto-navigate to imported set after successful import — after `executeImport` completes, close the Import panel and switch to the Tokens tab with the target set active; currently leaves the user on the Import panel with no indication of what was added (`figma-plugin/ImportPanel.tsx`)
+- [x] Auto-navigate to imported set after successful import — after `executeImport` completes, close the Import panel and switch to the Tokens tab with the target set active; currently leaves the user on the Import panel with no indication of what was added (`figma-plugin/ImportPanel.tsx`)
 
 ---
 
