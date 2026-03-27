@@ -111,3 +111,10 @@ Already up to date.
 ===============================================================
   Claimed: Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
   Worktree: /tmp/backlog-98408-xG4gga
+
+  ✓ done: Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
+    Added tabIndex, role, aria-label/valuenow/min/max, and arrow-key handlers (±1 or ±10 with Shift) to all three picker areas (color area, hue strip, alpha strip); focus ring added for visibility
+    11 turns · 100s · $0.34
+
+--- Merging: Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels ---
+Already up to date.

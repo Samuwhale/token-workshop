@@ -335,3 +335,16 @@
   - Only show the error after the value is "complete" (length ≥ 7 with the `#` prefix) — partial values while typing should not trigger the error.
   - Tailwind's `!border-red-500` important modifier is needed to override the focus border that `inputClass` sets via `focus:border-[var(--color-figma-accent)]`.
 ---
+
+## 2026-03-27 - Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
+- Added keyboard navigation and ARIA labels to all three picker areas:
+  - **Color area (2D)**: `tabIndex={0}`, `role="group"`, `aria-label` with live sat/lit values. ArrowRight/Left adjust saturation ±1% (±10% with Shift). ArrowUp/Down adjust lightness ±1% (±10% with Shift).
+  - **Hue strip**: `tabIndex={0}`, `role="slider"`, `aria-valuenow/min/max`, ArrowLeft/Right adjust hue ±1° (±10° with Shift).
+  - **Alpha strip**: `tabIndex={0}`, `role="slider"`, `aria-valuenow/min/max`, ArrowLeft/Right adjust alpha ±1% (±10% with Shift).
+  - All three wrappers get `focus:ring-2 focus:ring-[var(--color-figma-accent)]` for visible focus indication.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L411, ~L426, ~L452
+- **Learnings for future iterations:**
+  - The 2D canvas area has no perfect ARIA role — `role="group"` with a descriptive live `aria-label` is a pragmatic choice over `role="none"`. `role="slider"` only applies to 1D sliders.
+  - Wrapping divs (not the canvas elements themselves) are the right place for tabIndex/ARIA — canvas has poor native a11y support.
+  - Shift+Arrow for ×10 step is a standard keyboard pattern for sliders (matches native browser range input behavior).
+---

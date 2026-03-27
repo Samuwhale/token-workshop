@@ -414,7 +414,20 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
       style={{ width: 240, left: 0 }}
     >
       {/* Color area */}
-      <div className="relative" style={{ height: 150 }}>
+      <div
+        className="relative rounded focus:outline-none focus:ring-2 focus:ring-[var(--color-figma-accent)]"
+        style={{ height: 150 }}
+        tabIndex={0}
+        role="group"
+        aria-label={`Color area: saturation ${Math.round(sat)}%, lightness ${Math.round(lit)}%`}
+        onKeyDown={e => {
+          const step = e.shiftKey ? 10 : 1;
+          if (e.key === 'ArrowRight') { e.preventDefault(); setSat(clamp(sat + step, 0, 100)); }
+          else if (e.key === 'ArrowLeft') { e.preventDefault(); setSat(clamp(sat - step, 0, 100)); }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setLit(clamp(lit + step, 0, 100)); }
+          else if (e.key === 'ArrowDown') { e.preventDefault(); setLit(clamp(lit - step, 0, 100)); }
+        }}
+      >
         <canvas
           ref={areaRef}
           width={240}
@@ -429,7 +442,21 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
       </div>
 
       {/* Hue strip */}
-      <div className="relative" style={{ height: 12 }}>
+      <div
+        className="relative rounded focus:outline-none focus:ring-2 focus:ring-[var(--color-figma-accent)]"
+        style={{ height: 12 }}
+        tabIndex={0}
+        role="slider"
+        aria-label="Hue"
+        aria-valuenow={Math.round(hue)}
+        aria-valuemin={0}
+        aria-valuemax={360}
+        onKeyDown={e => {
+          const step = e.shiftKey ? 10 : 1;
+          if (e.key === 'ArrowRight') { e.preventDefault(); setHue(clamp(hue + step, 0, 360)); }
+          else if (e.key === 'ArrowLeft') { e.preventDefault(); setHue(clamp(hue - step, 0, 360)); }
+        }}
+      >
         <canvas
           ref={hueRef}
           width={240}
@@ -443,7 +470,21 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
       </div>
 
       {/* Alpha strip */}
-      <div className="relative" style={{ height: 12 }}>
+      <div
+        className="relative rounded focus:outline-none focus:ring-2 focus:ring-[var(--color-figma-accent)]"
+        style={{ height: 12 }}
+        tabIndex={0}
+        role="slider"
+        aria-label="Alpha"
+        aria-valuenow={Math.round(alpha * 100)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        onKeyDown={e => {
+          const step = e.shiftKey ? 10 : 1;
+          if (e.key === 'ArrowRight') { e.preventDefault(); setAlpha(clamp(alpha + step / 100, 0, 1)); }
+          else if (e.key === 'ArrowLeft') { e.preventDefault(); setAlpha(clamp(alpha - step / 100, 0, 1)); }
+        }}
+      >
         <canvas
           ref={alphaRef}
           width={240}

@@ -138,3 +138,16 @@ Already up to date.
 
 --- Merging: ColorPicker hex input silently rejects invalid values — typing "#GGGGGG" shows no error message, no red border, just nothing happening ---
 Already up to date.
+[main e830d4c] chore(backlog): done – ColorPicker hex input silently rejects invalid values — typing "#GGGGGG" shows no error message, no red border, just nothing happening
+ 6 files changed, 40 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - ColorPicker hex input silently rejects invalid values
+- Added `hexInputError` state to `ColorPicker.tsx`. `onHexInputChange` now sets the error when the input is ≥7 chars (complete hex length) but doesn't match `#RRGGBB` / `#RRGGBBAA`. The hex `<input>` gets `!border-red-500` when invalid and a tooltip explaining the expected format. Error resets on valid input or when the prop value syncs in from outside.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L203 (hexInputError state), ~L318 (onHexInputChange), ~L480 (hex input className/title), ~L234 (reset on prop sync)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  71 items remaining
+===============================================================
+  Claimed: Find-and-replace has no confirmation step — bulk rename applies immediately with no preview-and-confirm modal, making accidental mass renames easy
+  Worktree: /tmp/backlog-97955-UYHsmn
