@@ -138,3 +138,16 @@ Already up to date.
 
 --- Merging: No token search highlighting — filtering tokens by name narrows the list but doesn't highlight the matching substring in results, making it hard to spot the exact match in large sets ---
 Already up to date.
+[main 584070e] chore(backlog): done – No token search highlighting — filtering tokens by name narrows the list but doesn't highlight the matching substring in results, making it hard to spot the exact match in large sets
+ 6 files changed, 55 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - No token search highlighting — filtering tokens by name narrows the list but doesn't highlight the matching substring in results, making it hard to spot the exact match in large sets
+- Added `highlightMatch(text, query)` helper above `TokenTreeNode` that returns a React node with the matching substring wrapped in a `<mark>` with amber/yellow inline style. Applied to both token leaf name (line ~4193) and group name (line ~3685). Added `searchQuery?: string` prop to `TokenTreeNode` and passed it from both the virtual-scroll call site and the recursive child render site.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3229, ~L3686, ~L4193
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  9 items remaining
+===============================================================
+  Claimed: No color harmony suggestions in ColorPicker — no complementary, triadic, or analogous color suggestions when editing a color token, making systematic palette design harder
+  Worktree: /tmp/backlog-59311-qBGhpQ

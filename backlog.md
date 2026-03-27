@@ -118,13 +118,13 @@
 
 - [~] Deep Inspect mode has no keyboard shortcut — toggling deep inspection requires clicking a small button; a keyboard shortcut would streamline the inspect workflow
 
-- [~] No token search highlighting — filtering tokens by name narrows the list but doesn't highlight the matching substring in results, making it hard to spot the exact match in large sets
+- [x] No token search highlighting — filtering tokens by name narrows the list but doesn't highlight the matching substring in results, making it hard to spot the exact match in large sets
 - [x] No "duplicate token" or "create sibling" action — creating a variant of an existing token requires manually entering the full path from scratch instead of forking from the current token
 - [x] Batch editor find-and-replace has no regex support — only literal string matching is available, so common refactors like renaming `spacing.*` to `dimension.*` require manual work per token
 - [~] Batch editor operations show no preview of affected tokens — scaling dimensions, changing types, or find-replacing paths execute immediately with no "these N tokens will change from X to Y" dry-run
 - [~] Token delete does not warn about dependent tokens — deleting a token that other tokens alias silently breaks downstream references; the server should block or warn like it does for set deletion
 - [~] No color contrast checker in ColorPicker — editing a color token has no inline WCAG AA/AAA pass/fail indicator against common backgrounds, forcing users to check contrast separately
-- [ ] No color harmony suggestions in ColorPicker — no complementary, triadic, or analogous color suggestions when editing a color token, making systematic palette design harder
+- [~] No color harmony suggestions in ColorPicker — no complementary, triadic, or analogous color suggestions when editing a color token, making systematic palette design harder
 - [ ] CommandPalette token search capped at 100 results with no pagination — users with 500+ tokens can't find matches beyond the cap, and there's no indication results were truncated
 - [ ] CommandPalette token results don't show which set a token belongs to — when the same path exists in multiple sets, users can't distinguish between them in search results
 - [ ] ThemeManager has no search/filter for token sets — configuring dimension options with 50+ sets requires scrolling through the entire list with no way to filter by name

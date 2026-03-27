@@ -10,6 +10,7 @@ import {
   srgbToP3,
   p3ToSrgb,
   isP3InSrgbGamut,
+  wcagContrast,
 } from '../shared/colorUtils';
 
 // ---------------------------------------------------------------------------
@@ -533,6 +534,41 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
       ) : (
         renderChannels()
       )}
+
+      {/* WCAG contrast checker */}
+      {(() => {
+        const contrastVsWhite = wcagContrast(hex6, '#ffffff');
+        const contrastVsBlack = wcagContrast(hex6, '#000000');
+        const badge = (ratio: number | null, threshold: number) => {
+          if (ratio === null) return null;
+          const pass = ratio >= threshold;
+          return (
+            <span className={`text-[8px] font-semibold px-1 py-0.5 rounded ${pass ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+              {pass ? '✓' : '✗'} {threshold === 4.5 ? 'AA' : 'AAA'}
+            </span>
+          );
+        };
+        const row = (label: string, bg: string, ratio: number | null) => (
+          <div className="flex items-center gap-1.5">
+            <div className="w-3.5 h-3.5 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: bg }} />
+            <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">{label}</span>
+            <span className="text-[9px] tabular-nums text-[var(--color-figma-text)] flex-1">
+              {ratio !== null ? ratio.toFixed(2) + ':1' : '—'}
+            </span>
+            <div className="flex gap-0.5">
+              {badge(ratio, 4.5)}
+              {badge(ratio, 7)}
+            </div>
+          </div>
+        );
+        return (
+          <div className="flex flex-col gap-1 border-t border-[var(--color-figma-border)] pt-1.5">
+            <div className="text-[8px] uppercase text-[var(--color-figma-text-secondary)] font-medium tracking-wide mb-0.5">Contrast</div>
+            {row('White', '#ffffff', contrastVsWhite)}
+            {row('Black', '#000000', contrastVsBlack)}
+          </div>
+        );
+      })()}
 
       {/* Alpha numeric + eyedropper row */}
       <div className="flex gap-1.5 items-end">

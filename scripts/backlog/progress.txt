@@ -316,3 +316,12 @@
   - Used `style={{ background: 'rgba(255,200,0,0.45)', ... }}` instead of Tailwind class because arbitrary opacity on a CSS variable background (`bg-[var(--color-figma-accent)]/45`) doesn't survive singlefile minification reliably.
   - The filter logic already matched on `node.path` (full path) OR `node.name`, so any hit on the leaf name is guaranteed to be visible in the highlight; no need to highlight ancestor segments.
 ---
+
+## 2026-03-27 - No color contrast checker in ColorPicker — editing a color token has no inline WCAG AA/AAA pass/fail indicator against common backgrounds
+- Added an inline WCAG contrast section at the bottom of ColorPicker, above the alpha row. Shows contrast ratio of the current color vs white and vs black backgrounds with AA (4.5:1) and AAA (7:1) pass/fail badges. Reused existing `wcagContrast` from colorUtils.ts.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L537
+- **Learnings for future iterations:**
+  - Contrast is computed from `hex6` (the opaque color, no alpha) since alpha compositing depends on actual background rendering context — this is the standard WCAG approach.
+  - The IIFE `{(() => { ... })()}` pattern in JSX works well for rendering logic that computes multiple intermediate values without needing a separate component or useMemo.
+  - `wcagContrast` and `hexToLuminance` already existed and worked perfectly for the AA/AAA thresholds (4.5 and 7:1).
+---

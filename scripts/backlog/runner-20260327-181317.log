@@ -112,3 +112,10 @@ Already up to date.
 ===============================================================
   Claimed: No color contrast checker in ColorPicker — editing a color token has no inline WCAG AA/AAA pass/fail indicator against common backgrounds, forcing users to check contrast separately
   Worktree: /tmp/backlog-59609-YMmdlJ
+
+  ✓ done: No color contrast checker in ColorPicker — editing a color token has no inline WCAG AA/AAA pass/fail indicator against common backgrounds, forcing users to check contrast separately
+    Added inline WCAG contrast section to ColorPicker showing ratio and AA/AAA pass/fail badges vs white and black backgrounds, using existing wcagContrast utility
+    13 turns · 102s · $0.37
+
+--- Merging: No color contrast checker in ColorPicker — editing a color token has no inline WCAG AA/AAA pass/fail indicator against common backgrounds, forcing users to check contrast separately ---
+Already up to date.
