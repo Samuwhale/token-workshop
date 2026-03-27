@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - Generator output not previewed before applying
+- Stale — already done. `TokenGeneratorDialog.tsx` has a full "Preview" section (L344–403) showing live token previews via `/api/generators/preview` with type-specific visuals (`ColorSwatchPreview`, `TypeScalePreview`, `SpacingPreview`, `OpacityPreview`, `GenericPreview`, `ContrastCheckPreview`). `useGeneratorDialog.ts` implements `fetchPreview()` with debounce (L159–208) that fires on every config change. The Create button already shows `Create (N tokens)` based on preview count. The preview step was fully implemented before this item was processed.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+  - When a backlog item says "no preview" for TokenGeneratorDialog, check `useGeneratorDialog.ts` for `fetchPreview` — the live preview was built before the item was filed.
+---
+
 ## 2026-03-27 - No pull-from-Figma action
 - Stale — already done. `ImportPanel.tsx` has full pull-from-Figma functionality: `handleReadVariables()` sends `read-variables` to the plugin and handles `variables-read` responses (mapping collections/modes to named token sets and uploading via `/api/sets` + `/api/tokens/{set}`); `handleReadStyles()` reads paint/text/effect styles; JSON file import is also present. `controller.ts` has `readFigmaVariables()` (L491) and `readFigmaStyles()` (L522) handlers wired at L22-26. The feature is complete and fully functional.
 - Files changed: none (already implemented)
