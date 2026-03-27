@@ -59,6 +59,44 @@ export function HeatmapPanel({ result, loading, onRescan, onSelectNodes }: Heatm
     onSelectNodes(ids);
   }, [result, onSelectNodes]);
 
+  const exportCSV = useCallback(() => {
+    if (!result) return;
+    const headers = ['name', 'type', 'status', 'bound', 'total'];
+    const rows = result.nodes.map(n => [
+      `"${n.name.replace(/"/g, '""')}"`,
+      n.type,
+      n.status,
+      n.boundCount,
+      n.totalCheckable,
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'heatmap.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [result]);
+
+  const exportJSON = useCallback(() => {
+    if (!result) return;
+    const pct = result.total > 0 ? Math.round((result.green / result.total) * 100) : 0;
+    const out = {
+      summary: `${result.green}/${result.total} layers fully bound (${pct}%)`,
+      total: result.total,
+      green: result.green,
+      yellow: result.yellow,
+      red: result.red,
+      nodes: result.nodes,
+    };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'heatmap.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [result]);
+
   const filteredNodes = result?.nodes.filter(n => filter === 'all' || n.status === filter) ?? [];
 
   // Group nodes by status for the grouped view
@@ -74,13 +112,33 @@ export function HeatmapPanel({ result, loading, onRescan, onSelectNodes }: Heatm
       {result && !loading && (
         <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{result.total} layers scanned</span>
-            <button
-              onClick={onRescan}
-              className="ml-auto text-[10px] text-[var(--color-figma-accent)] hover:underline"
-            >
-              Rescan
-            </button>
+            <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+              {result.total > 0
+                ? `${result.green}/${result.total} layers fully bound (${Math.round((result.green / result.total) * 100)}%)`
+                : `${result.total} layers scanned`}
+            </span>
+            <div className="ml-auto flex items-center gap-2">
+              <button
+                onClick={exportCSV}
+                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                title="Export as CSV"
+              >
+                CSV
+              </button>
+              <button
+                onClick={exportJSON}
+                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+                title="Export as JSON"
+              >
+                JSON
+              </button>
+              <button
+                onClick={onRescan}
+                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+              >
+                Rescan
+              </button>
+            </div>
           </div>
           {/* Coverage bar */}
           {result.total > 0 && (

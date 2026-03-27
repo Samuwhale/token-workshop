@@ -390,3 +390,11 @@
 - **Learnings for future iterations:**
   - When a backlog item says "no preview exists", always read the full component first — the preview may have been added in a previous session. The ExportPanel results section (expandable cards with code `<pre>` blocks) is the canonical preview pattern for this codebase.
 ---
+
+## 2026-03-27 - HeatmapPanel has no export or reporting — users can't export binding coverage as CSV/JSON or share a "200/1000 layers bound (20%)" summary with stakeholders
+- Added `exportCSV` and `exportJSON` callbacks to HeatmapPanel using Blob + URL.createObjectURL to trigger downloads (heatmap.csv / heatmap.json). JSON export includes a `summary` field with the "X/Y layers fully bound (Z%)" string. Updated the stats bar to replace the plain "N layers scanned" text with the formatted summary, and added CSV/JSON export buttons alongside the existing Rescan button.
+- Files changed: `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L41
+- **Learnings for future iterations:**
+  - Blob+URL.createObjectURL download pattern works in plugin UI without any external dependencies — same approach as the ZIP builder pattern.
+  - The summary "X/Y fully bound" uses `result.green` (fully bound) as the numerator; `green+yellow` would represent "at least partially bound" — choose based on stakeholder intent.
+---

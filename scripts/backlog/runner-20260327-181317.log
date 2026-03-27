@@ -172,3 +172,10 @@ Already up to date.
 ===============================================================
   Claimed: HeatmapPanel has no export or reporting — users can't export binding coverage as CSV/JSON or share a "200/1000 layers bound (20%)" summary with stakeholders
   Worktree: /tmp/backlog-59609-GX5zSE
+
+  ✓ done: HeatmapPanel has no export or reporting — users can't export binding coverage as CSV/JSON or share a "200/1000 layers bound (20%)" summary with stakeholders
+    Added CSV and JSON export buttons to HeatmapPanel stats bar; JSON includes summary string; stats bar now shows "X/Y layers fully bound (Z%)" instead of plain layer count
+    12 turns · 97s · $0.31
+
+--- Merging: HeatmapPanel has no export or reporting — users can't export binding coverage as CSV/JSON or share a "200/1000 layers bound (20%)" summary with stakeholders ---
+Already up to date.
