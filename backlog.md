@@ -111,12 +111,12 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [~] `rebuildFlatTokens` called multiple times per batch operation without batching in `replaceSetTokens`, `renameGroup`, `moveGroup`, `bulkRename` (`server/token-store.ts`)
 - [x] AnalyticsPanel fetches all sets' tokens in parallel with no `AbortController` — setState on unmounted component if user switches tabs (`figma-plugin/AnalyticsPanel.tsx:201-264`)
 - [x] AliasAutocomplete `entries` recomputed every render without `useMemo` — expensive for large token sets (`figma-plugin/AliasAutocomplete.tsx`)
-- [~] `LintConfigStore.load()` returns shallow reference to cached config — callers can corrupt the cache (`server/lint.ts:63-72`)
+- [x] `LintConfigStore.load()` returns shallow reference to cached config — callers can corrupt the cache (`server/lint.ts:63-72`)
 - [~] `validateAllTokens` hardcodes `depth > 3` instead of reading from lint config (`server/lint.ts:338`)
 
 ### Correctness & Safety
 
-- [ ] Pervasive `as any` casts in generator-service.ts, generators route, sets route, tokens route, and controller.ts — bypasses type safety across the plugin boundary
+- [~] Pervasive `as any` casts in generator-service.ts, generators route, sets route, tokens route, and controller.ts — bypasses type safety across the plugin boundary
 - [ ] `REFERENCE_GLOBAL_REGEX` is a module-level stateful regex with `/g` flag — latent `.lastIndex` hazard if anyone uses `.test()` or `.exec()` directly (`core/constants.ts:118`)
 - [ ] App.tsx is a ~2000-line god component with 40+ useState declarations — should be decomposed into feature modules
 - [ ] TokenList accepts 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)

@@ -326,3 +326,11 @@
 - **Learnings for future iterations:**
   - `q` (the lowercased query) was hoisted out of the memoized callback — moved it inside the `useMemo` so it's properly scoped.
 ---
+
+## 2026-03-27 - `LintConfigStore.load()` returns shallow reference to cached config — callers can corrupt the cache
+- Changed `load()` to always return `structuredClone(this.config)` so callers get a deep copy and cannot mutate the in-memory cache. Also switched the cold-start fallback from `{ ...DEFAULT_LINT_CONFIG }` (shallow spread) to `structuredClone(DEFAULT_LINT_CONFIG)` to prevent the same issue on first load.
+- Files changed: `packages/server/src/services/lint.ts` ~L63-72
+- **Learnings for future iterations:**
+  - `structuredClone` is the idiomatic Node.js 17+ way to deep-copy plain objects; prefer it over `JSON.parse(JSON.stringify(...))`.
+  - When caching mutable config objects, always return a copy — both the warm-cache path (`if (this.config) return ...`) and the cold-start path need the clone.
+---

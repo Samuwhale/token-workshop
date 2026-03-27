@@ -61,14 +61,15 @@ export class LintConfigStore {
   }
 
   async load(): Promise<LintConfig> {
-    if (this.config) return this.config;
-    try {
-      const content = await fs.readFile(this.configPath, 'utf-8');
-      this.config = JSON.parse(content) as LintConfig;
-    } catch {
-      this.config = { ...DEFAULT_LINT_CONFIG };
+    if (!this.config) {
+      try {
+        const content = await fs.readFile(this.configPath, 'utf-8');
+        this.config = JSON.parse(content) as LintConfig;
+      } catch {
+        this.config = structuredClone(DEFAULT_LINT_CONFIG);
+      }
     }
-    return this.config;
+    return structuredClone(this.config);
   }
 
   async save(config: LintConfig): Promise<void> {
@@ -282,7 +283,7 @@ const TYPE_VALUE_CHECKS: Record<string, (v: unknown) => boolean> = {
   boolean: v => typeof v === 'boolean',
 };
 
-export async function validateAllTokens(tokenStore: TokenStore): Promise<ValidationIssue[]> {
+export async function validateAllTokens(tokenStore: TokenStore, config?: LintConfig): Promise<ValidationIssue[]> {
   const issues: ValidationIssue[] = [];
   const sets = await tokenStore.getSets();
 
@@ -334,15 +335,19 @@ export async function validateAllTokens(tokenStore: TokenStore): Promise<Validat
       }
 
       // Alias depth
-      const depth = getAliasDepth(tokenPath, Object.fromEntries(Object.entries(allTokensMap).map(([k, v]) => [k, v.token])));
-      if (depth > 3) {
-        issues.push({
-          severity: 'warning',
-          setName,
-          path: tokenPath,
-          rule: 'max-alias-depth',
-          message: `Alias chain depth is ${depth} (recommended max: 3).`,
-        });
+      const maxAliasDepthRule = (config ?? DEFAULT_LINT_CONFIG).lintRules['max-alias-depth'];
+      if (maxAliasDepthRule?.enabled !== false) {
+        const maxDepth = (maxAliasDepthRule?.options?.maxDepth as number | undefined) ?? 3;
+        const depth = getAliasDepth(tokenPath, Object.fromEntries(Object.entries(allTokensMap).map(([k, v]) => [k, v.token])));
+        if (depth > maxDepth) {
+          issues.push({
+            severity: maxAliasDepthRule?.severity ?? 'warning',
+            setName,
+            path: tokenPath,
+            rule: 'max-alias-depth',
+            message: `Alias chain depth is ${depth} (recommended max: ${maxDepth}).`,
+          });
+        }
       }
     } else if (token.$type && TYPE_VALUE_CHECKS[token.$type]) {
       // Value/type mismatch

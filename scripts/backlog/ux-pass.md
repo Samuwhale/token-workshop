@@ -24,9 +24,10 @@ Be specific before you act: e.g. "add empty-state guidance to the token list whe
 ## Workflow
 
 1. **Explore** — read UI components in `packages/figma-plugin/src/ui/` to find ONE concrete opportunity. Understand the current behaviour before changing it.
-2. **Implement** — make the targeted UX change. Keep it focused on presentation and interaction quality, not visual redesign.
-3. **Validate** — run `cd packages/figma-plugin && npm run build`. Do NOT report success without a passing build. If validation fails, revert your changes.
-4. **Document** — append to `scripts/backlog/progress.txt`:
+2. **Write overflow** — if you spot other UX issues during exploration that are worth fixing but out of scope for this session, append each as `- [ ] Short title — one sentence` to `backlog-inbox.md` so they get picked up later. Do this before implementing.
+3. **Implement** — make the targeted UX change. Keep it focused on presentation and interaction quality, not visual redesign.
+4. **Validate** — run `cd packages/figma-plugin && npm run build`. Do NOT report success without a passing build. If validation fails, revert your changes.
+5. **Document** — append to `scripts/backlog/progress.txt`:
 
 ```
 ## YYYY-MM-DD - ux-pass: [what was improved]
@@ -46,7 +47,7 @@ If you discover a reusable pattern worth preserving, add it to `scripts/backlog/
 - One improvement per session. Do not attempt a full UX audit.
 - Prefer copy, label, feedback, and empty-state improvements over structural UI changes.
 - Do not change core token management logic — only how things are presented and how users interact with them.
-- Do NOT modify `backlog.md`.
+- Do NOT modify `backlog.md`. Overflow items go to `backlog-inbox.md`, not `backlog.md`.
 - If nothing stands out, pick the smallest meaningful improvement (e.g. improve one tooltip or one error message) and note it was low-impact.
 
 ---

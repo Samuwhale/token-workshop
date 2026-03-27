@@ -25,7 +25,8 @@ export const lintRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fasti
   // POST /api/tokens/validate — validate all tokens across all sets
   fastify.post('/tokens/validate', async (_request, reply) => {
     try {
-      const issues = await validateAllTokens(fastify.tokenStore);
+      const config = await lintConfigStore.get();
+      const issues = await validateAllTokens(fastify.tokenStore, config);
       const errors = issues.filter(i => i.severity === 'error').length;
       const warnings = issues.filter(i => i.severity === 'warning').length;
       return { issues, summary: { total: issues.length, errors, warnings } };

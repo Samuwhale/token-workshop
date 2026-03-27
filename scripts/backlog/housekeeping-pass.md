@@ -23,9 +23,10 @@ Be specific before you act: e.g. "remove unused `formatTokenValue` from `package
 ## Workflow
 
 1. **Explore** — scan the codebase to identify ONE concrete opportunity. Read the relevant files. Confirm the issue is real (not already fixed).
-2. **Implement** — make the targeted change. Do not clean up unrelated code in the same pass.
-3. **Validate** — run `cd packages/figma-plugin && npm run build`. Do NOT report success without a passing build. If validation fails, revert your changes.
-4. **Document** — append to `scripts/backlog/progress.txt`:
+2. **Write overflow** — if you spot other cleanup opportunities during exploration that are worth fixing but out of scope for this session, append each as `- [ ] Short title — one sentence` to `backlog-inbox.md` so they get picked up later. Do this before implementing.
+3. **Implement** — make the targeted change. Do not clean up unrelated code in the same pass.
+4. **Validate** — run `cd packages/figma-plugin && npm run build`. Do NOT report success without a passing build. If validation fails, revert your changes.
+5. **Document** — append to `scripts/backlog/progress.txt`:
 
 ```
 ## YYYY-MM-DD - housekeeping: [what was cleaned]
