@@ -16,7 +16,13 @@ export function evalExpr(expr: string): number {
       let num = '';
       while (i < src.length && /[\d.]/.test(src[i])) num += src[i++];
       tokens.push(num);
-    } else if ('+-*/^()'.includes(src[i])) {
+    } else if (src[i] === '*' && src[i + 1] === '*') {
+      tokens.push('**');
+      i += 2;
+    } else if (src[i] === '^') {
+      tokens.push('**');
+      i++;
+    } else if ('+-*/()'.includes(src[i])) {
       tokens.push(src[i++]);
     } else {
       throw new Error(`Unexpected character in formula: ${src[i]}`);
@@ -44,22 +50,21 @@ export function evalExpr(expr: string): number {
     let left = parsePow();
     while (peek() === '*' || peek() === '/') {
       const op = consume();
-      // Handle ** (two consecutive *)
-      if (op === '*' && peek() === '*') {
-        consume();
-        const exp = parsePow();
-        left = Math.pow(left, exp);
-      } else {
-        const right = parsePow();
-        if (op === '/' && right === 0) throw new Error('Division by zero in formula');
-        left = op === '*' ? left * right : left / right;
-      }
+      const right = parsePow();
+      if (op === '/' && right === 0) throw new Error('Division by zero in formula');
+      left = op === '*' ? left * right : left / right;
     }
     return left;
   }
 
   function parsePow(): number {
-    return parseUnary();
+    const base = parseUnary();
+    if (peek() === '**') {
+      consume();
+      const exp = parsePow(); // right-associative
+      return Math.pow(base, exp);
+    }
+    return base;
   }
 
   function parseUnary(): number {

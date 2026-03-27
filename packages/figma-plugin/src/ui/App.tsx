@@ -16,6 +16,7 @@ import { QuickStartDialog } from './components/QuickStartDialog';
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { Command, TokenEntry } from './components/CommandPalette';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { PreviewPanel } from './components/PreviewPanel';
 import { HeatmapPanel } from './components/HeatmapPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
@@ -264,6 +265,7 @@ export function App() {
   const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   // Must be declared before useSidePanel which references it
   const [createFromEmpty, setCreateFromEmpty] = useState(false);
   const [lintKey, setLintKey] = useState(0);
@@ -1233,6 +1235,13 @@ export function App() {
         category: 'Sets',
         handler: () => { setActiveSet(s); goToTokens(); },
       })),
+      {
+        id: 'keyboard-shortcuts',
+        label: 'Keyboard shortcuts\u2026',
+        description: 'View all keyboard shortcuts',
+        category: 'Help',
+        handler: () => setShowKeyboardShortcuts(true),
+      },
     ];
     return cmds;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1513,7 +1522,7 @@ export function App() {
                       {set}
                       {setTokenCounts[set] !== undefined && (
                         <span className={`ml-1.5 ${isActive ? 'text-white/70' : 'text-[var(--color-figma-text-tertiary)]'}`}>
-                          {setTokenCounts[set]}
+                          {isActive && filteredSetCount !== null ? `${filteredSetCount} / ${setTokenCounts[set]}` : setTokenCounts[set]}
                         </span>
                       )}
                     </button>
@@ -1764,7 +1773,9 @@ export function App() {
                             >
                               <span className="truncate flex-1">{leaf}</span>
                               {setTokenCounts[set] !== undefined && (
-                                <span className={`text-[9px] shrink-0 ml-1 ${activeSet === set ? 'opacity-60' : 'text-[var(--color-figma-text-tertiary)]'}`}>{setTokenCounts[set]}</span>
+                                <span className={`text-[9px] shrink-0 ml-1 ${activeSet === set ? 'opacity-60' : 'text-[var(--color-figma-text-tertiary)]'}`}>
+                                  {activeSet === set && filteredSetCount !== null ? `${filteredSetCount} / ${setTokenCounts[set]}` : setTokenCounts[set]}
+                                </span>
                               )}
                             </button>
                           )}

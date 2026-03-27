@@ -140,6 +140,19 @@ function inferTypeFromValue(value: string): string | null {
   return null;
 }
 
+function inferGroupTokenType(children?: TokenNode[]): string {
+  if (!children?.length) return 'color';
+  const types = new Set<string>();
+  const collect = (nodes: TokenNode[]) => {
+    for (const n of nodes) {
+      if (!n.isGroup && n.$type) types.add(n.$type);
+      else if (n.children) collect(n.children);
+    }
+  };
+  collect(children);
+  return types.size === 1 ? [...types][0] : 'color';
+}
+
 interface PromoteRow {
   path: string;
   $type: string;
@@ -2787,7 +2800,7 @@ function TokenTreeNode({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onCreateSibling?.(node.path, 'color');
+                  onCreateSibling?.(node.path, inferGroupTokenType(node.children));
                 }}
                 title="Add token to group"
                 className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"

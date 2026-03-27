@@ -39,8 +39,8 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
-- [~] Group-level "+" button hardcodes type to `'color'` — should infer type from children/siblings in the group (e.g. if all children are `dimension`, default to `dimension`) (`TokenList.tsx:2801`)
-- [ ] `evalExpr` `**` operator has wrong precedence — `2 * 3 ** 4` evaluates to 1296 instead of 162 (`core/eval-expr.ts:47-51`). `parsePow` is a no-op; `^` is tokenized but never parsed
+- [x] Group-level "+" button hardcodes type to `'color'` — should infer type from children/siblings in the group (e.g. if all children are `dimension`, default to `dimension`) (`TokenList.tsx:2801`)
+- [~] `evalExpr` `**` operator has wrong precedence — `2 * 3 ** 4` evaluates to 1296 instead of 162 (`core/eval-expr.ts:47-51`). `parsePow` is a no-op; `^` is tokenized but never parsed
 - [ ] `lighten`/`darken` color modifiers silently swallow invalid hex input while `mix` throws — inconsistent error handling (`core/color-modifier.ts:25,32`)
 - [ ] `wcagLuminance` returns 0 for invalid input instead of erroring — causes incorrect contrast ratios (`core/generator-engine.ts:274`)
 - [ ] `clearAll` on token-store doesn't call `rebuildFlatTokens`/`rebuildResolver` — stale resolver persists until next file write (`server/token-store.ts:231-241`)

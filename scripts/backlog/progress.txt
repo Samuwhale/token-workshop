@@ -61,3 +61,10 @@
 - Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L701, L994, L1030, L1124
 - **User impact:** Hovering any remove-step button now shows "Remove step" tooltip, preventing accidental deletions and clarifying the button's purpose at a glance.
 ---
+## 2026-03-27 - Group-level "+" button hardcodes type to 'color'
+- Added `inferGroupTokenType(children)` helper that recursively collects `$type` values from leaf nodes; returns the single type if all leaves agree, otherwise falls back to `'color'`. Used in the group "+" button click handler instead of hardcoded `'color'`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L143 (helper), ~L2802 (usage)
+- **Learnings for future iterations:**
+  - The TokenNode tree already carries `$type` on leaf nodes — inference just collects and checks for unanimity.
+  - Token context-menu "Add sibling" already used `node.$type || 'color'` (L3347); group "+" button was the only place still hardcoded.
+---
