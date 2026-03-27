@@ -455,3 +455,18 @@ Already up to date.
 
 --- Merging: Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations ---
 Already up to date.
+[main 0669a95] chore(backlog): done – Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations
+ 8 files changed, 139 insertions(+), 2 deletions(-)
+
+## 2026-03-27 - Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations
+- Added four methods to GeneratorService to keep $generators.json in sync with rename operations: `updateSetName` (for set renames), `updateTokenPaths` (for single token renames — exact match on sourceToken), `updateGroupPath` (for group renames — prefix match on sourceToken and targetGroup), `updateBulkTokenPaths` (for bulk find/replace — applies same string transform to sourceToken and targetGroup).
+- Wired up each method in the corresponding routes: `POST /api/sets/:name/rename` (sets.ts), `POST /api/tokens/:set/tokens/rename`, `POST /api/tokens/:set/groups/rename`, `POST /api/tokens/:set/bulk-rename` (tokens.ts).
+- Files changed: `packages/server/src/services/generator-service.ts` ~L131, `packages/server/src/routes/tokens.ts` ~L46, ~L170, ~L242, `packages/server/src/routes/sets.ts` ~L89
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  0
+0 items remaining
+===============================================================
+./scripts/backlog/backlog.sh: line 696: [: 0
+0: integer expression expected
+No items available to claim (all in-progress or empty). Exiting.

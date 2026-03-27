@@ -118,7 +118,7 @@
 ### Correctness & Safety
 
 - [x] DELETE /api/sets/:name does not check if generators reference this set as `targetSet` before allowing deletion — leaves orphaned generators that error on next run
-- [~] Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations
+- [x] Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations
 - [x] ValuePreview renders an empty 5×5 div for unresolved aliases instead of a warning icon or placeholder — users don't know the token failed to resolve
 - [x] ValuePreview shadow preview only renders a single shadow even if the token value is an array — multi-shadow tokens are visually misrepresented
 - [x] PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view

@@ -599,20 +599,29 @@ export function TokenList({
     return paths;
   }, [lintViolations]);
 
+  // Debounced tokens reference for the expensive duplicate-value computation.
+  // Without debouncing, every keystroke in a large set triggers an O(n) walk
+  // over all tokens. 300 ms idle time is imperceptible for a background stat.
+  const [debouncedTokens, setDebouncedTokens] = useState(tokens);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedTokens(tokens), 300);
+    return () => clearTimeout(timer);
+  }, [tokens]);
+
   // Compute duplicate value info from all tokens in the current set
   const { duplicateValuePaths, duplicateCounts } = useMemo(() => {
     const valueMap = new Map<string, string[]>(); // serialized value → paths
     const collectLeaves = (nodes: TokenNode[]) => {
       for (const n of nodes) {
         if (!n.isGroup) {
-          const key = JSON.stringify(n.$value);
+          const key = stableStringify(n.$value);
           if (!valueMap.has(key)) valueMap.set(key, []);
           valueMap.get(key)!.push(n.path);
         }
         if (n.children) collectLeaves(n.children);
       }
     };
-    collectLeaves(tokens);
+    collectLeaves(debouncedTokens);
     const paths = new Set<string>();
     const counts = new Map<string, number>(); // serialized value → count
     for (const [key, ps] of valueMap) {
@@ -622,7 +631,7 @@ export function TokenList({
       }
     }
     return { duplicateValuePaths: paths, duplicateCounts: counts };
-  }, [tokens]);
+  }, [debouncedTokens]);
 
   const availableTypes = useMemo(() => {
     const types = new Set<string>();

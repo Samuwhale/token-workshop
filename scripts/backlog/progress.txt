@@ -403,3 +403,11 @@
   - Group rename needs prefix matching (oldGroupPath + '.') to correctly update all sourceToken/targetGroup references nested under the renamed group.
   - Bulk rename applies the same string transformation used by token-store.ts bulkRename to keep sourceToken/targetGroup in sync.
 ---
+
+## 2026-03-27 - Duplicate-value detection rebuilds via JSON.stringify on every token change — O(n²) with no debounce; significant for sets above ~5 k tokens
+- Added a 300 ms debounced `debouncedTokens` state (useState + useEffect) so the duplicate-value `useMemo` only runs after the user pauses editing, not on every keystroke. Also replaced `JSON.stringify(n.$value)` with `stableStringify(n.$value)` for correct key-order-independent serialization.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L602
+- **Learnings for future iterations:**
+  - Pattern for debouncing expensive `useMemo`: add `const [debouncedX, setDebouncedX] = useState(x)` + `useEffect(() => { const t = setTimeout(() => setDebouncedX(x), 300); return () => clearTimeout(t); }, [x])`, then depend the memo on `debouncedX`. Initial value matches immediately; subsequent changes are batched.
+  - The `useState` must be declared before any `useMemo`/`useCallback` that references it (TDZ rule).
+---
