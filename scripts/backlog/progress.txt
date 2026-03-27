@@ -461,3 +461,9 @@
 - **Learnings for future iterations:**
   - `AbortController` + `signal` on fetches only prevents network activity from completing — if the response body has already been received, the signal won't stop downstream `setState` calls. Always add `if (controller.signal.aborted) return;` after each `await` in async effect loads.
 ---
+
+## 2026-03-27 - discover-pass: server routes & services
+- Area: `packages/server/src/routes/` + `packages/server/src/services/token-store.ts`
+- Found 7 items — written to backlog-inbox.md
+- Notable: export group filter splits on `.` but token segments can contain literal dots — a known codebase-wide gotcha that wasn't applied to the export route
+---
