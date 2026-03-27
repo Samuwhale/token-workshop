@@ -211,8 +211,6 @@ export interface UseGeneratorsResult {
   refreshGenerators: () => void;
   generatorsBySource: Map<string, TokenGenerator[]>;
   derivedTokenPaths: Set<string>;
-  setStepOverride: (generatorId: string, stepName: string, override: StepOverride) => Promise<void>;
-  clearStepOverride: (generatorId: string, stepName: string) => Promise<void>;
 }
 
 export function useGenerators(serverUrl: string, connected: boolean): UseGeneratorsResult {
@@ -259,38 +257,11 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
     return set;
   }, [generators]);
 
-  const setStepOverride = useCallback(async (
-    generatorId: string,
-    stepName: string,
-    override: StepOverride,
-  ) => {
-    await fetch(
-      `${serverUrl}/api/generators/${generatorId}/steps/${encodeURIComponent(stepName)}/override`,
-      {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(override),
-        signal: AbortSignal.timeout(5000),
-      },
-    );
-    await fetchGenerators();
-  }, [serverUrl, fetchGenerators]);
-
-  const clearStepOverride = useCallback(async (generatorId: string, stepName: string) => {
-    await fetch(
-      `${serverUrl}/api/generators/${generatorId}/steps/${encodeURIComponent(stepName)}/override`,
-      { method: 'DELETE', signal: AbortSignal.timeout(5000) },
-    );
-    await fetchGenerators();
-  }, [serverUrl, fetchGenerators]);
-
   return {
     generators,
     loading,
     refreshGenerators: fetchGenerators,
     generatorsBySource,
     derivedTokenPaths,
-    setStepOverride,
-    clearStepOverride,
   };
 }

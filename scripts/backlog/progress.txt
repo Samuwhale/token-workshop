@@ -278,3 +278,9 @@
   - The `importProgress` state is `{ done: number; total: number } | null` — guard on `total > 0` to avoid division by zero.
   - Three independent footer sections in ImportPanel each show import status text; all three need the progress bar for consistency.
 ---
+
+## 2026-03-27 - housekeeping: remove dead setStepOverride/clearStepOverride from useGenerators hook
+- Removed `setStepOverride` and `clearStepOverride` useCallback functions (~25 lines), and their entries in the `UseGeneratorsResult` interface. These were fully implemented (making PUT/DELETE to `/api/generators/:id/steps/:name/override`) but no UI component ever consumed them. The `StepOverride` interface was kept — it's still used by `TokenGenerator.overrides`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L208 (interface), ~L262-295 (functions + return)
+- **Why:** Dead code adding ~25 lines of complexity and unused API surface to the hook's return type. Server-side endpoints exist but the UI never wired up step-level override controls.
+---
