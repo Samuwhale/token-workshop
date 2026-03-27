@@ -91,6 +91,7 @@ function detectAliasCycle(
 
 interface TokenEditorProps {
   tokenPath: string;
+  tokenName?: string;
   setName: string;
   serverUrl: string;
   onBack: () => void;
@@ -111,7 +112,7 @@ interface TokenEditorProps {
   dimensions?: ThemeDimension[];
 }
 
-export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, onDirtyChange, onSaved, dimensions = [] }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, onDirtyChange, onSaved, dimensions = [] }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -1347,6 +1348,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
         <TokenGeneratorDialog
           serverUrl={serverUrl}
           sourceTokenPath={tokenPath}
+          sourceTokenName={tokenName}
           sourceTokenType={tokenType}
           sourceTokenValue={aliasMode ? null : value}
           allSets={allSets}

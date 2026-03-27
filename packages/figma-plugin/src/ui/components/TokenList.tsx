@@ -53,7 +53,7 @@ interface TokenListData {
 }
 
 interface TokenListActions {
-  onEdit: (path: string) => void;
+  onEdit: (path: string, name?: string) => void;
   onCreateNew?: (initialPath?: string, initialType?: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -2149,7 +2149,7 @@ export function TokenList({
                         return (
                           <button
                             key={leaf.path}
-                            onClick={() => onEdit(leaf.path)}
+                            onClick={() => onEdit(leaf.path, leaf.name)}
                             title={`${formatDisplayPath(leaf.path, leaf.name)}\n${colorStr}`}
                             className="group flex flex-col items-center gap-0.5 rounded transition-colors hover:bg-[var(--color-figma-bg-hover)] p-0.5"
                           >
@@ -2217,7 +2217,7 @@ export function TokenList({
                     <tr
                       key={leaf.path}
                       className="border-b border-[var(--color-figma-border)]/50 hover:bg-[var(--color-figma-bg-hover)] cursor-pointer"
-                      onClick={() => onEdit(leaf.path)}
+                      onClick={() => onEdit(leaf.path, leaf.name)}
                     >
                       <td className="px-2 py-1.5 font-mono text-[var(--color-figma-text)] truncate max-w-0" title={leaf.path}>{leaf.path}</td>
                       <td className="px-2 py-1.5">
@@ -3002,7 +3002,7 @@ function TokenTreeNode({
 }: {
   node: TokenNode;
   depth: number;
-  onEdit: (path: string) => void;
+  onEdit: (path: string, name?: string) => void;
   onDelete: (path: string) => void;
   onDeleteGroup: (path: string, name: string, tokenCount: number) => void;
   setName: string;
@@ -3684,7 +3684,7 @@ function TokenTreeNode({
     // Enter or e: open editor
     if (e.key === 'Enter' || (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey)) {
       e.preventDefault();
-      onEdit(node.path);
+      onEdit(node.path, node.name);
       return;
     }
 
@@ -3807,7 +3807,7 @@ function TokenTreeNode({
           e.stopPropagation();
           handleApplyToSelection(e);
         }}
-        onDoubleClick={!selectMode ? (e) => { e.stopPropagation(); onEdit(node.path); } : undefined}
+        onDoubleClick={!selectMode ? (e) => { e.stopPropagation(); onEdit(node.path, node.name); } : undefined}
         style={selectMode ? { cursor: 'pointer' } : undefined}
       >
         <div className="flex items-center gap-1.5">
@@ -3953,7 +3953,7 @@ function TokenTreeNode({
                   e.stopPropagation();
                   const v = lintViolations[0];
                   if (v.suggestedFix === 'extract-to-alias') onExtractToAliasForLint?.(node.path, node.$type, node.$value);
-                  else if (v.suggestedFix === 'add-description') onEdit(node.path);
+                  else if (v.suggestedFix === 'add-description') onEdit(node.path, node.name);
                 }}
                 title={lintViolations.map(v => `${v.severity}: ${v.message}`).join('\n')}
                 className={`shrink-0 flex items-center justify-center ${worstSeverity === 'error' ? 'text-[var(--color-figma-error)]' : worstSeverity === 'warning' ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
@@ -4011,7 +4011,7 @@ function TokenTreeNode({
             </svg>
           </button>
           <button
-            onClick={() => onEdit(node.path)}
+            onClick={() => onEdit(node.path, node.name)}
             title="Edit"
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >

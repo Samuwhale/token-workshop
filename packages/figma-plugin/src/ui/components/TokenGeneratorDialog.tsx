@@ -47,7 +47,14 @@ export function detectGeneratorType(sourceTokenType: string, sourceTokenValue: a
   return 'colorRamp';
 }
 
-export function suggestTargetGroup(sourceTokenPath: string): string {
+export function suggestTargetGroup(sourceTokenPath: string, sourceTokenName?: string): string {
+  if (sourceTokenName) {
+    // Use the known leaf name to correctly compute the parent, even when the
+    // name contains literal dots (e.g. "1.5").
+    if (sourceTokenPath.length <= sourceTokenName.length) return sourceTokenPath;
+    return sourceTokenPath.slice(0, sourceTokenPath.length - sourceTokenName.length - 1);
+  }
+  // Fallback: split on dots (may be wrong if a segment contains a literal dot)
   const parts = sourceTokenPath.split('.');
   if (parts.length <= 1) return sourceTokenPath;
   return parts.slice(0, -1).join('.');
@@ -88,6 +95,7 @@ export function defaultConfigForType(type: GeneratorType): GeneratorConfig {
 export interface TokenGeneratorDialogProps {
   serverUrl: string;
   sourceTokenPath?: string;
+  sourceTokenName?: string;
   sourceTokenType?: string;
   sourceTokenValue?: any;
   allSets: string[];
@@ -192,6 +200,7 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
 export function TokenGeneratorDialog({
   serverUrl,
   sourceTokenPath,
+  sourceTokenName,
   sourceTokenType,
   sourceTokenValue,
   allSets,
@@ -241,6 +250,7 @@ export function TokenGeneratorDialog({
   } = useGeneratorDialog({
     serverUrl,
     sourceTokenPath,
+    sourceTokenName,
     sourceTokenType,
     sourceTokenValue,
     allSets,

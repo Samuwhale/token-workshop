@@ -299,3 +299,11 @@
 - **Learnings for future iterations:**
   - When a button triggers an async action and then hides itself via a loading guard, the fix is to keep the button visible but disabled with inline loading feedback, rather than relying solely on a content-area spinner.
 ---
+
+## 2026-03-27 - suggestTargetGroup splits on literal dots in segment names
+- Fixed `suggestTargetGroup` to accept an optional `sourceTokenName` parameter. When the leaf name is known, it uses `path.slice(0, path.length - name.length - 1)` (same logic as `nodeParentPath`) to correctly handle segment names containing literal dots (e.g., `spacing.1.5` → parent `spacing` instead of incorrect `spacing.1`). Threaded `sourceTokenName` through `TokenList` → `App` → `TokenEditor` → `TokenGeneratorDialog` → `useGeneratorDialog` → `suggestTargetGroup`.
+- Files changed: `TokenGeneratorDialog.tsx` ~L50, `useGeneratorDialog.ts` ~L23/~L86/~L108, `TokenEditor.tsx` ~L93/~L114/~L1350, `App.tsx` ~L205/~L1965/~L1973/~L2145, `TokenList.tsx` ~L56/~L2152/~L2220/~L3005/~L3687/~L3810/~L3956/~L4014
+- **Learnings for future iterations:**
+  - Threading a new optional prop through 5+ component layers is sometimes unavoidable when the leaf segment name is needed for dot-separated path parsing and cannot be derived from the flat path alone.
+  - `allTokensFlat` (`Record<string, TokenMapEntry>`) only has `$value` and `$type` — no `name` field, so the name must come from the tree nodes.
+---

@@ -21,6 +21,7 @@ import {
 export interface UseGeneratorDialogParams {
   serverUrl: string;
   sourceTokenPath?: string;
+  sourceTokenName?: string;
   sourceTokenType?: string;
   sourceTokenValue?: any;
   allSets: string[];
@@ -75,6 +76,7 @@ export interface UseGeneratorDialogReturn {
 export function useGeneratorDialog({
   serverUrl,
   sourceTokenPath,
+  sourceTokenName,
   sourceTokenType = '',
   sourceTokenValue,
   activeSet,
@@ -105,7 +107,7 @@ export function useGeneratorDialog({
   const [targetSet, setTargetSet] = useState(existingGenerator?.targetSet ?? activeSet);
   const [targetGroup, setTargetGroup] = useState(
     existingGenerator?.targetGroup ??
-    (template ? template.defaultPrefix : (sourceTokenPath ? suggestTargetGroup(sourceTokenPath) : ''))
+    (template ? template.defaultPrefix : (sourceTokenPath ? suggestTargetGroup(sourceTokenPath, sourceTokenName) : ''))
   );
 
   const [configs, setConfigs] = useState<Partial<Record<GeneratorType, GeneratorConfig>>>(() => {
