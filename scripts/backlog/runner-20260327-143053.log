@@ -178,3 +178,16 @@ Already up to date.
 
 --- Merging: Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails ---
 Already up to date.
+[main 011edb4] chore(backlog): done – Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
+ 6 files changed, 55 insertions(+), 9 deletions(-)
+
+## 2026-03-27 - Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
+- Added visual rejection indicator (red ring + red tint background) when dragging a token over an invalid drop target. Invalid targets are group rows where all dragged tokens would result in a no-op (the token already lives in that group) or where the target is a descendant of a dragged source path.
+- Added `dragOverGroupIsInvalid` state to the outer TokenList component, tracked alongside `dragOverGroup`.
+- Updated `onDragOverGroup` callback signature to accept an optional `invalid` boolean parameter.
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  62 items remaining
+===============================================================
+  Claimed: ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
+  Worktree: /tmp/backlog-97955-NhIPUq

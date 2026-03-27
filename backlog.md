@@ -40,7 +40,7 @@
 - [x] Find-and-replace has no confirmation step — bulk rename applies immediately with no preview-and-confirm modal, making accidental mass renames easy
 - [x] Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
 - [x] No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation
-- [~] Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
+- [x] Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
 
 ---
 
@@ -59,7 +59,7 @@
 ### UX
 
 - [~] ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance
-- [ ] ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
+- [~] ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
 - [ ] No theme preview mode — no way to preview token values with a theme applied before committing it as active
 - [ ] "Add option" form resets after each addition — creating multiple dimension options requires re-opening the form each time; batch-add would be faster
 

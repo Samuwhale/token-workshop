@@ -159,7 +159,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
     if (!name || !connected) return;
     const id = slugify(name) || name.toLowerCase().replace(/\s+/g, '-');
     if (!id || !/^[a-z0-9-]+$/.test(id)) {
-      setCreateDimError('Could not generate a valid ID from that name. Use letters, numbers, and spaces.');
+      setCreateDimError('Name must contain at least one letter or number (spaces and hyphens are allowed).');
       return;
     }
     if (dimensions.some(d => d.id === id || d.name.toLowerCase() === name.toLowerCase())) {

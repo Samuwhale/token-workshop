@@ -430,3 +430,10 @@
   - `dropEffect = 'none'` only changes the drag cursor appearance — it doesn't actually prevent the drop event from firing. The drop handler in `handleDropOnGroup` already skips no-op moves (`if (newPath === oldPath) continue`), so the invalid visual is purely UX feedback.
   - The recursive `TokenTreeNode` call at ~L3883 already lacked drag props before this change — pre-existing gap, not introduced here.
 ---
+
+## 2026-03-27 - ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance
+- Updated error message from "Use letters, numbers, and spaces" to "Name must contain at least one letter or number (spaces and hyphens are allowed)." — accurately reflects that spaces are valid input (slugify converts them to hyphens) and the real constraint is that the name can't consist entirely of symbols.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L162
+- **Learnings for future iterations:**
+  - When a slugify function strips invalid chars and the error fires for an empty result, the guidance should describe what *input* is accepted, not what the output format is.
+---
