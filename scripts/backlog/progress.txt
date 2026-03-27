@@ -420,3 +420,9 @@
   - The graph panel (`TokenGraph.tsx`) already had per-generator edit working correctly via `setEditingGen(gen)`. Only `TokenEditor.tsx` had the bug.
   - When a section shows a list of items each with an "Edit" button but all use the same boolean dialog state, the dialog is always bound to the first item — need per-item state to track which is being edited.
 ---
+
+## 2026-03-27 - ux-pass: table view empty state when filters hide all tokens
+- Added a "No tokens match your filters — clear filters" row inside the table `<tbody>` when `filtersActive` is true and no leaf tokens are in `displayedTokens`. Previously the table silently showed an empty body with no feedback, leaving the user unsure whether results exist but are hidden or the set itself is empty.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2173
+- **User impact:** Users in table view who apply a type filter or search query that returns no results now get clear guidance (with a one-click "clear filters" action) instead of a blank table.
+---

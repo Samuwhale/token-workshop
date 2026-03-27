@@ -2171,7 +2171,16 @@ export function TokenList({
                 </tr>
               </thead>
               <tbody>
-                {flattenLeafNodes(displayedTokens).map(leaf => {
+                {flattenLeafNodes(displayedTokens).length === 0 && filtersActive ? (
+                  <tr>
+                    <td colSpan={showScopesCol ? 4 : 3} className="py-8 text-center text-[10px] text-[var(--color-figma-text-secondary)]">
+                      No tokens match your filters —{' '}
+                      <button onClick={clearFilters} className="underline hover:text-[var(--color-figma-text)] transition-colors">
+                        clear filters
+                      </button>
+                    </td>
+                  </tr>
+                ) : flattenLeafNodes(displayedTokens).map(leaf => {
                   const leafScopes = Array.isArray(leaf.$extensions?.['com.figma.scopes'])
                     ? (leaf.$extensions!['com.figma.scopes'] as string[])
                     : [];

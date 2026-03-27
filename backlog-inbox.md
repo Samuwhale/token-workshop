@@ -1,0 +1,3 @@
+- [ ] ImportPanel: show progress bar using existing `importProgress` state during token import — long imports feel stuck with only "Importing…" text
+- [ ] Grid view empty state: distinguish "no color tokens exist in this set" from "filters hide all color tokens" — current message always says "Grid view shows color tokens as swatches" regardless of cause
+- [ ] ExportPanel: "Read Variables from Figma" button has no loading indicator — clicking it gives no immediate feedback
