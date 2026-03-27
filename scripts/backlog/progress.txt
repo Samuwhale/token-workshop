@@ -1,6 +1,14 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - housekeeping: Remove duplicate `applyColorModifiers` / `ColorModifierOp` from colorUtils.ts
+- Removed ~35 lines of duplicated color modifier logic from `packages/figma-plugin/src/ui/shared/colorUtils.ts` (lines 246-284) and replaced with re-exports from `@tokenmanager/core`
+- The duplicate even had a comment saying "mirrors packages/core/src/color-modifier.ts" — it was an intentional copy that should have been an import
+- The implementations had subtle differences (core throws on invalid colors, local version silently continued; local version manually preserved alpha, core uses `setHexAlpha`)
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L246
+- **Why:** Duplicate logic across packages with divergent error handling — maintenance hazard and potential for inconsistent behavior
+---
+
 ## 2026-03-27 - ExportPanel From-Figma empty state misleading "Connect to server" message
 - The ExportPanel had an early-return guard that showed "Connect to server to export tokens" when not connected, blocking the entire panel — including the "From Figma" tab which doesn't require a server connection (copy as JSON works offline).
 - Fix: Removed the early-return guard. Instead, auto-switch to figma-variables mode when disconnected, disable the Platforms tab with a tooltip, and show "(offline)" on the Save to Token Server button with appropriate disabled state.
