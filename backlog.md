@@ -48,12 +48,12 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [~] `createToken` for a new set triggers 3 rebuilds: createSet + saveSet + watcher (`server/token-store.ts:297-310`)
 - [x] Missing `return` after error `reply.send()` in sets.ts PATCH handlers and export.ts — could cause "reply already sent" (`server/routes/sets.ts:60,83`, `server/routes/export.ts:34`)
 - [x] `deleteTokenAtPath` leaves empty parent group objects `{}` in the JSON file (`server/token-store.ts:760-773`)
-- [~] ImportPanel conflict check only looks at top-level keys, misses nested token paths (`figma-plugin/ImportPanel.tsx:321-324`)
-- [ ] `enrichFormulaExtension` identity-comparison always evaluates to `true`, causing every formula update to overwrite `$extensions` even when unchanged (`server/token-store.ts:321`)
+- [x] ImportPanel conflict check only looks at top-level keys, misses nested token paths (`figma-plugin/ImportPanel.tsx:321-324`)
+- [~] `enrichFormulaExtension` identity-comparison always evaluates to `true`, causing every formula update to overwrite `$extensions` even when unchanged (`server/token-store.ts:321`)
 
 ### QoL
 
-- [ ] Composite token sub-property references — typography, shadow, and border editors only accept hard-coded values per sub-property; each field should also accept alias syntax `{path.to.token}` with autocomplete, matching DTCG spec for partial references (`TokenEditor.tsx:1255-1391`)
+- [~] Composite token sub-property references — typography, shadow, and border editors only accept hard-coded values per sub-property; each field should also accept alias syntax `{path.to.token}` with autocomplete, matching DTCG spec for partial references (`TokenEditor.tsx:1255-1391`)
 - [ ] Math expressions in token values — `evalExpr` exists but is only exposed in Custom Scale generator formulas; regular token value inputs should support expressions like `{spacing.base} * 2` with live resolution preview (`core/eval-expr.ts`, `TokenEditor.tsx`)
 - [ ] Copy token path to clipboard on row hover — show a copy icon on hover in token list rows so users can quickly grab the dotted path; currently requires opening the editor or switching to JSON view (`TokenList.tsx`)
 - [ ] Copy resolved value to clipboard — add a one-click copy affordance on the value preview chip in list rows; useful for extracting values into code without opening the editor

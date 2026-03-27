@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - ImportPanel conflict check only looks at top-level keys, misses nested token paths
+- Replaced `Object.keys(data.tokens || {})` with `flattenTokenGroup(data.tokens || {}).keys()` so the existing-path set includes all nested token paths (e.g. `colors.primary.500`), not just top-level group names.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L1,L323
+- **Learnings for future iterations:**
+  - `GET /api/tokens/:set` returns nested DTCG format — always flatten before path-checking. Use `flattenTokenGroup` from `@tokenmanager/core`.
+---
+
 ## 2026-03-27 - Search match count per set
 - Added `onFilteredCountChange` callback prop to `TokenList` that fires a `useEffect` whenever `displayedTokens` or `filtersActive` changes, passing the leaf count when filters are active or `null` when not. App.tsx tracks this in `filteredSetCount` state and passes the callback to all 3 `TokenList` instances. The active set tab in both sidebar and tab-bar modes now shows "X / Y" format when a filter is active.
 - Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L60,L152,L519; `packages/figma-plugin/src/ui/App.tsx` ~L237,L1494,L1659,L1767,L2130,L2182,L2216

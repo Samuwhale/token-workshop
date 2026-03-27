@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { flattenTokenGroup } from '@tokenmanager/core';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 
 interface ImportPanelProps {
@@ -320,7 +321,7 @@ export function ImportPanel({ serverUrl, connected, onImported }: ImportPanelPro
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`);
       if (res.ok) {
         const data = await res.json();
-        const existing = new Set(Object.keys(data.tokens || {}));
+        const existing = new Set(flattenTokenGroup(data.tokens || {}).keys());
         const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
         const conflicts = tokensToImport.filter(t => existing.has(t.path)).map(t => t.path);
         if (conflicts.length > 0) {

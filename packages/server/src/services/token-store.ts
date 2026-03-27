@@ -24,6 +24,7 @@ export class TokenStore {
   private _pendingWatcherEvents: ChangeEvent[] = [];
   private _batchDepth = 0;
   private _pendingRebuild = false;
+  private _writingFiles: Set<string> = new Set();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
