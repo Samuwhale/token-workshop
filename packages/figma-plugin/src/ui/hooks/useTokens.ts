@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
+import { countLeafNodes } from '../shared/colorUtils';
 
 export interface TokenNode {
   path: string;
@@ -54,12 +55,12 @@ export function useTokens(serverUrl: string, connected: boolean) {
         await Promise.all(
           allSets.map(async (setName) => {
             if (setName === current) {
-              counts[setName] = countLeafNodes(tokensData.tokens || {});
+              counts[setName] = countLeafNodes(tokensData.tokens || {}).total;
             } else {
               const res = await fetch(`${serverUrl}/api/tokens/${setName}`, { signal: AbortSignal.timeout(5000) });
               if (!res.ok) return;
               const data = await res.json();
-              counts[setName] = countLeafNodes(data.tokens || {});
+              counts[setName] = countLeafNodes(data.tokens || {}).total;
             }
           })
         );
@@ -127,19 +128,6 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
   }
 
   return { flat, pathToSet, perSetFlat };
-}
-
-function countLeafNodes(group: Record<string, any>): number {
-  let count = 0;
-  for (const [key, value] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    if (value && typeof value === 'object' && '$value' in value) {
-      count++;
-    } else if (value && typeof value === 'object') {
-      count += countLeafNodes(value);
-    }
-  }
-  return count;
 }
 
 

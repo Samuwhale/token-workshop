@@ -16,7 +16,7 @@ import type {
   ContrastCheckConfig,
   GeneratedTokenResult,
 } from './generator-types.js';
-import { hexToLab, labToHex } from './color-math.js';
+import { hexToLab, labToHex, wcagLuminance } from './color-math.js';
 import { evalExpr, substituteVars } from './eval-expr.js';
 
 // ---------------------------------------------------------------------------
@@ -264,21 +264,6 @@ export function runCustomScaleGenerator(
 // ---------------------------------------------------------------------------
 // Accessible Color Pair
 // ---------------------------------------------------------------------------
-
-/**
- * Compute the WCAG relative luminance of a hex color.
- * https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
- */
-function wcagLuminance(hex: string): number | null {
-  const clean = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
-  const toLinear = (c: number) =>
-    c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  const r = toLinear(parseInt(clean.slice(0, 2), 16) / 255);
-  const g = toLinear(parseInt(clean.slice(2, 4), 16) / 255);
-  const b = toLinear(parseInt(clean.slice(4, 6), 16) / 255);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
 
 /**
  * Generate a background + foreground color pair where the foreground meets

@@ -231,3 +231,10 @@
   - `flattenTokenGroup` returns a `Map<string, DTCGToken>`; spread with `[...flattenTokenGroup(group)]` to iterate as `[path, token]` pairs.
   - Converting to a local `{ path, value, type }[]` shape inline at the call site is cleaner than wrapping in a helper.
 ---
+
+## 2026-03-27 - `toLinear` / `wcagLuminance` duplicated between `color-math.ts` and `generator-engine.ts:275`
+- Moved `wcagLuminance` into `color-math.ts` (reusing the module-level `toLinear`), exported it, and updated the import in `generator-engine.ts` to use the shared version. Removed the local closure-per-call implementation.
+- Files changed: `packages/core/src/color-math.ts` ~L48; `packages/core/src/generator-engine.ts` ~L19,L272
+- **Learnings for future iterations:**
+  - When a module-level helper (`toLinear`) already exists in a shared file, co-locate derived functions that use it there rather than recreating closures locally.
+---

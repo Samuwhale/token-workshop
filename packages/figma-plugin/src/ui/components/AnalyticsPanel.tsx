@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
+import { hexToLuminance, wcagContrast, hexToLstar, countLeafNodes } from '../shared/colorUtils';
 
 interface ValidationIssue {
   rule: string;
@@ -25,25 +25,6 @@ interface AnalyticsPanelProps {
   onValidationComplete?: (count: number) => void;
 }
 
-function countLeafNodes(group: Record<string, any>): { total: number; byType: Record<string, number> } {
-  let total = 0;
-  const byType: Record<string, number> = {};
-  for (const [key, value] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    if (value && typeof value === 'object' && '$value' in value) {
-      total++;
-      const t = value.$type || 'unknown';
-      byType[t] = (byType[t] || 0) + 1;
-    } else if (value && typeof value === 'object') {
-      const sub = countLeafNodes(value);
-      total += sub.total;
-      for (const [t, c] of Object.entries(sub.byType)) {
-        byType[t] = (byType[t] || 0) + c;
-      }
-    }
-  }
-  return { total, byType };
-}
 
 function normalizeHex(hex: string): string {
   const h = hex.replace('#', '').toLowerCase();

@@ -44,6 +44,19 @@ export function labToHex(L: number, a: number, b: number): string {
   return `#${h(lr)}${h(lg)}${h(lb)}`;
 }
 
+/**
+ * Compute the WCAG relative luminance of a hex color.
+ * https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
+ */
+export function wcagLuminance(hex: string): number | null {
+  const clean = hex.replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
+  const r = toLinear(parseInt(clean.slice(0, 2), 16) / 255);
+  const g = toLinear(parseInt(clean.slice(2, 4), 16) / 255);
+  const b = toLinear(parseInt(clean.slice(4, 6), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
 /** Extract alpha byte from 8-char hex (0-255). Returns 255 if 6-char. */
 export function hexAlpha(hex: string): number {
   const clean = hex.replace('#', '');

@@ -302,7 +302,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     }
   };
 
-  const formatValue = (modeVal: ExportedModeValue): string => {
+  const formatModeValue = (modeVal: ExportedModeValue): string => {
     if (modeVal.isAlias) return modeVal.reference || '';
     if (modeVal.resolvedValue === null || modeVal.resolvedValue === undefined) return 'null';
     return String(modeVal.resolvedValue);
@@ -707,7 +707,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                                               </span>
                                             ) : (
                                               <span className="text-[10px] font-mono text-[var(--color-figma-text)]">
-                                                {formatValue(modeVal)}
+                                                {formatModeValue(modeVal)}
                                               </span>
                                             )}
                                           </div>
