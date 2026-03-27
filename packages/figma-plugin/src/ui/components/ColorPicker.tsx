@@ -203,6 +203,8 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
   const [hexInput, setHexInput] = useState(value);
   const [alphaInput, setAlphaInput] = useState(() => Math.round(parseAlpha(value) * 100) + '%');
   const alphaEditing = useRef(false);
+  const [eyedropperState, setEyedropperState] = useState<'idle' | 'waiting' | 'success'>('idle');
+  const eyedropperTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const areaRef = useRef<HTMLCanvasElement>(null);
   const hueRef = useRef<HTMLCanvasElement>(null);
@@ -288,6 +290,8 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
   // Eyedropper: sample from Figma selection
   const sampleSelection = () => {
     parent.postMessage({ pluginMessage: { type: 'eyedropper' } }, '*');
+    setEyedropperState('waiting');
+    if (eyedropperTimerRef.current) clearTimeout(eyedropperTimerRef.current);
   };
 
   // Listen for eyedropper result
@@ -301,6 +305,9 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
           setSat(hsl.s);
           setLit(hsl.l);
         }
+        setEyedropperState('success');
+        if (eyedropperTimerRef.current) clearTimeout(eyedropperTimerRef.current);
+        eyedropperTimerRef.current = setTimeout(() => setEyedropperState('idle'), 1500);
       }
     };
     window.addEventListener('message', handler);
@@ -523,14 +530,32 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
         <button
           type="button"
           onClick={sampleSelection}
-          title="Sample color from Figma selection"
-          className="ml-auto flex items-center gap-1 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] transition-colors"
+          disabled={eyedropperState === 'waiting'}
+          title={eyedropperState === 'waiting' ? 'Waiting for Figma selection…' : eyedropperState === 'success' ? 'Color sampled!' : 'Sample color from Figma selection'}
+          className={[
+            'ml-auto flex items-center gap-1 px-2 py-1 rounded text-[10px] border transition-colors',
+            eyedropperState === 'success'
+              ? 'text-[var(--color-figma-accent)] border-[var(--color-figma-accent)] bg-[var(--color-figma-bg-hover)]'
+              : eyedropperState === 'waiting'
+              ? 'text-[var(--color-figma-text-secondary)] border-[var(--color-figma-border)] opacity-60 cursor-default'
+              : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-[var(--color-figma-border)]',
+          ].join(' ')}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-          Sample
+          {eyedropperState === 'success' ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          ) : eyedropperState === 'waiting' ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="animate-spin">
+              <circle cx="12" cy="12" r="10" strokeDasharray="31.4" strokeDashoffset="10" />
+            </svg>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          )}
+          {eyedropperState === 'success' ? 'Sampled!' : eyedropperState === 'waiting' ? 'Waiting…' : 'Sample'}
         </button>
       </div>
     </div>

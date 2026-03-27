@@ -23,3 +23,10 @@
   - When a list has a hard cap, always surface total match count alongside the shown count so users know results are truncated.
   - Destructuring from useMemo (`const { a, b } = useMemo(...)`) is a clean pattern for returning multiple related values without two separate memos.
 ---
+
+## 2026-03-27 - ColorPicker eyedropper button has no active/success state indicator
+- Added `eyedropperState` (`'idle' | 'waiting' | 'success'`) to the ColorPicker component. Button shows a spinner + "Waiting…" label while the plugin is waiting for a Figma selection, then shows a checkmark + "Sampled!" in accent color for 1.5 s after a result arrives, then reverts to idle.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L205 (state/ref), ~L291 (sampleSelection), ~L299 (result handler), ~L535 (button JSX)
+- **Learnings for future iterations:**
+  - When a button triggers an async plugin→UI round-trip, track state with `'idle' | 'waiting' | 'success'` and clear with `setTimeout`. Always `clearTimeout` before setting a new timer to avoid double-fire.
+---
