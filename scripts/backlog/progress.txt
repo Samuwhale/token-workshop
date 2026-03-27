@@ -310,3 +310,9 @@
   - Works correctly in create mode too: if the user types a reference to the token they're creating (which doesn't exist yet in `allTokensFlat`), the path is still in `visited` from the seed.
   - `detectAliasCycle` only follows single-value alias strings (`{path}`) — composite/formula tokens break the chain naturally and return false.
 ---
+
+## 2026-03-27 - discover-pass: ExportPanel + export route + docs route
+- Area: `packages/figma-plugin/src/ui/components/ExportPanel.tsx`, `packages/server/src/routes/export.ts`, `packages/server/src/routes/docs.ts`, `packages/server/src/services/style-dict.ts`
+- Found 6 items — written to backlog-inbox.md
+- Notable: ExportPanel is a fully-built 815-line component that is completely unreachable — it is never imported or used in App.tsx, meaning the entire platform export and Figma variable import flow is inaccessible to users
+---
