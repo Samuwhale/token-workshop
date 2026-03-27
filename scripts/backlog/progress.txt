@@ -221,3 +221,10 @@
 - **Learnings for future iterations:**
   - SSE streams need a `closed` guard flag — Node.js `close` event + listener unsubscription is not atomic, so callbacks can fire on ended streams in the gap.
 ---
+
+## 2026-03-27 - bugfix-pass: missing encodeURIComponent on setName in TokenEditor, TokenList group ops, useTokens, ExportPanel
+- Bug: Multiple fetch URL constructions used raw `setName` without `encodeURIComponent()`. When a set name contains `/` (valid per folder-hierarchy naming `brand/light`), the server's `:set` route param captures only the first segment, causing requests to target the wrong set or 404.
+- Fix: Added `encodeURIComponent(setName)` to all remaining unencoded set name interpolations in fetch URLs: 3 in TokenEditor.tsx (GET token, GET dependents, POST/PATCH save), 8 in TokenList.tsx (extract-to-alias PATCH x2, groups/rename + undo/redo, groups/move, tokens/move, groups/duplicate, groups/meta, groups/create, token duplicate POST), 3 in useTokens.ts (main token fetch, fetchAllTokensFlat, fetchAllTokensFlatWithSets), 1 in ExportPanel.tsx (batch POST).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L179, ~L232, ~L403; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L715, ~L722, ~L740, ~L751, ~L759, ~L876, ~L893, ~L904, ~L917, ~L932, ~L958; `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L49, ~L79, ~L105; `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L420
+- **Root cause:** The first bugfix pass caught 7 instances in create/delete handlers but missed the remaining ~15 URL constructions in group management, inline save, token fetch, and export paths. These were added at different times and weren't part of the original encoding sweep.
+---

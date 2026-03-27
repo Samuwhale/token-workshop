@@ -176,7 +176,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
     if (isCreateMode) return; // skip fetch in create mode
     const fetchToken = async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/tokens/${setName}/${tokenPath}`);
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPath}`);
         if (!res.ok) throw new Error('Token not found');
         const data = await res.json();
         const token = data.token;
@@ -229,7 +229,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
     const fetchDependents = async () => {
       setDependentsLoading(true);
       try {
-        const res = await fetch(`${serverUrl}/api/tokens/${setName}/dependents/${tokenPath}`);
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${tokenPath}`);
         if (res.ok) {
           const data = await res.json();
           setDependents(data.dependents ?? []);
@@ -400,7 +400,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
 
       const targetPath = isCreateMode ? editPath.trim() : tokenPath;
       const method = isCreateMode ? 'POST' : 'PATCH';
-      const res = await fetch(`${serverUrl}/api/tokens/${setName}/${targetPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${targetPath}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

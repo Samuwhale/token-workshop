@@ -46,7 +46,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
         const current = activeSet || allSets[0];
         if (!activeSet) setActiveSet(current);
 
-        const tokensRes = await fetch(`${serverUrl}/api/tokens/${current}`, { signal: AbortSignal.timeout(5000) });
+        const tokensRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal: AbortSignal.timeout(5000) });
         if (!tokensRes.ok) return;
         const tokensData = await tokensRes.json();
         if (gen !== fetchGenRef.current) return;
@@ -76,7 +76,7 @@ export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<stri
   const map: Record<string, TokenMapEntry> = {};
 
   for (const setName of setNames) {
-    const res = await fetch(`${serverUrl}/api/tokens/${setName}`, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) continue;
     const data = await res.json();
     for (const [path, token] of flattenTokenGroup(data.tokens || {})) {
@@ -102,7 +102,7 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
   const perSetFlat: Record<string, Record<string, TokenMapEntry>> = {};
 
   for (const setName of setNames) {
-    const res = await fetch(`${serverUrl}/api/tokens/${setName}`, { signal: AbortSignal.timeout(5000) });
+    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) continue;
     const data = await res.json();
     const setMap: Record<string, TokenMapEntry> = {};

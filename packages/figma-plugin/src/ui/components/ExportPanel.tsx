@@ -417,7 +417,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           return token;
         });
 
-        const batchRes = await fetch(`${serverUrl}/api/tokens/${setName}/batch`, {
+        const batchRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/batch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tokens: batchTokens, strategy: 'overwrite' }),

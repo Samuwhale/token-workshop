@@ -712,14 +712,14 @@ export function TokenList({
         setExtractError(err.error ?? 'Failed to create primitive token.');
         return;
       }
-      await fetch(`${serverUrl}/api/tokens/${setName}/${extractToken.path}`, {
+      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $value: `{${newPrimitivePath.trim()}}` }),
       });
     } else {
       if (!existingAlias) { setExtractError('Select an existing token to alias.'); return; }
-      await fetch(`${serverUrl}/api/tokens/${setName}/${extractToken.path}`, {
+      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $value: `{${existingAlias}}` }),
@@ -737,7 +737,7 @@ export function TokenList({
 
   const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
     if (!connected) return;
-    await fetch(`${serverUrl}/api/tokens/${setName}/groups/rename`, {
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ oldGroupPath, newGroupPath }),
@@ -748,7 +748,7 @@ export function TokenList({
       onPushUndo({
         description: `Rename group "${oldGroupPath.split('.').pop() ?? oldGroupPath}"`,
         restore: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${capturedSet}/groups/rename`, {
+          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ oldGroupPath: newGroupPath, newGroupPath: oldGroupPath }),
@@ -756,7 +756,7 @@ export function TokenList({
           onRefresh();
         },
         redo: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${capturedSet}/groups/rename`, {
+          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ oldGroupPath, newGroupPath }),
@@ -873,7 +873,7 @@ export function TokenList({
 
   const handleConfirmMoveGroup = useCallback(async () => {
     if (!movingGroup || !moveTargetSet || !connected) { setMovingGroup(null); return; }
-    await fetch(`${serverUrl}/api/tokens/${setName}/groups/move`, {
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/move`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ groupPath: movingGroup, targetSet: moveTargetSet }),
@@ -890,7 +890,7 @@ export function TokenList({
 
   const handleConfirmMoveToken = useCallback(async () => {
     if (!movingToken || !moveTargetSet || !connected) { setMovingToken(null); return; }
-    await fetch(`${serverUrl}/api/tokens/${setName}/tokens/move`, {
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tokenPath: movingToken, targetSet: moveTargetSet }),
@@ -901,7 +901,7 @@ export function TokenList({
 
   const handleDuplicateGroup = useCallback(async (groupPath: string) => {
     if (!connected) return;
-    await fetch(`${serverUrl}/api/tokens/${setName}/groups/duplicate`, {
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/duplicate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ groupPath }),
@@ -914,7 +914,7 @@ export function TokenList({
     meta: { $type?: string | null; $description?: string | null },
   ) => {
     if (!connected) return;
-    const res = await fetch(`${serverUrl}/api/tokens/${setName}/groups/meta`, {
+    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/meta`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ groupPath, ...meta }),
@@ -929,7 +929,7 @@ export function TokenList({
   const handleCreateGroup = useCallback(async (parent: string, name: string) => {
     if (!connected || !name.trim()) return;
     const groupPath = parent ? `${parent}.${name.trim()}` : name.trim();
-    const res = await fetch(`${serverUrl}/api/tokens/${setName}/groups/create`, {
+    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ groupPath }),
@@ -955,7 +955,7 @@ export function TokenList({
     while (allTokensFlat[newPath]) {
       newPath = `${baseCopy}-${i++}`;
     }
-    await fetch(`${serverUrl}/api/tokens/${setName}/${newPath}`, {
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ $type: token.$type, $value: token.$value }),
