@@ -251,3 +251,9 @@
   - The Settings panel only has one user-configurable value (server URL). "Reset to defaults" scopes to that field only.
   - Placed "Reset to default" as a secondary button alongside "Save & Connect" (flex row), keeping the primary action visually dominant.
 ---
+
+## 2026-03-27 - discover-pass: generators flow
+- Area: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx`, `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts`, `packages/figma-plugin/src/ui/components/GraphPanel.tsx`, `packages/figma-plugin/src/ui/components/TokenGraph.tsx`, `packages/server/src/services/generator-service.ts`, `packages/server/src/routes/generators.ts`
+- Found 7 items — written to backlog-inbox.md
+- Notable: `templateIdForTokenType` returns `'modular-type-scale'` but the template array uses id `'modular-type'` — the type hint is silently dropped for non-color/dimension tokens. Also `suggestTargetGroup` uses `split('.')` on paths with dot-containing segment names.
+---
