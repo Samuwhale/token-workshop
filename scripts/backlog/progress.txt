@@ -262,3 +262,10 @@
   - The route must be registered before the `POST /tokens/:set/*` wildcard; `/tokens/:set/tokens/move` has a fixed path suffix so Fastify matches it correctly.
   - Reuse `moveTargetSet` state between group-move and token-move — only one modal is open at a time so sharing the state is safe.
 ---
+
+## 2026-03-27 - Duplicate single token — only groups can be duplicated
+- stale — already implemented. `handleDuplicateToken` (TokenList.tsx ~L799) creates a `-copy` suffix duplicate with collision detection, is wired to `onDuplicateToken` prop (L1942), and the context menu calls it (L3517). Keyboard shortcut Cmd+D also supported (L3176).
+- Files changed: none
+- **Learnings for future iterations:**
+  - Always verify backlog items against actual code before implementing — items can be stale if implemented between backlog entry and execution.
+---

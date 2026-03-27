@@ -102,7 +102,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] Move single token to a different set — individual tokens can only be moved between groups (by editing the path prefix); there is no action to move a token to an entirely different set, even though group-level move exists (`server/routes/tokens.ts`, `TokenList.tsx` context menu)
 
-- [ ] Duplicate single token — only groups can be duplicated (with `-copy` suffix); there is no way to duplicate an individual token row to a new path, which is a common workflow when creating similar tokens (`TokenList.tsx` context menu)
+- [x] Duplicate single token — only groups can be duplicated (with `-copy` suffix); there is no way to duplicate an individual token row to a new path, which is a common workflow when creating similar tokens (`TokenList.tsx` context menu)
 
 - [ ] Undo/redo for token edits — `useUndo` exists and works for generator edits but token create/edit/delete/rename operations are not undoable; a user who accidentally deletes or renames a token has no recovery path short of git (`figma-plugin/useUndo.ts`, `TokenList.tsx`)
 
