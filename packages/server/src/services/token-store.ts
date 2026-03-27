@@ -175,6 +175,42 @@ export class TokenStore {
     this.sets = newMap;
   }
 
+  async reorderGroupChildren(setName: string, groupPath: string, orderedKeys: string[]): Promise<void> {
+    const set = this.sets.get(setName);
+    if (!set) throw new Error(`Set "${setName}" not found`);
+    let group: Record<string, any>;
+    if (groupPath) {
+      const found = this.getObjectAtPath(set.tokens, groupPath);
+      if (!found) throw new Error(`Group "${groupPath}" not found in set "${setName}"`);
+      group = found;
+    } else {
+      group = set.tokens as Record<string, any>;
+    }
+    const nonMetaKeys = Object.keys(group).filter(k => !k.startsWith('$'));
+    const orderedSet = new Set(orderedKeys);
+    for (const key of orderedKeys) {
+      if (!(key in group)) throw new Error(`Key "${key}" not found in group`);
+    }
+    for (const key of nonMetaKeys) {
+      if (!orderedSet.has(key)) throw new Error(`Key "${key}" is missing from orderedKeys`);
+    }
+    const reordered: Record<string, any> = {};
+    for (const [k, v] of Object.entries(group)) {
+      if (k.startsWith('$')) reordered[k] = v;
+    }
+    for (const key of orderedKeys) {
+      reordered[key] = group[key];
+    }
+    if (groupPath) {
+      this.setGroupAtPath(set.tokens, groupPath, reordered);
+    } else {
+      set.tokens = reordered as TokenGroup;
+    }
+    await this.saveSet(setName);
+    this.rebuildFlatTokens();
+    this.emit({ type: 'token-updated', setName });
+  }
+
   getSetCounts(): Record<string, number> {
     const result: Record<string, number> = {};
     for (const [name, set] of this.sets) {

@@ -573,6 +573,19 @@ export function TokenList({
     [displayedTokens, expandedPaths, viewMode]
   );
 
+  // Map of group path ('' = root) → ordered child names, reflecting actual file order
+  const siblingOrderMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    const walk = (nodes: TokenNode[], parentPath: string) => {
+      map.set(parentPath, nodes.map(n => n.name));
+      for (const node of nodes) {
+        if (node.isGroup && node.children) walk(node.children, node.path);
+      }
+    };
+    walk(tokens, '');
+    return map;
+  }, [tokens]);
+
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
     if (!highlightedToken || viewMode !== 'tree' || !virtualListRef.current) return;
@@ -891,6 +904,48 @@ export function TokenList({
     });
     onRefresh();
   }, [connected, serverUrl, setName, allTokensFlat, onRefresh]);
+
+  const handleMoveTokenInGroup = useCallback(async (nodePath: string, nodeName: string, direction: 'up' | 'down') => {
+    if (!connected || !serverUrl || !setName) return;
+    const parentPath = nodeParentPath(nodePath, nodeName) ?? '';
+    const siblings = siblingOrderMap.get(parentPath) ?? [];
+    const idx = siblings.indexOf(nodeName);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= siblings.length) return;
+    const newOrder = [...siblings];
+    [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
+    const prevOrder = [...siblings];
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
+    });
+    if (onPushUndo) {
+      const capturedSet = setName;
+      const capturedUrl = serverUrl;
+      onPushUndo({
+        description: `Reorder "${nodeName}"`,
+        restore: async () => {
+          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupPath: parentPath, orderedKeys: prevOrder }),
+          });
+          onRefresh();
+        },
+        redo: async () => {
+          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
+          });
+          onRefresh();
+        },
+      });
+    }
+    onRefresh();
+  }, [connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo]);
 
   const handleInlineSave = useCallback(async (path: string, type: string, newValue: any) => {
     if (!connected) return;
@@ -1991,7 +2046,12 @@ export function TokenList({
         ) : (
           <div className="py-1">
             <div style={{ height: virtualTopPad }} aria-hidden="true" />
-            {flatItems.slice(virtualStartIdx, virtualEndIdx).map(({ node, depth }) => (
+            {flatItems.slice(virtualStartIdx, virtualEndIdx).map(({ node, depth }) => {
+              const moveEnabled = sortOrder === 'default' && connected;
+              const parentPath = moveEnabled ? (nodeParentPath(node.path, node.name) ?? '') : '';
+              const siblings = moveEnabled ? (siblingOrderMap.get(parentPath) ?? []) : [];
+              const sibIdx = moveEnabled ? siblings.indexOf(node.name) : -1;
+              return (
               <TokenTreeNode
                 key={node.path}
                 node={node}
@@ -2041,8 +2101,11 @@ export function TokenList({
                 onDropOnGroup={handleDropOnGroup}
                 dragOverGroup={dragOverGroup}
                 selectedLeafNodes={selectedLeafNodes}
+                onMoveUp={moveEnabled && sibIdx > 0 ? () => handleMoveTokenInGroup(node.path, node.name, 'up') : undefined}
+                onMoveDown={moveEnabled && sibIdx >= 0 && sibIdx < siblings.length - 1 ? () => handleMoveTokenInGroup(node.path, node.name, 'down') : undefined}
               />
-            ))}
+              );
+            })}
             <div style={{ height: virtualBottomPad }} aria-hidden="true" />
           </div>
         )}
@@ -2666,6 +2729,8 @@ function TokenTreeNode({
   onDropOnGroup,
   dragOverGroup,
   selectedLeafNodes,
+  onMoveUp,
+  onMoveDown,
 }: {
   node: TokenNode;
   depth: number;
@@ -2718,6 +2783,8 @@ function TokenTreeNode({
   onDropOnGroup?: (groupPath: string) => void;
   dragOverGroup?: string | null;
   selectedLeafNodes?: TokenNode[];
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -2995,6 +3062,28 @@ function TokenTreeNode({
           )}
           {!selectMode && !renamingGroup && (
             <>
+              {onMoveUp && (
+                <button
+                  onClick={e => { e.stopPropagation(); onMoveUp(); }}
+                  title="Move up"
+                  className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M18 15l-6-6-6 6"/>
+                  </svg>
+                </button>
+              )}
+              {onMoveDown && (
+                <button
+                  onClick={e => { e.stopPropagation(); onMoveDown(); }}
+                  title="Move down"
+                  className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -3508,6 +3597,28 @@ function TokenTreeNode({
       {/* Hover actions — compact, only on hover */}
       {!selectMode && (
         <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
+          {onMoveUp && (
+            <button
+              onClick={e => { e.stopPropagation(); onMoveUp(); }}
+              title="Move up"
+              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 15l-6-6-6 6"/>
+              </svg>
+            </button>
+          )}
+          {onMoveDown && (
+            <button
+              onClick={e => { e.stopPropagation(); onMoveDown(); }}
+              title="Move down"
+              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+          )}
           <button
             onClick={e => { e.stopPropagation(); handleApplyToSelection(e); }}
             title="Apply to selection"

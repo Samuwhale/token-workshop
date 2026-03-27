@@ -325,3 +325,15 @@
   - `GET /api/sets` returns `{ sets: string[], descriptions: {}, counts: {} }` — `sets` is a flat string array, not an array of objects.
   - "null = all sets" pattern (null means no filter applied, Set<string> means explicit selection) avoids having to compare set sizes to detect "all selected" state — except on toggle we do size-compare to reset back to null.
 ---
+
+## 2026-03-27 - Token ordering within a group
+- Added up/down reorder buttons to both leaf token rows and group header rows in `TokenList.tsx`. Buttons appear on hover (hidden when sort is active or disconnected). Added `siblingOrderMap` useMemo (built from raw `tokens` prop) and `handleMoveTokenInGroup` callback that POSTs to a new `POST /api/tokens/:set/groups/reorder` endpoint with undo support.
+- Added `reorderGroupChildren(setName, groupPath, orderedKeys)` to `token-store.ts` — rebuilds group object with `$`-prefixed keys first, then non-meta keys in the requested order; validates both directions (unknown keys rejected, missing keys rejected).
+- Added `POST /api/tokens/:set/groups/reorder` route to `tokens.ts` (registered before the wildcard route).
+- Files changed: `packages/server/src/services/token-store.ts` ~L178, `packages/server/src/routes/tokens.ts` ~L95, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L571,L907,L2049,L2770,L2996,L3509
+- **Learnings for future iterations:**
+  - `reorderSets` uses a `Map` rebuild; group children use an object rebuild with `$`-key-first ordering — both rely on V8 string-key insertion order preserved by `JSON.stringify`.
+  - `siblingOrderMap` must be built from `tokens` (raw server prop), not `displayedTokens` (filtered), so filtered-out siblings still appear in the orderedKeys array sent to the server.
+  - The flatItems `.map()` needed to change from `({ node, depth }) => (...)` to `({ node, depth }) => { ... return (...); }` to compute sibling index inline per row.
+  - Up/down buttons only render as defined callbacks (not disabled buttons), so `TokenTreeNode` needs no knowledge of sort state — the parent simply passes `undefined` instead of a callback when sort is active.
+---

@@ -92,6 +92,26 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // POST /api/tokens/:set/groups/reorder — reorder direct children of a group
+  fastify.post<{ Params: { set: string }; Body: { groupPath?: string; orderedKeys: string[] } }>(
+    '/tokens/:set/groups/reorder',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { groupPath = '', orderedKeys } = request.body ?? {};
+      if (!Array.isArray(orderedKeys)) {
+        return reply.status(400).send({ error: 'orderedKeys must be an array' });
+      }
+      try {
+        await fastify.tokenStore.reorderGroupChildren(set, groupPath, orderedKeys);
+        return { reordered: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    },
+  );
+
   // POST /api/tokens/:set/groups/create — create an empty group at a path
   fastify.post<{ Params: { set: string }; Body: { groupPath: string } }>(
     '/tokens/:set/groups/create',
