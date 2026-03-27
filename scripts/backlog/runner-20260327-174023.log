@@ -49,3 +49,10 @@ Already up to date.
 ===============================================================
   Claimed: `themedAllTokensFlat` drops tokens outside themed sets — `useThemeSwitcher` builds `merged` from only the sets referenced by active theme options; tokens in sets not assigned to any dimension are silently excluded from the themed view, rather than being included as a base layer
   Worktree: /tmp/backlog-91967-WwHQqU
+
+  ✓ done: `themedAllTokensFlat` drops tokens outside themed sets
+    Seeded `merged` with tokens from sets not referenced by any dimension before applying themed overlays, so unthemed sets are always included as a base layer.
+    10 turns · 59s · $0.19
+
+--- Merging: `themedAllTokensFlat` drops tokens outside themed sets ---
+Already up to date.

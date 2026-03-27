@@ -95,7 +95,24 @@ export function useThemeSwitcher(
     const effectiveThemes = { ...activeThemes, ...previewThemes };
     const activeEntries = Object.keys(effectiveThemes);
     if (activeEntries.length === 0) return allTokensFlat;
+
+    // Collect all set names referenced by any dimension option (themed sets)
+    const themedSets = new Set<string>();
+    for (const dim of dimensions) {
+      for (const option of dim.options) {
+        for (const setName of Object.keys(option.sets)) {
+          themedSets.add(setName);
+        }
+      }
+    }
+
+    // Base layer: tokens from sets not assigned to any dimension
     const merged: Record<string, TokenMapEntry> = {};
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      const set = pathToSet[path];
+      if (!set || !themedSets.has(set)) merged[path] = entry;
+    }
+
     // Iterate dimensions in order; for each, apply the effective option's source then enabled sets
     for (const dim of dimensions) {
       const activeOptionName = effectiveThemes[dim.id];

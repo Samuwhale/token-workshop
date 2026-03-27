@@ -76,3 +76,16 @@ Already up to date.
 
 --- Merging: BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens ---
 Already up to date.
+[main 013bc3f] chore(backlog): done – BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens
+ 6 files changed, 81 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens
+- Added inline confirmation banner in BatchEditor that intercepts the Apply action when `newType !== ''`. First click shows a warning banner listing how many tokens are affected, their current types, the target type, and a note about potential alias breakage. A "Confirm" button proceeds with the apply; "Cancel" dismisses. The banner is cleared when the type dropdown changes.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L74 (showTypeConfirm state), ~L115 (typeChangeInfo useMemo), ~L145 (confirmation intercept in handleApply), ~L365 (select onChange clears confirm), ~L433 (confirmation banner JSX)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  34 items remaining
+===============================================================
+  Claimed: ThemeManager: No search or filter for sets within a theme option — when a project has 10+ sets, the set matrix in each theme option becomes a long unfiltered list with no way to find a specific set quickly
+  Worktree: /tmp/backlog-92215-tn2msZ

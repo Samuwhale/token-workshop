@@ -294,3 +294,11 @@
   - Showing "from X, Y to Z" requires computing distinct current types — `new Set(selectedEntries.map(x => x.entry.$type))` is sufficient.
   - Reset `showTypeConfirm` in the type `select` onChange so a stale confirmation can't be confirmed after the user changes their mind.
 ---
+
+## 2026-03-27 - `themedAllTokensFlat` drops tokens outside themed sets
+- Added a base layer pass before applying themed sets: collect all set names referenced by any dimension option into `themedSets`, then seed `merged` with every token whose set is NOT in `themedSets`. The existing source→enabled overlay logic then applies on top, so unthemed tokens are always included as a foundation.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L94 (themedAllTokensFlat useMemo)
+- **Learnings for future iterations:**
+  - When merging themed overrides, always seed the result with "unowned" tokens first — any set not referenced by any dimension should be treated as a global base layer.
+  - The `themedSets` set must include sets from ALL options across ALL dimensions (not just active ones) to avoid leaking inactive-option sets into the base layer.
+---
