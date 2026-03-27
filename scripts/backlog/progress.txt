@@ -282,3 +282,11 @@
   - A linter/formatter runs automatically on file save and may revert or reformat changes — always re-read a file before editing if a prior edit was rejected.
   - When moving a shared utility, update `patterns.md` entries that reference the old path so future agents don't import from the wrong location.
 ---
+
+## 2026-03-27 - `useTokens.refreshTokens` fetches full token payload for every set just to count leaf nodes
+- Added `getSetCounts()` to `TokenStore` (uses `flattenTokenGroup` on the already-loaded in-memory sets — no file I/O). Updated `GET /api/sets` to include a `counts` field in the response. Updated `refreshTokens` to consume `setsData.counts` directly, eliminating the parallel fetch of every set's full payload just for counting. Removed the now-unused `countLeafNodes` import from `useTokens.ts`.
+- Files changed: `packages/server/src/services/token-store.ts` ~L178, `packages/server/src/routes/sets.ts` ~L8, `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L53
+- **Learnings for future iterations:**
+  - `TokenStore` keeps all sets in memory; `flattenTokenGroup(set.tokens).size` is O(n) over the already-loaded data — no extra I/O needed.
+  - The duplicate `gen !== fetchGenRef.current` guard after `setTokens` was redundant (there's already one above `setTokens`) but harmless; left it to preserve the check that appears after counts are set.
+---

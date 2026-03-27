@@ -104,10 +104,10 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Performance
 
-- [~] `useTokens.refreshTokens` fetches full token payload for every set just to count leaf nodes — server should provide counts in `/api/sets` response (`figma-plugin/useTokens.ts:52-67`)
+- [x] `useTokens.refreshTokens` fetches full token payload for every set just to count leaf nodes — server should provide counts in `/api/sets` response (`figma-plugin/useTokens.ts:52-67`)
 - [x] Controller `findVariable` loads ALL local Figma variables to find one, called once per token in `applyVariables` — should cache variable list (`figma-plugin/controller.ts:1076-1079`)
 - [~] ExportPanel `handleSaveToServer` saves each variable sequentially with separate HTTP requests (`figma-plugin/ExportPanel.tsx:250-293`)
-- [ ] Color map reinitialized O(n) on every single-token `resolve()` call — wasteful for single lookups (`core/resolver.ts:80-84`)
+- [~] Color map reinitialized O(n) on every single-token `resolve()` call — wasteful for single lookups (`core/resolver.ts:80-84`)
 - [ ] `rebuildFlatTokens` called multiple times per batch operation without batching in `replaceSetTokens`, `renameGroup`, `moveGroup`, `bulkRename` (`server/token-store.ts`)
 - [ ] AnalyticsPanel fetches all sets' tokens in parallel with no `AbortController` — setState on unmounted component if user switches tabs (`figma-plugin/AnalyticsPanel.tsx:201-264`)
 - [ ] AliasAutocomplete `entries` recomputed every render without `useMemo` — expensive for large token sets (`figma-plugin/AliasAutocomplete.tsx`)
