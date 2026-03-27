@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import type { DTCGToken } from '@tokenmanager/core';
+import type { DTCGToken, ResolvedToken } from '@tokenmanager/core';
 import { wcagLuminance } from '@tokenmanager/core';
 
 function contrastRatio(hex1: string, hex2: string): number | null {
@@ -214,13 +214,15 @@ export async function docsRoutes(fastify: FastifyInstance) {
       reply.status(404).header('Content-Type', 'text/html; charset=utf-8');
       return `<!DOCTYPE html><html><body><h1>Set "${escapeHtml(set)}" not found</h1><p><a href="/docs">Back</a></p></body></html>`;
     }
-    const flatRecord = await fastify.tokenStore.getFlatTokensForSet(set);
-    const flat: FlatToken[] = Object.entries(flatRecord).map(([path, t]) => ({
-      path,
-      $type: t.$type || 'string',
-      $value: t.$value,
-      $description: t.$description,
-    }));
+    const resolved: ResolvedToken[] = await fastify.tokenStore.resolveTokens();
+    const flat: FlatToken[] = resolved
+      .filter(t => t.setName === set)
+      .map(t => ({
+        path: t.path,
+        $type: t.$type || 'string',
+        $value: t.$value,
+        $description: t.$description,
+      }));
     reply.header('Content-Type', 'text/html; charset=utf-8');
     return renderSetPage(set, flat);
   });

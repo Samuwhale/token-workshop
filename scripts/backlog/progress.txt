@@ -354,3 +354,11 @@
 - **Learnings for future iterations:**
   - Collision checks should always run before any side effects (network writes). Build the full slug→names map, filter for length > 1, then abort with a descriptive message before touching the server.
 ---
+
+## 2026-03-27 - Docs page renders alias token values as raw `{reference}` strings
+- Replaced `getFlatTokensForSet(set)` with `resolveTokens()` filtered by `setName === set` in the `/docs/:set` route. Resolved tokens have fully resolved `$value` fields (no `{reference}` strings).
+- Files changed: `packages/server/src/routes/docs.ts` ~L3,L217-224
+- **Learnings for future iterations:**
+  - `tokenStore.resolveTokens()` returns cross-set resolved tokens; filter by `.setName` to scope to one set.
+  - `getFlatTokensForSet` returns raw token data including unresolved alias strings — prefer `resolveTokens` wherever display values matter.
+---
