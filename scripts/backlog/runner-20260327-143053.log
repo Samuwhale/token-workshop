@@ -191,3 +191,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
   Worktree: /tmp/backlog-97955-NhIPUq
+
+  ✓ done: ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
+    Auto-expand all coverage gap sections on load by initializing expandedCoverage as a Set populated with all option keys that have uncovered tokens after fetch
+    14 turns · 114s · $0.37
+
+--- Merging: ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option ---
+Already up to date.

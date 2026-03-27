@@ -142,3 +142,17 @@ Already up to date.
 
 --- Merging: Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens ---
 Already up to date.
+[main 6c671b1] chore(backlog): done – Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
+ 7 files changed, 66 insertions(+), 11 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Coverage gaps don't link to unresolved tokens
+- Made each uncovered token in the ThemeManager coverage gaps panel a clickable button. Clicking navigates: closes the themes overflow panel, switches to the Tokens tab, and highlights the token in its source set.
+- Extended `CoverageMap` type: `uncovered` changed from `string[]` to `Array<{path: string; set: string}>`. Coverage computation now tracks `tokenSetOrigin` (which set last defined each token path, respecting source→enabled override order).
+- Added `onNavigateToToken?: (set: string, tokenPath: string) => void` prop to `ThemeManager`.
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  60 items remaining
+===============================================================
+  Claimed: "Add option" form resets after each addition — creating multiple dimension options requires re-opening the form each time; batch-add would be faster
+  Worktree: /tmp/backlog-97510-ip5Ats

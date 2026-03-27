@@ -53,7 +53,7 @@
 ### QoL
 
 - [x] No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
-- [~] Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
+- [x] Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
 - [~] Drag-to-reorder set precedence has no keyboard alternative — reordering relies exclusively on pointer drag; keyboard-only users can't change precedence
 
 ### UX
@@ -61,7 +61,7 @@
 - [x] ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance
 - [~] ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
 - [~] No theme preview mode — no way to preview token values with a theme applied before committing it as active
-- [ ] "Add option" form resets after each addition — creating multiple dimension options requires re-opening the form each time; batch-add would be faster
+- [~] "Add option" form resets after each addition — creating multiple dimension options requires re-opening the form each time; batch-add would be faster
 
 ---
 

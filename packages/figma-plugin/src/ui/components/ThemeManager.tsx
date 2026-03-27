@@ -63,8 +63,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   // Coverage gaps
   const [coverage, setCoverage] = useState<CoverageMap>({});
-  const [expandedCoverage, setExpandedCoverage] = useState<string | null>(null); // `${dimId}:${optionName}`
-  const [expandedStale, setExpandedStale] = useState<string | null>(null); // `${dimId}:${optionName}`
+  const [expandedCoverage, setExpandedCoverage] = useState<Set<string>>(new Set()); // `${dimId}:${optionName}`
+  const [expandedStale, setExpandedStale] = useState<Set<string>>(new Set()); // `${dimId}:${optionName}`
 
   // Per-option set ordering (determines override precedence)
   const [optionSetOrders, setOptionSetOrders] = useState<Record<string, Record<string, string[]>>>({});
@@ -156,6 +156,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         }
       }
       setCoverage(cov);
+      // Auto-expand all options that have coverage gaps so users see them without clicking
+      const keysWithGaps = new Set<string>();
+      for (const dim of allDimensions) {
+        for (const opt of dim.options) {
+          if ((cov[dim.id]?.[opt.name]?.uncovered.length ?? 0) > 0) {
+            keysWithGaps.add(`${dim.id}:${opt.name}`);
+          }
+        }
+      }
+      setExpandedCoverage(keysWithGaps);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
@@ -548,7 +558,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{opt.name}</span>
                               {hasUncovered && (
                                 <button
-                                  onClick={() => setExpandedCoverage(expandedCoverage === covKey ? null : covKey)}
+                                  onClick={() => setExpandedCoverage(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
                                   className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/40 hover:bg-[var(--color-figma-warning)]/25 transition-colors flex-shrink-0"
                                   title={`${coverage[dim.id][opt.name].uncovered.length} tokens have no value in active sets`}
                                 >
@@ -558,7 +568,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               )}
                               {hasStale && (
                                 <button
-                                  onClick={() => setExpandedStale(expandedStale === covKey ? null : covKey)}
+                                  onClick={() => setExpandedStale(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
                                   className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] border border-[var(--color-figma-error)]/40 hover:bg-[var(--color-figma-error)]/25 transition-colors flex-shrink-0"
                                   title={`${staleSetNames.length} set${staleSetNames.length !== 1 ? 's' : ''} referenced here no longer exist`}
                                 >
@@ -661,7 +671,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           )}
 
                           {/* Coverage gaps */}
-                          {expandedCoverage === covKey && (coverage[dim.id]?.[opt.name]?.uncovered.length ?? 0) > 0 && (
+                          {expandedCoverage.has(covKey) && (coverage[dim.id]?.[opt.name]?.uncovered.length ?? 0) > 0 && (
                             <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/10 px-3 py-2">
                               <div className="text-[10px] font-medium text-[var(--color-figma-warning)] mb-1">
                                 Missing values ({coverage[dim.id][opt.name].uncovered.length})
@@ -685,7 +695,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               </div>
                             </div>
                           )}
-                          {expandedStale === covKey && hasStale && (
+                          {expandedStale.has(covKey) && hasStale && (
                             <div className="border-t border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/10 px-3 py-2">
                               <div className="text-[10px] font-medium text-[var(--color-figma-error)] mb-1">
                                 Deleted sets ({staleSetNames.length})

@@ -448,3 +448,11 @@
   - Coverage computation merges source sets first, then enabled sets — track `tokenSetOrigin` in parallel to record which set last defined each path.
   - When a navigation prop is absent (e.g. standalone use), fall back to non-clickable display rather than crashing.
 ---
+
+## 2026-03-27 - ThemeManager coverage gaps per dimension are collapsed by default — users may not notice uncovered tokens without clicking into each option
+- Changed `expandedCoverage` and `expandedStale` from `string | null` (single accordion) to `Set<string>` (multi-open). After computing coverage, all option keys with gaps are automatically added to `expandedCoverage` so the token lists are visible on load. Toggle buttons now use `Set.has/add/delete` pattern. Stale-sets section remains user-controlled (not auto-expanded).
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L63 (state types), ~L145 (auto-expand after fetch), ~L538 (toggle handler), ~L548 (toggle handler), ~L651 (render condition), ~L664 (render condition)
+- **Learnings for future iterations:**
+  - When auto-expanding problem indicators, compute the initial Set right after data fetch and call setState once — avoids a separate useEffect dependency chain.
+  - Changing accordion state from `string | null` to `Set<string>` enables multi-open without requiring any JSX restructuring.
+---
