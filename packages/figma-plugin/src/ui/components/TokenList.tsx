@@ -4015,6 +4015,17 @@ function TokenTreeNode({
             className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
+              const val = typeof node.$value === 'string' ? node.$value : JSON.stringify(node.$value);
+              navigator.clipboard.writeText(val).catch(() => {});
+              setContextMenuPos(null);
+            }}
+          >
+            Copy value
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
               const entry: Record<string, unknown> = { $value: node.$value, $type: node.$type };
               if (node.$description) entry.$description = node.$description;
               navigator.clipboard.writeText(JSON.stringify(entry, null, 2)).catch(() => {});

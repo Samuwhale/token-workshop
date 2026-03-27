@@ -346,3 +346,11 @@
   - `flatItems` (virtual scroll list) is the authoritative ordered list for tree-view range selection — only includes visible (expanded) nodes, which is correct UX for shift-click.
   - `onToggleSelect` is used in 3 places in TokenTreeNode: checkbox `onChange`, space-key handler, and the name-area click. Only the click needs modifier info; the others can keep the plain `(path: string)` call since the optional parameter defaults gracefully.
 ---
+
+## 2026-03-27 - No quick-copy of token path from list — right-clicking a token has no "Copy path" or "Copy value" option
+- Context menu already had "Copy token path" and "Copy as JSON". Added the missing "Copy value" button between them, which copies the raw `$value` (string values as-is, non-string values as JSON.stringify). The "Copy token path" item satisfies the "Copy path" requirement.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L4014
+- **Learnings for future iterations:**
+  - The token list context menu (search `{/* Right-click context menu */}`) already has path/JSON copy — check it before implementing copy features.
+  - For "Copy value", stringify non-string values (objects, arrays) so the clipboard always contains a usable string.
+---
