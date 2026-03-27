@@ -211,3 +211,11 @@
 - **Learnings for future iterations:**
   - DTCG composite tokens (shadow, typography, gradient) store `$value` as an object with sub-properties that can individually be alias references. Any code walking token values for alias refs must handle both string and object `$value`.
 ---
+
+## 2026-03-27 - SyncPanel shows no empty state when first loaded
+- Added inline loading indicators (spinner + descriptive text) inside the body of both "Token differences" and "Publish Readiness" boxes when their respective checks are running. Previously the body was blank during loading — only the button text changed to "Checking…".
+- The existing "Click Compare…" / "Click Run checks…" prompts were already present for the unchecked state but were hidden by `!varLoading`/`!readinessLoading` guards during auto-run. The new loading indicators fill that gap.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L685 (var diff loading), ~L790 (readiness loading)
+- **Learnings for future iterations:**
+  - When a panel auto-runs a check on mount, any empty-state message guarded by `!loading` will never be visible. Always add a separate loading-state block that renders during the check.
+---

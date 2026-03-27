@@ -32,3 +32,18 @@ WARNING: Agent returned unexpected status '' — unclaiming item
 
 --- Merging: updateAliasRefs only handles simple string $value ---
 Already up to date.
+[main 967978a] chore(backlog): done – updateAliasRefs only handles simple string $value
+ 6 files changed, 89 insertions(+), 16 deletions(-)
+
+## 2026-03-27 - updateAliasRefs only handles simple string $value
+- Both `updateAliasRefs` and `updateBulkAliasRefs` now handle composite/object `$value` fields (e.g. shadow `{ color: "{color.primary}" }`). When `$value` is an object, a dedicated `updateCompositeValue` walker updates alias strings in all nested properties.
+- Previously, the walk function recursed into objects but only checked `key === '$value'` for string replacement, so sub-properties like `color`, `offsetX` inside composite values were never updated during renames.
+- Files changed: `packages/server/src/services/token-store.ts` ~L625 (updateAliasRefs), ~L665 (updateBulkAliasRefs)
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  0
+0 items remaining
+===============================================================
+./scripts/backlog/backlog.sh: line 670: [: 0
+0: integer expression expected
+No items available to claim (all in-progress or empty). Exiting.

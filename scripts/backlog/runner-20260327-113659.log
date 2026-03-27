@@ -100,3 +100,10 @@ Already up to date.
 ===============================================================
   Claimed: SyncPanel shows no empty state when first loaded — unclear whether "nothing to sync" or "run a check first"
   Worktree: /tmp/backlog-7333-JV69Sf
+
+  ✓ done: SyncPanel shows no empty state when first loaded
+    Added inline loading spinners with descriptive text inside both Token differences and Publish Readiness boxes during auto-check, replacing previously blank body areas.
+    19 turns · 171s · $0.66
+
+--- Merging: SyncPanel shows no empty state when first loaded ---
+Already up to date.

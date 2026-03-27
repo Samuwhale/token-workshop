@@ -682,6 +682,13 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
               );
             })()}
 
+            {varLoading && (
+              <div className="px-3 py-3 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                <div className="w-3 h-3 rounded-full border-[1.5px] border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin shrink-0" aria-hidden="true" />
+                Comparing local tokens with Figma variables…
+              </div>
+            )}
+
             {!varLoading && !varError && (
               varChecked && varRows.length === 0 ? (
                 <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex flex-col gap-1.5">
@@ -775,6 +782,12 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+            {readinessLoading && readinessChecks.length === 0 && (
+              <div className="px-3 py-3 flex items-center gap-2 text-[10px] text-[var(--color-figma-text-secondary)]">
+                <div className="w-3 h-3 rounded-full border-[1.5px] border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin shrink-0" aria-hidden="true" />
+                Running publish readiness checks…
               </div>
             )}
             {!readinessLoading && readinessChecks.length === 0 && !readinessError && (
