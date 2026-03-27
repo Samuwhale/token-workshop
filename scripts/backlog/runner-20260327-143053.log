@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 ===============================================================
   Claimed: Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback
   Worktree: /tmp/backlog-97955-2nHK4r
+
+  ✓ done: Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback
+    Added pushUndo slots to rename, delete, create, duplicate, merge, and split operations in App.tsx; merge/split use PUT /api/tokens/:set for bulk token restoration
+    23 turns · 318s · $0.87
+
+--- Merging: Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback ---
+Already up to date.

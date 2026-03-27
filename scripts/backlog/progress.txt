@@ -370,3 +370,18 @@
   - Controlled inputs that silently clamp on every keystroke create UX mismatches. Use local editing state + commit-on-blur for numeric inputs with range constraints.
   - `useRef(false)` as an "editing" flag prevents external state updates (from slider drag or prop changes) from overwriting the user's in-progress typed value.
 ---
+
+## 2026-03-27 - Undo doesn't cover set-level operations
+- Added undo/redo support for all set-level operations: rename, delete, create, duplicate, merge, and split.
+- Rename: captures old/new names, restore renames back, redo renames forward.
+- Delete: snapshots tokens before deleting, restore recreates set via POST, redo deletes again.
+- Create: restore deletes the created set, redo recreates it (empty).
+- Duplicate: captures duplicated tokens, restore deletes the copy, redo recreates it.
+- Merge: snapshots target tokens before merge (pre-merge state), restore uses `PUT /api/tokens/:set` to replace all tokens. No redo (complex multi-step).
+- Split: tracks which sets were created, restore deletes them and optionally recreates original if it was deleted. No redo.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L542 (rename), ~L654 (delete), ~L632 (create), ~L694 (duplicate), ~L780 (merge), ~L839 (split)
+- **Learnings for future iterations:**
+  - `PUT /api/tokens/:set` (replaceSetTokens) is the correct endpoint for bulk-restoring a set's token state — avoids needing to delete+recreate the set and losing theme references.
+  - For undo of multi-step operations (merge, split), skip redo if the reverse would require re-fetching complex state — partial undo-only slots are supported by the UndoSlot interface (`redo` is optional).
+  - Always capture necessary state (serverUrl, tokens) into local consts before pushing the undo slot, since the closure runs asynchronously after the handler completes.
+---

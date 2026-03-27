@@ -56,3 +56,17 @@ Already up to date.
 
 --- Merging: ColorPicker alpha numeric input doesn't validate range — entering "999" creates an invalid alpha that internally clamps, showing confusing mismatch between input and result ---
 Already up to date.
+[main 493a79f] chore(backlog): done – ColorPicker alpha numeric input doesn't validate range — entering "999" creates an invalid alpha that internally clamps, showing confusing mismatch between input and result
+ 5 files changed, 67 insertions(+), 7 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - ColorPicker alpha numeric input doesn't validate range
+- Added local editing state (`alphaInput` + `alphaEditing` ref) to decouple the alpha text input from the `alpha` state during typing. The input now accepts any text while focused and only commits/clamps on blur or Enter. Out-of-range values (e.g. "999") are visibly corrected to "100%" at commit time, eliminating the confusing mid-type mismatch. Arrow keys still nudge by 1% and onFocus selects all for easy replacement.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L201 (state), ~L228 (prop sync), ~L237 (emit sync), ~L481 (input element)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  87 items remaining
+===============================================================
+  Claimed: `parseInlineValue` for boolean type accepts any non-`"false"` string as `true` — typing "maybe" or "yes" both evaluate as `true` with no validation
+  Worktree: /tmp/backlog-98408-35PnwY

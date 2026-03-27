@@ -564,6 +564,26 @@ export function App() {
       cancelRename();
       refreshTokens();
       setSuccessToast(`Renamed set "${oldName}" → "${newName}"`);
+      const url = serverUrl;
+      pushUndo({
+        description: `Renamed set "${oldName}" → "${newName}"`,
+        restore: async () => {
+          await fetch(`${url}/api/sets/${encodeURIComponent(newName)}/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newName: oldName }),
+          });
+          refreshTokens();
+        },
+        redo: async () => {
+          await fetch(`${url}/api/sets/${encodeURIComponent(oldName)}/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newName }),
+          });
+          refreshTokens();
+        },
+      });
     } catch {
       setRenameError('Rename failed');
     }
@@ -632,6 +652,23 @@ export function App() {
       setNewSetError('');
       refreshTokens();
       setSuccessToast(`Created set "${name}"`);
+      const url = serverUrl;
+      const createdName = name;
+      pushUndo({
+        description: `Created set "${createdName}"`,
+        restore: async () => {
+          await fetch(`${url}/api/sets/${encodeURIComponent(createdName)}`, { method: 'DELETE' });
+          refreshTokens();
+        },
+        redo: async () => {
+          await fetch(`${url}/api/sets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: createdName }),
+          });
+          refreshTokens();
+        },
+      });
     } catch {
       setNewSetError('Network error');
     }
@@ -639,6 +676,15 @@ export function App() {
 
   const handleDeleteSet = async () => {
     if (!deletingSet || !connected) return;
+    // Snapshot tokens before deleting so we can restore
+    let savedTokens: Record<string, unknown> = {};
+    try {
+      const snap = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`);
+      if (snap.ok) {
+        const snapData = await snap.json();
+        savedTokens = snapData.tokens || {};
+      }
+    } catch { /* best-effort snapshot */ }
     const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`Failed to delete set: ${res.statusText}`);
     const remaining = sets.filter(s => s !== deletingSet);
@@ -650,6 +696,23 @@ export function App() {
     setDeletingSet(null);
     refreshTokens();
     setSuccessToast(`Deleted set "${name}"`);
+    const url = serverUrl;
+    const tokens_ = savedTokens;
+    pushUndo({
+      description: `Deleted set "${name}"`,
+      restore: async () => {
+        await fetch(`${url}/api/sets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, tokens: tokens_ }),
+        });
+        refreshTokens();
+      },
+      redo: async () => {
+        await fetch(`${url}/api/sets/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        refreshTokens();
+      },
+    });
   };
 
 
@@ -661,10 +724,12 @@ export function App() {
     while (sets.includes(newName)) {
       newName = `${setName}-copy-${i++}`;
     }
+    let savedTokens: Record<string, unknown> = {};
     try {
       const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
       if (!res.ok) return;
       const data = await res.json();
+      savedTokens = data.tokens || {};
       const createRes = await fetch(`${serverUrl}/api/sets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -676,6 +741,24 @@ export function App() {
     }
     refreshTokens();
     setSuccessToast(`Duplicated set "${setName}" → "${newName}"`);
+    const url = serverUrl;
+    const dupName = newName;
+    const dupTokens = savedTokens;
+    pushUndo({
+      description: `Duplicated set "${setName}" → "${dupName}"`,
+      restore: async () => {
+        await fetch(`${url}/api/sets/${encodeURIComponent(dupName)}`, { method: 'DELETE' });
+        refreshTokens();
+      },
+      redo: async () => {
+        await fetch(`${url}/api/sets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: dupName, tokens: dupTokens }),
+        });
+        refreshTokens();
+      },
+    });
   };
 
   // Flatten a nested token object to { [dotPath]: tokenEntry }
@@ -736,7 +819,8 @@ export function App() {
     try {
       const tgtRes = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
       const tgtData = await tgtRes.json();
-      const tgtFlat = flattenTokensObj(tgtData.tokens || {});
+      const preMergeTokens: Record<string, unknown> = tgtData.tokens || {};
+      const tgtFlat = flattenTokensObj(preMergeTokens);
       const writes: Promise<any>[] = [];
       for (const [path, srcEntry] of Object.entries(mergeSrcFlat)) {
         const conflict = mergeConflicts.find(c => c.path === path);
@@ -758,11 +842,24 @@ export function App() {
       }
       await Promise.all(writes);
       const srcName = mergingSet;
+      const targetName = mergeTargetSet;
       setMergingSet(null);
       setMergeChecked(false);
       setActiveSet(mergeTargetSet);
       refreshTokens();
-      setSuccessToast(`Merged "${srcName}" into "${mergeTargetSet}"`);
+      setSuccessToast(`Merged "${srcName}" into "${targetName}"`);
+      const url = serverUrl;
+      pushUndo({
+        description: `Merged "${srcName}" into "${targetName}"`,
+        restore: async () => {
+          await fetch(`${url}/api/tokens/${encodeURIComponent(targetName)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(preMergeTokens),
+          });
+          refreshTokens();
+        },
+      });
     } catch {
       // ignore
     } finally {
@@ -800,6 +897,8 @@ export function App() {
       const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`);
       const data = await res.json();
       const tokenRoot = data.tokens || {};
+      const originalTokens: Record<string, unknown> = tokenRoot;
+      const createdNames: string[] = [];
       for (const { key, newName } of splitPreview) {
         if (sets.includes(newName)) continue;
         const groupTokens = tokenRoot[key];
@@ -808,6 +907,7 @@ export function App() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newName, tokens: groupTokens }),
         });
+        createdNames.push(newName);
       }
       if (splitDeleteOriginal) {
         await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`, { method: 'DELETE' });
@@ -816,9 +916,27 @@ export function App() {
       }
       const name = splittingSet;
       const count = splitPreview.length;
+      const wasDeleted = splitDeleteOriginal;
       setSplittingSet(null);
       refreshTokens();
       setSuccessToast(`Split "${name}" into ${count} sets`);
+      const url = serverUrl;
+      pushUndo({
+        description: `Split "${name}" into ${count} sets`,
+        restore: async () => {
+          await Promise.all(createdNames.map(n =>
+            fetch(`${url}/api/sets/${encodeURIComponent(n)}`, { method: 'DELETE' })
+          ));
+          if (wasDeleted) {
+            await fetch(`${url}/api/sets`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, tokens: originalTokens }),
+            });
+          }
+          refreshTokens();
+        },
+      });
     } catch {
       // ignore
     } finally {

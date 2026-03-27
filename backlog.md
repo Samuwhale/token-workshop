@@ -37,8 +37,8 @@
 ### Bugs
 
 - [x] ColorPicker hex input doesn't trim whitespace — pasting a hex code with leading/trailing spaces (common from copy-paste) silently rejects the value with no error feedback
-- [~] ColorPicker alpha numeric input doesn't validate range — entering "999" creates an invalid alpha that internally clamps, showing confusing mismatch between input and result
-- [ ] `parseInlineValue` for boolean type accepts any non-`"false"` string as `true` — typing "maybe" or "yes" both evaluate as `true` with no validation
+- [x] ColorPicker alpha numeric input doesn't validate range — entering "999" creates an invalid alpha that internally clamps, showing confusing mismatch between input and result
+- [~] `parseInlineValue` for boolean type accepts any non-`"false"` string as `true` — typing "maybe" or "yes" both evaluate as `true` with no validation
 - [ ] Find-and-replace silently swallows invalid regex — if the user enables regex mode and enters a malformed pattern, `new RegExp()` throws and the preview returns empty with no error
 - [ ] Find-and-replace clears UI state even on failure — after a failed bulk rename the search/replace fields and mode are reset, losing the user's parameters
 - [ ] Virtual-scroll row height mismatch — `VIRTUAL_ITEM_HEIGHT` is hardcoded to 28 px, but rows with chain/alias badges render at ~48–56 px, causing misaligned scroll positions
