@@ -30,6 +30,7 @@ import { useGenerators } from './hooks/useGenerators';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
 import { stableStringify } from './shared/colorUtils';
+import { flattenTokenGroup } from '@tokenmanager/core';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null };

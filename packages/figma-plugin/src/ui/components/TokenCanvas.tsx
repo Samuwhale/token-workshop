@@ -84,13 +84,13 @@ export function TokenCanvas({ tokens, allTokensFlat, onEdit }: TokenCanvasProps)
       let cx: number;
       let cy: number;
 
-      if (!hsl || hsl[1] < 8) {
+      if (!hsl || hsl.s < 8) {
         // Achromatic → gray strip on the right
-        const lightness = hsl ? hsl[2] : 50;
+        const lightness = hsl ? hsl.l : 50;
         cx = GRAY_STRIP_X + 4;
         cy = PADDING + ((100 - lightness) / 100) * (CANVAS_H - 2 * PADDING);
       } else {
-        const [hue, , lightness] = hsl;
+        const { h: hue, l: lightness } = hsl;
         const bucket = Math.round(hue / 8) * 8;
         const idx = bucketCounts[bucket] ?? 0;
         bucketCounts[bucket] = idx + 1;

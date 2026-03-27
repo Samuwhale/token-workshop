@@ -417,3 +417,11 @@
   - When two functions share a large switch, the cleanest split is: outer function does lookup/validation, inner function does dispatch. The inner function receives a plain value (`unknown`), not a domain object, keeping it easy to call from both paths.
   - Error messages in the shared switch should be call-path-neutral ("Source value for X") rather than caller-specific ("Multi-brand input" vs "Source token name").
 ---
+
+## 2026-03-27 - `hexToHsl` duplicated in TokenCanvas.tsx when it already exists in `colorUtils.ts`
+- Removed local `hexToHsl` (tuple-returning) and replaced with the exported `hexToHsl` from `colorUtils.ts` (object-returning). Updated 3 usage sites: `hsl[1]` → `hsl.s`, `hsl[2]` → `hsl.l`, tuple destructure → `{ h: hue, l: lightness }`. Also replaced the `hexToRgb` import (no longer needed) with `hexToHsl`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenCanvas.tsx` ~L4,L18-33,L108-114
+- **Learnings for future iterations:**
+  - The colorUtils `hexToHsl` returns `{ h, s, l }` (object), not a tuple — local callers that used tuple indexing (`hsl[1]`) need updating to property access.
+  - `hexToRgb` in colorUtils already handles 8-char `#RRGGBBAA` hex, so the local `hex.slice(0, 7)` guard was unnecessary.
+---
