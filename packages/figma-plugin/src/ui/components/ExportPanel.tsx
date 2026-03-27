@@ -726,28 +726,16 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                     {figmaCollections.length} collection{figmaCollections.length !== 1 ? 's' : ''} &middot;{' '}
                     {figmaCollections.reduce((sum, c) => sum + c.variables.length, 0)} variables
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={handleExportFigmaVariables}
-                      className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M23 4v6h-6M1 20v-6h6" />
-                        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
-                      </svg>
-                      Refresh
-                    </button>
-                    <button
-                      onClick={() => { setFigmaCollections([]); }}
-                      className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                    >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                      Clear
-                    </button>
-                  </div>
+                  <button
+                    onClick={handleExportFigmaVariables}
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M23 4v6h-6M1 20v-6h6" />
+                      <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15" />
+                    </svg>
+                    Reload
+                  </button>
                 </div>
 
                 {/* Collection list */}

@@ -108,7 +108,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] `runReadinessChecks` is never triggered automatically — unlike `computeVarDiff` which runs on mount, the publish readiness section always shows "Readiness unknown" until the user manually clicks "Run checks"; the status bar's readiness dot is always grey on first open (`SyncPanel.tsx:L243`, compare with L182-184)
 
 - [x] PreviewPanel template empty states — "No color tokens found" gives code snippet but no button to switch to Tokens tab; user is left without an action path
-- [ ] ExportPanel "Clear" vs "Refresh" buttons — both are tiny unlabeled-feeling actions next to each other; consider a single "Reload" that re-reads from Figma (making "Clear" redundant since data is non-destructive)
+- [x] ExportPanel "Clear" vs "Refresh" buttons — both are tiny unlabeled-feeling actions next to each other; consider a single "Reload" that re-reads from Figma (making "Clear" redundant since data is non-destructive)
 - [ ] ImportPanel styles — "Import from Figma Styles" button style is visually weaker than the Variables button, suggesting it's a secondary option even when it's equally valid
 
 - [HIGH] ExportPanel unreachable — `ExportPanel` is a fully-built 815-line component that is never imported or rendered in `App.tsx`; users have no way to access platform export (CSS/Dart/Swift/Android/JSON) or Figma variable import from the plugin UI (`packages/figma-plugin/src/ui/components/ExportPanel.tsx`)
@@ -152,3 +152,7 @@ Items spotted during UX passes but out of scope for that session.
 - [ ] Multi-brand mode silently skips the semantic mapping dialog — `useGeneratorDialog.ts:290` shows `SemanticMappingDialog` only when `previewTokens.length > 0`; in multi-brand mode `fetchPreview` always clears `previewTokens` to `[]` (line 161), so the semantic alias creation step is never offered to the user even when a color-ramp template with semantic layers was selected.
 
 - [ ] Centralize `normalizeHex` — `AnalyticsPanel.tsx` defines a local `normalizeHex` that could live in `colorUtils.ts` and be reused
+
+- [ ] ImportPanel conflict buttons — "Skip conflicts" / "Overwrite all" labels don't explain whether non-conflicting tokens are still imported; rename to "Skip & import new" / "Overwrite & import all"
+- [ ] SyncPanel sync result — after applyVarDiff completes, panel silently resets with no success message; show a brief "Synced N variables" inline confirmation
+- [ ] ExportPanel From-Figma empty state — "Connect to server" message is misleading when the actual issue is Figma variables not being loaded; clarify the error text

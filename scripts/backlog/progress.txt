@@ -317,3 +317,10 @@
 - Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L479, ~L515
 - **User impact:** Users who open a template form and try to click "Apply template" now immediately see which field(s) they need to fill in, rather than facing a grey disabled button with no explanation.
 ---
+
+## 2026-03-27 - ExportPanel "Clear" vs "Refresh" buttons — both are tiny unlabeled-feeling actions next to each other
+- Replaced the two separate "Refresh" and "Clear" buttons with a single "Reload" button that calls `handleExportFigmaVariables` (which already clears + re-reads from Figma). "Clear" was redundant since the data is non-destructive and can always be re-fetched.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L729
+- **Learnings for future iterations:**
+  - When "Reload" already resets state internally (setFigmaCollections([])), a separate "Clear" adds no value — the two actions collapse into one.
+---
