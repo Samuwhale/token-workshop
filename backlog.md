@@ -101,7 +101,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### Correctness & Safety
 
 - [x] App.tsx god component — ~2000-line component with 40+ useState declarations; should be decomposed into feature modules
-- [ ] TokenList 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)
+- [x] TokenList 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)
 - [ ] TokenGeneratorDialog 800+ lines — handles 7+ generator types in one component; should be split (`figma-plugin/TokenGeneratorDialog.tsx`)
 - [ ] CSS injection via token values in docs.ts — style attribute built with `escapeHtml` but not `escapeCssValue`; CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
 - [ ] 15+ scattered localStorage keys — no centralized persistence utility; keys are spread across components without a single source of truth

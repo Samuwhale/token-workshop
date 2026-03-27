@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - TokenList 30+ props — strong signal for context/state management extraction
+- Stale — already done. Props were grouped into `TokenListCtx` (5 fields), `TokenListData` (10 fields), and `TokenListActions` (15 fields) sub-interfaces in commit `4f44f2e`. The progress.txt entry was trimmed in a subsequent archive pass, leaving the backlog item stuck at `[~]`.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+  - When a progress.txt entry is archived/trimmed, the corresponding backlog.md item must be updated to `[x]` at the same time — otherwise the runner re-assigns it as though it were new work.
+---
+
 ## 2026-03-27 - discover-pass: SyncPanel.tsx + sync routes
 - Area: `packages/figma-plugin/src/ui/components/SyncPanel.tsx`, `packages/server/src/routes/sync.ts`
 - Found 7 items — written to backlog-inbox.md
