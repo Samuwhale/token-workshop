@@ -104,7 +104,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] Duplicate single token — only groups can be duplicated (with `-copy` suffix); there is no way to duplicate an individual token row to a new path, which is a common workflow when creating similar tokens (`TokenList.tsx` context menu)
 
-- [ ] Undo/redo for token edits — `useUndo` exists and works for generator edits but token create/edit/delete/rename operations are not undoable; a user who accidentally deletes or renames a token has no recovery path short of git (`figma-plugin/useUndo.ts`, `TokenList.tsx`)
+- [x] Undo/redo for token edits — `useUndo` exists and works for generator edits but token create/edit/delete/rename operations are not undoable; a user who accidentally deletes or renames a token has no recovery path short of git (`figma-plugin/useUndo.ts`, `TokenList.tsx`)
 
 - [ ] Delete non-empty group — the group context menu only allows deleting empty groups; deleting a group with tokens inside requires deleting each token individually or editing the JSON file directly; should offer "Delete group and all contained tokens" with a confirmation showing the count (`TokenList.tsx` group context menu)
 

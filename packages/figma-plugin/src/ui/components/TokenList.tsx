@@ -688,8 +688,31 @@ export function TokenList({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ oldGroupPath, newGroupPath }),
     });
+    if (onPushUndo) {
+      const capturedSet = setName;
+      const capturedUrl = serverUrl;
+      onPushUndo({
+        description: `Rename group "${oldGroupPath.split('.').pop() ?? oldGroupPath}"`,
+        restore: async () => {
+          await fetch(`${capturedUrl}/api/tokens/${capturedSet}/groups/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldGroupPath: newGroupPath, newGroupPath: oldGroupPath }),
+          });
+          onRefresh();
+        },
+        redo: async () => {
+          await fetch(`${capturedUrl}/api/tokens/${capturedSet}/groups/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldGroupPath, newGroupPath }),
+          });
+          onRefresh();
+        },
+      });
+    }
     onRefresh();
-  }, [connected, serverUrl, setName, onRefresh]);
+  }, [connected, serverUrl, setName, onRefresh, onPushUndo]);
 
   const executeTokenRename = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
@@ -699,27 +722,82 @@ export function TokenList({
       body: JSON.stringify({ oldPath, newPath }),
     });
     setRenameTokenConfirm(null);
+    if (onPushUndo) {
+      const capturedSet = setName;
+      const capturedUrl = serverUrl;
+      onPushUndo({
+        description: `Rename "${oldPath.split('.').pop() ?? oldPath}"`,
+        restore: async () => {
+          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
+          });
+          onRefresh();
+        },
+        redo: async () => {
+          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oldPath, newPath }),
+          });
+          onRefresh();
+        },
+      });
+    }
     onRefresh();
-  }, [connected, serverUrl, setName, onRefresh]);
+  }, [connected, serverUrl, setName, onRefresh, onPushUndo]);
 
   const handleDropOnGroup = useCallback(async (targetGroupPath: string) => {
     if (!dragSource || !connected) return;
     const source = dragSource;
     setDragSource(null);
     setDragOverGroup(null);
+    const moves: Array<{ oldPath: string; newPath: string }> = [];
     for (let i = 0; i < source.paths.length; i++) {
       const oldPath = source.paths[i];
       const name = source.names[i];
       const newPath = targetGroupPath ? `${targetGroupPath}.${name}` : name;
       if (newPath === oldPath) continue;
+      moves.push({ oldPath, newPath });
       await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ oldPath, newPath }),
       });
     }
+    if (onPushUndo && moves.length > 0) {
+      const capturedSet = setName;
+      const capturedUrl = serverUrl;
+      const label = moves.length === 1
+        ? `Move "${moves[0].oldPath.split('.').pop() ?? moves[0].oldPath}"`
+        : `Move ${moves.length} tokens`;
+      onPushUndo({
+        description: label,
+        restore: async () => {
+          for (const { oldPath, newPath } of moves) {
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
+            });
+          }
+          onRefresh();
+        },
+        redo: async () => {
+          for (const { oldPath, newPath } of moves) {
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ oldPath, newPath }),
+            });
+          }
+          onRefresh();
+        },
+      });
+    }
     onRefresh();
-  }, [dragSource, connected, serverUrl, setName, onRefresh]);
+  }, [dragSource, connected, serverUrl, setName, onRefresh, onPushUndo]);
 
   const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;

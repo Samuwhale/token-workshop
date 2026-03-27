@@ -269,3 +269,12 @@
 - **Learnings for future iterations:**
   - Always verify backlog items against actual code before implementing — items can be stale if implemented between backlog entry and execution.
 ---
+
+## 2026-03-27 - Undo/redo for token edits
+- Added `pushUndo` calls to the three token operations that were missing undo support: `handleRenameGroup` (group rename), `executeTokenRename` (single token rename), and `handleDropOnGroup` (drag-and-drop move). All three now capture old/new paths and issue the reverse API call on undo, and a forward re-issue on redo. Create, edit, delete, and bulk-rename already had undo.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L684, ~L694, ~L705
+- **Learnings for future iterations:**
+  - The `useUndo` system was already wired to token operations for most cases; only rename/move handlers were missing.
+  - `executeTokenRename` is called both from the confirmation dialog and directly, so adding undo there covers both paths (confirmed + unconfirmed renames).
+  - For drag-and-drop moves, collect the `moves` array before issuing API calls so both restore and redo can replay the exact set of renames.
+---
