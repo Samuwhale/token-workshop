@@ -73,7 +73,15 @@ function renderSpacingTokens(tokens: FlatToken[]): string {
   return `
     <div class="spacing-list">
       ${tokens.map(t => {
-        const px = parseFloat(String(t.$value));
+        const raw = String(t.$value);
+        let px: number;
+        if (raw.endsWith('rem')) {
+          px = parseFloat(raw) * 16;
+        } else if (raw.endsWith('%')) {
+          px = parseFloat(raw) * 2; // treat 100% as 200px max
+        } else {
+          px = parseFloat(raw);
+        }
         const safeSize = isNaN(px) ? 8 : Math.max(2, Math.min(px, 200));
         return `
           <div class="spacing-row">

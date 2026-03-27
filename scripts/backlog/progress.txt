@@ -362,3 +362,10 @@
   - `tokenStore.resolveTokens()` returns cross-set resolved tokens; filter by `.setName` to scope to one set.
   - `getFlatTokensForSet` returns raw token data including unresolved alias strings — prefer `resolveTokens` wherever display values matter.
 ---
+
+## 2026-03-27 - Spacing/dimension tokens with `rem` or `%` units render as near-zero bars in docs
+- Fixed `renderSpacingTokens` to convert `rem` values to px (×16) and `%` values to px (×2, treating 100% as ~200px) before clamping for the visual bar width. `parseFloat("1rem")` now yields 16px instead of 1px.
+- Files changed: `packages/server/src/routes/docs.ts` ~L76
+- **Learnings for future iterations:**
+  - When rendering size-proportional visuals from token values, always strip and handle CSS units (px, rem, %, em) before calling `parseFloat`, otherwise unitful strings silently drop the unit and produce near-zero values.
+---
