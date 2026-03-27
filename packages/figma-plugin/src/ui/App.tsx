@@ -2625,9 +2625,19 @@ export function App() {
       {/* Resize handle */}
       <div
         onMouseDown={onResizeHandleMouseDown}
-        className="absolute bottom-0 right-0 w-3 h-3 cursor-nwse-resize z-50"
+        className="absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize z-50 flex items-end justify-end p-[3px] opacity-30 hover:opacity-80 transition-opacity"
         style={{ touchAction: 'none' }}
-      />
+        title="Drag to resize"
+      >
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
+          <rect x="6" y="0" width="1.5" height="1.5" rx="0.5" />
+          <rect x="3" y="3" width="1.5" height="1.5" rx="0.5" />
+          <rect x="6" y="3" width="1.5" height="1.5" rx="0.5" />
+          <rect x="0" y="6" width="1.5" height="1.5" rx="0.5" />
+          <rect x="3" y="6" width="1.5" height="1.5" rx="0.5" />
+          <rect x="6" y="6" width="1.5" height="1.5" rx="0.5" />
+        </svg>
+      </div>
     </div>
   );
 }

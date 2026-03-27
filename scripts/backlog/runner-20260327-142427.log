@@ -52,3 +52,16 @@ Already up to date.
 ===============================================================
   Claimed: Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback
   Worktree: /tmp/backlog-79767-AFoEQK
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    3 turns · 103s · $0.36
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-27 - No success toasts for set operations
+- Created `SuccessToast` component (`packages/figma-plugin/src/ui/components/SuccessToast.tsx`) — a lightweight auto-dismissing (3s) toast with green checkmark, matching UndoToast styling.
+- Added `successToast` state to App.tsx and `setSuccessToast()` calls after successful create, rename, delete, reorder, merge, split, and duplicate set operations.
+- SuccessToast renders only when UndoToast is not visible, avoiding overlap since they share the same fixed position.
+
+Stop signal received. Exiting after iteration 3.

@@ -1,0 +1,11 @@
+NOTE: 3 [~] item(s) found — skipping reset (7 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+  Remaining items: 93
+  Completed total: 217 (next code pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  93 items remaining
+===============================================================
+  Claimed: Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
+  Worktree: /tmp/backlog-98408-ABhwI8

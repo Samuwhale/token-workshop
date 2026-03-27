@@ -19,14 +19,14 @@
 
 - [x] QuickStart dialog has no "back to templates" step — once a template is selected and TokenGeneratorDialog opens, the only way to pick a different template is to close and reopen the whole dialog
 - [x] Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
-- [~] No success toasts for set operations — create, rename, delete, reorder, merge, and split all succeed silently; only errors are surfaced, leaving users uncertain whether the action took effect
+- [x] No success toasts for set operations — create, rename, delete, reorder, merge, and split all succeed silently; only errors are surfaced, leaving users uncertain whether the action took effect
 - [~] Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback
 - [~] Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
-- [ ] Resize handle is too small — the bottom-right drag handle is 12×12 px with no hover affordance; enlarge and show a cursor change on approach
+- [~] Resize handle is too small — the bottom-right drag handle is 12×12 px with no hover affordance; enlarge and show a cursor change on approach
 
 ### UX
 
-- [ ] Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
+- [~] Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
 - [ ] Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt
 - [ ] Tab badges disappear when overflow panel is open — Inspect selection count and Publish git-changes badges are hidden whenever any overflow panel is visible, losing important status signals
 

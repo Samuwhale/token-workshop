@@ -341,3 +341,10 @@
   - The UndoToast is exclusively for undo/redo operations. For non-undoable success feedback, use a separate auto-dismissing SuccessToast.
   - When multiple toasts share the same fixed position, gate rendering with `!toastVisible` to avoid visual overlap.
 ---
+
+## 2026-03-27 - Resize handle is too small — the bottom-right drag handle is 12×12 px with no hover affordance; enlarge and show a cursor change on approach
+- Enlarged handle from `w-3 h-3` (12×12px) to `w-5 h-5` (20×20px). Added a 3×2 dot-grid SVG grip icon (10×10px) with `opacity-30 hover:opacity-80 transition-opacity` for a visible hover affordance. `cursor-nwse-resize` was already present.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L2628
+- **Learnings for future iterations:**
+  - A small dot-grid SVG (6 rect elements in a 3×2 grid) is a clean, low-footprint resize grip that matches OS conventions and renders crisply at small sizes.
+---

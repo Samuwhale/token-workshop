@@ -1,0 +1,11 @@
+NOTE: 4 [~] item(s) found — skipping reset (10 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+  Remaining items: 92
+  Completed total: 217 (next code pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  92 items remaining
+===============================================================
+  Claimed: Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
+  Worktree: /tmp/backlog-98901-PTCCeH

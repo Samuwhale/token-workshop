@@ -51,3 +51,16 @@ Already up to date.
 ===============================================================
   Claimed: Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
   Worktree: /tmp/backlog-80241-iYEr3l
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    3 turns · 26s · $0.13
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-27 - No success toasts for set operations
+- Created `SuccessToast` component (`packages/figma-plugin/src/ui/components/SuccessToast.tsx`) — a lightweight auto-dismissing (3s) toast with green checkmark, matching UndoToast styling.
+- Added `successToast` state to App.tsx and `setSuccessToast()` calls after successful create, rename, delete, reorder, merge, split, and duplicate set operations.
+- SuccessToast renders only when UndoToast is not visible, avoiding overlap since they share the same fixed position.
+
+Stop signal received. Exiting after iteration 3.
