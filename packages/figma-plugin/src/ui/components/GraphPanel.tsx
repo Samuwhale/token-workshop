@@ -698,7 +698,61 @@ export function GraphPanel({
     );
   }
 
-  // Empty state — template selection (also used when browsing from pipeline view)
+  // True empty state — no generators exist and not browsing templates
+  if (setGenerators.length === 0 && !browsingTemplates) {
+    return (
+      <div className="flex flex-col h-full overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center">
+          {/* Icon */}
+          <div className="mb-4 w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+              <circle cx="5" cy="12" r="3" />
+              <path d="M8 12h3" />
+              <rect x="11" y="9" width="6" height="6" rx="1" />
+              <path d="M17 12h3" />
+              <circle cx="22" cy="12" r="1" />
+            </svg>
+          </div>
+
+          <div className="text-[12px] font-semibold text-[var(--color-figma-text)] mb-2">No generators yet</div>
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed mb-4 max-w-[200px]">
+            Generators turn a source token into a whole token group — color scales, spacing scales, type scales, contrast pairs, and semantic aliases.
+          </p>
+
+          {/* What generators produce */}
+          <div className="w-full mb-5 grid grid-cols-2 gap-1.5">
+            {[
+              { label: 'Color scales', icon: <><div className="w-1.5 h-3 rounded-sm" style={{ background: 'hsl(220,70%,80%)' }} /><div className="w-1.5 h-3 rounded-sm" style={{ background: 'hsl(220,70%,55%)' }} /><div className="w-1.5 h-3 rounded-sm" style={{ background: 'hsl(220,70%,30%)' }} /></> },
+              { label: 'Spacing scales', icon: <><div className="h-1.5 rounded-sm bg-[var(--color-figma-accent)]" style={{ width: '4px', opacity: 0.5 }} /><div className="h-1.5 rounded-sm bg-[var(--color-figma-accent)]" style={{ width: '8px', opacity: 0.7 }} /><div className="h-1.5 rounded-sm bg-[var(--color-figma-accent)]" style={{ width: '14px' }} /></> },
+              { label: 'Type scales', icon: <div className="flex items-baseline gap-0.5"><span className="text-[7px] font-medium text-[var(--color-figma-text-secondary)]">A</span><span className="text-[9px] font-medium text-[var(--color-figma-text)]">A</span><span className="text-[11px] font-medium text-[var(--color-figma-accent)]">A</span></div> },
+              { label: 'Semantic aliases', icon: <><span className="text-[8px] font-mono text-[var(--color-figma-accent)]">500</span><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-tertiary)]"><path d="M2 1l4 3-4 3V1z" /></svg><span className="text-[8px] font-mono text-[var(--color-figma-text-secondary)]">btn</span></> },
+            ].map(({ label, icon }) => (
+              <div key={label} className="flex items-center gap-1.5 px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <div className="flex items-center gap-0.5 w-8 justify-center shrink-0">{icon}</div>
+                <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{label}</span>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setBrowsingTemplates(true)}
+            disabled={!connected}
+            className="px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Add your first generator
+          </button>
+
+          {!connected && (
+            <p className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-2">
+              Connect to the server first
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Template browsing — no generators yet or user clicked "+ Template"
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="px-3 pt-4 pb-3 shrink-0 flex items-start gap-2">
@@ -714,23 +768,10 @@ export function GraphPanel({
           </button>
         )}
         <div className="flex-1">
-          {!browsingTemplates ? (
-            <>
-              <div className="flex items-center justify-between mb-0.5">
-                <div className="text-[12px] font-semibold text-[var(--color-figma-text)]">New graph</div>
-              </div>
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-                Pick a template to generate tokens in <span className="font-mono">{activeSet}</span> — color ramps, spacing scales, type scales, and more.
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="text-[12px] font-medium text-[var(--color-figma-text)] mb-0.5">Graph templates</div>
-              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-                Pre-built token pipelines. Pick a template to drop a generator graph into <span className="font-mono">{activeSet}</span>, ready to customize.
-              </p>
-            </>
-          )}
+          <div className="text-[12px] font-medium text-[var(--color-figma-text)] mb-0.5">Graph templates</div>
+          <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+            Pre-built token pipelines. Pick a template to drop a generator graph into <span className="font-mono">{activeSet}</span>, ready to customize.
+          </p>
         </div>
       </div>
 

@@ -106,7 +106,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### UX
 
-- [~] Generators tab empty state guidance — when no generators exist the list is blank; replace with a descriptive empty state explaining what generators produce (color scales, contrast pairs, spacing scales, semantic aliases) and a primary CTA to add the first generator (`figma-plugin/GraphPanel.tsx`)
+- [x] Generators tab empty state guidance — when no generators exist the list is blank; replace with a descriptive empty state explaining what generators produce (color scales, contrast pairs, spacing scales, semantic aliases) and a primary CTA to add the first generator (`figma-plugin/GraphPanel.tsx`)
 
 ---
 
@@ -114,7 +114,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
-- [ ] Show alias resolution chain on hover — when a token's value is an alias `{path.to.ref}`, hovering the alias chip in the editor should show a popover with the full resolution chain (e.g. `brand.primary → palette.blue.500 → #0070f3`) rather than only the terminal resolved value (`figma-plugin/TokenEditor.tsx`)
+- [~] Show alias resolution chain on hover — when a token's value is an alias `{path.to.ref}`, hovering the alias chip in the editor should show a popover with the full resolution chain (e.g. `brand.primary → palette.blue.500 → #0070f3`) rather than only the terminal resolved value (`figma-plugin/TokenEditor.tsx`)
 
 ---
 

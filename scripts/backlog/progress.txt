@@ -367,3 +367,11 @@
 - **Learnings for future iterations:**
   - When a union type gains a new member, switch statements without a default/exhaustive check silently return `undefined` in JS/TS. Adding a default or using a Record map would catch this at compile time.
 ---
+
+## 2026-03-27 - Generators tab empty state guidance
+- Added a dedicated empty state for when no generators exist in the active set. Shows an icon, "No generators yet" title, a 2x2 grid of capability pills (color scales, spacing scales, type scales, semantic aliases), and an "Add your first generator" primary CTA button that opens the template browser. Disabled with a "Connect to the server first" note when not connected. The previous combined empty+browse view is now split: empty state → templates list (reached via CTA or "+ Template" button).
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L701
+- **Learnings for future iterations:**
+  - Split empty states from browse states even when they share the same view — conditions `length === 0 && !browsing` vs `browsing` are cleaner than a single `!browsing ? <heading A> : <heading B>` inside one render path.
+  - 2x2 capability grids with tiny inline SVG/JSX icons are a good pattern for "what does this feature do" empty states in narrow plugin panels.
+---
