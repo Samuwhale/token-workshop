@@ -357,3 +357,13 @@
   - Use a `dragCounterRef` integer counter (increment on `dragEnter`, decrement on `dragLeave`) rather than tracking just boolean state — avoids flickering when hovering over child elements.
   - `pointer-events-none` on the overlay div prevents the overlay from capturing `dragLeave` events from the panel boundary, which would cancel drag-over state immediately.
 ---
+
+## 2026-03-27 - Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing
+- Added inline hint message above footer buttons listing which required fields are missing (target group path / generator name / source token), matching the GraphPanel.tsx pattern.
+- Added red border to the generator name input when empty, consistent with the existing targetGroup red-border behavior.
+- Footer outer div changed from `flex gap-2` to `flex flex-col gap-2`; buttons wrapped in `<div className="flex gap-2">` to preserve layout.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L407 (name border), ~L418 (footer hint + layout)
+- **Learnings for future iterations:**
+  - TokenGeneratorDialog had inconsistent field error feedback: targetGroup had red border, name did not. Always check all required fields get the same treatment.
+  - IIFE `{!saving && (() => { ... })()}` is a clean way to compute multi-branch JSX inline without extracting a helper variable when the logic is small.
+---

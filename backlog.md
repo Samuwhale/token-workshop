@@ -82,7 +82,7 @@
 - [x] ImportPanel "Import from Figma Variables" gives no guidance about prerequisites — the only feedback is a 15-second timeout error if the plugin isn't set up correctly
 - [~] No import preview — users can't review what will be created/overwritten before committing
 - [x] No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options
-- [~] No drag-and-drop file upload — the file input is click-only with no dropzone affordance
+- [x] No drag-and-drop file upload — the file input is click-only with no dropzone affordance
 
 ---
 
@@ -96,7 +96,7 @@
 
 ### UX
 
-- [ ] GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
+- [~] GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
 - [ ] Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
 - [ ] No search/filter in graph view — large dependency graphs have no way to locate a specific token node
 - [ ] No graph export — no option to save the rendered graph as SVG or PNG for documentation

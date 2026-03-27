@@ -326,3 +326,10 @@ Already up to date.
 ===============================================================
   Claimed: Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing
   Worktree: /tmp/backlog-97510-wwHJ58
+
+  ✓ done: Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing
+    Added inline hint above footer buttons listing missing required fields; added red border to name field when empty to match targetGroup behavior
+    13 turns · 105s · $0.36
+
+--- Merging: Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing ---
+Already up to date.

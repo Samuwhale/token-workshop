@@ -354,3 +354,16 @@ Already up to date.
 
 --- Merging: No drag-and-drop file upload — the file input is click-only with no dropzone affordance ---
 Already up to date.
+[main 96a2da3] chore(backlog): done – No drag-and-drop file upload — the file input is click-only with no dropzone affordance
+ 6 files changed, 91 insertions(+), 11 deletions(-)
+
+## 2026-03-27 - No drag-and-drop file upload — the file input is click-only with no dropzone affordance
+- Added drag-and-drop support to ImportPanel: the entire panel surface accepts dropped .json files. A full-panel overlay (dashed border + icon + label) appears while dragging. Extracted shared `processJsonFile(file)` helper so both the file input `onChange` and the `onDrop` handler share the same parse/load logic.
+- Used `dragCounterRef` (integer counter) to track enter/leave across child elements — this avoids false `isDragging=false` triggers when the pointer moves over inner children.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L75 (isDragging state + dragCounterRef), ~L188 (processJsonFile), ~L220 (drag handlers), ~L253 (simplified handleJsonFileChange), ~L477 (outer div drag props + overlay), ~L549 (JSON button subtitle)
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  26 items remaining
+===============================================================
+  Claimed: GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
+  Worktree: /tmp/backlog-98901-1MiZpN

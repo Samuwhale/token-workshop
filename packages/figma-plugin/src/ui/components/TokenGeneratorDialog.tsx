@@ -409,14 +409,28 @@ export function TokenGeneratorDialog({
             <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Generator name</label>
             <input type="text" value={name} onChange={e => handleNameChange(e.target.value)}
               placeholder="My generator"
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]" />
+              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${!name.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
           </div>
 
           {saveError && <div className="text-[10px] text-[var(--color-figma-error)]">{saveError}</div>}
         </div>
 
         {/* Footer */}
-        <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
+        <div className="flex flex-col gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
+          {!saving && (() => {
+            const missing: string[] = [];
+            if (!targetGroup.trim()) missing.push('target group path');
+            if (!name.trim()) missing.push('generator name');
+            if (!isMultiBrand && typeNeedsSource && !hasSource) missing.push('source token');
+            return missing.length > 0 ? (
+              <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                {missing.length === 1
+                  ? `${missing[0].charAt(0).toUpperCase() + missing[0].slice(1)} is required.`
+                  : `Required: ${missing.join(', ')}.`}
+              </p>
+            ) : null;
+          })()}
+          <div className="flex gap-2">
           <button onClick={onClose} className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
           <button onClick={handleSave} disabled={saving || !targetGroup.trim() || !name.trim() || (!isMultiBrand && typeNeedsSource && !hasSource)}
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50">
@@ -431,6 +445,7 @@ export function TokenGeneratorDialog({
                     : 'Create generator'
             }
           </button>
+          </div>
         </div>
       </div>
     </div>
