@@ -20,13 +20,16 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { PreviewPanel } from './components/PreviewPanel';
 import { HeatmapPanel } from './components/HeatmapPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
-import type { HeatmapResult } from './components/HeatmapPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
 import { useUndo } from './hooks/useUndo';
 import { useLint } from './hooks/useLint';
 import { useGenerators } from './hooks/useGenerators';
+import { usePreviewSplit } from './hooks/usePreviewSplit';
+import { useWindowExpand } from './hooks/useWindowExpand';
+import { useHeatmap } from './hooks/useHeatmap';
+import { useTokenNavigation } from './hooks/useTokenNavigation';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
 import { stableStringify } from './shared/utils';
@@ -189,43 +192,7 @@ export function App() {
     setActiveTabState(tab);
   };
   const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
-  const [showPreviewSplit, setShowPreviewSplitState] = useState(() => {
-    try { return localStorage.getItem('tm_preview_split') === '1'; } catch { return false; }
-  });
-  const setShowPreviewSplit = useCallback((v: boolean | ((prev: boolean) => boolean)) => {
-    setShowPreviewSplitState(prev => {
-      const next = typeof v === 'function' ? v(prev) : v;
-      try { localStorage.setItem('tm_preview_split', next ? '1' : '0'); } catch {}
-      return next;
-    });
-  }, []);
-  const [splitRatio, setSplitRatioState] = useState(() => {
-    try {
-      const s = localStorage.getItem('tm_preview_split_ratio');
-      const n = s ? parseFloat(s) : 0.5;
-      return isNaN(n) ? 0.5 : Math.max(0.2, Math.min(0.8, n));
-    } catch { return 0.5; }
-  });
-  const splitRatioRef = useRef(splitRatio);
-  const splitContainerRef = useRef<HTMLDivElement>(null);
-  const handleSplitDragStart = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    const container = splitContainerRef.current;
-    if (!container) return;
-    const onMove = (me: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      const ratio = Math.max(0.2, Math.min(0.8, (me.clientY - rect.top) / rect.height));
-      splitRatioRef.current = ratio;
-      setSplitRatioState(ratio);
-    };
-    const onUp = () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      try { localStorage.setItem('tm_preview_split_ratio', String(splitRatioRef.current)); } catch {}
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, []);
+  const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitContainerRef, handleSplitDragStart } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; set: string; isCreate?: boolean; initialType?: string } | null>(null);
   const { connected, checking, serverUrl, updateServerUrlAndConnect, retryConnection } = useServerConnection();
@@ -236,8 +203,7 @@ export function App() {
   const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
   const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
   const [filteredSetCount, setFilteredSetCount] = useState<number | null>(null);
-  const [highlightedToken, setHighlightedToken] = useState<string | null>(null);
-  const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
+  const { highlightedToken, setHighlightedToken, pendingHighlight, setPendingHighlight, createFromEmpty, setCreateFromEmpty, handleNavigateToAlias } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -245,21 +211,7 @@ export function App() {
   const [clearing, setClearing] = useState(false);
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo();
   const onResizeHandleMouseDown = useWindowResize();
-  const [isExpanded, setIsExpanded] = useState(() => {
-    try { return localStorage.getItem('tm_expanded') === '1'; } catch { return false; }
-  });
-  const toggleExpand = useCallback(() => {
-    const next = !isExpanded;
-    setIsExpanded(next);
-    try { localStorage.setItem('tm_expanded', next ? '1' : '0'); } catch {}
-    parent.postMessage({ pluginMessage: { type: 'resize', width: next ? MAX_WIDTH : 400, height: next ? MAX_HEIGHT : 600 } }, '*');
-  }, [isExpanded]);
-  useEffect(() => {
-    if (isExpanded) {
-      parent.postMessage({ pluginMessage: { type: 'resize', width: MAX_WIDTH, height: MAX_HEIGHT } }, '*');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { isExpanded, toggleExpand } = useWindowExpand();
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
@@ -267,8 +219,6 @@ export function App() {
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  // Must be declared before useSidePanel which references it
-  const [createFromEmpty, setCreateFromEmpty] = useState(false);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
@@ -278,7 +228,7 @@ export function App() {
     setHighlightedToken(savedPath);
     setEditingToken(null);
     refreshAll();
-  }, [refreshAll]);
+  }, [refreshAll, setHighlightedToken]);
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const [validateKey, setValidateKey] = useState(0);
   const [analyticsIssueCount, setAnalyticsIssueCount] = useState<number | null>(null);
@@ -444,12 +394,6 @@ export function App() {
   const [tabMenuPos, setTabMenuPos] = useState({ x: 0, y: 0 });
   const tabMenuRef = useRef<HTMLDivElement>(null);
 
-  // Reset createFromEmpty when switching sets
-  useEffect(() => {
-    if (createFromEmpty) setCreateFromEmpty(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSet]);
-
   // Set metadata editing state
   const [editingMetadataSet, setEditingMetadataSet] = useState<string | null>(null);
   const [metadataDescription, setMetadataDescription] = useState('');
@@ -528,15 +472,7 @@ export function App() {
     }
   }, [connected, serverUrl, tokens]);
 
-  // Heatmap state
-  const [heatmapResult, setHeatmapResult] = useState<HeatmapResult | null>(null);
-  const [heatmapLoading, setHeatmapLoading] = useState(false);
-
-  const triggerHeatmapScan = useCallback(() => {
-    setHeatmapLoading(true);
-    setHeatmapResult(null);
-    parent.postMessage({ pluginMessage: { type: 'scan-canvas-heatmap' } }, '*');
-  }, []);
+  const { heatmapResult, heatmapLoading, triggerHeatmapScan } = useHeatmap();
 
   // Listen for variables-applied and capture a sync snapshot
   useEffect(() => {
@@ -549,40 +485,11 @@ export function App() {
           snap[path] = stableStringify(entry.$value);
         }
         setSyncSnapshot(snap);
-      } else if (msg?.type === 'canvas-heatmap-result') {
-        setHeatmapResult({
-          total: msg.total,
-          green: msg.green,
-          yellow: msg.yellow,
-          red: msg.red,
-          nodes: msg.nodes,
-        });
-        setHeatmapLoading(false);
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, [allTokensFlat]);
-
-  // Apply pending highlight after switching sets
-  useEffect(() => {
-    if (pendingHighlight && pathToSet[pendingHighlight] === activeSet) {
-      setHighlightedToken(pendingHighlight);
-      setPendingHighlight(null);
-    }
-  }, [tokens, pendingHighlight, activeSet, pathToSet]);
-
-  const handleNavigateToAlias = useCallback((aliasPath: string) => {
-    if (pathToSet[aliasPath]) {
-      const targetSet = pathToSet[aliasPath];
-      if (targetSet === activeSet) {
-        setHighlightedToken(aliasPath);
-      } else {
-        setPendingHighlight(aliasPath);
-        setActiveSet(targetSet);
-      }
-    }
-  }, [pathToSet, activeSet, setActiveSet]);
 
   // Close overflow menu on Escape key (not on outside click — accidental mis-clicks dismiss it)
   useEffect(() => {

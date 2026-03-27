@@ -118,7 +118,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] Pervasive `as any` casts in generator-service.ts, generators route, sets route, tokens route, and controller.ts — bypasses type safety across the plugin boundary
 - [x] `REFERENCE_GLOBAL_REGEX` is a module-level stateful regex with `/g` flag — latent `.lastIndex` hazard if anyone uses `.test()` or `.exec()` directly (`core/constants.ts:118`)
-- [ ] App.tsx is a ~2000-line god component with 40+ useState declarations — should be decomposed into feature modules
+- [x] App.tsx is a ~2000-line god component with 40+ useState declarations — should be decomposed into feature modules
 - [ ] TokenList accepts 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)
 - [ ] TokenGeneratorDialog is ~800+ lines handling 7+ generator types in one component (`figma-plugin/TokenGeneratorDialog.tsx`)
 - [ ] `docs.ts` style attribute built with `escapeHtml` but not `escapeCssValue` — CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
@@ -183,3 +183,11 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [ ] Selection inspector empty state missing — the selection inspector shows nothing when no Figma node is selected; a prompt like "Select a layer to inspect token bindings" would reduce confusion
 - [ ] Token editor does not auto-focus first field — opening the token editor requires a manual click to start typing; the name or value field should auto-focus on open (`figma-plugin/TokenEditor.tsx`)
 - [ ] Settings page has no reset-to-defaults — there is no way to reset all settings to their default values without manually clearing each field
+
+- [HIGH] `varCorrelationIdRef` and `varReadResolveRef` are shared between `computeVarDiff` and `runReadinessChecks` — if both are called concurrently (auto-run on mount + manual click), the second call overwrites the shared ref and the first promise never resolves, causing a silent hang or timeout (`SyncPanel.tsx:L68-69, L243-258`)
+- [ ] Branch selector in SyncPanel triggers git checkout immediately on change with no confirmation — accidentally clicking a different branch in the `<select>` fires `doAction('checkout', ...)` instantly, with no undo and no warning about unsaved state (`SyncPanel.tsx:L748`)
+- [ ] `applyVarDiff` push is fire-and-forget: postMessage `apply-variables` is sent but the function never waits for a response from the plugin — state is cleared and "Variable sync applied" is shown regardless of whether Figma accepted the changes (`SyncPanel.tsx:L219-235`)
+- [ ] Commit form appears when only untracked (`?`) files are present — `status.isClean` is false for untracked files, so the commit form renders, but clicking "Commit" will fail (nothing staged); should show the form only when there are staged or tracked-modified files, or auto-stage tracked changes (`SyncPanel.tsx:L792`)
+- [ ] No "Create new branch" UI in SyncPanel — the server's `POST /api/sync/checkout` accepts `create: true` and `createBranch` exists on `gitSync`, but the branch selector only switches between existing branches; there is no way to start a new branch from the plugin (`SyncPanel.tsx:L744-756`, `sync.ts:L138`)
+- [ ] `applyVarDiff` pull side sends one PATCH per token with `Promise.all` instead of using the batch endpoint — the `POST /api/tokens/:set/batch` route added for ImportPanel is not used here; large token sets will fire many concurrent requests (`SyncPanel.tsx:L223-229`)
+- [ ] `runReadinessChecks` is never triggered automatically — unlike `computeVarDiff` which runs on mount, the publish readiness section always shows "Readiness unknown" until the user manually clicks "Run checks"; the status bar's readiness dot is always grey on first open (`SyncPanel.tsx:L243`, compare with L182-184)

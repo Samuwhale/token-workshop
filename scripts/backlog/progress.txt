@@ -379,3 +379,14 @@
 - Found 7 items — written to backlog-inbox.md
 - Notable: `varCorrelationIdRef` and `varReadResolveRef` are shared between `computeVarDiff` and `runReadinessChecks` — a real concurrency bug where calling both simultaneously causes one to hang silently until the 10s timeout fires.
 ---
+
+## 2026-03-27 - App.tsx is a ~2000-line god component with 40+ useState declarations — should be decomposed into feature modules
+- Extracted 4 focused hooks from App.tsx: `usePreviewSplit`, `useWindowExpand`, `useHeatmap`, `useTokenNavigation`. Removed 8 useState from App(), split a combined multi-concern message listener effect into two single-purpose effects, and reduced App.tsx by ~93 lines (2810→2717).
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L24-34 (imports), ~L194-214 (hook calls replacing state blocks), `packages/figma-plugin/src/ui/hooks/usePreviewSplit.ts` (new), `packages/figma-plugin/src/ui/hooks/useWindowExpand.ts` (new), `packages/figma-plugin/src/ui/hooks/useHeatmap.ts` (new), `packages/figma-plugin/src/ui/hooks/useTokenNavigation.ts` (new)
+- **Learnings for future iterations:**
+  - The original plan's "48 useState" count was understated — the actual count was ~70 in App() (plan lumped multi-state groups as single rows). After this extraction App() has ~62.
+  - `useTokenNavigation` requires `tokens: TokenNode[]` as a dependency trigger (not for its properties) — `TokenNode` is exported from `useTokens.ts`.
+  - The combined `variables-applied` + `canvas-heatmap-result` message handler had to be split before extracting heatmap; the variables-applied branch stayed in App (depends on allTokensFlat) while canvas-heatmap-result moved into useHeatmap.
+  - When a hook returns a setter (e.g. `setHighlightedToken` from `useTokenNavigation`), callers that use it in `useCallback` should add it to the dep array for ESLint correctness — it's stable but explicit deps are safer.
+  - Remaining high-value extractions: `useSetManagement` (16 states, ~10 handlers), `useThemeSwitcher` (6 states), `useSettingsPanel` (5 states), `useFigmaSync` (5 states), `useTokenFlatMaps` (4 states).
+---
