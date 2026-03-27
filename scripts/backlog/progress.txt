@@ -274,3 +274,11 @@
   - `isClean` is `false` whenever there are any changes including untracked files. Always check specific arrays (`staged`, `modified`, `created`, `deleted`) when the intent is "has committable changes".
   - The `not_added` array maps to git's `??` status — these require `git add` before they can be committed.
 ---
+
+## 2026-03-27 - No "Create new branch" UI in SyncPanel
+- Added a "+" icon button next to the branch selector that toggles an inline "New branch" form. The form shows a text input pre-labelled "New branch from <current>", accepts Enter to confirm (or Escape to cancel), and calls `doAction('checkout', { branch, create: true })` which hits the existing `POST /api/sync/checkout` with `create: true`, triggering `gitSync.createBranch`. Added two state variables: `showNewBranch` (boolean toggle) and `newBranchName` (controlled input). Mutually exclusive with the pending-checkout confirmation UI.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L58,L792-870
+- **Learnings for future iterations:**
+  - The existing `doAction('checkout', { branch, create: true })` path was already fully wired server-side — only the UI was missing.
+  - Hiding the pending-checkout confirm (`!showNewBranch`) prevents two confirmation panels appearing simultaneously.
+---

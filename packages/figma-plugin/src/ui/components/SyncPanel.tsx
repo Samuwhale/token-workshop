@@ -56,6 +56,8 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
   const [pendingBranch, setPendingBranch] = useState<string | null>(null);
+  const [showNewBranch, setShowNewBranch] = useState(false);
+  const [newBranchName, setNewBranchName] = useState('');
   const [diffView, setDiffView] = useState<{ localOnly: string[]; remoteOnly: string[]; conflicts: string[] } | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
   const [diffChoices, setDiffChoices] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
@@ -788,19 +790,68 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
             </div>
             {branches.length > 1 && (
               <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
-                <select
-                  value={pendingBranch ?? status.branch ?? ''}
-                  onChange={e => {
-                    const target = e.target.value;
-                    if (target !== status.branch) setPendingBranch(target);
-                  }}
-                  className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none"
-                >
-                  {branches.map(b => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
-                {pendingBranch && (
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={pendingBranch ?? status.branch ?? ''}
+                    onChange={e => {
+                      const target = e.target.value;
+                      if (target !== status.branch) setPendingBranch(target);
+                    }}
+                    className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none"
+                  >
+                    {branches.map(b => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => { setShowNewBranch(v => !v); setNewBranchName(''); setPendingBranch(null); }}
+                    title="Create new branch"
+                    className="flex items-center justify-center w-6 h-6 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors shrink-0"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                  </button>
+                </div>
+                {showNewBranch && (
+                  <div className="mt-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 flex flex-col gap-1.5">
+                    <span className="text-[10px] text-[var(--color-figma-text)]">New branch from <strong>{status.branch || 'current'}</strong></span>
+                    <input
+                      type="text"
+                      value={newBranchName}
+                      onChange={e => setNewBranchName(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && newBranchName.trim()) {
+                          doAction('checkout', { branch: newBranchName.trim(), create: true });
+                          setShowNewBranch(false);
+                          setNewBranchName('');
+                        } else if (e.key === 'Escape') {
+                          setShowNewBranch(false);
+                          setNewBranchName('');
+                        }
+                      }}
+                      placeholder="branch-name"
+                      autoFocus
+                      className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)]"
+                    />
+                    <div className="flex gap-1.5">
+                      <button
+                        disabled={!newBranchName.trim()}
+                        onClick={() => { doAction('checkout', { branch: newBranchName.trim(), create: true }); setShowNewBranch(false); setNewBranchName(''); }}
+                        className="flex-1 px-2 py-0.5 rounded text-[10px] bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity disabled:opacity-40"
+                      >
+                        Create &amp; checkout
+                      </button>
+                      <button
+                        onClick={() => { setShowNewBranch(false); setNewBranchName(''); }}
+                        className="flex-1 px-2 py-0.5 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {pendingBranch && !showNewBranch && (
                   <div className="mt-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 flex flex-col gap-1.5">
                     <span className="text-[10px] text-[var(--color-figma-text)]">
                       Switch to <strong>{pendingBranch}</strong>?
