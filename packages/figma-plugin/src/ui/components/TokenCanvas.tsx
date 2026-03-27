@@ -143,8 +143,19 @@ export function TokenCanvas({ tokens, allTokensFlat, onEdit }: TokenCanvasProps)
   // -------------------------------------------------------------------------
   if (leaves.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
-        <p className="text-[11px]">No tokens to display</p>
+      <div className="flex flex-col items-center justify-center py-12 gap-2 text-[var(--color-figma-text-secondary)]">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="opacity-30">
+          <circle cx="6" cy="6" r="2.5" />
+          <circle cx="18" cy="6" r="2.5" />
+          <circle cx="6" cy="18" r="2.5" />
+          <circle cx="18" cy="18" r="2.5" />
+          <line x1="8.5" y1="6" x2="15.5" y2="6" />
+          <line x1="6" y1="8.5" x2="6" y2="15.5" />
+          <line x1="18" y1="8.5" x2="18" y2="15.5" />
+          <line x1="8.5" y1="18" x2="15.5" y2="18" />
+        </svg>
+        <p className="text-[11px] font-medium">No tokens to display</p>
+        <p className="text-[10px] opacity-60 text-center max-w-[160px] leading-relaxed">Canvas view renders token relationships — add tokens to a set to see them here.</p>
       </div>
     );
   }

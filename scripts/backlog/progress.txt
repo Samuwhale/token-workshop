@@ -390,3 +390,10 @@
   - The guard for leaf tokens is `'$value' in obj` — DTCG tokens always have `$value`, groups never do. This is the reliable discriminator for deep-merge vs overwrite.
   - Pre-existing TypeScript errors in the server package (unrelated to this change) cause `tsc --noEmit` to fail; the plugin build (`npm run build`) is the correct validator.
 ---
+
+## 2026-03-27 - TokenCanvas empty state is very bare ("No tokens to display") — add an icon and a hint
+- Added a connected-nodes SVG icon (4 circles connected by lines, opacity-30) and a hint paragraph explaining canvas view renders token relationships, below the existing "No tokens to display" text.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenCanvas.tsx` ~L144
+- **Learnings for future iterations:**
+  - TokenCanvas empty state is self-contained in a single early-return block — no prop threading needed.
+---

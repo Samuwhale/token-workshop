@@ -123,8 +123,8 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 Items spotted during UX passes but out of scope for that session.
 
 - [x] SelectionInspector "No tokens applied" state — add a small icon and a "Go to Tokens tab" button so users know exactly where to act (currently just two lines of text with no visual anchor or escape hatch)
-- [~] TokenCanvas empty state is very bare ("No tokens to display") — add an icon and a hint about why (e.g. canvas view renders token relationships)
-- [ ] Silent failure in SelectionInspector binding operations — `remove-binding` and `apply-binding` messages have no error callback, so failures are invisible to the user
+- [x] TokenCanvas empty state is very bare ("No tokens to display") — add an icon and a hint about why (e.g. canvas view renders token relationships)
+- [~] Silent failure in SelectionInspector binding operations — `remove-binding` and `apply-binding` messages have no error callback, so failures are invisible to the user
 - [ ] Grid view: when a type filter is active and no color tokens match, distinguish between "no color tokens exist" vs "none match current filter" — the current message conflates both
 
 - [ ] `POST /api/export` group filter silently returns empty when path matches nothing — if `group` doesn't exist in any set, `tokenData` becomes `{}` and export runs with empty data producing zero-byte output files with no error or warning (`server/routes/export.ts:48-65`)
