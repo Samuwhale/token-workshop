@@ -250,3 +250,9 @@
 - **Learnings for future iterations:**
   - The Re-export button is in the `mode === 'platforms' && results.length > 0` branch of the footer, distinct from the initial export button which is in the `results.length === 0` branch.
 ---
+
+## 2026-03-27 - discover-pass: ImportPanel flow
+- Area: `packages/figma-plugin/src/ui/components/ImportPanel.tsx`, `packages/figma-plugin/src/plugin/controller.ts` (readFigmaVariables, readFigmaStyles)
+- Found 6 items — written to backlog-inbox.md
+- Notable: `handleImportVariables` sends individual POST per token (N+1 problem) while the styles/JSON path already uses the batch endpoint. Also, `$description` and `$scopes` metadata from Figma variables are read by the controller but silently dropped during import.
+---
