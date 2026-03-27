@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - Active set tab not persisted
+- Stale — already done. `useTokens.ts:19` initializes `activeSet` from `lsGet(STORAGE_KEYS.ACTIVE_SET, '')` and `setActiveSet` (L20-22) persists via `lsSet` before calling `setActiveSetState`. The main nav tab (`activeTab`) is also persisted in `App.tsx:187-194` via `STORAGE_KEYS.ACTIVE_TAB`. Both were already in place before the storage centralization refactor (`dea20ce`).
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+  - When a backlog item claims a feature is missing, check `useTokens.ts` and `App.tsx` state initializers — the storage refactor commit (`dea20ce`) migrated all raw `localStorage` calls, so persistence was often already implemented under a different key name.
+---
+
 ## 2026-03-27 - 15+ scattered localStorage keys — no centralized persistence utility
 - Stale — already done. `packages/figma-plugin/src/ui/shared/storage.ts` is a fully-implemented centralized localStorage utility: `STORAGE_KEYS` object with 12 static keys, `STORAGE_KEY` dynamic builders for per-set keys, `STORAGE_PREFIXES` for bulk-delete, and helpers `lsGet`/`lsSet`/`lsRemove`/`lsGetJson`/`lsSetJson`/`lsClearByPrefix`. Zero direct `localStorage` calls exist outside that file.
 - Files changed: none (already implemented)

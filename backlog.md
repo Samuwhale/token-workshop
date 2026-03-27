@@ -106,7 +106,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] CSS injection via token values in docs.ts — style attribute built with `escapeHtml` but not `escapeCssValue`; CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
 - [x] 15+ scattered localStorage keys — no centralized persistence utility; keys are spread across components without a single source of truth
 
-- [ ] Active set tab not persisted — switching between token sets is not remembered across plugin re-opens; user always lands on the first tab (`figma-plugin/App.tsx`)
+- [x] Active set tab not persisted — switching between token sets is not remembered across plugin re-opens; user always lands on the first tab (`figma-plugin/App.tsx`)
 - [ ] No bulk multi-select in token list — shift-click or ctrl-click to select a range of tokens for batch operations is missing; users must use the batch editor's own selection model which is separate from the token list (`figma-plugin/TokenList.tsx`)
 - [ ] No quick-copy of token path from list — right-clicking a token has no "Copy path" or "Copy value" option; users must open the editor and manually select the path text (`figma-plugin/TokenList.tsx` context menu)
 - [ ] No diff preview before push to Figma — pushing tokens to Figma applies changes immediately with no preview of what will change (added/removed/modified variables); a confirmation diff would prevent accidental overwrites (`figma-plugin/controller.ts`)
