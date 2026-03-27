@@ -89,12 +89,12 @@
 
 - [~] ImportPanel: `conflictPaths` state is not cleared when changing the target set — old conflict list persists with the new set
 - [x] ImportPanel: `readTimeoutRef` is not cleared in cleanup when component unmounts — timer continues running in the background
-- [~] ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers
+- [x] ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers
 - [~] ImportPanel: Figma Styles and JSON readers normalize paths identically — if a variable and style share a name like `color/primary`, they map to the same `color.primary` token path, creating silent conflicts
 
 ### QoL
 
-- [ ] ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable
+- [~] ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable
 - [ ] ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior
 
 ### UX

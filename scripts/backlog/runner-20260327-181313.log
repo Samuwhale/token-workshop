@@ -36,3 +36,23 @@ Already up to date.
 
 --- Merging: ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers ---
 Already up to date.
+[main c9f5b74] chore(backlog): done – ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers
+- Stale — `startReadTimeout()` is already called at ImportPanel.tsx ~L235 in `handleReadStyles`, immediately before the `read-styles` postMessage. The timeout and error message for styles are both already in place.
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  24 items remaining
+===============================================================
+  Claimed: ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable
+  Worktree: /tmp/backlog-59311-T5btKz
+
+  ✓ done: ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable
+    Extended readTimeout from 15s to 45s in startReadTimeout()
+    7 turns · 28s · $0.13
+
+--- Merging: ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable ---
+Already up to date.

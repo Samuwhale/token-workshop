@@ -362,3 +362,10 @@
 - **Learnings for future iterations:**
   - Verify current code state before assuming a bug exists — a prior backlog item (pendingSourceRef clear fix, commit 9b8f96a) likely added the timeout call as part of that fix
 ---
+
+## 2026-03-27 - ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable
+- Extended `readTimeoutRef` timeout from 15000ms to 45000ms in `startReadTimeout()`
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L209
+- **Learnings for future iterations:**
+  - Single-value change; no config needed for an unreleased product
+---

@@ -206,7 +206,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           ? 'Timed out waiting for Figma. Make sure the Figma Variables API is available (requires a Professional plan or above) and that this file has local variables defined.'
           : 'Timed out waiting for Figma. Try again or reload the plugin.'
       );
-    }, 15000);
+    }, 45000);
   };
 
   const handleReadVariables = () => {
