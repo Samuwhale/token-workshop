@@ -66,3 +66,9 @@ Already up to date.
 
 --- Merging: CommandPalette: No "Copy token value" action for token search results ---
 Already up to date.
+[main a089aab] chore(backlog): done – CommandPalette: No "Copy token value" action for token search results
+ 7 files changed, 48 insertions(+), 4 deletions(-)
+
+--- Cleanup: archiving completed items (≥22) ---
+  → Archived 22 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 56)

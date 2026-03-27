@@ -311,3 +311,27 @@ Completed items removed from backlog.md to keep it lean.
 - [x] Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
 - [x] No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values
 - [x] TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain
+
+## Archived 2026-03-27 (22 items)
+- [x] [HIGH] No aria-live regions for toast notifications — SuccessToast, UndoToast, and error toasts appear visually but are not announced to screen readers; adding `aria-live="polite"` or `role="status"` to toast containers would make the plugin accessible
+- [x] CommandPalette: No "Copy token value" action for token search results — the token search mode (">") offers "Go to token" and "Copy CSS var" but not "Copy raw value", which is the most common reason to search for a token
+- [x] [HIGH] TokenResolver `dfsStack` is not cleaned up on error — if `dfsResolve` throws, `this.dfsStack.pop()` is never reached, leaving stale entries that corrupt cycle detection in subsequent `resolve()` calls within the same resolver instance
+- [x] `updateAliasRefs` does not handle formula strings — the alias-reference updater only checks for exact `{oldPath}` and prefix `{oldPath.` patterns, but formula strings like `"{spacing.base} * 2"` contain embedded refs that won't be matched, so renaming a group used in formulas leaves broken references
+- [x] [HIGH] ImportPanel: Handler for `styles-read` message does not clear `pendingSourceRef` before processing — if the Figma plugin sends multiple `styles-read` responses (e.g. due to a race condition), the second response will be ignored
+- [x] No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation
+- [x] No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version
+- [x] Circular-reference error doesn't identify the cycle — the error says "circular reference detected" but doesn't name which tokens form the loop
+- [x] Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected
+- [x] DELETE /data endpoint has no server-side confirmation gate — a single accidental API call permanently deletes all token sets and themes
+- [x] SyncPanel.tsx is dead code (1167 lines) — exported but never imported; appears superseded by PublishPanel; should be removed
+- [x] Identical fetch-and-error pattern duplicated across 10+ call sites — the `fetch → check res.ok → catch → show error` sequence is copy-pasted; extract a shared `apiFetch` utility
+- [x] `err instanceof Error ? err.message : 'An unexpected error occurred'` repeated 20+ times — extract to a `getErrorMessage(err)` helper
+- [x] Generator auto-run errors (triggered on token updates via SSE) are swallowed with `console.warn` — users have no way to discover why a generator didn't re-execute after editing a source token
+- [x] `flattenLeafNodes` recomputed multiple times per render without memoization — recursive O(n) walk called at 4+ sites in TokenList on every render cycle
+- [x] Duplicate-value detection rebuilds via JSON.stringify on every token change — O(n²) with no debounce; significant for sets above ~5 k tokens
+- [x] DELETE /api/sets/:name does not check if generators reference this set as `targetSet` before allowing deletion — leaves orphaned generators that error on next run
+- [x] Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations
+- [x] ValuePreview renders an empty 5×5 div for unresolved aliases instead of a warning icon or placeholder — users don't know the token failed to resolve
+- [x] ValuePreview shadow preview only renders a single shadow even if the token value is an array — multi-shadow tokens are visually misrepresented
+- [x] PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view
+- [x] [HIGH] Build-time "Cannot access 'X' before initialization" TDZ errors — minifier can hoist declarations into a temporal dead zone when circular imports or re-export patterns exist; audit circular dependencies with `madge --circular` and break cycles
