@@ -131,7 +131,7 @@ function buildSetFolderTree(sets: string[]): { roots: Array<string | FolderTreeN
 const TABS: { id: Tab; label: string }[] = [
   { id: 'tokens', label: 'Tokens' },
   { id: 'inspect', label: 'Inspect' },
-  { id: 'graph', label: 'Graph' },
+  { id: 'graph', label: 'Generators' },
   { id: 'publish', label: 'Publish' },
 ];
 

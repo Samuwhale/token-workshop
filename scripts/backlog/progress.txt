@@ -14,3 +14,11 @@
 - **Learnings for future iterations:**
   - Optional callback props (`prop?.()`) still need to be in useEffect deps — React's exhaustive-deps rule applies even to optional callbacks. The stale-closure bug manifests if the parent passes a new function reference after first render.
 ---
+
+## 2026-03-27 - Async side effects inside React setState updaters in useUndo
+- Moved `slot.restore()` and `slot.redo!()` calls out of setState updater functions and into the callback body, reading `past`/`future` state directly. Added `past` and `future` as deps to `executeUndo`/`executeRedo` callbacks respectively. The `executingRef.current` guard prevents concurrent double-execution.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L27-54
+- **Learnings for future iterations:**
+  - setState updater functions must be pure — never call async side effects inside them. Read state outside the updater, then call setState with the derived value and run side effects after.
+  - The `executingRef` guard is sufficient to prevent double-execution when `past`/`future` change rapidly; callbacks with those as deps are safe here.
+---

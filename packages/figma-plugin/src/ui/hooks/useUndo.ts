@@ -26,32 +26,28 @@ export function useUndo() {
 
   const executeUndo = useCallback(async () => {
     if (executingRef.current) return;
-    setPast(prev => {
-      if (prev.length === 0) return prev;
-      const slot = prev[prev.length - 1];
-      const next = prev.slice(0, -1);
-      executingRef.current = true;
-      slot.restore().finally(() => { executingRef.current = false; });
-      if (slot.redo) {
-        setFuture(f => [...f, slot]);
-      }
-      return next;
-    });
-  }, []);
+    if (past.length === 0) return;
+    const slot = past[past.length - 1];
+    const next = past.slice(0, -1);
+    executingRef.current = true;
+    setPast(next);
+    if (slot.redo) {
+      setFuture(f => [...f, slot]);
+    }
+    slot.restore().finally(() => { executingRef.current = false; });
+  }, [past]);
 
   const executeRedo = useCallback(async () => {
     if (executingRef.current) return;
-    setFuture(prev => {
-      if (prev.length === 0) return prev;
-      const slot = prev[prev.length - 1];
-      if (!slot.redo) return prev;
-      const next = prev.slice(0, -1);
-      executingRef.current = true;
-      slot.redo!().finally(() => { executingRef.current = false; });
-      setPast(p => [...p, slot]);
-      return next;
-    });
-  }, []);
+    if (future.length === 0) return;
+    const slot = future[future.length - 1];
+    if (!slot.redo) return;
+    const next = future.slice(0, -1);
+    executingRef.current = true;
+    setFuture(next);
+    setPast(p => [...p, slot]);
+    slot.redo!().finally(() => { executingRef.current = false; });
+  }, [future]);
 
   const [dismissed, setDismissed] = useState(false);
 
