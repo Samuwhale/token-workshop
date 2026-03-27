@@ -15,7 +15,7 @@
 
 ### QoL
 
-- [ ] Client URL encoding inconsistency — many handlers still use raw `${setName}/${tokenPath}` (no encodeURIComponent) for DELETE and other requests; if set names can contain `/`, these URLs would be misparsed
+- [~] Client URL encoding inconsistency — many handlers still use raw `${setName}/${tokenPath}` (no encodeURIComponent) for DELETE and other requests; if set names can contain `/`, these URLs would be misparsed
 
 ### UX
 
@@ -27,7 +27,7 @@
 
 ### Bugs
 
-- [~] [HIGH] TokenResolver `dfsStack` is not cleaned up on error — if `dfsResolve` throws, `this.dfsStack.pop()` is never reached, leaving stale entries that corrupt cycle detection in subsequent `resolve()` calls within the same resolver instance
+- [x] [HIGH] TokenResolver `dfsStack` is not cleaned up on error — if `dfsResolve` throws, `this.dfsStack.pop()` is never reached, leaving stale entries that corrupt cycle detection in subsequent `resolve()` calls within the same resolver instance
 - [ ] `updateAliasRefs` does not handle formula strings — the alias-reference updater only checks for exact `{oldPath}` and prefix `{oldPath.` patterns, but formula strings like `"{spacing.base} * 2"` contain embedded refs that won't be matched, so renaming a group used in formulas leaves broken references
 - [ ] `resolveAllAliases` in the plugin does not recurse into composite token sub-properties — composite tokens (typography, shadow, border) with individually aliased sub-properties (e.g. `fontSize: "{type.base}"`) are not resolved, so the theme preview shows raw `{ref}` strings instead of values
 

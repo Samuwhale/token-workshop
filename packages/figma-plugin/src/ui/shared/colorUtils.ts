@@ -2,8 +2,6 @@
  * Shared color math utilities — sRGB ↔ linear ↔ XYZ ↔ CIELAB, WCAG contrast.
  */
 
-import { hexToLab, labToHex } from '@tokenmanager/core';
-
 // sRGB linearization (IEC 61966-2-1)
 function toLinear(c: number): number {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
@@ -51,6 +49,28 @@ function rgbToLab(r: number, g: number, b: number): { L: number; a: number; b: n
   return { L: 116 * f(Y) - 16, a: 500 * (f(X) - f(Y)), b: 200 * (f(Y) - f(Z)) };
 }
 
+
+function hexToLab(hex: string): [number, number, number] | null {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return null;
+  const lab = rgbToLab(rgb.r, rgb.g, rgb.b);
+  return [lab.L, lab.a, lab.b];
+}
+
+function labToHex(L: number, a: number, b: number): string {
+  const fy = (L + 16) / 116;
+  const fx = a / 500 + fy;
+  const fz = fy - b / 200;
+  const f3 = (t: number) => (t > 0.206897 ? t * t * t : (t - 16 / 116) / 7.787);
+  const X = f3(fx) * 0.95047;
+  const Y = f3(fy);
+  const Z = f3(fz) * 1.08883;
+  return rgbToHex(
+    fromLinear(3.2406 * X - 1.5372 * Y - 0.4986 * Z),
+    fromLinear(-0.9689 * X + 1.8758 * Y + 0.0415 * Z),
+    fromLinear(0.0557 * X - 0.2040 * Y + 1.0570 * Z),
+  );
+}
 
 // ---------------------------------------------------------------------------
 // RGB ↔ Hex

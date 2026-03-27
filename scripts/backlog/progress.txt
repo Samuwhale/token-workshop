@@ -450,3 +450,13 @@
   - DFS stack cleanup is safety-critical for correctness across multiple `resolve()` calls on the same instance — always use try/finally for push/pop pairs.
   - The cycle path is reconstructed before the throw, so wrapping in try/finally does not affect the error message quality.
 ---
+
+## 2026-03-27 - Build-time "Cannot access 'X' before initialization" TDZ errors — audit circular dependencies with madge and break cycles
+- Ran `madge --circular` on all three packages (figma-plugin, core, server) — no circular dependencies found.
+- Found the actual TDZ risk: `colorUtils.ts` imported `hexToLab` and `labToHex` from `@tokenmanager/core`, creating a cross-module dependency in the singlefile bundle. Since `colorUtils.ts` already had `toLinear`, `fromLinear`, `rgbToLab`, `hexToRgb`, and `rgbToHex` defined locally, added inline implementations of `hexToLab` and `labToHex` and removed the `@tokenmanager/core` import entirely.
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L53
+- **Learnings for future iterations:**
+  - `madge --circular` is the right tool but may miss TDZ risks from non-circular cross-module dependency chains in singlefile bundles.
+  - When a utility file already contains all the building blocks, prefer inlining the derived helper rather than importing it from an external package — avoids module init ordering issues in vite singlefile bundles.
+  - `function` declarations are hoisted and TDZ-safe; `const`/`let` are not. Prefer `function` declarations in utility files to avoid ordering surprises.
+---
