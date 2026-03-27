@@ -96,12 +96,12 @@
 
 ### UX
 
-- [~] GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
+- [x] GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
 - [x] Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
 - [~] No search/filter in graph view — large dependency graphs have no way to locate a specific token node
 - [~] No graph export — no option to save the rendered graph as SVG or PNG for documentation
 - [~] Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips
-- [ ] Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
+- [~] Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
 - [ ] No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values
 
 ---

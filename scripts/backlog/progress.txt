@@ -405,3 +405,14 @@
   - The 409 branch was already distinguished from other errors — it just did nothing. The fix was to collect those paths and surface them after the loop rather than inline during iteration.
   - When an apply action navigates away (via `onApplied()`), partial-success feedback must be shown *before* the navigation. Gate `onApplied()` on user acknowledgement (a "Got it" button) rather than calling it immediately.
 ---
+
+## 2026-03-27 - No search/filter in graph view — large dependency graphs have no way to locate a specific token node
+- Added a search bar to both the pipeline view (generators list) and the template browsing view in GraphPanel
+- Pipeline view: search filters generators by name, sourceToken, or targetGroup; shows "X of N generators" count when filtering; shows empty state when no matches
+- Template browsing: search filters by label, description, or generatorType; same empty-state pattern
+- Search is cleared when navigating back/between views via setBrowsingTemplates and handleBack
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L804 (searchQuery state), ~L842 (filtered computations), ~L870 (pipeline search bar + filteredGenerators usage), ~L1000 (template search bar + filteredTemplates usage)
+- **Learnings for future iterations:**
+  - Graph view has two distinct list surfaces: generator pipeline (filteredGenerators) and template browsing (filteredTemplates) — search state should be shared/reset between them to avoid stale queries when switching views
+  - The "X of N" subtitle pattern (showing filtered count vs total) is a useful affordance in the header when a filter is active, without cluttering the UI at rest
+---

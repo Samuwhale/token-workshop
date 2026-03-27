@@ -842,23 +842,7 @@ export function GraphPanel({
   const [selectedTemplate, setSelectedTemplate] = useState<GraphTemplate | null>(initialTemplate);
   const [browsingTemplates, setBrowsingTemplates] = useState(false);
   const [justApplied, setJustApplied] = useState<string | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const graphScrollRef = useRef<HTMLDivElement>(null);
-
-  const clampZoom = (z: number) => Math.max(0.5, Math.min(2, Math.round(z * 10) / 10));
-
-  const handleWheel = useCallback((e: WheelEvent) => {
-    if (!e.ctrlKey && !e.metaKey) return;
-    e.preventDefault();
-    setZoom(prev => clampZoom(prev - e.deltaY * 0.001));
-  }, []);
-
-  useEffect(() => {
-    const el = graphScrollRef.current;
-    if (!el) return;
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
-  }, [handleWheel]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleSelectTemplate = (template: GraphTemplate) => {
     setSelectedTemplate(template);
@@ -877,9 +861,26 @@ export function GraphPanel({
   const handleBack = () => {
     setSelectedTemplate(null);
     setBrowsingTemplates(false);
+    setSearchQuery('');
     if (onApplyTemplate) onApplyTemplate('');
     if (onClearPendingGroup) onClearPendingGroup();
   };
+
+  const q = searchQuery.trim().toLowerCase();
+  const filteredGenerators = q
+    ? setGenerators.filter(g =>
+        g.name.toLowerCase().includes(q) ||
+        (g.sourceToken ?? '').toLowerCase().includes(q) ||
+        g.targetGroup.toLowerCase().includes(q),
+      )
+    : setGenerators;
+  const filteredTemplates = q
+    ? GRAPH_TEMPLATES.filter(t =>
+        t.label.toLowerCase().includes(q) ||
+        t.description.toLowerCase().includes(q) ||
+        t.generatorType.toLowerCase().includes(q),
+      )
+    : GRAPH_TEMPLATES;
 
   // Configuration form
   if (selectedTemplate) {
@@ -903,53 +904,51 @@ export function GraphPanel({
           <div>
             <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Graph</div>
             <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
-              {setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''} in <span className="font-mono">{activeSet}</span>
+              {q
+                ? <>{filteredGenerators.length} of {setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''}</>
+                : <>{setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''} in <span className="font-mono">{activeSet}</span></>
+              }
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            {/* Zoom controls */}
-            <div className="flex items-center gap-0.5">
+          <button
+            onClick={() => { setBrowsingTemplates(true); setSearchQuery(''); }}
+            disabled={!connected}
+            className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            title="Add another template"
+          >
+            + Template
+          </button>
+        </div>
+
+        {/* Search bar */}
+        <div className="px-3 pt-2.5 pb-1 shrink-0">
+          <div className="relative">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search generators…"
+              className="w-full pl-6 pr-6 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+            />
+            {searchQuery && (
               <button
-                onClick={() => setZoom(prev => clampZoom(prev - 0.1))}
-                disabled={zoom <= 0.5}
-                className="w-5 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Zoom out"
-                aria-label="Zoom out"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+                aria-label="Clear search"
               >
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><rect x="1" y="3.5" width="6" height="1" rx="0.5"/></svg>
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
               </button>
-              <button
-                onClick={() => setZoom(1)}
-                className="text-[9px] tabular-nums text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] px-1 py-0.5 rounded transition-colors min-w-[30px] text-center"
-                title="Fit to view (reset zoom)"
-                aria-label="Reset zoom to 100%"
-              >
-                {Math.round(zoom * 100)}%
-              </button>
-              <button
-                onClick={() => setZoom(prev => clampZoom(prev + 0.1))}
-                disabled={zoom >= 2}
-                className="w-5 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Zoom in"
-                aria-label="Zoom in"
-              >
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><rect x="1" y="3.5" width="6" height="1" rx="0.5"/><rect x="3.5" y="1" width="1" height="6" rx="0.5"/></svg>
-              </button>
-            </div>
-            <div className="w-px h-3 bg-[var(--color-figma-border)]" />
-            <button
-              onClick={() => setBrowsingTemplates(true)}
-              disabled={!connected}
-              className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              title="Add another template"
-            >
-              + Template
-            </button>
+            )}
           </div>
         </div>
 
         {justApplied && (
-          <div className="mx-3 mt-3 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center gap-1.5 shrink-0">
+          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center gap-1.5">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M20 6L9 17l-5-5" />
             </svg>
@@ -957,12 +956,20 @@ export function GraphPanel({
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-3 flex flex-col gap-2 origin-top" style={{ zoom }}>
-            {setGenerators.map(gen => (
-              <GeneratorPipelineCard key={gen.id} generator={gen} />
-            ))}
-          </div>
+        <div className="flex-1 p-3 flex flex-col gap-2">
+          {filteredGenerators.length > 0
+            ? filteredGenerators.map(gen => (
+                <GeneratorPipelineCard key={gen.id} generator={gen} />
+              ))
+            : (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="text-[11px] text-[var(--color-figma-text-secondary)] mb-1">No generators match</p>
+                <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                  Try a different search term
+                </p>
+              </div>
+            )
+          }
         </div>
       </div>
     );
@@ -1028,7 +1035,7 @@ export function GraphPanel({
       <div className="px-3 pt-4 pb-3 shrink-0 flex items-start gap-2">
         {browsingTemplates && (
           <button
-            onClick={() => setBrowsingTemplates(false)}
+            onClick={() => { setBrowsingTemplates(false); setSearchQuery(''); }}
             className="mt-0.5 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
             aria-label="Back to pipeline"
           >
@@ -1045,6 +1052,33 @@ export function GraphPanel({
         </div>
       </div>
 
+      {/* Search bar */}
+      <div className="px-3 pb-2 shrink-0">
+        <div className="relative">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search templates…"
+            className="w-full pl-6 pr-6 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+              aria-label="Clear search"
+            >
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+
       {justApplied && (
         <div className="mx-3 mb-2 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center gap-1.5">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1055,14 +1089,24 @@ export function GraphPanel({
       )}
 
       <div className="px-3 pb-3 flex flex-col gap-2">
-        {GRAPH_TEMPLATES.map(template => (
-          <TemplateCard
-            key={template.id}
-            template={template}
-            onSelect={() => handleSelectTemplate(template)}
-            disabled={!connected}
-          />
-        ))}
+        {filteredTemplates.length > 0
+          ? filteredTemplates.map(template => (
+              <TemplateCard
+                key={template.id}
+                template={template}
+                onSelect={() => handleSelectTemplate(template)}
+                disabled={!connected}
+              />
+            ))
+          : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <p className="text-[11px] text-[var(--color-figma-text-secondary)] mb-1">No templates match</p>
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                Try a different search term
+              </p>
+            </div>
+          )
+        }
       </div>
 
       {!connected && (

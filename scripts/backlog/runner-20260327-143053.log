@@ -353,3 +353,10 @@ Already up to date.
 ===============================================================
   Claimed: No search/filter in graph view — large dependency graphs have no way to locate a specific token node
   Worktree: /tmp/backlog-97955-cyXdvj
+
+  ✓ done: No search/filter in graph view — large dependency graphs have no way to locate a specific token node
+    Added search bars to both the generator pipeline view and template browsing view; filters by name/sourceToken/targetGroup (generators) or label/description/type (templates), with empty-state and filtered count display
+    19 turns · 129s · $0.49
+
+--- Merging: No search/filter in graph view — large dependency graphs have no way to locate a specific token node ---
+Already up to date.

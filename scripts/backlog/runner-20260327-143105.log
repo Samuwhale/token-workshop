@@ -374,3 +374,17 @@ Already up to date.
 
 --- Merging: GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created ---
 Already up to date.
+[main 9f37af5] chore(backlog): done – GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
+ 6 files changed, 82 insertions(+), 13 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
+- Tracked 409 responses per semantic alias token into a `skipped: string[]` array during `handleApply`. After the loop, if any paths were skipped, `setSemanticConflicts(skipped)` is called instead of `onApplied()`. A warning panel renders listing all conflicting paths with a "Got it, continue" button that calls `onApplied()` to proceed. The Apply button is hidden while the conflict panel is shown to prevent re-application.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L347 (new state), ~L431 (clear state on apply), ~L469-505 (track 409s, conditional onApplied), ~L683-722 (conflict warning UI)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  21 items remaining
+===============================================================
+  Claimed: Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
+  Worktree: /tmp/backlog-98901-OaDuVZ
