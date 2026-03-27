@@ -218,3 +218,11 @@
   - Number formula values are stored as plain strings (e.g., `"{spacing.base} * 2"`). The resolver handles `isFormula(string)` directly.
   - `key={tokenPath}` on sub-editors ensures `useState` re-initializes when navigating to a different token (avoids stale formula-mode state from a prior token).
 ---
+
+## 2026-03-27 - `n` keyboard shortcut to open new-token form with focused group path
+- Extended the existing `n` key handler in `handleListKeyDown` to detect the focused element's `data-group-path` or `data-token-path` attribute. If a group row has focus, calls `handleOpenCreateSibling` with that group path. If a token row has focus, queries all `[data-group-path]` elements to find the deepest ancestor group. Falls back to existing behavior (no prefix) if neither condition applies.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L294
+- **Learnings for future iterations:**
+  - `data-group-path` and `data-token-path` attributes on DOM elements are the clean way to derive context at keypress time without adding extra state.
+  - For finding "deepest ancestor group" from a token path, query all `[data-group-path]` elements, filter by prefix match, sort descending by path length.
+---

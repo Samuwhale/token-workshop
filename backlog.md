@@ -29,7 +29,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
-- [~] `n` keyboard shortcut to open new-token form — when the token list has focus and no input is active, pressing `n` should open the create form with the currently focused group path pre-filled as the path prefix
+- [x] `n` keyboard shortcut to open new-token form — when the token list has focus and no input is active, pressing `n` should open the create form with the currently focused group path pre-filled as the path prefix
 
 ### UX
 

@@ -344,7 +344,7 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
         next?.scrollIntoView({ block: 'nearest' });
       }
     }
-  }, [showCreateForm, selectMode]);
+  }, [showCreateForm, selectMode, handleOpenCreateSibling]);
 
   // Expand ancestor groups when navigating to a highlighted token
   useEffect(() => {
