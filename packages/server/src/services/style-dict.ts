@@ -12,6 +12,11 @@ export interface ExportResult {
   files: { path: string; content: string }[];
 }
 
+export interface ExportTokensResult {
+  results: ExportResult[];
+  warnings: string[];
+}
+
 const PLATFORM_CONFIGS: Record<ExportPlatform, any> = {
   css: {
     transformGroup: 'css',
@@ -139,10 +144,19 @@ function injectFormulaCalc(obj: Record<string, any>): Record<string, any> {
  * Recursively merge `src` into `dst` in-place. When both sides have a key
  * and both values are plain objects (token groups, not leaf tokens), their
  * contents are merged recursively. Otherwise the src value wins.
+ *
+ * Any token path that already exists in `dst` and is being overwritten is
+ * pushed onto `conflicts` so the caller can surface a warning.
  */
-function deepMergeInto(dst: Record<string, any>, src: Record<string, any>): void {
+function deepMergeInto(
+  dst: Record<string, any>,
+  src: Record<string, any>,
+  conflicts: string[],
+  prefix = '',
+): void {
   for (const [key, srcVal] of Object.entries(src)) {
     const dstVal = dst[key];
+    const fullPath = prefix ? `${prefix}.${key}` : key;
     if (
       dstVal !== null &&
       dstVal !== undefined &&
@@ -154,8 +168,12 @@ function deepMergeInto(dst: Record<string, any>, src: Record<string, any>): void
       !Array.isArray(srcVal) &&
       !('$value' in srcVal)
     ) {
-      deepMergeInto(dstVal, srcVal);
+      deepMergeInto(dstVal, srcVal, conflicts, fullPath);
     } else {
+      // Record a conflict when we are overwriting an existing value
+      if (dstVal !== undefined && dstVal !== null) {
+        conflicts.push(fullPath);
+      }
       dst[key] = srcVal;
     }
   }
@@ -165,7 +183,7 @@ export async function exportTokens(
   tokens: Record<string, TokenGroup>,
   platforms: ExportPlatform[],
   outputDir?: string,
-): Promise<ExportResult[]> {
+): Promise<ExportTokensResult> {
   const isTemp = !outputDir;
   const tmpDir = outputDir || path.join(os.tmpdir(), `tokenmanager-export-${Date.now()}`);
   await fs.mkdir(tmpDir, { recursive: true });
@@ -176,8 +194,15 @@ export async function exportTokens(
   // (e.g. two sets both have a `color` group) have their contents combined
   // rather than the second set silently overwriting the first.
   const merged: Record<string, any> = {};
-  for (const [_setName, tokenGroup] of Object.entries(tokens)) {
-    deepMergeInto(merged, tokenGroup as Record<string, any>);
+  const warnings: string[] = [];
+  for (const [setName, tokenGroup] of Object.entries(tokens)) {
+    const setConflicts: string[] = [];
+    deepMergeInto(merged, tokenGroup as Record<string, any>, setConflicts);
+    for (const tokenPath of setConflicts) {
+      const msg = `Token "${tokenPath}" is defined in multiple sets; value from set "${setName}" will be used`;
+      console.warn(`[export] ${msg}`);
+      warnings.push(msg);
+    }
   }
   // Pre-resolve alias references inside gradient stop color fields so that
   // Style Dictionary receives concrete color values rather than {path} refs.
@@ -239,5 +264,5 @@ export async function exportTokens(
     });
   }
 
-  return results;
+  return { results, warnings };
 }

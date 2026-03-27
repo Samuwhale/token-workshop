@@ -290,3 +290,11 @@
 - **Learnings for future iterations:**
   - Check context menu items AND keyboard shortcuts before implementing; the feature may already be present in both places.
 ---
+
+## 2026-03-27 - Export route merges all sets into one namespace with silent overwrites — `deepMergeInto` merges all requested sets into a single flat object, so if two sets define the same token path, the second silently overwrites the first with no warning
+- Added `conflicts: string[]` and `prefix: string` parameters to `deepMergeInto` so it tracks which token paths are overwritten during multi-set merges. Updated the merge loop in `exportTokens` to collect per-set conflicts, log server-side `console.warn` messages, and accumulate all warnings into a `warnings: string[]` field returned alongside `results`. Added `ExportTokensResult` interface. Updated the export route to destructure `{ results, warnings }` and include `warnings` in the response (omitted when empty).
+- Files changed: `packages/server/src/services/style-dict.ts` ~L10, ~L148, ~L185, `packages/server/src/routes/export.ts` ~L82
+- **Learnings for future iterations:**
+  - Collecting conflicts via a passed-by-reference array (`conflicts: string[]`) is cleaner than returning them — avoids changing the recursive function's return type while still threading information out.
+  - Spreading `...(warnings.length > 0 && { warnings })` keeps the response compact when there are no conflicts (omits the field entirely rather than sending an empty array).
+---

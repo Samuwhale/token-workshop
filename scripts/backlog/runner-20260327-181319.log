@@ -102,3 +102,10 @@ Already up to date.
 ===============================================================
   Claimed: Export route merges all sets into one namespace with silent overwrites — `deepMergeInto` merges all requested sets into a single flat object, so if two sets define the same token path, the second silently overwrites the first with no warning
   Worktree: /tmp/backlog-59883-MyALbX
+
+  ✓ done: Export route merges all sets into one namespace with silent overwrites — `deepMergeInto` merges all requested sets into a single flat object, so if two sets define the same token path, the second silently overwrites the first with no warning
+    Added conflict tracking to deepMergeInto (path+prefix params), server-side console.warn per collision, and warnings[] array in export API response
+    19 turns · 151s · $0.42
+
+--- Merging: Export route merges all sets into one namespace with silent overwrites — `deepMergeInto` merges all requested sets into a single flat object, so if two sets define the same token path, the second silently overwrites the first with no warning ---
+Already up to date.
