@@ -1,6 +1,14 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - Search match count per set
+- Added `onFilteredCountChange` callback prop to `TokenList` that fires a `useEffect` whenever `displayedTokens` or `filtersActive` changes, passing the leaf count when filters are active or `null` when not. App.tsx tracks this in `filteredSetCount` state and passes the callback to all 3 `TokenList` instances. The active set tab in both sidebar and tab-bar modes now shows "X / Y" format when a filter is active.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L60,L152,L519; `packages/figma-plugin/src/ui/App.tsx` ~L237,L1494,L1659,L1767,L2130,L2182,L2216
+- **Learnings for future iterations:**
+  - Filter state (searchQuery, typeFilter, refFilter) lives in sessionStorage/localStorage inside TokenList — lifting just the result count via an `onFilteredCountChange` callback is the minimal approach to avoid prop-drilling the full filter state.
+  - `flattenLeafNodes` is the right helper to count visible leaf tokens from a `TokenNode[]` tree.
+---
+
 ## 2026-03-27 - "···" theme-manage button needs accessible label/tooltip
 - Added `title="Manage theme dimensions"` and `aria-label="Manage theme dimensions"` to the ellipsis button in the theme switcher bar (button already had `title="Manage themes"` from a prior partial fix — updated to the specified text and added aria-label)
 - Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1867
@@ -67,4 +75,15 @@
 - **Learnings for future iterations:**
   - The TokenNode tree already carries `$type` on leaf nodes — inference just collects and checks for unanimity.
   - Token context-menu "Add sibling" already used `node.$type || 'color'` (L3347); group "+" button was the only place still hardcoded.
+---
+
+## 2026-03-27 - `evalExpr` `**` operator precedence fix
+- Tokenizer now emits `**` as a single token (2-char lookahead for `*`+`*`); `^` is normalized to `**`
+- `parsePow` implemented with right-associative recursion so `**` binds tighter than `*`/`/`
+- `**` handling removed from `parseMulDiv` — `parseMulDiv` now only handles `*` and `/`
+- `2 * 3 ** 4` now correctly evaluates to 162 (was 1296); `^` also works as power alias
+- Files changed: `packages/core/src/eval-expr.ts` ~L19-67
+- **Learnings for future iterations:**
+  - For multi-char operators (`**`), tokenize as a single token with lookahead — never handle them inside a lower-precedence parse function
+  - Exponentiation is right-associative: `parsePow` recurses into itself for the RHS, not into `parseUnary`
 ---

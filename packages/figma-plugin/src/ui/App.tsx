@@ -2680,6 +2680,11 @@ export function App() {
         />
       )}
 
+      {/* Keyboard Shortcuts Modal */}
+      {showKeyboardShortcuts && (
+        <KeyboardShortcutsModal onClose={() => setShowKeyboardShortcuts(false)} />
+      )}
+
       {/* Quick Start Dialog (from empty state) */}
       {showScaffoldWizard && (
         <QuickStartDialog

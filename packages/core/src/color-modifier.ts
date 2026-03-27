@@ -22,14 +22,14 @@ export function applyColorModifiers(hex: string, modifiers: ColorModifierOp[]): 
     switch (mod.type) {
       case 'lighten': {
         const lab = hexToLab(current);
-        if (!lab) break;
+        if (!lab) throw new Error(`Color modifier 'lighten': invalid source color "${current}"`);
         const [L, a, b] = lab;
         current = labToHex(Math.min(100, L + mod.amount), a, b);
         break;
       }
       case 'darken': {
         const lab = hexToLab(current);
-        if (!lab) break;
+        if (!lab) throw new Error(`Color modifier 'darken': invalid source color "${current}"`);
         const [L, a, b] = lab;
         current = labToHex(Math.max(0, L - mod.amount), a, b);
         break;
