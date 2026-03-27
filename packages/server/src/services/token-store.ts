@@ -6,7 +6,6 @@ import {
   type TokenGroup,
   type TokenSet,
   type ResolvedToken,
-  type TokenType,
   isDTCGToken,
   isFormula,
   flattenTokenGroup,

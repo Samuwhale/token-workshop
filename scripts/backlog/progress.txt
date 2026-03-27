@@ -391,3 +391,9 @@
   - `applyVarDiff` push direction is fire-and-forget (postMessage to plugin) — errors from the plugin controller are not returned; only pull-direction fetch errors and pre-send setup errors are catchable in the UI.
   - `useSyncBindings` used to silently swallow fetch errors — always check hooks for missing error state before adding new error handling.
 ---
+
+## 2026-03-27 - housekeeping: remove unused `TokenType` import from token-store.ts
+- Removed `type TokenType` from the `@tokenmanager/core` import block in `token-store.ts` — it was declared but never referenced in the file body.
+- Files changed: `packages/server/src/services/token-store.ts` ~L9
+- **Why:** Dead import; `TokenType` is used in other server files (routes/tokens.ts) but not in token-store.ts. Leftover from a refactor where type annotations were removed or inlined.
+---
