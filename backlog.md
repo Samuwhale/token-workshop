@@ -39,7 +39,7 @@
 - [x] PasteTokensModal format hints don't clearly indicate that JSON and name:value formats are mutually exclusive — mixing formats gives confusing results
 - [x] Find-and-replace has no confirmation step — bulk rename applies immediately with no preview-and-confirm modal, making accidental mass renames easy
 - [~] Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
-- [~] No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation
+- [x] No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation
 - [~] Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
 
 ---
@@ -52,7 +52,7 @@
 
 ### QoL
 
-- [ ] No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
+- [~] No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
 - [ ] Coverage gaps don't link to unresolved tokens — the coverage percentage is shown but clicking doesn't navigate to the specific uncovered tokens
 - [ ] Drag-to-reorder set precedence has no keyboard alternative — reordering relies exclusively on pointer drag; keyboard-only users can't change precedence
 

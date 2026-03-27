@@ -275,6 +275,35 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
     }
   };
 
+  // --- Duplicate option ---
+
+  const handleDuplicateOption = async (dimId: string, optionName: string) => {
+    const dim = dimensions.find(d => d.id === dimId);
+    if (!dim || !connected) return;
+    const opt = dim.options.find(o => o.name === optionName);
+    if (!opt) return;
+    let newName = `${optionName} copy`;
+    let counter = 2;
+    while (dim.options.some(o => o.name === newName)) {
+      newName = `${optionName} copy ${counter++}`;
+    }
+    try {
+      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName, sets: { ...opt.sets } }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || 'Failed to duplicate option');
+        return;
+      }
+      fetchDimensions();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to duplicate option');
+    }
+  };
+
   // --- Delete option ---
 
   const executeDeleteOption = async (dimId: string, optionName: string) => {
@@ -510,15 +539,27 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
                                 </button>
                               )}
                             </div>
-                            <button
-                              onClick={() => setDeleteConfirm({ type: 'option', dimId: dim.id, optionName: opt.name })}
-                              className="p-0.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] flex-shrink-0 opacity-0 group-hover/opt:opacity-100"
-                              title="Delete option"
-                            >
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                              </svg>
-                            </button>
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover/opt:opacity-100">
+                              <button
+                                onClick={() => handleDuplicateOption(dim.id, opt.name)}
+                                className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
+                                title="Duplicate option"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm({ type: 'option', dimId: dim.id, optionName: opt.name })}
+                                className="p-0.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] flex-shrink-0"
+                                title="Delete option"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
 
                           {/* Set matrix for this option */}

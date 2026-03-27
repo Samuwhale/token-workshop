@@ -101,3 +101,24 @@ Already up to date.
 
 --- Merging: No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation ---
 Already up to date.
+[main ad14fa2] chore(backlog): done – No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation
+ 7 files changed, 45 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - No paste-back for copied token JSON — clipboard copy produces valid DTCG JSON but there's no paste handler to re-import it; one-way operation
+- Added a `useEffect` in `PasteTokensModal` that reads `navigator.clipboard.readText()` on mount and pre-populates the textarea if clipboard is non-empty. Now Cmd+C (copy tokens) → Cmd+Shift+V (open paste modal) auto-fills the modal with the copied JSON, enabling a full round-trip workflow.
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L173
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  66 items remaining
+===============================================================
+  Claimed: No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
+  Worktree: /tmp/backlog-97510-DrVewm
+
+  ✓ done: No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
+    Added handleDuplicateOption handler and a copy icon button in the option header row of ThemeManager; clones sets config with a unique name ("copy", "copy 2", etc.)
+    11 turns · 110s · $0.36
+
+--- Merging: No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants ---
+Already up to date.

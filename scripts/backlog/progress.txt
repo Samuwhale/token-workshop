@@ -385,3 +385,12 @@
   - `navigator.clipboard.readText()` is async and can throw if clipboard permission is denied — always `.catch(() => {})` silently so the modal still opens empty.
   - The effect must run only on mount (empty dep array) so it doesn't re-read clipboard every time the user edits the textarea.
 ---
+
+## 2026-03-27 - No duplicate-theme action — users must manually recreate themes from scratch; a "Duplicate" option would speed up creating variants
+- Added `handleDuplicateOption(dimId, optionName)` that clones the option's sets config, generates a unique name (`"<name> copy"`, `"<name> copy 2"`, etc.), and POSTs it via the existing `/api/themes/dimensions/:id/options` endpoint.
+- Added a duplicate (copy) icon button to the option header row in ThemeManager, shown on hover alongside the existing delete button. Wrapped both in a shared `opacity-0 group-hover/opt:opacity-100` div.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L278 (handler), ~L557 (button)
+- **Learnings for future iterations:**
+  - The POST options endpoint doubles as create and update — same endpoint used by `handleAddOption` and `handleSetState`. Passing a new name creates a new option.
+  - The option header row uses `group/opt` class on the outer div; fade-in buttons must be in a shared wrapper to avoid separate opacity transitions fighting each other.
+---
