@@ -127,8 +127,8 @@ Items spotted during UX passes but out of scope for that session.
 - [x] Silent failure in SelectionInspector binding operations — `remove-binding` and `apply-binding` messages have no error callback, so failures are invisible to the user
 - [x] Grid view: when a type filter is active and no color tokens match, distinguish between "no color tokens exist" vs "none match current filter" — the current message conflates both
 
-- [~] `POST /api/export` group filter silently returns empty when path matches nothing — if `group` doesn't exist in any set, `tokenData` becomes `{}` and export runs with empty data producing zero-byte output files with no error or warning (`server/routes/export.ts:48-65`)
-- [ ] `POST /api/export` group filter splits on `.` but token segment names can contain literal dots — `group="spacing.1.5"` navigates `spacing → 1 → 5` instead of `spacing → 1.5`, silently returning empty results (`server/routes/export.ts:49`)
+- [x] `POST /api/export` group filter silently returns empty when path matches nothing — if `group` doesn't exist in any set, `tokenData` becomes `{}` and export runs with empty data producing zero-byte output files with no error or warning (`server/routes/export.ts:48-65`)
+- [~] `POST /api/export` group filter splits on `.` but token segment names can contain literal dots — `group="spacing.1.5"` navigates `spacing → 1 → 5` instead of `spacing → 1.5`, silently returning empty results (`server/routes/export.ts:49`)
 - [ ] SSE `/events` onChange callback has no try/catch — if `JSON.stringify(event)` throws or `reply.raw.write()` errors on a broken socket, the uncaught exception propagates up with no cleanup (`server/routes/sse.ts:15-16`)
 - [ ] SSE `/events` race condition: a token change event can fire between the `close` event firing and `unsubscribe()` executing, calling `reply.raw.write()` on an already-ended stream (`server/routes/sse.ts:24-28`)
 - [ ] `POST /api/sync/push` doesn't check whether a remote is configured before attempting push — git error from missing remote is wrapped in a generic "Failed to push" 500 with no actionable message (`server/routes/sync.ts:65-73`)

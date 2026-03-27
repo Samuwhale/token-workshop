@@ -63,6 +63,19 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
             }
           }
           tokenData = filtered;
+          if (Object.keys(tokenData).length === 0) {
+            return reply.status(404).send({
+              error: `Group "${group}" not found in any token set`,
+            });
+          }
+        }
+
+        if (Object.keys(tokenData).length === 0) {
+          return reply.status(404).send({
+            error: sets && sets.length > 0
+              ? `None of the requested sets exist: ${sets.join(', ')}`
+              : 'No token data available to export',
+          });
         }
 
         const results = await exportTokens(tokenData, platforms);
