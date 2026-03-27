@@ -344,6 +344,7 @@ function ApplyForm({
   const [applying, setApplying] = useState(false);
   const applyingRef = useRef(false);
   const [error, setError] = useState('');
+  const [semanticConflicts, setSemanticConflicts] = useState<string[]>([]);
 
   // Live preview state
   const [previewTokens, setPreviewTokens] = useState<GeneratedTokenResult[]>([]);
@@ -428,6 +429,7 @@ function ApplyForm({
     applyingRef.current = true;
     setApplying(true);
     setError('');
+    setSemanticConflicts([]);
     try {
       const genBody = {
         type: template.generatorType,
@@ -449,6 +451,7 @@ function ApplyForm({
       }
 
       // Create semantic alias tokens
+      const skipped: string[] = [];
       for (const layer of template.semanticLayers) {
         for (const mapping of layer.mappings) {
           const fullPath = `${layer.prefix}.${mapping.semantic}`;
@@ -466,7 +469,9 @@ function ApplyForm({
               signal: AbortSignal.timeout(5000),
             },
           );
-          if (!tokenRes.ok && tokenRes.status !== 409) {
+          if (tokenRes.status === 409) {
+            skipped.push(fullPath);
+          } else if (!tokenRes.ok) {
             // Try PATCH as fallback
             await fetch(
               `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
@@ -481,7 +486,11 @@ function ApplyForm({
         }
       }
 
-      onApplied();
+      if (skipped.length > 0) {
+        setSemanticConflicts(skipped);
+      } else {
+        onApplied();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to apply template');
     } finally {
@@ -686,7 +695,37 @@ function ApplyForm({
           </p>
         )}
 
-        {!applying && (template.requiresSource && !sourceToken.trim() || !prefix.trim()) && (
+        {semanticConflicts.length > 0 && (
+          <div className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2.5">
+            <div className="flex items-start gap-1.5 mb-1.5">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-warning,#f59e0b)] shrink-0 mt-px" aria-hidden="true">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                {semanticConflicts.length} semantic alias{semanticConflicts.length !== 1 ? 'es' : ''} already existed and {semanticConflicts.length !== 1 ? 'were' : 'was'} skipped
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5 mb-2 max-h-24 overflow-y-auto">
+              {semanticConflicts.map(path => (
+                <span key={path} className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] px-1 py-px rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
+                  {path}
+                </span>
+              ))}
+            </div>
+            <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-2">
+              The generator was created. To update existing aliases, edit them individually.
+            </p>
+            <button
+              onClick={onApplied}
+              className="w-full py-1.5 px-2 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+            >
+              Got it, continue
+            </button>
+          </div>
+        )}
+
+        {semanticConflicts.length === 0 && !applying && (template.requiresSource && !sourceToken.trim() || !prefix.trim()) && (
           <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">
             {template.requiresSource && !sourceToken.trim() && !prefix.trim()
               ? 'Source token and token prefix are required.'
@@ -696,13 +735,15 @@ function ApplyForm({
           </p>
         )}
 
-        <button
-          onClick={handleApply}
-          disabled={applying || (template.requiresSource && !sourceToken.trim()) || !prefix.trim()}
-          className="w-full py-2 px-3 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors mt-auto"
-        >
-          {applying ? 'Applying…' : previewTokens.length > 0 ? `Apply template (${previewTokens.length} tokens)` : 'Apply template'}
-        </button>
+        {semanticConflicts.length === 0 && (
+          <button
+            onClick={handleApply}
+            disabled={applying || (template.requiresSource && !sourceToken.trim()) || !prefix.trim()}
+            className="w-full py-2 px-3 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors mt-auto"
+          >
+            {applying ? 'Applying…' : previewTokens.length > 0 ? `Apply template (${previewTokens.length} tokens)` : 'Apply template'}
+          </button>
+        )}
       </div>
     </div>
   );

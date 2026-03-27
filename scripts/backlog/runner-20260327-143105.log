@@ -367,3 +367,10 @@ Already up to date.
 ===============================================================
   Claimed: GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
   Worktree: /tmp/backlog-98901-1MiZpN
+
+  ✓ done: GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created
+    409 conflicts are now tracked and shown in a warning panel listing skipped alias paths; user must click "Got it, continue" before proceeding
+    18 turns · 131s · $0.43
+
+--- Merging: GraphPanel semantic layer creation silently ignores 409 conflicts — if some semantic aliases already exist, they're skipped with no user feedback about what was and wasn't created ---
+Already up to date.

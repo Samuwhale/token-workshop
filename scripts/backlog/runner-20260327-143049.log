@@ -353,3 +353,16 @@ Already up to date.
 
 --- Merging: Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection ---
 Already up to date.
+[main d597fc9] chore(backlog): done – Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
+ 6 files changed, 99 insertions(+), 17 deletions(-)
+
+## 2026-03-27 - Graph panel has no zoom controls — navigation is mouse-wheel only; no +/− buttons, fit-to-view, or zoom-to-selection
+- Added zoom state (default 1.0, range 0.5–2.0) to the pipeline view in `GraphPanel`.
+- Added +/− icon buttons and a percentage label (click to reset to 100%) in the pipeline view header toolbar, alongside a vertical divider and the existing "+ Template" button.
+- Applied `style={{ zoom }}` to the cards container (CSS `zoom` property — layout-aware, no transform offset issues).
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  22 items remaining
+===============================================================
+  Claimed: Generator step presets use cryptic labels — labels like "Tailwind (11)" or "Minor Second" lack explanatory tooltips
+  Worktree: /tmp/backlog-97510-Ryiorm
