@@ -426,3 +426,11 @@
 - Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2173
 - **User impact:** Users in table view who apply a type filter or search query that returns no results now get clear guidance (with a one-click "clear filters" action) instead of a blank table.
 ---
+
+## 2026-03-27 - Server connection status not visible in plugin header
+- Added a persistent server connection indicator dot to the right side of the tab bar (before the overflow menu). The dot is green when connected, grey+pulsing when checking, and red when disconnected. Tooltip shows "Connected to {serverUrl}", "Connecting…", or "Cannot reach {serverUrl} — click to retry". Clicking when disconnected calls `retryConnection()`; clicking when connected opens the settings panel to view/change URL.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1158
+- **Learnings for future iterations:**
+  - The tab bar right-side cluster starts with the `ml-auto` issues filter button; subsequent icon buttons flow naturally right without needing extra margin logic.
+  - The existing `!connected` banner above the tab bar handles the error state well; the header dot is complementary (always-visible at-a-glance status, vs the detailed error banner).
+---

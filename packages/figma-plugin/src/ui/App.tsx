@@ -1155,6 +1155,23 @@ export function App() {
           </svg>
         </button>
 
+        {/* Server connection indicator */}
+        <button
+          onClick={() => {
+            if (!connected) {
+              retryConnection();
+            } else {
+              setOverflowPanel('settings');
+              setConnectResult(null);
+            }
+          }}
+          className="flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          title={checking ? 'Connecting…' : connected ? `Connected to ${serverUrl}` : `Cannot reach ${serverUrl} — click to retry`}
+          aria-label={checking ? 'Connecting to server' : connected ? 'Server connected' : 'Server disconnected — click to retry'}
+        >
+          <span className={`w-2 h-2 rounded-full ${checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : connected ? 'bg-green-500' : 'bg-[var(--color-figma-error)]'}`} />
+        </button>
+
         {/* Overflow menu */}
         <div className="relative" ref={menuRef}>
           <button

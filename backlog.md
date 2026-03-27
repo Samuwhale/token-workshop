@@ -116,7 +116,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] No way to edit generator seed values after creation — once a generator is saved, seed values (base color, scale ratio, etc.) cannot be changed; users must delete and recreate (`figma-plugin/TokenGeneratorDialog.tsx`)
 - [x] Lint results have no severity levels — all lint findings are treated equally with no warning vs error distinction, making it hard to prioritize (`server/lint.ts`, `figma-plugin/AnalyticsPanel.tsx`)
 - [x] No way to suppress specific lint warnings — lint findings cannot be dismissed or suppressed per-item; every run shows the same findings even for intentional patterns (`server/lint.ts`)
-- [ ] Server connection status not visible in plugin header — there is no persistent indicator showing whether the local server is reachable; users only discover connectivity issues when an action fails (`figma-plugin/App.tsx`)
+- [x] Server connection status not visible in plugin header — there is no persistent indicator showing whether the local server is reachable; users only discover connectivity issues when an action fails (`figma-plugin/App.tsx`)
 - [ ] No backup/export-all as ZIP — the export panel has format options but no "export all sets as a ZIP archive" for full backup or handoff (`figma-plugin/ExportPanel.tsx`, `server/routes/export.ts`)
 - [ ] Selection inspector empty state missing — the selection inspector shows nothing when no Figma node is selected; a prompt like "Select a layer to inspect token bindings" would reduce confusion
 - [ ] Token editor does not auto-focus first field — opening the token editor requires a manual click to start typing; the name or value field should auto-focus on open (`figma-plugin/TokenEditor.tsx`)
@@ -161,3 +161,7 @@ Items spotted during UX passes but out of scope for that session.
 - [ ] ExportPanel: "Re-export" button after successful export has no tooltip — unclear that it regenerates from current server state, not just re-downloads
 - [ ] ImportPanel: disabled "Read from Figma" button has no tooltip explaining it's always enabled (reads from the currently open file) — users may think they need to do something first
 - [ ] ImportPanel: `targetSet` dropdown in styles import shows "Select a set" placeholder but the only way to create a new set is a small "+" button that's easy to miss — consider inline hint text
+
+- [ ] ImportPanel: show progress bar using existing `importProgress` state during token import — long imports feel stuck with only "Importing…" text
+- [ ] Grid view empty state: distinguish "no color tokens exist in this set" from "filters hide all color tokens" — current message always says "Grid view shows color tokens as swatches" regardless of cause
+- [ ] ExportPanel: "Read Variables from Figma" button has no loading indicator — clicking it gives no immediate feedback
