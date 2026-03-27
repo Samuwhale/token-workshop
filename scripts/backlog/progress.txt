@@ -266,3 +266,9 @@
   - A prior session's progress.txt entry saying "all callers updated" was incorrect — verify by grepping for old symbol names before marking stale.
   - When a factory replaces a module-level constant, the old export must be removed from the barrel (`index.ts`) too, or external packages keep using the stale import name.
 ---
+
+## 2026-03-27 - housekeeping: remove `catch (err: any)` anti-pattern in sets.ts
+- Changed two catch blocks from `catch (err: any)` with `err?.message ?? String(err)` to `catch (err)` with `err instanceof Error ? err.message : String(err)`
+- Files changed: `packages/server/src/routes/sets.ts` ~L67, ~L89
+- **Why:** TypeScript's default catch type is `unknown` — annotating `err: any` opts out of type safety and allows accessing arbitrary properties without type guards. The `err?.message` optional chaining masked this by silently returning `undefined` on non-Error values instead of falling back to `String(err)`. All other catch blocks in the same file already used the safe pattern.
+---
