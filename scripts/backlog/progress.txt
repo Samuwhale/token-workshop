@@ -154,3 +154,10 @@
 - **Learnings for future iterations:**
   - Always check if the item is already fixed before implementing — previous sessions may have addressed it.
 ---
+
+## 2026-03-27 - ImportPanel has unused `importProgress` state — progress indicator for large imports is declared but never set or displayed
+- Already implemented: `importProgress` state (L70) is set during both variable-mode import (L252, L286, L308) and single-set import (L358, L386, L398). Progress bars and text labels are rendered in multiple footer sections (L796-808, L909-931, L951-962).
+- Files changed: none (stale item)
+- **Learnings for future iterations:**
+  - Always check if the item is already fixed before implementing — previous sessions may have addressed it.
+---

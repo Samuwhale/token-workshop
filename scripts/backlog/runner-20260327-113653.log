@@ -1,0 +1,12 @@
+./scripts/backlog/backlog.sh: line 203: [: 0
+0: integer expression expected
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 9
+  Completed total: 172 (next product pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  9 items remaining
+===============================================================
+  Claimed: SyncPanel shows no empty state when first loaded — unclear whether "nothing to sync" or "run a check first"
+  Worktree: /tmp/backlog-6894-GM9evF

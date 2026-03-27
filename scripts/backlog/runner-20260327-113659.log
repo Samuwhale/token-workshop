@@ -1,0 +1,18 @@
+NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 8
+  Completed total: 172 (next product pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  8 items remaining
+===============================================================
+  Claimed: ImportPanel has unused `importProgress` state — progress indicator for large imports is declared but never set or displayed
+  Worktree: /tmp/backlog-7333-5oqCAA
+
+  ✓ done: ImportPanel has unused importProgress state — progress indicator for large imports is declared but never set or displayed
+    stale — already done. importProgress state is declared (L70), set during imports (L252, L286, L308, L358, L386, L398), and displayed with progress bars and text labels in multiple footer sections.
+    10 turns · 43s · $0.27
+
+--- Merging: ImportPanel has unused importProgress state — progress indicator for large imports is declared but never set or displayed ---
+Already up to date.

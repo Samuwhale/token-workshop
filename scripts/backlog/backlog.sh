@@ -417,7 +417,7 @@ drain_inbox() {
 
   # HIGH/P0: insert before the first [ ] item so the agent picks them next.
   if [ -n "$HIGH_ITEMS" ]; then
-    FIRST_TODO_LINE=$(grep -n '^\- \[ \]' "$BACKLOG_FILE" | head -1 | cut -d: -f1)
+    FIRST_TODO_LINE=$(grep -n -m1 '^\- \[ \]' "$BACKLOG_FILE" | cut -d: -f1)
     if [ -n "$FIRST_TODO_LINE" ]; then
       INSERT_AT=$((FIRST_TODO_LINE - 1))
       HEAD=$(head -n "$INSERT_AT" "$BACKLOG_FILE")
@@ -525,9 +525,9 @@ cleanup_if_needed() {
 }
 
 # ─── Periodic maintenance passes ──────────────────────────────────
-# Every 3 completed items: rotate through ux → bugfix → discover →
-# feature → housekeeping (5-slot cycle).
-# Each is a separate focused agent session — clean context window.
+# Every 3 completed items: alternate product → code discovery passes.
+# Passes are read-only — they write items to backlog-inbox.md.
+# The main loop implements items; passes just stock the backlog.
 
 run_special_pass() {
   local pass_type="$1"  # "housekeeping" or "ux"
@@ -639,17 +639,14 @@ run_special_pass() {
 # JSON schema for structured agent output
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
-# 5-type pass rotation (every 3 items): ux → bugfix → discover → feature → housekeeping → …
-# Cycle index = (completed_count / 3) mod 5
+# 2-type pass rotation (every 3 items): product → code → product → …
+# Both are discovery-only — they stock the backlog, the main loop implements.
 _pass_type_for_count() {
   local count=$1
-  local slot=$(( (count / 3) % 5 ))
+  local slot=$(( (count / 3) % 2 ))
   case $slot in
-    0) echo "ux" ;;
-    1) echo "bugfix" ;;
-    2) echo "discover" ;;
-    3) echo "feature" ;;
-    4) echo "housekeeping" ;;
+    0) echo "product" ;;
+    1) echo "code" ;;
   esac
 }
 
@@ -836,7 +833,9 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   drain_inbox
 
   # Print last progress entry (header + bullet lines only)
-  SUMMARY=$(awk '/^## /{found=1; buf=""} found && !/^---/{buf=buf"\n"$0} /^---$/ && found{last=buf; found=0} END{print last}' "$PROGRESS_FILE" | sed '/^[[:space:]]*$/d' | head -4)
+  # Note: pipe through head can trigger SIGPIPE (exit 141) with set -eo pipefail,
+  # so we guard with || true to prevent the script from exiting.
+  SUMMARY=$(awk '/^## /{found=1; buf=""} found && !/^---/{buf=buf"\n"$0} /^---$/ && found{last=buf; found=0} END{print last}' "$PROGRESS_FILE" | sed '/^[[:space:]]*$/d' | head -4 || true)
   if [ -n "$SUMMARY" ]; then
     echo ""
     echo "$SUMMARY"
