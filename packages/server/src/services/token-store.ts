@@ -683,13 +683,18 @@ export class TokenStore {
   /** Update alias $value references from oldGroupPath to newGroupPath across a token tree */
   private updateAliasRefs(group: any, oldGroupPath: string, newGroupPath: string): number {
     let count = 0;
-    const exactMatch = `{${oldGroupPath}}`;
-    const oldPrefix = `{${oldGroupPath}.`;
-    const newPrefix = `{${newGroupPath}.`;
+    // Regex matches {oldGroupPath} (exact) or {oldGroupPath.something} (prefix) anywhere in a string,
+    // including embedded refs in formula strings like "{spacing.base} * 2".
+    const escapedOld = oldGroupPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const refRegex = new RegExp(`\\{(${escapedOld})(\\.[^}]*)?\\}`, 'g');
     const updateString = (s: string): string | null => {
-      if (s === exactMatch) return `{${newGroupPath}}`;
-      if (s.startsWith(oldPrefix)) return newPrefix + s.slice(oldPrefix.length);
-      return null;
+      if (!s.includes(`{${oldGroupPath}`)) return null;
+      let matched = false;
+      const result = s.replace(refRegex, (_match, _path, rest) => {
+        matched = true;
+        return rest ? `{${newGroupPath}${rest}}` : `{${newGroupPath}}`;
+      });
+      return matched ? result : null;
     };
     const updateCompositeValue = (obj: any) => {
       for (const k of Object.keys(obj)) {
@@ -722,12 +727,16 @@ export class TokenStore {
   /** Update alias $value references using a full path map (oldPath -> newPath) */
   private updateBulkAliasRefs(group: any, pathMap: Map<string, string>): number {
     let count = 0;
+    // Matches any {ref} token anywhere in the string, including embedded refs in formulas.
+    const refRegex = /\{([^}]+)\}/g;
     const updateString = (s: string): string | null => {
-      if (s.startsWith('{') && s.endsWith('}')) {
-        const refPath = s.slice(1, -1);
-        if (pathMap.has(refPath)) return `{${pathMap.get(refPath)}}`;
-      }
-      return null;
+      if (!s.includes('{')) return null;
+      let matched = false;
+      const result = s.replace(refRegex, (_match, refPath) => {
+        if (pathMap.has(refPath)) { matched = true; return `{${pathMap.get(refPath)}}`; }
+        return _match;
+      });
+      return matched ? result : null;
     };
     const updateCompositeValue = (obj: any) => {
       for (const k of Object.keys(obj)) {

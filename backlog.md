@@ -19,7 +19,7 @@
 
 ### UX
 
-- [ ] CommandPalette: No "Copy token value" action for token search results — the token search mode (">") offers "Go to token" and "Copy CSS var" but not "Copy raw value", which is the most common reason to search for a token
+- [~] CommandPalette: No "Copy token value" action for token search results — the token search mode (">") offers "Go to token" and "Copy CSS var" but not "Copy raw value", which is the most common reason to search for a token
 
 ---
 
@@ -28,7 +28,7 @@
 ### Bugs
 
 - [x] [HIGH] TokenResolver `dfsStack` is not cleaned up on error — if `dfsResolve` throws, `this.dfsStack.pop()` is never reached, leaving stale entries that corrupt cycle detection in subsequent `resolve()` calls within the same resolver instance
-- [ ] `updateAliasRefs` does not handle formula strings — the alias-reference updater only checks for exact `{oldPath}` and prefix `{oldPath.` patterns, but formula strings like `"{spacing.base} * 2"` contain embedded refs that won't be matched, so renaming a group used in formulas leaves broken references
+- [~] `updateAliasRefs` does not handle formula strings — the alias-reference updater only checks for exact `{oldPath}` and prefix `{oldPath.` patterns, but formula strings like `"{spacing.base} * 2"` contain embedded refs that won't be matched, so renaming a group used in formulas leaves broken references
 - [ ] `resolveAllAliases` in the plugin does not recurse into composite token sub-properties — composite tokens (typography, shadow, border) with individually aliased sub-properties (e.g. `fontSize: "{type.base}"`) are not resolved, so the theme preview shows raw `{ref}` strings instead of values
 
 ### QoL
@@ -93,7 +93,7 @@
 
 ### Bugs
 
-- [~] [HIGH] ImportPanel: Handler for `styles-read` message does not clear `pendingSourceRef` before processing — if the Figma plugin sends multiple `styles-read` responses (e.g. due to a race condition), the second response will be ignored
+- [x] [HIGH] ImportPanel: Handler for `styles-read` message does not clear `pendingSourceRef` before processing — if the Figma plugin sends multiple `styles-read` responses (e.g. due to a race condition), the second response will be ignored
 - [ ] ImportPanel: `conflictPaths` state is not cleared when changing the target set — old conflict list persists with the new set
 - [ ] ImportPanel: `readTimeoutRef` is not cleared in cleanup when component unmounts — timer continues running in the background
 - [ ] ImportPanel: Styles read timeout does not have a `startReadTimeout()` call — variables read has a 15-second timeout but styles read does not, so if Figma hangs, the UI never recovers

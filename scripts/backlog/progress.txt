@@ -468,3 +468,12 @@
   - When a message handler uses two guard conditions (pendingRef + correlationId), a duplicate or delayed response may slip through one condition even if the other still matches. Use the most specific identifier (correlationId) as the sole guard; the secondary flag (pendingSourceRef) is redundant and introduces fragility.
   - Always clear mutable refs as the very FIRST action inside a handler body — before clearTimeout or any state updates — so no downstream code observes stale state.
 ---
+
+## 2026-03-27 - `updateAliasRefs` does not handle formula strings
+- Replaced the exact-match/startsWith logic in both `updateAliasRefs` and `updateBulkAliasRefs` with regex-based global replacement. `updateAliasRefs` now uses a compiled `RegExp` with the escaped old path to match `{oldPath}` or `{oldPath.child}` anywhere in a string (including mid-formula like `"{spacing.base} * 2"`). `updateBulkAliasRefs` now uses a generic `/{([^}]+)}/g` regex and replaces each ref independently via the pathMap.
+- Files changed: `packages/server/src/services/token-store.ts` ~L684, ~L728
+- **Learnings for future iterations:**
+  - The old guards (`s === exactMatch` / `s.startsWith(oldPrefix)`) only work for pure alias values. Formula strings embed refs mid-string, so regex with `g` flag + `String.replace` is required.
+  - Escape special regex chars in path segments before inserting into a `RegExp` constructor — token paths can contain dots which are regex wildcards.
+  - For `updateBulkAliasRefs` (rename single token), a simple `/{([^}]+)}/g` regex suffices because the pathMap has fully-qualified old→new mappings.
+---

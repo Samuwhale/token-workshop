@@ -53,3 +53,9 @@ Already up to date.
 - Ran `madge --circular` on all three packages (figma-plugin, core, server) — no circular dependencies found.
 - Found the actual TDZ risk: `colorUtils.ts` imported `hexToLab` and `labToHex` from `@tokenmanager/core`, creating a cross-module dependency in the singlefile bundle. Since `colorUtils.ts` already had `toLinear`, `fromLinear`, `rgbToLab`, `hexToRgb`, and `rgbToHex` defined locally, added inline implementations of `hexToLab` and `labToHex` and removed the `@tokenmanager/core` import entirely.
 - Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L53
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  41 items remaining
+===============================================================
+  Claimed: CommandPalette: No "Copy token value" action for token search results — the token search mode (">") offers "Go to token" and "Copy CSS var" but not "Copy raw value", which is the most common reason to search for a token
+  Worktree: /tmp/backlog-91651-OHDjwo
