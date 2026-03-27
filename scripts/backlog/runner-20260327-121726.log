@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: [HIGH] Bulk-rename regex has no ReDoS protection — `isRegex=true` with a catastrophic backtracking pattern (e.g. `(a+)+b`) applied to a large token set can hang the Node.js event loop (`server/services/token-store.ts:803-809`)
   Worktree: /tmp/backlog-97357-GHqeNv
+
+  ✓ done: Bulk-rename regex has no ReDoS protection
+    Added isSafeRegex() guard that rejects patterns >200 chars or with nested quantifiers before creating RegExp. Route returns 400 for rejected patterns.
+    23 turns · 201s · $0.69
+
+--- Merging: Bulk-rename regex has no ReDoS protection ---
+Already up to date.

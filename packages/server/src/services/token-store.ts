@@ -12,6 +12,27 @@ import {
   TokenResolver,
 } from '@tokenmanager/core';
 
+const MAX_REGEX_LENGTH = 200;
+
+/**
+ * Detect regex patterns vulnerable to catastrophic backtracking (ReDoS).
+ * Checks for nested quantifiers: a quantified group whose contents also
+ * contain a quantifier, e.g. `(a+)+`, `(x*|y+)*`, `(?:a{2,})+`.
+ */
+function isSafeRegex(pattern: string): boolean {
+  if (pattern.length > MAX_REGEX_LENGTH) return false;
+  // Strip escaped characters and character classes to avoid false positives
+  const cleaned = pattern
+    .replace(/\\./g, 'a')
+    .replace(/\[[^\]]*\]/g, 'a');
+  // Quantifier immediately before ')' + quantifier immediately after ')'
+  // catches the classic nested-quantifier ReDoS family
+  if (/([+*?]|\{\d+,?\d*\})\s*\)\s*([+*?]|\{\d+,?\d*\})/.test(cleaned)) {
+    return false;
+  }
+  return true;
+}
+
 export class TokenStore {
   private dir: string;
   private sets: Map<string, TokenSet> = new Map();
@@ -914,6 +935,11 @@ export class TokenStore {
 
     let pattern: RegExp | null = null;
     if (isRegex) {
+      if (!isSafeRegex(find)) {
+        throw new Error(
+          `Regex pattern rejected: pattern is too long or contains nested quantifiers that could cause excessive backtracking`,
+        );
+      }
       try {
         pattern = new RegExp(find, 'g');
       } catch {

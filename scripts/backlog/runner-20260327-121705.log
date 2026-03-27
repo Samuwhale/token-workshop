@@ -17,3 +17,20 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: varCorrelationIdRef and varReadResolveRef shared ref concurrency bug ---
 Already up to date.
+[main 6308ba3] chore(backlog): done – varCorrelationIdRef and varReadResolveRef shared ref concurrency bug
+ 14 files changed, 254 insertions(+), 153 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/generators/generatorUtils.ts
+ create mode 100644 scripts/backlog/runner-20260327-121705.log
+ create mode 100644 scripts/backlog/runner-20260327-121720.log
+ create mode 100644 scripts/backlog/runner-20260327-121726.log
+
+## 2026-03-27 - PublishPanel: varCorrelationIdRef/varReadResolveRef shared ref concurrency bug
+- Replaced single-slot `varCorrelationIdRef` + `varReadResolveRef` refs with a Map-based `varPendingRef` (keyed by unique correlation ID), matching the pattern already used in SyncPanel.tsx. Both `computeVarDiff` and `runReadinessChecks` now store their resolve callbacks independently in the Map, so concurrent calls no longer overwrite each other.
+- Updated the `variables-read` message handler to look up the resolver by correlation ID from the Map instead of checking against a single ref.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L211 (ref declaration), ~L351 (computeVarDiff), ~L577 (runReadinessChecks), ~L413 (message handler)
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  24 items remaining
+===============================================================
+  Claimed: [HIGH] `templateIdForTokenType` fallback returns non-existent template ID — `GraphPanel.tsx:600` returns `'modular-type-scale'` for non-color/dimension tokens but `GRAPH_TEMPLATES` has id `'modular-type'`; `find()` returns `undefined`, `initialTemplate` is set to `null`, and the pending-token-type hint is silently discarded when opening the Graph tab from a token's context menu.
+  Worktree: /tmp/backlog-96047-ldODR7

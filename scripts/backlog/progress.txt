@@ -244,3 +244,12 @@
 - **Learnings for future iterations:**
   - When multiple async operations share a "pending callback" ref, always use a Map keyed by correlation ID rather than a single-slot ref. SyncPanel already had this pattern; PublishPanel was the straggler.
 ---
+
+## 2026-03-27 - Bulk-rename regex has no ReDoS protection
+- Added `isSafeRegex()` guard in `token-store.ts` that rejects patterns longer than 200 chars or containing nested quantifiers (the primary cause of catastrophic backtracking). Called before `new RegExp()` in `bulkRename`.
+- Route handler in `tokens.ts` now returns 400 (not 500) for rejected/invalid regex patterns so the UI shows a clear error message.
+- Files changed: `packages/server/src/services/token-store.ts` ~L16 (isSafeRegex helper), ~L930 (guard in bulkRename); `packages/server/src/routes/tokens.ts` ~L172 (400 status for regex errors)
+- **Learnings for future iterations:**
+  - Nested quantifiers (star height > 1) are the primary vector for ReDoS. A simple regex on the cleaned pattern `(/([+*?]|\{\d+,?\d*\})\s*\)\s*([+*?]|\{\d+,?\d*\})/)` catches the classic family without needing an AST parser.
+  - Always strip escaped chars (`\\. → a`) and character classes (`[...] → a`) before analyzing regex structure to avoid false positives.
+---
