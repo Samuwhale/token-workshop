@@ -18,3 +18,11 @@
 - **Learnings for future iterations:**
   - `window.confirm()` is the simplest confirmation pattern for destructive actions in the Figma plugin UI — no need for a custom modal component.
 ---
+
+## 2026-03-27 - Duplicate targetGroup values across generators corrupt dependency resolution
+- Changed `producerByGroup` in `buildDependencyOrder()` from `Map<string, string>` to `Map<string, Set<string>>` so that multiple generators sharing the same `targetGroup` are all registered as producers.
+- Updated the edge-building loop to iterate over all producer IDs per group instead of a single one, ensuring correct dependency edges and topological ordering.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L225-L253
+- **Learnings for future iterations:**
+  - When building reverse-lookup maps (value → key), always consider whether the mapping is 1:1 or 1:N. Using `Map.set` for 1:N silently drops earlier entries — use `Map<K, Set<V>>` instead.
+---

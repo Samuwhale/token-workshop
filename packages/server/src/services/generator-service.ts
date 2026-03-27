@@ -221,10 +221,15 @@ export class GeneratorService {
    * Throws if a dependency cycle is detected.
    */
   private buildDependencyOrder(): string[] {
-    // Map targetGroup -> generatorId for producer lookup
-    const producerByGroup = new Map<string, string>();
+    // Map targetGroup -> set of generatorIds for producer lookup
+    const producerByGroup = new Map<string, Set<string>>();
     for (const [id, gen] of this.generators) {
-      producerByGroup.set(gen.targetGroup, id);
+      let producers = producerByGroup.get(gen.targetGroup);
+      if (!producers) {
+        producers = new Set();
+        producerByGroup.set(gen.targetGroup, producers);
+      }
+      producers.add(id);
     }
 
     // Build in-degree map and adjacency list
@@ -238,11 +243,15 @@ export class GeneratorService {
 
     for (const [id, gen] of this.generators) {
       if (!gen.sourceToken) continue;
-      for (const [prefix, producerId] of producerByGroup) {
-        if (producerId !== id && gen.sourceToken.startsWith(prefix + '.')) {
-          // id depends on producerId
-          edges.get(producerId)!.add(id);
-          inDegree.set(id, (inDegree.get(id) ?? 0) + 1);
+      for (const [prefix, producerIds] of producerByGroup) {
+        if (gen.sourceToken.startsWith(prefix + '.')) {
+          for (const producerId of producerIds) {
+            if (producerId !== id) {
+              // id depends on producerId
+              edges.get(producerId)!.add(id);
+              inDegree.set(id, (inDegree.get(id) ?? 0) + 1);
+            }
+          }
         }
       }
     }
