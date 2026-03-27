@@ -6,3 +6,11 @@
 - **Learnings for future iterations:**
   - When mapping data for API calls, always check the source object for additional fields that should be forwarded — explicit destructuring/picking silently drops new fields added upstream.
 ---
+
+## 2026-03-27 - ThemeManager `executeDeleteDimension` and `executeDeleteOption` don't check `res.ok`
+- Added `res.ok` checks to `executeDeleteDimension`, `executeDeleteOption`, and `handleSetState`. On non-ok responses, error is shown via `setError()` and optimistic local state update is skipped (or rolled back for `handleSetState`).
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L230 (executeDeleteDimension), ~L279 (executeDeleteOption), ~L308 (handleSetState)
+- **Learnings for future iterations:**
+  - `fetch()` does NOT throw on HTTP error status codes — always check `response.ok`. This is the same recurring pattern across multiple backlog items.
+  - Optimistic UI updates must be gated on `res.ok` or rolled back on failure; otherwise the UI temporarily lies to the user.
+---

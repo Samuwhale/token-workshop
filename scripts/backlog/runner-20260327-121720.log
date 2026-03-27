@@ -50,3 +50,10 @@ Already up to date.
 ===============================================================
   Claimed: [HIGH] ThemeManager `executeDeleteDimension` and `executeDeleteOption` don't check `res.ok` — server rejection (404/500) is silently ignored while optimistic local state update removes the dimension/option from the UI; `fetchDimensions()` eventually restores it but user gets no error feedback (`ThemeManager.tsx:252-260, 297-310`)
   Worktree: /tmp/backlog-96806-1pX00f
+
+  ✓ done: ThemeManager `executeDeleteDimension` and `executeDeleteOption` don't check `res.ok`
+    Added res.ok checks to executeDeleteDimension, executeDeleteOption, and handleSetState — server rejections now show error messages and skip/rollback optimistic state updates.
+    10 turns · 55s · $0.3
+
+--- Merging: ThemeManager `executeDeleteDimension` and `executeDeleteOption` don't check `res.ok` ---
+Already up to date.

@@ -229,7 +229,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
 
   const executeDeleteDimension = async (id: string) => {
     try {
-      await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || `Failed to delete dimension (${res.status})`);
+        return;
+      }
       setDimensions(prev => prev.filter(d => d.id !== id));
       fetchDimensions();
     } catch (err) {
@@ -274,10 +279,15 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
 
   const executeDeleteOption = async (dimId: string, optionName: string) => {
     try {
-      await fetch(
+      const res = await fetch(
         `${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options/${encodeURIComponent(optionName)}`,
         { method: 'DELETE' },
       );
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || `Failed to delete option (${res.status})`);
+        return;
+      }
       setDimensions(prev => prev.map(d =>
         d.id === dimId ? { ...d, options: d.options.filter(o => o.name !== optionName) } : d,
       ));
@@ -302,11 +312,17 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange }:
         : d,
     ));
     try {
-      await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: optionName, sets: updatedSets }),
       });
+      if (!res.ok) {
+        setDimensions(previousDimensions);
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || `Failed to save (${res.status})`);
+        return;
+      }
       fetchDimensions();
     } catch (err) {
       setDimensions(previousDimensions);

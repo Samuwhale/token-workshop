@@ -37,3 +37,16 @@ Already up to date.
 
 --- Merging: handleCreateToken silently swallows server errors ---
 Already up to date.
+[main 1cd5d1a] chore(backlog): done – handleCreateToken silently swallows server errors
+ 6 files changed, 43 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - handleCreateToken silently swallows server errors
+- Added `else` branch to check `res.ok === false`: parses JSON error body from server (falls back to `Server error (status)`) and sets `createError` state.
+- Added `catch` block to handle network failures (fetch throws), also setting `createError`.
+- The `createError` state was already rendered in the UI (red border + error text), so no markup changes needed.
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  19 items remaining
+===============================================================
+  Claimed: [HIGH] ThemeManager `handleSetState` doesn't check `res.ok` — a server-rejected set state toggle (e.g. 400 from invalid status) appears to succeed because `fetch` doesn't throw on HTTP errors; the catch block only handles network failures, not HTTP error responses (`ThemeManager.tsx:326-337`)
+  Worktree: /tmp/backlog-97357-zDk7OT
