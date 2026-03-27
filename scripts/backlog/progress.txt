@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - validateAllTokens hardcodes depth > 3
+- Stale — already implemented. Line 338-350 of `packages/server/src/services/lint.ts` already reads `maxDepth` from the lint config rule (`config.lintRules['max-alias-depth'].options.maxDepth`) with a fallback to `3` from `DEFAULT_LINT_CONFIG`. No hardcoded `depth > 3` exists.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Backlog items about lint config may have been fixed in prior sessions — verify the exact condition before implementing.
+---
+
 ## 2026-03-27 - LintConfigStore shallow cache reference
 - Changed `save()` to clone the incoming config before storing: `this.config = structuredClone(config)`. Previously `this.config = config` stored the caller's reference directly, so any mutation by the caller after `save()` would corrupt the in-memory cache. `load()` already returned a `structuredClone`; `save()` now does the same on the write side.
 - Files changed: `packages/server/src/services/lint.ts` ~L76

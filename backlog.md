@@ -133,7 +133,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] AnalyticsPanel fetch AbortController — fetches all sets' tokens in parallel with no AbortController; setState on unmounted component if user switches tabs (`figma-plugin/AnalyticsPanel.tsx:201-264`)
 - [x] AliasAutocomplete entries not memoized — `entries` recomputed every render without `useMemo`; expensive for large token sets (`figma-plugin/AliasAutocomplete.tsx`)
 - [x] LintConfigStore shallow cache reference — `LintConfigStore.load()` returns shallow reference to cached config; callers can corrupt the cache (`server/lint.ts:63-72`)
-- [ ] `validateAllTokens` hardcodes depth > 3 — should read limit from lint config instead of hardcoding (`server/lint.ts:338`)
+- [x] `validateAllTokens` hardcodes depth > 3 — should read limit from lint config instead of hardcoding (`server/lint.ts:338`)
 - [ ] Pervasive `as any` casts in generator-service and routes — bypasses type safety across the plugin boundary (`generator-service.ts`, `generators route`, `sets route`, `tokens route`, `controller.ts`)
 - [ ] REFERENCE_GLOBAL_REGEX module-level stateful regex — `/g` flag creates a latent `.lastIndex` hazard if `.test()` or `.exec()` are used directly (`core/constants.ts:118`)
 - [ ] App.tsx god component — ~2000-line component with 40+ useState declarations; should be decomposed into feature modules
@@ -185,3 +185,11 @@ Items spotted during UX passes but out of scope for that session.
 - [ ] TokenCanvas empty state is very bare ("No tokens to display") — add an icon and a hint about why (e.g. canvas view renders token relationships)
 - [ ] Silent failure in SelectionInspector binding operations — `remove-binding` and `apply-binding` messages have no error callback, so failures are invisible to the user
 - [ ] Grid view: when a type filter is active and no color tokens match, distinguish between "no color tokens exist" vs "none match current filter" — the current message conflates both
+
+- [ ] `POST /api/export` group filter silently returns empty when path matches nothing — if `group` doesn't exist in any set, `tokenData` becomes `{}` and export runs with empty data producing zero-byte output files with no error or warning (`server/routes/export.ts:48-65`)
+- [ ] `POST /api/export` group filter splits on `.` but token segment names can contain literal dots — `group="spacing.1.5"` navigates `spacing → 1 → 5` instead of `spacing → 1.5`, silently returning empty results (`server/routes/export.ts:49`)
+- [ ] SSE `/events` onChange callback has no try/catch — if `JSON.stringify(event)` throws or `reply.raw.write()` errors on a broken socket, the uncaught exception propagates up with no cleanup (`server/routes/sse.ts:15-16`)
+- [ ] SSE `/events` race condition: a token change event can fire between the `close` event firing and `unsubscribe()` executing, calling `reply.raw.write()` on an already-ended stream (`server/routes/sse.ts:24-28`)
+- [ ] `POST /api/sync/push` doesn't check whether a remote is configured before attempting push — git error from missing remote is wrapped in a generic "Failed to push" 500 with no actionable message (`server/routes/sync.ts:65-73`)
+- [ ] `POST /api/sync/remote` accepts any string as the remote URL with no format validation — an invalid value is passed directly to git, producing an unhelpful error message wrapped in a generic 500 (`server/routes/sync.ts:104-116`)
+- [HIGH] Bulk-rename regex has no ReDoS protection — `isRegex=true` with a catastrophic backtracking pattern (e.g. `(a+)+b`) applied to a large token set can hang the Node.js event loop (`server/services/token-store.ts:803-809`)
