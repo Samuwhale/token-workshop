@@ -73,3 +73,9 @@
 - **Learnings for future iterations:**
   - Only one consumer existed; the move is still worthwhile for discoverability alongside other hex helpers.
 ---
+
+## 2026-03-27 - discover-pass: Theme Management (ThemeManager, ThemeCompare, useThemeSwitcher)
+- Area: `packages/figma-plugin/src/ui/components/ThemeManager.tsx`, `ThemeCompare.tsx`, `hooks/useThemeSwitcher.ts`, `packages/server/src/routes/themes.ts`
+- Found 6 items — written to backlog-inbox.md
+- Notable: ThemeManager has the same `res.ok` unchecked pattern across 4 different mutation handlers (delete dimension, delete option, toggle set state, reorder sets) — all optimistically update local state without verifying the server accepted the change. Also, `useThemeSwitcher` stale cleanup uses the wrong setter so cleaned themes persist in storage.
+---
