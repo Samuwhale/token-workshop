@@ -171,3 +171,10 @@ Already up to date.
 ===============================================================
   Claimed: Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
   Worktree: /tmp/backlog-97955-so9PsM
+
+  ✓ done: Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
+    Added red ring + red tint feedback when hovering over an invalid drop target (group that already contains the dragged token); valid targets keep the existing accent ring
+    32 turns · 255s · $0.74
+
+--- Merging: Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails ---
+Already up to date.

@@ -138,3 +138,17 @@ Already up to date.
 
 --- Merging: Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position ---
 Already up to date.
+[main 59903bf] chore(backlog): done – Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
+ 6 files changed, 86 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Scroll position resets on search — applying or clearing a search filter jumps virtual scroll to top instead of preserving the user's position
+- Added scroll anchor preservation: before any filter change (searchQuery, typeFilter, refFilter), the first visible item path is saved in `scrollAnchorPathRef`. After `flatItems` changes due to the filter, a `useLayoutEffect` scrolls to that item in the new list. If the anchor item isn't in the filtered results, scroll to top.
+- Used mutable refs (`virtualScrollTopRef`, `flatItemsRef`, `itemOffsetsRef`) synced every render to avoid stale closure issues in filter callbacks (which have empty deps arrays). Pattern: sync refs with `ref.current = value` immediately after useMemo in render body.
+- Added `isFilterChangeRef` boolean to gate the restoration layoutEffect so it only fires on filter changes, not on token data updates.
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  63 items remaining
+===============================================================
+  Claimed: ThemeManager create-dimension error says "Use letters, numbers, and spaces" but `slugify` silently converts spaces to hyphens — misleading guidance
+  Worktree: /tmp/backlog-98408-B9A2Dw

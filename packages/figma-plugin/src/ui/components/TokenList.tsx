@@ -222,6 +222,7 @@ export function TokenList({
   const varReadCorrelIdRef = useRef<string | null>(null);
   const [dragSource, setDragSource] = useState<{ paths: string[]; names: string[] } | null>(null);
   const [dragOverGroup, setDragOverGroup] = useState<string | null>(null);
+  const [dragOverGroupIsInvalid, setDragOverGroupIsInvalid] = useState(false);
   const [showBatchEditor, setShowBatchEditor] = useState(false);
   const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
   const [promoteBusy, setPromoteBusy] = useState(false);
@@ -2568,10 +2569,12 @@ export function TokenList({
                 onInlineSave={handleInlineSave}
                 onRenameToken={handleRenameToken}
                 onDragStart={(paths, names) => setDragSource({ paths, names })}
-                onDragEnd={() => { setDragSource(null); setDragOverGroup(null); }}
-                onDragOverGroup={setDragOverGroup}
+                onDragEnd={() => { setDragSource(null); setDragOverGroup(null); setDragOverGroupIsInvalid(false); }}
+                onDragOverGroup={(path, invalid) => { setDragOverGroup(path); setDragOverGroupIsInvalid(invalid ?? false); }}
                 onDropOnGroup={handleDropOnGroup}
                 dragOverGroup={dragOverGroup}
+                dragOverGroupIsInvalid={dragOverGroupIsInvalid}
+                dragSource={dragSource}
                 selectedLeafNodes={selectedLeafNodes}
                 onMoveUp={moveEnabled && sibIdx > 0 ? () => handleMoveTokenInGroup(node.path, node.name, 'up') : undefined}
                 onMoveDown={moveEnabled && sibIdx >= 0 && sibIdx < siblings.length - 1 ? () => handleMoveTokenInGroup(node.path, node.name, 'down') : undefined}
@@ -3244,6 +3247,8 @@ function TokenTreeNode({
   onDragOverGroup,
   onDropOnGroup,
   dragOverGroup,
+  dragOverGroupIsInvalid,
+  dragSource,
   selectedLeafNodes,
   onMoveUp,
   onMoveDown,
@@ -3298,10 +3303,12 @@ function TokenTreeNode({
   onRenameToken?: (oldPath: string, newPath: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;
   onDragEnd?: () => void;
-  onDragOverGroup?: (groupPath: string | null) => void;
+  onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
   onDropOnGroup?: (groupPath: string) => void;
   dragOverGroup?: string | null;
+  dragOverGroupIsInvalid?: boolean;
   selectedLeafNodes?: TokenNode[];
+  dragSource?: { paths: string[]; names: string[] } | null;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   /** Whether the alias chain expansion panel is open for this row. */
@@ -3570,14 +3577,18 @@ function TokenTreeNode({
           aria-expanded={isExpanded}
           aria-label={`Toggle group ${node.name}`}
           data-group-path={node.path}
-          className={`flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : ''}`}
+          className={`flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-red-500 bg-red-500/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
           onDragOver={(e) => {
             if (!e.dataTransfer.types.includes('application/x-token-drag')) return;
             e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            onDragOverGroup?.(node.path);
+            const isInvalid = dragSource ? dragSource.paths.every((oldPath, i) => {
+              const newPath = node.path ? `${node.path}.${dragSource.names[i]}` : dragSource.names[i];
+              return newPath === oldPath || node.path.startsWith(oldPath + '.');
+            }) : false;
+            e.dataTransfer.dropEffect = isInvalid ? 'none' : 'move';
+            onDragOverGroup?.(node.path, isInvalid);
           }}
           onDragLeave={(e) => {
             if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {

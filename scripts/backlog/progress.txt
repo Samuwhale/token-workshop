@@ -416,3 +416,17 @@
   - Use `isFilterChangeRef` boolean gate + `scrollAnchorPathRef` to distinguish filter-driven flatItems changes from token data changes in a shared useLayoutEffect
   - Mutable refs synced during render (`flatItemsRef.current = flatItems`) are the correct pattern for callbacks that need latest values but can't safely add deps (TDZ or circular dep issues)
 ---
+
+## 2026-03-27 - Drop target has no invalid-zone feedback — dragging a token over an invalid target (e.g. its own child group) shows no rejection indicator; the drop just silently fails
+- Added visual rejection indicator (red ring + red tint background) when dragging a token over an invalid drop target. Invalid targets are group rows where all dragged tokens would result in a no-op (the token already lives in that group) or where the target is a descendant of a dragged source path.
+- Added `dragOverGroupIsInvalid` state to the outer TokenList component, tracked alongside `dragOverGroup`.
+- Updated `onDragOverGroup` callback signature to accept an optional `invalid` boolean parameter.
+- In the group row `onDragOver` handler, computes invalidity inline (checks if all sources would stay in same place, or if target is a descendant of any source), sets `dropEffect = 'none'` for invalid targets, and passes the invalid flag through the callback.
+- Group row className now conditionally applies `ring-red-500 bg-red-500/10` (invalid) vs `ring-[--color-figma-accent] bg-[--color-figma-accent]/10` (valid) based on `dragOverGroupIsInvalid`.
+- Also resets `dragOverGroupIsInvalid` in `onDragEnd` handler.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L224 (new state), ~L2522 (callback update + new props), ~L3196 (prop destructuring), ~L3255 (interface), ~L3525 (className + onDragOver logic)
+- **Learnings for future iterations:**
+  - The `invalid` flag flows: group row `onDragOver` → `onDragOverGroup(path, isInvalid)` → parent `setDragOverGroupIsInvalid` → back down as `dragOverGroupIsInvalid` prop → group row className. Clean unidirectional flow.
+  - `dropEffect = 'none'` only changes the drag cursor appearance — it doesn't actually prevent the drop event from firing. The drop handler in `handleDropOnGroup` already skips no-op moves (`if (newPath === oldPath) continue`), so the invalid visual is purely UX feedback.
+  - The recursive `TokenTreeNode` call at ~L3883 already lacked drag props before this change — pre-existing gap, not introduced here.
+---
