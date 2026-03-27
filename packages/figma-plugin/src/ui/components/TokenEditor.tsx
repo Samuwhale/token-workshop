@@ -581,6 +581,11 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           <div className="px-2 py-2 rounded border border-amber-500/30 bg-amber-500/10 text-[10px]">
             <p className="text-[var(--color-figma-text)] mb-2">
               Switch to <strong>{pendingTypeChange}</strong>? This will reset the current value.
+              {dependents.length > 0 && (
+                <span className="block mt-1 text-amber-400">
+                  {dependents.length} dependent token{dependents.length !== 1 ? 's' : ''} reference this token and may break.
+                </span>
+              )}
             </p>
             <div className="flex gap-2">
               <button

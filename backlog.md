@@ -86,7 +86,7 @@
 
 - [x] No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation
 - [x] No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version
-- [~] Circular-reference error doesn't identify the cycle — the error says "circular reference detected" but doesn't name which tokens form the loop
+- [x] Circular-reference error doesn't identify the cycle — the error says "circular reference detected" but doesn't name which tokens form the loop
 - [~] Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected
 
 ---

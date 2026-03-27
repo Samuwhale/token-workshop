@@ -407,3 +407,9 @@ Already up to date.
 ===============================================================
   Claimed: DELETE /data endpoint has no server-side confirmation gate — a single accidental API call permanently deletes all token sets and themes
   Worktree: /tmp/backlog-97510-TZy4ki
+
+  ✓ done: DELETE /data endpoint has no server-side confirmation gate — a single accidental API call permanently deletes all token sets and themes
+    Server now requires { confirm: "DELETE" } in the request body; returns 400 without it. Client updated to send the body.
+    9 turns · 82s · $0.29
+
+--- Merging: DELETE /data endpoint has no server-side confirmation gate — a single accidental API call permanently deletes all token sets and themes ---

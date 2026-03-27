@@ -297,3 +297,11 @@
   - The lint.ts `detectCycles` was a simple while-loop walker — changing it to use an ordered array + index map lets you slice out exactly which segment of the chain forms the cycle (important when the starting token isn't itself in the loop).
   - The resolver DFS uses three-color marking; tracking the call stack in parallel (`dfsStack.push` on entry, `pop` on exit) is the minimal addition needed to reconstruct the full cycle without changing the algorithm.
 ---
+
+## 2026-03-27 - Type change has no impact warning — changing a token's type could break downstream references but the confirmation doesn't indicate how many dependents will be affected
+- Added dependent count to the type-change confirmation message in TokenEditor. When `pendingTypeChange` is shown and `dependents.length > 0`, a second line in amber text reads "N dependent token(s) reference this token and may break." The `dependents` state was already fetched from the API and available in scope.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L562
+- **Learnings for future iterations:**
+  - The dependents data was already fetched and in state — the fix was purely additive to the existing confirmation UI.
+  - Inline conditional rendering with `{dependents.length > 0 && (...)}` inside a `<p>` tag using `block mt-1` on the inner `<span>` gives a clean two-line confirmation message.
+---
