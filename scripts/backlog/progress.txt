@@ -353,3 +353,11 @@
   - When a call site has `if (!res.ok) { ... return; }` and a separate `res.json()` on success, `apiFetch` simplifies it to a single awaited call whose return value is the parsed JSON.
   - Best-effort batch loops (where per-item failures push to `failedPaths` rather than aborting) still benefit from `apiFetch` — just wrap each iteration in `try/catch`.
 ---
+
+## 2026-03-27 - DELETE /api/sets/:name does not check if generators reference this set as `targetSet` before allowing deletion
+- Added a pre-deletion check in the DELETE /api/sets/:name route that queries all generators via `fastify.generatorService.getAll()` and blocks deletion with HTTP 409 if any generator has `targetSet === name`. The response includes a human-readable error listing the blocking generator names and a `generatorIds` array for programmatic use.
+- Files changed: `packages/server/src/routes/sets.ts` ~L122
+- **Learnings for future iterations:**
+  - `fastify.generatorService` is already decorated on the fastify instance and accessible from all route plugins — no imports or wiring needed.
+  - The `targetSetTemplate` field (used with `inputTable`) dynamically expands to set names per row; checking it would require template expansion logic. The check only covers the direct `targetSet` field, which covers the common case.
+---

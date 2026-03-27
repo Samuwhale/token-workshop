@@ -492,3 +492,10 @@ Already up to date.
 ===============================================================
   Claimed: DELETE /api/sets/:name does not check if generators reference this set as `targetSet` before allowing deletion — leaves orphaned generators that error on next run
   Worktree: /tmp/backlog-98901-c9oqXW
+
+  ✓ done: DELETE /api/sets/:name does not check if generators reference this set as `targetSet` before allowing deletion — leaves orphaned generators that error on next run
+    Added 409 guard in DELETE /api/sets/:name that queries all generators and blocks deletion if any reference the set as targetSet, returning blocking generator names and IDs.
+    12 turns · 95s · $0.28
+
+--- Merging: DELETE /api/sets/:name does not check if generators reference this set as `targetSet` before allowing deletion — leaves orphaned generators that error on next run ---
+Already up to date.

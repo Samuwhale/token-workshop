@@ -434,3 +434,17 @@ Already up to date.
 
 --- Merging: Identical fetch-and-error pattern duplicated across 10+ call sites — the `fetch → check res.ok → catch → show error` sequence is copy-pasted; extract a shared `apiFetch` utility ---
 Already up to date.
+[main 0b1b420] chore(backlog): done – Identical fetch-and-error pattern duplicated across 10+ call sites — the `fetch → check res.ok → catch → show error` sequence is copy-pasted; extract a shared `apiFetch` utility
+ 10 files changed, 156 insertions(+), 133 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/apiFetch.ts
+
+## 2026-03-27 - Identical fetch-and-error pattern duplicated across 10+ call sites — extract a shared `apiFetch` utility
+- Created `packages/figma-plugin/src/ui/shared/apiFetch.ts` exporting `ApiError` (extends Error, adds `status`) and `apiFetch<T>(url, options?)` which throws `ApiError` on non-OK responses after extracting `{ error }` from the response body.
+- Updated 10 call sites across 4 files: `useGeneratorDialog.ts` (preview fetch, save fetch), `App.tsx` (rename set, create set, delete set), `ExportPanel.tsx` (export endpoint, batch save), `ImportPanel.tsx` (fetchSets, Figma Variables import batch, JSON/styles import batch). Each site had its own `res.ok` check + `res.json().catch(() => ({}))` error extraction — now replaced with a single `await apiFetch(...)` call.
+- The 409-conflict case in set creation was preserved using `catch (err) { if (!(err instanceof ApiError && err.status === 409)) throw ... }`.
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  4 items remaining
+===============================================================
+  Claimed: Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations
+  Worktree: /tmp/backlog-97510-AKiD4c

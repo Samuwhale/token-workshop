@@ -123,6 +123,17 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete<{ Params: { name: string } }>('/sets/:name', async (request, reply) => {
     const { name } = request.params;
     try {
+      // Block deletion if any generator references this set as its targetSet
+      const allGenerators = await fastify.generatorService.getAll();
+      const blocking = allGenerators.filter((g) => g.targetSet === name);
+      if (blocking.length > 0) {
+        const names = blocking.map((g) => `"${g.name}"`).join(', ');
+        return reply.status(409).send({
+          error: `Cannot delete set "${name}" — it is used as the target by ${blocking.length === 1 ? 'generator' : 'generators'}: ${names}`,
+          generatorIds: blocking.map((g) => g.id),
+        });
+      }
+
       const deleted = await fastify.tokenStore.deleteSet(name);
       if (!deleted) {
         return reply.status(404).send({ error: `Token set "${name}" not found` });
