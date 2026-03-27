@@ -524,14 +524,61 @@ async function readFigmaStyles() {
 
   const paintStyles = await figma.getLocalPaintStylesAsync();
   for (const style of paintStyles) {
-    if (style.paints.length > 0 && style.paints[0].type === 'SOLID') {
-      const paint = style.paints[0] as SolidPaint;
-      tokens.push({
-        path: style.name.replace(/\//g, '.'),
-        $type: 'color',
-        $value: rgbToHex(paint.color, paint.opacity ?? 1),
-      });
+    if (style.paints.length === 0) continue;
+    const visiblePaints = style.paints.filter(p => p.visible !== false);
+    if (visiblePaints.length === 0) continue;
+
+    const warnings: string[] = [];
+    let hex: string | null = null;
+
+    // Try to find a solid paint first
+    const solidPaint = visiblePaints.find(p => p.type === 'SOLID') as SolidPaint | undefined;
+    if (solidPaint) {
+      hex = rgbToHex(solidPaint.color, solidPaint.opacity ?? 1);
+    } else {
+      // Fall back to first gradient stop
+      const gradPaint = visiblePaints.find(p =>
+        p.type === 'GRADIENT_LINEAR' || p.type === 'GRADIENT_RADIAL' ||
+        p.type === 'GRADIENT_ANGULAR' || p.type === 'GRADIENT_DIAMOND'
+      ) as GradientPaint | undefined;
+      if (gradPaint && gradPaint.gradientStops.length > 0) {
+        const stop = gradPaint.gradientStops[0];
+        hex = rgbToHex(stop.color, stop.color.a ?? 1);
+        warnings.push('Gradient converted to first stop color');
+      }
     }
+
+    if (!hex) continue;
+
+    // Check for skipped paints
+    const solidCount = visiblePaints.filter(p => p.type === 'SOLID').length;
+    const gradientCount = visiblePaints.filter(p =>
+      p.type === 'GRADIENT_LINEAR' || p.type === 'GRADIENT_RADIAL' ||
+      p.type === 'GRADIENT_ANGULAR' || p.type === 'GRADIENT_DIAMOND'
+    ).length;
+
+    if (solidCount > 1) {
+      warnings.push(`${solidCount - 1} additional solid fill(s) skipped`);
+    }
+    if (solidPaint && gradientCount > 0) {
+      warnings.push(`${gradientCount} gradient fill(s) skipped`);
+    } else if (!solidPaint && gradientCount > 1) {
+      warnings.push(`${gradientCount - 1} additional gradient fill(s) skipped`);
+    }
+    const imgCount = visiblePaints.filter(p => p.type === 'IMAGE').length;
+    if (imgCount > 0) {
+      warnings.push(`${imgCount} image fill(s) skipped`);
+    }
+
+    const token: any = {
+      path: style.name.replace(/\//g, '.'),
+      $type: 'color',
+      $value: hex,
+    };
+    if (warnings.length > 0) {
+      token._warning = warnings.join('; ');
+    }
+    tokens.push(token);
   }
 
   const textStyles = await figma.getLocalTextStylesAsync();

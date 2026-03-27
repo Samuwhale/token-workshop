@@ -62,3 +62,16 @@
   - The batch endpoint's `skipped` count (strategy='skip') was being incorrectly counted as `failedTokens`; with strategy='overwrite' it's always 0 — actual failures only occur when the whole HTTP request fails.
   - When an entire batch fails, all `mode.tokens` paths are known client-side and can be collected without any server change.
 ---
+
+## 2026-03-27 - ImportPanel: readFigmaStyles only reads first paint from multi-fill styles
+- Rewrote paint style processing in `readFigmaStyles` to handle all visible paints, not just the first solid.
+- Solid paints: uses first solid as the color value; counts additional solids/gradients/images as skipped.
+- Gradient-only styles: extracts first gradient stop color instead of silently skipping the entire style.
+- Adds `_warning` field to tokens with data loss info (e.g., "2 gradient fill(s) skipped", "Gradient converted to first stop color").
+- UI: added `_warning` to `ImportToken` interface; renders amber warning text below token path in the import list.
+- Import: `_warning` is persisted as `$description` on the imported token so context survives.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L525 (readFigmaStyles paint loop), `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L17 (_warning field), ~L739 (warning display), ~L366 ($description pass-through)
+- **Learnings for future iterations:**
+  - Figma `PaintStyle.paints` can contain SOLID, GRADIENT_LINEAR, GRADIENT_RADIAL, GRADIENT_ANGULAR, GRADIENT_DIAMOND, and IMAGE types. Each paint has a `visible` flag that should be respected.
+  - `GradientPaint.gradientStops` provides color stops — first stop is a reasonable fallback when converting to a single color token.
+---

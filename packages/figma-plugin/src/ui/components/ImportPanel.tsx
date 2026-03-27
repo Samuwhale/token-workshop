@@ -15,6 +15,7 @@ interface ImportToken {
   $type: string;
   $value: any;
   collection?: string;
+  _warning?: string;
 }
 
 interface ModeData {
@@ -366,7 +367,11 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tokens: tokensToImport.map(t => ({ path: t.path, $type: t.$type, $value: t.$value })),
+          tokens: tokensToImport.map(t => {
+            const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
+            if (t._warning) tok.$description = t._warning;
+            return tok;
+          }),
           strategy,
         }),
       });
@@ -751,6 +756,11 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                       {isAlias && (
                         <div className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">
                           → <span className="font-mono">{aliasTarget}</span>
+                        </div>
+                      )}
+                      {token._warning && (
+                        <div className="text-[9px] text-[var(--color-figma-warning,#e8a100)] truncate" title={token._warning}>
+                          ⚠ {token._warning}
                         </div>
                       )}
                     </div>
