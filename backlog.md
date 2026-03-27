@@ -30,7 +30,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [~] Search match count per set — when filtering/searching tokens, set tabs only show static total count; should show filtered match count (e.g. "3 / 47") so users know which set to look in (`App.tsx:1657-1658`)
 - [x] Rename "Graph" tab to "Generators" — the current label doesn't communicate purpose to new users; the tab hosts generator templates and the pipeline dependency view, not a graph of token relationships (`App.tsx:132-136`)
 - [~] Publish tab dirty indicator — show a small dot badge on the Publish tab when there are uncommitted local git changes, matching the pattern VS Code uses for modified editor tabs; gives users a heads-up without switching to the tab
-- [ ] "···" theme-manage button needs accessible label/tooltip — the ellipsis button in the theme switcher bar (`App.tsx:1819-1825`) has no `title` or `aria-label`; at minimum add `title="Manage theme dimensions"`
+- [~] "···" theme-manage button needs accessible label/tooltip — the ellipsis button in the theme switcher bar (`App.tsx:1819-1825`) has no `title` or `aria-label`; at minimum add `title="Manage theme dimensions"`
 - [ ] Keyboard shortcut discovery — add a "Keyboard shortcuts…" entry to the Cmd+K command palette that lists all registered shortcuts; currently they're completely undiscoverable unless the user already knows them
 
 ---

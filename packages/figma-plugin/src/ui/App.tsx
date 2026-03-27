@@ -2192,7 +2192,11 @@ export function App() {
                   cascadeDiff={cascadeDiff ?? undefined}
                 />
               </div>
-              <div className="flex-1 min-h-0 overflow-hidden border-t border-[var(--color-figma-border)]">
+              <div
+                className="h-1 flex-shrink-0 cursor-row-resize bg-[var(--color-figma-border)] hover:bg-[var(--color-figma-accent)] transition-colors"
+                onMouseDown={handleSplitDragStart}
+              />
+              <div className="flex-1 min-h-0 overflow-hidden">
                 <PreviewPanel allTokensFlat={allTokensFlat} />
               </div>
             </div>
