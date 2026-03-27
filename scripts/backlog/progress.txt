@@ -117,3 +117,10 @@
   - The singlefile vite plugin inlines everything into `dist/ui.html`, not `dist/index.html`. Always grep `dist/ui.html` to verify content made it into the build.
   - A modal opened from the command palette must set state in the `handler`, which runs after `onClose()` is called — so the palette closes first, then the modal appears. No extra sequencing needed.
 ---
+
+## 2026-03-27 - `updateAliasRefs` misses aliases referencing the group itself
+- Added an `exactMatch` check for `{oldGroupPath}` (no trailing dot) alongside the existing prefix check for `{oldGroupPath.child}`. Both cases now remap to their `newGroupPath` equivalents.
+- Files changed: `packages/server/src/services/token-store.ts` ~L438
+- **Learnings for future iterations:**
+  - When renaming a group, aliases can reference the group path itself (e.g. `{colors}`) not just children (`{colors.red}`). Always handle the exact-match case separately from the prefix-with-dot case.
+---
