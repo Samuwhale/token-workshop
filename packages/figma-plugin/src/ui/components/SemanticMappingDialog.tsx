@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState } from 'react';
 import type { GeneratedTokenResult } from '../hooks/useGenerators';
 
@@ -205,7 +206,7 @@ export function SemanticMappingDialog({
       setSaving(false);
       onCreated(created);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create tokens');
+      setError(getErrorMessage(err, 'Failed to create tokens'));
       setSaving(false);
     }
   };

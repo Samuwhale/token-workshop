@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { resolveRefValue, evalExpr, isFormula } from '@tokenmanager/core';
 import type { ThemeDimension } from '@tokenmanager/core';
@@ -236,7 +237,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           setReference(token.$value);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+        setError(getErrorMessage(err));
       } finally {
         setLoading(false);
       }
@@ -383,7 +384,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       if (!res.ok) throw new Error('Delete failed');
       onBack();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Delete failed');
+      setError(getErrorMessage(err, 'Delete failed'));
       setShowDeleteConfirm(false);
     }
   };
@@ -470,7 +471,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       onSaved?.(targetPath);
       onBack();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(getErrorMessage(err));
     } finally {
       setSaving(false);
     }

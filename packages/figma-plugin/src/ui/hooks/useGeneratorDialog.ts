@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import type {
   TokenGenerator,
@@ -224,7 +225,7 @@ export function useGeneratorDialog({
         }
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
-        setPreviewError(err instanceof Error ? err.message : 'Preview failed');
+        setPreviewError(getErrorMessage(err, 'Preview failed'));
         setPreviewTokens([]);
       } finally {
         setPreviewLoading(false);
@@ -372,7 +373,7 @@ export function useGeneratorDialog({
       }
       onSaved({ targetGroup: targetGroup.trim() });
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setSaveError(getErrorMessage(err));
       setSaving(false);
     }
   };

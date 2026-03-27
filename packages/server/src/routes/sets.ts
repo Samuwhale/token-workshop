@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { TokenGroup } from '@tokenmanager/core';
+import { getErrorMessage } from '../utils';
 
 export const setRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/sets — list all sets (with optional descriptions)
@@ -65,7 +66,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       }
       return { updated: true, name, description };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       return reply.status(500).send({ error: 'Failed to update metadata', detail: msg });
     }
@@ -87,7 +88,7 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.tokenStore.renameSet(name, newName);
       return { renamed: true, oldName: name, newName };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
       return reply.status(500).send({ error: 'Failed to rename set', detail: msg });

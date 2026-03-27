@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { hexToLab, labToHex } from '@tokenmanager/core';
 import { ColorPicker } from './ColorPicker';
@@ -157,7 +158,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
       onConfirm(`${prefix}.${scale[0].label}`);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(getErrorMessage(err));
       setCreating(false);
     }
   };

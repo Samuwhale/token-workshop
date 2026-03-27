@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getErrorMessage } from '../shared/utils';
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
 function describeError(err: unknown, operation: string): string {
-  const detail = err instanceof Error ? err.message : String(err);
-  return `${operation} failed: ${detail}`;
+  return `${operation} failed: ${getErrorMessage(err, String(err))}`;
 }
 
 /* ── Interfaces ──────────────────────────────────────────────────────────── */

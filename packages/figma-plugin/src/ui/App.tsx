@@ -36,7 +36,7 @@ import { useThemeSwitcher } from './hooks/useThemeSwitcher';
 import { useFigmaSync } from './hooks/useFigmaSync';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
-import { stableStringify, adaptShortcut } from './shared/utils';
+import { stableStringify, adaptShortcut, getErrorMessage } from './shared/utils';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { flattenTokenGroup } from '@tokenmanager/core';
 
@@ -106,7 +106,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
       parent.postMessage({ pluginMessage: { type: 'sync-bindings', tokenMap, scope } }, '*');
     } catch (err) {
       console.error('Failed to fetch tokens for sync:', err);
-      const msg = err instanceof Error ? err.message : '';
+      const msg = getErrorMessage(err, '');
       const isNetworkErr = err instanceof TypeError || msg.includes('Failed to fetch') || msg.includes('NetworkError');
       if (isNetworkErr) onNetworkError?.();
       const friendly = isNetworkErr

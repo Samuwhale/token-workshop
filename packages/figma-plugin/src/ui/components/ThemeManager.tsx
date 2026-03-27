@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
@@ -168,7 +169,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       }
       setExpandedCoverage(keysWithGaps);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -207,7 +208,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       setNewlyCreatedDim(id);
       fetchDimensions();
     } catch (err) {
-      setCreateDimError(err instanceof Error ? err.message : 'Failed to create dimension');
+      setCreateDimError(getErrorMessage(err, 'Failed to create dimension'));
     }
   };
 
@@ -246,7 +247,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       cancelRenameDim();
       fetchDimensions();
     } catch (err) {
-      setRenameError(err instanceof Error ? err.message : 'Rename failed');
+      setRenameError(getErrorMessage(err, 'Rename failed'));
     }
   };
 
@@ -263,7 +264,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       setDimensions(prev => prev.filter(d => d.id !== id));
       fetchDimensions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete dimension');
+      setError(getErrorMessage(err, 'Failed to delete dimension'));
     }
   };
 
@@ -296,7 +297,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       fetchDimensions();
       setTimeout(() => addOptionInputRefs.current[dimId]?.focus(), 0);
     } catch (err) {
-      setAddOptionErrors(prev => ({ ...prev, [dimId]: err instanceof Error ? err.message : 'Failed to add option' }));
+      setAddOptionErrors(prev => ({ ...prev, [dimId]: getErrorMessage(err, 'Failed to add option') }));
     }
   };
 
@@ -325,7 +326,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       }
       fetchDimensions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to duplicate option');
+      setError(getErrorMessage(err, 'Failed to duplicate option'));
     }
   };
 
@@ -347,7 +348,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       ));
       fetchDimensions();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete option');
+      setError(getErrorMessage(err, 'Failed to delete option'));
     }
   };
 
@@ -380,7 +381,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       fetchDimensions();
     } catch (err) {
       setDimensions(previousDimensions);
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(getErrorMessage(err, 'Failed to save'));
     }
   };
 
@@ -437,7 +438,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         ...prev,
         [dimId]: { ...(prev[dimId] || {}), [optionName]: previousOrder },
       }));
-      setError(err instanceof Error ? err.message : 'Failed to save set order');
+      setError(getErrorMessage(err, 'Failed to save set order'));
     }
   };
 
@@ -482,7 +483,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         ...prev,
         [dimId]: { ...(prev[dimId] || {}), [optionName]: previousOrder },
       }));
-      setError(err instanceof Error ? err.message : 'Failed to save set order');
+      setError(getErrorMessage(err, 'Failed to save set order'));
     }
   };
 

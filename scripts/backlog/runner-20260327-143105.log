@@ -450,3 +450,10 @@ Already up to date.
 ===============================================================
   Claimed: `err instanceof Error ? err.message : 'An unexpected error occurred'` repeated 20+ times — extract to a `getErrorMessage(err)` helper
   Worktree: /tmp/backlog-98901-9ksqZf
+
+  ✓ done: Extract getErrorMessage helper to eliminate repeated ternary
+    Created getErrorMessage in 3 locations (UI shared, plugin shared, server); replaced all 40+ call sites across 20 files; build passes
+    47 turns · 248s · $0.82
+
+--- Merging: Extract getErrorMessage helper to eliminate repeated ternary ---
+Already up to date.

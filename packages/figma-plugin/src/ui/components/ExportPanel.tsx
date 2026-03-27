@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect } from 'react';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 
@@ -234,7 +235,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       if (flatFiles.length > 0) setExpandedFile(flatFiles[0].path);
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Exported ${flatFiles.length} file(s)` } }, '*');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(getErrorMessage(err));
     } finally {
       setExporting(false);
     }
@@ -431,7 +432,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       const totalVars = figmaCollections.reduce((sum, c) => sum + c.variables.length, 0);
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Saved ${totalVars} variables to server` } }, '*');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(getErrorMessage(err));
     } finally {
       setExporting(false);
     }

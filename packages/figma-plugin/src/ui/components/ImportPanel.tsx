@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
@@ -121,7 +122,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         });
       })
       .catch((err) => {
-        setSetsError(err instanceof Error ? err.message : 'Failed to load sets');
+        setSetsError(getErrorMessage(err, 'Failed to load sets'));
       });
   };
   useEffect(() => {
@@ -405,7 +406,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         : `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
       setSuccessMessage(successMsg);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(getErrorMessage(err));
     } finally {
       setImporting(false);
       setImportProgress(null);
@@ -497,7 +498,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       setSource(null);
       setSuccessMessage(`Imported ${imported} token${imported !== 1 ? 's' : ''} to "${targetSet}"`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(getErrorMessage(err));
     } finally {
       setImporting(false);
       setImportProgress(null);
@@ -524,7 +525,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       }
       await executeImport('overwrite');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(getErrorMessage(err));
     } finally {
       setCheckingConflicts(false);
     }

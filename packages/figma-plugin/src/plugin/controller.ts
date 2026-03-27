@@ -2,6 +2,7 @@
 
 import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
+import { getErrorMessage } from '../shared/utils.js';
 
 const SERVER_URL = 'http://localhost:9400';
 const PLUGIN_DATA_NAMESPACE = 'tokenmanager';
@@ -546,7 +547,7 @@ async function readFigmaVariables(correlationId?: string) {
   try {
     localCollections = await figma.variables.getLocalVariableCollectionsAsync();
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = getErrorMessage(err);
     figma.ui.postMessage({ type: 'variables-read-error', message, correlationId });
     return;
   }
@@ -856,7 +857,7 @@ async function applyToSelection(tokenPath: string, tokenType: string, targetProp
       node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, targetProperty, tokenPath);
       applied++;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       errors.push(`${node.name}: ${msg}`);
       console.error(`Failed to apply ${tokenPath} to ${node.name}:`, err);
     }
@@ -881,7 +882,7 @@ async function removeBinding(property: string) {
     try {
       node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       errors.push(`${node.name}: ${msg}`);
       console.error(`Failed to remove binding for ${property} on ${node.name}:`, err);
     }
@@ -901,7 +902,7 @@ async function clearAllBindings() {
       try {
         node.setSharedPluginData(PLUGIN_DATA_NAMESPACE, prop, '');
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = getErrorMessage(err);
         if (!errors.includes(msg)) errors.push(msg);
       }
     }
@@ -1324,7 +1325,7 @@ async function remapBindings(remapMap: Record<string, string>, scope: 'selection
     // Refresh selection so the inspector shows updated paths
     await getSelection();
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
+    const message = getErrorMessage(err, 'Unknown error');
     figma.ui.postMessage({ type: 'remap-complete', updatedBindings: 0, updatedNodes: 0, error: message });
     figma.notify(`Remap failed: ${message}`, { error: true });
   }

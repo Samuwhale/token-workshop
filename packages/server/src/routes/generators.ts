@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { GeneratorType, GeneratorConfig, InputTable, TokenGenerator } from '@tokenmanager/core';
+import { getErrorMessage } from '../utils';
 
 const VALID_GENERATOR_TYPES: readonly string[] = [
   'colorRamp',
@@ -107,7 +108,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.generatorService.run(generator.id, fastify.tokenStore);
       return reply.status(201).send(generator);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       return reply.status(500).send({ error: msg });
     }
   });
@@ -138,7 +139,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       );
       return { count: results.length, tokens: results };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       return reply.status(500).send({ error: msg });
     }
   });
@@ -160,7 +161,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.generatorService.run(generator.id, fastify.tokenStore);
       return generator;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       return reply.status(500).send({ error: msg });
     }
@@ -197,7 +198,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       );
       return { count: results.length, tokens: results };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       return reply.status(500).send({ error: msg });
     }
@@ -221,7 +222,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.generatorService.run(generator.id, fastify.tokenStore);
       return generator;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       return reply.status(500).send({ error: msg });
     }
@@ -240,7 +241,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.generatorService.run(generator.id, fastify.tokenStore);
       return generator;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       return reply.status(500).send({ error: msg });
     }

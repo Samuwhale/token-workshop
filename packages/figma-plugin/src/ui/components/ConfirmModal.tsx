@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -37,7 +38,7 @@ export function ConfirmModal({
       await onConfirm();
     } catch (err) {
       if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+        setError(getErrorMessage(err));
       }
     } finally {
       if (mountedRef.current) setBusy(false);

@@ -13,6 +13,11 @@ export function adaptShortcut(shortcut: string): string {
   return shortcut.replace(/⌘/g, 'Ctrl+').replace(/⇧/g, 'Shift+');
 }
 
+/** Extract a human-readable message from an unknown caught value. */
+export function getErrorMessage(err: unknown, fallback = 'An unexpected error occurred'): string {
+  return err instanceof Error ? err.message : fallback;
+}
+
 /** JSON.stringify with keys sorted recursively, so key-insertion-order differences never produce different strings. */
 export function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {

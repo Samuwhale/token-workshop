@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { resolveAllAliases } from '../../shared/resolveAlias';
@@ -70,7 +71,7 @@ export function useThemeSwitcher(
         });
       })
       .catch(err => {
-        setThemesError(err instanceof Error ? err.message : 'Failed to load themes');
+        setThemesError(getErrorMessage(err, 'Failed to load themes'));
       });
   }, [connected, serverUrl]);
 

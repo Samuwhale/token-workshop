@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
-import { adaptShortcut } from '../shared/utils';
+import { adaptShortcut, getErrorMessage } from '../shared/utils';
 
 // ---------------------------------------------------------------------------
 // Parsing
@@ -235,7 +235,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
       }
       onConfirm();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setSubmitError(getErrorMessage(err));
     } finally {
       setBusy(false);
     }

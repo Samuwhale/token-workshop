@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
 
@@ -396,7 +397,7 @@ function ApplyForm({
         }
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
-        setPreviewError(err instanceof Error ? err.message : 'Preview failed');
+        setPreviewError(getErrorMessage(err, 'Preview failed'));
         setPreviewTokens([]);
       } finally {
         setPreviewLoading(false);
@@ -492,7 +493,7 @@ function ApplyForm({
         onApplied();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to apply template');
+      setError(getErrorMessage(err, 'Failed to apply template'));
     } finally {
       applyingRef.current = false;
       setApplying(false);

@@ -30,3 +30,11 @@
 - **Learnings for future iterations:**
   - When a button triggers an async plugin→UI round-trip, track state with `'idle' | 'waiting' | 'success'` and clear with `setTimeout`. Always `clearTimeout` before setting a new timer to avoid double-fire.
 ---
+
+## 2026-03-27 - Extract getErrorMessage helper to eliminate repeated ternary
+- Created `getErrorMessage(err, fallback?)` in three locations: `packages/figma-plugin/src/ui/shared/utils.ts` (UI components/hooks, default fallback `'An unexpected error occurred'`), `packages/figma-plugin/src/shared/utils.ts` (plugin controller, default fallback `String(err)`), and `packages/server/src/utils.ts` (server routes, default fallback `String(err)`). Replaced all 40+ call sites across 20 files.
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` ~L16, `packages/figma-plugin/src/shared/utils.ts` (new), `packages/server/src/utils.ts` (new), all files under `packages/figma-plugin/src/ui/components/`, `packages/figma-plugin/src/ui/hooks/`, `packages/figma-plugin/src/plugin/controller.ts`, `packages/server/src/routes/`
+- **Learnings for future iterations:**
+  - The UI and plugin controller live in different compile units (iframe vs Figma sandbox) and thus need separate shared utility files (`src/ui/shared/utils.ts` vs `src/shared/utils.ts`). Never import UI shared utils into the plugin sandbox.
+  - When a fallback in the UI is `String(err)` rather than a static string, pass it explicitly: `getErrorMessage(err, String(err))`.
+---

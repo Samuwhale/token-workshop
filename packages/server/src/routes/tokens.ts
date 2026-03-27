@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { TOKEN_TYPE_VALUES, type Token, type TokenGroup } from '@tokenmanager/core';
+import { getErrorMessage } from '../utils';
 
 function validateTokenBody(body: unknown): body is Partial<Token> {
   if (typeof body !== 'object' || body === null) return false;
@@ -44,7 +45,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath);
         return result;
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = getErrorMessage(err);
         if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
         if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
         return reply.status(500).send({ error: msg });
@@ -65,7 +66,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const result = await fastify.tokenStore.moveGroup(set, groupPath, targetSet);
         return result;
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = getErrorMessage(err);
         if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
         return reply.status(500).send({ error: msg });
       }
@@ -85,7 +86,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const result = await fastify.tokenStore.duplicateGroup(set, groupPath);
         return result;
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = getErrorMessage(err);
         if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
         return reply.status(500).send({ error: msg });
       }
@@ -105,7 +106,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.tokenStore.reorderGroupChildren(set, groupPath, orderedKeys);
         return { reordered: true };
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = getErrorMessage(err);
         if (msg.includes('not found')) return reply.status(404).send({ error: msg });
         return reply.status(500).send({ error: msg });
       }
@@ -125,7 +126,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.tokenStore.createGroup(set, groupPath);
         return reply.status(201).send({ groupPath, set });
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = getErrorMessage(err);
         if (msg.includes('not found')) return reply.status(404).send({ error: msg });
         if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
         return reply.status(500).send({ error: msg });
@@ -147,7 +148,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.tokenStore.updateGroup(set, groupPath, { $type, $description });
       return { updated: true, groupPath, set };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       return reply.status(500).send({ error: 'Failed to update group metadata', detail: msg });
     }
@@ -167,7 +168,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const result = await fastify.tokenStore.bulkRename(set, find, replace, isRegex);
       return result;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       if (msg.includes('Regex pattern rejected') || msg.includes('Invalid regex pattern')) {
         return reply.status(400).send({ error: msg });
@@ -205,7 +206,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       );
       return result;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = getErrorMessage(err);
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       return reply.status(500).send({ error: 'Failed to batch upsert tokens', detail: msg });
     }
@@ -238,7 +239,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const result = await fastify.tokenStore.renameToken(set, oldPath, newPath);
         return result;
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = getErrorMessage(err);
         if (msg.includes('not found')) return reply.status(404).send({ error: msg });
         if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
         return reply.status(500).send({ error: msg });
@@ -259,7 +260,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.tokenStore.moveToken(set, tokenPath, targetSet);
         return { moved: true };
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = getErrorMessage(err);
         if (msg.includes('not found')) return reply.status(404).send({ error: msg });
         if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
         return reply.status(500).send({ error: msg });
@@ -290,7 +291,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.tokenStore.replaceSetTokens(set, body as TokenGroup);
         return { set, replaced: true };
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = getErrorMessage(err);
         if (msg.includes('not found')) return reply.status(404).send({ error: msg });
         return reply.status(500).send({ error: 'Failed to replace token set', detail: msg });
       }
@@ -372,7 +373,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const updated = await fastify.tokenStore.getToken(set, tokenPath);
         return { path: tokenPath, set, token: updated };
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = getErrorMessage(err);
         if (message.includes('not found')) {
           return reply.status(404).send({ error: message });
         }

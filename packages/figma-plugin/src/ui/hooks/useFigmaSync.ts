@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState, useCallback } from 'react';
 import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
@@ -103,7 +104,7 @@ export function useFigmaSync(
       setGroupScopesSelected([]);
     } catch (err) {
       console.error('Failed to apply group scopes:', err);
-      setGroupScopesError(err instanceof Error ? err.message : 'Failed to apply scopes');
+      setGroupScopesError(getErrorMessage(err, 'Failed to apply scopes'));
     } finally {
       setGroupScopesApplying(false);
       setGroupScopesProgress(null);

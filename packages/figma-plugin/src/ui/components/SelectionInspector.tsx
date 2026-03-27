@@ -1,3 +1,4 @@
+import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   PROPERTY_GROUPS,
@@ -526,7 +527,7 @@ export function SelectionInspector({
         setCreateError(detail);
       }
     } catch (err) {
-      setCreateError(err instanceof Error ? err.message : 'Network request failed');
+      setCreateError(getErrorMessage(err, 'Network request failed'));
     } finally {
       setCreating(false);
     }

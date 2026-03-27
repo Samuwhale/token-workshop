@@ -11,7 +11,7 @@ import { BatchEditor } from './BatchEditor';
 import { TokenCanvas } from './TokenCanvas';
 import { TokenGraph } from './TokenGraph';
 import { colorDeltaE } from '../shared/colorUtils';
-import { stableStringify } from '../shared/utils';
+import { stableStringify, getErrorMessage } from '../shared/utils';
 import { STORAGE_KEY, lsGet, lsSet } from '../shared/storage';
 import { ValuePreview } from './ValuePreview';
 import { ColorPicker } from './ColorPicker';
@@ -1438,7 +1438,7 @@ export function TokenList({
       onRefresh();
     } catch (err) {
       console.error('Failed to delete:', err);
-      setDeleteError(err instanceof Error ? err.message : 'Delete failed');
+      setDeleteError(getErrorMessage(err, 'Delete failed'));
       onRefresh();
     }
   };
@@ -1717,7 +1717,7 @@ export function TokenList({
       setFrIsRegex(false);
       onRefresh();
     } catch (err) {
-      setFrError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setFrError(getErrorMessage(err));
     } finally {
       setFrBusy(false);
     }
@@ -2222,7 +2222,7 @@ export function TokenList({
                   setJsonError(null);
                   setJsonBrokenRefs(validateJsonRefs(val, allTokensFlat));
                 } catch (err) {
-                  setJsonError(err instanceof Error ? err.message : 'Invalid JSON');
+                  setJsonError(getErrorMessage(err, 'Invalid JSON'));
                   setJsonBrokenRefs([]);
                 }
               }}
