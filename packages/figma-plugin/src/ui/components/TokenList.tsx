@@ -372,6 +372,19 @@ export function TokenList({
     // Don't handle shortcuts when typing in a form field
     if (isTyping) return;
 
+    // m: toggle multi-select mode
+    if (e.key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      if (selectMode) {
+        setSelectMode(false);
+        setSelectedPaths(new Set());
+        setShowBatchEditor(false);
+      } else {
+        setSelectMode(true);
+      }
+      return;
+    }
+
     // n: open create form / drawer, pre-filling path from focused group or token's parent group
     if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
       e.preventDefault();

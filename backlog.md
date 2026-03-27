@@ -13,7 +13,7 @@
 
 ### QoL
 
-- [~] Client URL encoding inconsistency — many handlers still use raw `${setName}/${tokenPath}` (no encodeURIComponent) for DELETE and other requests; if set names can contain `/`, these URLs would be misparsed
+- [x] Client URL encoding inconsistency — many handlers still use raw `${setName}/${tokenPath}` (no encodeURIComponent) for DELETE and other requests; if set names can contain `/`, these URLs would be misparsed
 
 ### UX
 
@@ -38,7 +38,7 @@
 
 ### Bugs
 
-- [ ] `themedAllTokensFlat` drops tokens outside themed sets — `useThemeSwitcher` builds `merged` from only the sets referenced by active theme options; tokens in sets not assigned to any dimension are silently excluded from the themed view, rather than being included as a base layer
+- [~] `themedAllTokensFlat` drops tokens outside themed sets — `useThemeSwitcher` builds `merged` from only the sets referenced by active theme options; tokens in sets not assigned to any dimension are silently excluded from the themed view, rather than being included as a base layer
 
 ### QoL
 

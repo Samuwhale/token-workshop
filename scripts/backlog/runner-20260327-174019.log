@@ -86,3 +86,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenList: Multi-select mode has no keyboard shortcut to enter/exit — the select mode toggle is a small icon button (M) mentioned in the tooltip but not documented in KeyboardShortcutsModal, and there is no Escape-to-exit-select-mode handler
   Worktree: /tmp/backlog-91651-4qAySy
+
+  ✓ done: TokenList: Multi-select mode has no keyboard shortcut to enter/exit
+    Added 'M' key toggle handler in handleListKeyDown and documented M + Esc in KeyboardShortcutsModal Token List section
+    10 turns · 98s · $0.35
+
+--- Merging: TokenList: Multi-select mode has no keyboard shortcut to enter/exit ---
+Already up to date.
