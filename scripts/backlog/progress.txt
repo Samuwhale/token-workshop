@@ -337,3 +337,18 @@
   - Batch routes must be registered BEFORE wildcard routes (e.g., `/tokens/:set/batch` before `/tokens/:set/*`) — Fastify matches in registration order.
   - The batch endpoint handles skip/overwrite strategy server-side, so the client gets one response with `{ imported, skipped }` counts.
 ---
+
+## 2026-03-27 - Last-synced timestamp in Publish tab
+- Added `lastSynced: Date | null` state to PublishPanel. Set it after successful push/pull in `doAction`. Added a `formatRelativeTime` module-level helper (just now / N min ago / N hr ago / date). Rendered "Last synced: X" below the push/pull buttons inside the `gitStatus?.remote` block. Added a 30s interval `useEffect` (only active when `lastSynced` is set) to re-render the relative time display.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L131,L184,L261,L1318
+- **Learnings for future iterations:**
+  - For relative-time displays that need live updates, a `useState(0)` tick counter + `setInterval` in a `useEffect` is the minimal pattern — no external library needed.
+  - The vite singlefile build outputs to `packages/figma-plugin/dist/ui.html`, not `dist/index.html`.
+---
+
+## 2026-03-27 - `contrastCheck` generator type missing from `computeResultsWithValue` switch
+- Added `case 'contrastCheck'` to the `computeResultsWithValue` switch in generator-service.ts, mirroring the existing branch in `computeResults`. The generator doesn't use `resolvedValue` (same pattern as `opacityScale`/`zIndexScale`).
+- Files changed: `packages/server/src/services/generator-service.ts` ~L478
+- **Learnings for future iterations:**
+  - When adding a new generator type, it must be added to BOTH `computeResults` AND `computeResultsWithValue`. The two switches must stay in sync.
+---

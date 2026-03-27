@@ -2003,6 +2003,11 @@ export function App() {
                 serverUrl={serverUrl}
                 connected={connected}
                 onImported={refreshTokens}
+                onImportComplete={(importedSet) => {
+                  setOverflowPanel(null);
+                  setActiveTab('tokens');
+                  setActiveSet(importedSet);
+                }}
               />
             </>
           )}
