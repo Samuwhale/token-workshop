@@ -425,3 +425,10 @@
 - **Learnings for future iterations:**
   - Always check for empty result after filtering before passing to downstream services — empty input producing empty output with no error is a silent failure pattern
 ---
+
+## 2026-03-27 - POST /api/export group filter splits on `.` but token segment names can contain literal dots
+- Changed `group` body parameter type from `string` (dot-split) to `string[]` (array of path segments). The navigation loop now uses the array directly — no splitting needed. Also tightened the guard to `group && group.length > 0` to handle empty arrays correctly.
+- Files changed: `packages/server/src/routes/export.ts` ~L9,L13,L49
+- **Learnings for future iterations:**
+  - Any API that navigates DTCG group paths should accept `string[]` (segment array), not a dot-delimited string, to avoid ambiguity with segment names like `"1.5"`.
+---

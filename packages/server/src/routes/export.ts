@@ -7,9 +7,10 @@ const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android'
 export const exportRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/export — export tokens to specified platforms
   // Optional body fields:
-  //   sets: string[]  — export only these token sets (default: all sets)
-  //   group: string   — export only this dot-separated sub-group within each set (e.g. "color.brand")
-  fastify.post<{ Body: { platforms: ExportPlatform[]; sets?: string[]; group?: string } }>(
+  //   sets: string[]    — export only these token sets (default: all sets)
+  //   group: string[]   — path segments to a sub-group within each set (e.g. ["color","brand"] or ["spacing","1.5"])
+  //                       Using an array avoids ambiguity when segment names contain literal dots.
+  fastify.post<{ Body: { platforms: ExportPlatform[]; sets?: string[]; group?: string[] } }>(
     '/export',
     async (request, reply) => {
       const { platforms, sets, group } = request.body || {};
@@ -44,9 +45,9 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        // Filter by group (navigate nested dot-separated path within each set)
-        if (group) {
-          const segments = group.split('.');
+        // Filter by group (navigate nested path segments within each set)
+        if (group && group.length > 0) {
+          const segments = group;
           const filtered: Record<string, TokenGroup> = {};
           for (const [setName, tokens] of Object.entries(tokenData)) {
             let current: TokenGroup | undefined = tokens;
