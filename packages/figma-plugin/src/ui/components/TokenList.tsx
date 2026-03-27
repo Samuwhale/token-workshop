@@ -28,7 +28,8 @@ import type { LintViolation } from '../hooks/useLint';
 // ---------------------------------------------------------------------------
 // Virtual scroll constants
 // ---------------------------------------------------------------------------
-const VIRTUAL_ITEM_HEIGHT = 28; // px per row (approximate; overscan compensates for taller rows)
+const VIRTUAL_ITEM_HEIGHT = 28; // px per row base height
+const VIRTUAL_CHAIN_EXPAND_HEIGHT = 24; // extra px when the alias chain panel is expanded
 const VIRTUAL_OVERSCAN = 8; // extra rows rendered above and below the viewport
 
 interface TokenListCtx {
@@ -254,6 +255,7 @@ export function TokenList({
   setNameRef.current = setName;
   const initializedForSet = useRef<string | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+  const [expandedChains, setExpandedChains] = useState<Set<string>>(new Set());
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -698,6 +700,29 @@ export function TokenList({
     [displayedTokens, expandedPaths, viewMode]
   );
 
+  // Toggle alias chain expansion for a token row
+  const handleToggleChain = useCallback((path: string) => {
+    setExpandedChains(prev => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path); else next.add(path);
+      return next;
+    });
+  }, []);
+
+  // Cumulative row offsets for variable-height virtual scroll.
+  // Each item is VIRTUAL_ITEM_HEIGHT px, plus VIRTUAL_CHAIN_EXPAND_HEIGHT when its chain panel is open.
+  const itemOffsets = useMemo(() => {
+    const offsets = new Array<number>(flatItems.length + 1);
+    offsets[0] = 0;
+    for (let i = 0; i < flatItems.length; i++) {
+      const h = expandedChains.has(flatItems[i].node.path)
+        ? VIRTUAL_ITEM_HEIGHT + VIRTUAL_CHAIN_EXPAND_HEIGHT
+        : VIRTUAL_ITEM_HEIGHT;
+      offsets[i + 1] = offsets[i] + h;
+    }
+    return offsets;
+  }, [flatItems, expandedChains]);
+
   // Map of group path ('' = root) → ordered child names, reflecting actual file order
   const siblingOrderMap = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -717,10 +742,10 @@ export function TokenList({
     const idx = flatItems.findIndex(item => item.node.path === highlightedToken);
     if (idx < 0) return;
     const containerH = virtualListRef.current.clientHeight;
-    const targetScrollTop = Math.max(0, idx * VIRTUAL_ITEM_HEIGHT - containerH / 2 + VIRTUAL_ITEM_HEIGHT / 2);
+    const targetScrollTop = Math.max(0, itemOffsets[idx] - containerH / 2 + VIRTUAL_ITEM_HEIGHT / 2);
     virtualListRef.current.scrollTop = targetScrollTop;
     setVirtualScrollTop(targetScrollTop);
-  }, [highlightedToken, flatItems, viewMode]);
+  }, [highlightedToken, flatItems, itemOffsets, viewMode]);
 
   const syncChangedCount = useMemo(() => {
     if (!syncSnapshot) return 0;
@@ -1735,18 +1760,25 @@ export function TokenList({
   const handleJumpToGroup = useCallback((groupPath: string) => {
     const idx = flatItems.findIndex(item => item.node.path === groupPath);
     if (idx >= 0 && virtualListRef.current) {
-      const targetScrollTop = Math.max(0, idx * VIRTUAL_ITEM_HEIGHT);
+      const targetScrollTop = Math.max(0, itemOffsets[idx]);
       virtualListRef.current.scrollTop = targetScrollTop;
       setVirtualScrollTop(targetScrollTop);
     }
-  }, [flatItems]);
+  }, [flatItems, itemOffsets]);
 
-  // Virtual scroll window computation (derived, no memo needed)
+  // Virtual scroll window computation — uses itemOffsets for variable-height rows
   const virtualContainerH = virtualListRef.current?.clientHeight ?? 500;
-  const virtualStartIdx = Math.max(0, Math.floor(virtualScrollTop / VIRTUAL_ITEM_HEIGHT) - VIRTUAL_OVERSCAN);
-  const virtualEndIdx = Math.min(flatItems.length, Math.ceil((virtualScrollTop + virtualContainerH) / VIRTUAL_ITEM_HEIGHT) + VIRTUAL_OVERSCAN);
-  const virtualTopPad = virtualStartIdx * VIRTUAL_ITEM_HEIGHT;
-  const virtualBottomPad = Math.max(0, (flatItems.length - virtualEndIdx) * VIRTUAL_ITEM_HEIGHT);
+  const totalVirtualH = itemOffsets[flatItems.length];
+  // Find the first item whose bottom edge is below virtualScrollTop
+  let rawStart = 0;
+  while (rawStart < flatItems.length && itemOffsets[rawStart + 1] <= virtualScrollTop) rawStart++;
+  // Find the first item whose top edge is past the bottom of the viewport
+  let rawEnd = rawStart;
+  while (rawEnd < flatItems.length && itemOffsets[rawEnd] < virtualScrollTop + virtualContainerH) rawEnd++;
+  const virtualStartIdx = Math.max(0, rawStart - VIRTUAL_OVERSCAN);
+  const virtualEndIdx = Math.min(flatItems.length, rawEnd + VIRTUAL_OVERSCAN);
+  const virtualTopPad = itemOffsets[virtualStartIdx];
+  const virtualBottomPad = Math.max(0, totalVirtualH - itemOffsets[virtualEndIdx]);
 
   return (
     <div className="flex flex-col h-full" onKeyDown={handleListKeyDown}>
@@ -2490,6 +2522,8 @@ export function TokenList({
                 selectedLeafNodes={selectedLeafNodes}
                 onMoveUp={moveEnabled && sibIdx > 0 ? () => handleMoveTokenInGroup(node.path, node.name, 'up') : undefined}
                 onMoveDown={moveEnabled && sibIdx >= 0 && sibIdx < siblings.length - 1 ? () => handleMoveTokenInGroup(node.path, node.name, 'down') : undefined}
+                chainExpanded={expandedChains.has(node.path)}
+                onToggleChain={handleToggleChain}
               />
               );
             })}
@@ -3160,6 +3194,8 @@ function TokenTreeNode({
   selectedLeafNodes,
   onMoveUp,
   onMoveDown,
+  chainExpanded: chainExpandedProp = false,
+  onToggleChain,
 }: {
   node: TokenNode;
   depth: number;
@@ -3215,6 +3251,10 @@ function TokenTreeNode({
   selectedLeafNodes?: TokenNode[];
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  /** Whether the alias chain expansion panel is open for this row. */
+  chainExpanded?: boolean;
+  /** Toggle the alias chain expansion panel for this row. */
+  onToggleChain?: (path: string) => void;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -3225,7 +3265,7 @@ function TokenTreeNode({
   const [pendingColor, setPendingColor] = useState('');
   const [copiedWhat, setCopiedWhat] = useState<'path' | 'value' | null>(null);
   const [contextMenuPos, setContextMenuPos] = useState<{ x: number; y: number } | null>(null);
-  const [chainExpanded, setChainExpanded] = useState(false);
+  const chainExpanded = chainExpandedProp;
   const [inlineEditActive, setInlineEditActive] = useState(false);
   const [inlineEditValue, setInlineEditValue] = useState('');
   const inlineEditEscapedRef = useRef(false);
@@ -4162,7 +4202,11 @@ function TokenTreeNode({
               <span className="w-2 h-2 rounded-full bg-[var(--color-figma-accent)] shrink-0" title={`${count} tokens share this value`} />
             )}
             {showChainBadge && (
-              <span className="text-[8px] text-[var(--color-figma-text-tertiary)] shrink-0" title={`${aliasChain.length} hops: ${node.path} → ${aliasChain.join(' → ')}`}>{aliasChain.length}×</span>
+              <button
+                className={`text-[8px] shrink-0 px-0.5 rounded transition-colors ${chainExpanded ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]'}`}
+                title={chainExpanded ? 'Collapse alias chain' : `Show alias chain (${aliasChain.length} hops)`}
+                onClick={e => { e.stopPropagation(); onToggleChain?.(node.path); }}
+              >{aliasChain.length}×</button>
             )}
             {cascadeChange && (
               <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" title={`Would change: ${formatValue(node.$type, cascadeChange.before)} → ${formatValue(node.$type, cascadeChange.after)}`} />

@@ -97,3 +97,16 @@ Already up to date.
 
 --- Merging: No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves ---
 Already up to date.
+[main 0150c83] chore(backlog): done – No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
+ 5 files changed, 36 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
+- Enabled multi-drag in select mode: changed `draggable={!selectMode}` to `draggable={!selectMode || isSelected}` and updated `onDragStart` to pass all `selectedLeafNodes` paths/names when dragging in select mode with a selected token. The drop handler already supported arrays, so no changes needed there.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3925
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  77 items remaining
+===============================================================
+  Claimed: Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
+  Worktree: /tmp/backlog-97955-Va7X2T

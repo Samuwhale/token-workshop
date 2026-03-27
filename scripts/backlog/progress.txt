@@ -275,3 +275,12 @@
   - `selectedLeafNodes` is already passed as a prop to TokenRow, making it trivial to access all selected tokens during drag. When adding multi-drag, the drop handler is the easy part — the key change is at the drag source (onDragStart).
   - Allowing `draggable` only when `isSelected` (not for all tokens in select mode) ensures unselected tokens remain non-draggable in select mode, keeping UX consistent.
 ---
+
+## 2026-03-27 - Virtual-scroll row height mismatch — VIRTUAL_ITEM_HEIGHT hardcoded to 28px
+- Lifted `chainExpanded` state from TokenTreeNode local state to TokenList-level `expandedChains: Set<string>`. Added `handleToggleChain` callback. Built `itemOffsets: number[]` useMemo that computes cumulative row offsets (28px base + 24px for expanded chain panel). Updated virtual scroll window computation to use offset-based linear scan instead of fixed-height division. Updated scroll-to-highlighted and handleJumpToGroup to use itemOffsets[idx]. Wired the chain badge `<span>` as a `<button>` that toggles expansion. Passed `chainExpanded` and `onToggleChain` props down to TokenTreeNode in the virtual list render.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L31 (constants), ~L258 (state), ~L700 (itemOffsets+handler), ~L745 (scroll-to-highlighted), ~L1749 (handleJumpToGroup), ~L1755 (virtual window computation), ~L3178 (props destructuring), ~L3234 (interface), ~L3249 (chainExpanded alias), ~L4148 (badge button), ~L2513 (pass props)
+- **Learnings for future iterations:**
+  - `chainExpanded` was declared as local state but never had a setter call — the feature was half-wired. Lifting to parent was the right fix.
+  - For variable-height virtual scroll: build a cumulative `itemOffsets` array, then linear-scan for start/end indices. This is O(n) but correct for all row heights.
+  - When lifting UI toggle state to the parent for virtual scroll purposes, always rename the destructured prop parameter (e.g., `chainExpanded: chainExpandedProp`) to avoid self-referential `const x = !!x` TDZ errors.
+---
