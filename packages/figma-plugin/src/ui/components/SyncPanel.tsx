@@ -186,6 +186,11 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
     if (connected && activeSet) computeVarDiff();
   }, [connected, activeSet, computeVarDiff]);
 
+  // Auto-run readiness checks when the panel loads (so status dot reflects real state immediately)
+  useEffect(() => {
+    if (connected && activeSet) runReadinessChecks();
+  }, [connected, activeSet, runReadinessChecks]);
+
   // Listen for variables-read, variables-applied, and orphans-deleted responses from controller
   useEffect(() => {
     const handler = (ev: MessageEvent) => {

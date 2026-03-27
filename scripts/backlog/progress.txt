@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - runReadinessChecks auto-trigger on mount
+- Added a `useEffect` that calls `runReadinessChecks()` on mount (when `connected && activeSet`), mirroring the existing auto-run pattern used for `computeVarDiff`. The readiness section now populates automatically and the status bar dot reflects real state on first open.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L188
+- **Learnings for future iterations:**
+  - The `[connected, activeSet, fn]` dep array is the standard pattern for auto-running async panel checks. Any new check function should follow the same pattern.
+---
+
 ## 2026-03-27 - DTCG JSON file import
 - Added "Import from JSON file" button to the source selection screen in ImportPanel. Clicking opens a hidden `<input type="file" accept=".json">`. On file selection, FileReader reads the file, parses JSON, flattens with `flattenTokenGroup`, and loads into the existing `tokens`/`selectedTokens` state — reusing the full styles-import list UI (token preview, type filter pills, conflict detection, target-set selector, batch import).
 - Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L62,L166-200,L428-460
