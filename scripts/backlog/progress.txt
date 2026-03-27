@@ -200,3 +200,21 @@
   - The empty-filter state block has access to `searchQuery`, `connected`, `setNewTokenPath`, and `setShowCreateForm` — all in scope, no extra props needed.
   - Button is conditionally rendered only when both `searchQuery` is non-empty and `connected` is true (no server = can't create).
 ---
+
+## 2026-03-27 - Copy resolved value to clipboard
+- Wrapped `<ValuePreview>` in a `<button>` that calls `handleCopyValue()` on click. Uses `cursor-copy` cursor, shows a hover ring (`hover:ring-1 hover:ring-[var(--color-figma-accent)]/50`), and a green ring when copied (`ring-[var(--color-figma-success)]` for 1.5s). Title switches from "Copy value" to "Copied!". The inline color picker chip (canInlineEdit color) keeps its existing click-to-edit behavior unchanged.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3134
+- **Learnings for future iterations:**
+  - The `copiedWhat` state ('path' | 'value' | null) already exists — reuse it for new copy affordances rather than adding a separate boolean.
+  - For small chips (~20px), a ring highlight on success is cleaner than an overlay icon — no risk of obscuring the preview content.
+  - The color picker chip (canInlineEdit) has a primary click action; leave it unchanged. Only the `ValuePreview` path needs the copy wrapper.
+---
+
+## 2026-03-27 - Math expressions in token values
+- Added formula mode to `DimensionEditor` and `NumberEditor` in `TokenEditor.tsx`. Both editors now show an `fx` toggle button. When activated, a text input replaces the `StepperInput` and accepts expressions like `{spacing.base} * 2`. A live preview row shows the resolved result or error below the input. Added `resolveFormulaPreview` helper that substitutes `{ref}` tokens with their numeric values from `allTokensFlat` and calls `evalExpr`. Imported `evalExpr` and `isFormula` from `@tokenmanager/core`. Both editors receive `allTokensFlat` prop and `key={tokenPath}` to reset state when navigating between tokens.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L2,L1111,L1248,L1477; JSX call sites ~L607,L612
+- **Learnings for future iterations:**
+  - Dimension formula values are stored as `{ value: "{spacing.base} * 2", unit: "px" }` so the unit is preserved; the resolver's recursive object traversal already handles this.
+  - Number formula values are stored as plain strings (e.g., `"{spacing.base} * 2"`). The resolver handles `isFormula(string)` directly.
+  - `key={tokenPath}` on sub-editors ensures `useState` re-initializes when navigating to a different token (avoids stale formula-mode state from a prior token).
+---

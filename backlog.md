@@ -56,13 +56,13 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] Composite token sub-property references — typography, shadow, and border editors only accept hard-coded values per sub-property; each field should also accept alias syntax `{path.to.token}` with autocomplete, matching DTCG spec for partial references (`TokenEditor.tsx:1255-1391`)
 - [~] Math expressions in token values — `evalExpr` exists but is only exposed in Custom Scale generator formulas; regular token value inputs should support expressions like `{spacing.base} * 2` with live resolution preview (`core/eval-expr.ts`, `TokenEditor.tsx`)
 - [x] Copy token path to clipboard on row hover — show a copy icon on hover in token list rows so users can quickly grab the dotted path; currently requires opening the editor or switching to JSON view (`TokenList.tsx`)
-- [~] Copy resolved value to clipboard — add a one-click copy affordance on the value preview chip in list rows; useful for extracting values into code without opening the editor
+- [x] Copy resolved value to clipboard — add a one-click copy affordance on the value preview chip in list rows; useful for extracting values into code without opening the editor
 - [~] `n` keyboard shortcut to open new-token form — when the token list has focus and no input is active, pressing `n` should open the create form with the currently focused group path pre-filled as the path prefix
 - [x] Empty search → offer "Create token" shortcut — when a search returns zero results, show a hint button "No tokens found — create '{query}'?" to streamline the search-then-create workflow (`TokenList.tsx`)
 
 ### UX
 
-- [ ] Rename remap preview — rename confirmation dialog shows dependent count but not which tokens will be updated; add a scrollable list of affected token paths so users can verify before confirming (`TokenList.tsx:2085-2090`)
+- [~] Rename remap preview — rename confirmation dialog shows dependent count but not which tokens will be updated; add a scrollable list of affected token paths so users can verify before confirming (`TokenList.tsx:2085-2090`)
 - [ ] Inline lint violation indicator on token rows — violations currently only surface in AnalyticsPanel or behind the issues-only filter toggle; each violating row should show a subtle warning icon inline so problems are visible while browsing normally, not just when explicitly filtering (`TokenList.tsx`, `lintViolations` prop)
 - [ ] `onNavigateToAlias` should scroll virtual list to highlighted row — clicking an alias `{path}` ref sets `highlightedToken` but doesn't scroll the virtual list viewport to make the highlighted row visible; row can be off-screen with no indication of where it is (`TokenList.tsx`, virtual scroll logic)
 - [ ] Move token to group via drag-and-drop — moving a token to a different group currently requires manually editing its path; token rows should be draggable onto group header rows as a drop target, distinct from the existing select-mode drag-to-reorder (`TokenList.tsx`)
