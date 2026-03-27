@@ -25,6 +25,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
   const [setTokenCounts, setSetTokenCounts] = useState<Record<string, number>>({});
   const [setDescriptions, setSetDescriptions] = useState<Record<string, string>>({});
   const [setCollectionNames, setSetCollectionNames] = useState<Record<string, string>>({});
+  const [setModeNames, setSetModeNames] = useState<Record<string, string>>({});
   const fetchGenRef = useRef(0);
 
   const refreshTokens = useCallback(async () => {
@@ -39,6 +40,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
       setSets(allSets);
       setSetDescriptions(setsData.descriptions || {});
       setSetCollectionNames(setsData.collectionNames || {});
+      setSetModeNames(setsData.modeNames || {});
 
       if (allSets.length > 0) {
         const current = activeSet || allSets[0];
@@ -62,7 +64,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
     refreshTokens();
   }, [refreshTokens]);
 
-  return { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, refreshTokens };
+  return { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens };
 }
 
 export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {

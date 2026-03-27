@@ -261,6 +261,26 @@ export class TokenStore {
     await this.saveSet(name);
   }
 
+  getSetModeNames(): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const [name, set] of this.sets) {
+      const mode = (set.tokens as any).$figmaMode;
+      if (typeof mode === 'string' && mode) result[name] = mode;
+    }
+    return result;
+  }
+
+  async updateSetModeName(name: string, modeName: string): Promise<void> {
+    const set = this.sets.get(name);
+    if (!set) throw new Error(`Set "${name}" not found`);
+    if (modeName) {
+      (set.tokens as any).$figmaMode = modeName;
+    } else {
+      delete (set.tokens as any).$figmaMode;
+    }
+    await this.saveSet(name);
+  }
+
   async getSet(name: string): Promise<TokenSet | undefined> {
     return this.sets.get(name);
   }

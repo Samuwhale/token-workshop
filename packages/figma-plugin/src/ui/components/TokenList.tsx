@@ -49,6 +49,7 @@ interface TokenListData {
   cascadeDiff?: Record<string, { before: any; after: any }>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
   collectionMap?: Record<string, string>;
+  modeMap?: Record<string, string>;
 }
 
 interface TokenListActions {
@@ -180,7 +181,7 @@ interface PromoteRow {
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
-  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, perSetFlat, collectionMap = {} },
+  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, perSetFlat, collectionMap = {}, modeMap = {} },
   actions: { onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet },
   defaultCreateOpen,
   highlightedToken,
@@ -1308,7 +1309,7 @@ export function TokenList({
   const handleApplyVariables = async () => {
     setApplying(true);
     const flat = resolveFlat(flattenTokens(tokens)).map((t: any) => ({ ...t, setName }));
-    parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens: flat, collectionMap } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens: flat, collectionMap, modeMap } }, '*');
     setApplyResult({ type: 'variables', count: flat.length });
     setTimeout(() => setApplying(false), 1500);
     setTimeout(() => setApplyResult(null), 3000);

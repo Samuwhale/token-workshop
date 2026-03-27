@@ -8,7 +8,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     const descriptions = fastify.tokenStore.getSetDescriptions();
     const counts = fastify.tokenStore.getSetCounts();
     const collectionNames = fastify.tokenStore.getSetCollectionNames();
-    return { sets, descriptions, counts, collectionNames };
+    const modeNames = fastify.tokenStore.getSetModeNames();
+    return { sets, descriptions, counts, collectionNames, modeNames };
   });
 
   // GET /api/sets/:name — get a set
@@ -50,14 +51,17 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // PATCH /api/sets/:name/metadata — update set description and/or figma collection name
-  fastify.patch<{ Params: { name: string }; Body: { description?: string; figmaCollection?: string } }>('/sets/:name/metadata', async (request, reply) => {
+  // PATCH /api/sets/:name/metadata — update set description, figma collection name, and/or figma mode name
+  fastify.patch<{ Params: { name: string }; Body: { description?: string; figmaCollection?: string; figmaMode?: string } }>('/sets/:name/metadata', async (request, reply) => {
     const { name } = request.params;
-    const { description = '', figmaCollection } = request.body || {};
+    const { description = '', figmaCollection, figmaMode } = request.body || {};
     try {
       await fastify.tokenStore.updateSetDescription(name, description);
       if (figmaCollection !== undefined) {
         await fastify.tokenStore.updateSetCollectionName(name, figmaCollection);
+      }
+      if (figmaMode !== undefined) {
+        await fastify.tokenStore.updateSetModeName(name, figmaMode);
       }
       return { updated: true, name, description };
     } catch (err: any) {

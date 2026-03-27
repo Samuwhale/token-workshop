@@ -20,6 +20,7 @@ interface SyncPanelProps {
   connected: boolean;
   activeSet: string;
   collectionMap?: Record<string, string>;
+  modeMap?: Record<string, string>;
 }
 
 interface VarDiffRow {
@@ -46,7 +47,7 @@ function truncateValue(v: string, max = 24): string {
   return v.length > max ? v.slice(0, max) + '…' : v;
 }
 
-export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {} }: SyncPanelProps) {
+export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {} }: SyncPanelProps) {
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -218,7 +219,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {} 
           $value: r.localValue ?? '',
           setName: activeSet,
         }));
-        parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap } }, '*');
+        parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
       }
 
       if (pullRows.length > 0) {
@@ -287,7 +288,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {} 
           fixLabel: missingInFigma.length > 0 ? `Push ${missingInFigma.length} missing` : undefined,
           onFix: missingInFigma.length > 0 ? () => {
             const tokens = missingInFigma.map(t => ({ path: t.path, $type: t.type, $value: t.value, setName: activeSet }));
-            parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap } }, '*');
+            parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
           } : undefined,
         },
         {

@@ -401,3 +401,12 @@
 - Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1980
 - **User impact:** User no longer has to hunt for the view mode toggle buttons at the top of the panel — they get a direct escape hatch at the point of confusion.
 ---
+
+## 2026-03-27 - Figma variable mode creation during sync
+- Added `$figmaMode` metadata support parallel to `$figmaCollection`. Controller's `applyVariables` now accepts a `modeMap: Record<setName, modeName>` and uses `collection.addMode(name)` to create modes that don't exist yet, then writes token values to the correct mode. Added a "Figma mode name" field to the set metadata modal so users can configure which mode each set maps to.
+- Files changed: `packages/server/src/services/token-store.ts` ~L244, `packages/server/src/routes/sets.ts` ~L6,L54, `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L27,L41,L65, `packages/figma-plugin/src/ui/App.tsx` ~L198,L405,L744,L977,L986,L2092,L2122,L2135,L2184,L2309, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L51,L183,L1311, `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L18,L50,L222,L291, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L9,L171,L440,L607, `packages/figma-plugin/src/plugin/controller.ts` ~L17,L128,L136,L169
+- **Learnings for future iterations:**
+  - Figma's `VariableCollection.addMode(name)` returns the new modeId directly — no need to re-fetch the collection.
+  - The `modeMap` flows from server metadata → `useTokens` hook → App.tsx → all panel components → `apply-variables` message → controller, mirroring the exact same path as `collectionMap`.
+  - Fall back to `collection.modes[0].modeId` when no modeMap entry exists so single-mode setups are unaffected.
+---

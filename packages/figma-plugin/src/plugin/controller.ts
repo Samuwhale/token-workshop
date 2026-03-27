@@ -14,7 +14,7 @@ let deepInspectEnabled = false;
 figma.ui.onmessage = async (msg: PluginMessage) => {
   switch (msg.type) {
     case 'apply-variables':
-      await applyVariables(msg.tokens, msg.collectionMap ?? {});
+      await applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {});
       break;
     case 'apply-styles':
       await applyStyles(msg.tokens);
@@ -125,7 +125,7 @@ function sampleSelectionColor() {
 }
 
 // Apply tokens as Figma variables
-async function applyVariables(tokens: any[], collectionMap: Record<string, string> = {}) {
+async function applyVariables(tokens: any[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}) {
   try {
     // Get or create collection by name, with caching
     const existingCollections = await figma.variables.getLocalVariableCollectionsAsync();
@@ -140,6 +140,14 @@ async function applyVariables(tokens: any[], collectionMap: Record<string, strin
         collectionCache.set(name, col);
       }
       return col;
+    };
+
+    // Find or create a mode by name within a collection
+    const getOrCreateMode = (collection: VariableCollection, modeName: string): string => {
+      const existing = collection.modes.find(m => m.name === modeName);
+      if (existing) return existing.modeId;
+      // Create a new mode; Figma API: collection.addMode(name) returns the new modeId
+      return collection.addMode(modeName);
     };
 
     // Load all local variables once to avoid redundant async calls per token
@@ -165,8 +173,11 @@ async function applyVariables(tokens: any[], collectionMap: Record<string, strin
         variable = figma.variables.createVariable(token.path, collection, variableType);
       }
 
-      // Set the value
-      const modeId = collection.modes[0].modeId;
+      // Resolve the target mode: use modeMap if provided, otherwise fall back to first mode
+      const desiredModeName = token.setName ? modeMap[token.setName] : undefined;
+      const modeId = desiredModeName
+        ? getOrCreateMode(collection, desiredModeName)
+        : collection.modes[0].modeId;
       const figmaValue = convertToFigmaValue(token.$value, token.$type);
       if (figmaValue !== null) {
         variable.setValueForMode(modeId, figmaValue);

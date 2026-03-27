@@ -7,6 +7,7 @@ interface PublishPanelProps {
   connected: boolean;
   activeSet: string;
   collectionMap?: Record<string, string>;
+  modeMap?: Record<string, string>;
 }
 
 interface GitStatus {
@@ -167,7 +168,7 @@ function Section({ title, open, onToggle, badge, children }: {
 
 /* ── PublishPanel ─────────────────────────────────────────────────────────── */
 
-export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {} }: PublishPanelProps) {
+export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {} }: PublishPanelProps) {
   // ── Section collapse ──
   const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(['figma-variables', 'git', 'file-export']));
   const toggleSection = (id: string) => {
@@ -437,7 +438,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           $value: r.localValue ?? '',
           setName: activeSet,
         }));
-        parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap } }, '*');
+        parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
       }
 
       if (pullRows.length > 0) {
@@ -604,7 +605,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           fixLabel: missingInFigma.length > 0 ? `Push ${missingInFigma.length} missing` : undefined,
           onFix: missingInFigma.length > 0 ? () => {
             const tokens = missingInFigma.map(t => ({ path: t.path, $type: t.type, $value: t.value, setName: activeSet }));
-            parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap } }, '*');
+            parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
           } : undefined,
         },
         {

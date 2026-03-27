@@ -124,7 +124,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 - [x] Figma collection name is hardcoded to `'TokenManager'` — all token sets sync into a single Figma variable collection named `'TokenManager'`; users cannot configure which collection a set maps to, meaning they cannot maintain separate collections for e.g. primitives vs semantics vs component tokens (`figma-plugin/controller.ts:7`)
 
-- [ ] Figma variable mode creation during sync — when pushing tokens to Figma, the controller always uses the existing first mode (`collection.modes[0].modeId`) and never creates new modes; users must manually pre-create modes in Figma before syncing multi-mode token sets, which breaks the push-to-Figma workflow for new projects (`figma-plugin/controller.ts:132-152`)
+- [x] Figma variable mode creation during sync — when pushing tokens to Figma, the controller always uses the existing first mode (`collection.modes[0].modeId`) and never creates new modes; users must manually pre-create modes in Figma before syncing multi-mode token sets, which breaks the push-to-Figma workflow for new projects (`figma-plugin/controller.ts:132-152`)
 
 - [ ] Bulk token operations beyond the current three — the batch editor only supports: add description, apply opacity (colors), scale values (dimensions/numbers); missing bulk operations for common tasks: move selection to a different set, rename by find/replace within selection, change `$type` across selection (`figma-plugin/BatchEditor.tsx:47-170`)
 
@@ -176,3 +176,12 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [ ] Docs page renders alias token values as raw `{reference}` strings — `/docs/:set` serves raw `$value` fields without resolving aliases, so alias tokens display as literal `{some.path}` text instead of resolved values, making the style guide misleading for alias-heavy token sets (`server/routes/docs.ts`, `server/services/token-store.ts`)
 - [ ] Spacing/dimension tokens with `rem` or `%` units render as near-zero bars in docs — `renderSpacingTokens` uses `parseFloat("1rem")` → `1`, showing a 1px bar for a `1rem` token; the text label is correct but the visual representation is wrong (`server/routes/docs.ts:85-86`)
 - [ ] Token set key collision silently discards tokens on export — `Object.assign(merged, tokenGroup)` in `exportTokens` overwrites top-level DTCG group keys when two sets share a group name (e.g. both have a `color` group), dropping the first set's tokens with no warning or error (`server/services/style-dict.ts:151-153`)
+
+# Backlog Inbox
+
+Items spotted during UX passes but out of scope for that session.
+
+- [ ] SelectionInspector "No tokens applied" state — add a small icon and a "Go to Tokens tab" button so users know exactly where to act (currently just two lines of text with no visual anchor or escape hatch)
+- [ ] TokenCanvas empty state is very bare ("No tokens to display") — add an icon and a hint about why (e.g. canvas view renders token relationships)
+- [ ] Silent failure in SelectionInspector binding operations — `remove-binding` and `apply-binding` messages have no error callback, so failures are invisible to the user
+- [ ] Grid view: when a type filter is active and no color tokens match, distinguish between "no color tokens exist" vs "none match current filter" — the current message conflates both
