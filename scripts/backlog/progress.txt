@@ -57,3 +57,12 @@
 - **Learnings for future iterations:**
   - When a TypeScript union type is used as a route parameter but arrives as `string` at runtime, always validate before casting with `as`. The TS compiler can't catch invalid casts from `string` to a union, so runtime validation is the only defense.
 ---
+
+## 2026-03-27 - Multi-brand mode silently skips the semantic mapping dialog
+- In multi-brand mode, `fetchPreview` (line 162) immediately clears `previewTokens` to `[]` and returns without calling the preview API. The `handleSave` condition at line 292 (`previewTokens.length > 0`) therefore never triggered the `SemanticMappingDialog`.
+- Fix: After a successful multi-brand save, fetch the generated tokens from the server via `GET /api/generators/:id/tokens` (the POST response body contains the generator ID, and the server runs the generator immediately on creation). Use those tokens to populate the semantic mapping dialog.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L292
+- **Learnings for future iterations:**
+  - When multi-brand mode skips a live-preview step, any post-save flow that depends on preview data needs a fallback fetch from the server. The generator is already run on creation (server line 106-107), so `GET /generators/:id/tokens` is available immediately.
+  - `fetch` Response body can only be consumed once — safe to call `res.json()` on the success path only if the error path (which also calls `res.json()`) returns early.
+---

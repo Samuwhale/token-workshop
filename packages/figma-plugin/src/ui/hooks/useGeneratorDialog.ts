@@ -289,12 +289,30 @@ export function useGeneratorDialog({
         setSaving(false);
         return;
       }
-      if (!isEditing && previewTokens.length > 0) {
-        setSavedTokens(previewTokens);
-        setSavedTargetGroup(targetGroup.trim());
-        setShowSemanticMapping(true);
-        setSaving(false);
-        return;
+      if (!isEditing) {
+        let tokensForMapping = previewTokens;
+        // In multi-brand mode, previewTokens is always [] because fetchPreview
+        // skips the API call. Fetch the generated tokens from the saved generator
+        // so the semantic mapping dialog can still be offered.
+        if (tokensForMapping.length === 0 && isMultiBrand) {
+          try {
+            const savedGen = await res.json() as { id: string };
+            const tokensRes = await fetch(`${serverUrl}/api/generators/${savedGen.id}/tokens`);
+            if (tokensRes.ok) {
+              const tokensData = await tokensRes.json() as { tokens: GeneratedTokenResult[] };
+              tokensForMapping = tokensData.tokens ?? [];
+            }
+          } catch {
+            // Best-effort — if fetching fails, skip semantic mapping
+          }
+        }
+        if (tokensForMapping.length > 0) {
+          setSavedTokens(tokensForMapping);
+          setSavedTargetGroup(targetGroup.trim());
+          setShowSemanticMapping(true);
+          setSaving(false);
+          return;
+        }
       }
       onSaved({ targetGroup: targetGroup.trim() });
     } catch (err) {
