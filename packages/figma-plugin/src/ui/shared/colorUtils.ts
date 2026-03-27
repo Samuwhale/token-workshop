@@ -31,7 +31,7 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number; a?: nu
 // XYZ / CIELAB conversions
 // ---------------------------------------------------------------------------
 
-export function rgbToLab(r: number, g: number, b: number): { L: number; a: number; b: number } {
+function rgbToLab(r: number, g: number, b: number): { L: number; a: number; b: number } {
   const R = toLinear(r), G = toLinear(g), B = toLinear(b);
   // linear sRGB → XYZ D65
   const X = (0.4124564 * R + 0.3575761 * G + 0.1804375 * B) / 0.95047;
@@ -130,7 +130,7 @@ export function hslToHex(h: number, s: number, l: number): string {
 // ---------------------------------------------------------------------------
 
 /** CIELAB → LCH. L 0-100, C 0-~150, H 0-360. */
-export function labToLch(L: number, a: number, b: number): { L: number; C: number; H: number } {
+function labToLch(L: number, a: number, b: number): { L: number; C: number; H: number } {
   const C = Math.sqrt(a * a + b * b);
   let H = (Math.atan2(b, a) * 180) / Math.PI;
   if (H < 0) H += 360;
@@ -138,7 +138,7 @@ export function labToLch(L: number, a: number, b: number): { L: number; C: numbe
 }
 
 /** LCH → CIELAB. */
-export function lchToLab(L: number, C: number, H: number): { L: number; a: number; b: number } {
+function lchToLab(L: number, C: number, H: number): { L: number; a: number; b: number } {
   const rad = (H * Math.PI) / 180;
   return { L, a: C * Math.cos(rad), b: C * Math.sin(rad) };
 }

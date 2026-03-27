@@ -409,3 +409,9 @@
   - When a hook returns a setter (e.g. `setHighlightedToken` from `useTokenNavigation`), callers that use it in `useCallback` should add it to the dep array for ESLint correctness — it's stable but explicit deps are safer.
   - Remaining high-value extractions: `useSetManagement` (16 states, ~10 handlers), `useThemeSwitcher` (6 states), `useSettingsPanel` (5 states), `useFigmaSync` (5 states), `useTokenFlatMaps` (4 states).
 ---
+
+## 2026-03-27 - housekeeping: remove dead exports from colorUtils.ts
+- Removed `export` keyword from `rgbToLab`, `labToLch`, and `lchToLab` in `packages/figma-plugin/src/ui/shared/colorUtils.ts`
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L34, ~L133, ~L141
+- **Why:** All three functions are only called internally within colorUtils.ts (by `colorDeltaE`, `hexToLch`, `lchToHex`). Exporting them unnecessarily bloated the public API surface of the module — confirmed by grepping the entire codebase for usage.
+---
