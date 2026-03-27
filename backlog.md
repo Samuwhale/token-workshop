@@ -100,7 +100,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] `toLinear` / `wcagLuminance` duplicated between `color-math.ts` and `generator-engine.ts:275` — new closure allocated per call
 - [x] `formatValue` redefined locally in ExportPanel.tsx shadowing the one from `tokenListUtils.ts` (`figma-plugin/ExportPanel.tsx:305-309`)
 - [x] `FlatToken` interface in docs.ts duplicates core types — will drift (`server/routes/docs.ts:21-26`)
-- [~] `stableStringify` exported from `colorUtils.ts` — JSON serialization utility doesn't belong in a color math module
+- [x] `stableStringify` exported from `colorUtils.ts` — JSON serialization utility doesn't belong in a color math module
 
 ### Performance
 
