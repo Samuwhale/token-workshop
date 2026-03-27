@@ -34,9 +34,9 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 ### UX
 
 - [x] Rename remap preview — rename confirmation dialog shows dependent count but not which tokens will be updated; add a scrollable list of affected token paths so users can verify before confirming (`TokenList.tsx:2085-2090`)
-- [~] Inline lint violation indicator on token rows — violations currently only surface in AnalyticsPanel or behind the issues-only filter toggle; each violating row should show a subtle warning icon inline so problems are visible while browsing normally, not just when explicitly filtering (`TokenList.tsx`, `lintViolations` prop)
+- [x] Inline lint violation indicator on token rows — violations currently only surface in AnalyticsPanel or behind the issues-only filter toggle; each violating row should show a subtle warning icon inline so problems are visible while browsing normally, not just when explicitly filtering (`TokenList.tsx`, `lintViolations` prop)
 - [~] `onNavigateToAlias` should scroll virtual list to highlighted row — clicking an alias `{path}` ref sets `highlightedToken` but doesn't scroll the virtual list viewport to make the highlighted row visible; row can be off-screen with no indication of where it is (`TokenList.tsx`, virtual scroll logic)
-- [ ] Move token to group via drag-and-drop — moving a token to a different group currently requires manually editing its path; token rows should be draggable onto group header rows as a drop target, distinct from the existing select-mode drag-to-reorder (`TokenList.tsx`)
+- [~] Move token to group via drag-and-drop — moving a token to a different group currently requires manually editing its path; token rows should be draggable onto group header rows as a drop target, distinct from the existing select-mode drag-to-reorder (`TokenList.tsx`)
 
 ---
 
@@ -181,3 +181,16 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [ ] Token ordering within a group — tokens within a group are rendered in whatever order they appear in the JSON file; there is no way to reorder them via the UI, making it hard to control the visual hierarchy of a group (e.g. putting `default` before `hover` before `active`) (`TokenList.tsx`, `server/token-store.ts`)
 
 - [ ] Group $type and $description editing — DTCG allows groups to carry `$type` (inherited by all children) and `$description`; there is no UI to set or edit these on a group, so inherited types must be manually maintained on every leaf token instead (`TokenList.tsx` group header, `server/routes/tokens.ts`)
+
+
+- [ ] Cross-set token search — the search/filter bar only operates on the active set tab; searching across all sets simultaneously is a basic workflow (e.g. "find every token named `primary`") and currently requires switching tabs manually (`TokenList.tsx:525`, `App.tsx:231`)
+
+- [ ] DTCG JSON file import — importing tokens requires either Figma variables/styles or pasting raw JSON into the hidden JSON editor view; there is no explicit "Import from file" action with file picker or drag-and-drop for `.json` files, making the import path non-obvious (`figma-plugin/ImportPanel.tsx:136-156`)
+
+- [ ] Figma collection name is hardcoded to `'TokenManager'` — all token sets sync into a single Figma variable collection named `'TokenManager'`; users cannot configure which collection a set maps to, meaning they cannot maintain separate collections for e.g. primitives vs semantics vs component tokens (`figma-plugin/controller.ts:7`)
+
+- [ ] Figma variable mode creation during sync — when pushing tokens to Figma, the controller always uses the existing first mode (`collection.modes[0].modeId`) and never creates new modes; users must manually pre-create modes in Figma before syncing multi-mode token sets, which breaks the push-to-Figma workflow for new projects (`figma-plugin/controller.ts:132-152`)
+
+- [ ] Bulk token operations beyond the current three — the batch editor only supports: add description, apply opacity (colors), scale values (dimensions/numbers); missing bulk operations for common tasks: move selection to a different set, rename by find/replace within selection, change `$type` across selection (`figma-plugin/BatchEditor.tsx:47-170`)
+
+- [ ] Arbitrary `$extensions` view and edit — the token editor only exposes `tokenmanager.colorModifier` and `com.figma.scopes`; all other extension data on a token is invisible and uneditable via UI, making it impossible to manage custom tooling extensions without editing the JSON file directly (`figma-plugin/TokenEditor.tsx:154-156`)

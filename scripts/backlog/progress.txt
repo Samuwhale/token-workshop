@@ -234,3 +234,11 @@
   - `ConfirmModal` now accepts optional `children` for richer confirmation dialogs — useful pattern for any confirm that needs contextual preview content.
   - The `/dependents/*` API already returns the full `Array<{path, setName}>` — only the count was being stored before.
 ---
+
+## 2026-03-27 - Inline lint violation indicator on token rows
+- The colored dot indicator already existed but was a plain `w-2 h-2 rounded-full` circle — not recognizable as a lint warning. Upgraded it to a proper SVG warning triangle icon (same path used in App.tsx lint badge: `M10.29 3.86L1.82 18...`) with `width="10" height="10"`, color still driven by `worstSeverity` (error=figma-error, warning=figma-warning, info=figma-text-tertiary). The button retains its tooltip and click-to-fix behavior.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3321
+- **Learnings for future iterations:**
+  - The lint dot was already visible while browsing (not gated by showIssuesOnly) — the real gap was visual clarity, not visibility logic.
+  - The warning triangle SVG `M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94...` is the canonical warning icon used throughout App.tsx; reuse it for consistency.
+---
