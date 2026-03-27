@@ -56,3 +56,23 @@ Already up to date.
 
 --- Merging: ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable ---
 Already up to date.
+[main d94ba26] chore(backlog): done – ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable
+ 5 files changed, 31 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable
+- Extended `readTimeoutRef` timeout from 15000ms to 45000ms in `startReadTimeout()`
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L209
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  23 items remaining
+===============================================================
+  Claimed: ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior
+  Worktree: /tmp/backlog-59311-Ax3qyJ
+
+  ✓ done: ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior
+    Added inline amber warning "Set already exists — tokens will be merged in" below the new-set input when the typed name matches an existing set
+    14 turns · 75s · $0.31
+
+--- Merging: ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior ---
+Already up to date.

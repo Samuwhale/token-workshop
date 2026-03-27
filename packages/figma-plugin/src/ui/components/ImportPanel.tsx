@@ -988,6 +988,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 </button>
               </div>
               {newSetError && <p className="text-[10px] text-[var(--color-figma-text-danger)]">{newSetError}</p>}
+              {!newSetError && newSetDraft.trim() && sets.includes(newSetDraft.trim()) && (
+                <p className="text-[10px] text-[var(--color-figma-warning,#e8a100)]">Set already exists — tokens will be merged in</p>
+              )}
             </div>
           ) : (
             <div className="flex flex-col gap-1">

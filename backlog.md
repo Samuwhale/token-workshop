@@ -94,8 +94,8 @@
 
 ### QoL
 
-- [~] ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable
-- [ ] ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior
+- [x] ImportPanel: 15-second timeout for reading Figma variables is too strict — for large files with 200+ variables on slower systems, extend to 30-45 seconds or make configurable
+- [~] ImportPanel: No validation that new set names don't conflict with existing sets — user can type an existing set name with no warning about override behavior
 
 ### UX
 
