@@ -685,12 +685,14 @@ export function SelectionInspector({
 
                   // Compute bind candidates here so they're accessible in both the input onKeyDown and the list render
                   const compatibleTypesForBind = bindingFromProp === prop ? getCompatibleTokenTypes(prop) : [];
-                  const bindCandidates = bindingFromProp === prop
+                  const bindCandidatesAll = bindingFromProp === prop
                     ? Object.entries(tokenMap)
                         .filter(([, entry]) => compatibleTypesForBind.includes(entry.$type))
                         .filter(([path]) => !bindQuery || path.toLowerCase().includes(bindQuery.toLowerCase()))
-                        .slice(0, 12)
                     : [];
+                  const bindCandidates = bindCandidatesAll.slice(0, 12);
+                  const bindTotalCount = bindCandidatesAll.length;
+                  const bindHasMore = bindTotalCount > 12;
 
                   return (
                     <div key={prop}>
@@ -917,6 +919,11 @@ export function SelectionInspector({
                                     </button>
                                   );
                                 })}
+                                {bindHasMore && (
+                                  <div className="text-[9px] text-[var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]">
+                                    {bindTotalCount - 12} more — type to refine
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

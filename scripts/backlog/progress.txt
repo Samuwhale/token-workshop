@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - Bind search is capped at 12 results with no overflow indicator
+- Added overflow indicator showing "N more — type to refine" below the 12 visible candidates when the full result set exceeds 12. Computed total count before slicing so the message shows the exact number of hidden results.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L688 (candidate computation), ~L920 (overflow indicator)
+- **Learnings for future iterations:**
+  - When `.slice()`-ing a list for display, always keep the pre-slice count accessible so overflow can be communicated to users.
+---
+
 ## 2026-03-27 - housekeeping: Remove duplicate `applyColorModifiers` / `ColorModifierOp` from colorUtils.ts
 - Removed ~35 lines of duplicated color modifier logic from `packages/figma-plugin/src/ui/shared/colorUtils.ts` (lines 246-284) and replaced with re-exports from `@tokenmanager/core`
 - The duplicate even had a comment saying "mirrors packages/core/src/color-modifier.ts" — it was an intentional copy that should have been an import
