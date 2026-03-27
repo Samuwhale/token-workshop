@@ -272,3 +272,15 @@
 - Files changed: `packages/server/src/routes/sets.ts` ~L67, ~L89
 - **Why:** TypeScript's default catch type is `unknown` — annotating `err: any` opts out of type safety and allows accessing arbitrary properties without type guards. The `err?.message` optional chaining masked this by silently returning `undefined` on non-Error values instead of falling back to `String(err)`. All other catch blocks in the same file already used the safe pattern.
 ---
+
+## 2026-03-27 - App.tsx god component — continued decomposition (iteration 2)
+- Extracted `useThemeSwitcher` and `useFigmaSync` from App.tsx. Removed 11 useState declarations, 3 useEffects, 1 useMemo, and 3 useCallback handlers from App(). App.tsx shrank from 2717 → 2508 lines (−209 lines).
+- `useThemeSwitcher(serverUrl, connected, tokens, allTokensFlat, pathToSet)` owns: `dimensions`, `activeThemes` (with localStorage+postMessage wrapper), `openDimDropdown`, `dimBarExpanded`, `dimDropdownRef`, and `themedAllTokensFlat` useMemo. Also owns the 3 effects: active-themes message loader on mount, /api/themes fetch, and dropdown outside-click closer.
+- `useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet)` owns: `syncGroupPending`, `syncGroupStylesPending`, `groupScopesPath`, `groupScopesSelected`, `groupScopesApplying`, and the 3 handlers: `handleSyncGroup`, `handleSyncGroupStyles`, `handleApplyGroupScopes`.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L29-37 (imports), ~L275-364 (theme block), ~L428-435 (sync states), ~L730-805 (sync handlers); `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` (new); `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` (new)
+- **Learnings for future iterations:**
+  - The local `type ThemeOption`/`type ThemeDimension` type aliases defined inline in App() can be moved to the hook file as named exports — they don't need to be re-imported in App because TypeScript infers the return types from the hook.
+  - `useThemeSwitcher` accepts `tokens: unknown[]` as a dependency trigger for the dimensions refetch (same pattern as `useTokenNavigation`) — the hook doesn't use token properties, it just needs a new reference to know "tokens changed, re-fetch dimensions."
+  - `useFigmaSync` handlers keep their original (incomplete) dep arrays (`[syncGroupPending, connected, serverUrl]`) intentionally — changing correctness of existing code is out of scope.
+  - Remaining high-value extractions: `useSetManagement` (should be split into 4-5 sub-hooks), `useSettingsPanel` (5 states), `useTokenFlatMaps` (4 states + fetch effect).
+---
