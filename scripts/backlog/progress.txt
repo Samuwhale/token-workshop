@@ -313,3 +313,9 @@
 - **Learnings for future iterations:**
   - Catch must check `err?.name !== 'AbortError'` — a thrown AbortError means cleanup succeeded, not a real failure. Calling `setLoading(false)` on abort would still trigger a setState on the (now) unmounted component.
 ---
+
+## 2026-03-27 - ux-pass: BatchEditor scale factor shows inline validation hint for invalid input
+- When the "Multiply by" field has a value that is ≤ 0 or non-numeric (but non-empty), the input now gets a red border and a `"must be > 0"` hint appears inline. Previously the Apply button just silently stayed disabled with no explanation, leaving users guessing why nothing happened.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L209
+- **User impact:** Users who type 0, a negative number, or garbage into the scale factor field now immediately see why Apply is blocked, instead of staring at a greyed-out button with no feedback.
+---

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 
@@ -24,13 +24,15 @@ export function AliasAutocomplete({
   const [activeIdx, setActiveIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const q = query.toLowerCase();
-  const entries = Object.entries(allTokensFlat)
-    .filter(([path, entry]) => {
-      if (filterType && entry.$type !== filterType) return false;
-      return !q || path.toLowerCase().includes(q);
-    })
-    .slice(0, MAX_RESULTS);
+  const entries = useMemo(() => {
+    const q = query.toLowerCase();
+    return Object.entries(allTokensFlat)
+      .filter(([path, entry]) => {
+        if (filterType && entry.$type !== filterType) return false;
+        return !q || path.toLowerCase().includes(q);
+      })
+      .slice(0, MAX_RESULTS);
+  }, [allTokensFlat, query, filterType]);
 
   useEffect(() => {
     setActiveIdx(0);
