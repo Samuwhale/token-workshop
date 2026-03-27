@@ -118,6 +118,13 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
+  // CSS selector option
+  const [cssSelector, setCssSelector] = useState<string>(() => {
+    try {
+      return localStorage.getItem('exportPanel.cssSelector') || ':root';
+    } catch { return ':root'; }
+  });
+
   // Set filter state
   const [availableSets, setAvailableSets] = useState<string[]>([]);
   const [selectedSets, setSelectedSets] = useState<Set<string> | null>(null); // null = all sets
@@ -133,6 +140,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   useEffect(() => {
     localStorage.setItem('exportPanel.selectedPlatforms', JSON.stringify([...selected]));
   }, [selected]);
+
+  // Persist CSS selector
+  useEffect(() => {
+    localStorage.setItem('exportPanel.cssSelector', cssSelector);
+  }, [cssSelector]);
 
   // Listen for messages from the plugin sandbox
   useEffect(() => {
@@ -201,8 +213,9 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     setResults([]);
 
     try {
-      const body: { platforms: string[]; sets?: string[] } = { platforms: Array.from(selected) };
+      const body: { platforms: string[]; sets?: string[]; cssSelector?: string } = { platforms: Array.from(selected) };
       if (selectedSets !== null) body.sets = Array.from(selectedSets);
+      if (selected.has('css') && cssSelector && cssSelector !== ':root') body.cssSelector = cssSelector;
       const data = await apiFetch<{ results?: { platform: string; files: { path: string; content: string }[] }[] }>(
         `${serverUrl}/api/export`,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
@@ -551,6 +564,37 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                 })}
               </div>
             </div>
+
+            {selected.has('css') && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+                    CSS Selector
+                  </div>
+                  {cssSelector !== ':root' && (
+                    <button
+                      onClick={() => setCssSelector(':root')}
+                      className="text-[9px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    >
+                      Reset to :root
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <input
+                    type="text"
+                    value={cssSelector}
+                    onChange={e => setCssSelector(e.target.value)}
+                    placeholder=":root"
+                    spellCheck={false}
+                    className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
+                  />
+                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
+                    Wrap CSS variables with a custom selector — e.g. <span className="font-mono">.light</span>, <span className="font-mono">[data-theme="dark"]</span>, or <span className="font-mono">:root .brand</span>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {availableSets.length > 0 && (
               <div>

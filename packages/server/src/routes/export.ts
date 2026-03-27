@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { exportTokens, type ExportPlatform } from '../services/style-dict.js';
+import { exportTokens, type ExportPlatform, type CssExportOptions } from '../services/style-dict.js';
 import type { TokenGroup } from '@tokenmanager/core';
 
 const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json'];
@@ -10,10 +10,10 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
   //   sets: string[]    — export only these token sets (default: all sets)
   //   group: string[]   — path segments to a sub-group within each set (e.g. ["color","brand"] or ["spacing","1.5"])
   //                       Using an array avoids ambiguity when segment names contain literal dots.
-  fastify.post<{ Body: { platforms: ExportPlatform[]; sets?: string[]; group?: string[] } }>(
+  fastify.post<{ Body: { platforms: ExportPlatform[]; sets?: string[]; group?: string[]; cssSelector?: string } }>(
     '/export',
     async (request, reply) => {
-      const { platforms, sets, group } = request.body || {};
+      const { platforms, sets, group, cssSelector } = request.body || {};
 
       if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
         return reply.status(400).send({
@@ -79,7 +79,10 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
 
-        const { results, warnings } = await exportTokens(tokenData, platforms);
+        const cssOptions: CssExportOptions | undefined = cssSelector
+          ? { selector: cssSelector }
+          : undefined;
+        const { results, warnings } = await exportTokens(tokenData, platforms, undefined, cssOptions);
         return { results, ...(warnings.length > 0 && { warnings }) };
       } catch (err) {
         return reply.status(500).send({ error: 'Failed to export tokens', detail: String(err) });

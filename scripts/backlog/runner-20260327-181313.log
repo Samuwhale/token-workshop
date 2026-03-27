@@ -171,3 +171,10 @@ Already up to date.
 ===============================================================
   Claimed: No custom export path or selector template — all CSS exports use `:root` selector with no option for scoped output like `.light { --color: ... }` or custom folder structures
   Worktree: /tmp/backlog-59311-YYeYTp
+
+  ✓ done: No custom export path or selector template — all CSS exports use `:root` selector with no option for scoped output like `.light { --color: ... }` or custom folder structures
+    Added CSS selector input to ExportPanel (visible when CSS platform is selected); wired through API route and StyleDictionary file config via the native `options.selector` support in SD v4's css/variables format
+    38 turns · 299s · $1.19
+
+--- Merging: No custom export path or selector template — all CSS exports use `:root` selector with no option for scoped output like `.light { --color: ... }` or custom folder structures ---
+Already up to date.

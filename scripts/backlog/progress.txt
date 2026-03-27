@@ -398,3 +398,12 @@
   - Blob+URL.createObjectURL download pattern works in plugin UI without any external dependencies — same approach as the ZIP builder pattern.
   - The summary "X/Y fully bound" uses `result.green` (fully bound) as the numerator; `green+yellow` would represent "at least partially bound" — choose based on stakeholder intent.
 ---
+
+## 2026-03-27 - No custom export path or selector template — all CSS exports use `:root` selector with no option for scoped output like `.light { --color: ... }` or custom folder structures
+- Added a CSS selector input to ExportPanel (shown when CSS platform is selected). Users can enter any valid CSS selector (e.g. `.light`, `[data-theme="dark"]`, `:root`). Defaults to `:root` and persists to localStorage. A "Reset to :root" shortcut appears when changed.
+- Wired the selector through the POST body (`cssSelector` field) → export route → `exportTokens()` → StyleDictionary file config (`options.selector`). StyleDictionary v4's built-in `css/variables` format natively supports the `selector` option — no custom format needed.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L115, ~L137, ~L210, ~L568, `packages/server/src/routes/export.ts` ~L2, ~L13, ~L82, `packages/server/src/services/style-dict.ts` ~L182, ~L224
+- **Learnings for future iterations:**
+  - StyleDictionary v4's `css/variables` format supports `options.selector` in the file config to override the wrapping selector (default `:root`). No custom format registration is needed.
+  - The route only passes `cssSelector` when it differs from `:root` to keep the default path clean; the server-side code applies the override only when provided.
+---

@@ -179,10 +179,15 @@ function deepMergeInto(
   }
 }
 
+export interface CssExportOptions {
+  selector?: string;
+}
+
 export async function exportTokens(
   tokens: Record<string, TokenGroup>,
   platforms: ExportPlatform[],
   outputDir?: string,
+  cssOptions?: CssExportOptions,
 ): Promise<ExportTokensResult> {
   const isTemp = !outputDir;
   const tmpDir = outputDir || path.join(os.tmpdir(), `tokenmanager-export-${Date.now()}`);
@@ -227,12 +232,24 @@ export async function exportTokens(
     // Use the CSS-optimized file (formula → calc()) for the CSS platform
     const sourceFile = platform === 'css' ? cssTokenFile : tokenFile;
 
+    // Build effective platform config, applying CSS selector override if provided
+    let effectiveConfig = config;
+    if (platform === 'css' && cssOptions?.selector && cssOptions.selector !== ':root') {
+      effectiveConfig = {
+        ...config,
+        files: config.files.map((f: any) => ({
+          ...f,
+          options: { ...(f.options ?? {}), selector: cssOptions!.selector },
+        })),
+      };
+    }
+
     try {
       const sd = new StyleDictionary({
         source: [sourceFile],
         platforms: {
           [platform]: {
-            ...config,
+            ...effectiveConfig,
             buildPath: buildPath + '/',
           },
         },

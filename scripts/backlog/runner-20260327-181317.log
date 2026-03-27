@@ -179,3 +179,18 @@ Already up to date.
 
 --- Merging: HeatmapPanel has no export or reporting — users can't export binding coverage as CSV/JSON or share a "200/1000 layers bound (20%)" summary with stakeholders ---
 Already up to date.
+[main 87cd469] chore(backlog): done – HeatmapPanel has no export or reporting — users can't export binding coverage as CSV/JSON or share a "200/1000 layers bound (20%)" summary with stakeholders
+ 6 files changed, 97 insertions(+), 9 deletions(-)
+
+## 2026-03-27 - HeatmapPanel has no export or reporting — users can't export binding coverage as CSV/JSON or share a "200/1000 layers bound (20%)" summary with stakeholders
+- Added `exportCSV` and `exportJSON` callbacks to HeatmapPanel using Blob + URL.createObjectURL to trigger downloads (heatmap.csv / heatmap.json). JSON export includes a `summary` field with the "X/Y layers fully bound (Z%)" string. Updated the stats bar to replace the plain "N layers scanned" text with the formatted summary, and added CSV/JSON export buttons alongside the existing Rescan button.
+- Files changed: `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L41
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  0
+0 items remaining
+===============================================================
+./scripts/backlog/backlog.sh: line 696: [: 0
+0: integer expression expected
+No items available to claim (all in-progress or empty). Exiting.
