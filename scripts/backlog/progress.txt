@@ -386,3 +386,12 @@
   - `indeterminate` on a checkbox element must be set via a `ref` callback — it's not a React-controlled prop
   - Commit button label showing "Commit all" vs "Commit N files" gives clear feedback about partial selection
 ---
+
+## 2026-03-27 - ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active
+- Changed mode row styling to use `bg-[var(--color-figma-accent)]/5` background for enabled rows (subtle accent tint) and `bg-transparent opacity-50` for disabled rows. Also added `line-through` to the mode name text when disabled, and hid the "new"/"existing" badge for disabled rows (they won't be imported so the badge is misleading).
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L748
+- **Learnings for future iterations:**
+  - Combining background tint on enabled + opacity on disabled is more scannable than opacity-only — the tint makes active rows "pop" while the opacity-fade clearly mutes inactive ones.
+  - `line-through` on disabled mode name reinforces "this will be skipped" without adding extra UI elements.
+  - Hiding status badges (new/existing) for disabled modes avoids showing information that is irrelevant (those modes won't be imported).
+---

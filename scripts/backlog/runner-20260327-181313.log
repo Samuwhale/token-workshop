@@ -90,3 +90,10 @@ Already up to date.
 ===============================================================
   Claimed: ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active
   Worktree: /tmp/backlog-59311-hUrHES
+
+  ✓ done: ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active
+    Enabled rows now get a subtle accent background tint; disabled rows use opacity-50 + strikethrough on the mode name, making active vs inactive immediately scannable.
+    11 turns · 57s · $0.23
+
+--- Merging: ImportPanel: No visual distinction between disabled and enabled modes — checkboxes and text both fade to 40% opacity, making it hard to scan which modes are active ---
+Already up to date.

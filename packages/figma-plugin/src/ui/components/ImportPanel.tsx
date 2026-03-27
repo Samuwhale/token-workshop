@@ -752,7 +752,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                     const enabled = modeEnabled[key] ?? true;
                     const setName = modeSetNames[key] ?? defaultSetName(col.name, mode.modeName, col.modes.length);
                     return (
-                      <div key={mode.modeId} className={`flex items-center gap-2 px-3 py-2 ${!enabled ? 'opacity-40' : ''}`}>
+                      <div key={mode.modeId} className={`flex items-center gap-2 px-3 py-2 transition-colors ${enabled ? 'bg-[var(--color-figma-accent)]/5' : 'bg-transparent opacity-50'}`}>
                         <input
                           type="checkbox"
                           checked={enabled}
@@ -761,15 +761,15 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                         />
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-[var(--color-figma-text)] font-medium">{mode.modeName}</span>
+                            <span className={`text-[10px] font-medium ${enabled ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] line-through'}`}>{mode.modeName}</span>
                             <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
                               {mode.tokens.length} token{mode.tokens.length !== 1 ? 's' : ''}
                             </span>
-                            {sets.includes(setName) ? (
+                            {enabled && (sets.includes(setName) ? (
                               <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-warning,#f59e0b)]/10 text-[var(--color-figma-warning,#e8a100)] font-medium">existing</span>
                             ) : setName ? (
                               <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-success,#22c55e)]/10 text-[var(--color-figma-success,#16a34a)] font-medium">new</span>
-                            ) : null}
+                            ) : null)}
                           </div>
                           <div className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)]">
                             <span className="shrink-0">→</span>
