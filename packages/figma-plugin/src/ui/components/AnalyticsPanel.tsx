@@ -66,6 +66,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [validateError, setValidateError] = useState<string | null>(null);
   const [severityFilter, setSeverityFilter] = useState<'all' | 'error' | 'warning' | 'info'>('all');
   const [validationCopied, setValidationCopied] = useState(false);
+  const [validationExported, setValidationExported] = useState<'json' | 'csv' | null>(null);
   const [colorTokens, setColorTokens] = useState<{ path: string; hex: string }[]>([]);
   const [showContrastMatrix, setShowContrastMatrix] = useState(false);
   const [allColorTokens, setAllColorTokens] = useState<{ path: string; set: string; hex: string }[]>([]);
@@ -453,6 +454,58 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                 title="Copy report as Markdown"
               >
                 {validationCopied ? 'Copied!' : 'Copy MD'}
+              </button>
+              <button
+                onClick={() => {
+                  const payload = {
+                    generatedAt: new Date().toISOString(),
+                    total: validateResults.length,
+                    counts: { error: severityCounts?.error ?? 0, warning: severityCounts?.warning ?? 0, info: severityCounts?.info ?? 0 },
+                    issues: validateResults.map(i => ({
+                      severity: i.severity,
+                      rule: i.rule,
+                      set: i.setName,
+                      path: i.path,
+                      message: i.message,
+                      ...(i.suggestedFix ? { suggestedFix: i.suggestedFix } : {}),
+                    })),
+                  };
+                  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'validation-report.json';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  setValidationExported('json');
+                  setTimeout(() => setValidationExported(null), 1500);
+                }}
+                className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                title="Save report as JSON"
+              >
+                {validationExported === 'json' ? 'Saved!' : 'JSON'}
+              </button>
+              <button
+                onClick={() => {
+                  const header = 'severity,rule,set,path,message,suggestedFix';
+                  const escape = (s: string) => `"${s.replace(/"/g, '""')}"`;
+                  const rows = validateResults.map(i =>
+                    [i.severity, i.rule, i.setName, i.path, i.message, i.suggestedFix ?? ''].map(escape).join(',')
+                  );
+                  const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'validation-report.csv';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  setValidationExported('csv');
+                  setTimeout(() => setValidationExported(null), 1500);
+                }}
+                className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                title="Save report as CSV"
+              >
+                {validationExported === 'csv' ? 'Saved!' : 'CSV'}
               </button>
               <span className="w-px h-3 bg-[var(--color-figma-border)]" aria-hidden="true" />
               {(['all', 'error', 'warning', 'info'] as const).map(f => (

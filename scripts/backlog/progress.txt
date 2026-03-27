@@ -411,3 +411,11 @@
   - Tailwind's arbitrary group variant (`group/ruleheader` + `group-hover/ruleheader:`) is the clean way to scope hover-reveal to a specific ancestor when the element already uses `group` for inner row hovers.
   - A `<button>` cannot contain another `<button>` (invalid HTML). When a clickable header needs a nested action button, restructure to a `<div>` wrapper with two sibling buttons.
 ---
+
+## 2026-03-27 - No export validation report — no way to save or share current validation results as JSON or CSV
+- Added JSON and CSV download buttons to the validation results header bar in AnalyticsPanel, alongside the existing "Copy MD" button. JSON export includes metadata (generatedAt, counts) and full issue list; CSV export has columns: severity, rule, set, path, message, suggestedFix. Both use `URL.createObjectURL` + programmatic `<a>` click to trigger a file download without any server round-trip. A shared `validationExported` state shows transient "Saved!" feedback for 1.5s after each export.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L68 (state), ~L451 (buttons)
+- **Learnings for future iterations:**
+  - `URL.createObjectURL(blob)` + `<a>.click()` + `revokeObjectURL` is the correct pattern for triggering file downloads inside a plugin iframe — no server needed.
+  - A single `validationExported: 'json'|'csv'|null` state handles feedback for multiple export formats without needing separate booleans per format.
+---

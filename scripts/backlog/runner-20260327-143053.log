@@ -272,3 +272,10 @@ Already up to date.
 ===============================================================
   Claimed: No export validation report — no way to save or share current validation results as JSON or CSV
   Worktree: /tmp/backlog-97955-mwbG1a
+
+  ✓ done: No export validation report — no way to save or share current validation results as JSON or CSV
+    Added JSON and CSV download buttons to the validation header bar in AnalyticsPanel; both trigger file downloads via createObjectURL with transient "Saved!" feedback
+    9 turns · 101s · $0.31
+
+--- Merging: No export validation report — no way to save or share current validation results as JSON or CSV ---
+Already up to date.

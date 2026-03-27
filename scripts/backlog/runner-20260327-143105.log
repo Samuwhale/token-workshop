@@ -225,3 +225,16 @@ Already up to date.
 
 --- Merging: No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel ---
 Already up to date.
+[main be4d5d3] chore(backlog): done – No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel
+ 6 files changed, 67 insertions(+), 25 deletions(-)
+
+## 2026-03-27 - No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel
+- Added "Suppress all" button to each rule-group header in AnalyticsPanel. Restructured the header from a single full-width `<button>` to a `<div className="group/ruleheader">` wrapper containing the expand/collapse button (flex-1) and a hover-reveal "Suppress all" button on the right. Clicking "Suppress all" adds all issues in the group to `suppressedKeys` in one operation.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L497
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  44 items remaining
+===============================================================
+  Claimed: `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback
+  Worktree: /tmp/backlog-98901-eJWL3R
