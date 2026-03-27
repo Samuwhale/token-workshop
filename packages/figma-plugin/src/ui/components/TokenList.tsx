@@ -1451,8 +1451,10 @@ export function TokenList({
   }, [selectMode, viewMode, flatItems, displayedTokens]);
 
   const displayedLeafPaths = useMemo(
-    () => new Set(flattenLeafNodes(displayedTokens).map(n => n.path)),
-    [displayedTokens]
+    () => crossSetResults !== null
+      ? new Set(crossSetResults.map(r => r.path))
+      : new Set(flattenLeafNodes(displayedTokens).map(n => n.path)),
+    [displayedTokens, crossSetResults]
   );
 
   const selectedLeafNodes = useMemo(

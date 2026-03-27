@@ -284,3 +284,10 @@
   - For variable-height virtual scroll: build a cumulative `itemOffsets` array, then linear-scan for start/end indices. This is O(n) but correct for all row heights.
   - When lifting UI toggle state to the parent for virtual scroll purposes, always rename the destructured prop parameter (e.g., `chainExpanded: chainExpandedProp`) to avoid self-referential `const x = !!x` TDZ errors.
 ---
+
+## 2026-03-27 - Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
+- Fixed `displayedLeafPaths` useMemo to use `crossSetResults.map(r => r.path)` when `crossSetResults !== null`, falling back to the existing `flattenLeafNodes(displayedTokens)` for normal mode. This makes the count display and select-all/deselect-all in the select-mode toolbar correctly reflect cross-set results.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1428
+- **Learnings for future iterations:**
+  - Cross-set paths are not namespaced by set — identical paths in different sets are deduped in the Set. This is acceptable since the cross-set result rows are navigation buttons, not individually selectable items.
+---

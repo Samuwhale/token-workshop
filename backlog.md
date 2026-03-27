@@ -21,7 +21,7 @@
 
 ### Bugs
 
-- [~] Virtual-scroll row height mismatch — `VIRTUAL_ITEM_HEIGHT` is hardcoded to 28 px, but rows with chain/alias badges render at ~48–56 px, causing misaligned scroll positions
+- [x] Virtual-scroll row height mismatch — `VIRTUAL_ITEM_HEIGHT` is hardcoded to 28 px, but rows with chain/alias badges render at ~48–56 px, causing misaligned scroll positions
 
 ### QoL
 
@@ -29,7 +29,7 @@
 - [~] Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
 - [~] Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
 - [~] Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
-- [ ] Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
+- [~] Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
 
 ### UX
 

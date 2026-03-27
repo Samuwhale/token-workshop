@@ -110,3 +110,10 @@ Already up to date.
 ===============================================================
   Claimed: Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
   Worktree: /tmp/backlog-97955-Va7X2T
+
+  ✓ done: Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
+    Fixed displayedLeafPaths useMemo to use crossSetResults paths when cross-set mode is active
+    11 turns · 77s · $0.23
+
+--- Merging: Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown ---
+Already up to date.
