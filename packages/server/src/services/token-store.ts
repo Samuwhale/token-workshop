@@ -752,12 +752,21 @@ export class TokenStore {
       if (leafTokens.length === 0) {
         const groupObj = this.getObjectAtPath(source.tokens, groupPath);
         if (!groupObj) throw new Error(`Group "${groupPath}" not found`);
+        if (this.pathExistsAt(target.tokens, groupPath)) throw new Error(`Path "${groupPath}" already exists in target set "${toSet}"`);
         this.setGroupAtPath(target.tokens, groupPath, groupObj);
         this.deleteTokenAtPath(source.tokens, groupPath);
         await this.saveSet(fromSet);
         await this.saveSet(toSet);
         this.rebuildFlatTokens();
         return { movedCount: 0 };
+      }
+      const collisions: string[] = [];
+      for (const { relativePath } of leafTokens) {
+        const targetPath = `${groupPath}.${relativePath}`;
+        if (this.pathExistsAt(target.tokens, targetPath)) collisions.push(targetPath);
+      }
+      if (collisions.length > 0) {
+        throw new Error(`Cannot move group: ${collisions.length} token path(s) already exist in target set "${toSet}": ${collisions.slice(0, 5).join(', ')}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ''}`);
       }
       for (const { relativePath, token } of leafTokens) {
         this.setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, token);
@@ -780,6 +789,7 @@ export class TokenStore {
     if (!target) throw new Error(`Set "${toSet}" not found`);
     const token = this.getTokenAtPath(source.tokens, tokenPath);
     if (!token) throw new Error(`Token "${tokenPath}" not found in set "${fromSet}"`);
+    if (this.pathExistsAt(target.tokens, tokenPath)) throw new Error(`Path "${tokenPath}" already exists in target set "${toSet}"`);
     this.beginBatch();
     try {
       this.setTokenAtPath(target.tokens, tokenPath, token);

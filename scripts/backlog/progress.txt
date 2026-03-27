@@ -193,3 +193,13 @@
 - **Learnings for future iterations:**
   - Core package `tsc` fails with circular type errors; use `tsc --noCheck` to emit JS/declarations, then the plugin build succeeds.
 ---
+
+## 2026-03-27 - moveGroup doesn't check for path collisions in target set
+- Added collision detection before moving tokens in both `moveGroup` and `moveToken` methods.
+- `moveGroup`: For empty groups, checks if `groupPath` exists in target. For leaf tokens, collects all conflicting paths and throws a descriptive error listing up to 5 collisions.
+- `moveToken`: Checks if `tokenPath` exists in target before beginning the batch operation.
+- Uses the existing `pathExistsAt` helper, consistent with `renameGroup` which already had this check.
+- Files changed: `packages/server/src/services/token-store.ts` ~L755 (moveGroup empty-group branch), ~L762 (moveGroup leaf collision loop), ~L786 (moveToken)
+- **Learnings for future iterations:**
+  - `pathExistsAt` is the canonical existence check for token paths — reuse it for all move/copy/rename operations.
+---

@@ -66,3 +66,24 @@ Already up to date.
 
 --- Merging: Fetch URLs for token API missing encodeURIComponent on set names ---
 Already up to date.
+[main c6e66ba] chore(backlog): done – Fetch URLs for token API missing encodeURIComponent on set names
+ 11 files changed, 45 insertions(+), 17 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - ConfirmModal error display doesn't handle long error text
+- Added `break-words` for word wrapping, and `max-h-[80px] overflow-y-auto` so verbose error messages scroll instead of overflowing the fixed-width (240px) modal.
+- Files changed: `packages/figma-plugin/src/ui/components/ConfirmModal.tsx` ~L71
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  2 items remaining
+===============================================================
+  Claimed: `moveGroup` doesn't check for path collisions in target set — token-store.ts:762-763 copies tokens from source to target set without verifying that the target paths are unoccupied; existing tokens at those paths are silently overwritten
+  Worktree: /tmp/backlog-7333-8He7Sw
+
+  ✓ done: moveGroup doesn't check for path collisions in target set
+    Added pathExistsAt collision checks in moveGroup (both empty-group and leaf-token branches) and moveToken, throwing descriptive errors listing conflicting paths instead of silently overwriting.
+    23 turns · 163s · $0.61
+
+--- Merging: moveGroup doesn't check for path collisions in target set ---
+Already up to date.
