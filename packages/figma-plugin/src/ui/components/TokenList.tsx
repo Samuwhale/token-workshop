@@ -58,6 +58,7 @@ interface TokenListProps {
   showIssuesOnly?: boolean;
   onToggleIssuesOnly?: () => void;
   cascadeDiff?: Record<string, { before: any; after: any }>;
+  onFilteredCountChange?: (count: number | null) => void;
 }
 
 type DeleteConfirm =
@@ -148,7 +149,7 @@ interface PromoteRow {
   accepted: boolean;
 }
 
-export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, syncSnapshot, generators, onRefreshGenerators, derivedTokenPaths, showIssuesOnly, onToggleIssuesOnly, cascadeDiff }: TokenListProps) {
+export function TokenList({ tokens, setName, sets, serverUrl, connected, selectedNodes, allTokensFlat, onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, defaultCreateOpen, highlightedToken, onNavigateToAlias, onClearHighlight, lintViolations = [], onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, syncSnapshot, generators, onRefreshGenerators, derivedTokenPaths, showIssuesOnly, onToggleIssuesOnly, cascadeDiff, onFilteredCountChange }: TokenListProps) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
@@ -515,6 +516,12 @@ export function TokenList({ tokens, setName, sets, serverUrl, connected, selecte
     if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
     return result;
   }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths]);
+
+  // Report filtered leaf count to parent so set tabs can show "X / Y"
+  useEffect(() => {
+    if (!onFilteredCountChange) return;
+    onFilteredCountChange(filtersActive ? flattenLeafNodes(displayedTokens).length : null);
+  }, [displayedTokens, filtersActive, onFilteredCountChange]);
 
   // Flat list of visible nodes for virtual scrolling (respects expand/collapse state)
   const flatItems = useMemo(

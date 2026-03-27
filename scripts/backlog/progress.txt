@@ -47,3 +47,11 @@
   - Save on mouseup (not mousemove) to avoid excessive localStorage writes during drag.
   - Use a `ref` alongside state so the mouseup handler can read the latest ratio without stale closure.
 ---
+
+## 2026-03-27 - Publish tab dirty indicator
+- Added amber dot badge on the Publish tab when there are uncommitted local git changes (matching VS Code modified-tab pattern). Added `gitHasChanges` state polled every 30s from `/api/sync/status` (only while connected). Badge renders identical to the inspect tab badge but with `bg-amber-400` to convey "warning/dirty" vs accent blue.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L285 (state + useEffect), ~L1289 (badge render)
+- **Learnings for future iterations:**
+  - Tab badge pattern: `<span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-<color> border border-[var(--color-figma-bg)]" />` inside the `relative` tab button. Suppress when on the active tab with `!(activeTab === 'X' && overflowPanel === null)`.
+  - Git dirty check: `data.status != null && !data.status.isClean` on the `/api/sync/status` response. `data.status` is null when not a git repo.
+---

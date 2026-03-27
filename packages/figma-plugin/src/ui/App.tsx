@@ -233,6 +233,7 @@ export function App() {
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
   const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
   const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
+  const [filteredSetCount, setFilteredSetCount] = useState<number | null>(null);
   const [highlightedToken, setHighlightedToken] = useState<string | null>(null);
   const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
@@ -287,6 +288,23 @@ export function App() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+  const [gitHasChanges, setGitHasChanges] = useState(false);
+  useEffect(() => {
+    if (!connected) { setGitHasChanges(false); return; }
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const res = await fetch(`${serverUrl}/api/sync/status`, { signal: AbortSignal.timeout(5000) });
+        if (res.ok && !cancelled) {
+          const data = await res.json();
+          setGitHasChanges(data.status != null && !data.status.isClean);
+        }
+      } catch { /* ignore */ }
+    };
+    check();
+    const interval = setInterval(check, 30000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [connected, serverUrl]);
   const useSidePanel = windowWidth > 480
     && !!editingToken
     && overflowPanel === null
@@ -1272,6 +1290,9 @@ export function App() {
             {tab.label}
             {tab.id === 'inspect' && selectedNodes.length > 0 && !(activeTab === 'inspect' && overflowPanel === null) && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-figma-accent)] border border-[var(--color-figma-bg)]" aria-label="Layer selected" />
+            )}
+            {tab.id === 'publish' && gitHasChanges && !(activeTab === 'publish' && overflowPanel === null) && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-[var(--color-figma-bg)]" aria-label="Uncommitted changes" />
             )}
           </button>
         ))}
