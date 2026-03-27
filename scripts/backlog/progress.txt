@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - No pull-from-Figma action
+- Stale — already done. `ImportPanel.tsx` has full pull-from-Figma functionality: `handleReadVariables()` sends `read-variables` to the plugin and handles `variables-read` responses (mapping collections/modes to named token sets and uploading via `/api/sets` + `/api/tokens/{set}`); `handleReadStyles()` reads paint/text/effect styles; JSON file import is also present. `controller.ts` has `readFigmaVariables()` (L491) and `readFigmaStyles()` (L522) handlers wired at L22-26. The feature is complete and fully functional.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+  - When a backlog item says a pull/import feature is missing, check `ImportPanel.tsx` — the full bidirectional sync (read-variables + read-styles + JSON import) was already built.
+---
+
 ## 2026-03-27 - Active set tab not persisted
 - Stale — already done. `useTokens.ts:19` initializes `activeSet` from `lsGet(STORAGE_KEYS.ACTIVE_SET, '')` and `setActiveSet` (L20-22) persists via `lsSet` before calling `setActiveSetState`. The main nav tab (`activeTab`) is also persisted in `App.tsx:187-194` via `STORAGE_KEYS.ACTIVE_TAB`. Both were already in place before the storage centralization refactor (`dea20ce`).
 - Files changed: none (already implemented)
