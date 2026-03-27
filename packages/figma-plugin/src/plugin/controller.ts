@@ -21,7 +21,15 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       await applyStyles(msg.tokens);
       break;
     case 'read-variables':
-      await readFigmaVariables(msg.correlationId);
+      try {
+        await readFigmaVariables(msg.correlationId);
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'variables-read-error',
+          error: e instanceof Error ? e.message : 'Failed to read Figma variables',
+          correlationId: msg.correlationId,
+        });
+      }
       break;
     case 'read-styles':
       await readFigmaStyles(msg.correlationId);

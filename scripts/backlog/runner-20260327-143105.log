@@ -333,3 +333,17 @@ Already up to date.
 
 --- Merging: No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options ---
 Already up to date.
+[main dc38b17] chore(backlog): done – No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options
+ 5 files changed, 37 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options
+- Stale — already implemented. The ImportPanel already has a full conflict resolution UI: conflicting paths are shown in a yellow-bordered scrollable list, with "Skip & import new" and "Overwrite & import all" action buttons, plus a "Revise selection" escape hatch.
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  30 items remaining
+===============================================================
+  Claimed: No drag-and-drop file upload — the file input is click-only with no dropzone affordance
+  Worktree: /tmp/backlog-98901-MvLuBL

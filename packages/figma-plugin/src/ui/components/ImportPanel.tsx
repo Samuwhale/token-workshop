@@ -107,6 +107,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       const msg = event.data?.pluginMessage;
       if (!msg) return;
 
+      if (msg.type === 'variables-read-error' && pendingSourceRef.current === 'variables' && msg.correlationId === correlationIdRef.current) {
+        if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
+        readTimeoutRef.current = null;
+        pendingSourceRef.current = null;
+        correlationIdRef.current = null;
+        setLoading(false);
+        setError(msg.error || 'Failed to read Figma variables. Make sure your Figma plan supports variables.');
+      }
       if (msg.type === 'variables-read' && pendingSourceRef.current === 'variables' && msg.correlationId === correlationIdRef.current) {
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
         pendingSourceRef.current = null;

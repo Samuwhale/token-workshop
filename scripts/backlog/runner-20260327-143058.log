@@ -334,3 +334,10 @@ Already up to date.
 ===============================================================
   Claimed: Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing
   Worktree: /tmp/backlog-98408-1J6lQ9
+
+  ✓ done: Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing
+    Added try-catch in controller.ts read-variables handler to send variables-read-error immediately; UI handles it to show error without waiting for the 15s timeout
+    14 turns · 192s · $0.42
+
+--- Merging: Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing ---
+Already up to date.
