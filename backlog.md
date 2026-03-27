@@ -35,28 +35,15 @@
 
 ### UX
 
-- [x] No theme preview mode — no way to preview token values with a theme applied before committing it as active
-
 ---
 
 ## Sync
 
 ### Bugs
 
-- [x] 10-second Figma correlation timeout has no loading indicator — the sync panel waits for a Figma response with no spinner; users see a frozen UI
-- [x] Partial sync failure has no rollback — if sync fails partway through a batch, already-applied changes persist with no way to revert
-
 ### QoL
 
-- [x] SyncPanel variable sync has a 15-second timeout with no user-facing indication of the threshold — for large token sets this feels like a hang before showing an unhelpful error
-- [x] SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected
-- [x] Sync progress doesn't clarify units — "45 / 120" doesn't say whether the count is layers or individual bindings; label the unit explicitly
-
 ### UX
-
-- [x] SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator — users can't tell if the current diff is still valid after making changes
-- [x] No pause/cancel for in-progress sync — once a bulk sync starts there's no way to stop it; a cancel button would prevent wasted time on wrong-set syncs
-- [x] No dry-run mode — no way to preview what a sync will change before it touches Figma objects
 
 ---
 
@@ -65,29 +52,16 @@
 
 ### UX
 
-- [x] AnalyticsPanel deduplication replaces all duplicate color tokens with aliases in one click — no confirmation dialog or preview of what will change, risky for large token sets
-- [x] No bulk-suppress by rule type — suppressing warnings requires dismissing each individually; a "suppress all of this type" action would declutter the panel
-- [x] Contrast matrix isn't a semantic table — the color contrast grid is rendered without `<table>` markup, making it invisible to screen readers
-- [x] No export validation report — no way to save or share current validation results as JSON or CSV
-- [x] Component coverage analysis has no progress indicator — scanning runs with no feedback until results appear
-
 ---
 
 ## Selection Inspector & Property Binding
 
 ### Bugs
 
-- [x] SemanticMappingDialog `handleCreate` never calls `setSaving(false)` on the success path — user sees perpetual loading spinner after tokens are created; only errors reset it
-- [x] `useFigmaSync` `handleSyncGroup` and `handleSyncGroupStyles` don't restore pending state on error — if sync fails, the UI is stuck in a loading state with no retry path
-- [x] `useFigmaSync` `handleApplyGroupScopes` has no error tracking — failures log to console only, UI shows no feedback
-
 ### QoL
 
-- [x] Remap operation provides no error feedback — if the server request fails, `remapRunning` toggles off but the user sees no message explaining what went wrong
-- [x] `handleApplyGroupScopes` sends one PATCH request per token in `Promise.all` with no batching — for groups with many tokens this is slow with no progress indicator
 - [~] No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
 - [~] New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`
-- [x] Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text
 
 ### UX
 
@@ -99,7 +73,6 @@
 
 ### Bugs
 
-- [~] ImportPanel `readTimeoutRef` is never cleared when the message handler successfully receives data — if the response is slow but arrives after timeout fires, user sees a stale error message overlaid on the actual result
 - [ ] ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded — unclear what was partially imported
 - [ ] Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing
 

@@ -286,3 +286,9 @@ Already up to date.
 
 --- Merging: ImportPanel `readTimeoutRef` is never cleared when the message handler successfully receives data — if the response is slow but arrives after timeout fires, user sees a stale error message overlaid on the actual result ---
 Already up to date.
+[main 66fa626] chore(backlog): done – ImportPanel `readTimeoutRef` is never cleared when the message handler successfully receives data — if the response is slow but arrives after timeout fires, user sees a stale error message overlaid on the actual result
+ 5 files changed, 33 insertions(+), 3 deletions(-)
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 51)
