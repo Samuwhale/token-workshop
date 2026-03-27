@@ -146,6 +146,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showGeneratorDialog, setShowGeneratorDialog] = useState(false);
+  const [editingGeneratorInDialog, setEditingGeneratorInDialog] = useState<TokenGenerator | undefined>(undefined);
   const [colorModifiers, setColorModifiers] = useState<ColorModifierOp[]>([]);
   const [showModifiers, setShowModifiers] = useState(false);
   const [pendingTypeChange, setPendingTypeChange] = useState<string | null>(null);
@@ -1005,7 +1006,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
       {canBeGeneratorSource && !aliasMode && (
         <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
           <button
-            onClick={() => setShowGeneratorDialog(true)}
+            onClick={() => { setEditingGeneratorInDialog(undefined); setShowGeneratorDialog(true); }}
             className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             <span className="flex items-center gap-1.5">
@@ -1043,7 +1044,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                     <span className="text-[10px] text-[var(--color-figma-text)] truncate">{gen.targetGroup}</span>
                   </div>
                   <button
-                    onClick={e => { e.stopPropagation(); setShowGeneratorDialog(true); }}
+                    onClick={e => { e.stopPropagation(); setEditingGeneratorInDialog(gen); setShowGeneratorDialog(true); }}
                     className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
                   >
                     Edit
@@ -1051,7 +1052,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
                 </div>
               ))}
               <button
-                onClick={() => setShowGeneratorDialog(true)}
+                onClick={() => { setEditingGeneratorInDialog(undefined); setShowGeneratorDialog(true); }}
                 className="mt-0.5 text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors text-left"
               >
                 + Add another group
@@ -1350,7 +1351,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
           sourceTokenValue={aliasMode ? null : value}
           allSets={allSets}
           activeSet={setName}
-          existingGenerator={existingGeneratorsForToken[0]}
+          existingGenerator={editingGeneratorInDialog}
           onClose={() => setShowGeneratorDialog(false)}
           onSaved={() => {
             setShowGeneratorDialog(false);

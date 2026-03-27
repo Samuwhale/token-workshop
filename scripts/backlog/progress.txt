@@ -397,3 +397,11 @@
 - Files changed: `packages/server/src/services/token-store.ts` ~L9
 - **Why:** Dead import; `TokenType` is used in other server files (routes/tokens.ts) but not in token-store.ts. Leftover from a refactor where type annotations were removed or inlined.
 ---
+
+## 2026-03-27 - No way to edit generator seed values after creation
+- Fixed `TokenEditor.tsx`: the "Edit" button on each generator row was always opening the first generator (`existingGeneratorsForToken[0]`) regardless of which row was clicked. Added `editingGeneratorInDialog` state (`TokenGenerator | undefined`) alongside the existing `showGeneratorDialog` boolean. Each "Edit" row button now sets `setEditingGeneratorInDialog(gen)` for its specific generator. The "+ Add another group" and section header buttons set `editingGeneratorInDialog` to `undefined` (new). The dialog now receives `existingGenerator={editingGeneratorInDialog}` instead of the hardcoded `[0]`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L148, ~L1008, ~L1046, ~L1054, ~L1353
+- **Learnings for future iterations:**
+  - The graph panel (`TokenGraph.tsx`) already had per-generator edit working correctly via `setEditingGen(gen)`. Only `TokenEditor.tsx` had the bug.
+  - When a section shows a list of items each with an "Edit" button but all use the same boolean dialog state, the dialog is always bound to the first item — need per-item state to track which is being edited.
+---
