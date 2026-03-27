@@ -7,7 +7,8 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     const sets = await fastify.tokenStore.getSets();
     const descriptions = fastify.tokenStore.getSetDescriptions();
     const counts = fastify.tokenStore.getSetCounts();
-    return { sets, descriptions, counts };
+    const collectionNames = fastify.tokenStore.getSetCollectionNames();
+    return { sets, descriptions, counts, collectionNames };
   });
 
   // GET /api/sets/:name — get a set
@@ -49,12 +50,15 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // PATCH /api/sets/:name/metadata — update set description
-  fastify.patch<{ Params: { name: string }; Body: { description?: string } }>('/sets/:name/metadata', async (request, reply) => {
+  // PATCH /api/sets/:name/metadata — update set description and/or figma collection name
+  fastify.patch<{ Params: { name: string }; Body: { description?: string; figmaCollection?: string } }>('/sets/:name/metadata', async (request, reply) => {
     const { name } = request.params;
-    const { description = '' } = request.body || {};
+    const { description = '', figmaCollection } = request.body || {};
     try {
       await fastify.tokenStore.updateSetDescription(name, description);
+      if (figmaCollection !== undefined) {
+        await fastify.tokenStore.updateSetCollectionName(name, figmaCollection);
+      }
       return { updated: true, name, description };
     } catch (err: any) {
       const msg: string = err?.message ?? String(err);

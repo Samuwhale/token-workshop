@@ -195,7 +195,7 @@ export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; set: string; isCreate?: boolean; initialType?: string } | null>(null);
   const { connected, checking, serverUrl, updateServerUrlAndConnect, retryConnection } = useServerConnection();
-  const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, refreshTokens } = useTokens(serverUrl, connected);
+  const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, refreshTokens } = useTokens(serverUrl, connected);
   const { selectedNodes } = useSelection();
   const { syncing, syncProgress, syncResult, sync } = useSyncBindings(serverUrl, connected);
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
@@ -404,6 +404,7 @@ export function App() {
   // Set metadata editing state
   const [editingMetadataSet, setEditingMetadataSet] = useState<string | null>(null);
   const [metadataDescription, setMetadataDescription] = useState('');
+  const [metadataCollectionName, setMetadataCollectionName] = useState('');
 
   // Delete state
   const [deletingSet, setDeletingSet] = useState<string | null>(null);
@@ -733,13 +734,13 @@ export function App() {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
       const prefix = groupPath + '.';
-      const tokens: { path: string; $type: string; $value: any }[] = [];
+      const tokens: { path: string; $type: string; $value: any; setName?: string }[] = [];
       for (const [path, entry] of Object.entries(resolved)) {
         if (path === groupPath || path.startsWith(prefix)) {
-          tokens.push({ path, $type: entry.$type, $value: entry.$value });
+          tokens.push({ path, $type: entry.$type, $value: entry.$value, setName: pathToSet[path] });
         }
       }
-      parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens } }, '*');
+      parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap: setCollectionNames } }, '*');
     } catch (err) {
       console.error('Failed to sync group to Figma:', err);
     }
@@ -973,6 +974,7 @@ export function App() {
     setTabMenuOpen(null);
     setEditingMetadataSet(setName);
     setMetadataDescription(setDescriptions[setName] || '');
+    setMetadataCollectionName(setCollectionNames[setName] || '');
   };
 
   const handleSaveMetadata = async () => {
@@ -981,7 +983,7 @@ export function App() {
       await fetch(`${serverUrl}/api/sets/${editingMetadataSet}/metadata`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: metadataDescription }),
+        body: JSON.stringify({ description: metadataDescription, figmaCollection: metadataCollectionName }),
       });
     } catch {
       // best-effort; close modal regardless
@@ -1473,7 +1475,7 @@ export function App() {
                 onClick={() => openSetMetadata(tabMenuOpen)}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Edit description
+                Edit set info
               </button>
               <div className="border-t border-[var(--color-figma-border)] my-1" />
               <button
@@ -1699,7 +1701,7 @@ export function App() {
               >
                 <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { setActiveSet(tabMenuOpen); setActiveTab('graph'); setOverflowPanel(null); setTabMenuOpen(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Generate tokens…</button>
                 <div className="border-t border-[var(--color-figma-border)] my-1" />
-                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => openSetMetadata(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Edit description</button>
+                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => openSetMetadata(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Edit set info</button>
                 <div className="border-t border-[var(--color-figma-border)] my-1" />
                 <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => startRename(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Rename</button>
                 <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => handleDuplicateSet(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Duplicate</button>
@@ -2085,7 +2087,7 @@ export function App() {
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <TokenList
                     ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                    data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat }}
+                    data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames }}
                     actions={{ onEdit: (path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
                     defaultCreateOpen={createFromEmpty}
                     highlightedToken={editingToken?.path ?? highlightedToken}
@@ -2114,7 +2116,7 @@ export function App() {
             ) : (
               <TokenList
                 ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat }}
+                data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames }}
                 actions={{ onEdit: (path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
                 defaultCreateOpen={createFromEmpty}
                 highlightedToken={highlightedToken}
@@ -2127,7 +2129,7 @@ export function App() {
               <div style={{ height: `${splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
                 <TokenList
                   ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                  data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat }}
+                  data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames }}
                   actions={{ onEdit: (path) => { setEditingToken({ path, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
                   defaultCreateOpen={createFromEmpty}
                   highlightedToken={highlightedToken}
@@ -2177,7 +2179,7 @@ export function App() {
             />
           )}
           {overflowPanel === null && activeTab === 'publish' && (
-            <PublishPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} />
+            <PublishPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} collectionMap={setCollectionNames} />
           )}
 
           {/* Overflow panels for analytics, themes */}
@@ -2289,7 +2291,7 @@ export function App() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 p-4 flex flex-col gap-3">
             <div className="text-[12px] font-medium text-[var(--color-figma-text)]">
-              Edit description — {editingMetadataSet}
+              Edit set info — {editingMetadataSet}
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Description</label>
@@ -2302,6 +2304,18 @@ export function App() {
                 placeholder="What is this token set for?"
                 className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] resize-none"
               />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Figma collection name</label>
+              <input
+                type="text"
+                value={metadataCollectionName}
+                onChange={e => setMetadataCollectionName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') setEditingMetadataSet(null); }}
+                placeholder="TokenManager"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              />
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Tokens in this set will sync to this Figma variable collection.</p>
             </div>
             <div className="flex gap-2 justify-end">
               <button

@@ -241,6 +241,26 @@ export class TokenStore {
     await this.saveSet(name);
   }
 
+  getSetCollectionNames(): Record<string, string> {
+    const result: Record<string, string> = {};
+    for (const [name, set] of this.sets) {
+      const col = (set.tokens as any).$figmaCollection;
+      if (typeof col === 'string' && col) result[name] = col;
+    }
+    return result;
+  }
+
+  async updateSetCollectionName(name: string, collectionName: string): Promise<void> {
+    const set = this.sets.get(name);
+    if (!set) throw new Error(`Set "${name}" not found`);
+    if (collectionName) {
+      (set.tokens as any).$figmaCollection = collectionName;
+    } else {
+      delete (set.tokens as any).$figmaCollection;
+    }
+    await this.saveSet(name);
+  }
+
   async getSet(name: string): Promise<TokenSet | undefined> {
     return this.sets.get(name);
   }

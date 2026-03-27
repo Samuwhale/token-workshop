@@ -24,6 +24,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
   const [tokens, setTokens] = useState<TokenNode[]>([]);
   const [setTokenCounts, setSetTokenCounts] = useState<Record<string, number>>({});
   const [setDescriptions, setSetDescriptions] = useState<Record<string, string>>({});
+  const [setCollectionNames, setSetCollectionNames] = useState<Record<string, string>>({});
   const fetchGenRef = useRef(0);
 
   const refreshTokens = useCallback(async () => {
@@ -37,6 +38,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
       if (gen !== fetchGenRef.current) return;
       setSets(allSets);
       setSetDescriptions(setsData.descriptions || {});
+      setSetCollectionNames(setsData.collectionNames || {});
 
       if (allSets.length > 0) {
         const current = activeSet || allSets[0];
@@ -60,7 +62,7 @@ export function useTokens(serverUrl: string, connected: boolean) {
     refreshTokens();
   }, [refreshTokens]);
 
-  return { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, refreshTokens };
+  return { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, refreshTokens };
 }
 
 export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {

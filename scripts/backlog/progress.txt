@@ -377,3 +377,21 @@
   - `flattenTokenGroup` handles both bare token groups and nested groups. Support `json.tokens ?? json` to accept both wrapped (`{ tokens: {...} }`) and bare DTCG files.
   - `source` state drives the header label ("Figma Styles" vs "JSON File") — extend the union type when adding new sources.
 ---
+
+## 2026-03-27 - Per-set Figma variable collection name
+- Users can now configure which Figma variable collection each token set syncs into. Added "Figma collection name" input to the "Edit set info" modal (renamed from "Edit description"). Collection name is persisted as `$figmaCollection` in each set's `.tokens.json` file (same pattern as `$description`). The controller now routes each token to its set's configured collection (or falls back to `'TokenManager'` if unset).
+- Files changed:
+  - `packages/server/src/services/token-store.ts` ~L233 (added `getSetCollectionNames`, `updateSetCollectionName`)
+  - `packages/server/src/routes/sets.ts` ~L6,L53 (expose `collectionNames` in GET; accept `figmaCollection` in PATCH)
+  - `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L26,L39,L63 (added `setCollectionNames` state and return)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L198,L405,L742,L975,L984,L2182,L2291 (state, modal UI, handleSyncGroup, PublishPanel prop, TokenList data)
+  - `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L5,L170,L433,L603 (added `collectionMap` prop, stamp `setName`, pass in messages)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L50,L183,L1307 (added `collectionMap` to data interface, stamp `setName` in handleApplyVariables)
+  - `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L18,L48,L214,L287 (added `collectionMap` prop, stamp `setName`, pass in messages)
+  - `packages/figma-plugin/src/plugin/controller.ts` ~L17,L128 (updated `applyVariables` to accept `collectionMap`, route tokens to per-set collections using `getOrCreateCollection` helper)
+- **Learnings for future iterations:**
+  - The `$figmaCollection` key follows the same `$`-prefixed root key pattern as `$description` — excluded from `buildTree` by the `key.startsWith('$') continue` guard.
+  - `collectionMap` flows as a message field on `apply-variables` (backward-compatible: old callers omit it, controller defaults to `VARIABLE_COLLECTION_NAME`).
+  - `getOrCreateCollection` caches by name using a `Map` seeded from the initial `getLocalVariableCollectionsAsync()` call — no extra async per token.
+  - SyncPanel is exported but not currently imported anywhere in App.tsx — still updated for consistency.
+---

@@ -14,7 +14,7 @@ let deepInspectEnabled = false;
 figma.ui.onmessage = async (msg: PluginMessage) => {
   switch (msg.type) {
     case 'apply-variables':
-      await applyVariables(msg.tokens);
+      await applyVariables(msg.tokens, msg.collectionMap ?? {});
       break;
     case 'apply-styles':
       await applyStyles(msg.tokens);
@@ -125,14 +125,22 @@ function sampleSelectionColor() {
 }
 
 // Apply tokens as Figma variables
-async function applyVariables(tokens: any[]) {
+async function applyVariables(tokens: any[], collectionMap: Record<string, string> = {}) {
   try {
-    // Get or create collection
-    const collections = await figma.variables.getLocalVariableCollectionsAsync();
-    let collection = collections.find(c => c.name === VARIABLE_COLLECTION_NAME);
-    if (!collection) {
-      collection = figma.variables.createVariableCollection(VARIABLE_COLLECTION_NAME);
-    }
+    // Get or create collection by name, with caching
+    const existingCollections = await figma.variables.getLocalVariableCollectionsAsync();
+    const collectionCache = new Map<string, VariableCollection>(
+      existingCollections.map(c => [c.name, c])
+    );
+
+    const getOrCreateCollection = (name: string): VariableCollection => {
+      let col = collectionCache.get(name);
+      if (!col) {
+        col = figma.variables.createVariableCollection(name);
+        collectionCache.set(name, col);
+      }
+      return col;
+    };
 
     // Load all local variables once to avoid redundant async calls per token
     const localVariables = await figma.variables.getLocalVariablesAsync();
@@ -140,6 +148,12 @@ async function applyVariables(tokens: any[]) {
     for (const token of tokens) {
       const variableType = mapTokenTypeToVariableType(token.$type);
       if (!variableType) continue;
+
+      // Resolve which collection this token belongs to
+      const colName = (token.setName && collectionMap[token.setName])
+        ? collectionMap[token.setName]
+        : VARIABLE_COLLECTION_NAME;
+      const collection = getOrCreateCollection(colName);
 
       // Find existing or create new
       const existing = findVariableInList(localVariables, collection.id, token.path);
