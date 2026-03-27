@@ -538,6 +538,7 @@ export class TokenStore {
     if (deleted) {
       await this.saveSet(setName);
       this.rebuildFlatTokens();
+      this.emit({ type: 'token-updated', setName, tokenPath });
     }
     return deleted;
   }

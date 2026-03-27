@@ -57,3 +57,23 @@ Already up to date.
 
 --- Merging: ThemeManager `executeDeleteDimension` and `executeDeleteOption` don't check `res.ok` ---
 Already up to date.
+[main fb6f8f8] chore(backlog): done – ThemeManager `executeDeleteDimension` and `executeDeleteOption` don't check `res.ok`
+ 6 files changed, 50 insertions(+), 6 deletions(-)
+
+## 2026-03-27 - handleCreateToken silently swallows server errors
+- Added `else` branch to check `res.ok === false`: parses JSON error body from server (falls back to `Server error (status)`) and sets `createError` state.
+- Added `catch` block to handle network failures (fetch throws), also setting `createError`.
+- The `createError` state was already rendered in the UI (red border + error text), so no markup changes needed.
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  18 items remaining
+===============================================================
+  Claimed: [HIGH] `deleteToken` emits no SSE change event — `createToken`, `updateToken`, and `batchUpsertTokens` all call `this.emit()` but `deleteToken` (token-store.ts:483-492) does not, so SSE-connected clients are never notified when a token is deleted
+  Worktree: /tmp/backlog-96806-zdjEWd
+
+  ✓ done: deleteToken emits no SSE change event
+    Added this.emit({ type: 'token-updated', setName, tokenPath }) to deleteToken after saveSet/rebuildFlatTokens, matching the pattern used by all other mutation methods.
+    12 turns · 77s · $0.27
+
+--- Merging: deleteToken emits no SSE change event ---
+Already up to date.

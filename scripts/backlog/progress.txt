@@ -288,3 +288,10 @@
   - `fetch()` does NOT throw on HTTP error status codes — always check `response.ok`. This is the same pattern as ImportPanel and TokenList fixes.
   - The existing UI already had error display wired up via `createError` state — the bug was purely that the state was never set on failure.
 ---
+
+## 2026-03-27 - deleteToken emits no SSE change event
+- Added `this.emit({ type: 'token-updated', setName, tokenPath })` after `saveSet` and `rebuildFlatTokens` in `deleteToken`, matching the pattern used by `createToken`, `updateToken`, and `batchUpsertTokens`.
+- Files changed: `packages/server/src/services/token-store.ts` ~L541
+- **Learnings for future iterations:**
+  - When adding new store mutations, always check that `this.emit()` is called so SSE-connected clients stay in sync.
+---
