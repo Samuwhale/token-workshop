@@ -56,8 +56,8 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /api/generators/orphaned-tokens — find tokens whose generator no longer exists
   fastify.get('/generators/orphaned-tokens', async () => {
-    const allGenerators = fastify.generatorService.getAll();
-    const activeIds = new Set(allGenerators.map((g: { id: string }) => g.id));
+    const allGenerators = await fastify.generatorService.getAll();
+    const activeIds = new Set(allGenerators.map((g) => g.id));
     const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
     const orphaned = allTagged.filter((t) => !activeIds.has(t.generatorId));
     return { count: orphaned.length, tokens: orphaned };
@@ -65,8 +65,8 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
   // DELETE /api/generators/orphaned-tokens — delete all orphaned generator tokens
   fastify.delete('/generators/orphaned-tokens', async () => {
-    const allGenerators = fastify.generatorService.getAll();
-    const activeIds = new Set(allGenerators.map((g: { id: string }) => g.id));
+    const allGenerators = await fastify.generatorService.getAll();
+    const activeIds = new Set(allGenerators.map((g) => g.id));
     const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
     const orphanIds = new Set(
       allTagged.filter((t) => !activeIds.has(t.generatorId)).map((t) => t.generatorId),
@@ -98,7 +98,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         targetSet,
         targetGroup,
         name: (name || (sourceToken ? `${sourceToken} ${type}` : type)) as string,
-        config: (config ?? {}) as GeneratorConfig,
+        config: (config ?? {}) as unknown as GeneratorConfig,
         overrides,
         inputTable: inputTable as InputTable | undefined,
         targetSetTemplate: targetSetTemplate ?? undefined,
@@ -126,7 +126,14 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     }
     try {
       const results = await fastify.generatorService.preview(
-        { ...body, type: body.type as GeneratorType, config: (body.config ?? {}) as GeneratorConfig },
+        {
+          type: body.type as GeneratorType,
+          sourceToken: body.sourceToken,
+          targetGroup: body.targetGroup ?? '',
+          targetSet: body.targetSet ?? '',
+          config: (body.config ?? {}) as unknown as GeneratorConfig,
+          overrides: body.overrides,
+        },
         fastify.tokenStore,
       );
       return { count: results.length, tokens: results };

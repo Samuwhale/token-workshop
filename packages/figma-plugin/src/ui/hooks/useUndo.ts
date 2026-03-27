@@ -13,6 +13,7 @@ export function useUndo() {
   const [past, setPast] = useState<UndoSlot[]>([]);
   // future[last] = most recent redoable action (from an undo)
   const [future, setFuture] = useState<UndoSlot[]>([]);
+  const [dismissed, setDismissed] = useState(false);
   const executingRef = useRef(false);
 
   const pushUndo = useCallback((slot: UndoSlot) => {
@@ -34,7 +35,11 @@ export function useUndo() {
     if (slot.redo) {
       setFuture(f => [...f, slot]);
     }
-    slot.restore().finally(() => { executingRef.current = false; });
+    try {
+      await slot.restore();
+    } finally {
+      executingRef.current = false;
+    }
   }, [past]);
 
   const executeRedo = useCallback(async () => {
@@ -46,10 +51,12 @@ export function useUndo() {
     executingRef.current = true;
     setFuture(next);
     setPast(p => [...p, slot]);
-    slot.redo!().finally(() => { executingRef.current = false; });
+    try {
+      await slot.redo!();
+    } finally {
+      executingRef.current = false;
+    }
   }, [future]);
-
-  const [dismissed, setDismissed] = useState(false);
 
   const dismissToast = useCallback(() => {
     setDismissed(true);

@@ -49,30 +49,6 @@ function rgbToLab(r: number, g: number, b: number): { L: number; a: number; b: n
   return { L: 116 * f(Y) - 16, a: 500 * (f(X) - f(Y)), b: 200 * (f(Y) - f(Z)) };
 }
 
-export function hexToLab(hex: string): [number, number, number] | null {
-  const clean = hex.replace('#', '');
-  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
-  const r = parseInt(clean.slice(0, 2), 16) / 255;
-  const g = parseInt(clean.slice(2, 4), 16) / 255;
-  const b = parseInt(clean.slice(4, 6), 16) / 255;
-  const lab = rgbToLab(r, g, b);
-  return [lab.L, lab.a, lab.b];
-}
-
-export function labToHex(L: number, a: number, b: number): string {
-  const fy = (L + 16) / 116;
-  const fx = a / 500 + fy;
-  const fz = fy - b / 200;
-  const f3 = (t: number) => t > 0.206897 ? t * t * t : (t - 16 / 116) / 7.787;
-  const X = f3(fx) * 0.95047;
-  const Y = f3(fy) * 1.00000;
-  const Z = f3(fz) * 1.08883;
-  const lr = fromLinear( 3.2406 * X - 1.5372 * Y - 0.4986 * Z);
-  const lg = fromLinear(-0.9689 * X + 1.8758 * Y + 0.0415 * Z);
-  const lb = fromLinear( 0.0557 * X - 0.2040 * Y + 1.0570 * Z);
-  const h = (v: number) => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, '0');
-  return `#${h(lr)}${h(lg)}${h(lb)}`;
-}
 
 // ---------------------------------------------------------------------------
 // RGB ↔ Hex
@@ -244,7 +220,7 @@ export function wcagContrast(hex1: string, hex2: string): number | null {
 }
 
 // Re-export from core (canonical implementation)
-export { applyColorModifiers } from '@tokenmanager/core';
+export { hexToLab, labToHex, applyColorModifiers } from '@tokenmanager/core';
 export type { ColorModifierOp } from '@tokenmanager/core';
 
 export function countLeafNodes(group: Record<string, any>): { total: number; byType: Record<string, number> } {

@@ -65,13 +65,6 @@ export function wcagLuminance(hex: string): number | null {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-/** Extract alpha byte from 8-char hex (0-255). Returns 255 if 6-char. */
-export function hexAlpha(hex: string): number {
-  const clean = hex.replace('#', '');
-  if (clean.length === 8) return parseInt(clean.slice(6, 8), 16);
-  return 255;
-}
-
 /** Rebuild hex string from 6-char base + alpha (0-255). */
 export function setHexAlpha(hex: string, alpha: number): string {
   const clean = hex.replace('#', '').slice(0, 6);

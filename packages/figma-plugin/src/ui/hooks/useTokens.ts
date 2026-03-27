@@ -7,7 +7,7 @@ import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 /** Flatten a DTCG group into TokenMapEntry records, preserving each leaf's DTCG key as `$name`. */
 function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): Array<[string, TokenMapEntry]> {
   const out: Array<[string, TokenMapEntry]> = [];
-  const inheritedType = (group as any).$type ?? parentType;
+  const inheritedType = group.$type ?? parentType;
   for (const [key, value] of Object.entries(group)) {
     if (key.startsWith('$')) continue;
     if (value === undefined || value === null) continue;
