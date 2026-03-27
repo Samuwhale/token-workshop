@@ -118,7 +118,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] No way to suppress specific lint warnings — lint findings cannot be dismissed or suppressed per-item; every run shows the same findings even for intentional patterns (`server/lint.ts`)
 - [x] Server connection status not visible in plugin header — there is no persistent indicator showing whether the local server is reachable; users only discover connectivity issues when an action fails (`figma-plugin/App.tsx`)
 - [x] No backup/export-all as ZIP — the export panel has format options but no "export all sets as a ZIP archive" for full backup or handoff (`figma-plugin/ExportPanel.tsx`, `server/routes/export.ts`)
-- [ ] Selection inspector empty state missing — the selection inspector shows nothing when no Figma node is selected; a prompt like "Select a layer to inspect token bindings" would reduce confusion
+- [x] Selection inspector empty state missing — the selection inspector shows nothing when no Figma node is selected; a prompt like "Select a layer to inspect token bindings" would reduce confusion
 - [ ] Token editor does not auto-focus first field — opening the token editor requires a manual click to start typing; the name or value field should auto-focus on open (`figma-plugin/TokenEditor.tsx`)
 - [ ] Settings page has no reset-to-defaults — there is no way to reset all settings to their default values without manually clearing each field
 

@@ -443,3 +443,10 @@
   - CRC-32 table must use the standard polynomial 0xEDB88320 (reversed); initialize once as Uint32Array(256).
   - DataView.setUint16/setUint32 with `true` (little-endian) for all ZIP multi-byte fields.
 ---
+
+## 2026-03-27 - Selection inspector empty state missing
+- Stale — already implemented. `SelectionInspector.tsx` L402–418 renders a full empty state with an SVG icon, "No layer selected" heading, and "Select a layer on the canvas to inspect its token bindings." description when `selectedNodes` is empty.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+  - When a backlog item says "empty state missing" for SelectionInspector, check `SelectionInspector.tsx` around the `!hasSelection` guard — the empty state was built before this item was filed.
+---
