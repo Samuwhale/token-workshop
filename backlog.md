@@ -48,7 +48,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [~] `createToken` for a new set triggers 3 rebuilds: createSet + saveSet + watcher (`server/token-store.ts:297-310`)
 - [x] Missing `return` after error `reply.send()` in sets.ts PATCH handlers and export.ts — could cause "reply already sent" (`server/routes/sets.ts:60,83`, `server/routes/export.ts:34`)
 - [~] `deleteTokenAtPath` leaves empty parent group objects `{}` in the JSON file (`server/token-store.ts:760-773`)
-- [ ] ImportPanel conflict check only looks at top-level keys, misses nested token paths (`figma-plugin/ImportPanel.tsx:321-324`)
+- [~] ImportPanel conflict check only looks at top-level keys, misses nested token paths (`figma-plugin/ImportPanel.tsx:321-324`)
 - [ ] `enrichFormulaExtension` identity-comparison always evaluates to `true`, causing every formula update to overwrite `$extensions` even when unchanged (`server/token-store.ts:321`)
 
 ### QoL
@@ -190,3 +190,6 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [ ] TokenGeneratorDialog is ~800+ lines handling 7+ generator types in one component (`figma-plugin/TokenGeneratorDialog.tsx`)
 - [ ] `docs.ts` style attribute built with `escapeHtml` but not `escapeCssValue` — CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
 - [ ] 15+ distinct localStorage keys scattered across components without centralized persistence utility
+
+
+- [ ] Per-mode token value editing — there is no way to set different `$value`s for the same token across different modes; mode-aware editing is a core DTCG use-case (e.g. light/dark, brand-A/brand-B) and should be surfaced in the token edit UI alongside the current single-value field

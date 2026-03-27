@@ -131,3 +131,17 @@
 - **Learnings for future iterations:**
   - Fastify handlers that call `reply.send()` without `return` will continue executing after the response is sent, potentially triggering a second send and a "reply already sent" error. Always use `return reply.status(...).send(...)` in async handlers.
 ---
+
+## 2026-03-27 - housekeeping: remove unused rgbToLab import and stale comment in TokenList.tsx
+- Removed `rgbToLab` from the colorUtils import on line 13 (it was never called anywhere in the file)
+- Removed the stale comment "// hexToRgb, rgbToLab, colorDeltaE are imported from ../shared/colorUtils" which was redundant (imports are visible at the top of file) and referenced the now-unused `rgbToLab`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L13, ~L72
+- **Why:** `rgbToLab` was present only in a comment explaining it was imported — the function itself was never used. The comment was a leftover from when the "Promote to Semantic" color-matching section was scaffolded.
+---
+
+## 2026-03-27 - `deleteTokenAtPath` leaves empty parent group objects `{}` in the JSON file
+- Modified `deleteTokenAtPath` in `token-store.ts` to track the chain of parent objects while traversing to the leaf, then walk back up after deletion and remove any parent group whose key count drops to zero.
+- Files changed: `packages/server/src/services/token-store.ts` ~L766
+- **Learnings for future iterations:**
+  - The "track parent chain, then prune upwards" pattern is the standard approach for tree deletion with orphan cleanup: record `{ obj, key }` pairs on the way down, iterate in reverse on the way up, break as soon as a non-empty group is found.
+---
