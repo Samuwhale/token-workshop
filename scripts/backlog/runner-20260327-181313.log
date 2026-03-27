@@ -131,3 +131,10 @@ Already up to date.
 ===============================================================
   Claimed: No token search highlighting — filtering tokens by name narrows the list but doesn't highlight the matching substring in results, making it hard to spot the exact match in large sets
   Worktree: /tmp/backlog-59311-WuIKqC
+
+  ✓ done: No token search highlighting — filtering tokens by name narrows the list but doesn't highlight the matching substring in results, making it hard to spot the exact match in large sets
+    Added highlightMatch helper to TokenTreeNode; wraps matched substring in amber mark element for both token leaf names and group names; searchQuery prop threaded from virtual-scroll and recursive render sites
+    31 turns · 201s · $0.76
+
+--- Merging: No token search highlighting — filtering tokens by name narrows the list but doesn't highlight the matching substring in results, making it hard to spot the exact match in large sets ---
+Already up to date.

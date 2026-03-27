@@ -98,3 +98,17 @@ Already up to date.
 
 --- Merging: Batch editor find-and-replace has no regex support — only literal string matching is available, so common refactors like renaming `spacing.*` to `dimension.*` require manual work per token ---
 Already up to date.
+[main f7c7c01] chore(backlog): done – Batch editor find-and-replace has no regex support — only literal string matching is available, so common refactors like renaming `spacing.*` to `dimension.*` require manual work per token
+ 6 files changed, 85 insertions(+), 16 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Batch editor find-and-replace has no regex support — only literal string matching is available, so common refactors like renaming `spacing.*` to `dimension.*` require manual work per token
+- Added a `.*` toggle button inside the find input field (right edge). When active, the find text is treated as a JavaScript regex (with `g` flag). Invalid patterns show an inline error below the row and disable the Rename button. Preview count uses `new RegExp(findText).test(path)`; the actual rename uses `path.replace(new RegExp(findText, 'g'), replaceText)` (supports capture group back-references like `$1`).
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L71, ~L125, ~L297, ~L509
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  10 items remaining
+===============================================================
+  Claimed: No color contrast checker in ColorPicker — editing a color token has no inline WCAG AA/AAA pass/fail indicator against common backgrounds, forcing users to check contrast separately
+  Worktree: /tmp/backlog-59609-YMmdlJ

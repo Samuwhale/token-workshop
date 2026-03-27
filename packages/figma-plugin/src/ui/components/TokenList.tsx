@@ -2607,6 +2607,7 @@ export function TokenList({
                 onMoveDown={moveEnabled && sibIdx >= 0 && sibIdx < siblings.length - 1 ? () => handleMoveTokenInGroup(node.path, node.name, 'down') : undefined}
                 chainExpanded={expandedChains.has(node.path)}
                 onToggleChain={handleToggleChain}
+                searchQuery={searchQuery || undefined}
               />
               );
             })}
@@ -3226,6 +3227,21 @@ export function TokenList({
   );
 }
 
+function highlightMatch(text: string, query: string): React.ReactNode {
+  if (!query) return text;
+  const lowerText = text.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+  const idx = lowerText.indexOf(lowerQuery);
+  if (idx === -1) return text;
+  return (
+    <>
+      {text.slice(0, idx)}
+      <mark style={{ background: 'rgba(255, 200, 0, 0.45)', color: 'inherit', borderRadius: '2px', padding: '0 1px' }}>{text.slice(idx, idx + query.length)}</mark>
+      {text.slice(idx + query.length)}
+    </>
+  );
+}
+
 function TokenTreeNode({
   node,
   depth,
@@ -3281,6 +3297,7 @@ function TokenTreeNode({
   onMoveDown,
   chainExpanded: chainExpandedProp = false,
   onToggleChain,
+  searchQuery,
 }: {
   node: TokenNode;
   depth: number;
@@ -3342,6 +3359,8 @@ function TokenTreeNode({
   chainExpanded?: boolean;
   /** Toggle the alias chain expansion panel for this row. */
   onToggleChain?: (path: string) => void;
+  /** Current search query for highlighting matching substrings in token/group names. */
+  searchQuery?: string;
 }) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -3667,7 +3686,7 @@ function TokenTreeNode({
               className="flex-1 text-[11px] font-medium bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0"
             />
           ) : (
-            <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{node.name}</span>
+            <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{highlightMatch(node.name, searchQuery ?? '')}</span>
           )}
           {!renamingGroup && node.children && (
             <span className={`text-[9px] ml-1 shrink-0 ${leafCount === 0 ? 'text-[var(--color-figma-text-secondary)] opacity-50 italic' : 'text-[var(--color-figma-text-secondary)]'}`}>
@@ -4000,6 +4019,7 @@ function TokenTreeNode({
             derivedTokenPaths={derivedTokenPaths}
             onInlineSave={onInlineSave}
             onRenameToken={onRenameToken}
+            searchQuery={searchQuery}
           />
         ))}
       </div>
@@ -4175,7 +4195,7 @@ function TokenTreeNode({
               className="text-[11px] text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none w-32 shrink-0"
             />
           ) : (
-            <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{node.name}</span>
+            <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{highlightMatch(node.name, searchQuery ?? '')}</span>
           )}
           {!renamingToken && node.$type && (
             <button
