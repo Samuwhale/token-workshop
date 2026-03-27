@@ -334,3 +334,11 @@
   - `structuredClone` is the idiomatic Node.js 17+ way to deep-copy plain objects; prefer it over `JSON.parse(JSON.stringify(...))`.
   - When caching mutable config objects, always return a copy — both the warm-cache path (`if (this.config) return ...`) and the cold-start path need the clone.
 ---
+
+## 2026-03-27 - `validateAllTokens` hardcodes `depth > 3` instead of reading from lint config
+- Added optional `config?: LintConfig` parameter to `validateAllTokens`. When provided, reads `maxDepth` from `config.lintRules['max-alias-depth']?.options?.maxDepth` (default 3) and respects the rule's `enabled` flag and `severity`. Updated the route to fetch and pass the current config.
+- Files changed: `packages/server/src/services/lint.ts` ~L286, ~L337; `packages/server/src/routes/lint.ts` ~L28
+- **Learnings for future iterations:**
+  - `validateAllTokens` and `lintTokens` are parallel functions — both now consistently read from `LintConfig` instead of having one use hardcoded defaults.
+  - Making the `config` parameter optional (with `DEFAULT_LINT_CONFIG` fallback) keeps the function usable in tests without wiring up a config store.
+---

@@ -45,7 +45,7 @@ If you discover a reusable pattern worth preserving, add it to `scripts/backlog/
 - **Avoid repeating previous passes.** Before choosing what to clean, grep `scripts/backlog/progress.txt` for `housekeeping:` entries to see what was already cleaned in prior sessions. Pick something in a different area or category.
 - One issue per session. Do not attempt a sweep of the whole codebase.
 - Do not refactor working code that is merely "not ideal" — only remove genuinely unused or harmful things.
-- Do NOT modify `backlog.md`.
+- Do NOT modify `backlog.md`. Overflow items go to `backlog-inbox.md`, not `backlog.md`.
 - If nothing stands out as clearly dead or harmful, pick the smallest safe cleanup (e.g. remove one unused import) and note it was low-impact.
 
 ---
