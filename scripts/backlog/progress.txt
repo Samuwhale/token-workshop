@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - SelectionInspector "No tokens applied" state — add a small icon and a "Go to Tokens tab" button
+- Added a 4-square grid SVG icon (opacity-40) above the "No tokens applied" text, and a conditional "Go to Tokens →" link button below the description. Added `onGoToTokens?: () => void` prop to `SelectionInspectorProps`. App.tsx passes `() => setActiveTab('tokens')` as the callback.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L25,L148,L621`; `packages/figma-plugin/src/ui/App.tsx` ~L2053
+- **Learnings for future iterations:**
+  - The `onGoToTokens?` optional callback pattern is consistent across PreviewPanel and SelectionInspector — use it for any empty-state cross-tab navigation.
+---
+
 ## 2026-03-27 - PreviewPanel template empty states — "No color tokens found" gives code snippet but no button to switch to Tokens tab
 - Added `onGoToTokens?: () => void` prop to `PreviewPanel` and threaded it into `ColorsTemplate` and `TypeScaleTemplate`. Both empty states now render a "Go to Tokens →" link button (styled with `text-[var(--color-figma-accent)] hover:underline`) that calls `onGoToTokens` when present. App.tsx passes `() => setActiveTab('tokens')` as the callback.
 - Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L4,L35,L133,L152,L199`; `packages/figma-plugin/src/ui/App.tsx` ~L2018

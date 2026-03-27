@@ -23,6 +23,7 @@ interface SelectionInspectorProps {
   onTokenCreated: () => void;
   onNavigateToToken?: (tokenPath: string) => void;
   onPushUndo?: (slot: UndoSlot) => void;
+  onGoToTokens?: () => void;
 }
 
 function shouldShowGroup(condition: string | undefined, caps: NodeCapabilities): boolean {
@@ -144,6 +145,7 @@ export function SelectionInspector({
   onTokenCreated,
   onNavigateToToken,
   onPushUndo,
+  onGoToTokens,
 }: SelectionInspectorProps) {
   const [creatingFromProp, setCreatingFromProp] = useState<BindableProperty | null>(null);
   const [newTokenName, setNewTokenName] = useState('');
@@ -619,10 +621,21 @@ export function SelectionInspector({
       <div className="flex-1 overflow-y-auto px-1 pb-1">
         {!hasVisibleProperties && totalBindings === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 px-6 py-8 text-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] opacity-40" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
             <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">No tokens applied</p>
             <p className="text-[9px] text-[var(--color-figma-text-secondary)] leading-relaxed">
               Apply tokens from the Tokens tab to see bindings here.
             </p>
+            {onGoToTokens && (
+              <button
+                onClick={onGoToTokens}
+                className="mt-1 text-[9px] text-[var(--color-figma-accent)] hover:underline"
+              >
+                Go to Tokens →
+              </button>
+            )}
           </div>
         ) : (
           <div>

@@ -2051,6 +2051,7 @@ export function App() {
                 setActiveTab('tokens');
               }}
               onPushUndo={pushUndo}
+              onGoToTokens={() => setActiveTab('tokens')}
             />
           )}
           {overflowPanel === null && activeTab === 'publish' && (
