@@ -132,7 +132,7 @@ Items spotted during UX passes but out of scope for that session.
 - [!] Consolidate duplicate `ThemeOption`/`ThemeDimension` types — defined identically in `useThemeSwitcher.ts`, `ThemeCompare.tsx`, and `ThemeManager.tsx`; consumers should import from one place
 - [~] Remove unused `updateServerUrl` from `useServerConnection` return — returned from hook but never destructured by any caller
 - [~] Remove unnecessary `rgbToHsl` export in `colorUtils.ts` — only used internally by `hexToHsl` in the same file
-- [ ] Remove unused `allSets` param from `UseGeneratorDialogParams` — accepted in interface but never read by hook body
+- [~] Remove unused `allSets` param from `UseGeneratorDialogParams` — accepted in interface but never read by hook body
 
 - [HIGH] ThemeManager `executeDeleteDimension` and `executeDeleteOption` don't check `res.ok` — server rejection (404/500) is silently ignored while optimistic local state update removes the dimension/option from the UI; `fetchDimensions()` eventually restores it but user gets no error feedback (`ThemeManager.tsx:252-260, 297-310`)
 - [HIGH] ThemeManager `handleSetState` doesn't check `res.ok` — a server-rejected set state toggle (e.g. 400 from invalid status) appears to succeed because `fetch` doesn't throw on HTTP errors; the catch block only handles network failures, not HTTP error responses (`ThemeManager.tsx:326-337`)

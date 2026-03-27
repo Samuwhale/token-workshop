@@ -10,3 +10,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Remove unused `updateServerUrl` from `useServerConnection` return — returned from hook but never destructured by any caller
   Worktree: /tmp/backlog-73590-93UpL9
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    6 turns · 19s · $0.14
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-27 - housekeeping: remove duplicate flattenTokenEntries in ThemeManager
+- Deleted the local `flattenTokenEntries` function (13 lines) and replaced its call site with `flattenTokenGroup` from `@tokenmanager/core`, matching the pattern used in App.tsx, ImportPanel, SyncPanel, and PasteTokensModal.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L36 (removed function), ~L1 (added import), ~L131 (updated call site)
+- **Why:** `flattenTokenEntries` was a reimplementation of `flattenTokenGroup` — same recursive DTCG group flattening, same `$`-prefix skip logic, different return shape (`{path, value}` vs `Map<string, DTCGToken>`). The call site only needed `path` and `$value`, so `for (const [path, token] of flattenTokenGroup(...))` with `token.$value` is a direct replacement.
+
+Stop signal received. Exiting after iteration 1.

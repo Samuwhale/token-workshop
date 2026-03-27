@@ -95,3 +95,10 @@
 - Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L36 (removed function), ~L1 (added import), ~L131 (updated call site)
 - **Why:** `flattenTokenEntries` was a reimplementation of `flattenTokenGroup` — same recursive DTCG group flattening, same `$`-prefix skip logic, different return shape (`{path, value}` vs `Map<string, DTCGToken>`). The call site only needed `path` and `$value`, so `for (const [path, token] of flattenTokenGroup(...))` with `token.$value` is a direct replacement.
 ---
+
+## 2026-03-27 - Remove unused `updateServerUrl` from `useServerConnection` return
+- Removed `updateServerUrl` from the return object of `useServerConnection`. The function is still defined internally and used by `updateServerUrlAndConnect`, but no caller ever destructured it from the hook's return value.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useServerConnection.ts` ~L65 (return object)
+- **Learnings for future iterations:**
+  - When removing a value from a hook's return, check that internal consumers (other functions in the same hook) still have access via closure — only the external export needs removal.
+---

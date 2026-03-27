@@ -62,5 +62,5 @@ export function useServerConnection() {
     };
   }, [serverUrl]);
 
-  return { connected, checking, serverUrl, updateServerUrl, updateServerUrlAndConnect, retryConnection };
+  return { connected, checking, serverUrl, updateServerUrlAndConnect, retryConnection };
 }

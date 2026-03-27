@@ -1,0 +1,18 @@
+NOTE: 1 [~] item(s) found — skipping reset (4 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 16
+  Completed total: 166 (next ux pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  16 items remaining
+===============================================================
+  Claimed: Remove unused `updateServerUrl` from `useServerConnection` return — returned from hook but never destructured by any caller
+  Worktree: /tmp/backlog-75264-J4oxVV
+
+  ✓ done: Remove unused `updateServerUrl` from `useServerConnection` return
+    Removed `updateServerUrl` from the hook's return object; internal usage by `updateServerUrlAndConnect` preserved via closure.
+    17 turns · 82s · $0.38
+
+--- Merging: Remove unused `updateServerUrl` from `useServerConnection` return ---
+Already up to date.

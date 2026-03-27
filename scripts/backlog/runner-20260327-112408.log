@@ -1,0 +1,11 @@
+NOTE: 2 [~] item(s) found — skipping reset (7 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 15
+  Completed total: 166 (next ux pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  15 items remaining
+===============================================================
+  Claimed: Remove unused `allSets` param from `UseGeneratorDialogParams` — accepted in interface but never read by hook body
+  Worktree: /tmp/backlog-75957-oZx8kK
