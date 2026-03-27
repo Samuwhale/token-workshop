@@ -118,13 +118,28 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/sync/remote — set remote URL
   fastify.post<{ Body: { url: string } }>('/sync/remote', async (request, reply) => {
     const { url } = request.body || {};
-    if (!url) {
+    if (!url || typeof url !== 'string') {
       return reply.status(400).send({ error: 'Remote URL is required' });
     }
 
+    const trimmed = url.trim();
+    // Accept HTTPS, SSH (git@host:path), git://, and file:// remote URLs
+    const validPatterns = [
+      /^https?:\/\/.+/,         // https://github.com/user/repo.git
+      /^git@[\w.-]+:.+/,        // git@github.com:user/repo.git
+      /^ssh:\/\/.+/,            // ssh://git@github.com/user/repo.git
+      /^git:\/\/.+/,            // git://github.com/repo.git
+      /^file:\/\/.+/,           // file:///path/to/repo
+    ];
+    if (!validPatterns.some(p => p.test(trimmed))) {
+      return reply.status(400).send({
+        error: 'Invalid remote URL format. Expected an HTTPS, SSH, or git:// URL (e.g. https://github.com/user/repo.git or git@github.com:user/repo.git).',
+      });
+    }
+
     try {
-      await fastify.gitSync.setRemote(url);
-      return { remote: url };
+      await fastify.gitSync.setRemote(trimmed);
+      return { remote: trimmed };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to set remote', detail: String(err) });
     }

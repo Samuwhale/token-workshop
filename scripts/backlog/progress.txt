@@ -236,3 +236,10 @@
   - The `/sync/pull` endpoint had the same missing-remote issue as `/sync/push` — always check sibling endpoints for the same class of bug.
   - Pre-existing TS errors in the server package (generators.ts, docs.ts, style-dict.ts) are from core type mismatches — not blockers for route-level changes.
 ---
+
+## 2026-03-27 - POST /api/sync/remote missing URL format validation
+- Added URL format validation to `POST /api/sync/remote` before passing to git. Accepts HTTPS, SSH (git@host:path), ssh://, git://, and file:// URLs. Invalid formats now return a 400 with a descriptive error message instead of a generic 500 from git. Also trims whitespace from the URL.
+- Files changed: `packages/server/src/routes/sync.ts` ~L120-142
+- **Learnings for future iterations:**
+  - Git remote URLs have 5 common schemes: https://, git@host:path (SCP-style SSH), ssh://, git://, file://. A simple regex array covers all of them without over-engineering.
+---
