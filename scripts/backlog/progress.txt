@@ -402,3 +402,10 @@
   - `parseInlineValue` returning `null` as a sentinel for "invalid" is a clean pattern; callers can check for `null` before using the value.
   - For inline edits, keeping the editor open on invalid input (rather than reverting or submitting bad data) is the right UX — no feedback needed since the user still sees the bad value highlighted in the input.
 ---
+
+## 2026-03-27 - Find-and-replace silently swallows invalid regex
+- Added `frRegexError` useMemo that validates the regex pattern when `frIsRegex` is true. When the pattern is invalid, the error message from `new RegExp()` is surfaced in the UI using `--color-figma-error` styling instead of the misleading "No token paths match." message. `frPreview` now short-circuits early when `frRegexError` is set.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1544 (frRegexError memo), ~L2880 (UI error display)
+- **Learnings for future iterations:**
+  - useMemo can't set state as a side effect — add a separate memo for derived error state rather than trying to signal errors from within another memo's return value.
+---

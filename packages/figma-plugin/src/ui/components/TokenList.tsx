@@ -1550,8 +1550,15 @@ export function TokenList({
     setTimeout(() => setApplyResult(null), 3000);
   };
 
+  const frRegexError = useMemo(() => {
+    if (!frIsRegex || !frFind) return null;
+    try { new RegExp(frFind); return null; }
+    catch (e) { return e instanceof Error ? e.message : 'Invalid regular expression'; }
+  }, [frFind, frIsRegex]);
+
   const frPreview = useMemo(() => {
     if (!frFind) return [];
+    if (frIsRegex && frRegexError) return [];
     const currentSetPaths = flattenTokens(tokens).map(t => t.path as string);
     const existingPathSet = new Set(currentSetPaths);
     let pattern: RegExp | null = null;
@@ -2879,7 +2886,10 @@ export function TokenList({
               </label>
 
               {/* Preview */}
-              {frFind && frPreview.length === 0 && (
+              {frFind && frIsRegex && frRegexError && (
+                <div className="text-[10px] text-[var(--color-figma-error)]">Invalid regex: {frRegexError}</div>
+              )}
+              {frFind && !frRegexError && frPreview.length === 0 && (
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No token paths match.</div>
               )}
               {frPreview.length > 0 && (

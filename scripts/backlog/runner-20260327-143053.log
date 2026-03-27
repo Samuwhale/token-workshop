@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: Find-and-replace silently swallows invalid regex — if the user enables regex mode and enters a malformed pattern, `new RegExp()` throws and the preview returns empty with no error
   Worktree: /tmp/backlog-97955-ByAYwG
+
+  ✓ done: Find-and-replace silently swallows invalid regex — if the user enables regex mode and enters a malformed pattern, `new RegExp()` throws and the preview returns empty with no error
+    Added frRegexError memo that surfaces the JS regex parse error inline; preview no longer shows misleading "No token paths match." for invalid patterns
+    14 turns · 78s · $0.27
+
+--- Merging: Find-and-replace silently swallows invalid regex — if the user enables regex mode and enters a malformed pattern, `new RegExp()` throws and the preview returns empty with no error ---
+Already up to date.

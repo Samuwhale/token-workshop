@@ -77,3 +77,17 @@ Already up to date.
 
 --- Merging: parseInlineValue for boolean type accepts any non-"false" string as true — typing "maybe" or "yes" both evaluate as true with no validation ---
 Already up to date.
+[main ec4e39d] chore(backlog): done – parseInlineValue for boolean type accepts any non-"false" string as true — typing "maybe" or "yes" both evaluate as true with no validation
+ 6 files changed, 53 insertions(+), 12 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - parseInlineValue for boolean type accepts any non-"false" string as true
+- Changed boolean branch to only accept "true"/"false" (case-insensitive) and return `null` for any other value.
+- `handleCreate` and `handleCreateAndNew` now validate the parsed value before submitting, calling `setCreateError` with a descriptive message if `null` (i.e. invalid boolean string).
+- `handleInlineSubmit` now keeps the editor open (does not save) if `parseInlineValue` returns `null`, so typing "maybe" or "yes" is silently rejected and the user can correct it.
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  84 items remaining
+===============================================================
+  Claimed: Virtual-scroll row height mismatch — `VIRTUAL_ITEM_HEIGHT` is hardcoded to 28 px, but rows with chain/alias badges render at ~48–56 px, causing misaligned scroll positions
+  Worktree: /tmp/backlog-98408-bXSYWu
