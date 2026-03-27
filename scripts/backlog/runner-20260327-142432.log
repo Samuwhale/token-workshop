@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Keyboard shortcuts fire inside text inputs — the global handler (Cmd+1-4, etc.) doesn't check if focus is in an input/textarea, triggering unintended tab switches while typing
   Worktree: /tmp/backlog-80241-Wq743Q
+
+  ✓ done: Keyboard shortcuts fire inside text inputs
+    Added input/textarea/contentEditable guard to global keydown handler in App.tsx so Cmd+1-4, Cmd+K, Cmd+Shift+V no longer fire while typing in form fields.
+    11 turns · 61s · $0.28
+
+--- Merging: Keyboard shortcuts fire inside text inputs ---
+Already up to date.

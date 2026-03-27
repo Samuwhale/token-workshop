@@ -16,3 +16,19 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Set delete failure doesn't reset modal state ---
 Already up to date.
+[main df189fc] chore(backlog): done – Set delete failure doesn't reset modal state
+ 9 files changed, 187 insertions(+), 13 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260327-142422.log
+ create mode 100644 scripts/backlog/runner-20260327-142427.log
+ create mode 100644 scripts/backlog/runner-20260327-142432.log
+
+## 2026-03-27 - Set delete failure doesn't reset modal state
+- Removed the try/catch in `handleDeleteSet` so errors propagate to `ConfirmModal.handleConfirm`, which already has built-in error display and busy-state reset. Previously the catch swallowed the error and closed the modal silently.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L632
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  98 items remaining
+===============================================================
+  Claimed: QuickStart dialog has no "back to templates" step — once a template is selected and TokenGeneratorDialog opens, the only way to pick a different template is to close and reopen the whole dialog
+  Worktree: /tmp/backlog-79767-Tw5r26

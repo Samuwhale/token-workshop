@@ -296,3 +296,10 @@
 - **Learnings for future iterations:**
   - `ConfirmModal` has built-in error handling (catches errors from `onConfirm`, displays them, resets busy state). Handlers passed as `onConfirm` should let errors propagate rather than catching them internally.
 ---
+
+## 2026-03-27 - Keyboard shortcuts fire inside text inputs
+- Added an early return in the global keydown handler to skip shortcuts when focus is in an `<input>`, `<textarea>`, or `contentEditable` element. Previously Cmd+1-4 (tab switch), Cmd+K (command palette), and Cmd+Shift+V (paste modal) all fired even when typing in form fields.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L444
+- **Learnings for future iterations:**
+  - Standard guard for global keyboard shortcuts: check `e.target.tagName === 'INPUT' || 'TEXTAREA' || isContentEditable` before acting. This is a one-liner but easy to forget.
+---

@@ -12,12 +12,12 @@
 ### Bugs
 
 - [~] EmptyState "Generate tokens from template" calls onGoToGraph but doesn't open QuickStartDialog — user lands on Generators tab and must manually trigger quick start again
-- [~] Set delete failure doesn't reset modal state — if the DELETE call fails, `deletingSet` isn't cleared so the confirm modal stays open with no error message shown
+- [x] Set delete failure doesn't reset modal state — if the DELETE call fails, `deletingSet` isn't cleared so the confirm modal stays open with no error message shown
 - [~] Keyboard shortcuts fire inside text inputs — the global handler (Cmd+1-4, etc.) doesn't check if focus is in an input/textarea, triggering unintended tab switches while typing
 
 ### QoL
 
-- [ ] QuickStart dialog has no "back to templates" step — once a template is selected and TokenGeneratorDialog opens, the only way to pick a different template is to close and reopen the whole dialog
+- [~] QuickStart dialog has no "back to templates" step — once a template is selected and TokenGeneratorDialog opens, the only way to pick a different template is to close and reopen the whole dialog
 - [ ] Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
 - [ ] No success toasts for set operations — create, rename, delete, reorder, merge, and split all succeed silently; only errors are surfaced, leaving users uncertain whether the action took effect
 - [ ] Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback
