@@ -392,3 +392,13 @@
 - **Learnings for future iterations:**
   - Badge conditions of the form `!(activeTab === X && overflowPanel === null)` are equivalent to `activeTab !== X || overflowPanel !== null` — they show the badge whenever the user is NOT currently viewing that tab's content unobstructed.
 ---
+
+## 2026-03-27 - parseInlineValue for boolean type accepts any non-"false" string as true
+- Changed boolean branch to only accept "true"/"false" (case-insensitive) and return `null` for any other value.
+- `handleCreate` and `handleCreateAndNew` now validate the parsed value before submitting, calling `setCreateError` with a descriptive message if `null` (i.e. invalid boolean string).
+- `handleInlineSubmit` now keeps the editor open (does not save) if `parseInlineValue` returns `null`, so typing "maybe" or "yes" is silently rejected and the user can correct it.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L132 (parseInlineValue), ~L1137 (handleCreate), ~L1192 (handleCreateAndNew), ~L3297 (handleInlineSubmit)
+- **Learnings for future iterations:**
+  - `parseInlineValue` returning `null` as a sentinel for "invalid" is a clean pattern; callers can check for `null` before using the value.
+  - For inline edits, keeping the editor open on invalid input (rather than reverting or submitting bad data) is the right UX — no feedback needed since the user still sees the bad value highlighted in the input.
+---

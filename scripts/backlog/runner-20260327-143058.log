@@ -70,3 +70,10 @@ Already up to date.
 ===============================================================
   Claimed: `parseInlineValue` for boolean type accepts any non-`"false"` string as `true` — typing "maybe" or "yes" both evaluate as `true` with no validation
   Worktree: /tmp/backlog-98408-35PnwY
+
+  ✓ done: parseInlineValue for boolean type accepts any non-"false" string as true — typing "maybe" or "yes" both evaluate as true with no validation
+    parseInlineValue now only accepts "true"/"false" for boolean (returns null otherwise); create forms show an error, inline editor stays open on invalid input
+    19 turns · 119s · $0.37
+
+--- Merging: parseInlineValue for boolean type accepts any non-"false" string as true — typing "maybe" or "yes" both evaluate as true with no validation ---
+Already up to date.

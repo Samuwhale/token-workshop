@@ -128,9 +128,14 @@ function getEditableString(type: string | undefined, value: any): string {
   return String(value);
 }
 
-/** Parse an inline-edited string back to the correct token value shape. */
+/** Parse an inline-edited string back to the correct token value shape.
+ * Returns null if the value is invalid for the given type. */
 function parseInlineValue(type: string, str: string): any {
-  if (type === 'boolean') return str.trim().toLowerCase() !== 'false';
+  if (type === 'boolean') {
+    const lower = str.trim().toLowerCase();
+    if (lower !== 'true' && lower !== 'false') return null;
+    return lower === 'true';
+  }
   if (type === 'number' || type === 'fontWeight' || type === 'duration') {
     const n = parseFloat(str);
     return isNaN(n) ? str : n;
@@ -1133,13 +1138,15 @@ export function TokenList({
     if (!connected) return;
     setCreateError('');
     const effectiveSet = setName || 'default';
+    const parsedValue = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
+    if (parsedValue === null) { setCreateError('Invalid value — boolean tokens must be "true" or "false"'); return; }
     try {
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           $type: newTokenType,
-          $value: newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType),
+          $value: parsedValue,
           ...(newTokenDescription.trim() ? { $description: newTokenDescription.trim() } : {}),
         }),
       });
@@ -1150,7 +1157,7 @@ export function TokenList({
       }
       const createdPath = trimmedPath;
       const createdType = newTokenType;
-      const createdValue = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
+      const createdValue = parsedValue;
       const capturedSet = effectiveSet;
       const capturedUrl = serverUrl;
       setShowCreateForm(false);
@@ -1188,13 +1195,15 @@ export function TokenList({
     if (!connected) return;
     setCreateError('');
     const effectiveSet = setName || 'default';
+    const parsedValue2 = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
+    if (parsedValue2 === null) { setCreateError('Invalid value — boolean tokens must be "true" or "false"'); return; }
     try {
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           $type: newTokenType,
-          $value: newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType),
+          $value: parsedValue2,
           ...(newTokenDescription.trim() ? { $description: newTokenDescription.trim() } : {}),
         }),
       });
@@ -1205,7 +1214,7 @@ export function TokenList({
       }
       const createdPath = trimmedPath;
       const createdType = newTokenType;
-      const createdValue = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
+      const createdValue = parsedValue2;
       const capturedSet = effectiveSet;
       const capturedUrl = serverUrl;
       // Compute parent prefix to pre-fill the next token in the same group
@@ -3296,10 +3305,12 @@ function TokenTreeNode({
 
   const handleInlineSubmit = useCallback(() => {
     if (!inlineEditActive) return;
-    setInlineEditActive(false);
     const raw = inlineEditValue.trim();
-    if (!raw || raw === getEditableString(node.$type, node.$value)) return;
-    onInlineSave?.(node.path, node.$type!, parseInlineValue(node.$type!, raw));
+    if (!raw || raw === getEditableString(node.$type, node.$value)) { setInlineEditActive(false); return; }
+    const parsed = parseInlineValue(node.$type!, raw);
+    if (parsed === null) return; // invalid value — keep editor open
+    setInlineEditActive(false);
+    onInlineSave?.(node.path, node.$type!, parsed);
   }, [inlineEditActive, inlineEditValue, node, onInlineSave]);
 
   // Sync state indicator

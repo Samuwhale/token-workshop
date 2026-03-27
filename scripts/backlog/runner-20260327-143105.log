@@ -37,3 +37,16 @@ Already up to date.
 
 --- Merging: Tab badges disappear when overflow panel is open ---
 Already up to date.
+[main e5c599a] chore(backlog): done – Tab badges disappear when overflow panel is open
+ 5 files changed, 30 insertions(+), 3 deletions(-)
+
+## 2026-03-27 - Tab badges disappear when overflow panel is open
+- Stale — already done. Both the Inspect selection count badge and Publish git-changes badge already use `!(activeTab === 'tab-id' && overflowPanel === null)` as their visibility condition, which correctly shows the badge whenever an overflow panel is open (even if you're on that tab). The inspect badge was added correctly in commit 6b215b7d and the publish badge in 7d1547fd — both with proper overflow panel handling from day one.
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  85 items remaining
+===============================================================
+  Claimed: Find-and-replace clears UI state even on failure — after a failed bulk rename the search/replace fields and mode are reset, losing the user's parameters
+  Worktree: /tmp/backlog-98901-2uJltF
