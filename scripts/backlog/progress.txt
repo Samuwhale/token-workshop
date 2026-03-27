@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - Lint results have no severity levels
+- Added severity-appropriate colors to the severity filter buttons in the validation section: "error" button now highlights red, "warning" highlights yellow, "info"/"all" keep the accent color. Also added a severity summary in the validation section header ("2 errors · 5 warnings · 3 info") with each count colored by severity for at-a-glance prioritization.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L403, ~L430
+- **Learnings for future iterations:**
+  - Severity infrastructure (server `LintViolation.severity`, UI filter buttons, group badges) was already in place. The gap was purely visual: filter buttons used the same accent color for all severities, obscuring the priority distinction.
+---
+
 ## 2026-03-27 - Generator output not previewed before applying
 - Stale — already done. `TokenGeneratorDialog.tsx` has a full "Preview" section (L344–403) showing live token previews via `/api/generators/preview` with type-specific visuals (`ColorSwatchPreview`, `TypeScalePreview`, `SpacingPreview`, `OpacityPreview`, `GenericPreview`, `ContrastCheckPreview`). `useGeneratorDialog.ts` implements `fetchPreview()` with debounce (L159–208) that fires on every config change. The Create button already shows `Create (N tokens)` based on preview count. The preview step was fully implemented before this item was processed.
 - Files changed: none (already implemented)

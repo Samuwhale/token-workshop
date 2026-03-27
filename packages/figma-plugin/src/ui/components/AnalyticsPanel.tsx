@@ -400,8 +400,24 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       {validateResults !== null && (
         <div className={`rounded border overflow-hidden ${resultsStale ? 'border-[var(--color-figma-border)] opacity-70' : 'border-[var(--color-figma-border)]'}`}>
           <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-            <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
-              Validation — {validateResults.length} issue{validateResults.length !== 1 ? 's' : ''}
+            <span className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-wide text-[var(--color-figma-text-secondary)]">
+              Validation
+              {severityCounts && validateResults.length > 0 && (
+                <span className="flex items-center gap-1 normal-case font-normal tracking-normal">
+                  {severityCounts.error > 0 && (
+                    <span className="text-[var(--color-figma-error)]">{severityCounts.error} error{severityCounts.error !== 1 ? 's' : ''}</span>
+                  )}
+                  {severityCounts.warning > 0 && (
+                    <span className="text-[var(--color-figma-warning)]">{severityCounts.warning} warning{severityCounts.warning !== 1 ? 's' : ''}</span>
+                  )}
+                  {severityCounts.info > 0 && (
+                    <span className="text-[var(--color-figma-accent)]">{severityCounts.info} info</span>
+                  )}
+                </span>
+              )}
+              {validateResults.length === 0 && (
+                <span className="normal-case font-normal tracking-normal text-[var(--color-figma-success)]">All clear</span>
+              )}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -433,7 +449,11 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                   onClick={() => setSeverityFilter(f)}
                   className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors ${
                     severityFilter === f
-                      ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10'
+                      ? f === 'error'
+                        ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10'
+                        : f === 'warning'
+                        ? 'border-[var(--color-figma-warning)] text-[var(--color-figma-warning)] bg-[var(--color-figma-warning)]/10'
+                        : 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10'
                       : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'
                   }`}
                 >
