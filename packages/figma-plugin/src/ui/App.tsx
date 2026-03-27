@@ -810,14 +810,14 @@ export function App() {
         const conflict = mergeConflicts.find(c => c.path === path);
         if (conflict) {
           if (mergeResolutions[path] === 'source') {
-            writes.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path}`, {
+            writes.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),
             }));
           }
         } else if (!tgtFlat[path]) {
-          writes.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path}`, {
+          writes.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),

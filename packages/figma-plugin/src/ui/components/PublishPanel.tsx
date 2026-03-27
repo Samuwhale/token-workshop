@@ -449,7 +449,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
       if (pullRows.length > 0) {
         await Promise.all(pullRows.map(r =>
-          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path}`, {
+          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaValue ?? '' }),
@@ -549,7 +549,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
       if (pullRows.length > 0) {
         await Promise.all(pullRows.map(r =>
-          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path}`, {
+          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaRaw }),

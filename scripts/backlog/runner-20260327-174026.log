@@ -56,3 +56,16 @@ Already up to date.
 
 --- Merging: resolveAllAliases does not recurse into composite token sub-properties ---
 Already up to date.
+[main 0a9c318] chore(backlog): done – resolveAllAliases does not recurse into composite token sub-properties
+ 5 files changed, 66 insertions(+), 15 deletions(-)
+
+## 2026-03-27 - resolveAllAliases does not recurse into composite token sub-properties
+- Added `resolveObjectSubprops` helper that iterates over an object's properties and resolves any alias strings using `resolveTokenValue`. Updated `resolveAllAliases` to apply this helper when the resolved value is a plain object or an array of objects (covers typography, border, shadow, gradient). Replaced the previous gradient-specific handling with the general approach.
+- Files changed: `packages/figma-plugin/src/shared/resolveAlias.ts` ~L83
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  37 items remaining
+===============================================================
+  Claimed: BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens
+  Worktree: /tmp/backlog-92215-uo6zPp

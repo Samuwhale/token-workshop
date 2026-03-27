@@ -91,7 +91,7 @@ export function useFigmaSync(
       for (let i = 0; i < tokenPaths.length; i += BATCH_SIZE) {
         const batch = tokenPaths.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(path =>
-          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path}`, {
+          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $extensions: { 'com.figma.scopes': groupScopesSelected } }),

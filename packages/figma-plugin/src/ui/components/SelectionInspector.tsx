@@ -495,10 +495,11 @@ export function SelectionInspector({
     const tokenType = getTokenTypeForProperty(creatingFromProp);
     const tokenValue = getTokenValueFromProp(creatingFromProp, currentValue);
     const tokenPath = newTokenName.trim();
+    const encodedTokenPath = tokenPath.split('.').map(encodeURIComponent).join('/');
 
     setCreating(true);
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${tokenPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${encodedTokenPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $type: tokenType, $value: tokenValue }),

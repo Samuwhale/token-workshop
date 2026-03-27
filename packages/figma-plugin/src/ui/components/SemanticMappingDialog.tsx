@@ -172,6 +172,7 @@ export function SemanticMappingDialog({
     try {
       for (const mapping of validMappings) {
         const fullPath = `${semanticPrefix.trim()}.${mapping.semantic}`;
+        const encodedFullPath = fullPath.split('.').map(encodeURIComponent).join('/');
         const tokenType = generatedTokens.find(t => String(t.stepName) === mapping.step)?.type ?? 'string';
         const body = {
           $type: tokenType,
@@ -179,7 +180,7 @@ export function SemanticMappingDialog({
           $description: `Semantic reference for ${targetGroup}.${mapping.step}`,
         };
         // POST /api/tokens/:set/* creates the token; PATCH if it already exists (409)
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${fullPath}`, {
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedFullPath}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -187,7 +188,7 @@ export function SemanticMappingDialog({
         if (!res.ok) {
           if (res.status === 409) {
             // Token already exists — overwrite via PATCH
-            const patchRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${fullPath}`, {
+            const patchRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedFullPath}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body),

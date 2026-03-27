@@ -23,12 +23,12 @@
 
 ### Bugs
 
-- [~] `resolveAllAliases` in the plugin does not recurse into composite token sub-properties — composite tokens (typography, shadow, border) with individually aliased sub-properties (e.g. `fontSize: "{type.base}"`) are not resolved, so the theme preview shows raw `{ref}` strings instead of values
+- [x] `resolveAllAliases` in the plugin does not recurse into composite token sub-properties — composite tokens (typography, shadow, border) with individually aliased sub-properties (e.g. `fontSize: "{type.base}"`) are not resolved, so the theme preview shows raw `{ref}` strings instead of values
 
 ### QoL
 
 - [~] TokenList: Multi-select mode has no keyboard shortcut to enter/exit — the select mode toggle is a small icon button (M) mentioned in the tooltip but not documented in KeyboardShortcutsModal, and there is no Escape-to-exit-select-mode handler
-- [ ] BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens
+- [~] BatchEditor: No confirmation before bulk type change — changing the type of many tokens at once can break alias references and downstream consumers, but the batch editor applies it immediately with no warning or preview of affected tokens
 
 ### UX
 

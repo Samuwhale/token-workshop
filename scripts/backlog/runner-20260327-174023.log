@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: Client URL encoding inconsistency — many handlers still use raw `${setName}/${tokenPath}` (no encodeURIComponent) for DELETE and other requests; if set names can contain `/`, these URLs would be misparsed
   Worktree: /tmp/backlog-91967-9ay4Mb
+
+  ✓ done: Client URL encoding inconsistency — many handlers still use raw `${setName}/${tokenPath}` (no encodeURIComponent) for DELETE and other requests; if set names can contain `/`, these URLs would be misparsed
+    Applied `path.split('.').map(encodeURIComponent).join('/')` encoding to all unencoded token path fetch URLs across 9 files (TokenEditor, SelectionInspector, useFigmaSync, AnalyticsPanel, PublishPanel, App, SemanticMappingDialog, TokenList)
+    53 turns · 354s · $1.29
+
+--- Merging: Client URL encoding inconsistency — many handlers still use raw `${setName}/${tokenPath}` (no encodeURIComponent) for DELETE and other requests; if set names can contain `/`, these URLs would be misparsed ---
+Already up to date.

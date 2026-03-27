@@ -875,7 +875,7 @@ export function TokenList({
 
     if (extractMode === 'new') {
       if (!newPrimitivePath.trim()) { setExtractError('Enter a path for the new primitive token.'); return; }
-      const createRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(newPrimitiveSet)}/${newPrimitivePath.trim()}`, {
+      const createRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(newPrimitiveSet)}/${newPrimitivePath.trim().split('.').map(encodeURIComponent).join('/')}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $type: extractToken.$type, $value: extractToken.$value }),
@@ -885,14 +885,14 @@ export function TokenList({
         setExtractError(err.error ?? 'Failed to create primitive token.');
         return;
       }
-      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path}`, {
+      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path.split('.').map(encodeURIComponent).join('/')}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $value: `{${newPrimitivePath.trim()}}` }),
       });
     } else {
       if (!existingAlias) { setExtractError('Select an existing token to alias.'); return; }
-      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path}`, {
+      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path.split('.').map(encodeURIComponent).join('/')}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $value: `{${existingAlias}}` }),
@@ -1138,7 +1138,7 @@ export function TokenList({
     while (allTokensFlat[newPath]) {
       newPath = `${baseCopy}-${i++}`;
     }
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath}`, {
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ $type: token.$type, $value: token.$value }),
@@ -1230,7 +1230,7 @@ export function TokenList({
     const parsedValue = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
     if (parsedValue === null) { setCreateError('Invalid value — boolean tokens must be "true" or "false"'); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath.split('.').map(encodeURIComponent).join('/')}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1249,6 +1249,7 @@ export function TokenList({
       const createdValue = parsedValue;
       const capturedSet = effectiveSet;
       const capturedUrl = serverUrl;
+      const capturedEncodedPath = createdPath.split('.').map(encodeURIComponent).join('/');
       setShowCreateForm(false);
       setNewTokenPath('');
       setNewTokenValue('');
@@ -1260,11 +1261,11 @@ export function TokenList({
         onPushUndo({
           description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
           restore: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${createdPath}`, { method: 'DELETE' });
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, { method: 'DELETE' });
             onRefresh();
           },
           redo: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${createdPath}`, {
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: createdType, $value: createdValue }),
@@ -1287,7 +1288,7 @@ export function TokenList({
     const parsedValue2 = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
     if (parsedValue2 === null) { setCreateError('Invalid value — boolean tokens must be "true" or "false"'); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath.split('.').map(encodeURIComponent).join('/')}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1306,6 +1307,7 @@ export function TokenList({
       const createdValue = parsedValue2;
       const capturedSet = effectiveSet;
       const capturedUrl = serverUrl;
+      const capturedEncodedPath = createdPath.split('.').map(encodeURIComponent).join('/');
       // Compute parent prefix to pre-fill the next token in the same group
       const prefix = createdPath.length > (createdPath.split('.').pop()?.length ?? 0) + 1
         ? nodeParentPath(createdPath, createdPath.split('.').pop()!)
@@ -1322,11 +1324,11 @@ export function TokenList({
         onPushUndo({
           description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
           restore: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${createdPath}`, { method: 'DELETE' });
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, { method: 'DELETE' });
             onRefresh();
           },
           redo: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${createdPath}`, {
+            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: createdType, $value: createdValue }),
@@ -1404,12 +1406,12 @@ export function TokenList({
     setDeleteError(null);
     try {
       if (deletedType === 'token' || deletedType === 'group') {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath}`, { method: 'DELETE' });
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' });
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
       } else {
         const results = await Promise.all(
           deletedPaths.map(path =>
-            fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${path}`, { method: 'DELETE' })
+            fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${path.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' })
           )
         );
         const failed = results.filter(r => !r.ok);
@@ -1435,7 +1437,7 @@ export function TokenList({
           restore: async () => {
             await Promise.all(
               captured.map(({ path, data }) =>
-                fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${path}`, {
+                fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(data),

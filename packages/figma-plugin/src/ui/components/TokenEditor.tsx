@@ -181,6 +181,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const initialServerSnapshotRef = useRef<string | null>(null);
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
 
+  const encodedTokenPath = tokenPath.split('.').map(encodeURIComponent).join('/');
+
   const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
 
@@ -197,7 +199,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     if (isCreateMode) return; // skip fetch in create mode
     const fetchToken = async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPath}`);
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`);
         if (!res.ok) throw new Error('Token not found');
         const data = await res.json();
         const token = data.token;
@@ -251,7 +253,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     const fetchDependents = async () => {
       setDependentsLoading(true);
       try {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${tokenPath}`);
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedTokenPath}`);
         if (res.ok) {
           const data = await res.json();
           setDependents(data.dependents ?? []);
@@ -380,7 +382,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
 
   const handleDelete = async () => {
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPath}`, { method: 'DELETE' });
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
       onBack();
     } catch (err) {
@@ -413,7 +415,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       // Conflict detection: if the token was modified on the server since we loaded it, warn the user.
       if (!isCreateMode && !forceOverwrite && initialServerSnapshotRef.current !== null) {
         try {
-          const checkRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPath}`);
+          const checkRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`);
           if (checkRes.ok) {
             const checkData = await checkRes.json();
             const currentSnapshot = JSON.stringify(checkData.token ?? null);
@@ -456,8 +458,9 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       if (Object.keys(extensions).length > 0) body.$extensions = extensions;
 
       const targetPath = isCreateMode ? editPath.trim() : tokenPath;
+      const encodedTargetPath = targetPath.split('.').map(encodeURIComponent).join('/');
       const method = isCreateMode ? 'POST' : 'PATCH';
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${targetPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTargetPath}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

@@ -268,3 +268,12 @@
   - Composite token $value is an object (or array of objects for multi-shadow); top-level `isAlias` check only catches alias strings, not objects with aliased sub-properties.
   - `resolveTokenValue` already handles alias chains, so calling it per sub-property correctly follows multi-hop alias chains.
 ---
+
+## 2026-03-27 - Client URL encoding inconsistency — many handlers still use raw `${setName}/${tokenPath}` (no encodeURIComponent) for DELETE and other requests; if set names can contain `/`, these URLs would be misparsed
+- Fixed all fetch calls that used raw dot-separated token paths without URL encoding. Applied `path.split('.').map(encodeURIComponent).join('/')` pattern consistently across all affected files.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L184, ~L200, ~L256, ~L385, ~L418, ~L462; `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L499; `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L94; `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L365; `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L452, ~L552; `packages/figma-plugin/src/ui/App.tsx` ~L813, ~L820; `packages/figma-plugin/src/ui/components/SemanticMappingDialog.tsx` ~L174; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L878, ~L888, ~L895, ~L1141, ~L1233, ~L1264, ~L1268, ~L1291, ~L1327, ~L1331, ~L1407, ~L1412, ~L1438
+- **Learnings for future iterations:**
+  - The correct pattern is `path.split('.').map(encodeURIComponent).join('/')` — token paths use `.` as delimiter, not `/`, so each segment must be individually encoded before joining with `/`.
+  - For undo/redo closures that capture a path, pre-compute `capturedEncodedPath` at capture time rather than encoding inside the async closure, to avoid repeated encoding.
+  - Grep pattern `fetch\(`\$\{.*\}/api/tokens/.*\$\{[^}]*[Pp]ath[^}]*\}\`` is useful to find all token-path fetch calls for auditing.
+---

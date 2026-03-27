@@ -362,7 +362,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     setDeduplicating(hex);
     try {
       await Promise.all(others.map(({ path, set }) =>
-        fetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path}`, {
+        fetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $value: `{${canonical.path}}` }),
