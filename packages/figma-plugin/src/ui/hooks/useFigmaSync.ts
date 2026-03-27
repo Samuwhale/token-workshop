@@ -34,7 +34,7 @@ export function useFigmaSync(
     } catch (err) {
       console.error('Failed to sync group to Figma:', err);
     }
-  }, [syncGroupPending, connected, serverUrl]);
+  }, [syncGroupPending, connected, serverUrl, pathToSet, setCollectionNames, setModeNames]);
 
   const handleSyncGroupStyles = useCallback(async () => {
     if (!syncGroupStylesPending || !connected) return;

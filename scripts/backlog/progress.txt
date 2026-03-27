@@ -340,3 +340,10 @@
   - Lazy `useState(() => { ... })` initializer is the clean pattern for reading localStorage on mount — avoids a separate `useEffect` with an empty dep array and prevents a render cycle.
   - Pair with a `useEffect([value])` writer for automatic persistence on every change.
 ---
+
+## 2026-03-27 - bugfix-pass: handleSyncGroup stale closure missing pathToSet/setCollectionNames/setModeNames deps
+- Bug: `handleSyncGroup` in `useFigmaSync.ts` used `pathToSet`, `setCollectionNames`, and `setModeNames` inside its body but only listed `[syncGroupPending, connected, serverUrl]` in its `useCallback` dependency array. The callback captured stale values from the initial render — in practice, `collectionMap` would always be `{}` (empty, as fetched asynchronously) so all synced tokens would be routed to the default `TokenManager` collection instead of their configured per-set collection.
+- Fix: Added `pathToSet`, `setCollectionNames`, and `setModeNames` to the `useCallback` dependency array.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L37
+- **Root cause:** The per-set collection name feature was added to the callback body but the developer forgot to update the dependency array, so the new closure variables were never tracked by React.
+---
