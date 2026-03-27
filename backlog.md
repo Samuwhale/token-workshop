@@ -100,30 +100,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Correctness & Safety
 
-- [x] App.tsx god component — ~2000-line component with 40+ useState declarations; should be decomposed into feature modules
-- [x] TokenList 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)
-- [x] TokenGeneratorDialog 800+ lines — handles 7+ generator types in one component; should be split (`figma-plugin/TokenGeneratorDialog.tsx`)
-- [x] CSS injection via token values in docs.ts — style attribute built with `escapeHtml` but not `escapeCssValue`; CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
-- [x] 15+ scattered localStorage keys — no centralized persistence utility; keys are spread across components without a single source of truth
-
-- [x] Active set tab not persisted — switching between token sets is not remembered across plugin re-opens; user always lands on the first tab (`figma-plugin/App.tsx`)
-- [x] No bulk multi-select in token list — shift-click or ctrl-click to select a range of tokens for batch operations is missing; users must use the batch editor's own selection model which is separate from the token list (`figma-plugin/TokenList.tsx`)
-- [x] No quick-copy of token path from list — right-clicking a token has no "Copy path" or "Copy value" option; users must open the editor and manually select the path text (`figma-plugin/TokenList.tsx` context menu)
-- [x] No diff preview before push to Figma — pushing tokens to Figma applies changes immediately with no preview of what will change (added/removed/modified variables); a confirmation diff would prevent accidental overwrites (`figma-plugin/controller.ts`)
-- [x] Push-to-Figma errors show raw messages — when sync fails, the raw controller error is shown without a user-friendly explanation or suggested action (`figma-plugin/App.tsx` sync error handling)
-- [x] No pull-from-Figma action — sync is push-only; there is no way to import variable values from an existing Figma collection back into token files, blocking round-tripping (`figma-plugin/ImportPanel.tsx`, `figma-plugin/controller.ts`)
-- [x] Generator output not previewed before applying — the token generator writes tokens immediately with no preview step showing the generated values before commit (`figma-plugin/TokenGeneratorDialog.tsx`)
-- [x] No way to edit generator seed values after creation — once a generator is saved, seed values (base color, scale ratio, etc.) cannot be changed; users must delete and recreate (`figma-plugin/TokenGeneratorDialog.tsx`)
-- [x] Lint results have no severity levels — all lint findings are treated equally with no warning vs error distinction, making it hard to prioritize (`server/lint.ts`, `figma-plugin/AnalyticsPanel.tsx`)
-- [x] No way to suppress specific lint warnings — lint findings cannot be dismissed or suppressed per-item; every run shows the same findings even for intentional patterns (`server/lint.ts`)
-- [x] Server connection status not visible in plugin header — there is no persistent indicator showing whether the local server is reachable; users only discover connectivity issues when an action fails (`figma-plugin/App.tsx`)
-- [x] No backup/export-all as ZIP — the export panel has format options but no "export all sets as a ZIP archive" for full backup or handoff (`figma-plugin/ExportPanel.tsx`, `server/routes/export.ts`)
-- [x] Selection inspector empty state missing — the selection inspector shows nothing when no Figma node is selected; a prompt like "Select a layer to inspect token bindings" would reduce confusion
-- [x] Token editor does not auto-focus first field — opening the token editor requires a manual click to start typing; the name or value field should auto-focus on open (`figma-plugin/TokenEditor.tsx`)
-- [x] Settings page has no reset-to-defaults — there is no way to reset all settings to their default values without manually clearing each field
-
 - [HIGH] `varCorrelationIdRef` and `varReadResolveRef` are shared between `computeVarDiff` and `runReadinessChecks` — if both are called concurrently (auto-run on mount + manual click), the second call overwrites the shared ref and the first promise never resolves, causing a silent hang or timeout (`SyncPanel.tsx:L68-69, L243-258`)
-- [x] Branch selector in SyncPanel triggers git checkout immediately on change with no confirmation — accidentally clicking a different branch in the `<select>` fires `doAction('checkout', ...)` instantly, with no undo and no warning about unsaved state (`SyncPanel.tsx:L748`)
 - [ ] `applyVarDiff` push is fire-and-forget: postMessage `apply-variables` is sent but the function never waits for a response from the plugin — state is cleared and "Variable sync applied" is shown regardless of whether Figma accepted the changes (`SyncPanel.tsx:L219-235`)
 - [ ] Commit form appears when only untracked (`?`) files are present — `status.isClean` is false for untracked files, so the commit form renders, but clicking "Commit" will fail (nothing staged); should show the form only when there are staged or tracked-modified files, or auto-stage tracked changes (`SyncPanel.tsx:L792`)
 - [ ] No "Create new branch" UI in SyncPanel — the server's `POST /api/sync/checkout` accepts `create: true` and `createBranch` exists on `gitSync`, but the branch selector only switches between existing branches; there is no way to start a new branch from the plugin (`SyncPanel.tsx:L744-756`, `sync.ts:L138`)
