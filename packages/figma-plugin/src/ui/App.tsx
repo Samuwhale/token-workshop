@@ -35,7 +35,7 @@ import { useThemeSwitcher } from './hooks/useThemeSwitcher';
 import { useFigmaSync } from './hooks/useFigmaSync';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
-import { stableStringify } from './shared/utils';
+import { stableStringify, adaptShortcut } from './shared/utils';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { flattenTokenGroup } from '@tokenmanager/core';
 
@@ -878,7 +878,7 @@ export function App() {
         label: 'Paste tokens',
         description: 'Create tokens from JSON or name:value lines',
         category: 'Tokens',
-        shortcut: '⌘⇧V',
+        shortcut: adaptShortcut('⌘⇧V'),
         handler: () => setShowPasteModal(true),
       },
       {
@@ -1098,14 +1098,14 @@ export function App() {
         <button
           onClick={() => setShowCommandPalette(v => !v)}
           className="flex items-center gap-1 px-2 py-1 mr-1 my-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors text-[10px]"
-          title="Command palette (⌘K)"
+          title={`Command palette (${adaptShortcut('⌘K')})`}
           aria-label="Open command palette"
         >
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="4.5" cy="4.5" r="3.5"/>
             <path d="M8 8l2 2"/>
           </svg>
-          <span className="opacity-50">⌘K</span>
+          <span className="opacity-50">{adaptShortcut('⌘K')}</span>
         </button>
 
         {/* Second screen / expand toggle */}
@@ -1202,7 +1202,7 @@ export function App() {
                 onClick={() => { setShowPasteModal(true); setMenuOpen(false); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Paste tokens <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-1">⌘⇧V</span>
+                Paste tokens <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-1">{adaptShortcut('⌘⇧V')}</span>
               </button>
               <button
                 role="menuitem"

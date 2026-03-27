@@ -1,3 +1,5 @@
+import { adaptShortcut } from '../shared/utils';
+
 interface ShortcutSection {
   header: string;
   shortcuts: { keys: string[]; label: string }[];
@@ -103,7 +105,7 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
                           key={key}
                           className="text-[9px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] rounded px-1 py-0.5 font-sans"
                         >
-                          {key}
+                          {adaptShortcut(key)}
                         </kbd>
                       </>
                     ))}

@@ -1,3 +1,4 @@
+import { modKey, shiftKey } from '../shared/utils';
 
 interface UndoToastProps {
   description: string | null;
@@ -10,8 +11,6 @@ interface UndoToastProps {
   undoCount?: number;
 }
 
-const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
-const modKey = isMac ? '⌘' : 'Ctrl+';
 
 export function UndoToast({ description, onUndo, onDismiss, canUndo, canRedo, redoDescription, onRedo, undoCount }: UndoToastProps) {
   // Show the most relevant description: undo description if available, otherwise redo description
@@ -36,11 +35,11 @@ export function UndoToast({ description, onUndo, onDismiss, canUndo, canRedo, re
         <button
           onClick={onRedo}
           disabled={!canRedo}
-          title={redoDescription ? `Redo: ${redoDescription} (${modKey}⇧Z)` : `Redo (${modKey}⇧Z)`}
+          title={redoDescription ? `Redo: ${redoDescription} (${modKey}{shiftKey}Z)` : `Redo (${modKey}{shiftKey}Z)`}
           className="shrink-0 px-2 py-0.5 rounded font-medium text-[10px] transition-colors disabled:opacity-30 disabled:cursor-default bg-white/20 hover:bg-white/30 disabled:hover:bg-white/20"
         >
           Redo
-          <kbd className="ml-1 opacity-50 font-normal">{modKey}⇧Z</kbd>
+          <kbd className="ml-1 opacity-50 font-normal">{modKey}{shiftKey}Z</kbd>
         </button>
       )}
       <button

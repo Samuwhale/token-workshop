@@ -10,6 +10,7 @@ import { resolveTokenValue } from '../../shared/resolveAlias';
 import { nodeParentPath } from './tokenListUtils';
 import { RemapAutocompleteInput } from './RemapAutocompleteInput';
 import type { UndoSlot } from '../hooks/useUndo';
+import { adaptShortcut } from '../shared/utils';
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -491,7 +492,7 @@ export function SelectionInspector({
             setDeepInspect(next);
             parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: next } }, '*');
           }}
-          title={deepInspect ? 'Deep inspect on — showing nested children (⌘⇧D)' : 'Enable deep inspect to show nested children (⌘⇧D)'}
+          title={deepInspect ? `Deep inspect on — showing nested children (${adaptShortcut('⌘⇧D')})` : `Enable deep inspect to show nested children (${adaptShortcut('⌘⇧D')})`}
           className={`text-[9px] px-1.5 py-0.5 rounded transition-colors mr-1 ${
             deepInspect
               ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'

@@ -39,3 +39,16 @@ Already up to date.
 
 --- Merging: QuickStart dialog has no "back to templates" step ---
 Already up to date.
+[main 6a151f5] chore(backlog): done – QuickStart dialog has no "back to templates" step
+ 7 files changed, 55 insertions(+), 14 deletions(-)
+
+## 2026-03-27 - QuickStart dialog has no "back to templates" step
+- Added `onBack` prop to `TokenGeneratorDialog`. When provided, renders a back arrow button in the header next to the title.
+- Updated `QuickStartDialog` to pass `onBack={() => setSelectedTemplate(null)}` (returns to template list) and `onClose={onClose}` (closes entire dialog). Previously `onClose` served double duty and showed an X icon for both actions.
+- Now the header shows: [back arrow] [title] ... [X close]. Back returns to template picker; X closes the whole QuickStart flow.
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  95 items remaining
+===============================================================
+  Claimed: Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback
+  Worktree: /tmp/backlog-79767-AFoEQK

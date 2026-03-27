@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
+import { adaptShortcut } from '../shared/utils';
 
 // ---------------------------------------------------------------------------
 // Parsing
@@ -407,7 +408,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
           <button
             onClick={handleConfirm}
             disabled={confirmCount === 0 || busy}
-            title={confirmCount > 0 ? '⌘↵ to confirm' : undefined}
+            title={confirmCount > 0 ? `${adaptShortcut('⌘')}↵ to confirm` : undefined}
             className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
           >
             {busy

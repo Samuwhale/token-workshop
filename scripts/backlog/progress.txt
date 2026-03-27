@@ -320,3 +320,14 @@
 - **Learnings for future iterations:**
   - When a dialog serves as a step in a multi-step flow, pass separate `onBack` and `onClose` callbacks rather than overloading `onClose`. This makes the navigation intent clear in both code and UI.
 ---
+
+## 2026-03-27 - Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
+- Added platform detection utilities (`isMac`, `modKey`, `shiftKey`, `adaptShortcut`) to `shared/utils.ts`. `adaptShortcut` replaces ⌘→Ctrl+ and ⇧→Shift+ on non-Mac platforms, leaving Mac unchanged.
+- Updated `KeyboardShortcutsModal.tsx` to call `adaptShortcut(key)` at render time so all shortcut labels adapt per platform.
+- Updated all other files with hardcoded Mac symbols: `App.tsx` (command palette trigger, paste menu item, command entry shortcut), `EmptyState.tsx` (⌘N hint), `PasteTokensModal.tsx` (⌘↵ tooltip), `SelectionInspector.tsx` (⌘⇧D tooltip).
+- Consolidated `UndoToast.tsx` to import `modKey`/`shiftKey` from shared utils instead of its local copy.
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` ~L1-14, `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L1,~L108, `packages/figma-plugin/src/ui/App.tsx` ~L38,~L881,~L1101,~L1108,~L1205, `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L1,~L47, `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L3,~L411, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L12,~L495, `packages/figma-plugin/src/ui/components/UndoToast.tsx` ~L1,~L13-14
+- **Learnings for future iterations:**
+  - Platform detection pattern: `typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent)` works in both browser and SSR contexts.
+  - Centralizing modifier key symbols in `shared/utils.ts` prevents future Mac-only symbol drift — all new shortcut displays should use `adaptShortcut()` or `modKey`/`shiftKey`.
+---

@@ -1,3 +1,4 @@
+import { adaptShortcut } from '../shared/utils';
 
 interface EmptyStateProps {
   connected: boolean;
@@ -43,7 +44,7 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset,
               <path d="M6 1v10M1 6h10" />
             </svg>
             <span className="flex-1 text-[11px] font-medium">Create first token</span>
-            <span className="text-white/60 text-[10px] font-normal">⌘N</span>
+            <span className="text-white/60 text-[10px] font-normal">{adaptShortcut('⌘N')}</span>
           </div>
           <p className="text-[10px] text-white/70 leading-snug pl-[20px]">
             Define a color, spacing, or any design value

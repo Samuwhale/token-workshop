@@ -30,3 +30,10 @@ Already up to date.
 ===============================================================
   Claimed: Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
   Worktree: /tmp/backlog-80241-WMVJ0W
+
+  ✓ done: Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
+    Added adaptShortcut() utility that replaces ⌘→Ctrl+ and ⇧→Shift+ on non-Mac platforms. Applied across KeyboardShortcutsModal, App.tsx, EmptyState, PasteTokensModal, SelectionInspector, and UndoToast.
+    43 turns · 280s · $1.25
+
+--- Merging: Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users ---
+Already up to date.
