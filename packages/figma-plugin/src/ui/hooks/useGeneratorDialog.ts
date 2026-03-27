@@ -24,7 +24,6 @@ interface UseGeneratorDialogParams {
   sourceTokenName?: string;
   sourceTokenType?: string;
   sourceTokenValue?: any;
-  allSets: string[];
   activeSet: string;
   existingGenerator?: TokenGenerator;
   template?: GeneratorTemplate;

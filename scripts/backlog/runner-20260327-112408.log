@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Remove unused `allSets` param from `UseGeneratorDialogParams` — accepted in interface but never read by hook body
   Worktree: /tmp/backlog-75957-oZx8kK
+
+  ✓ done: Remove unused `allSets` param from `UseGeneratorDialogParams`
+    Removed `allSets: string[]` from interface and its one call site in TokenGeneratorDialog.tsx — param was accepted but never destructured or read by hook body.
+    29 turns · 161s · $0.68
+
+--- Merging: Remove unused `allSets` param from `UseGeneratorDialogParams` ---
+Already up to date.

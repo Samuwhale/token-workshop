@@ -253,7 +253,6 @@ export function TokenGeneratorDialog({
     sourceTokenName,
     sourceTokenType,
     sourceTokenValue,
-    allSets,
     activeSet,
     existingGenerator,
     template,

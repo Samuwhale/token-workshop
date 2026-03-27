@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Remove unnecessary `rgbToHsl` export in `colorUtils.ts` ---
 Already up to date.
+[main 71850c4] chore(backlog): done – Remove unnecessary `rgbToHsl` export in `colorUtils.ts`
+ 6 files changed, 34 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Remove unnecessary `rgbToHsl` export in `colorUtils.ts`
+- Removed `export` keyword from `rgbToHsl` function — it was only used internally by `hexToHsl` in the same file.
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L91
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  13 items remaining
+===============================================================
+  Claimed: ThemeCompare path display uses `diff.path.split('.')` to extract parent/leaf segments — breaks for tokens with dots in segment names (e.g. `spacing.1.5` shows parent `spacing.1` and leaf `5` instead of parent `spacing` and leaf `1.5`); should use `nodeParentPath`/`formatDisplayPath` from tokenListUtils (`ThemeCompare.tsx:230-232`)
+  Worktree: /tmp/backlog-74807-AeER1P

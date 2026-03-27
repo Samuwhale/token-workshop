@@ -109,3 +109,11 @@
 - **Learnings for future iterations:**
   - Build validation blocked by pre-existing `@tokenmanager/core` package resolution issue in worktree. TypeScript type-check confirmed no errors from the change itself. Grep confirmed no external imports of `rgbToHsl`.
 ---
+
+## 2026-03-27 - Remove unused `allSets` param from `UseGeneratorDialogParams`
+- Removed `allSets: string[]` from the `UseGeneratorDialogParams` interface (was accepted but never read by hook body).
+- Removed `allSets` from the call site in `TokenGeneratorDialog.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L27, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L256
+- **Learnings for future iterations:**
+  - Build validation failed due to pre-existing `@tokenmanager/core` dist missing in worktree — not related to the change. Grepping the hook body for the param name is sufficient validation for dead-param removal.
+---
