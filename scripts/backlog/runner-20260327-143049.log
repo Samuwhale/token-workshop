@@ -306,3 +306,10 @@ Already up to date.
 ===============================================================
   Claimed: ImportPanel "Import from Figma Variables" gives no guidance about prerequisites — the only feedback is a 15-second timeout error if the plugin isn't set up correctly
   Worktree: /tmp/backlog-97510-RHFfBA
+
+  ✓ done: ImportPanel "Import from Figma Variables" gives no guidance about prerequisites — the only feedback is a 15-second timeout error if the plugin isn't set up correctly
+    Added prerequisite info callout in UI (Professional plan + local variables required), immediate error response from controller when Variables API throws, and improved timeout error message for the variables case.
+    28 turns · 156s · $0.54
+
+--- Merging: ImportPanel "Import from Figma Variables" gives no guidance about prerequisites — the only feedback is a 15-second timeout error if the plugin isn't set up correctly ---
+Already up to date.

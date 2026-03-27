@@ -109,11 +109,10 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
 
       if (msg.type === 'variables-read-error' && pendingSourceRef.current === 'variables' && msg.correlationId === correlationIdRef.current) {
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
-        readTimeoutRef.current = null;
         pendingSourceRef.current = null;
         correlationIdRef.current = null;
         setLoading(false);
-        setError(msg.error || 'Failed to read Figma variables. Make sure your Figma plan supports variables.');
+        setError(`Figma Variables API error: ${msg.message}. The Variables API requires a Figma Professional plan or above.`);
       }
       if (msg.type === 'variables-read' && pendingSourceRef.current === 'variables' && msg.correlationId === correlationIdRef.current) {
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
@@ -155,12 +154,17 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
 
   const startReadTimeout = () => {
     if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
+    const timedOutSource = pendingSourceRef.current;
     readTimeoutRef.current = setTimeout(() => {
       readTimeoutRef.current = null;
       pendingSourceRef.current = null;
       correlationIdRef.current = null;
       setLoading(false);
-      setError('Timed out waiting for Figma. Try again or reload the plugin.');
+      setError(
+        timedOutSource === 'variables'
+          ? 'Timed out waiting for Figma. Make sure the Figma Variables API is available (requires a Professional plan or above) and that this file has local variables defined.'
+          : 'Timed out waiting for Figma. Try again or reload the plugin.'
+      );
     }, 15000);
   };
 
@@ -483,6 +487,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 <path d="M2 1l4 3-4 3V1z" />
               </svg>
             </button>
+            <div className="flex items-start gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)]">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-[1px]" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>Requires a <strong className="font-medium text-[var(--color-figma-text)]">Figma Professional</strong> plan (or above) and at least one local variable collection defined in this file.</span>
+            </div>
             <button
               onClick={handleReadStyles}
               title="Reads styles from the currently open Figma file"

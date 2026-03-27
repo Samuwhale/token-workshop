@@ -328,3 +328,14 @@
   - SUGGESTED_NAMES already existed with generic paths — the fix needed only to extract the namespace prefix and splice in the layer slug, not replace the whole mapping.
   - Use a PROP_SUFFIX map for properties that share a namespace (e.g., stroke and fill both under "color") so each property gets a distinct leaf when the layer name is the middle segment.
 ---
+
+## 2026-03-27 - ImportPanel "Import from Figma Variables" gives no guidance about prerequisites
+- Added a prerequisite info callout below the "Import from Figma Variables" button explaining that Figma Professional plan (or above) is required and the file must have at least one local variable collection.
+- Added try/catch around `figma.variables.getLocalVariableCollectionsAsync()` in `readFigmaVariables` — if it throws (e.g. Starter plan), the controller now posts a `variables-read-error` message with the error text instead of silently crashing.
+- UI handler added for `variables-read-error` to show an immediate, specific error (clears timeout, shows API error message + plan note).
+- Improved timeout error message for the variables case to mention the Professional plan requirement and the need for local variables.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L109 (error handler), ~L154 (startReadTimeout), ~L480 (prerequisite callout); `packages/figma-plugin/src/plugin/controller.ts` ~L533 (try/catch in readFigmaVariables)
+- **Learnings for future iterations:**
+  - `figma.variables` API throws on Starter plan — wrap every call in try/catch and post an error message back; never let controller async functions crash silently.
+  - Capture `pendingSourceRef.current` into a local variable before the setTimeout callback runs, since the ref is cleared inside the callback before `setError` is called.
+---

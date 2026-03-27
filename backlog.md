@@ -74,7 +74,7 @@
 ### Bugs
 
 - [x] ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded — unclear what was partially imported
-- [~] Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing
+- [x] Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing
 
 ### UX
 
@@ -90,7 +90,7 @@
 
 ### Bugs
 
-- [ ] GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
+- [~] GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
 - [ ] Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing
 - [ ] Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
 

@@ -542,7 +542,14 @@ async function deleteOrphanVariables(knownPaths: string[]) {
 
 // Read existing Figma variables as tokens
 async function readFigmaVariables(correlationId?: string) {
-  const localCollections = await figma.variables.getLocalVariableCollectionsAsync();
+  let localCollections: VariableCollection[];
+  try {
+    localCollections = await figma.variables.getLocalVariableCollectionsAsync();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    figma.ui.postMessage({ type: 'variables-read-error', message, correlationId });
+    return;
+  }
   const collections: any[] = [];
 
   for (const collection of localCollections) {

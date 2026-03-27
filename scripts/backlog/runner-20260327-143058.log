@@ -341,3 +341,16 @@ Already up to date.
 
 --- Merging: Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing ---
 Already up to date.
+[main d1186b7] chore(backlog): done – Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing
+ 7 files changed, 51 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - New-token form doesn't suggest a path based on the bound property
+- Added `slugifyLayerName` and `suggestTokenPath` helpers. When `openCreateFromProp` is triggered for a single selected node, the path field is pre-filled as `{namespace}.{layerSlug}` (e.g. `color.button-primary`) or `{namespace}.{layerSlug}.{suffix}` for properties needing disambiguation (e.g. `spacing.card.padding-top`). Falls back to the generic SUGGESTED_NAMES path when multiple nodes are selected.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L119 (helpers), ~L341 (openCreateFromProp)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  29 items remaining
+===============================================================
+  Claimed: GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
+  Worktree: /tmp/backlog-98408-5z37nM
