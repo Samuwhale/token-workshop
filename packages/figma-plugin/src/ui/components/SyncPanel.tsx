@@ -47,6 +47,11 @@ function truncateValue(v: string, max = 24): string {
   return v.length > max ? v.slice(0, max) + '…' : v;
 }
 
+function formatCheckedAt(ts: number): string {
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {}, modeMap = {} }: SyncPanelProps) {
   const [status, setStatus] = useState<GitStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,6 +64,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   const [showNewBranch, setShowNewBranch] = useState(false);
   const [newBranchName, setNewBranchName] = useState('');
   const [diffView, setDiffView] = useState<{ localOnly: string[]; remoteOnly: string[]; conflicts: string[] } | null>(null);
+  const [diffCheckedAt, setDiffCheckedAt] = useState<number | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
   const [diffChoices, setDiffChoices] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
   const [applyingDiff, setApplyingDiff] = useState(false);
@@ -72,6 +78,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   const varSyncElapsedRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [varError, setVarError] = useState<string | null>(null);
   const [varChecked, setVarChecked] = useState(false);
+  const [varCheckedAt, setVarCheckedAt] = useState<number | null>(null);
   const [varSyncResult, setVarSyncResult] = useState<number | null>(null);
   const varSyncResultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const varPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
@@ -184,6 +191,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
 
       setVarRows(rows);
       setVarChecked(true);
+      setVarCheckedAt(Date.now());
       const dirs: Record<string, 'push' | 'pull' | 'skip'> = {};
       for (const r of rows) {
         dirs[r.path] = r.cat === 'figma-only' ? 'pull' : 'push';
@@ -421,6 +429,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
       if (!res.ok) throw new Error('Could not compute diff');
       const data = await res.json() as { localOnly: string[]; remoteOnly: string[]; conflicts: string[] };
       setDiffView(data);
+      setDiffCheckedAt(Date.now());
       const choices: Record<string, 'push' | 'pull' | 'skip'> = {};
       for (const f of data.localOnly) choices[f] = 'push';
       for (const f of data.remoteOnly) choices[f] = 'pull';
@@ -585,13 +594,20 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
                   <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{varRows.length} differ</span>
                 )}
               </div>
-              <button
-                onClick={computeVarDiff}
-                disabled={varLoading || !activeSet}
-                className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-              >
-                {varLoading ? 'Checking…' : varChecked ? 'Re-check' : 'Compare'}
-              </button>
+              <div className="flex items-center gap-1.5">
+                {varChecked && varCheckedAt && !varLoading && (
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]" title="Time of last comparison">
+                    {formatCheckedAt(varCheckedAt)}
+                  </span>
+                )}
+                <button
+                  onClick={computeVarDiff}
+                  disabled={varLoading || !activeSet}
+                  className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                >
+                  {varLoading ? 'Checking…' : varChecked ? 'Re-check' : 'Compare'}
+                </button>
+              </div>
             </div>
 
             {varError && (() => {
@@ -1048,13 +1064,20 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
                     <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
                   )}
                 </div>
-                <button
-                  onClick={computeDiff}
-                  disabled={diffLoading}
-                  className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
-                >
-                  {diffLoading ? 'Computing…' : diffView ? 'Re-check' : 'Compare'}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {diffView && diffCheckedAt && !diffLoading && (
+                    <span className="text-[9px] text-[var(--color-figma-text-secondary)]" title="Time of last comparison">
+                      {formatCheckedAt(diffCheckedAt)}
+                    </span>
+                  )}
+                  <button
+                    onClick={computeDiff}
+                    disabled={diffLoading}
+                    className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                  >
+                    {diffLoading ? 'Computing…' : diffView ? 'Re-check' : 'Compare'}
+                  </button>
+                </div>
               </div>
               {diffView && (() => {
                 const allFiles = [

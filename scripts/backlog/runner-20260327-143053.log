@@ -238,3 +238,16 @@ Already up to date.
 
 --- Merging: SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected ---
 Already up to date.
+[main 66a0c39] chore(backlog): done – SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected
+ 6 files changed, 31 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - SyncPanel bulk actions (push all / pull all / skip all) apply with no confirmation of how many rows will be affected
+- Added row count to each bulk action button label: "↑ Push all (N)", "↓ Pull all (N)", "Skip all (N)" where N = varRows.length. Users now see the affected count before clicking, without requiring a modal or disruptive confirmation step.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L617 (button label template literals)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  52 items remaining
+===============================================================
+  Claimed: No dry-run mode — no way to preview what a sync will change before it touches Figma objects
+  Worktree: /tmp/backlog-97955-WOuXUj

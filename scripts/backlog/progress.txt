@@ -338,3 +338,11 @@
 - **Learnings for future iterations:**
   - For "select all" bulk actions, showing the count in the button label is the minimal UX improvement — the user can still abort by not pressing Apply. A modal confirmation is overkill since the action is reversible via individual row controls.
 ---
+
+## 2026-03-27 - SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator
+- Added `varCheckedAt` and `diffCheckedAt` timestamp state vars. Set them on successful completion of `computeVarDiff` and `computeDiff`. Displayed as a dim "HH:MM" time string to the left of each Re-check button (hidden while loading or before first check). Users can now see exactly when the diff was last computed and judge whether it's stale after making changes.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L46 (helper), ~L62 (diffCheckedAt state), ~L75 (varCheckedAt state), ~L190 (set on var diff), ~L425 (set on git diff), ~L592 (var diff UI), ~L1060 (remote diff UI)
+- **Learnings for future iterations:**
+  - Static "last checked at HH:MM" is simpler than a ticking "X ago" timer and avoids needing setInterval + re-render overhead. Sufficient for diffs that users run manually.
+  - Wrap the button in a `flex items-center gap-1.5` div to add inline metadata without changing button layout.
+---

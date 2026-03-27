@@ -204,3 +204,10 @@ Already up to date.
 ===============================================================
   Claimed: SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator — users can't tell if the current diff is still valid after making changes
   Worktree: /tmp/backlog-97510-MrZCtq
+
+  ✓ done: SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator — users can't tell if the current diff is still valid after making changes
+    Added "HH:MM" last-checked timestamp next to each Re-check button (var diff + remote diff); set on successful completion of each compare operation
+    22 turns · 160s · $0.51
+
+--- Merging: SyncPanel Compare button relabels to "Re-check" after first run but provides no visual staleness indicator — users can't tell if the current diff is still valid after making changes ---
+Already up to date.
