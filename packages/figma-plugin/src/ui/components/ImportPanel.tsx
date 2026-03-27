@@ -72,6 +72,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [newSetInputVisible, setNewSetInputVisible] = useState(false);
   const [newSetDraft, setNewSetDraft] = useState('');
   const [newSetError, setNewSetError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
   const readTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSourceRef = useRef<'variables' | 'styles' | null>(null);
   const correlationIdRef = useRef<string | null>(null);
@@ -199,16 +201,11 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     fileInputRef.current?.click();
   };
 
-  const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    // Reset so same file can be re-selected
-    e.target.value = '';
+  const processJsonFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const json = JSON.parse(reader.result as string);
-        // Support both bare token group and wrapped { tokens: ... }
         const group = json.tokens ?? json;
         const flat = flattenTokenGroup(group);
         const importTokens: ImportToken[] = [];
@@ -232,6 +229,42 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    if (dragCounterRef.current === 1) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current === 0) setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
+    const file = Array.from(e.dataTransfer.files).find(f => f.name.endsWith('.json') || f.type === 'application/json');
+    if (!file) {
+      setError('Please drop a .json file.');
+      return;
+    }
+    processJsonFile(file);
+  };
+
+  const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset so same file can be re-selected
+    e.target.value = '';
+    processJsonFile(file);
   };
 
   const handleBack = () => {
@@ -453,7 +486,24 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className="flex flex-col h-full relative"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 rounded bg-[var(--color-figma-accent)]/10 border-2 border-dashed border-[var(--color-figma-accent)] pointer-events-none">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="12" y1="18" x2="12" y2="12" />
+            <line x1="9" y1="15" x2="15" y2="15" />
+          </svg>
+          <div className="text-[11px] font-medium text-[var(--color-figma-accent)]">Drop JSON file to import</div>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
         {error && (
           <div className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
@@ -529,7 +579,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               </div>
               <div className="flex-1 text-left">
                 <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from JSON file</div>
-                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Load a DTCG-format .json token file</div>
+                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Load a DTCG-format .json token file — or drag &amp; drop</div>
               </div>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
                 <path d="M2 1l4 3-4 3V1z" />

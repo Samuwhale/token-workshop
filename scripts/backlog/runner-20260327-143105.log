@@ -347,3 +347,10 @@ Already up to date.
 ===============================================================
   Claimed: No drag-and-drop file upload — the file input is click-only with no dropzone affordance
   Worktree: /tmp/backlog-98901-MvLuBL
+
+  ✓ done: No drag-and-drop file upload — the file input is click-only with no dropzone affordance
+    Added full-panel drag-and-drop overlay to ImportPanel; extracted processJsonFile helper shared by drop and file-input handlers; dragCounterRef prevents false-negative leave events on child hover
+    36 turns · 157s · $0.63
+
+--- Merging: No drag-and-drop file upload — the file input is click-only with no dropzone affordance ---
+Already up to date.

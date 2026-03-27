@@ -90,9 +90,9 @@
 
 ### Bugs
 
-- [~] GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
+- [x] GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
 - [~] Generator save button disabled with no actionable feedback — tooltip doesn't explain which required field (group, name, source, preview) is missing
-- [ ] Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
+- [~] Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
 
 ### UX
 

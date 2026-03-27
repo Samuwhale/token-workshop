@@ -361,3 +361,17 @@ Already up to date.
 
 --- Merging: GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications ---
 Already up to date.
+[main 999bc10] chore(backlog): done – GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
+ 6 files changed, 37 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - GraphPanel "Apply template" button doesn't disable during in-flight request — rapid clicks can trigger duplicate applications
+- Added `applyingRef` (useRef) as a synchronous guard at the top of `handleApply` — returns early if a request is already in flight, preventing duplicate POSTs before React re-renders with the disabled state.
+- Moved `setApplying(false)` from catch-only to `finally` so the button re-enables correctly on both success and failure paths.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L345 (applyingRef), ~L418 (guard), ~L482 (finally block)
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  27 items remaining
+===============================================================
+  Claimed: Multi-brand duplicate brand names silently overwrite tokens — entering the same brand name twice produces overlapping token paths with no validation
+  Worktree: /tmp/backlog-98408-xhR1n5
