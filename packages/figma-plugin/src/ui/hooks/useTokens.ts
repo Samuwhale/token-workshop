@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
+import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
 export interface TokenNode {
   path: string;
@@ -15,11 +16,9 @@ export interface TokenNode {
 
 export function useTokens(serverUrl: string, connected: boolean) {
   const [sets, setSets] = useState<string[]>([]);
-  const [activeSet, setActiveSetState] = useState<string>(() => {
-    try { return localStorage.getItem('tm_active_set') || ''; } catch { return ''; }
-  });
+  const [activeSet, setActiveSetState] = useState<string>(() => lsGet(STORAGE_KEYS.ACTIVE_SET, ''));
   const setActiveSet = (s: string) => {
-    try { localStorage.setItem('tm_active_set', s); } catch {}
+    lsSet(STORAGE_KEYS.ACTIVE_SET, s);
     setActiveSetState(s);
   };
   const [tokens, setTokens] = useState<TokenNode[]>([]);

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { hexToLuminance, wcagContrast, hexToLstar, countLeafNodes } from '../shared/colorUtils';
+import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
 
 interface ValidationIssue {
   rule: string;
@@ -76,12 +77,9 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [allColorTokens, setAllColorTokens] = useState<{ path: string; set: string; hex: string }[]>([]);
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [deduplicating, setDeduplicating] = useState<string | null>(null); // hex key being deduplicated
-  const [canonicalPick, setCanonicalPick] = useState<Record<string, string>>(() => {
-    try {
-      const saved = localStorage.getItem('analytics_canonicalPick');
-      return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
-  }); // hex → chosen canonical path
+  const [canonicalPick, setCanonicalPick] = useState<Record<string, string>>(() =>
+    lsGetJson<Record<string, string>>(STORAGE_KEYS.ANALYTICS_CANONICAL, {})
+  ); // hex → chosen canonical path
   const [reloadKey, setReloadKey] = useState(0);
   const [showScaleInspector, setShowScaleInspector] = useState(false);
   const [resultsStale, setResultsStale] = useState(false); // true after a "Go →" navigation
@@ -100,7 +98,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const coverageResolveRef = useRef<((data: any) => void) | null>(null);
 
   useEffect(() => {
-    try { localStorage.setItem('analytics_canonicalPick', JSON.stringify(canonicalPick)); } catch { /* quota exceeded */ }
+    lsSetJson(STORAGE_KEYS.ANALYTICS_CANONICAL, canonicalPick);
   }, [canonicalPick]);
 
   const runValidate = useCallback(async () => {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { STORAGE_KEYS, lsGetJson, lsSet } from '../shared/storage';
 
 // ---------------------------------------------------------------------------
 // Fuzzy match — simple character-subsequence scoring
@@ -25,24 +26,18 @@ function fuzzyScore(query: string, target: string): number {
 // Recent actions — persist to localStorage
 // ---------------------------------------------------------------------------
 
-const RECENT_KEY = 'tm_palette_recent';
 const RECENT_MAX = 5;
 
 interface RecentEntry { id: string; label: string }
 
 function loadRecent(): RecentEntry[] {
-  try {
-    const raw = localStorage.getItem(RECENT_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  return lsGetJson<RecentEntry[]>(STORAGE_KEYS.PALETTE_RECENT, []);
 }
 
 function saveRecent(entry: RecentEntry) {
-  try {
-    const list = loadRecent().filter(r => r.id !== entry.id);
-    list.unshift(entry);
-    localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, RECENT_MAX)));
-  } catch {}
+  const list = loadRecent().filter(r => r.id !== entry.id);
+  list.unshift(entry);
+  lsSet(STORAGE_KEYS.PALETTE_RECENT, JSON.stringify(list.slice(0, RECENT_MAX)));
 }
 
 // ---------------------------------------------------------------------------

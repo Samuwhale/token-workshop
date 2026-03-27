@@ -1,16 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
+import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
 const MAX_WIDTH = 900;
 const MAX_HEIGHT = 900;
 
 export function useWindowExpand() {
-  const [isExpanded, setIsExpanded] = useState(() => {
-    try { return localStorage.getItem('tm_expanded') === '1'; } catch { return false; }
-  });
+  const [isExpanded, setIsExpanded] = useState(() => lsGet(STORAGE_KEYS.EXPANDED) === '1');
   const toggleExpand = useCallback(() => {
     const next = !isExpanded;
     setIsExpanded(next);
-    try { localStorage.setItem('tm_expanded', next ? '1' : '0'); } catch {}
+    lsSet(STORAGE_KEYS.EXPANDED, next ? '1' : '0');
     parent.postMessage({ pluginMessage: { type: 'resize', width: next ? MAX_WIDTH : 400, height: next ? MAX_HEIGHT : 600 } }, '*');
   }, [isExpanded]);
   useEffect(() => {

@@ -33,6 +33,7 @@ import { useTokenNavigation } from './hooks/useTokenNavigation';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
 import { stableStringify } from './shared/utils';
+import { STORAGE_KEYS, STORAGE_KEY, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { flattenTokenGroup } from '@tokenmanager/core';
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -182,13 +183,11 @@ function useWindowResize() {
 
 export function App() {
   const [activeTab, setActiveTabState] = useState<Tab>(() => {
-    try {
-      const stored = localStorage.getItem('tm_active_tab');
-      return (stored && TABS.some(t => t.id === stored) ? stored : 'tokens') as Tab;
-    } catch { return 'tokens'; }
+    const stored = lsGet(STORAGE_KEYS.ACTIVE_TAB);
+    return (stored && TABS.some(t => t.id === stored) ? stored : 'tokens') as Tab;
   });
   const setActiveTab = (tab: Tab) => {
-    try { localStorage.setItem('tm_active_tab', tab); } catch {}
+    lsSet(STORAGE_KEYS.ACTIVE_TAB, tab);
     setActiveTabState(tab);
   };
   const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
@@ -269,11 +268,11 @@ export function App() {
   type ThemeOption = { name: string; sets: Record<string, 'enabled' | 'disabled' | 'source'> };
   type ThemeDimension = { id: string; name: string; options: ThemeOption[] };
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
-  const [activeThemes, setActiveThemesState] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem('tm_active_themes') || '{}'); } catch { return {}; }
-  });
+  const [activeThemes, setActiveThemesState] = useState<Record<string, string>>(() =>
+    lsGetJson<Record<string, string>>(STORAGE_KEYS.ACTIVE_THEMES, {})
+  );
   const setActiveThemes = (map: Record<string, string>) => {
-    try { localStorage.setItem('tm_active_themes', JSON.stringify(map)); } catch {}
+    lsSetJson(STORAGE_KEYS.ACTIVE_THEMES, map);
     parent.postMessage({ pluginMessage: { type: 'set-active-themes', themes: map } }, '*');
     setActiveThemesState(map);
   };
@@ -446,18 +445,15 @@ export function App() {
   const sidebarTree = useMemo(() => buildSetFolderTree(sets), [sets]);
 
   // Collapsed folders state (persisted to localStorage)
-  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() => {
-    try {
-      const saved = localStorage.getItem('tm_collapsed_folders');
-      return new Set<string>(saved ? JSON.parse(saved) : []);
-    } catch { return new Set<string>(); }
-  });
+  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() =>
+    new Set<string>(lsGetJson<string[]>(STORAGE_KEYS.COLLAPSED_FOLDERS, []))
+  );
   const toggleFolder = useCallback((folderPath: string) => {
     setCollapsedFolders(prev => {
       const next = new Set(prev);
       if (next.has(folderPath)) next.delete(folderPath);
       else next.add(folderPath);
-      try { localStorage.setItem('tm_collapsed_folders', JSON.stringify([...next])); } catch {}
+      lsSetJson(STORAGE_KEYS.COLLAPSED_FOLDERS, [...next]);
       return next;
     });
   }, []);
@@ -995,17 +991,11 @@ export function App() {
       // best-effort
     }
     // Clear all plugin localStorage keys
-    const keysToRemove = ['tm_active_tab', 'tm_active_set', 'analytics_canonicalPick', 'themeCardOrder', 'importTargetSet'];
-    for (const key of keysToRemove) {
-      try { localStorage.removeItem(key); } catch {}
+    for (const key of [STORAGE_KEYS.ACTIVE_TAB, STORAGE_KEYS.ACTIVE_SET, STORAGE_KEYS.ANALYTICS_CANONICAL, STORAGE_KEYS.THEME_CARD_ORDER, STORAGE_KEYS.IMPORT_TARGET_SET]) {
+      lsRemove(key);
     }
     // Clear per-set sort/filter keys
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (k && (k.startsWith('token-sort:') || k.startsWith('token-type-filter:'))) {
-        try { localStorage.removeItem(k); } catch {}
-      }
-    }
+    lsClearByPrefix(STORAGE_PREFIXES.TOKEN_SORT, STORAGE_PREFIXES.TOKEN_TYPE_FILTER);
     setClearing(false);
     setShowClearConfirm(false);
     setClearConfirmText('');

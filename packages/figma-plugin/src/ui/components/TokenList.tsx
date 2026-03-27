@@ -12,6 +12,7 @@ import { TokenCanvas } from './TokenCanvas';
 import { TokenGraph } from './TokenGraph';
 import { colorDeltaE } from '../shared/colorUtils';
 import { stableStringify } from '../shared/utils';
+import { STORAGE_KEY, lsGet, lsSet } from '../shared/storage';
 import { ValuePreview } from './ValuePreview';
 import { ColorPicker } from './ColorPicker';
 import type { SortOrder } from './tokenListUtils';
@@ -400,19 +401,12 @@ export function TokenList({
   const [sortOrder, setSortOrderState] = useState<SortOrder>('default');
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(`token-sort:${setName}`) as SortOrder;
-      setSortOrderState(stored || 'default');
-    } catch {
-      setSortOrderState('default');
-    }
+    setSortOrderState((lsGet(STORAGE_KEY.tokenSort(setName)) as SortOrder) || 'default');
   }, [setName]);
 
   const setSortOrder = useCallback((order: SortOrder) => {
     setSortOrderState(order);
-    try {
-      localStorage.setItem(`token-sort:${setName}`, order);
-    } catch {}
+    lsSet(STORAGE_KEY.tokenSort(setName), order);
   }, [setName]);
 
   // Clear optimistic deletions when the server response arrives with fresh tokens
@@ -434,11 +428,7 @@ export function TokenList({
   });
 
   useEffect(() => {
-    try {
-      setTypeFilterState(localStorage.getItem(`token-type-filter:${setName}`) || '');
-    } catch {
-      setTypeFilterState('');
-    }
+    setTypeFilterState(lsGet(STORAGE_KEY.tokenTypeFilter(setName), ''));
   }, [setName]);
 
   const setSearchQuery = useCallback((v: string) => {
@@ -447,7 +437,7 @@ export function TokenList({
   }, []);
   const setTypeFilter = useCallback((v: string) => {
     setTypeFilterState(v);
-    try { localStorage.setItem(`token-type-filter:${setName}`, v); } catch {}
+    lsSet(STORAGE_KEY.tokenTypeFilter(setName), v);
   }, [setName]);
   const setRefFilter = useCallback((v: 'all' | 'aliases' | 'direct') => {
     setRefFilterState(v);

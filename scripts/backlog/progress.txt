@@ -423,3 +423,13 @@
   - `escapeCssValue` must be applied per-value, not to the full multi-property style string — applying it to the full string would strip the valid `;` delimiters between properties.
   - The pattern was already correctly used in `renderColorTokens` (line 44); the typography function just missed it.
 ---
+
+## 2026-03-27 - 15+ distinct localStorage keys scattered across components without centralized persistence utility
+- Created `src/ui/shared/storage.ts` with: `STORAGE_KEYS` const object (12 named keys), `STORAGE_KEY` dynamic key builders (`tokenSort`, `tokenTypeFilter`), `STORAGE_PREFIXES` for bulk-delete, and helpers `lsGet`, `lsSet`, `lsRemove`, `lsGetJson`, `lsSetJson`, `lsClearByPrefix`. Updated all 10 files to use the utility — zero raw `localStorage` calls remain outside `storage.ts`.
+- Files changed: `src/ui/shared/storage.ts` (new), `src/ui/hooks/useWindowExpand.ts` ~L1, `src/ui/hooks/usePreviewSplit.ts` ~L1, `src/ui/hooks/useTokens.ts` ~L1, `src/ui/hooks/useServerConnection.ts` ~L1, `src/ui/App.tsx` ~L35, ~L186, ~L273, ~L451, ~L998, `src/ui/components/TokenList.tsx` ~L1, ~L402, ~L437, ~L450, `src/ui/components/CommandPalette.tsx` ~L1, ~L28, `src/ui/components/AnalyticsPanel.tsx` ~L1, ~L79, ~L102, `src/ui/components/ImportPanel.tsx` ~L1, ~L59, ~L258, ~L714
+- **Learnings for future iterations:**
+  - The two-level key design (`STORAGE_KEYS` for static keys, `STORAGE_KEY` for dynamic builders) cleanly handles both fixed and per-set keys without overloading the same object.
+  - `lsClearByPrefix` collects keys into a separate array before deleting (avoids index drift from mutating localStorage during iteration).
+  - `lsGet` with function overloads keeps the API ergonomic: callers that always need a string pass a fallback and get `string` back (no null check needed); optional callers get `string | null`.
+  - `lsGetJson<T>(key, fallback)` collapses the common `try { JSON.parse(getItem(key) || '{}') } catch { {} }` pattern to one line.
+---

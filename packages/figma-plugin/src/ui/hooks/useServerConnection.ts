@@ -1,27 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
 const DEFAULT_URL = 'http://localhost:9400';
-const STORAGE_KEY = 'tokenmanager_server_url';
 
 export function useServerConnection() {
   const [connected, setConnected] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [serverUrl, setServerUrl] = useState(() => {
-    try {
-      return localStorage.getItem(STORAGE_KEY) || DEFAULT_URL;
-    } catch {
-      return DEFAULT_URL;
-    }
-  });
+  const [serverUrl, setServerUrl] = useState(() => lsGet(STORAGE_KEYS.SERVER_URL, DEFAULT_URL));
   const serverUrlRef = useRef(serverUrl);
   serverUrlRef.current = serverUrl;
 
   const updateServerUrl = useCallback((url: string) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, url);
-    } catch {
-      // ignore
-    }
+    lsSet(STORAGE_KEYS.SERVER_URL, url);
     setServerUrl(url);
   }, []);
 

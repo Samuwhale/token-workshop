@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
+import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
 interface ImportPanelProps {
   serverUrl: string;
@@ -56,7 +57,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [loading, setLoading] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [targetSet, setTargetSet] = useState(() => localStorage.getItem('importTargetSet') || 'imported');
+  const [targetSet, setTargetSet] = useState(() => lsGet(STORAGE_KEYS.IMPORT_TARGET_SET, 'imported'));
   const [sets, setSets] = useState<string[]>([]);
   const [source, setSource] = useState<'variables' | 'styles' | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -254,7 +255,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     const name = newSetDraft.trim();
     if (!name) return;
     setTargetSet(name);
-    localStorage.setItem('importTargetSet', name);
+    lsSet(STORAGE_KEYS.IMPORT_TARGET_SET, name);
     setConflictPaths(null);
     setNewSetInputVisible(false);
     setNewSetDraft('');
@@ -710,7 +711,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                     setNewSetInputVisible(true);
                   } else {
                     setTargetSet(e.target.value);
-                    localStorage.setItem('importTargetSet', e.target.value);
+                    lsSet(STORAGE_KEYS.IMPORT_TARGET_SET, e.target.value);
                   }
                 }}
                 className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none"
