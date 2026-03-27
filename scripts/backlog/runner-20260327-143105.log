@@ -395,3 +395,16 @@ Already up to date.
 
 --- Merging: Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces ---
 Already up to date.
+[main 70e5d2a] chore(backlog): done – Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
+ 6 files changed, 77 insertions(+), 6 deletions(-)
+
+## 2026-03-27 - Lightness/chroma sliders have no visual preview — numeric L* and chroma values shown without a color swatch of what the setting produces
+- Added 12×12px inline color swatches next to each slider label in `ColorRampConfigEditor`:
+  - Light end L* and Dark end L* sliders: neutral gray swatch via `labToHex(L*, 0, 0)` — shows the perceptual gray at that lightness level
+  - Chroma boost slider: reference swatch using fixed hue 220° (blue-ish) with base chroma 25 × boost at L=55 — shows muted→vivid saturation effect
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  17 items remaining
+===============================================================
+  Claimed: No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version
+  Worktree: /tmp/backlog-98901-OWLI4o

@@ -448,3 +448,14 @@
   - For chroma-only previews without a user-supplied hue, a fixed reference hue (220°) communicates the muted→vivid effect without being misleading
   - Import `labToHex` directly from `@tokenmanager/core` in generator components per the no-reexport pattern
 ---
+
+## 2026-03-27 - TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain
+- Updated `detectAliasCycle` to return `string[] | null` (the actual cycle path, e.g. `["a","b","c","a"]`) instead of `boolean`. Updated `aliasHasCycle` useMemo return type accordingly.
+- Updated circular reference inline error to show the cycle: "Circular reference: a → b → c → a"
+- Updated unresolved alias inline error to show the specific missing token path: "Token not found: `palette.blue.500`" and when the failure is deeper in a chain: "Token not found: `palette.blue.500` (via semantic.primary → base.blue.500)"
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L72 (detectAliasCycle), ~L284 (aliasHasCycle useMemo), ~L651-668 (inline error messages)
+- **Learnings for future iterations:**
+  - `detectAliasCycle` previously returned boolean — changing it to return the cycle array allows the UI to show which tokens form the cycle without any additional computation.
+  - `resolveAliasChain` already returns all hops with `value === undefined` on the last hop when broken; the broken path is simply `chain[chain.length - 1].path`.
+  - `aliasHasCycle` is checked as a boolean in multiple places (canSave, saveBlockReason, JSX conditions) — a `string[] | null` return works seamlessly since arrays are truthy and null is falsy.
+---

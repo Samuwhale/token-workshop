@@ -68,24 +68,32 @@ function resolveAliasChain(
   return [current];
 }
 
-/** Returns true if following `ref` from `currentTokenPath` would create a cycle. */
+/**
+ * Returns the cycle path (e.g. ["a", "b", "c", "a"]) if following `ref`
+ * from `currentTokenPath` would create a cycle, or null if no cycle.
+ */
 function detectAliasCycle(
   ref: string,
   currentTokenPath: string,
   allTokensFlat: Record<string, TokenMapEntry>,
-): boolean {
+): string[] | null {
   const visited = new Set<string>([currentTokenPath]);
+  const chain: string[] = [currentTokenPath];
   let current = ref.startsWith('{') && ref.endsWith('}') ? ref.slice(1, -1) : ref;
   while (true) {
-    if (visited.has(current)) return true;
+    if (visited.has(current)) {
+      const cycleStart = chain.indexOf(current);
+      return [...chain.slice(cycleStart), current];
+    }
     visited.add(current);
+    chain.push(current);
     const entry = allTokensFlat[current];
-    if (!entry) return false;
+    if (!entry) return null;
     const v = entry.$value;
     if (typeof v === 'string' && v.startsWith('{') && v.endsWith('}')) {
       current = v.slice(1, -1);
     } else {
-      return false;
+      return null;
     }
   }
 }
@@ -275,10 +283,10 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
 
   useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
-  const aliasHasCycle = useMemo(() => {
-    if (!aliasMode || !reference.startsWith('{') || !reference.endsWith('}')) return false;
+  const aliasHasCycle = useMemo((): string[] | null => {
+    if (!aliasMode || !reference.startsWith('{') || !reference.endsWith('}')) return null;
     const currentPath = isCreateMode ? editPath.trim() : tokenPath;
-    if (!currentPath) return false;
+    if (!currentPath) return null;
     return detectAliasCycle(reference, currentPath, allTokensFlat);
   }, [aliasMode, reference, isCreateMode, editPath, tokenPath, allTokensFlat]);
 
@@ -646,13 +654,26 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               </p>
             )}
             {!showAutocomplete && aliasHasCycle && (
-              <p className="mt-0.5 text-[9px] text-[var(--color-figma-error)]">Circular reference — this alias would create an infinite loop</p>
+              <p className="mt-0.5 text-[9px] text-[var(--color-figma-error)]">
+                Circular reference: <span className="font-mono">{aliasHasCycle.join(' → ')}</span>
+              </p>
             )}
             {!showAutocomplete && !aliasHasCycle && reference.startsWith('{') && reference.endsWith('}') && (() => {
               const chain = resolveAliasChain(reference, allTokensFlat);
-              return chain.length > 0 && chain[chain.length - 1].value === undefined ? (
-                <p className="mt-0.5 text-[9px] text-[var(--color-figma-error)]">Reference does not resolve — token not found</p>
-              ) : null;
+              const lastHop = chain[chain.length - 1];
+              if (chain.length > 0 && lastHop.value === undefined) {
+                const brokenPath = lastHop.path;
+                const priorPaths = chain.slice(0, -1).map(h => h.path);
+                return (
+                  <p className="mt-0.5 text-[9px] text-[var(--color-figma-error)]">
+                    Token not found: <span className="font-mono">{brokenPath}</span>
+                    {priorPaths.length > 0 && (
+                      <span className="opacity-70"> (via {priorPaths.join(' → ')})</span>
+                    )}
+                  </p>
+                );
+              }
+              return null;
             })()}
             </>
           )}

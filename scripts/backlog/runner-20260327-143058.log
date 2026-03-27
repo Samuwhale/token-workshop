@@ -415,3 +415,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain
   Worktree: /tmp/backlog-98408-9YdoXF
+
+  ✓ done: TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain
+    detectAliasCycle now returns the cycle path array; unresolved errors show the specific missing token name and the via-chain that led there
+    14 turns · 200s · $0.53
+
+--- Merging: TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain ---
+Already up to date.
