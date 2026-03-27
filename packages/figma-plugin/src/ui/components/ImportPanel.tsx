@@ -35,6 +35,15 @@ function slugify(str: string) {
   return str.toLowerCase().replace(/\s+/g, '-').replace(/[^a-zA-Z0-9/_-]/g, '');
 }
 
+function markDuplicatePaths(importTokens: ImportToken[]): ImportToken[] {
+  const pathCounts = new Map<string, number>();
+  for (const t of importTokens) pathCounts.set(t.path, (pathCounts.get(t.path) ?? 0) + 1);
+  return importTokens.map(t => {
+    if ((pathCounts.get(t.path) ?? 1) <= 1) return t;
+    return { ...t, _warning: `Path conflict: multiple tokens share "${t.path}" — only the last will be saved` };
+  });
+}
+
 function defaultSetName(collectionName: string, modeName: string, totalModes: number) {
   const base = slugify(collectionName);
   if (totalModes <= 1) return base;
@@ -180,7 +189,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         pendingSourceRef.current = null;
         correlationIdRef.current = null;
         if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
-        setTokens(msg.tokens || []);
+        const markedTokens = markDuplicatePaths(msg.tokens || []);
+        setTokens(markedTokens);
         setSelectedTokens(new Set((msg.tokens || []).map((t: ImportToken) => t.path)));
         setTypeFilter(null);
         setLoading(false);
@@ -258,8 +268,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           setError('No tokens found in file. Make sure it is a valid DTCG JSON file.');
           return;
         }
+        const markedImportTokens = markDuplicatePaths(importTokens);
         setSource('json');
-        setTokens(importTokens);
+        setTokens(markedImportTokens);
         setSelectedTokens(new Set(importTokens.map(t => t.path)));
         setTypeFilter(null);
         setError(null);
@@ -860,6 +871,13 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               );
             })()}
 
+            {/* Path conflict warning banner */}
+            {tokens.some(t => t._warning?.startsWith('Path conflict')) && (
+              <div className="px-3 py-2 rounded bg-[var(--color-figma-warning,#f59e0b)]/10 border border-[var(--color-figma-warning,#e8a100)]/30 text-[9px] text-[var(--color-figma-warning,#e8a100)]">
+                ⚠ Some tokens share the same path after normalization. Conflicting tokens are highlighted below — only the last one with each path will be saved.
+              </div>
+            )}
+
             {/* Token list */}
             {(() => {
               const filtered = typeFilter ? tokens.filter(t => t.$type === typeFilter) : tokens;
@@ -876,7 +894,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 return String(target.$value);
               };
 
-              const renderRow = (token: ImportToken) => {
+              const renderRow = (token: ImportToken, index: number) => {
                 const isAlias = typeof token.$value === 'string' && /^\{.+\}$/.test(token.$value);
                 const aliasTarget = isAlias ? (token.$value as string).slice(1, -1) : null;
                 const resolvedValue = isAlias ? resolveAlias(token.$value) : null;
@@ -888,7 +906,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
 
                 return (
                   <label
-                    key={token.path}
+                    key={index}
                     title={tooltipText}
                     className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors ${
                       selectedTokens.has(token.path) ? 'bg-[var(--color-figma-accent)]/5' : 'hover:bg-[var(--color-figma-bg-hover)]'

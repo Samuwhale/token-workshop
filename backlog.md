@@ -117,7 +117,7 @@
 
 ### QoL
 
-- [~] No keyboard shortcut to toggle alias mode — switching between direct value and alias reference requires clicking the toggle button; a shortcut (e.g. Cmd+L) would speed up the most common editor workflow
+- [x] No keyboard shortcut to toggle alias mode — switching between direct value and alias reference requires clicking the toggle button; a shortcut (e.g. Cmd+L) would speed up the most common editor workflow
 
 ---
 
@@ -142,7 +142,7 @@
 
 ### Performance
 
-- [ ] Theme dimensions store reads `$themes.json` from disk on every GET request — `createDimensionsStore` has no in-memory cache; each `load()` call re-reads and re-parses the file
+- [~] Theme dimensions store reads `$themes.json` from disk on every GET request — `createDimensionsStore` has no in-memory cache; each `load()` call re-reads and re-parses the file
 
 ### Correctness & Safety
 

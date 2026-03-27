@@ -57,3 +57,16 @@ Already up to date.
 
 --- Merging: No keyboard shortcut to toggle alias mode — switching between direct value and alias reference requires clicking the toggle button; a shortcut (e.g. Cmd+L) would speed up the most common editor workflow ---
 Already up to date.
+[main 40d31fa] chore(backlog): done – No keyboard shortcut to toggle alias mode — switching between direct value and alias reference requires clicking the toggle button; a shortcut (e.g. Cmd+L) would speed up the most common editor workflow
+ 6 files changed, 56 insertions(+), 21 deletions(-)
+
+## 2026-03-27 - No keyboard shortcut to toggle alias mode — switching between direct value and alias reference requires clicking the toggle button; a shortcut (e.g. Cmd+L) would speed up the most common editor workflow
+- Added `handleToggleAlias` useCallback encapsulating the toggle logic (previously inline in the button onClick). Wired button onClick to use it. Added `(e.metaKey || e.ctrlKey) && e.key === 'l'` handler to the existing keydown useEffect. Added title tooltip to the toggle button showing "⌘L" shortcut hint.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L2 (useCallback import), ~L394 (handleToggleAlias + keydown handler), ~L634 (button onClick + title)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  17 items remaining
+===============================================================
+  Claimed: Theme dimensions store reads `$themes.json` from disk on every GET request — `createDimensionsStore` has no in-memory cache; each `load()` call re-reads and re-parses the file
+  Worktree: /tmp/backlog-59609-9JrYJL

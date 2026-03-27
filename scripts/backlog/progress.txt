@@ -414,3 +414,15 @@
   - Extracting inline toggle logic into a useCallback before adding keyboard handler keeps both the button and the keydown handler in sync without code duplication
   - The existing global keydown useEffect is the right place to add shortcut keys — just extend its dependency array with the new callback
 ---
+
+## 2026-03-27 - ImportPanel: Figma Styles and JSON readers normalize paths identically — if a variable and style share a name like `color/primary`, they map to the same `color.primary` token path, creating silent conflicts
+- Added `markDuplicatePaths` helper that detects tokens sharing the same normalized path and annotates each with a `_warning` field ("Path conflict: multiple tokens share '...' — only the last will be saved")
+- Applied `markDuplicatePaths` in both the `styles-read` message handler and `processJsonFile` after building the token list
+- Added a warning banner above the token list that appears whenever any loaded tokens have path conflicts
+- Fixed `renderRow` to use index-based `key` (previously used `token.path`, causing silent React key collision when duplicates existed — only one row rendered but both were sent to the server)
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L34 (markDuplicatePaths helper), ~L190 (styles-read handler), ~L263 (processJsonFile), ~L870 (warning banner + renderRow key fix)
+- **Learnings for future iterations:**
+  - `readFigmaStyles` aggregates paint styles + text styles + effect styles into one array — a Figma file can have a paint style and text style with identical names, causing duplicate paths after `replace(/\//g, '.')`
+  - React `key={token.path}` on token rows silently drops duplicate-keyed elements from the DOM but both still pass through filter logic and hit the server batch endpoint
+  - The `_warning` field on `ImportToken` already had UI support (orange warning text below the path) — the fix reused this existing display pattern
+---

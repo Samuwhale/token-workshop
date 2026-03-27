@@ -75,3 +75,10 @@ Already up to date.
 ===============================================================
   Claimed: ImportPanel: Figma Styles and JSON readers normalize paths identically — if a variable and style share a name like `color/primary`, they map to the same `color.primary` token path, creating silent conflicts
   Worktree: /tmp/backlog-59883-Sj8w6S
+
+  ✓ done: ImportPanel: Figma Styles and JSON readers normalize paths identically — if a variable and style share a name like `color/primary`, they map to the same `color.primary` token path, creating silent conflicts
+    Added markDuplicatePaths helper that annotates duplicate-path tokens with _warning, shows a warning banner in the UI, and fixed renderRow to use index keys to prevent silent React key collisions
+    20 turns · 244s · $0.78
+
+--- Merging: ImportPanel: Figma Styles and JSON readers normalize paths identically — if a variable and style share a name like `color/primary`, they map to the same `color.primary` token path, creating silent conflicts ---
+Already up to date.
