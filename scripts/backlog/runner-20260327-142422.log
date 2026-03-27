@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: EmptyState "Generate tokens from template" calls onGoToGraph but doesn't open QuickStartDialog — user lands on Generators tab and must manually trigger quick start again
   Worktree: /tmp/backlog-79425-B6xspC
+
+  ✓ done: EmptyState "Generate tokens from template" calls onGoToGraph but doesn't open QuickStartDialog
+    Added setShowScaffoldWizard(true) to onGoToGraph callback so clicking the button both switches to Generators tab and opens QuickStartDialog
+    8 turns · 93s · $0.41
+
+--- Merging: EmptyState "Generate tokens from template" calls onGoToGraph but doesn't open QuickStartDialog ---
+Already up to date.

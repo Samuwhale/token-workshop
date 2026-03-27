@@ -2012,7 +2012,7 @@ export function App() {
               onPasteJSON={() => setShowPasteModal(true)}
               onUsePreset={() => setShowScaffoldWizard(true)}
               onGenerateColorScale={() => setShowColorScaleGen(true)}
-              onGoToGraph={() => { setActiveTab('graph'); setOverflowPanel(null); }}
+              onGoToGraph={() => { setActiveTab('graph'); setOverflowPanel(null); setShowScaffoldWizard(true); }}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && !showPreviewSplit && (

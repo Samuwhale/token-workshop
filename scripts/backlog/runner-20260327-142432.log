@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Keyboard shortcuts fire inside text inputs ---
 Already up to date.
+[main aaee870] chore(backlog): done – Keyboard shortcuts fire inside text inputs
+ 6 files changed, 35 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Keyboard shortcuts fire inside text inputs
+- Added an early return in the global keydown handler to skip shortcuts when focus is in an `<input>`, `<textarea>`, or `contentEditable` element. Previously Cmd+1-4 (tab switch), Cmd+K (command palette), and Cmd+Shift+V (paste modal) all fired even when typing in form fields.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L444
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  97 items remaining
+===============================================================
+  Claimed: Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
+  Worktree: /tmp/backlog-80241-WMVJ0W

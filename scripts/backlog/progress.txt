@@ -303,3 +303,10 @@
 - **Learnings for future iterations:**
   - Standard guard for global keyboard shortcuts: check `e.target.tagName === 'INPUT' || 'TEXTAREA' || isContentEditable` before acting. This is a one-liner but easy to forget.
 ---
+
+## 2026-03-27 - EmptyState "Generate tokens from template" calls onGoToGraph but doesn't open QuickStartDialog
+- Added `setShowScaffoldWizard(true)` to the `onGoToGraph` callback so clicking "Generate tokens from template" in EmptyState both switches to the Generators tab and opens the QuickStartDialog.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L2018
+- **Learnings for future iterations:**
+  - The EmptyState has two template paths: "Use a preset" (opens QuickStartDialog only) and "Generate tokens from template" (switches tab). Both should open the dialog for a seamless UX.
+---
