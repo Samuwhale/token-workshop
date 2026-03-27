@@ -1,4 +1,5 @@
 import { SemanticMappingDialog } from './SemanticMappingDialog';
+import { ValueDiff } from './ValueDiff';
 import type {
   TokenGenerator,
   GeneratorType,
@@ -159,6 +160,7 @@ export function TokenGeneratorDialog({
     previewTokens,
     previewLoading,
     previewError,
+    overwrittenEntries,
     saving,
     saveError,
     showSemanticMapping,
@@ -347,6 +349,28 @@ export function TokenGeneratorDialog({
               </div>
             )}
           </div>
+
+          {/* Overwrites diff */}
+          {overwrittenEntries.length > 0 && (
+            <div>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">
+                Overwrites{' '}
+                <span className="text-[var(--color-figma-warning)]">
+                  {overwrittenEntries.length} existing token{overwrittenEntries.length !== 1 ? 's' : ''}
+                </span>
+              </label>
+              <div className="flex flex-col gap-1.5">
+                {overwrittenEntries.map(entry => (
+                  <div key={entry.path} className="flex flex-col gap-0.5">
+                    <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={entry.path}>
+                      {entry.path}
+                    </span>
+                    <ValueDiff type={entry.type} before={entry.oldValue} after={entry.newValue} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Multi-brand input table */}
           <div className="border border-[var(--color-figma-border)] rounded p-3 bg-[var(--color-figma-bg-secondary)]">

@@ -7,6 +7,25 @@ import type {
   GeneratorTemplate,
   InputTable,
 } from './useGenerators';
+
+function flattenTokenGroup(
+  group: Record<string, any>,
+  prefix = '',
+  parentType?: string,
+): Record<string, { $value: unknown; $type: string }> {
+  const out: Record<string, { $value: unknown; $type: string }> = {};
+  const inheritedType: string | undefined = group.$type ?? parentType;
+  for (const [key, value] of Object.entries(group)) {
+    if (key.startsWith('$') || value == null || typeof value !== 'object') continue;
+    const path = prefix ? `${prefix}.${key}` : key;
+    if ('$value' in value) {
+      out[path] = { $value: value.$value, $type: value.$type ?? inheritedType ?? 'unknown' };
+    } else {
+      Object.assign(out, flattenTokenGroup(value as Record<string, any>, path, inheritedType));
+    }
+  }
+  return out;
+}
 import {
   detectGeneratorType,
   suggestTargetGroup,
@@ -30,6 +49,13 @@ interface UseGeneratorDialogParams {
   onSaved: (info?: { targetGroup: string }) => void;
 }
 
+export interface OverwrittenEntry {
+  path: string;
+  type: string;
+  oldValue: unknown;
+  newValue: unknown;
+}
+
 interface UseGeneratorDialogReturn {
   // Derived
   isEditing: boolean;
@@ -51,6 +77,7 @@ interface UseGeneratorDialogReturn {
   previewTokens: GeneratedTokenResult[];
   previewLoading: boolean;
   previewError: string;
+  overwrittenEntries: OverwrittenEntry[];
   saving: boolean;
   saveError: string;
   showSemanticMapping: boolean;
@@ -138,6 +165,8 @@ export function useGeneratorDialog({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState('');
 
+  const [existingSetTokens, setExistingSetTokens] = useState<Record<string, { $value: unknown; $type: string }>>({});
+
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
 
@@ -214,6 +243,31 @@ export function useGeneratorDialog({
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!targetSet) return;
+    const controller = new AbortController();
+    fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: controller.signal })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setExistingSetTokens(flattenTokenGroup(data.tokens || {})); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [serverUrl, targetSet]);
+
+  const overwrittenEntries = useMemo<OverwrittenEntry[]>(() => {
+    if (isMultiBrand || previewTokens.length === 0) return [];
+    return previewTokens
+      .filter(pt => {
+        const existing = existingSetTokens[pt.path];
+        return existing !== undefined && JSON.stringify(existing.$value) !== JSON.stringify(pt.value);
+      })
+      .map(pt => ({
+        path: pt.path,
+        type: pt.type,
+        oldValue: existingSetTokens[pt.path].$value,
+        newValue: pt.value,
+      }));
+  }, [previewTokens, existingSetTokens, isMultiBrand]);
 
   const handleTypeChange = (type: GeneratorType) => {
     setSelectedType(type);
@@ -349,6 +403,7 @@ export function useGeneratorDialog({
     previewTokens,
     previewLoading,
     previewError,
+    overwrittenEntries,
     saving,
     saveError,
     showSemanticMapping,

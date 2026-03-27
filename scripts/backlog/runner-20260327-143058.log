@@ -422,3 +422,16 @@ Already up to date.
 
 --- Merging: TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain ---
 Already up to date.
+[main 1e38eff] chore(backlog): done – TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain
+ 6 files changed, 67 insertions(+), 15 deletions(-)
+
+## 2026-03-27 - TokenEditor alias resolution errors don't identify which specific alias path failed to resolve — user must manually debug the reference chain
+- Updated `detectAliasCycle` to return `string[] | null` (the actual cycle path, e.g. `["a","b","c","a"]`) instead of `boolean`. Updated `aliasHasCycle` useMemo return type accordingly.
+- Updated circular reference inline error to show the cycle: "Circular reference: a → b → c → a"
+- Updated unresolved alias inline error to show the specific missing token path: "Token not found: `palette.blue.500`" and when the failure is deeper in a chain: "Token not found: `palette.blue.500` (via semantic.primary → base.blue.500)"
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  16 items remaining
+===============================================================
+  Claimed: Circular-reference error doesn't identify the cycle — the error says "circular reference detected" but doesn't name which tokens form the loop
+  Worktree: /tmp/backlog-98408-SPhWoU

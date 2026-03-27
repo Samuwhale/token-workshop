@@ -373,3 +373,10 @@ Already up to date.
 ===============================================================
   Claimed: No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values
   Worktree: /tmp/backlog-97955-tJRUq2
+
+  ✓ done: No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values
+    Added overwrittenEntries computation (fetches existing tokens for targetSet, diffs against previewTokens) and a ValueDiff-based "Overwrites N existing tokens" section in the generator dialog preview area
+    21 turns · 224s · $0.78
+
+--- Merging: No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values ---
+Already up to date.

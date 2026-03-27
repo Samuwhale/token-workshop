@@ -459,3 +459,16 @@
   - `resolveAliasChain` already returns all hops with `value === undefined` on the last hop when broken; the broken path is simply `chain[chain.length - 1].path`.
   - `aliasHasCycle` is checked as a boolean in multiple places (canSave, saveBlockReason, JSX conditions) — a `string[] | null` return works seamlessly since arrays are truthy and null is falsy.
 ---
+
+## 2026-03-27 - No before/after diff in override mode — when a generator overwrites existing tokens there's no side-by-side comparison of old vs. new values
+- Added `flattenTokenGroup` helper to `useGeneratorDialog.ts` to flatten the nested DTCG token group returned by `GET /api/tokens/:set`
+- Added `existingSetTokens` state that fetches and caches all tokens for `targetSet` whenever it changes
+- Computed `overwrittenEntries` (path, type, oldValue, newValue) by diffing `previewTokens` against `existingSetTokens`
+- Exported `OverwrittenEntry` type and added `overwrittenEntries` to the hook's return value
+- In `TokenGeneratorDialog.tsx`, imported `ValueDiff` and added an "Overwrites N existing tokens" section between the preview and multi-brand panels, showing per-token before/after diffs
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L1 (flattenTokenGroup helper), ~L58 (OverwrittenEntry type), ~L157 (existingSetTokens state), ~L237 (fetch effect + overwrittenEntries memo); `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L2 (ValueDiff import), ~L163 (overwrittenEntries destructure), ~L353 (diff section)
+- **Learnings for future iterations:**
+  - The token API returns nested DTCG format; a simple `flattenTokenGroup` that checks for `'$value' in value` is sufficient to distinguish token leaves from group nodes
+  - `previewTokens[i].path` is the full dot-separated path — directly matchable against the flat map keys from the set fetch
+  - The diff section should be gated on `overwrittenEntries.length > 0` (not `isEditing`) because both new and existing generators can overwrite tokens if the target group already has content
+---
