@@ -253,3 +253,14 @@
   - Nested quantifiers (star height > 1) are the primary vector for ReDoS. A simple regex on the cleaned pattern `(/([+*?]|\{\d+,?\d*\})\s*\)\s*([+*?]|\{\d+,?\d*\})/)` catches the classic family without needing an AST parser.
   - Always strip escaped chars (`\\. → a`) and character classes (`[...] → a`) before analyzing regex structure to avoid false positives.
 ---
+
+## 2026-03-27 - ExportPanel unreachable — never imported or rendered in App.tsx
+- Imported `ExportPanel` in App.tsx and wired it as an overflow panel accessible via the overflow menu ("Export" button) and the command palette ("Export Tokens" command).
+- Added `'export'` to the `OverflowPanel` type union.
+- Added overflow panel rendering block with back-button header following the same pattern as ImportPanel.
+- Updated command palette "Export Tokens" handler from navigating to Publish tab to opening the export overflow panel.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L23 (import), ~L154 (type), ~L901 (command handler), ~L1211 (menu button), ~L1787 (panel render)
+- **Learnings for future iterations:**
+  - Overflow panels follow a consistent pattern: type union entry + menu button + conditional render block with back-button header. Copy the Import panel block as a template.
+  - Command palette handlers that reference overflow panels use `openOverflowPanel('name')` not `setActiveTab`.
+---

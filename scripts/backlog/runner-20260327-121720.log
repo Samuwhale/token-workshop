@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: [HIGH] ExportPanel unreachable — `ExportPanel` is a fully-built 815-line component that is never imported or rendered in `App.tsx`; users have no way to access platform export (CSS/Dart/Swift/Android/JSON) or Figma variable import from the plugin UI (`packages/figma-plugin/src/ui/components/ExportPanel.tsx`)
   Worktree: /tmp/backlog-96806-Ha3iAY
+
+  ✓ done: ExportPanel unreachable — never imported or rendered in App.tsx
+    Wired ExportPanel as overflow panel: added import, type union entry, overflow menu button, command palette handler, and panel render block with back-button header in App.tsx
+    29 turns · 215s · $0.86
+
+--- Merging: ExportPanel unreachable — never imported or rendered in App.tsx ---
+Already up to date.

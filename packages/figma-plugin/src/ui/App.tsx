@@ -20,6 +20,7 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { PreviewPanel } from './components/PreviewPanel';
 import { HeatmapPanel } from './components/HeatmapPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
+import { ExportPanel } from './components/ExportPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
 import { useSelection } from './hooks/useSelection';
@@ -153,7 +154,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'publish', label: 'Publish' },
 ];
 
-type OverflowPanel = 'import' | 'settings' | 'heatmap' | 'analytics' | 'themes' | 'theme-compare' | null;
+type OverflowPanel = 'import' | 'export' | 'settings' | 'heatmap' | 'analytics' | 'themes' | 'theme-compare' | null;
 
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 400;
@@ -900,7 +901,7 @@ export function App() {
         label: 'Export Tokens',
         description: 'Export tokens as CSS, JSON, or other formats',
         category: 'Data',
-        handler: () => { setActiveTab('publish'); setOverflowPanel(null); },
+        handler: () => openOverflowPanel('export'),
       },
       {
         id: 'settings',
@@ -1210,6 +1211,13 @@ export function App() {
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Import
+              </button>
+              <button
+                role="menuitem"
+                onClick={() => openOverflowPanel('export')}
+                className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Export
               </button>
               <button
                 role="menuitem"
@@ -1781,6 +1789,27 @@ export function App() {
                   setActiveTab('tokens');
                   setActiveSet(importedSet);
                 }}
+              />
+            </>
+          )}
+          {overflowPanel === 'export' && (
+            <>
+              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <button
+                  onClick={() => setOverflowPanel(null)}
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                  aria-label="Back"
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M6.5 2L3.5 5l3 3"/>
+                  </svg>
+                  Back
+                </button>
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Export</span>
+              </div>
+              <ExportPanel
+                serverUrl={serverUrl}
+                connected={connected}
               />
             </>
           )}

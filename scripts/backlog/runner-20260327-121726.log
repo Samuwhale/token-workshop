@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Bulk-rename regex has no ReDoS protection ---
 Already up to date.
+[main 540594f] chore(backlog): done – Bulk-rename regex has no ReDoS protection
+ 7 files changed, 65 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Bulk-rename regex has no ReDoS protection
+- Added `isSafeRegex()` guard in `token-store.ts` that rejects patterns longer than 200 chars or containing nested quantifiers (the primary cause of catastrophic backtracking). Called before `new RegExp()` in `bulkRename`.
+- Route handler in `tokens.ts` now returns 400 (not 500) for rejected/invalid regex patterns so the UI shows a clear error message.
+- Files changed: `packages/server/src/services/token-store.ts` ~L16 (isSafeRegex helper), ~L930 (guard in bulkRename); `packages/server/src/routes/tokens.ts` ~L172 (400 status for regex errors)
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  23 items remaining
+===============================================================
+  Claimed: [HIGH] `handleCreateToken` silently swallows server errors — `SelectionInspector.tsx:373-391`: when `res.ok` is false (e.g. 409 conflict when a token already exists, 500 on server error), the `createError` state is never set and `creating` resets to `false` with no feedback, leaving the user staring at a blank form with no indication of what went wrong.
+  Worktree: /tmp/backlog-97357-a2Xgmx
