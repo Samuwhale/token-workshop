@@ -409,3 +409,11 @@
   - When `levels: ['AA', 'AAA']`, the strictest enforced threshold is AAA (7.0). Check `levels.includes('AAA')` first.
   - The `isOverridden` field on `GeneratedTokenResult` doubles as a "contrast failure" indicator for contrast-check and accessible-color-pair generators — document this dual use.
 ---
+
+## 2026-03-27 - `computeResults` and `computeResultsWithValue` are near-identical 200-line switch statements
+- Removed the duplicate switch in `computeResults`. It now resolves the source token, extracts `$value`, and delegates to `computeResultsWithValue`. Also updated error messages in `computeResultsWithValue` from "Multi-brand input for X" to "Source value for X" to be generic for both call paths.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L401-603
+- **Learnings for future iterations:**
+  - When two functions share a large switch, the cleanest split is: outer function does lookup/validation, inner function does dispatch. The inner function receives a plain value (`unknown`), not a domain object, keeping it easy to call from both paths.
+  - Error messages in the shared switch should be call-path-neutral ("Source value for X") rather than caller-specific ("Multi-brand input" vs "Source token name").
+---

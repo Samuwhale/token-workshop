@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { TokenNode } from '../hooks/useTokens';
 import type { TokenMapEntry } from '../../shared/types';
-import { hexToRgb } from '../shared/colorUtils';
+import { hexToHsl } from '../shared/colorUtils';
 import { isAlias } from '../../shared/resolveAlias';
 import { flattenLeafNodes } from './tokenListUtils';
 
@@ -9,27 +9,6 @@ interface TokenCanvasProps {
   tokens: TokenNode[];
   allTokensFlat: Record<string, TokenMapEntry>;
   onEdit: (path: string) => void;
-}
-
-// ---------------------------------------------------------------------------
-// Color math helpers
-// ---------------------------------------------------------------------------
-
-function hexToHsl(hex: string): [number, number, number] | null {
-  const rgb = hexToRgb(hex.slice(0, 7)); // strip alpha
-  if (!rgb) return null;
-  const { r, g, b } = rgb;
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  if (max === min) return [0, 0, l * 100];
-  const d = max - min;
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  let h = 0;
-  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
-  else if (max === g) h = ((b - r) / d + 2) / 6;
-  else h = ((r - g) / d + 4) / 6;
-  return [h * 360, s * 100, l * 100];
 }
 
 // ---------------------------------------------------------------------------

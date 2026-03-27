@@ -395,8 +395,8 @@ export class GeneratorService {
   }
 
   /**
-   * Like computeResults but uses a pre-resolved source value directly,
-   * bypassing token-store lookup.
+   * Core dispatch: given a pre-resolved source value (or undefined for source-free generators),
+   * run the appropriate generator and apply overrides.
    */
   private async computeResultsWithValue(
     generator: Pick<TokenGenerator, 'type' | 'sourceToken' | 'targetGroup' | 'config' | 'overrides'>,
@@ -408,14 +408,14 @@ export class GeneratorService {
     switch (type) {
       case 'colorRamp': {
         const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
-        if (!hex) throw new Error(`Multi-brand input for colorRamp must be a color string`);
+        if (!hex) throw new Error(`Source value for colorRamp must be a color string`);
         results = runColorRampGenerator(hex, config as any, targetGroup);
         break;
       }
       case 'typeScale': {
         const dim = resolvedValue as { value: number; unit: string } | null;
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Multi-brand input for typeScale must be a dimension value`);
+          throw new Error(`Source value for typeScale must be a dimension value`);
         }
         results = runTypeScaleGenerator(dim, config as any, targetGroup);
         break;
@@ -423,7 +423,7 @@ export class GeneratorService {
       case 'spacingScale': {
         const dim = resolvedValue as { value: number; unit: string } | null;
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Multi-brand input for spacingScale must be a dimension value`);
+          throw new Error(`Source value for spacingScale must be a dimension value`);
         }
         results = runSpacingScaleGenerator(dim, config as any, targetGroup);
         break;
@@ -435,7 +435,7 @@ export class GeneratorService {
       case 'borderRadiusScale': {
         const dim = resolvedValue as { value: number; unit: string } | null;
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Multi-brand input for borderRadiusScale must be a dimension value`);
+          throw new Error(`Source value for borderRadiusScale must be a dimension value`);
         }
         results = runBorderRadiusScaleGenerator(dim, config as any, targetGroup);
         break;
@@ -458,20 +458,20 @@ export class GeneratorService {
       }
       case 'accessibleColorPair': {
         const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
-        if (!hex) throw new Error(`Multi-brand input for accessibleColorPair must be a color string`);
+        if (!hex) throw new Error(`Source value for accessibleColorPair must be a color string`);
         results = runAccessibleColorPairGenerator(hex, config as any, targetGroup);
         break;
       }
       case 'darkModeInversion': {
         const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
-        if (!hex) throw new Error(`Multi-brand input for darkModeInversion must be a color string`);
+        if (!hex) throw new Error(`Source value for darkModeInversion must be a color string`);
         results = runDarkModeInversionGenerator(hex, config as any, targetGroup);
         break;
       }
       case 'responsiveScale': {
         const dim = resolvedValue as { value: number; unit: string } | null;
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Multi-brand input for responsiveScale must be a dimension value`);
+          throw new Error(`Source value for responsiveScale must be a dimension value`);
         }
         results = runResponsiveScaleGenerator(dim, config as any, targetGroup);
         break;
@@ -491,9 +491,8 @@ export class GeneratorService {
     generator: Pick<TokenGenerator, 'type' | 'sourceToken' | 'targetGroup' | 'config' | 'overrides'>,
     tokenStore: TokenStore,
   ): Promise<GeneratedTokenResult[]> {
-    const { type, targetGroup, config, sourceToken } = generator;
+    const { type, sourceToken } = generator;
 
-    // Resolve source token only when needed
     const needsSource = (
       type === 'colorRamp' ||
       type === 'typeScale' ||
@@ -505,100 +504,18 @@ export class GeneratorService {
       (type === 'customScale' && !!sourceToken)
     );
 
-    let resolved: Awaited<ReturnType<TokenStore['resolveToken']>> | undefined;
+    let resolvedValue: unknown;
     if (needsSource) {
       if (!sourceToken) {
         throw new Error(`Generator type "${type}" requires a source token`);
       }
-      resolved = await tokenStore.resolveToken(sourceToken);
+      const resolved = await tokenStore.resolveToken(sourceToken);
       if (!resolved) {
         throw new Error(`Source token "${sourceToken}" not found or could not be resolved`);
       }
+      resolvedValue = resolved.$value;
     }
 
-    let results: GeneratedTokenResult[];
-
-    switch (type) {
-      case 'colorRamp': {
-        const hex = typeof resolved!.$value === 'string' ? resolved!.$value : null;
-        if (!hex) throw new Error(`Source token "${sourceToken}" is not a color string`);
-        results = runColorRampGenerator(hex, config as any, targetGroup);
-        break;
-      }
-      case 'typeScale': {
-        const dim = resolved!.$value as { value: number; unit: string } | null;
-        if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Source token "${sourceToken}" is not a dimension value`);
-        }
-        results = runTypeScaleGenerator(dim, config as any, targetGroup);
-        break;
-      }
-      case 'spacingScale': {
-        const dim = resolved!.$value as { value: number; unit: string } | null;
-        if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Source token "${sourceToken}" is not a dimension value`);
-        }
-        results = runSpacingScaleGenerator(dim, config as any, targetGroup);
-        break;
-      }
-      case 'opacityScale': {
-        results = runOpacityScaleGenerator(config as any, targetGroup);
-        break;
-      }
-      case 'borderRadiusScale': {
-        const dim = resolved!.$value as { value: number; unit: string } | null;
-        if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Source token "${sourceToken}" is not a dimension value`);
-        }
-        results = runBorderRadiusScaleGenerator(dim, config as any, targetGroup);
-        break;
-      }
-      case 'zIndexScale': {
-        results = runZIndexScaleGenerator(config as any, targetGroup);
-        break;
-      }
-      case 'customScale': {
-        // For customScale, extract a numeric base from the resolved token if present
-        let base: number | undefined;
-        if (resolved) {
-          const val = resolved.$value;
-          if (typeof val === 'number') {
-            base = val;
-          } else if (typeof val === 'object' && val !== null && 'value' in val) {
-            base = (val as { value: number }).value;
-          }
-        }
-        results = runCustomScaleGenerator(base, config as any, targetGroup);
-        break;
-      }
-      case 'accessibleColorPair': {
-        const hex = typeof resolved!.$value === 'string' ? resolved!.$value : null;
-        if (!hex) throw new Error(`Source token "${sourceToken}" is not a color string`);
-        results = runAccessibleColorPairGenerator(hex, config as any, targetGroup);
-        break;
-      }
-      case 'darkModeInversion': {
-        const hex = typeof resolved!.$value === 'string' ? resolved!.$value : null;
-        if (!hex) throw new Error(`Source token "${sourceToken}" is not a color string`);
-        results = runDarkModeInversionGenerator(hex, config as any, targetGroup);
-        break;
-      }
-      case 'responsiveScale': {
-        const dim = resolved!.$value as { value: number; unit: string } | null;
-        if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Source token "${sourceToken}" is not a dimension value`);
-        }
-        results = runResponsiveScaleGenerator(dim, config as any, targetGroup);
-        break;
-      }
-      case 'contrastCheck': {
-        results = runContrastCheckGenerator(config as any, targetGroup);
-        break;
-      }
-      default:
-        throw new Error(`Unknown generator type: ${(generator as any).type}`);
-    }
-
-    return applyOverrides(results, generator.overrides);
+    return this.computeResultsWithValue(generator, resolvedValue);
   }
 }
