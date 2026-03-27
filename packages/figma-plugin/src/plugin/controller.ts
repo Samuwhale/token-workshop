@@ -327,7 +327,10 @@ async function applyTextStyle(token: any) {
   }
   const val = token.$value;
   if (val.fontFamily) {
-    style.fontName = { family: Array.isArray(val.fontFamily) ? val.fontFamily[0] : val.fontFamily, style: val.fontStyle || 'Regular' };
+    const family = Array.isArray(val.fontFamily) ? val.fontFamily[0] : val.fontFamily;
+    const fontStyle = val.fontWeight ? weightToFontStyle(val.fontWeight) : (val.fontStyle || 'Regular');
+    await figma.loadFontAsync({ family, style: fontStyle });
+    style.fontName = { family, style: fontStyle };
   }
   if (val.fontSize) style.fontSize = typeof val.fontSize === 'object' ? val.fontSize.value : val.fontSize;
   if (val.lineHeight) {

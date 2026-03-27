@@ -16,3 +16,23 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: ThemeCompare: No export or copy of diff results ---
 Already up to date.
+[main 2a46b0a] chore(backlog): done – ThemeCompare: No export or copy of diff results
+ 6 files changed, 95 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - ThemeCompare: No export or copy of diff results
+- Added Copy and Export CSV buttons to the summary/filter bar in ThemeCompare. "Copy" writes the visible diff rows as tab-separated text (with option labels as column headers) to the clipboard, with a brief "Copied!" feedback label. "CSV" triggers a file download named `theme-compare-<A>-vs-<B>.csv`. Both act on the currently filtered rows (respects the active type filter). A thin separator between the export buttons and the filter pills keeps the bar organized.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L138 (labelA/labelB, copyFeedback, buildTsv, handleCopy, handleExportCsv), ~L238 (Copy + CSV buttons + separator in summary bar)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  30 items remaining
+===============================================================
+  Claimed: `applyTextStyle` does not call `loadFontAsync` before setting font properties — Figma will throw if the font is not already loaded; the `applyTokenValue` path correctly loads fonts, but the style-creation path does not
+  Worktree: /tmp/backlog-60772-a1IiXO
+
+  ✓ done: `applyTextStyle` does not call `loadFontAsync` before setting font properties
+    Added `await figma.loadFontAsync` before `style.fontName` assignment in `applyTextStyle`; also aligned font-style derivation to use `weightToFontStyle` matching the `applyTokenValue` path
+    8 turns · 33s · $0.15
+
+--- Merging: `applyTextStyle` does not call `loadFontAsync` before setting font properties ---
+Already up to date.

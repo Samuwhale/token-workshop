@@ -311,3 +311,11 @@
   - TSV (tab-separated) is the most paste-friendly format for spreadsheets; CSV is more portable for file exports.
   - A small `w-px h-3` separator `<span>` visually groups export buttons vs filter pills without needing a wrapper div.
 ---
+
+## 2026-03-27 - `applyTextStyle` does not call `loadFontAsync` before setting font properties
+- Added `await figma.loadFontAsync({ family, style: fontStyle })` before `style.fontName = ...` in `applyTextStyle`. Also aligned font-style derivation to use `weightToFontStyle(val.fontWeight)` (same as `applyTokenValue` path) so numeric `fontWeight` values are handled correctly.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L329
+- **Learnings for future iterations:**
+  - `figma.loadFontAsync` must be called before ANY font property is set on a text node or text style — both on SceneNode assignment and on TextStyle creation.
+  - The `applyTextStyle` path previously skipped `loadFontAsync` while `applyTokenValue` called it correctly; always audit both paths when a font-related bug is reported.
+---
