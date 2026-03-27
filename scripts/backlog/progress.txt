@@ -279,3 +279,12 @@
   - TokenEditor already had an Escape keydown useEffect — the Cmd+S shortcut follows the same pattern as a separate useEffect.
   - The save guard mirrors the button's disabled condition: `!saving && canSave && (isCreateMode ? editPath.trim() : isDirty)`.
 ---
+
+## 2026-03-27 - No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version
+- Added pre-save conflict detection to TokenEditor: when saving (PATCH), the editor re-fetches the current server state and compares it (via `JSON.stringify`) to the snapshot captured on initial load. If they differ, a ConfirmModal is shown: "Token modified on server — overwrite?" If the user confirms, `handleSave(true)` is called with `forceOverwrite=true` to skip the check. If the conflict check fetch fails (network error), save proceeds normally to avoid blocking the user.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L171 (new state/ref), ~L218 (snapshot capture), ~L397 (conflict check in handleSave), ~L1332 (conflict ConfirmModal in JSX)
+- **Learnings for future iterations:**
+  - Snapshot comparison uses `JSON.stringify` on the raw server response token object — both the initial load and the conflict check hit the same endpoint so key ordering is consistent.
+  - `forceOverwrite` parameter on `handleSave` is the simplest way to let the conflict modal re-invoke save without re-triggering the check — no additional state needed.
+  - Network failures during the conflict check are silently swallowed to avoid false-positive conflict blocks.
+---

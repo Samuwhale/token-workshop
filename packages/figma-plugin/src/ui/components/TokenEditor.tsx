@@ -177,6 +177,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const [extensionsJsonText, setExtensionsJsonText] = useState('');
   const [showExtensions, setShowExtensions] = useState(false);
   const [extensionsJsonError, setExtensionsJsonError] = useState<string | null>(null);
+  const initialServerSnapshotRef = useRef<string | null>(null);
+  const [showConflictConfirm, setShowConflictConfirm] = useState(false);
 
   const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
@@ -217,6 +219,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         }
         const otherExtText = Object.keys(otherExt).length > 0 ? JSON.stringify(otherExt, null, 2) : '';
         setExtensionsJsonText(otherExtText);
+        initialServerSnapshotRef.current = JSON.stringify(token ?? null);
         const ref = typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}') ? token.$value : '';
         if (ref) setReference(ref);
         initialRef.current = {
@@ -398,20 +401,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     return () => window.removeEventListener('keydown', handler);
   }, [onBack, isDirty, showDiscardConfirm, showAutocomplete]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        if (!saving && canSave && (isCreateMode ? editPath.trim() : isDirty)) {
-          handleSave();
-        }
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [saving, canSave, isCreateMode, editPath, isDirty, handleSave]);
-
-  const handleSave = async () => {
+  const handleSave = async (forceOverwrite = false) => {
     if (isCreateMode && !editPath.trim()) {
       setError('Token path cannot be empty');
       return;
@@ -419,6 +409,24 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     setSaving(true);
     setError(null);
     try {
+      // Conflict detection: if the token was modified on the server since we loaded it, warn the user.
+      if (!isCreateMode && !forceOverwrite && initialServerSnapshotRef.current !== null) {
+        try {
+          const checkRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${tokenPath}`);
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            const currentSnapshot = JSON.stringify(checkData.token ?? null);
+            if (currentSnapshot !== initialServerSnapshotRef.current) {
+              setShowConflictConfirm(true);
+              setSaving(false);
+              return;
+            }
+          }
+        } catch {
+          // If the conflict check itself fails (network error), proceed with the save.
+        }
+      }
+
       const body: any = {
         $type: tokenType,
         $value: reference || value,
@@ -1359,6 +1367,22 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           danger
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
+
+      {/* Conflict confirmation */}
+      {showConflictConfirm && (
+        <ConfirmModal
+          title="Token modified on server"
+          description="This token was changed on the server since you opened the editor. Overwrite the server version with your changes?"
+          confirmLabel="Overwrite"
+          cancelLabel="Cancel"
+          danger
+          onConfirm={() => {
+            setShowConflictConfirm(false);
+            handleSave(true);
+          }}
+          onCancel={() => setShowConflictConfirm(false)}
         />
       )}
 

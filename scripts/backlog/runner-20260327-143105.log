@@ -408,3 +408,10 @@ Already up to date.
 ===============================================================
   Claimed: No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version
   Worktree: /tmp/backlog-98901-OWLI4o
+
+  ✓ done: No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version
+    Added pre-save conflict check in TokenEditor: re-fetches token before PATCH and shows "Token modified on server" ConfirmModal if server state changed since editor opened; user can overwrite or cancel.
+    21 turns · 175s · $0.6
+
+--- Merging: No conflict detection for concurrent edits — if a token is modified on the server while the editor is open, saving silently overwrites the server version ---
+Already up to date.

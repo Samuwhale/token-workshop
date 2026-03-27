@@ -394,3 +394,16 @@ Already up to date.
 
 --- Merging: No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation ---
 Already up to date.
+[main fb3bf5d] chore(backlog): done – No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation
+ 5 files changed, 43 insertions(+), 1 deletion(-)
+
+## 2026-03-27 - No Cmd+S / Ctrl+S to save — the editor requires clicking the save button; a keyboard shortcut is the most basic expectation
+- Added a `useEffect` in `TokenEditor.tsx` that listens for `(metaKey || ctrlKey) + s` and calls `handleSave()` when the save button would be enabled (not saving, canSave, and has changes).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L392 (new useEffect after existing Escape handler)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  14 items remaining
+===============================================================
+  Claimed: DELETE /data endpoint has no server-side confirmation gate — a single accidental API call permanently deletes all token sets and themes
+  Worktree: /tmp/backlog-97510-TZy4ki
