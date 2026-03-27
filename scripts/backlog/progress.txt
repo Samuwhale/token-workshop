@@ -257,3 +257,12 @@
 - Found 7 items — written to backlog-inbox.md
 - Notable: `templateIdForTokenType` returns `'modular-type-scale'` but the template array uses id `'modular-type'` — the type hint is silently dropped for non-color/dimension tokens. Also `suggestTargetGroup` uses `split('.')` on paths with dot-containing segment names.
 ---
+
+## 2026-03-27 - applyVarDiff push is fire-and-forget
+- Threaded a `correlationId` through the `apply-variables` message flow so SyncPanel now awaits Figma's confirmation before clearing state. Controller's `applyVariables` accepts optional `correlationId` and includes it in both `variables-applied` (success) and new `apply-variables-error` (failure) responses. SyncPanel registers a pending entry in `applyPendingRef` before sending, resolves/rejects on response, with a 15-second timeout. State is only cleared and success shown after Figma confirms; errors surface in `varError`.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L17,L128,L201-204; `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L71,L187-220,L222-240
+- **Learnings for future iterations:**
+  - The controller already sent `variables-applied` — the pattern just needed a correlationId to be wired through and the UI to register a listener before posting the message.
+  - A separate `applyPendingRef` (vs reusing `varPendingRef`) is cleaner since the resolve signatures differ (`() => void` vs `(tokens) => void`).
+  - The generic `error` postMessage in the controller was replaced with `apply-variables-error` to avoid cross-contaminating unrelated error handlers.
+---

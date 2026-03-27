@@ -14,7 +14,7 @@ let deepInspectEnabled = false;
 figma.ui.onmessage = async (msg: PluginMessage) => {
   switch (msg.type) {
     case 'apply-variables':
-      await applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {});
+      await applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {}, msg.correlationId);
       break;
     case 'apply-styles':
       await applyStyles(msg.tokens);
@@ -125,7 +125,7 @@ function sampleSelectionColor() {
 }
 
 // Apply tokens as Figma variables
-async function applyVariables(tokens: any[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}) {
+async function applyVariables(tokens: any[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, correlationId?: string) {
   try {
     // Get or create collection by name, with caching
     const existingCollections = await figma.variables.getLocalVariableCollectionsAsync();
@@ -198,9 +198,9 @@ async function applyVariables(tokens: any[], collectionMap: Record<string, strin
       variable.setPluginData('tokenSet', token.setName || '');
     }
 
-    figma.ui.postMessage({ type: 'variables-applied', count: tokens.length });
+    figma.ui.postMessage({ type: 'variables-applied', count: tokens.length, correlationId });
   } catch (error) {
-    figma.ui.postMessage({ type: 'error', message: String(error) });
+    figma.ui.postMessage({ type: 'apply-variables-error', message: String(error), correlationId });
   }
 }
 

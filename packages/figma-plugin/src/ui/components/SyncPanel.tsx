@@ -69,6 +69,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   const [varError, setVarError] = useState<string | null>(null);
   const [varChecked, setVarChecked] = useState(false);
   const varPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
+  const applyPendingRef = useRef<Map<string, { resolve: () => void; reject: (err: Error) => void }>>(new Map());
 
   // Publish readiness state
   const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
@@ -183,7 +184,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
     if (connected && activeSet) computeVarDiff();
   }, [connected, activeSet, computeVarDiff]);
 
-  // Listen for variables-read and orphans-deleted responses from controller
+  // Listen for variables-read, variables-applied, and orphans-deleted responses from controller
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
@@ -192,6 +193,20 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
         if (resolve) {
           varPendingRef.current.delete(msg.correlationId);
           resolve(msg.tokens ?? []);
+        }
+      }
+      if (msg?.type === 'variables-applied' && msg.correlationId) {
+        const pending = applyPendingRef.current.get(msg.correlationId);
+        if (pending) {
+          applyPendingRef.current.delete(msg.correlationId);
+          pending.resolve();
+        }
+      }
+      if (msg?.type === 'apply-variables-error' && msg.correlationId) {
+        const pending = applyPendingRef.current.get(msg.correlationId);
+        if (pending) {
+          applyPendingRef.current.delete(msg.correlationId);
+          pending.reject(new Error(msg.message ?? 'Figma variable apply failed'));
         }
       }
       if (msg?.type === 'orphans-deleted' && orphansResolveRef.current) {
@@ -219,7 +234,18 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
           $value: r.localValue ?? '',
           setName: activeSet,
         }));
-        parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
+        const cid = `apply-${Date.now()}-${Math.random()}`;
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            applyPendingRef.current.delete(cid);
+            reject(new Error('Figma apply timed out — is the plugin running?'));
+          }, 15000);
+          applyPendingRef.current.set(cid, {
+            resolve: () => { clearTimeout(timeout); resolve(); },
+            reject: (err) => { clearTimeout(timeout); reject(err); },
+          });
+          parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap, correlationId: cid } }, '*');
+        });
       }
 
       if (pullRows.length > 0) {
