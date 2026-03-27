@@ -128,6 +128,16 @@ function summarizeStyleValue(value: any, type: string): string {
   return JSON.stringify(value).slice(0, 28);
 }
 
+function formatRelativeTime(date: Date): string {
+  const secs = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (secs < 60) return 'just now';
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  return date.toLocaleDateString();
+}
+
 /* ── Collapsible section wrapper ─────────────────────────────────────────── */
 
 function Section({ title, open, onToggle, badge, children }: {
@@ -190,6 +200,7 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
   const [varError, setVarError] = useState<string | null>(null);
   const [varChecked, setVarChecked] = useState(false);
   const varReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
+  const varCorrelationIdRef = useRef<string | null>(null);
 
   // ── Style sync state ──
   const [styleRows, setStyleRows] = useState<StyleDiffRow[]>([]);
@@ -329,15 +340,18 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
     setVarChecked(false);
     try {
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
+        const cid = `publish-${Date.now()}-${Math.random()}`;
+        varCorrelationIdRef.current = cid;
         const timeout = setTimeout(() => {
           varReadResolveRef.current = null;
+          varCorrelationIdRef.current = null;
           reject(new Error('Figma read timed out \u2014 is the plugin running?'));
         }, 10000);
         varReadResolveRef.current = (tokens) => {
           clearTimeout(timeout);
           resolve(tokens);
         };
-        parent.postMessage({ pluginMessage: { type: 'read-variables' } }, '*');
+        parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
 
       const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);
@@ -552,12 +566,15 @@ export function PublishPanel({ serverUrl, connected, activeSet }: PublishPanelPr
     setReadinessError(null);
     try {
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
+        const cid = `publish-${Date.now()}-${Math.random()}`;
+        varCorrelationIdRef.current = cid;
         const timeout = setTimeout(() => {
           varReadResolveRef.current = null;
+          varCorrelationIdRef.current = null;
           reject(new Error('Figma read timed out'));
         }, 10000);
         varReadResolveRef.current = (tokens) => { clearTimeout(timeout); resolve(tokens); };
-        parent.postMessage({ pluginMessage: { type: 'read-variables' } }, '*');
+        parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
 
       const res = await fetch(`${serverUrl}/api/tokens/${activeSet}`);

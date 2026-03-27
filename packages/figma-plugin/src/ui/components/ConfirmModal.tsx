@@ -80,13 +80,16 @@ export function ConfirmModal({
           <button
             onClick={handleConfirm}
             disabled={busy}
-            className={`flex-1 px-3 py-1.5 rounded text-[11px] font-medium transition-colors disabled:opacity-50 ${
+            className={`flex-1 px-3 py-1.5 rounded text-[11px] font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 ${
               danger
                 ? 'bg-[var(--color-figma-error)] text-white hover:opacity-90'
                 : 'bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)]'
             }`}
           >
-            {busy ? '…' : confirmLabel}
+            {busy && (
+              <span className="w-3 h-3 rounded-full border-2 border-white/30 border-t-white animate-spin shrink-0" aria-hidden="true" />
+            )}
+            {busy ? `${confirmLabel}…` : confirmLabel}
           </button>
         </div>
       </div>

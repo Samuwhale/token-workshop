@@ -88,7 +88,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Bugs
 
-- [ ] ImportPanel `executeImport` sends tokens one at a time in a sequential `for` loop — N HTTP requests for N tokens (`figma-plugin/ImportPanel.tsx:279-297`)
+- [~] ImportPanel `executeImport` sends tokens one at a time in a sequential `for` loop — N HTTP requests for N tokens (`figma-plugin/ImportPanel.tsx:279-297`)
 
 ### UX
 

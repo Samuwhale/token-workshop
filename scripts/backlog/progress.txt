@@ -314,3 +314,9 @@
 - **Learnings for future iterations:**
   - A button inside a `<label>` still triggers the label's associated input on click. Wrap each row in a plain `<div>` instead when adding action buttons alongside radio/checkbox labels.
 ---
+
+## 2026-03-27 - ux-pass: ConfirmModal busy state shows spinner + contextual label
+- Replaced bare "…" in the confirm button during async operations with a small `animate-spin` circle spinner alongside `"{confirmLabel}…"` (e.g. "Delete…" instead of "…"). The button already had `disabled={busy}` and `opacity-50` — the spinner makes the in-progress state unambiguous rather than looking frozen.
+- Files changed: `packages/figma-plugin/src/ui/components/ConfirmModal.tsx` ~L80
+- **User impact:** Users no longer see an unresponsive-looking "…" during destructive confirmations (deletes, overwrites). The spinner + action label clearly communicates that work is in progress.
+---
