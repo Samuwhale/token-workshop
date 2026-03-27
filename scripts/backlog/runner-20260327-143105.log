@@ -313,3 +313,23 @@ Already up to date.
 
 --- Merging: ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded — unclear what was partially imported ---
 Already up to date.
+[main 94b28b4] chore(backlog): done – ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded — unclear what was partially imported
+ 6 files changed, 32 insertions(+), 5 deletions(-)
+
+## 2026-03-27 - ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded
+- Added `succeededImportCount` state to track how many tokens imported successfully during a partial failure
+- In `handleImportVariables`, set `succeededImportCount(importedTokens)` alongside `setFailedImportPaths` when failures exist
+- Updated the partial failure detail panel to show "✓ X succeeded  ✗ Y failed" counts at the top before listing failed paths
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  31 items remaining
+===============================================================
+  Claimed: No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options
+  Worktree: /tmp/backlog-98901-MGu7ez
+
+  ✓ done: No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options
+    stale — already done; ImportPanel already has Skip/Overwrite conflict UI with path list at ~L895
+    6 turns · 91s · $0.32
+
+--- Merging: No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options ---
+Already up to date.

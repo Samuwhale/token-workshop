@@ -326,3 +326,9 @@ Already up to date.
 - Added a "Clear all" button in the SelectionInspector sync controls toolbar, visible when `totalBindings > 0`. Clicking it sends `clear-all-bindings` to the plugin, which iterates `ALL_BINDABLE_PROPERTIES` and calls `setSharedPluginData(..., '')` for each. Supports undo: snapshots all non-mixed bindings before clearing and re-applies them via `apply-to-selection` messages on restore.
 - Files changed: `packages/figma-plugin/src/shared/types.ts` ~L134 (new ClearAllBindingsMessage), `packages/figma-plugin/src/plugin/controller.ts` ~L44 (case handler) and ~L877 (clearAllBindings function), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L287 (handleClearAllBindings) and ~L608 (Clear all button)
 - **Learnings for future iterations:**
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  32 items remaining
+===============================================================
+  Claimed: No import preview — users can't review what will be created/overwritten before committing
+  Worktree: /tmp/backlog-97955-stSxMY

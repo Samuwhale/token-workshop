@@ -311,3 +311,10 @@
   - The variables import batch flow tracks `importedTokens` (count of successful imports) but loses it after `setSuccessMessage` — always keep numeric outcomes in dedicated state rather than encoding them only into message strings
   - The styles/json import path (`executeImport`) does not have per-token failure granularity since the whole batch either succeeds or throws — no `failedImportPaths` are set there, so this panel only appears for the variables import path
 ---
+
+## 2026-03-27 - No conflict-resolution UI — import shows conflicting path counts but doesn't offer merge, skip, or rename-on-conflict options
+- Stale — already implemented. The ImportPanel already has a full conflict resolution UI: conflicting paths are shown in a yellow-bordered scrollable list, with "Skip & import new" and "Overwrite & import all" action buttons, plus a "Revise selection" escape hatch.
+- Files changed: none
+- **Learnings for future iterations:**
+  - This feature was likely added as part of earlier ImportPanel work (partial import failure UX). Before implementing, always verify the current code state rather than trusting the backlog description verbatim.
+---
