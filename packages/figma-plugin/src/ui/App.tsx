@@ -253,6 +253,7 @@ export function App() {
   const [validateKey, setValidateKey] = useState(0);
   const [analyticsIssueCount, setAnalyticsIssueCount] = useState<number | null>(null);
   const [showIssuesOnly, setShowIssuesOnly] = useState(false);
+  const [showValidationReturn, setShowValidationReturn] = useState(false);
   const [syncSnapshot, setSyncSnapshot] = useState<Record<string, string>>({});
   const menuRef = useRef<HTMLDivElement>(null);
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
@@ -862,6 +863,7 @@ export function App() {
   const openOverflowPanel = (panel: OverflowPanel) => {
     setMenuOpen(false);
     setOverflowPanel(panel);
+    if (panel === 'analytics') setShowValidationReturn(false);
   };
 
   const commands: Command[] = useMemo(() => {
@@ -1987,6 +1989,25 @@ export function App() {
           )}
 
           {/* Main tab panels */}
+          {showValidationReturn && overflowPanel === null && activeTab === 'tokens' && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-accent)]/10 border-b border-[var(--color-figma-accent)]/20 shrink-0">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">Fix the token, then return to re-validate.</span>
+              <button
+                onClick={() => { setOverflowPanel('analytics'); setShowValidationReturn(false); }}
+                className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+              >
+                Back to Validation
+              </button>
+              <button
+                onClick={() => setShowValidationReturn(false)}
+                className="text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] transition-colors shrink-0"
+                aria-label="Dismiss"
+              >
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          )}
           {overflowPanel === null && activeTab === 'tokens' && tokens.length === 0 && !createFromEmpty && !editingToken && (
             <EmptyState
               connected={connected}
@@ -2127,6 +2148,7 @@ export function App() {
                   setOverflowPanel(null);
                   setActiveTab('tokens');
                   setPendingHighlight(path);
+                  setShowValidationReturn(true);
                 }}
                 onValidationComplete={setAnalyticsIssueCount}
               />

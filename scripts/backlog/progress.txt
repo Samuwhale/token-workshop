@@ -254,3 +254,12 @@
 - **Learnings for future iterations:**
   - Always check if the feature already exists before planning implementation
 ---
+
+## 2026-03-27 - Validation-fix-revalidate loop is fully manual
+- Added a "Back to Validation" return banner that appears in the tokens view after clicking "Go →" on a validation issue. The banner has a button to return to Analytics (which auto-revalidates on mount) and a dismiss button.
+- AnalyticsPanel already auto-validates on mount via `hasAutoValidated` ref + `useEffect`, so returning via the banner triggers automatic re-validation — no manual "Re-validate" click needed.
+- Added `showValidationReturn` state to App.tsx, set on "Go →" navigation, cleared on return to analytics or dismiss.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L256 (state), ~L866 (openOverflowPanel clear), ~L1992 (banner markup), ~L2148 (onNavigateToToken sets flag)
+- **Learnings for future iterations:**
+  - AnalyticsPanel unmounts when `overflowPanel` changes away from `'analytics'`, so all local state resets. The auto-validate-on-mount effect already handles re-running validation on return — the real UX gap was navigating back, not re-triggering.
+---

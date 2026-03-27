@@ -150,3 +150,10 @@ Already up to date.
 ===============================================================
   Claimed: Validation-fix-revalidate loop is fully manual — after fixing a validation issue, users must manually switch back to Analytics and re-trigger validation; no auto-revalidation or "recheck this issue" action
   Worktree: /tmp/backlog-44348-pAo13v
+
+  ✓ done: Validation-fix-revalidate loop is fully manual
+    Added a 'Back to Validation' banner in the tokens view after clicking 'Go →' on an issue. Returning via the banner auto-revalidates (AnalyticsPanel already runs validation on mount). Banner includes dismiss button and clears when returning to analytics.
+    29 turns · 331s · $1.17
+
+--- Merging: Validation-fix-revalidate loop is fully manual ---
+Already up to date.
