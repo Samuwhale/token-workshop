@@ -31,7 +31,7 @@ Be specific before you act: e.g. "add inline token value editing on double-click
 ## Workflow
 
 1. **Explore** — read UI components in `packages/figma-plugin/src/ui/` to find ONE concrete opportunity. Understand the current behaviour before changing it.
-2. **Write overflow** — if you spot other UX issues during exploration that are worth fixing but out of scope for this session, append each as `- [ ] Short title — one sentence` to `backlog-inbox.md` so they get picked up later. Do this before implementing.
+2. **Write overflow** — if you spot other UX issues or feature ideas during exploration that are worth pursuing, append each as `- [ ] Short title — one sentence` to `backlog-inbox.md` so they get picked up later. Items can be ambitious — from a tooltip fix to a new interaction pattern. Do this before implementing.
 3. **Implement** — make the targeted UX change. Keep it focused on presentation and interaction quality, not visual redesign.
 4. **Validate** — run `cd packages/figma-plugin && npm run build`. Do NOT report success without a passing build. If validation fails, revert your changes.
 5. **Document** — append to `scripts/backlog/progress.txt`:

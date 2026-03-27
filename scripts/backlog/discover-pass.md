@@ -36,7 +36,12 @@ Good targets (in priority order):
    - Normal priority: `- [ ] Short title — one sentence describing the gap and where it is in the code`
    - High priority (bugs, data loss risk): `- [HIGH] Short title — one sentence describing the gap`
 
-   Good item titles are specific and actionable: "No confirmation before deleting a non-empty group" not "improve delete UX".
+   Good item titles are specific and actionable. Items can range from small fixes to ambitious features:
+   - Small: `- [ ] No confirmation before deleting a non-empty group`
+   - Ambitious: `- [ ] Add keyboard-navigable token tree with expand/collapse and multi-select`
+   - Bold: `- [ ] Add a "quick edit" mode where clicking a token value makes it inline-editable`
+
+   Don't artificially limit scope. If the tool needs a feature, write it down — the implementing agent will figure out the details.
 
 4. **Document** — append to `scripts/backlog/progress.txt`:
 
@@ -59,6 +64,7 @@ Good targets (in priority order):
 - Do not duplicate items already in `backlog.md` (check for similar wording before writing).
 - Aim for 3–8 items. More is not better — only write issues that are real and worth acting on.
 - Feature and UX items should outnumber bug/code items. If you found 6 bugs and 0 features, you're looking at the wrong level — step back and think about the user's workflow.
+- Items can be ambitious. A multi-file feature is a perfectly valid backlog item — the agent picking it up has full autonomy to implement it.
 - If the area you chose is already well-covered by existing backlog items, pick a different area.
 
 ---

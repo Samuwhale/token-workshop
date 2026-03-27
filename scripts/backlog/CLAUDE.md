@@ -29,7 +29,8 @@ Codebase patterns are already injected into your context — no need to read a s
 ## Quality Rules
 
 - One item per session — stop after completing or failing one.
-- Prefer the smallest safe change. Do not refactor unrelated code.
+- Match your scope to the item. Small items get small changes; ambitious items (new features, new UI patterns) get whatever they need — new components, new handlers, multi-file changes are all fine.
+- Do not refactor unrelated code, but don't artificially constrain yourself either. If the item asks for a feature, build the feature properly.
 - If the item references code that no longer exists, report failure with note "stale — code not found."
 - If the item is already implemented, report success with note "stale — already done."
 

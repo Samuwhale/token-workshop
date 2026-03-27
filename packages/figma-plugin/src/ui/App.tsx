@@ -282,7 +282,7 @@ export function App() {
   const isNarrow = windowWidth <= 360;
 
   // Theme switcher state (multi-dimensional)
-  const { dimensions, setDimensions, activeThemes, setActiveThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themedAllTokensFlat } = useThemeSwitcher(serverUrl, connected, tokens, allTokensFlat, pathToSet);
+  const { dimensions, setDimensions, activeThemes, setActiveThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themedAllTokensFlat, themesError, retryThemes } = useThemeSwitcher(serverUrl, connected, tokens, allTokensFlat, pathToSet);
 
   // Must be declared before cascadeDiff useMemo which references them
   const [dragSetName, setDragSetName] = useState<string | null>(null);
@@ -1627,7 +1627,17 @@ export function App() {
                 </svg>
                 Themes
               </span>
-              {dimensions.length > 0 ? (
+              {themesError ? (
+                <span className="text-[10px] text-[var(--color-figma-danger)] flex items-center gap-1">
+                  Could not load themes
+                  <button
+                    onClick={retryThemes}
+                    className="underline hover:text-[var(--color-figma-text)] transition-colors"
+                  >
+                    Retry
+                  </button>
+                </span>
+              ) : dimensions.length > 0 ? (
                 <>
                   {dimensions.map(dim => {
                     const activeOption = activeThemes[dim.id];

@@ -133,3 +133,10 @@
   - When using a functional state updater to compute derived state, side effects (persistence) inside it are acceptable if the alternative requires a stale closure workaround. The key concern is ensuring all three stores (React state, localStorage, clientStorage) stay in sync.
   - The `setActiveThemesState` vs `setActiveThemes` pattern mirrors the existing `setActiveTabState` vs `setActiveTab` pattern documented in codebase patterns.
 ---
+
+## 2026-03-27 - useThemeSwitcher theme fetch failure silently swallowed
+- Replaced `.catch(() => {})` with proper error handling: checks `res.ok`, sets `themesError` state on failure, exposes `retryThemes` callback. App.tsx shows "Could not load themes" with a Retry button in the themes bar.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L15 (error state), ~L43 (fetchThemes callback + useEffect), ~L115 (return); `packages/figma-plugin/src/ui/App.tsx` ~L285 (destructure), ~L1630 (error UI)
+- **Learnings for future iterations:**
+  - Same pattern as ImportPanel: add error state, check `res.ok`, extract fetch into named function for retry, expose error + retry from hook.
+---

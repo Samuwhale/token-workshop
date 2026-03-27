@@ -36,3 +36,5 @@ Already up to date.
 
 --- Merging: `useThemeSwitcher` stale active-theme cleanup uses `setActiveThemesState` instead of `setActiveThemes` ---
 Already up to date.
+[main 1104797] chore(backlog): done – `useThemeSwitcher` stale active-theme cleanup uses `setActiveThemesState` instead of `setActiveThemes`
+ 9 files changed, 71 insertions(+), 19 deletions(-)

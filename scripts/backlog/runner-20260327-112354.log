@@ -53,3 +53,10 @@ Already up to date.
 ===============================================================
   Claimed: `useThemeSwitcher` theme fetch failure is silently swallowed by `.catch(() => {})` — if `/api/themes` returns an error or the server is temporarily unreachable, dimensions silently remain empty with no user-visible error message or retry affordance (`useThemeSwitcher.ts:63`)
   Worktree: /tmp/backlog-75264-ZL5DRf
+
+  ✓ done: useThemeSwitcher theme fetch failure silently swallowed
+    Added res.ok check, themesError state, and retryThemes callback to useThemeSwitcher; App.tsx shows 'Could not load themes' with Retry button in the themes bar.
+    30 turns · 208s · $0.79
+
+--- Merging: useThemeSwitcher theme fetch failure silently swallowed ---
+Already up to date.

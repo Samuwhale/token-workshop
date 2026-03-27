@@ -526,7 +526,7 @@ cleanup_if_needed() {
 
 # ─── Periodic maintenance passes ──────────────────────────────────
 # Every 3 completed items: rotate through ux → bugfix → discover →
-# feature → housekeeping → feature (6-slot cycle, features 2x weight).
+# feature → housekeeping (5-slot cycle).
 # Each is a separate focused agent session — clean context window.
 
 run_special_pass() {
@@ -639,19 +639,17 @@ run_special_pass() {
 # JSON schema for structured agent output
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
-# 6-type pass rotation (every 3 items): ux → bugfix → discover → feature → housekeeping → feature → …
-# Features get 2x weight; all other pass types fire regularly.
-# Cycle index = (completed_count / 3) mod 6
+# 5-type pass rotation (every 3 items): ux → bugfix → discover → feature → housekeeping → …
+# Cycle index = (completed_count / 3) mod 5
 _pass_type_for_count() {
   local count=$1
-  local slot=$(( (count / 3) % 6 ))
+  local slot=$(( (count / 3) % 5 ))
   case $slot in
     0) echo "ux" ;;
     1) echo "bugfix" ;;
     2) echo "discover" ;;
     3) echo "feature" ;;
     4) echo "housekeeping" ;;
-    5) echo "feature" ;;
   esac
 }
 

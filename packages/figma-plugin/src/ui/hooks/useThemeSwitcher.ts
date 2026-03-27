@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
@@ -12,6 +12,7 @@ export function useThemeSwitcher(
   pathToSet: Record<string, string>,
 ) {
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
+  const [themesError, setThemesError] = useState<string | null>(null);
   const [activeThemes, setActiveThemesState] = useState<Record<string, string>>(() =>
     lsGetJson<Record<string, string>>(STORAGE_KEYS.ACTIVE_THEMES, {})
   );
@@ -40,10 +41,14 @@ export function useThemeSwitcher(
   const [dimBarExpanded, setDimBarExpanded] = useState(false);
 
   // Fetch dimensions
-  useEffect(() => {
+  const fetchThemes = useCallback(() => {
     if (!connected) return;
+    setThemesError(null);
     fetch(`${serverUrl}/api/themes`, { signal: AbortSignal.timeout(5000) })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`Server returned ${r.status}`);
+        return r.json();
+      })
       .then(data => {
         const all: ThemeDimension[] = data.dimensions || [];
         setDimensions(all);
@@ -61,8 +66,14 @@ export function useThemeSwitcher(
           return next;
         });
       })
-      .catch(() => {});
-  }, [connected, serverUrl, tokens]);
+      .catch(err => {
+        setThemesError(err instanceof Error ? err.message : 'Failed to load themes');
+      });
+  }, [connected, serverUrl]);
+
+  useEffect(() => {
+    fetchThemes();
+  }, [fetchThemes, tokens]);
 
   // Close dimension dropdown on outside click
   useEffect(() => {
@@ -115,5 +126,7 @@ export function useThemeSwitcher(
     setDimBarExpanded,
     dimDropdownRef,
     themedAllTokensFlat,
+    themesError,
+    retryThemes: fetchThemes,
   };
 }
