@@ -113,7 +113,16 @@ function buildZipBlob(files: { path: string; content: string }[]): Blob {
 
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [mode, setMode] = useState<ExportMode>('platforms');
-  const [selected, setSelected] = useState<Set<string>>(new Set(['css']));
+  const [selected, setSelected] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('exportPanel.selectedPlatforms');
+      if (saved) {
+        const parsed = JSON.parse(saved) as string[];
+        if (Array.isArray(parsed) && parsed.length > 0) return new Set(parsed);
+      }
+    } catch { /* ignore */ }
+    return new Set(['css']);
+  });
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<{ platform: string; path: string; content: string }[]>([]);
@@ -130,6 +139,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [expandedCollection, setExpandedCollection] = useState<string | null>(null);
   const [expandedVar, setExpandedVar] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
+
+  // Persist selected platforms
+  useEffect(() => {
+    localStorage.setItem('exportPanel.selectedPlatforms', JSON.stringify([...selected]));
+  }, [selected]);
 
   // Listen for messages from the plugin sandbox
   useEffect(() => {

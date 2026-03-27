@@ -332,3 +332,11 @@
   - When a filled-accent button sits alongside ghost buttons on a source-selection screen, the ghost style is the right equalizer — all options get the same weight, with colored icons providing visual differentiation.
   - Preserve color identity (accent-colored icon + tinted bg) when demoting a filled button to ghost to avoid making it look completely plain.
 ---
+
+## 2026-03-27 - Platform selection not persisted between plugin sessions
+- Replaced `useState<Set<string>>(new Set(['css']))` with a lazy initializer that reads `localStorage.getItem('exportPanel.selectedPlatforms')` (JSON array). Added a `useEffect([selected])` that writes the selection back on every change.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L116,L143
+- **Learnings for future iterations:**
+  - Lazy `useState(() => { ... })` initializer is the clean pattern for reading localStorage on mount — avoids a separate `useEffect` with an empty dep array and prevents a render cycle.
+  - Pair with a `useEffect([value])` writer for automatic persistence on every change.
+---
