@@ -140,6 +140,8 @@ export interface SelectionMessage {
 export interface TokenMapEntry {
   $value: any;
   $type: string;
+  /** DTCG leaf key (segment name) — may contain dots, e.g. "1.5". */
+  $name?: string;
 }
 
 export interface SyncBindingsMessage {

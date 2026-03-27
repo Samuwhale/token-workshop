@@ -1,7 +1,26 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { flattenTokenGroup } from '@tokenmanager/core';
+import { isDTCGToken } from '@tokenmanager/core';
+import type { DTCGGroup } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
+
+/** Flatten a DTCG group into TokenMapEntry records, preserving each leaf's DTCG key as `$name`. */
+function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): Array<[string, TokenMapEntry]> {
+  const out: Array<[string, TokenMapEntry]> = [];
+  const inheritedType = (group as any).$type ?? parentType;
+  for (const [key, value] of Object.entries(group)) {
+    if (key.startsWith('$')) continue;
+    if (value === undefined || value === null) continue;
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (isDTCGToken(value)) {
+      const $type = value.$type ?? inheritedType ?? 'unknown';
+      out.push([path, { $value: value.$value, $type, $name: key }]);
+    } else if (typeof value === 'object' && !Array.isArray(value)) {
+      out.push(...flattenWithNames(value as DTCGGroup, path, inheritedType));
+    }
+  }
+  return out;
+}
 
 export interface TokenNode {
   path: string;
@@ -79,8 +98,8 @@ export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<stri
     const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) continue;
     const data = await res.json();
-    for (const [path, token] of flattenTokenGroup(data.tokens || {})) {
-      map[path] = { $value: token.$value, $type: token.$type || 'unknown' };
+    for (const [path, entry] of flattenWithNames(data.tokens || {})) {
+      map[path] = entry;
     }
   }
 
@@ -106,8 +125,7 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
     if (!res.ok) continue;
     const data = await res.json();
     const setMap: Record<string, TokenMapEntry> = {};
-    for (const [path, token] of flattenTokenGroup(data.tokens || {})) {
-      const entry: TokenMapEntry = { $value: token.$value, $type: token.$type || 'unknown' };
+    for (const [path, entry] of flattenWithNames(data.tokens || {})) {
       setMap[path] = entry;
       flat[path] = entry;
       if (!(path in pathToSet)) pathToSet[path] = setName; // first set wins

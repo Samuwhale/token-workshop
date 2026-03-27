@@ -30,3 +30,13 @@
 - **Learnings for future iterations:**
   - When two functions handle the same `scope: 'selection' | 'page'` parameter, check that both gather nodes the same way. Easy to miss when they were written at different times.
 ---
+
+## 2026-03-27 - openBindFromProp uses lastIndexOf('.') to derive parent group — breaks for dotted segment names
+- Replaced `lastIndexOf('.')` parent derivation with `nodeParentPath(binding, leafName)` using the token's DTCG key.
+- Added `$name` field to `TokenMapEntry` interface to carry the DTCG leaf key through the flat token map.
+- Wrote `flattenWithNames` helper in `useTokens.ts` that traverses the DTCG group like `flattenTokenGroup` but preserves each leaf's key as `$name`.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L140, `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L7 (helper), ~L83, ~L128 (callsites), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L10 (import), ~L307 (fix)
+- **Learnings for future iterations:**
+  - `flattenTokenGroup` from core discards the DTCG key — it only returns `Map<path, token>`. When leaf names are needed downstream, a parallel traversal or extended flatten is required.
+  - The `$name` field on `TokenMapEntry` is optional, so existing code that creates entries without it continues to work.
+---

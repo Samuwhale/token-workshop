@@ -7,6 +7,7 @@ import {
 } from '../../shared/types';
 import type { BindableProperty, SelectionNodeInfo, NodeCapabilities, SyncCompleteMessage, TokenMapEntry } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
+import { nodeParentPath } from './tokenListUtils';
 import type { UndoSlot } from '../hooks/useUndo';
 
 interface SelectionInspectorProps {
@@ -304,8 +305,8 @@ export function SelectionInspector({
     // Pre-populate with parent group to surface sibling tokens when remapping
     const currentBinding = getBindingForProperty(rootNodes, prop);
     if (currentBinding && currentBinding !== 'mixed') {
-      const lastDot = currentBinding.lastIndexOf('.');
-      setBindQuery(lastDot > 0 ? currentBinding.slice(0, lastDot) : '');
+      const leafName = tokenMap[currentBinding]?.$name;
+      setBindQuery(leafName ? nodeParentPath(currentBinding, leafName) : '');
     } else {
       setBindQuery('');
     }
