@@ -306,3 +306,10 @@
   - The color map's "Black = already resolved" role can be replaced by checking `this.resolved.has()` directly, which is O(1) and always up-to-date without upfront O(n) initialization.
   - `resolveAll()` retains its O(n) pre-population loop — intentional, since it traverses all tokens anyway and the overhead is proportionally negligible.
 ---
+
+## 2026-03-27 - AnalyticsPanel fetches all sets' tokens in parallel with no `AbortController` — setState on unmounted component if user switches tabs
+- Added `AbortController` to the `useEffect` load function; passed `{ signal: controller.signal }` to the `/api/sets` fetch and all per-set `/api/tokens/:name` fetches; updated `.catch()` to skip `setLoading(false)` on `AbortError`; added cleanup `return () => controller.abort()`.
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L178-L248
+- **Learnings for future iterations:**
+  - Catch must check `err?.name !== 'AbortError'` — a thrown AbortError means cleanup succeeded, not a real failure. Calling `setLoading(false)` on abort would still trigger a setState on the (now) unmounted component.
+---
