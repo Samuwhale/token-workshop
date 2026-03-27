@@ -474,3 +474,10 @@
 - Found 7 items — written to backlog-inbox.md
 - Notable: export group filter splits on `.` but token segments can contain literal dots — a known codebase-wide gotcha that wasn't applied to the export route
 ---
+
+## 2026-03-27 - Pervasive `as any` casts in generator-service and routes
+- Stale — all five referenced files (`generator-service.ts`, `generators route`, `sets route`, `tokens route`, `controller.ts`) already have zero `as any` casts. Previously resolved in a prior session.
+- Files changed: none
+- **Learnings for future iterations:**
+  - When a backlog item mentions "pervasive" type issues, always grep the exact files first before planning implementation.
+---

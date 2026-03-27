@@ -134,7 +134,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] AliasAutocomplete entries not memoized — `entries` recomputed every render without `useMemo`; expensive for large token sets (`figma-plugin/AliasAutocomplete.tsx`)
 - [x] LintConfigStore shallow cache reference — `LintConfigStore.load()` returns shallow reference to cached config; callers can corrupt the cache (`server/lint.ts:63-72`)
 - [x] `validateAllTokens` hardcodes depth > 3 — should read limit from lint config instead of hardcoding (`server/lint.ts:338`)
-- [ ] Pervasive `as any` casts in generator-service and routes — bypasses type safety across the plugin boundary (`generator-service.ts`, `generators route`, `sets route`, `tokens route`, `controller.ts`)
+- [x] Pervasive `as any` casts in generator-service and routes — bypasses type safety across the plugin boundary (`generator-service.ts`, `generators route`, `sets route`, `tokens route`, `controller.ts`)
 - [ ] REFERENCE_GLOBAL_REGEX module-level stateful regex — `/g` flag creates a latent `.lastIndex` hazard if `.test()` or `.exec()` are used directly (`core/constants.ts:118`)
 - [ ] App.tsx god component — ~2000-line component with 40+ useState declarations; should be decomposed into feature modules
 - [ ] TokenList 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)
