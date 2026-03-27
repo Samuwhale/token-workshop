@@ -499,3 +499,24 @@ Already up to date.
 
 --- Merging: DELETE /api/sets/:name does not check if generators reference this set as `targetSet` before allowing deletion — leaves orphaned generators that error on next run ---
 Already up to date.
+[main 949c399] chore(backlog): done – DELETE /api/sets/:name does not check if generators reference this set as `targetSet` before allowing deletion — leaves orphaned generators that error on next run
+ 6 files changed, 43 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - DELETE /api/sets/:name does not check if generators reference this set as `targetSet` before allowing deletion
+- Added a pre-deletion check in the DELETE /api/sets/:name route that queries all generators via `fastify.generatorService.getAll()` and blocks deletion with HTTP 409 if any generator has `targetSet === name`. The response includes a human-readable error listing the blocking generator names and a `generatorIds` array for programmatic use.
+- Files changed: `packages/server/src/routes/sets.ts` ~L122
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 25 / 90  (claude)  —  3 items remaining
+===============================================================
+  Claimed: ValuePreview renders an empty 5×5 div for unresolved aliases instead of a warning icon or placeholder — users don't know the token failed to resolve
+  Worktree: /tmp/backlog-98901-UjLpgZ
+
+  ✓ done: ValuePreview renders an empty 5×5 div for unresolved aliases instead of a warning icon or placeholder — users don't know the token failed to resolve
+    Replaced empty div with a warning triangle SVG icon and tooltip showing the unresolved alias string
+    8 turns · 43s · $0.15
+
+--- Merging: ValuePreview renders an empty 5×5 div for unresolved aliases instead of a warning icon or placeholder — users don't know the token failed to resolve ---
+Already up to date.

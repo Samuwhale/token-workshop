@@ -361,3 +361,11 @@
   - `fastify.generatorService` is already decorated on the fastify instance and accessible from all route plugins — no imports or wiring needed.
   - The `targetSetTemplate` field (used with `inputTable`) dynamically expands to set names per row; checking it would require template expansion logic. The check only covers the direct `targetSet` field, which covers the common case.
 ---
+
+## 2026-03-27 - ValuePreview renders an empty 5×5 div for unresolved aliases instead of a warning icon or placeholder
+- Replaced the empty `<div className="w-5 h-5 shrink-0" />` for unresolved aliases (values starting with `{`) with a warning triangle SVG icon using `stroke="currentColor"` in `text-[var(--color-figma-text-tertiary)]`, plus a `title` tooltip showing the unresolved alias string so users understand why no preview renders.
+- Files changed: `packages/figma-plugin/src/ui/components/ValuePreview.tsx` ~L3
+- **Learnings for future iterations:**
+  - ValuePreview uses a simple string-prefix check (`value.startsWith('{')`) to detect unresolved aliases — no resolver call needed here.
+  - Adding a `title` attribute to the warning icon doubles as a tooltip with the raw alias value, giving users actionable context without extra UI.
+---
