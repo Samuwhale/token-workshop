@@ -246,7 +246,8 @@ export function App() {
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
-  const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); }, [refreshTokens]);
+  const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
+  const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); }, [refreshTokens, refreshGenerators]);
   const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll]);
   const editorIsDirtyRef = useRef(false);
   const handleEditorSave = useCallback((savedPath: string) => {
@@ -262,7 +263,6 @@ export function App() {
       setActiveSet(targetSet);
     }
   }, [activeSet, setHighlightedToken, setPendingHighlightForSet, setActiveSet]);
-  const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const [validateKey, setValidateKey] = useState(0);
   const [analyticsIssueCount, setAnalyticsIssueCount] = useState<number | null>(null);
   const [showIssuesOnly, setShowIssuesOnly] = useState(false);

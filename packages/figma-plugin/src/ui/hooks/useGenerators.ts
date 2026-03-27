@@ -128,6 +128,8 @@ export interface TokenGenerator {
   targetSetTemplate?: string;
   createdAt: string;
   updatedAt: string;
+  /** Set when the last auto-run (triggered by a source token update) failed. Cleared on success. */
+  lastRunError?: { message: string; at: string };
 }
 
 export interface GeneratedTokenResult {

@@ -38,11 +38,18 @@ interface GeneratorsFile {
   $generators: TokenGenerator[];
 }
 
+export interface GeneratorRunError {
+  message: string;
+  at: string;
+}
+
 export class GeneratorService {
   private dir: string;
   private generators: Map<string, TokenGenerator> = new Map();
   /** IDs of generators currently executing — prevents re-entrancy per generator. */
   private runningGenerators = new Set<string>();
+  /** Last auto-run error per generator (in-memory only, not persisted). */
+  private generatorErrors: Map<string, GeneratorRunError> = new Map();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
@@ -77,8 +84,11 @@ export class GeneratorService {
     await fs.writeFile(this.filePath, JSON.stringify(data, null, 2));
   }
 
-  async getAll(): Promise<TokenGenerator[]> {
-    return Array.from(this.generators.values());
+  async getAll(): Promise<(TokenGenerator & { lastRunError?: GeneratorRunError })[]> {
+    return Array.from(this.generators.values()).map(gen => {
+      const err = this.generatorErrors.get(gen.id);
+      return err ? { ...gen, lastRunError: err } : gen;
+    });
   }
 
   async getById(id: string): Promise<TokenGenerator | undefined> {
@@ -213,8 +223,8 @@ export class GeneratorService {
       if (!gen) continue;
       await this.executeGenerator(gen, tokenStore).catch(err => {
         const message = err instanceof Error ? err.message : String(err);
+        this.generatorErrors.set(genId, { message, at: new Date().toISOString() });
         console.warn(`[GeneratorService] Generator "${genId}" failed after token update:`, err);
-        tokenStore.emitEvent({ type: 'generator-error', setName: '', generatorId: genId, message });
       });
     }
   }
@@ -293,10 +303,15 @@ export class GeneratorService {
   ): Promise<GeneratedTokenResult[]> {
     this.runningGenerators.add(generator.id);
     try {
+      let results: GeneratedTokenResult[];
       if (generator.inputTable && generator.inputTable.rows.length > 0) {
-        return await this.executeGeneratorMultiBrand(generator, tokenStore);
+        results = await this.executeGeneratorMultiBrand(generator, tokenStore);
+      } else {
+        results = await this.executeSingleBrand(generator, tokenStore, generator.targetSet);
       }
-      return await this.executeSingleBrand(generator, tokenStore, generator.targetSet);
+      // Clear any prior auto-run error on success
+      this.generatorErrors.delete(generator.id);
+      return results;
     } finally {
       this.runningGenerators.delete(generator.id);
     }

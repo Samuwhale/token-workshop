@@ -376,3 +376,11 @@
 - **Learnings for future iterations:**
   - CSS `box-shadow` natively supports multiple shadows via comma separation — no wrapper element needed, just join the shadow strings.
 ---
+
+## 2026-03-27 - Generator auto-run errors (triggered on token updates via SSE) are swallowed with `console.warn` — users have no way to discover why a generator didn't re-execute after editing a source token
+- Added in-memory error tracking per generator in `GeneratorService`: a `generatorErrors: Map<string, GeneratorRunError>` field is populated when `runForSourceToken` catches an individual generator failure (with message + timestamp), and cleared on success via `executeGenerator`. `getAll()` now merges error state into the returned generator objects. On the UI side, added `lastRunError` to the `TokenGenerator` interface, included `refreshGenerators` in `refreshAll` so errors are visible after any token edit, and updated `GeneratorPipelineCard` in GraphPanel to show a red border, error icon, and inline error message when `lastRunError` is set.
+- Files changed: `packages/server/src/services/generator-service.ts` ~L41, ~L80, ~L207, ~L297; `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L118; `packages/figma-plugin/src/ui/App.tsx` ~L241; `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L756
+- **Learnings for future iterations:**
+  - The SSE endpoint exists but the plugin UI does not subscribe to it with EventSource — all UI updates are manual refresh or polling. Any server-side event that needs UI visibility must be surfaced via the API and fetched on refresh.
+  - `refreshAll` in App.tsx is defined before `useGenerators`, so adding `refreshGenerators` to its deps required moving the `useGenerators` hook declaration above `refreshAll`.
+---

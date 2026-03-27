@@ -757,15 +757,28 @@ function ApplyForm({
 function GeneratorPipelineCard({ generator }: { generator: TokenGenerator }) {
   const stepCount = getGeneratorStepCount(generator);
   const typeLabel = getGeneratorTypeLabel(generator.type);
+  const hasError = !!generator.lastRunError;
 
   return (
-    <div className="p-3 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+    <div className={`p-3 rounded border bg-[var(--color-figma-bg)] ${hasError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}>
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium border border-[var(--color-figma-accent)]/20">
           {typeLabel}
         </span>
         <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate flex-1">{generator.name}</span>
+        {hasError && (
+          <span title={`Auto-run failed: ${generator.lastRunError!.message}`} className="shrink-0 text-[var(--color-figma-error)]" aria-label="Generator auto-run error">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </span>
+        )}
       </div>
+      {hasError && (
+        <div className="mb-2 text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 rounded px-2 py-1 border border-[var(--color-figma-error)]/20 break-words">
+          Auto-run failed: {generator.lastRunError!.message}
+        </div>
+      )}
       <div className="flex items-center gap-1.5 text-[10px]">
         {generator.sourceToken ? (
           <>

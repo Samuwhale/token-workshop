@@ -540,3 +540,16 @@ Already up to date.
 
 --- Merging: ValuePreview shadow preview only renders a single shadow even if the token value is an array — multi-shadow tokens are visually misrepresented ---
 Already up to date.
+[main 1fc935e] chore(backlog): done – ValuePreview shadow preview only renders a single shadow even if the token value is an array — multi-shadow tokens are visually misrepresented
+ 5 files changed, 43 insertions(+), 11 deletions(-)
+
+## 2026-03-27 - ValuePreview shadow preview only renders a single shadow even if the token value is an array — multi-shadow tokens are visually misrepresented
+- Changed shadow rendering to map over all shadows in the array and join them as comma-separated CSS `box-shadow` values, so multi-shadow tokens are fully rendered.
+- Files changed: `packages/figma-plugin/src/ui/components/ValuePreview.tsx` ~L41
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 27 / 90  (claude)  —  1 items remaining
+===============================================================
+  Claimed: PreviewPanel color palette skips alias tokens entirely — only raw hex values are shown, so derived/aliased colors are invisible in the palette view
+  Worktree: /tmp/backlog-98901-Fch7Jm
