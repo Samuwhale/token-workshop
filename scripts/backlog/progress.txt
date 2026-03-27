@@ -279,6 +279,11 @@
   - For drag-and-drop moves, collect the `moves` array before issuing API calls so both restore and redo can replay the exact set of renames.
 ---
 
+## 2026-03-27 - Delete non-empty group
+- stale — already done. The "Delete group" context menu item is shown for ALL groups regardless of `leafCount` (no empty-only guard at L3148). `requestDeleteGroup` (L1054) accepts any `tokenCount` and sets `deleteConfirm.type === 'group'`. The confirmation modal (L1380-1385) already shows "This will delete N token(s) in this group." with the count in both description and confirm button label. `executeDelete` (L1105) calls `DELETE /api/tokens/:set/<groupPath>`, and the server's `deleteTokenAtPath` (token-store.ts L874) deletes the entire subtree when given a non-leaf path. Undo is supported via `collectGroupLeaves` (L1088).
+- Files changed: none
+---
+
 ## 2026-03-27 - bugfix-pass: wildcard route params slash→dot normalization
 - Bug: The server's wildcard `*` route handlers for `/tokens/:set/*` and `/tokens/:set/dependents/*` passed `request.params['*']` directly to token store functions which split on `.`. But several client call sites encode token paths as slash-separated URLs (e.g., `colors/primary/accent` from `path.split('.').map(encodeURIComponent).join('/')`). This caused: (1) `handleInlineSave` PATCH calls to return 404 and silently fail — inline edits appeared to save but values reverted on refresh; (2) `handleConfirmPromote` PATCH calls to silently fail; (3) the `getDependents` check to always return 0 — the "N tokens reference this token" confirmation dialog was never shown before renames.
 - Fix: Added `.split('/').join('.')` normalization to `request.params['*']` in all 5 wildcard route handlers (dependents GET, token GET/POST/PATCH/DELETE). Dot-separated paths (no `/`) are unaffected; slash-separated paths are converted to dot-separated before store lookup.
