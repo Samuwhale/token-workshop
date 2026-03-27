@@ -11,24 +11,9 @@
 
 ### Bugs
 
-- [x] EmptyState "Generate tokens from template" calls onGoToGraph but doesn't open QuickStartDialog — user lands on Generators tab and must manually trigger quick start again
-- [x] Set delete failure doesn't reset modal state — if the DELETE call fails, `deletingSet` isn't cleared so the confirm modal stays open with no error message shown
-- [x] Keyboard shortcuts fire inside text inputs — the global handler (Cmd+1-4, etc.) doesn't check if focus is in an input/textarea, triggering unintended tab switches while typing
-
 ### QoL
 
-- [x] QuickStart dialog has no "back to templates" step — once a template is selected and TokenGeneratorDialog opens, the only way to pick a different template is to close and reopen the whole dialog
-- [x] Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
-- [x] No success toasts for set operations — create, rename, delete, reorder, merge, and split all succeed silently; only errors are surfaced, leaving users uncertain whether the action took effect
-- [x] Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback
-- [x] Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
-- [x] Resize handle is too small — the bottom-right drag handle is 12×12 px with no hover affordance; enlarge and show a cursor change on approach
-
 ### UX
-
-- [x] Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
-- [x] Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt
-- [x] Tab badges disappear when overflow panel is open — Inspect selection count and Publish git-changes badges are hidden whenever any overflow panel is visible, losing important status signals
 
 ---
 
@@ -36,20 +21,12 @@
 
 ### Bugs
 
-- [x] ColorPicker hex input doesn't trim whitespace — pasting a hex code with leading/trailing spaces (common from copy-paste) silently rejects the value with no error feedback
-- [x] ColorPicker alpha numeric input doesn't validate range — entering "999" creates an invalid alpha that internally clamps, showing confusing mismatch between input and result
-- [x] `parseInlineValue` for boolean type accepts any non-`"false"` string as `true` — typing "maybe" or "yes" both evaluate as `true` with no validation
-- [x] Find-and-replace silently swallows invalid regex — if the user enables regex mode and enters a malformed pattern, `new RegExp()` throws and the preview returns empty with no error
-- [x] Find-and-replace clears UI state even on failure — after a failed bulk rename the search/replace fields and mode are reset, losing the user's parameters
 - [~] Virtual-scroll row height mismatch — `VIRTUAL_ITEM_HEIGHT` is hardcoded to 28 px, but rows with chain/alias badges render at ~48–56 px, causing misaligned scroll positions
 
 ### QoL
 
-- [x] BatchEditor doesn't return focus to an input field after a successful operation — breaks workflow when performing multiple sequential edits
-- [x] ColorPicker eyedropper button has no active/success state indicator — users can't tell if their click activated the picker or if they need to retry
 - [~] No multi-drag — drag-and-drop works for one token at a time; in select mode dragging is disabled entirely, forcing one-by-one moves
 - [~] Inline editing limited to colors — only color tokens get the inline swatch picker; spacing, dimension, and number types require the full editor modal
-- [~] Context menu disabled in select mode — right-clicking while checkboxes are visible returns early; users lose copy/rename/delete for individual tokens
 - [ ] Copy token path always uses dot notation — no option to copy as CSS custom property, SCSS variable, or alias reference format
 - [ ] Cross-set select-all only works within current set — `handleSelectAll` uses `displayedLeafPaths` scoped to the active set even when cross-set search results are shown
 - [ ] Color picker canvas has no keyboard navigation — the saturation/lightness area is pointer-only with no arrow-key support or ARIA labels
@@ -228,7 +205,4 @@
 
 - [!] Cannot access 'Wr' before initialization — runtime error, likely a circular dependency or hoisting issue with a minified identifier; needs source-map / unminified stack trace to locate the declaration. Once fixed, audit the codebase for similar initialization-order issues (other circular deps, `let`/`const` accessed before declaration across module boundaries).
 
-- [x] Validation-fix-revalidate loop is fully manual — after fixing a validation issue, users must manually switch back to Analytics and re-trigger validation; no auto-revalidation or "recheck this issue" action
-- [x] Remap bindings has no token autocomplete — the remap panel requires typing exact token paths manually with no search/autocomplete, making it error-prone for large token sets
-- [x] Export has no batch copy or download — exporting to multiple platforms requires toggling each one individually, then expanding each file and clicking "Copy" one at a time; no "Copy All" or download-as-zip
 - [~] Deep Inspect mode has no keyboard shortcut — toggling deep inspection requires clicking a small button; a keyboard shortcut would streamline the inspect workflow

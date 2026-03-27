@@ -77,3 +77,9 @@ Already up to date.
 
 --- Merging: Context menu disabled in select mode ---
 Already up to date.
+[main a68e633] chore(backlog): done – Context menu disabled in select mode
+ 5 files changed, 32 insertions(+), 5 deletions(-)
+
+--- Cleanup: archiving completed items (≥23) ---
+  → Archived 23 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 52)

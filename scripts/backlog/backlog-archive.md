@@ -217,3 +217,28 @@ Completed items removed from backlog.md to keep it lean.
 - [x] Context menu has no letter-key accelerators — right-click menu shows 12+ items navigable only by arrow keys; adding letter-key access (d=delete, r=rename, c=copy path) would speed up power users
 - [x] Generators show no preview before commit — users configure a color scale or type scale but can't see what tokens will be created until they confirm; a live preview of generated output would prevent trial-and-error
 - [x] Selection Inspector create-and-bind requires tab switch — when binding a token that doesn't exist yet, users must leave Inspect tab, create token in Tokens tab, return to Inspect, re-bind; an inline "Create & Bind" flow would eliminate this context switch
+
+## Archived 2026-03-27 (23 items)
+- [x] EmptyState "Generate tokens from template" calls onGoToGraph but doesn't open QuickStartDialog — user lands on Generators tab and must manually trigger quick start again
+- [x] Set delete failure doesn't reset modal state — if the DELETE call fails, `deletingSet` isn't cleared so the confirm modal stays open with no error message shown
+- [x] Keyboard shortcuts fire inside text inputs — the global handler (Cmd+1-4, etc.) doesn't check if focus is in an input/textarea, triggering unintended tab switches while typing
+- [x] QuickStart dialog has no "back to templates" step — once a template is selected and TokenGeneratorDialog opens, the only way to pick a different template is to close and reopen the whole dialog
+- [x] Keyboard shortcuts modal uses Mac-only symbols (⌘, ⇧) with no legend or platform-adaptive labels for non-Mac users
+- [x] No success toasts for set operations — create, rename, delete, reorder, merge, and split all succeed silently; only errors are surfaced, leaving users uncertain whether the action took effect
+- [x] Undo doesn't cover set-level operations — undo/redo only tracks token changes; set rename, delete, merge, and split are irreversible without manual server rollback
+- [x] Command palette token results capped at 30 with no scroll-for-more — large token sets hit the ceiling with no indication that more matches exist
+- [x] Resize handle is too small — the bottom-right drag handle is 12×12 px with no hover affordance; enlarge and show a cursor change on approach
+- [x] Empty state disabled buttons only explain "Server offline" via hover tooltip — the disabled state alone is insufficient; an inline banner or status message would be more discoverable
+- [x] Connection-drop mid-operation has no recovery — if the server becomes unreachable during an async call, the request silently fails; add AbortController wiring and a retry/reconnect prompt
+- [x] Tab badges disappear when overflow panel is open — Inspect selection count and Publish git-changes badges are hidden whenever any overflow panel is visible, losing important status signals
+- [x] ColorPicker hex input doesn't trim whitespace — pasting a hex code with leading/trailing spaces (common from copy-paste) silently rejects the value with no error feedback
+- [x] ColorPicker alpha numeric input doesn't validate range — entering "999" creates an invalid alpha that internally clamps, showing confusing mismatch between input and result
+- [x] `parseInlineValue` for boolean type accepts any non-`"false"` string as `true` — typing "maybe" or "yes" both evaluate as `true` with no validation
+- [x] Find-and-replace silently swallows invalid regex — if the user enables regex mode and enters a malformed pattern, `new RegExp()` throws and the preview returns empty with no error
+- [x] Find-and-replace clears UI state even on failure — after a failed bulk rename the search/replace fields and mode are reset, losing the user's parameters
+- [x] BatchEditor doesn't return focus to an input field after a successful operation — breaks workflow when performing multiple sequential edits
+- [x] ColorPicker eyedropper button has no active/success state indicator — users can't tell if their click activated the picker or if they need to retry
+- [x] Context menu disabled in select mode — right-clicking while checkboxes are visible returns early; users lose copy/rename/delete for individual tokens
+- [x] Validation-fix-revalidate loop is fully manual — after fixing a validation issue, users must manually switch back to Analytics and re-trigger validation; no auto-revalidation or "recheck this issue" action
+- [x] Remap bindings has no token autocomplete — the remap panel requires typing exact token paths manually with no search/autocomplete, making it error-prone for large token sets
+- [x] Export has no batch copy or download — exporting to multiple platforms requires toggling each one individually, then expanding each file and clicking "Copy" one at a time; no "Copy All" or download-as-zip
