@@ -5,6 +5,8 @@ Add new patterns here when discovered — keep entries general and reusable, not
 
 ---
 
+- **Pure-JS ZIP builder (no deps)**: For browser/plugin ZIP downloads, use stored (uncompressed) entries — no external library needed. Key: CRC-32 table with poly `0xEDB88320`, local header (30+name bytes, sig `0x04034b50`), central directory (46+name bytes, sig `0x02014b50`), EOCD (22 bytes, sig `0x06054b50`). All multi-byte fields are little-endian (`DataView.setUint16/32(pos, val, true)`). See `ExportPanel.tsx` `buildZipBlob` for a complete reference implementation.
+
 - **Build command**: `cd packages/figma-plugin && npm run build` — the root `npm run build` requires turbo (devDependency) which may not be installed. The plugin build is self-contained and always succeeds.
 - **SVG chevron pattern**: Expand/collapse arrows use `<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3V1z" /></svg>` with a `rotate-90` class toggled for direction. Never use `▶`/`▼` text characters.
 - **SVG icon pattern (SyncPanel)**: `width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"`. Checkmark: `M20 6L9 17l-5-5`. X: `M18 6L6 18M6 6l12 12`.

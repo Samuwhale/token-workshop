@@ -46,6 +46,71 @@ interface ExportedCollection {
 
 type ExportMode = 'platforms' | 'figma-variables';
 
+function buildZipBlob(files: { path: string; content: string }[]): Blob {
+  const crcTable = (() => {
+    const t = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[i] = c;
+    }
+    return t;
+  })();
+  const crc32 = (data: Uint8Array): number => {
+    let crc = 0xFFFFFFFF;
+    for (const b of data) crc = crcTable[(crc ^ b) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  };
+  const enc = new TextEncoder();
+  const w16 = (v: DataView, p: number, n: number) => v.setUint16(p, n, true);
+  const w32 = (v: DataView, p: number, n: number) => v.setUint32(p, n, true);
+  const now = new Date();
+  const dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xFFFF;
+  const dosDate = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xFFFF;
+
+  const parts: Uint8Array[] = [];
+  const centralDir: Uint8Array[] = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const name = enc.encode(file.path);
+    const data = enc.encode(file.content);
+    const crc = crc32(data);
+    const sz = data.length;
+
+    const lh = new ArrayBuffer(30 + name.length);
+    const lv = new DataView(lh);
+    w32(lv, 0, 0x04034b50); w16(lv, 4, 20); w16(lv, 6, 0); w16(lv, 8, 0);
+    w16(lv, 10, dosTime); w16(lv, 12, dosDate);
+    w32(lv, 14, crc); w32(lv, 18, sz); w32(lv, 22, sz);
+    w16(lv, 26, name.length); w16(lv, 28, 0);
+    new Uint8Array(lh, 30).set(name);
+    const lhBytes = new Uint8Array(lh);
+
+    const cd = new ArrayBuffer(46 + name.length);
+    const cv = new DataView(cd);
+    w32(cv, 0, 0x02014b50); w16(cv, 4, 20); w16(cv, 6, 20); w16(cv, 8, 0); w16(cv, 10, 0);
+    w16(cv, 12, dosTime); w16(cv, 14, dosDate);
+    w32(cv, 16, crc); w32(cv, 20, sz); w32(cv, 24, sz);
+    w16(cv, 28, name.length); w16(cv, 30, 0); w16(cv, 32, 0);
+    w16(cv, 34, 0); w16(cv, 36, 0); w32(cv, 38, 0); w32(cv, 42, offset);
+    new Uint8Array(cd, 46).set(name);
+
+    parts.push(lhBytes, data);
+    centralDir.push(new Uint8Array(cd));
+    offset += lhBytes.length + sz;
+  }
+
+  const cdSize = centralDir.reduce((s, e) => s + e.length, 0);
+  const eocd = new ArrayBuffer(22);
+  const ev = new DataView(eocd);
+  w32(ev, 0, 0x06054b50); w16(ev, 4, 0); w16(ev, 6, 0);
+  w16(ev, 8, files.length); w16(ev, 10, files.length);
+  w32(ev, 12, cdSize); w32(ev, 16, offset); w16(ev, 20, 0);
+
+  return new Blob([...parts, ...centralDir, new Uint8Array(eocd)], { type: 'application/zip' });
+}
+
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [mode, setMode] = useState<ExportMode>('platforms');
   const [selected, setSelected] = useState<Set<string>>(new Set(['css']));
@@ -229,6 +294,17 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     }
 
     return JSON.stringify(output, null, 2);
+  };
+
+  const handleDownloadZip = () => {
+    const blob = buildZipBlob(results);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tokens.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+    parent.postMessage({ pluginMessage: { type: 'notify', message: `Downloaded ${results.length} file(s) as ZIP` } }, '*');
   };
 
   const handleDownloadFile = (file: { path: string; content: string }) => {
@@ -821,25 +897,39 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
       {/* Sticky action footer */}
       <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex flex-col gap-1.5">
         {mode === 'platforms' && results.length > 0 && (
-          <div className="flex gap-1.5">
-            <button
-              onClick={handleCopyAllPlatformResults}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
-            >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="9" y="9" width="13" height="13" rx="2" />
-                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-              </svg>
-              Copy All
-            </button>
+          <>
+            <div className="flex gap-1.5">
+              <button
+                onClick={handleCopyAllPlatformResults}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-tertiary)] transition-colors"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="9" y="9" width="13" height="13" rx="2" />
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                </svg>
+                Copy All
+              </button>
+              <button
+                onClick={handleDownloadZip}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+                title={`Download all ${results.length} file${results.length !== 1 ? 's' : ''} as a ZIP archive`}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download ZIP
+              </button>
+            </div>
             <button
               onClick={handleExport}
               disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting}
-              className="flex-1 px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+              className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
             >
               {exporting ? 'Exporting…' : 'Re-export'}
             </button>
-          </div>
+          </>
         )}
         {mode === 'platforms' && results.length === 0 && (
           <button

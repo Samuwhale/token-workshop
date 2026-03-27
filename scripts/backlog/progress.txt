@@ -434,3 +434,12 @@
   - The tab bar right-side cluster starts with the `ml-auto` issues filter button; subsequent icon buttons flow naturally right without needing extra margin logic.
   - The existing `!connected` banner above the tab bar handles the error state well; the header dot is complementary (always-visible at-a-glance status, vs the detailed error banner).
 ---
+
+## 2026-03-27 - No backup/export-all as ZIP
+- Added "Download ZIP" button to the platforms export footer (appears after a successful export, alongside "Copy All"). Implemented a pure-JS uncompressed ZIP builder (`buildZipBlob`) — no new dependencies. Files use stored (method=0) entries with correct CRC-32, local file headers, central directory, and EOCD record. Footer layout changed from one row (Copy All + Re-export) to two rows ([Copy All | Download ZIP] + [Re-export]) to keep the primary action prominent.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L49 (buildZipBlob), ~L299 (handleDownloadZip), ~L901 (footer buttons)
+- **Learnings for future iterations:**
+  - Pure-JS ZIP (stored/uncompressed, no external dep) is sufficient for text file bundles; ZIP format needs: CRC-32, local file header (30+name bytes), central directory (46+name bytes), EOCD (22 bytes).
+  - CRC-32 table must use the standard polynomial 0xEDB88320 (reversed); initialize once as Uint32Array(256).
+  - DataView.setUint16/setUint32 with `true` (little-endian) for all ZIP multi-byte fields.
+---
