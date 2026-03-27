@@ -289,3 +289,10 @@
 - **Learnings for future iterations:**
   - When toggling state from a keydown handler that's closed over stale state, use the functional updater form of setState (e.g. `setX(prev => ...)`) to read the current value.
 ---
+
+## 2026-03-27 - Set delete failure doesn't reset modal state
+- Removed the try/catch in `handleDeleteSet` so errors propagate to `ConfirmModal.handleConfirm`, which already has built-in error display and busy-state reset. Previously the catch swallowed the error and closed the modal silently.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L632
+- **Learnings for future iterations:**
+  - `ConfirmModal` has built-in error handling (catches errors from `onConfirm`, displays them, resets busy state). Handlers passed as `onConfirm` should let errors propagate rather than catching them internally.
+---

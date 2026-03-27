@@ -1,0 +1,11 @@
+NOTE: 1 [~] item(s) found — skipping reset (1 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 101
+  Completed total: 211 (next code pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  101 items remaining
+===============================================================
+  Claimed: EmptyState "Generate tokens from template" calls onGoToGraph but doesn't open QuickStartDialog — user lands on Generators tab and must manually trigger quick start again
+  Worktree: /tmp/backlog-79425-B6xspC

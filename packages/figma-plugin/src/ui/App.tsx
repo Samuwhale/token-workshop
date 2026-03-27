@@ -631,13 +631,8 @@ export function App() {
 
   const handleDeleteSet = async () => {
     if (!deletingSet || !connected) return;
-    try {
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(`Failed to delete set: ${res.statusText}`);
-    } catch {
-      setDeletingSet(null);
-      return;
-    }
+    const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`Failed to delete set: ${res.statusText}`);
     const remaining = sets.filter(s => s !== deletingSet);
     setSets(remaining);
     if (activeSet === deletingSet) {

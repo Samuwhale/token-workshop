@@ -1,0 +1,11 @@
+NOTE: 3 [~] item(s) found — skipping reset (7 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 99
+  Completed total: 211 (next code pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  99 items remaining
+===============================================================
+  Claimed: Keyboard shortcuts fire inside text inputs — the global handler (Cmd+1-4, etc.) doesn't check if focus is in an input/textarea, triggering unintended tab switches while typing
+  Worktree: /tmp/backlog-80241-Wq743Q

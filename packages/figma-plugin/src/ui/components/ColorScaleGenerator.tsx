@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { hexToLab, labToHex } from '../shared/colorUtils';
+import { hexToLab, labToHex } from '@tokenmanager/core';
 import { ColorPicker } from './ColorPicker';
 
 // ---------------------------------------------------------------------------

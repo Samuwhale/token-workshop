@@ -2,6 +2,8 @@
  * Shared color math utilities — sRGB ↔ linear ↔ XYZ ↔ CIELAB, WCAG contrast.
  */
 
+import { hexToLab, labToHex } from '@tokenmanager/core';
+
 // sRGB linearization (IEC 61966-2-1)
 function toLinear(c: number): number {
   return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
@@ -219,9 +221,6 @@ export function wcagContrast(hex1: string, hex2: string): number | null {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-// Re-export from core (canonical implementation)
-export { hexToLab, labToHex, applyColorModifiers } from '@tokenmanager/core';
-export type { ColorModifierOp } from '@tokenmanager/core';
 
 export function countLeafNodes(group: Record<string, any>): { total: number; byType: Record<string, number> } {
   let total = 0;
