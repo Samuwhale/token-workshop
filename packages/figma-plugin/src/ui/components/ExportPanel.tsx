@@ -932,10 +932,17 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             <button
               onClick={handleExport}
               disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting}
-              className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+              className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
               title="Re-fetch tokens from the server and regenerate all platform files"
             >
-              {exporting ? 'Exporting…' : 'Re-export'}
+              {exporting ? (
+                <>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
+                    <path d="M21 12a9 9 0 11-6.219-8.56" />
+                  </svg>
+                  Exporting…
+                </>
+              ) : 'Re-export'}
             </button>
           </>
         )}
@@ -943,9 +950,16 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
           <button
             onClick={handleExport}
             disabled={selected.size === 0 || (selectedSets !== null && selectedSets.size === 0) || exporting}
-            className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+            className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
           >
-            {exporting ? 'Exporting…' : selected.size === 0 ? 'Select a platform to export' : selectedSets !== null && selectedSets.size === 0 ? 'Select at least one set' : selectedSets !== null ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}` : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
+            {exporting ? (
+              <>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
+                  <path d="M21 12a9 9 0 11-6.219-8.56" />
+                </svg>
+                Exporting…
+              </>
+            ) : selected.size === 0 ? 'Select a platform to export' : selectedSets !== null && selectedSets.size === 0 ? 'Select at least one set' : selectedSets !== null ? `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''} · ${selectedSets.size} Set${selectedSets.size !== 1 ? 's' : ''}` : `Export ${selected.size} Platform${selected.size !== 1 ? 's' : ''}`}
           </button>
         )}
         {mode === 'figma-variables' && figmaCollections.length === 0 && (
@@ -992,10 +1006,17 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
             <button
               onClick={handleSaveToServer}
               disabled={exporting || !connected}
-              className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+              className="w-full px-3 py-2 rounded-md bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5"
               title={!connected ? 'Connect to server to save tokens' : 'Create or update tokens in your local token server from these Figma variables'}
             >
-              {exporting ? 'Saving…' : !connected ? 'Save to Token Server (offline)' : 'Save to Token Server'}
+              {exporting ? (
+                <>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin" aria-hidden="true">
+                    <path d="M21 12a9 9 0 11-6.219-8.56" />
+                  </svg>
+                  Saving…
+                </>
+              ) : !connected ? 'Save to Token Server (offline)' : 'Save to Token Server'}
             </button>
           </>
         )}

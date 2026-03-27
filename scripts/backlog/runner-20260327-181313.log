@@ -111,3 +111,10 @@ Already up to date.
 ===============================================================
   Claimed: ExportPanel: No loading indicator during platform export — the `handleExport` call sets `exporting` state but the UI does not show a spinner or progress message while waiting for the server response
   Worktree: /tmp/backlog-59311-71Hy58
+
+  ✓ done: ExportPanel: No loading indicator during platform export — the `handleExport` call sets `exporting` state but the UI does not show a spinner or progress message while waiting for the server response
+    Added animate-spin spinner SVGs to all three exporting-state buttons (Re-export, initial export, Save to Token Server) matching the existing figmaLoading spinner pattern in the same file.
+    13 turns · 59s · $0.25
+
+--- Merging: ExportPanel: No loading indicator during platform export — the `handleExport` call sets `exporting` state but the UI does not show a spinner or progress message while waiting for the server response ---
+Already up to date.

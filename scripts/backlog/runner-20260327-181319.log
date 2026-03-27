@@ -88,3 +88,11 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 49)
+[main f5a5857] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 201 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - ImportPanel: Figma Styles and JSON readers normalize paths identically — if a variable and style share a name like `color/primary`, they map to the same `color.primary` token path, creating silent conflicts
+- Added `markDuplicatePaths` helper that detects tokens sharing the same normalized path and annotates each with a `_warning` field ("Path conflict: multiple tokens share '...' — only the last will be saved")
+- Applied `markDuplicatePaths` in both the `styles-read` message handler and `processJsonFile` after building the token list
+- Added a warning banner above the token list that appears whenever any loaded tokens have path conflicts
