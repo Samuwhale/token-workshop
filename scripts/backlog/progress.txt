@@ -360,3 +360,10 @@
   - For panel-to-app navigation after async operations, adding a typed callback prop (`onImportComplete`) is cleaner than lifting state or using context — keeps the panel self-contained.
   - The variables import can create multiple sets; navigate to the first one (`allModes[0]?.setName`) as a best-effort default.
 ---
+
+## 2026-03-27 - `getGeneratorTypeLabel` missing `'contrastCheck'` case
+- Added `case 'contrastCheck': return 'Contrast check';` to the switch in `getGeneratorTypeLabel`.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L179
+- **Learnings for future iterations:**
+  - When a union type gains a new member, switch statements without a default/exhaustive check silently return `undefined` in JS/TS. Adding a default or using a Record map would catch this at compile time.
+---
