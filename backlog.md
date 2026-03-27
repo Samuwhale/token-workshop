@@ -104,7 +104,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [x] TokenList 30+ props — strong signal for context/state management extraction (`figma-plugin/TokenList.tsx:33-61`)
 - [x] TokenGeneratorDialog 800+ lines — handles 7+ generator types in one component; should be split (`figma-plugin/TokenGeneratorDialog.tsx`)
 - [x] CSS injection via token values in docs.ts — style attribute built with `escapeHtml` but not `escapeCssValue`; CSS injection possible via adversarial token values (`server/routes/docs.ts:70-71`)
-- [ ] 15+ scattered localStorage keys — no centralized persistence utility; keys are spread across components without a single source of truth
+- [x] 15+ scattered localStorage keys — no centralized persistence utility; keys are spread across components without a single source of truth
 
 - [ ] Active set tab not persisted — switching between token sets is not remembered across plugin re-opens; user always lands on the first tab (`figma-plugin/App.tsx`)
 - [ ] No bulk multi-select in token list — shift-click or ctrl-click to select a range of tokens for batch operations is missing; users must use the batch editor's own selection model which is separate from the token list (`figma-plugin/TokenList.tsx`)

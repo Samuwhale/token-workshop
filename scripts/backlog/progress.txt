@@ -1,6 +1,13 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - 15+ scattered localStorage keys — no centralized persistence utility
+- Stale — already done. `packages/figma-plugin/src/ui/shared/storage.ts` is a fully-implemented centralized localStorage utility: `STORAGE_KEYS` object with 12 static keys, `STORAGE_KEY` dynamic builders for per-set keys, `STORAGE_PREFIXES` for bulk-delete, and helpers `lsGet`/`lsSet`/`lsRemove`/`lsGetJson`/`lsSetJson`/`lsClearByPrefix`. Zero direct `localStorage` calls exist outside that file.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+  - When a backlog item about "no centralized X" is assigned, grep for raw API usage (`localStorage\.`) outside any utility file before doing any work — the utility may already exist.
+---
+
 ## 2026-03-27 - ux-pass: ExportPanel export button disabled when all token sets are deselected
 - Added `selectedSets !== null && selectedSets.size === 0` to the disabled condition on both the primary Export button and the Re-export button. Also updated the primary button label to show "Select at least one set" in that state, giving the user clear guidance instead of a silent failed export.
 - Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L837, ~L847-850
