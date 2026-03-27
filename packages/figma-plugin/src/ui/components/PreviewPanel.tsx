@@ -23,6 +23,11 @@ function toCssVar(path: string): string {
 
 /** Resolve a token value for use in CSS */
 function resolveValue(value: unknown, type: string): string {
+  // Dimension object: { value: number, unit: string } → "16px"
+  if (value && typeof value === 'object' && 'value' in value && 'unit' in value) {
+    const dim = value as { value: number; unit: string };
+    return `${dim.value}${dim.unit}`;
+  }
   const raw = String(value ?? '');
   // Alias: {path.here} → var(--path-here)
   const resolved = raw.replace(/\{([^}]+)\}/g, (_, p) => `var(--${p.replace(/\./g, '-')})`);

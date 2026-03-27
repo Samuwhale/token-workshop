@@ -2,9 +2,9 @@
 # Backlog Runner - Long-running agent loop for backlog.md
 # Usage: ./backlog.sh [--tool amp|claude] [--model <model-id>] [max_iterations]
 #
-# Concurrency-safe: multiple runners can operate on the same backlog
-# simultaneously. All backlog.md mutations are serialised by file locks
-# and performed in the shell — agents never modify backlog.md directly.
+# Concurrency-safe: each agent runs in an isolated git worktree.
+# backlog.md mutations are serialised by file locks.
+# Code changes are cherry-picked back to main under a git lock.
 #
 # Continuity between sessions via two files:
 #   backlog.md      task state ([ ] / [~] / [x] / [!])

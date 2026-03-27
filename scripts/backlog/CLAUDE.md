@@ -22,6 +22,8 @@ Codebase patterns are already injected into your context — no need to read a s
 
 **Important:** Do NOT modify `backlog.md` — the runner script handles all state transitions (`[~]`, `[x]`, `[!]`).
 
+**Paths:** Always use relative paths (e.g., `scripts/backlog/progress.txt`, not absolute). Your working directory is the project root.
+
 ---
 
 ## Quality Rules

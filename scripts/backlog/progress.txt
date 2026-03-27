@@ -16,3 +16,10 @@
 - **Learnings for future iterations:**
   - A small `describeError(err, op)` helper is cleaner than 10 inline ternaries and ensures consistent formatting across all catch blocks.
 ---
+
+## 2026-03-27 - bugfix-pass: PreviewPanel resolveValue produces [object Object] for dimension tokens
+- Bug: `resolveValue()` used `String(value)` on all token values. DTCG dimension tokens store values as `{ value: number, unit: string }` objects, so `String()` produced `[object Object]` instead of e.g. `16px`. This broke CSS custom property output in the Preview panel for all dimension tokens.
+- Fix: Added an early check for object values with `value` and `unit` properties, returning `${dim.value}${dim.unit}` before falling through to the `String()` path.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L25
+- **Root cause:** The function assumed all token values were strings or numbers, but DTCG dimension values are structured objects.
+---
