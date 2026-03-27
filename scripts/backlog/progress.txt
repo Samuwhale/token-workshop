@@ -394,3 +394,15 @@
   - `flattenLeafNodes(displayedTokens)` is the canonical way to get all visible leaf tokens for operations like copy/select-all
   - Token paths use dots as separators but segment names can contain dots — the nested DTCG build uses `path.split('.')` which is sufficient here because the paste modal's DTCG parser handles the nested structure correctly
 ---
+
+## 2026-03-27 - Arrow left/right don't expand/collapse groups
+- Added ArrowLeft/ArrowRight keyboard handling for tree navigation in `handleListKeyDown`:
+  - ArrowRight on collapsed group: expands it. On expanded group: moves focus to first child.
+  - ArrowLeft on expanded group: collapses it. On collapsed group: moves focus to parent group.
+  - ArrowLeft on token row: moves focus to parent group.
+- Also fixed ArrowUp/ArrowDown to include group rows (`[data-group-path]`) in the navigation selector, so groups are reachable via keyboard.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L374-L441
+- **Learnings for future iterations:**
+  - Standard tree keyboard pattern: Right=expand/descend, Left=collapse/ascend. WAI-ARIA TreeView spec is the reference.
+  - The original Up/Down only queried `[data-token-path]`, skipping group rows entirely — groups were only focusable via Tab, not arrow keys.
+---

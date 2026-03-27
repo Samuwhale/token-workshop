@@ -82,3 +82,17 @@ Already up to date.
 
 --- Merging: No copy/paste for tokens (Cmd+C/V) ---
 Already up to date.
+[main d508cfd] chore(backlog): done – No copy/paste for tokens (Cmd+C/V)
+ 7 files changed, 101 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - No copy/paste for tokens (Cmd+C/V)
+- Added Cmd+C (Ctrl+C) keyboard shortcut to copy selected tokens as nested DTCG JSON to clipboard. Works in two modes:
+  1. Select mode with multiple tokens selected → copies all selected tokens
+  2. Single focused token row (no select mode) → copies just that token
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  9 items remaining
+===============================================================
+  Claimed: Search resets on set switch — filter/search text is lost when switching between sets; users working across multiple sets must re-type their search each time
+  Worktree: /tmp/backlog-44614-2thA8R

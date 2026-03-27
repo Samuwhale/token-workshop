@@ -394,9 +394,9 @@ export function TokenList({
       return;
     }
 
-    // ↑/↓: navigate between visible token rows
+    // ↑/↓: navigate between visible token and group rows
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-token-path]'));
+      const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-token-path],[data-group-path]'));
       if (rows.length === 0) return;
       const currentIndex = rows.findIndex(el => el === document.activeElement);
       if (e.key === 'ArrowUp') {
@@ -411,7 +411,62 @@ export function TokenList({
         next?.scrollIntoView({ block: 'nearest' });
       }
     }
-  }, [showCreateForm, selectMode, selectedPaths, displayedTokens, copyTokensAsJson, handleOpenCreateSibling]);
+
+    // ←/→: expand/collapse groups (standard tree keyboard pattern)
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const activeEl = document.activeElement as HTMLElement;
+      const groupPath = activeEl?.dataset?.groupPath;
+      const tokenPath = activeEl?.dataset?.tokenPath;
+
+      if (groupPath) {
+        const isExpanded = expandedPaths.has(groupPath);
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          if (!isExpanded) {
+            // Expand the group
+            handleToggleExpand(groupPath);
+          } else {
+            // Already expanded — move focus to first child row
+            const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-token-path],[data-group-path]'));
+            const idx = rows.indexOf(activeEl);
+            if (idx >= 0 && idx < rows.length - 1) {
+              rows[idx + 1]?.focus();
+              rows[idx + 1]?.scrollIntoView({ block: 'nearest' });
+            }
+          }
+        } else {
+          e.preventDefault();
+          if (isExpanded) {
+            // Collapse the group
+            handleToggleExpand(groupPath);
+          } else {
+            // Already collapsed — move focus to parent group
+            const dotIdx = groupPath.lastIndexOf('.');
+            if (dotIdx > 0) {
+              const parentPath = groupPath.slice(0, dotIdx);
+              const parentEl = document.querySelector<HTMLElement>(`[data-group-path="${CSS.escape(parentPath)}"]`);
+              if (parentEl) {
+                parentEl.focus();
+                parentEl.scrollIntoView({ block: 'nearest' });
+              }
+            }
+          }
+        }
+      } else if (tokenPath && e.key === 'ArrowLeft') {
+        // On a token row, ArrowLeft moves focus to parent group
+        e.preventDefault();
+        const dotIdx = tokenPath.lastIndexOf('.');
+        if (dotIdx > 0) {
+          const parentPath = tokenPath.slice(0, dotIdx);
+          const parentEl = document.querySelector<HTMLElement>(`[data-group-path="${CSS.escape(parentPath)}"]`);
+          if (parentEl) {
+            parentEl.focus();
+            parentEl.scrollIntoView({ block: 'nearest' });
+          }
+        }
+      }
+    }
+  }, [showCreateForm, selectMode, handleOpenCreateSibling, expandedPaths, handleToggleExpand]);
 
   // Expand ancestor groups when navigating to a highlighted token
   useEffect(() => {
