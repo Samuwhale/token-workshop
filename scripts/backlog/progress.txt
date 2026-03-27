@@ -358,3 +358,12 @@
   - `?force=true` query param is a clean escape hatch for power users without requiring a separate route.
   - UI fetch error handling: always try `res.json().catch(() => null)` first to get structured error body; fall back to generic message only if JSON parsing fails.
 ---
+
+## 2026-03-27 - No color harmony suggestions in ColorPicker — no complementary, triadic, or analogous color suggestions when editing a color token, making systematic palette design harder
+- Added a "Harmonies" section at the bottom of the ColorPicker popover with three labeled rows: Comp (complementary, +180° hue), Triad (triadic, +120°/+240°), Analog (analogous, ±30°). Each row shows clickable color swatches; the current base color is highlighted with an accent ring. Clicking a non-base swatch updates hue/sat/lit while preserving alpha.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L217, ~L415, ~L435
+- **Learnings for future iterations:**
+  - Color harmony swatches are purely hue-rotation with same sat/lit — no new color math needed, just `hslToHex((hue + offset) % 360, sat, lit)`.
+  - The base color swatch in each row uses `baseIndex` (not hex comparison) to correctly handle achromatic colors where multiple harmony variants resolve to the same hex.
+  - Alpha is preserved when applying a harmony color because `applyHarmonyColor` only sets hue/sat/lit from the 6-char hex, leaving the alpha state untouched.
+---

@@ -151,3 +151,10 @@ Already up to date.
 ===============================================================
   Claimed: No color harmony suggestions in ColorPicker — no complementary, triadic, or analogous color suggestions when editing a color token, making systematic palette design harder
   Worktree: /tmp/backlog-59311-qBGhpQ
+
+  ✓ done: No color harmony suggestions in ColorPicker — no complementary, triadic, or analogous color suggestions when editing a color token, making systematic palette design harder
+    Added Harmonies section to ColorPicker with Comp/Triad/Analog rows; clickable swatches rotate hue ±30°/120°/240°/180° while preserving sat, lit, and alpha
+    14 turns · 162s · $0.51
+
+--- Merging: No color harmony suggestions in ColorPicker — no complementary, triadic, or analogous color suggestions when editing a color token, making systematic palette design harder ---
+Already up to date.

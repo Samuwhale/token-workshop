@@ -217,6 +217,13 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
   const hex6 = hslToHex(hue, sat, lit);
   const hexFull = applyAlpha(hex6, alpha);
 
+  // Color harmony variants (same sat/lit, rotated hue)
+  const harmonyComplement = hslToHex((hue + 180) % 360, sat, lit);
+  const harmonyTriadic1 = hslToHex((hue + 120) % 360, sat, lit);
+  const harmonyTriadic2 = hslToHex((hue + 240) % 360, sat, lit);
+  const harmonyAnalogous1 = hslToHex(((hue - 30) + 360) % 360, sat, lit);
+  const harmonyAnalogous2 = hslToHex((hue + 30) % 360, sat, lit);
+
   // Sync from prop changes
   const prevValue = useRef(value);
   useEffect(() => {
@@ -402,6 +409,14 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
     }
   };
 
+  const applyHarmonyColor = (hex: string) => {
+    const hsl = hexToHsl(hex);
+    if (!hsl) return;
+    setHue(hsl.h);
+    setSat(hsl.s);
+    setLit(hsl.l);
+  };
+
   // Indicator positions
   const areaX = sat / 100;
   const areaY = 1 - lit / 100;
@@ -535,40 +550,36 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
         renderChannels()
       )}
 
-      {/* WCAG contrast checker */}
-      {(() => {
-        const contrastVsWhite = wcagContrast(hex6, '#ffffff');
-        const contrastVsBlack = wcagContrast(hex6, '#000000');
-        const badge = (ratio: number | null, threshold: number) => {
-          if (ratio === null) return null;
-          const pass = ratio >= threshold;
-          return (
-            <span className={`text-[8px] font-semibold px-1 py-0.5 rounded ${pass ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-              {pass ? '✓' : '✗'} {threshold === 4.5 ? 'AA' : 'AAA'}
-            </span>
-          );
-        };
-        const row = (label: string, bg: string, ratio: number | null) => (
-          <div className="flex items-center gap-1.5">
-            <div className="w-3.5 h-3.5 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: bg }} />
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-8 shrink-0">{label}</span>
-            <span className="text-[9px] tabular-nums text-[var(--color-figma-text)] flex-1">
-              {ratio !== null ? ratio.toFixed(2) + ':1' : '—'}
-            </span>
-            <div className="flex gap-0.5">
-              {badge(ratio, 4.5)}
-              {badge(ratio, 7)}
+      {/* Color harmonies */}
+      <div className="border-t border-[var(--color-figma-border)] pt-2 flex flex-col gap-1">
+        <div className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase">Harmonies</div>
+        {[
+          { label: 'Comp', swatches: [hex6, harmonyComplement], baseIndex: 0 },
+          { label: 'Triad', swatches: [hex6, harmonyTriadic1, harmonyTriadic2], baseIndex: 0 },
+          { label: 'Analog', swatches: [harmonyAnalogous1, hex6, harmonyAnalogous2], baseIndex: 1 },
+        ].map(({ label, swatches, baseIndex }) => (
+          <div key={label} className="flex items-center gap-2">
+            <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-10 shrink-0">{label}</span>
+            <div className="flex gap-1">
+              {swatches.map((swatchHex, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  title={swatchHex}
+                  onClick={() => { if (i !== baseIndex) applyHarmonyColor(swatchHex); }}
+                  aria-label={i === baseIndex ? `Current color ${swatchHex}` : `Apply ${label} harmony color ${swatchHex}`}
+                  className={`w-5 h-5 rounded border transition-colors ${
+                    i === baseIndex
+                      ? 'border-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)] cursor-default'
+                      : 'border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer'
+                  }`}
+                  style={{ backgroundColor: swatchHex }}
+                />
+              ))}
             </div>
           </div>
-        );
-        return (
-          <div className="flex flex-col gap-1 border-t border-[var(--color-figma-border)] pt-1.5">
-            <div className="text-[8px] uppercase text-[var(--color-figma-text-secondary)] font-medium tracking-wide mb-0.5">Contrast</div>
-            {row('White', '#ffffff', contrastVsWhite)}
-            {row('Black', '#000000', contrastVsBlack)}
-          </div>
-        );
-      })()}
+        ))}
+      </div>
 
       {/* Alpha numeric + eyedropper row */}
       <div className="flex gap-1.5 items-end">

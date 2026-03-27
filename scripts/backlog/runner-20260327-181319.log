@@ -129,3 +129,17 @@ Already up to date.
 
 --- Merging: Token delete does not warn about dependent tokens — deleting a token that other tokens alias silently breaks downstream references; the server should block or warn like it does for set deletion ---
 Already up to date.
+[main 325f291] chore(backlog): done – Token delete does not warn about dependent tokens — deleting a token that other tokens alias silently breaks downstream references; the server should block or warn like it does for set deletion
+ 7 files changed, 92 insertions(+), 20 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-27 - Token delete does not warn about dependent tokens — deleting a token that other tokens alias silently breaks downstream references; the server should block or warn like it does for set deletion
+- Added dependent-check to DELETE `/api/tokens/:set/*` route: before deletion, calls `getFlatTokensForSet` to enumerate all leaf paths being deleted (handles both single token and group delete), then calls `getDependents` on each path and collects external dependents (filtering out intra-group refs). Returns 409 with error message listing dependent token paths if any found. Supports `?force=true` to bypass the check.
+- Updated UI `executeDelete` to parse the 409 JSON response body and surface the server's `error` message in `deleteError` state instead of a generic "Server returned 409".
+- Files changed: `packages/server/src/routes/tokens.ts` ~L388, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1422
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  4 items remaining
+===============================================================
+  Claimed: ExportPanel has no output preview — exporting to CSS/Dart/Swift generates a zip but users can't preview the actual generated code before downloading
+  Worktree: /tmp/backlog-59883-sDyR5H
