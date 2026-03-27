@@ -463,3 +463,10 @@
 - **Learnings for future iterations:**
   - A single `<p>` sentence of `text-[9px] text-[var(--color-figma-text-secondary)]` directly under a panel header is an effective, low-footprint way to explain non-obvious UI patterns in the plugin's constrained space.
 ---
+
+## 2026-03-27 - ImportPanel `readTimeoutRef` is never cleared when the message handler successfully receives data
+- Cleared `pendingSourceRef` and `correlationIdRef` inside the timeout callback so that any late-arriving messages no longer match the stale handler conditions and are silently dropped. Previously, these refs remained set after timeout fired, allowing a slow-but-eventual response to update state while the timeout error message was still displayed.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L149
+- **Learnings for future iterations:**
+  - When a timeout invalidates a pending request, always null out all correlation/pending refs in the timeout callback — not just the timeout ref itself. This prevents late responses from matching the stale correlation check.
+---

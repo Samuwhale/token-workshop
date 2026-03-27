@@ -147,6 +147,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const startReadTimeout = () => {
     if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
     readTimeoutRef.current = setTimeout(() => {
+      readTimeoutRef.current = null;
+      pendingSourceRef.current = null;
+      correlationIdRef.current = null;
       setLoading(false);
       setError('Timed out waiting for Figma. Try again or reload the plugin.');
     }, 15000);

@@ -266,3 +266,23 @@ Already up to date.
 
 --- Merging: Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text ---
 Already up to date.
+[main d6325fe] chore(backlog): done – Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text
+ 6 files changed, 34 insertions(+), 4 deletions(-)
+
+## 2026-03-27 - Remap panel "from → to" syntax is unexplained
+- Added a one-line inline help sentence below the "Remap Bindings" header: "Find-and-replace token paths — enter the old path on the left and the replacement on the right, then click Remap." This appears between the title row and the mapping rows, giving users immediate context without requiring a tooltip or external docs.
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L573
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  37 items remaining
+===============================================================
+  Claimed: ImportPanel `readTimeoutRef` is never cleared when the message handler successfully receives data — if the response is slow but arrives after timeout fires, user sees a stale error message overlaid on the actual result
+  Worktree: /tmp/backlog-98901-tmdBS1
+
+  ✓ done: ImportPanel `readTimeoutRef` is never cleared when the message handler successfully receives data — if the response is slow but arrives after timeout fires, user sees a stale error message overlaid on the actual result
+    Nulled out pendingSourceRef and correlationIdRef in the timeout callback so late-arriving messages no longer match the handler check and are dropped
+    8 turns · 48s · $0.15
+
+--- Merging: ImportPanel `readTimeoutRef` is never cleared when the message handler successfully receives data — if the response is slow but arrives after timeout fires, user sees a stale error message overlaid on the actual result ---
+Already up to date.

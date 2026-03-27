@@ -87,7 +87,7 @@
 - [x] `handleApplyGroupScopes` sends one PATCH request per token in `Promise.all` with no batching — for groups with many tokens this is slow with no progress indicator
 - [~] No "create token from selection" keyboard shortcut — must click through the UI; Cmd+T or similar would speed up design→token workflow
 - [~] New-token form doesn't suggest a path based on the bound property — the path field starts empty instead of pre-filling a convention like `color.fills.{layerName}`
-- [~] Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text
+- [x] Remap panel "from → to" syntax is unexplained — the find/replace-style remap UI has no inline help or example placeholder text
 
 ### UX
 
@@ -99,7 +99,7 @@
 
 ### Bugs
 
-- [ ] ImportPanel `readTimeoutRef` is never cleared when the message handler successfully receives data — if the response is slow but arrives after timeout fires, user sees a stale error message overlaid on the actual result
+- [~] ImportPanel `readTimeoutRef` is never cleared when the message handler successfully receives data — if the response is slow but arrives after timeout fires, user sees a stale error message overlaid on the actual result
 - [ ] ImportPanel partial import failure reports all failed paths but doesn't indicate which tokens actually succeeded — unclear what was partially imported
 - [ ] Figma Variables read timeout fails silently — the 5-second timeout for reading variables produces no user-facing error; the import appears to do nothing
 
