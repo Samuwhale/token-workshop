@@ -1,6 +1,14 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - Branch selector in SyncPanel triggers git checkout immediately
+- Added `pendingBranch` state. Selecting a branch now sets `pendingBranch` instead of immediately calling `doAction('checkout', ...)`. An inline confirmation strip appears below the select showing the target branch name, a warning if there are uncommitted changes, and Checkout/Cancel buttons.
+- Files changed: `packages/figma-plugin/src/ui/components/SyncPanel.tsx` ~L57, ~L763
+- **Learnings for future iterations:**
+  - Two-step select pattern: store selection in pending state, show inline confirm, call action only on explicit confirm. Avoids browser's native confirm() which blocks.
+  - Use `value={pendingBranch ?? status.branch ?? ''}` so the select shows the pending target while confirmation is visible.
+---
+
 ## 2026-03-27 - No way to suppress specific lint warnings
 - Added client-side suppression for individual validation findings. Each issue row shows a hover-visible "Suppress" button. Suppressed items are hidden from the main list and persisted to localStorage (`analytics_suppressions`). A "N suppressed · show/hide" footer in the validation box lets users review suppressed items and restore them individually or clear all at once.
 - Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L21, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L86, ~L103, ~L278, ~L516, ~L572

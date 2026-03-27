@@ -55,6 +55,7 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
   const [remoteUrl, setRemoteUrl] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [branches, setBranches] = useState<string[]>([]);
+  const [pendingBranch, setPendingBranch] = useState<string | null>(null);
   const [diffView, setDiffView] = useState<{ localOnly: string[]; remoteOnly: string[]; conflicts: string[] } | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
   const [diffChoices, setDiffChoices] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
@@ -762,14 +763,41 @@ export function SyncPanel({ serverUrl, connected, activeSet, collectionMap = {},
             {branches.length > 1 && (
               <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
                 <select
-                  value={status.branch || ''}
-                  onChange={e => doAction('checkout', { branch: e.target.value })}
+                  value={pendingBranch ?? status.branch ?? ''}
+                  onChange={e => {
+                    const target = e.target.value;
+                    if (target !== status.branch) setPendingBranch(target);
+                  }}
                   className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none"
                 >
                   {branches.map(b => (
                     <option key={b} value={b}>{b}</option>
                   ))}
                 </select>
+                {pendingBranch && (
+                  <div className="mt-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-2 py-1.5 flex flex-col gap-1.5">
+                    <span className="text-[10px] text-[var(--color-figma-text)]">
+                      Switch to <strong>{pendingBranch}</strong>?
+                      {allChanges.length > 0 && (
+                        <span className="text-yellow-600"> ({allChanges.length} uncommitted change{allChanges.length !== 1 ? 's' : ''} will remain staged)</span>
+                      )}
+                    </span>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={() => { doAction('checkout', { branch: pendingBranch }); setPendingBranch(null); }}
+                        className="flex-1 px-2 py-0.5 rounded text-[10px] bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+                      >
+                        Checkout
+                      </button>
+                      <button
+                        onClick={() => setPendingBranch(null)}
+                        className="flex-1 px-2 py-0.5 rounded text-[10px] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
