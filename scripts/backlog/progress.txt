@@ -375,3 +375,9 @@
   - Split empty states from browse states even when they share the same view — conditions `length === 0 && !browsing` vs `browsing` are cleaner than a single `!browsing ? <heading A> : <heading B>` inside one render path.
   - 2x2 capability grids with tiny inline SVG/JSX icons are a good pattern for "what does this feature do" empty states in narrow plugin panels.
 ---
+
+## 2026-03-27 - housekeeping: remove unused `rgbToHsl` import in ColorPicker.tsx
+- Removed `rgbToHsl` from the `colorUtils` import block in ColorPicker.tsx
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L5
+- **Why:** `rgbToHsl` appeared only in the import statement and was never referenced in the 500+ line file. Dead import left from earlier refactoring (the file uses `hexToHsl`/`hslToHex`/`hslToRgb` directly instead).
+---

@@ -122,7 +122,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### QoL
 
-- [ ] Settings server URL field: surface "Press Enter to connect" affordance — the field accepts Enter to trigger a connection attempt but there's no visible hint; a small helper text below the input reduces confusion for first-time setup (`App.tsx:1884-1890`)
+- [~] Settings server URL field: surface "Press Enter to connect" affordance — the field accepts Enter to trigger a connection attempt but there's no visible hint; a small helper text below the input reduces confusion for first-time setup (`App.tsx:1884-1890`)
 
 ---
 

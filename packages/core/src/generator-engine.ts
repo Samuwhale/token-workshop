@@ -302,6 +302,8 @@ export function runAccessibleColorPairGenerator(
   const contrastWithBlack = (bgLum + 0.05) / 0.05;
 
   const foreground = contrastWithWhite >= contrastWithBlack ? '#ffffff' : '#000000';
+  const achievedContrast = Math.max(contrastWithWhite, contrastWithBlack);
+  const threshold = config.contrastLevel === 'AAA' ? 7.0 : 4.5;
 
   return [
     {
@@ -315,6 +317,7 @@ export function runAccessibleColorPairGenerator(
       path: `${targetGroup}.${config.foregroundStep}`,
       type: 'color',
       value: foreground,
+      isOverridden: achievedContrast < threshold,
     },
   ];
 }
@@ -395,8 +398,11 @@ export function runContrastCheckGenerator(
   config: ContrastCheckConfig,
   targetGroup: string,
 ): GeneratedTokenResult[] {
-  const { backgroundHex, steps } = config;
+  const { backgroundHex, steps, levels } = config;
   const bgLum = wcagLuminance(backgroundHex);
+  // Use the strictest configured level as the failure threshold.
+  // levels includes 'AAA' → 7.0:1; levels includes only 'AA' → 4.5:1; default → 4.5:1
+  const failThreshold = levels?.includes('AAA') ? 7.0 : 4.5;
 
   return steps.map(step => {
     const fgLum = wcagLuminance(step.hex);
@@ -406,8 +412,6 @@ export function runContrastCheckGenerator(
       ratio = parseFloat(((lighter + 0.05) / (darker + 0.05)).toFixed(2));
     }
 
-    const failsAA = ratio === null || ratio < 4.5;
-
     return {
       stepName: step.name,
       path: `${targetGroup}.${step.name}`,
@@ -415,7 +419,7 @@ export function runContrastCheckGenerator(
       value: ratio ?? 1,
       // Re-use isOverridden as a "contrast failure" flag so the UI can show warnings
       // without adding a new field to GeneratedTokenResult
-      isOverridden: failsAA,
+      isOverridden: ratio === null || ratio < failThreshold,
     };
   });
 }

@@ -127,6 +127,7 @@ export function TokenEditor({ tokenPath, setName, serverUrl, onBack, allTokensFl
   const [dependents, setDependents] = useState<Array<{ path: string; setName: string }>>([]);
   const [showDependents, setShowDependents] = useState(false);
   const [dependentsLoading, setDependentsLoading] = useState(false);
+  const [showChainPopover, setShowChainPopover] = useState(false);
 
   const existingGeneratorsForToken = generators.filter(g => g.sourceToken === tokenPath);
   const canBeGeneratorSource = ['color', 'dimension', 'number', 'fontSize'].includes(tokenType);
