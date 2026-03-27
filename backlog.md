@@ -100,7 +100,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 
 ### Correctness & Safety
 
-- [ ] Move single token to a different set — individual tokens can only be moved between groups (by editing the path prefix); there is no action to move a token to an entirely different set, even though group-level move exists (`server/routes/tokens.ts`, `TokenList.tsx` context menu)
+- [x] Move single token to a different set — individual tokens can only be moved between groups (by editing the path prefix); there is no action to move a token to an entirely different set, even though group-level move exists (`server/routes/tokens.ts`, `TokenList.tsx` context menu)
 
 - [ ] Duplicate single token — only groups can be duplicated (with `-copy` suffix); there is no way to duplicate an individual token row to a new path, which is a common workflow when creating similar tokens (`TokenList.tsx` context menu)
 
@@ -165,3 +165,7 @@ Add items here while backlog.sh is running. They will be triaged at the end of e
 - [ ] No "Create new branch" UI in SyncPanel — the server's `POST /api/sync/checkout` accepts `create: true` and `createBranch` exists on `gitSync`, but the branch selector only switches between existing branches; there is no way to start a new branch from the plugin (`SyncPanel.tsx:L744-756`, `sync.ts:L138`)
 - [ ] `applyVarDiff` pull side sends one PATCH per token with `Promise.all` instead of using the batch endpoint — the `POST /api/tokens/:set/batch` route added for ImportPanel is not used here; large token sets will fire many concurrent requests (`SyncPanel.tsx:L223-229`)
 - [ ] `runReadinessChecks` is never triggered automatically — unlike `computeVarDiff` which runs on mount, the publish readiness section always shows "Readiness unknown" until the user manually clicks "Run checks"; the status bar's readiness dot is always grey on first open (`SyncPanel.tsx:L243`, compare with L182-184)
+
+- [ ] PreviewPanel template empty states — "No color tokens found" gives code snippet but no button to switch to Tokens tab; user is left without an action path
+- [ ] ExportPanel "Clear" vs "Refresh" buttons — both are tiny unlabeled-feeling actions next to each other; consider a single "Reload" that re-reads from Figma (making "Clear" redundant since data is non-destructive)
+- [ ] ImportPanel styles — "Import from Figma Styles" button style is visually weaker than the Variables button, suggesting it's a secondary option even when it's equally valid

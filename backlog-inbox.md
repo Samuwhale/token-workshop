@@ -1,3 +1,0 @@
-- [ ] PreviewPanel template empty states — "No color tokens found" gives code snippet but no button to switch to Tokens tab; user is left without an action path
-- [ ] ExportPanel "Clear" vs "Refresh" buttons — both are tiny unlabeled-feeling actions next to each other; consider a single "Reload" that re-reads from Figma (making "Clear" redundant since data is non-destructive)
-- [ ] ImportPanel styles — "Import from Figma Styles" button style is visually weaker than the Variables button, suggesting it's a secondary option even when it's equally valid

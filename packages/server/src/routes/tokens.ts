@@ -203,6 +203,26 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // POST /api/tokens/:set/tokens/move — move a single token to a different set
+  fastify.post<{ Params: { set: string }; Body: { tokenPath: string; targetSet: string } }>(
+    '/tokens/:set/tokens/move',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { tokenPath, targetSet } = request.body ?? {};
+      if (!tokenPath || !targetSet) {
+        return reply.status(400).send({ error: 'tokenPath and targetSet are required' });
+      }
+      try {
+        await fastify.tokenStore.moveToken(set, tokenPath, targetSet);
+        return { moved: true };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    },
+  );
+
   // GET /api/tokens/:set/raw — get the raw nested DTCG token group for a set
   fastify.get<{ Params: { set: string } }>('/tokens/:set/raw', async (request, reply) => {
     const { set } = request.params;

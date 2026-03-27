@@ -248,3 +248,17 @@
 - Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1006, ~L1016
 - **User impact:** Users opening the "Used by" section while it is loading now see a consistent spinner instead of ghostly dim text, giving clear feedback that work is in progress rather than appearing like an error or stale state.
 ---
+
+## 2026-03-27 - Move single token to a different set
+- Added `moveToken(fromSet, tokenPath, toSet)` method to `token-store.ts` that finds the token, copies it to the target set at the same path, deletes it from the source, and saves both sets.
+- Added `POST /api/tokens/:set/tokens/move` endpoint to `routes/tokens.ts` (registered before the wildcard `/:set/*` routes).
+- Added `movingToken` state, `handleRequestMoveToken`, and `handleConfirmMoveToken` callbacks to `TokenList.tsx`.
+- Added `onRequestMoveToken` prop to `TokenTreeNode` (interface, destructure, render call, recursive pass-through).
+- Added "Move to set..." context menu item in the token right-click menu.
+- Added move-token modal (identical structure to existing move-group modal) showing a set picker.
+- Files changed: `packages/server/src/services/token-store.ts` ~L658, `packages/server/src/routes/tokens.ts` ~L206, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L681, ~L754, ~L1922, ~L2444, ~L2553, ~L3544
+- **Learnings for future iterations:**
+  - `moveToken` reuses `getTokenAtPath`/`setTokenAtPath`/`deleteTokenAtPath` which already exist for rename — exactly the same plumbing, just different source/target sets.
+  - The route must be registered before the `POST /tokens/:set/*` wildcard; `/tokens/:set/tokens/move` has a fixed path suffix so Fastify matches it correctly.
+  - Reuse `moveTargetSet` state between group-move and token-move — only one modal is open at a time so sharing the state is safe.
+---

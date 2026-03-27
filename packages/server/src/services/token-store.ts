@@ -655,6 +655,26 @@ export class TokenStore {
     }
   }
 
+  async moveToken(fromSet: string, tokenPath: string, toSet: string): Promise<void> {
+    if (fromSet === toSet) throw new Error('Source and target sets are the same');
+    const source = this.sets.get(fromSet);
+    if (!source) throw new Error(`Set "${fromSet}" not found`);
+    const target = this.sets.get(toSet);
+    if (!target) throw new Error(`Set "${toSet}" not found`);
+    const token = this.getTokenAtPath(source.tokens, tokenPath);
+    if (!token) throw new Error(`Token "${tokenPath}" not found in set "${fromSet}"`);
+    this.beginBatch();
+    try {
+      this.setTokenAtPath(target.tokens, tokenPath, token);
+      this.deleteTokenAtPath(source.tokens, tokenPath);
+      await this.saveSet(fromSet);
+      await this.saveSet(toSet);
+      this.rebuildFlatTokens();
+    } finally {
+      this.endBatch();
+    }
+  }
+
   async duplicateGroup(setName: string, groupPath: string): Promise<{ newGroupPath: string; count: number }> {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);

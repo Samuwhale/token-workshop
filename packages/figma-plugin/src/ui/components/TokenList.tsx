@@ -678,6 +678,7 @@ export function TokenList({
 
   // Group management
   const [movingGroup, setMovingGroup] = useState<string | null>(null);
+  const [movingToken, setMovingToken] = useState<string | null>(null);
   const [moveTargetSet, setMoveTargetSet] = useState('');
 
   const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
@@ -748,6 +749,23 @@ export function TokenList({
     setMovingGroup(null);
     onRefresh();
   }, [movingGroup, moveTargetSet, connected, serverUrl, setName, onRefresh]);
+
+  const handleRequestMoveToken = useCallback((tokenPath: string) => {
+    const otherSets = sets.filter(s => s !== setName);
+    setMoveTargetSet(otherSets[0] ?? '');
+    setMovingToken(tokenPath);
+  }, [sets, setName]);
+
+  const handleConfirmMoveToken = useCallback(async () => {
+    if (!movingToken || !moveTargetSet || !connected) { setMovingToken(null); return; }
+    await fetch(`${serverUrl}/api/tokens/${setName}/tokens/move`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tokenPath: movingToken, targetSet: moveTargetSet }),
+    });
+    setMovingToken(null);
+    onRefresh();
+  }, [movingToken, moveTargetSet, connected, serverUrl, setName, onRefresh]);
 
   const handleDuplicateGroup = useCallback(async (groupPath: string) => {
     if (!connected) return;
@@ -1919,6 +1937,7 @@ export function TokenList({
                 onCreateGroup={(parentPath) => setNewGroupDialogParent(parentPath)}
                 onRenameGroup={handleRenameGroup}
                 onRequestMoveGroup={handleRequestMoveGroup}
+                onRequestMoveToken={handleRequestMoveToken}
                 onDuplicateGroup={handleDuplicateGroup}
                 onDuplicateToken={handleDuplicateToken}
                 onExtractToAlias={handleOpenExtractToAlias}
@@ -2440,6 +2459,45 @@ export function TokenList({
         </div>
       )}
 
+      {/* Move token to set modal */}
+      {movingToken && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-64 p-4 flex flex-col gap-3">
+            <div className="text-[12px] font-medium text-[var(--color-figma-text)]">Move token to set</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
+              <span className="font-mono text-[var(--color-figma-text)]">{movingToken}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Destination set</label>
+              <select
+                value={moveTargetSet}
+                onChange={e => setMoveTargetSet(e.target.value)}
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              >
+                {sets.filter(s => s !== setName).map(s => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setMovingToken(null)}
+                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmMoveToken}
+                disabled={!moveTargetSet}
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+              >
+                Move
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Move group to set modal */}
       {movingGroup && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -2503,6 +2561,7 @@ function TokenTreeNode({
   onCreateGroup,
   onRenameGroup,
   onRequestMoveGroup,
+  onRequestMoveToken,
   onDuplicateGroup,
   onDuplicateToken,
   onExtractToAlias,
@@ -2550,6 +2609,7 @@ function TokenTreeNode({
   onCreateGroup?: (parentGroupPath: string) => void;
   onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;
   onRequestMoveGroup?: (groupPath: string) => void;
+  onRequestMoveToken?: (tokenPath: string) => void;
   onDuplicateGroup?: (groupPath: string) => void;
   onDuplicateToken?: (path: string) => void;
   onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
@@ -3044,6 +3104,7 @@ function TokenTreeNode({
             onCreateGroup={onCreateGroup}
             onRenameGroup={onRenameGroup}
             onRequestMoveGroup={onRequestMoveGroup}
+            onRequestMoveToken={onRequestMoveToken}
             onDuplicateGroup={onDuplicateGroup}
             onDuplicateToken={onDuplicateToken}
             onExtractToAlias={onExtractToAlias}
@@ -3481,6 +3542,16 @@ function TokenTreeNode({
               Link to token
             </button>
           )}
+          <button
+            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setContextMenuPos(null);
+              onRequestMoveToken?.(node.path);
+            }}
+          >
+            Move to set...
+          </button>
           <div className="my-1 border-t border-[var(--color-figma-border)]" />
           <button
             className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
