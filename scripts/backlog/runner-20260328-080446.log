@@ -324,3 +324,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 50)
+[main 8a7774f] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 280 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - `lineHeight` handled inconsistently
+- Added handling for `{unit: '%', value: N}` lineHeight format in both `styleSync.ts` and `selectionHandling.ts`. Previously only numeric (multiplier) and `{unit: 'px'}` were handled; percentage dimension objects were silently ignored.
+- Both locations now map `unit: '%'` → Figma `unit: 'PERCENT'` directly (no multiplication needed since the value is already a percentage).
+- The unitless-as-multiplier interpretation (`1.5` → `150%`) is correct per DTCG spec and was left as-is with a clarifying comment.
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  49 items remaining
+===============================================================
+  Claimed: Inspect tab can't search or filter layers — no way to find layers by name, type, or component; users must click around the Figma canvas to locate layers they want to bind tokens to
+  Worktree: /tmp/backlog-63685-1XsYd2

@@ -17,7 +17,14 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       await applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {}, msg.correlationId);
       break;
     case 'apply-styles':
-      await applyStyles(msg.tokens);
+      try {
+        await applyStyles(msg.tokens);
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'styles-apply-error',
+          error: e instanceof Error ? e.message : 'Failed to apply styles',
+        });
+      }
       break;
     case 'read-variables':
       try {
@@ -31,7 +38,15 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
       break;
     case 'read-styles':
-      await readFigmaStyles(msg.correlationId);
+      try {
+        await readFigmaStyles(msg.correlationId);
+      } catch (e) {
+        figma.ui.postMessage({
+          type: 'styles-read-error',
+          error: e instanceof Error ? e.message : 'Failed to read Figma styles',
+          correlationId: msg.correlationId,
+        });
+      }
       break;
     case 'export-all-variables':
       await exportAllVariables();

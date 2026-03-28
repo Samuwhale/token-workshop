@@ -189,6 +189,13 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setModeEnabled(enabled);
         setLoading(false);
       }
+      if (msg.type === 'styles-read-error' && pendingSourceRef.current === 'styles' && msg.correlationId === correlationIdRef.current) {
+        if (readTimeoutRef.current) clearTimeout(readTimeoutRef.current);
+        pendingSourceRef.current = null;
+        correlationIdRef.current = null;
+        setLoading(false);
+        setError(`Figma Styles API error: ${msg.error ?? 'Unknown error'}`);
+      }
       if (msg.type === 'styles-read' && msg.correlationId != null && msg.correlationId === correlationIdRef.current) {
         pendingSourceRef.current = null;
         correlationIdRef.current = null;

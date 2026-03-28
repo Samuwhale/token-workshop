@@ -352,3 +352,13 @@
   - DTCG lineHeight has three valid forms: plain number (multiplier), `{value, unit: 'px'}`, and `{value, unit: '%'}`. All three must be handled when mapping to Figma's PERCENT/PIXELS system.
   - The extraction side (Figma → DTCG) converts PERCENT to a unitless multiplier (`value / 100`), which is consistent with the multiplier convention.
 ---
+
+## 2026-03-28 - Missing error handling in controller for `apply-styles` and `read-styles`
+- Added try/catch around `apply-styles` and `read-styles` cases in `controller.ts`, posting `styles-apply-error` and `styles-read-error` messages back to the UI on failure (matching existing `variables-read-error` pattern).
+- Updated `useStyleSync.ts` message handler to listen for both error message types: `styles-read-error` sets error state and stops loading, `styles-apply-error` sets error state and stops syncing.
+- Updated `ImportPanel.tsx` to handle `styles-read-error` with correlationId matching (same pattern as `variables-read-error`), clearing timeout and showing error.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L19, ~L33; `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` ~L56; `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L192
+- **Learnings for future iterations:**
+  - The `read-variables` handler was the only one with proper error handling — all other async handlers in controller.ts were bare awaits. Future handlers should always include try/catch with error message posting.
+  - Two separate UI consumers listen for style messages: `useStyleSync.ts` (SyncPanel diff flow) and `ImportPanel.tsx` (import flow) — both need error handling independently.
+---

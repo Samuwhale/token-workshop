@@ -65,7 +65,7 @@
 ### QoL
 
 - [~] No "apply and advance" flow in Inspect — after binding a token to a property, there's no shortcut to jump to the next unbound property or next layer; binding 20 properties across layers is 20 separate manual workflows
-- [ ] Inspect tab can't search or filter layers — no way to find layers by name, type, or component; users must click around the Figma canvas to locate layers they want to bind tokens to
+- [~] Inspect tab can't search or filter layers — no way to find layers by name, type, or component; users must click around the Figma canvas to locate layers they want to bind tokens to
 
 ### UX
 

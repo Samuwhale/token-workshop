@@ -57,6 +57,15 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
         styleReadResolveRef.current(msg.tokens ?? []);
         styleReadResolveRef.current = null;
       }
+      if (msg?.type === 'styles-read-error') {
+        setStyleError(`Read styles failed: ${msg.error ?? 'Unknown error'}`);
+        setStyleLoading(false);
+        styleReadResolveRef.current = null;
+      }
+      if (msg?.type === 'styles-apply-error') {
+        setStyleError(`Apply styles failed: ${msg.error ?? 'Unknown error'}`);
+        setStyleSyncing(false);
+      }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
