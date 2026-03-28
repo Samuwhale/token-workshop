@@ -327,3 +327,16 @@ Already up to date.
 
 --- Merging: Split panel resize handle (usePreviewSplit) is not keyboard accessible ---
 Already up to date.
+[main 74aae8d] chore(backlog): done – Split panel resize handle (usePreviewSplit) is not keyboard accessible
+ 7 files changed, 71 insertions(+), 8 deletions(-)
+
+## 2026-03-28 - Split panel resize handle (usePreviewSplit) is not keyboard accessible
+- Added `role="separator"` with `aria-orientation`, `aria-valuenow/min/max`, `aria-label`, and `tabIndex={0}` to the drag divider between token list and preview
+- Added `focus-visible` styles (accent background + outline) so keyboard users can see the focused handle
+- Added `onKeyDown` handler: ArrowUp/Down move split by 2% per press, Home/End jump to min/max (20%/80%)
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  51 items remaining
+===============================================================
+  Claimed: Lint service silently replaces invalid user regex with hardcoded default — when a user's custom `path-pattern` regex is invalid, `lint.ts` ~L180 catches the `RegExp` constructor error and falls back to the default pattern without reporting the issue to the caller or UI
+  Worktree: /tmp/backlog-92630-FMdbh9

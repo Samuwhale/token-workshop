@@ -417,3 +417,11 @@
   - WAI-ARIA `separator` role with `aria-valuenow` requires the value as a percentage (integer), not a 0–1 float — use `Math.round(ratio * 100)`
   - `focus-visible` is better than `focus` for drag handles — avoids persistent focus ring after mouse click
 ---
+
+## 2026-03-28 - File watcher suppression uses fixed 500ms setTimeout
+- Already implemented in a prior session (see "Race condition in file write guard" entry above)
+- `_writingFiles` is now a `Map<string, ReturnType<typeof setTimeout>>` with event-driven `_clearWriteGuard` in watcher callbacks and 30s fallback timer
+- Files changed: none (already done)
+- **Learnings for future iterations:**
+  - Check progress.txt for prior work before implementing — items may have been partially or fully addressed under a different title
+---

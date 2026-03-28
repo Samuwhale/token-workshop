@@ -350,3 +350,10 @@ Already up to date.
 ===============================================================
   Claimed: File watcher suppression in token-store uses fixed 500ms setTimeout — `_writingFiles` entries in `token-store.ts` ~L343 are cleaned up via `setTimeout(500)` after disk writes; if the OS file watcher fires after the timeout expires, the write-triggered event won't be suppressed, causing a spurious reload and potential data race
   Worktree: /tmp/backlog-85816-PZqP2e
+
+  ✓ done: File watcher suppression uses fixed 500ms setTimeout
+    stale — already done. Event-driven _clearWriteGuard with 30s fallback was implemented in a prior session.
+    10 turns · 40s · $0.25
+
+--- Merging: File watcher suppression uses fixed 500ms setTimeout ---
+Already up to date.
