@@ -346,6 +346,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     const current = dimensions.find(d => d.id === renameDim);
     if (!current) { cancelRenameDim(); return; }
     if (name === current.name) { cancelRenameDim(); return; }
+    if (dimensions.some(d => d.id !== renameDim && d.name === name)) {
+      setRenameError(`Dimension "${name}" already exists`);
+      return;
+    }
     try {
       await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(renameDim)}`, {
         method: 'PUT',

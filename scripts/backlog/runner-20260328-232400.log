@@ -61,3 +61,17 @@ Already up to date.
 
 --- Merging: No batch delete for selected tokens ---
 Already up to date.
+[main f974a71] chore(backlog): done – No batch delete for selected tokens
+ 5 files changed, 30 insertions(+), 3 deletions(-)
+  (pass skipped — another runner is handling it)
+
+## 2026-03-28 - No batch delete for selected tokens
+- Already fully implemented: "Delete N" button exists in selection toolbar (TokenList.tsx ~L2186-2191), `requestBulkDelete` handler counts orphan aliases (L1605-1616), confirmation dialog shows count + broken alias warning (L1938-1945), `executeDelete` handles bulk type via `POST /api/tokens/:set/bulk-delete` (L1654-1662), server endpoint exists in tokens.ts ~L535, undo support included
+- Files changed: none — feature already complete
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6  (claude)  —  3 items remaining
+===============================================================
+  Claimed: Success and error toasts disappear with no way to review them — `useToastStack` auto-dismisses after ~3 s and there is no persistent notification log; users who missed a message have no way to see it again; add a small notification history accessible from a bell/clock icon in the panel header, showing the last ~10 messages with timestamps
+  Worktree: /tmp/backlog-16467-K8aBWy

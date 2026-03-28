@@ -485,3 +485,12 @@
 - **Learnings for future iterations:**
   - Always check if a backlog item has already been implemented before starting work
 ---
+
+## 2026-03-28 - Theme dimension rename does not validate against existing names
+- Added client-side duplicate name check in `executeRenameDim()` before the server request
+- Mirrors the existing pattern already used by `executeRenameOption()` (line 384)
+- Shows inline error `Dimension "<name>" already exists` via the existing `renameError` state
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L349-352
+- **Learnings for future iterations:**
+  - When one rename handler has validation and a sibling doesn't, check all rename handlers for parity
+---

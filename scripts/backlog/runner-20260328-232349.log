@@ -88,3 +88,10 @@ Already up to date.
 ===============================================================
   Claimed: Theme dimension rename does not validate against existing names — renaming a dimension to a name already in use is only rejected by the server after the request is sent; check for name collisions client-side in `ThemeManager.tsx` and show an inline error before the rename is submitted
   Worktree: /tmp/backlog-15773-zuB3v9
+
+  ✓ done: Theme dimension rename does not validate against existing names
+    Added client-side duplicate dimension name check in executeRenameDim(), mirroring the existing pattern in executeRenameOption(). Shows inline error before server request.
+    8 turns · 72s · $0.34
+
+--- Merging: Theme dimension rename does not validate against existing names ---
+Already up to date.
