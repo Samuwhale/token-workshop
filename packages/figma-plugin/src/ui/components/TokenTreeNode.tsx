@@ -706,27 +706,41 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     });
   };
 
+  // Activate inline editing for simple types (keyboard or double-click)
+  const activateInlineEdit = useCallback(() => {
+    if (!canInlineEdit || !node.$type) return;
+    if (node.$type === 'boolean') {
+      onInlineSave?.(node.path, 'boolean', !node.$value);
+    } else if (node.$type === 'color') {
+      setPendingColor(typeof node.$value === 'string' ? node.$value : '#000000');
+      setColorPickerOpen(true);
+    } else {
+      setInlineEditValue(getEditableString(node.$type, node.$value));
+      setInlineEditActive(true);
+    }
+  }, [canInlineEdit, node, onInlineSave]);
+
   const handleRowKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (node.isGroup) return;
 
-    // Enter or e: open editor
+    // Enter or e: inline edit for simple types, full editor for complex
     if (e.key === 'Enter' || (e.key === 'e' && !e.metaKey && !e.ctrlKey && !e.altKey)) {
       e.preventDefault();
-      onEdit(node.path, node.name);
+      if (canInlineEdit) {
+        activateInlineEdit();
+      } else {
+        onEdit(node.path, node.name);
+      }
       return;
     }
 
-    // Space: toggle selection in select mode; open context menu otherwise
+    // Space: toggle selection in select mode; open full editor otherwise
     if (e.key === ' ') {
       e.preventDefault();
       if (selectMode) {
         onToggleSelect(node.path);
       } else {
-        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        setContextMenuPos({
-          x: Math.min(rect.left, window.innerWidth - 168),
-          y: Math.min(rect.bottom, window.innerHeight - 280),
-        });
+        onEdit(node.path, node.name);
       }
       return;
     }
@@ -858,7 +872,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       {/* Name and info — single-click previews (non-select mode), double-click edits */}
       {/* ctrl/cmd-click enters select mode; shift-click range-selects */}
       <div
-        title={!selectMode ? 'Click to preview · Double-click to edit' : undefined}
+        title={!selectMode ? (canInlineEdit ? 'Double-click to edit inline · Space to open editor' : 'Double-click to open editor') : undefined}
         className={`flex-1 min-w-0${!selectMode ? ' cursor-pointer' : ''}`}
         onClick={(e) => {
           if (selectMode || e.ctrlKey || e.metaKey) {
@@ -869,7 +883,14 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           e.stopPropagation();
           if (onPreview) { onPreview(node.path, node.name); } else { handleApplyToSelection(e); }
         }}
-        onDoubleClick={!selectMode ? (e) => { e.stopPropagation(); onEdit(node.path, node.name); } : undefined}
+        onDoubleClick={!selectMode ? (e) => {
+          e.stopPropagation();
+          if (canInlineEdit) {
+            activateInlineEdit();
+          } else {
+            onEdit(node.path, node.name);
+          }
+        } : undefined}
         style={selectMode ? { cursor: 'pointer' } : undefined}
       >
         <div className="flex items-center gap-1.5">

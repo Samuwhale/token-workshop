@@ -478,3 +478,16 @@
   - `resolveTokenValue` returns a `ResolveResult` with `.value`, `.wasAlias`, `.chain`, `.error`
   - Table sort is independent from the tree view's `SortOrder` — uses `TableSort` with field-level granularity
 ---
+
+## 2026-03-28 - No inline editing in the token list — dual-mode editing
+- Added `activateInlineEdit` callback in TokenTreeNode that branches by type: boolean toggles immediately, color opens picker, others activate text input
+- Modified `handleRowKeyDown`: Enter/e now triggers inline edit for simple types (color, dimension, number, boolean, string, etc.) and opens full editor for complex types (typography, shadow, composition)
+- Space key in non-select mode now opens the full TokenEditor panel instead of the context menu
+- Double-click on token name/info area now activates inline edit for simple types, full editor for complex types
+- Updated tooltip to be context-aware ("Double-click to edit inline · Space to open editor" vs "Double-click to open editor")
+- Most inline editing infrastructure already existed (INLINE_SIMPLE_TYPES, canInlineEdit, inline inputs); the key change was routing Enter/double-click through `activateInlineEdit` instead of always opening the full editor
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L708-760, ~L875, ~L886
+- **Learnings for future iterations:**
+  - TokenTreeNode already had full inline editing UI for simple types — the missing piece was only the activation path (keyboard/double-click routed to full editor unconditionally)
+  - `canInlineEdit` flag + `INLINE_SIMPLE_TYPES` set are the gatekeepers for inline edit eligibility — reuse them for any future inline-edit branching
+---

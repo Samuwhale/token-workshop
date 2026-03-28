@@ -174,3 +174,10 @@ Already up to date.
 ===============================================================
   Claimed: No inline editing in the token list — every edit requires opening the full TokenEditor panel; add dual-mode editing: single-click to preview, Enter/double-click for inline editing of simple values (color hex, dimension number, boolean toggle) directly in the tree row, Space or expand arrow to open the full editor for complex types (typography, shadow, composition)
   Worktree: /tmp/backlog-63411-aUvWJ9
+
+  ✓ done: No inline editing in the token list — dual-mode editing
+    Enter/double-click now activates inline editing for simple types (color, dimension, number, boolean, string) directly in tree rows; Space opens full TokenEditor for complex types. Added activateInlineEdit callback and context-aware tooltips in TokenTreeNode.tsx.
+    17 turns · 228s · $1.12
+
+--- Merging: No inline editing in the token list — dual-mode editing ---
+Already up to date.

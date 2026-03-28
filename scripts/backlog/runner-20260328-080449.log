@@ -160,3 +160,17 @@ Already up to date.
 
 --- Merging: No spreadsheet/table view for tokens ---
 Already up to date.
+[main 02f4478] chore(backlog): done – No spreadsheet/table view for tokens
+ 9 files changed, 415 insertions(+), 170 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/TokenTableView.tsx
+
+## 2026-03-28 - No spreadsheet/table view for tokens
+- Replaced the basic inline table view with a full-featured `TokenTableView` component
+- Added sortable columns: Name (with group prefix dimmed), Type (badge), Value (with color swatch), Resolved Value (shows resolved alias targets), Description
+- Clicking column headers cycles asc -> desc -> clear sort; active sort column highlighted with accent color and arrow indicator
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  81 items remaining
+===============================================================
+  Claimed: No token scoping to limit where tokens can be applied — any token can be bound to any property; add scoping (like Figma variable scoping) so color tokens only appear in fill/stroke pickers, spacing tokens only in padding/gap, etc. — reduces noise in bind pickers and prevents misuse
+  Worktree: /tmp/backlog-63973-shElCL
