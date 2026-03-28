@@ -116,9 +116,11 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
         }
       }
       rolledBack = true;
-    } catch { /* rollback itself failed — partial state may persist */ }
+    } catch (rollbackError) {
+      console.error('[applyVariables] rollback failed:', rollbackError);
+    }
 
-    figma.ui.postMessage({ type: 'apply-variables-error', message: String(error), correlationId, rolledBack });
+    figma.ui.postMessage({ type: 'apply-variables-error', message: String(error), correlationId, rolledBack, rollbackError: rolledBack ? undefined : 'Rollback failed — partial changes may persist. Check console for details.' });
   }
 }
 

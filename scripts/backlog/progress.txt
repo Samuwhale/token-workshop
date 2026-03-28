@@ -479,3 +479,10 @@
 - **Learnings for future iterations:**
   - Generator output values should always be validated against the target type's valid range (opacity: 0–1, percentage: 0–100, etc.).
 ---
+
+## 2026-03-28 - Plugin `applyVariables` silently swallows rollback errors
+- Both `applyVariables` (variableSync.ts) and `syncSelectionTokens` (selectionHandling.ts) had empty `catch {}` blocks around rollback logic. Changed both to capture the rollback error, log it via `console.error`, and include a `rollbackError` field in the UI message when rollback fails (only set when `rolledBack` is false).
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L119, `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L568
+- **Learnings for future iterations:**
+  - The same rollback-swallowing pattern existed in two separate files — always grep for the pattern across the codebase.
+---

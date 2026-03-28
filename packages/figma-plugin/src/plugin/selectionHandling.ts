@@ -565,7 +565,9 @@ export async function syncBindings(tokenMap: Record<string, { $value: any; $type
         await restoreNodeProps(node, props);
       }
       rolledBack = true;
-    } catch { /* rollback itself failed */ }
+    } catch (rollbackError) {
+      console.error('[syncSelectionTokens] rollback failed:', rollbackError);
+    }
 
     figma.ui.postMessage({
       type: 'sync-complete',
@@ -575,6 +577,7 @@ export async function syncBindings(tokenMap: Record<string, { $value: any; $type
       missingTokens: [],
       error: String(outerError),
       rolledBack,
+      rollbackError: rolledBack ? undefined : 'Rollback failed — partial changes may persist. Check console for details.',
     });
 
     figma.notify(`Sync failed — ${rolledBack ? 'changes rolled back' : 'partial changes may persist'}`, { error: true });

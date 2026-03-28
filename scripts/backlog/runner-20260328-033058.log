@@ -499,3 +499,16 @@ Already up to date.
 
 --- Merging: Opacity scale generator does not validate value range ---
 Already up to date.
+[main cbbf062] chore(backlog): done – Opacity scale generator does not validate value range
+ 6 files changed, 39 insertions(+), 9 deletions(-)
+
+## 2026-03-28 - Opacity scale generator does not validate value range
+- Clamped opacity step values to [0, 1] range using `Math.min(1, Math.max(0, step.value / 100))` before rounding. Values like 150 now produce 1.0 instead of 1.5.
+- Files changed: `packages/core/src/generator-engine.ts` ~L182
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 25 / 90  (claude)  —  24 items remaining
+===============================================================
+  Claimed: TokenEditor create mode has no path autocomplete from existing tree structure — typing `color.` doesn't suggest existing groups like `color.brand`, `color.neutral`; users must memorize or look up the hierarchy, leading to typos and inconsistent naming
+  Worktree: /tmp/backlog-85816-uuPjrk

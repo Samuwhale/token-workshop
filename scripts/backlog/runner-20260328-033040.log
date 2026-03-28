@@ -456,3 +456,10 @@ Already up to date.
 ===============================================================
   Claimed: Plugin `applyVariables` silently swallows rollback errors — if the rollback itself throws, the catch block discards the error and returns `rolledBack: false` with no logging, leaving Figma in a partially applied state with no debugging information (`controller.ts` ~L229)
   Worktree: /tmp/backlog-84992-RBJHEC
+
+  ✓ done: Plugin applyVariables silently swallows rollback errors
+    Both variableSync.ts and selectionHandling.ts now capture rollback errors, log them via console.error, and include rollbackError info in UI messages when rollback fails.
+    13 turns · 66s · $0.35
+
+--- Merging: Plugin applyVariables silently swallows rollback errors ---
+Already up to date.
