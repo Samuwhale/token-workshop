@@ -165,6 +165,7 @@ export interface GeneratedTokenResult {
   type: string;
   value: unknown;
   isOverridden?: boolean;
+  warning?: string;
 }
 
 export interface GeneratorTemplate {

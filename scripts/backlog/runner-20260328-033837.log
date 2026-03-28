@@ -245,3 +245,10 @@ Already up to date.
 ===============================================================
   Claimed: Custom scale generator silently falls back to base value when formula evaluation fails — `runCustomScaleGenerator` in `generator-engine.ts` ~L241 catches `evalExpr`/`substituteVars` errors and silently uses `base` as the computed value; users get incorrect generated tokens with no indication their formula was invalid
   Worktree: /tmp/backlog-10278-XQi3kb
+
+  ✓ done: Custom scale generator silently falls back to base value when formula evaluation fails
+    Formula errors now surface as warnings: error message captured in GeneratedTokenResult.warning, displayed as warning triangle icons per-row with tooltip and a summary banner in GenericPreview
+    39 turns · 252s · $0.92
+
+--- Merging: Custom scale generator silently falls back to base value when formula evaluation fails ---
+Already up to date.

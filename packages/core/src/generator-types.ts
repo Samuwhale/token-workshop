@@ -323,6 +323,8 @@ export interface GeneratedTokenResult {
   value: unknown;
   /** True if this step's value came from a pinned override rather than computation */
   isOverridden?: boolean;
+  /** Warning message when formula evaluation failed and value fell back to base */
+  warning?: string;
 }
 
 // ---------------------------------------------------------------------------

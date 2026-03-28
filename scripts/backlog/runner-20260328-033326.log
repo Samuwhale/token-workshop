@@ -347,3 +347,16 @@ Already up to date.
 
 --- Merging: Lint service silently replaces invalid user regex with hardcoded default ---
 Already up to date.
+[main 94399a6] chore(backlog): done – Lint service silently replaces invalid user regex with hardcoded default
+ 6 files changed, 42 insertions(+), 8 deletions(-)
+
+## 2026-03-28 - Lint rules return violations but never suggest fixes
+- Added concrete fix suggestions to all 5 lint rules in the server lint engine:
+  - `no-raw-color`: finds the nearest color token by CIE76 ΔE and suggests it as an alias (exact match <1, close match <5)
+  - `no-duplicate-values`: suggests aliasing to the shortest-path duplicate (likely the primitive)
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  48 items remaining
+===============================================================
+  Claimed: computeUnifiedDiff error result is indistinguishable from "no conflicts" — `git-sync.ts` ~L118 catch block returns `{ localOnly: [], remoteOnly: [], conflicts: [] }`, which the caller interprets as "no differences," silently masking git command failures
+  Worktree: /tmp/backlog-92630-6qVyTO

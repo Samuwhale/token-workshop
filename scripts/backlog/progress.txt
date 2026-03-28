@@ -441,3 +441,13 @@
   - The server sandbox has no `@types/node` so tsc shows many pre-existing errors; grep for your specific file to check for new errors
   - CIE76 ΔE thresholds: <1 = exact, 1-5 = close — consistent with the ΔE pattern in the codebase
 ---
+
+## 2026-03-28 - Custom scale generator silently falls back to base value when formula evaluation fails
+- Changed `runCustomScaleGenerator` catch block to capture error message and attach a `warning` field to the `GeneratedTokenResult` instead of silently using the base value
+- Added `warning?: string` to `GeneratedTokenResult` in both `packages/core/src/generator-types.ts` and `packages/figma-plugin/src/ui/hooks/useGenerators.ts`
+- Updated `OverrideRow` in `generatorShared.tsx` to show a warning triangle icon (with tooltip) on rows with formula errors, and a summary banner in `GenericPreview` when any steps have warnings
+- Files changed: `packages/core/src/generator-engine.ts` ~L237-L260, `packages/core/src/generator-types.ts` ~L325, `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L167, `packages/figma-plugin/src/ui/components/generators/generatorShared.tsx` ~L55-L145
+- **Learnings for future iterations:**
+  - The `GenericPreview` component in `generatorShared.tsx` is what renders customScale and zIndexScale previews — it uses `OverrideRow` per token
+  - Core package has no dist directory in this project; the plugin build bundles core source directly
+---

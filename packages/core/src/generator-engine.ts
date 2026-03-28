@@ -235,11 +235,13 @@ export function runCustomScaleGenerator(
     };
 
     let computed: number;
+    let warning: string | undefined;
     try {
       const substituted = substituteVars(formula, vars);
       computed = evalExpr(substituted);
-    } catch {
+    } catch (err) {
       computed = base;
+      warning = `Formula error: ${err instanceof Error ? err.message : String(err)} — fell back to base (${base})`;
     }
 
     const rounded = parseFloat(computed.toFixed(roundTo));
@@ -255,6 +257,7 @@ export function runCustomScaleGenerator(
       path: `${targetGroup}.${step.name}`,
       type: outputType,
       value,
+      ...(warning ? { warning } : {}),
     });
   }
 
