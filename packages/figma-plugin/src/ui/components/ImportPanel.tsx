@@ -4,6 +4,7 @@ import { flattenTokenGroup } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
+import { parseCSSCustomProperties, parseTailwindConfigFile } from '../shared/tokenParsers';
 
 interface ImportPanelProps {
   serverUrl: string;
@@ -72,8 +73,10 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [targetSet, setTargetSet] = useState(() => lsGet(STORAGE_KEYS.IMPORT_TARGET_SET, 'imported'));
   const [sets, setSets] = useState<string[]>([]);
   const [setsError, setSetsError] = useState<string | null>(null);
-  const [source, setSource] = useState<'variables' | 'styles' | 'json' | null>(null);
+  const [source, setSource] = useState<'variables' | 'styles' | 'json' | 'css' | 'tailwind' | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cssFileInputRef = useRef<HTMLInputElement | null>(null);
+  const tailwindFileInputRef = useRef<HTMLInputElement | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [failedImportPaths, setFailedImportPaths] = useState<string[]>([]);
   const [succeededImportCount, setSucceededImportCount] = useState<number>(0);
@@ -297,6 +300,84 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     reader.readAsText(file);
   };
 
+  const processCSSFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const raw = reader.result as string;
+        const { tokens: parsed, errors } = parseCSSCustomProperties(raw);
+        if (parsed.length === 0) {
+          setError(errors.length > 0 ? errors.join('; ') : 'No CSS custom properties found in file.');
+          return;
+        }
+        const importTokens: ImportToken[] = parsed.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
+        const markedImportTokens = markDuplicatePaths(importTokens);
+        setSource('css');
+        setTokens(markedImportTokens);
+        setSelectedTokens(new Set(importTokens.map(t => t.path)));
+        setTypeFilter(null);
+        setError(null);
+        setSuccessMessage(null);
+        setCollectionData([]);
+        existingPathsCacheRef.current = null;
+        setExistingPaths(null);
+      } catch (err) {
+        setError(`Could not parse CSS file: ${getErrorMessage(err)}`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const processTailwindFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const raw = reader.result as string;
+        const { tokens: parsed, errors } = parseTailwindConfigFile(raw);
+        if (parsed.length === 0) {
+          setError(errors.length > 0 ? errors.join('; ') : 'No theme values found in file. Expected a Tailwind config with a theme object containing static values.');
+          return;
+        }
+        const importTokens: ImportToken[] = parsed.map(t => ({ path: t.path, $type: t.$type, $value: t.$value }));
+        const markedImportTokens = markDuplicatePaths(importTokens);
+        setSource('tailwind');
+        setTokens(markedImportTokens);
+        setSelectedTokens(new Set(importTokens.map(t => t.path)));
+        setTypeFilter(null);
+        setError(null);
+        setSuccessMessage(null);
+        setCollectionData([]);
+        existingPathsCacheRef.current = null;
+        setExistingPaths(null);
+      } catch (err) {
+        setError(`Could not parse Tailwind config: ${getErrorMessage(err)}`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleReadCSS = () => {
+    cssFileInputRef.current?.click();
+  };
+
+  const handleReadTailwind = () => {
+    tailwindFileInputRef.current?.click();
+  };
+
+  const handleCSSFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    processCSSFile(file);
+  };
+
+  const handleTailwindFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    processTailwindFile(file);
+  };
+
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
     dragCounterRef.current += 1;
@@ -317,12 +398,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     e.preventDefault();
     dragCounterRef.current = 0;
     setIsDragging(false);
-    const file = Array.from(e.dataTransfer.files).find(f => f.name.endsWith('.json') || f.type === 'application/json');
-    if (!file) {
-      setError('Please drop a .json file.');
-      return;
-    }
-    processJsonFile(file);
+    const files = Array.from(e.dataTransfer.files);
+    const jsonFile = files.find(f => f.name.endsWith('.json') || f.type === 'application/json');
+    if (jsonFile) { processJsonFile(jsonFile); return; }
+    const cssFile = files.find(f => f.name.endsWith('.css') || f.type === 'text/css');
+    if (cssFile) { processCSSFile(cssFile); return; }
+    const twFile = files.find(f => /\.(js|ts|mjs|cjs)$/.test(f.name));
+    if (twFile) { processTailwindFile(twFile); return; }
+    setError('Please drop a .json, .css, or .js/.ts file.');
   };
 
   const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -621,7 +704,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             <line x1="12" y1="18" x2="12" y2="12" />
             <line x1="9" y1="15" x2="15" y2="15" />
           </svg>
-          <div className="text-[11px] font-medium text-[var(--color-figma-accent)]">Drop JSON file to import</div>
+          <div className="text-[11px] font-medium text-[var(--color-figma-accent)]">Drop file to import (.json, .css, .js, .ts)</div>
         </div>
       )}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
@@ -712,6 +795,70 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               className="sr-only"
               onChange={handleJsonFileChange}
             />
+
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mt-2 mb-1">
+              Code-first Sources
+            </div>
+            <button
+              onClick={handleReadCSS}
+              className="flex items-center gap-3 px-3 py-3 rounded border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <div className="w-8 h-8 rounded bg-[#2965f1]/10 flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2965f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 7c0-1 .5-2 2-2s2 1 2 2v3c0 1 .5 2 2 2" />
+                  <path d="M4 17c0 1 .5 2 2 2s2-1 2-2v-3c0-1 .5-2 2-2" />
+                  <path d="M14 7c0-1 .5-2 2-2s2 1 2 2v3c0 1 .5 2 2 2" />
+                  <path d="M14 17c0 1 .5 2 2 2s2-1 2-2v-3c0-1 .5-2 2-2" />
+                </svg>
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from CSS file</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Parse --custom-property declarations — or drag &amp; drop</div>
+              </div>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
+                <path d="M2 1l4 3-4 3V1z" />
+              </svg>
+            </button>
+            <input
+              ref={cssFileInputRef}
+              type="file"
+              accept=".css,text/css"
+              className="sr-only"
+              onChange={handleCSSFileChange}
+            />
+            <button
+              onClick={handleReadTailwind}
+              className="flex items-center gap-3 px-3 py-3 rounded border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              <div className="w-8 h-8 rounded bg-[#06b6d4]/10 flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 6c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.3.74 1.9 1.35.98 1 2.12 2.15 4.6 2.15 2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.3-.74-1.9-1.35C15.62 7.15 14.48 6 12 6z" />
+                  <path d="M7 12c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.3.74 1.9 1.35.98 1 2.12 2.15 4.6 2.15 2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.3-.74-1.9-1.35C11.62 13.15 10.48 12 8 12z" />
+                </svg>
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from Tailwind config</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Parse theme values from tailwind.config — or drag &amp; drop</div>
+              </div>
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
+                <path d="M2 1l4 3-4 3V1z" />
+              </svg>
+            </button>
+            <input
+              ref={tailwindFileInputRef}
+              type="file"
+              accept=".js,.ts,.mjs,.cjs"
+              className="sr-only"
+              onChange={handleTailwindFileChange}
+            />
+            <div className="flex items-start gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)]">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-[1px]" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>CSS and Tailwind imports parse static values only. Dynamic expressions (e.g. <code className="font-mono text-[9px]">calc()</code>, JS functions) will be skipped.</span>
+            </div>
           </div>
         )}
 
@@ -874,7 +1021,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 Back
               </button>
               <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">
-                {source === 'json' ? 'JSON File' : 'Figma Styles'}
+                {source === 'json' ? 'JSON File' : source === 'css' ? 'CSS File' : source === 'tailwind' ? 'Tailwind Config' : 'Figma Styles'}
               </span>
             </div>
 

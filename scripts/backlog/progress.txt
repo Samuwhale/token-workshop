@@ -351,3 +351,18 @@
 - **Learnings for future iterations:**
   - Simple dead-code removal — no references anywhere in the codebase.
 ---
+
+## 2026-03-28 - Add parsers for CSS custom properties and Tailwind theme config imports
+- Extracted all parsing logic from `PasteTokensModal.tsx` into a shared module `tokenParsers.ts` (CSS, Tailwind, DTCG, CSV, name:value, type inference, path validation)
+- Added `parseTailwindConfigFile()` which handles `module.exports`, `export default`, `defineConfig()` wrappers, extracts `theme`/`theme.extend` objects, and supports Tailwind's `DEFAULT` key convention
+- Added two new import source buttons in ImportPanel: "Import from CSS file" and "Import from Tailwind config" under a "Code-first Sources" section
+- Added file handlers (`processCSSFile`, `processTailwindFile`) and hidden file inputs for `.css` and `.js/.ts/.mjs/.cjs` files
+- Updated drag-and-drop to accept CSS and JS/TS files in addition to JSON
+- Updated the back-row source label to show "CSS File" or "Tailwind Config"
+- Added info note about static-only parsing limitation
+- Files changed: `packages/figma-plugin/src/ui/shared/tokenParsers.ts` (new), `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L1-3 (imports from shared module), `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L1-8 (imports), ~L75-77 (state + refs), ~L300-370 (file processors + handlers), ~L320-330 (drop handler), ~L625 (drag overlay text), ~L715-790 (new source buttons), ~L880 (source label)
+- **Learnings for future iterations:**
+  - PasteTokensModal already had working parsers for CSS and Tailwind — extracting to a shared module was the right first step rather than duplicating
+  - Tailwind config files need multiple layers of unwrapping: `defineConfig()`, `module.exports =`, `export default`, then `theme:` / `theme.extend:` extraction with balanced brace matching
+  - Tailwind's `DEFAULT` key should map to the parent path, not `parent.DEFAULT`
+---

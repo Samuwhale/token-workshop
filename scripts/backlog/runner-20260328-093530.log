@@ -186,3 +186,24 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 49)
+[main 8112ebb] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 236 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - DEFAULT_WEIGHT_STYLES in fontLoading.ts is defined but never used
+- Removed unused `DEFAULT_WEIGHT_STYLES` constant; `weightToFontStyleFallback` already serves the same purpose with better intermediate-weight handling.
+- Files changed: `packages/figma-plugin/src/plugin/fontLoading.ts` ~L15
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  12 items remaining
+===============================================================
+  Claimed: No import from CSS custom properties or Tailwind config — only DTCG JSON and Figma Variables/Styles are supported as import sources; add parsers for CSS `--custom-property` declarations and Tailwind `theme` config objects to support migrations from code-first workflows
+  Worktree: /tmp/backlog-34977-cSn9ng
+
+  ✓ done: Add parsers for CSS custom properties and Tailwind theme config imports
+    Extracted shared tokenParsers.ts module from PasteTokensModal, added parseTailwindConfigFile() with config wrapper extraction and DEFAULT key handling, added CSS and Tailwind as file-based import sources in ImportPanel with source buttons, file inputs, and drag-and-drop support
+    27 turns · 410s · $2.8
+
+--- Merging: Add parsers for CSS custom properties and Tailwind theme config imports ---
+Already up to date.
