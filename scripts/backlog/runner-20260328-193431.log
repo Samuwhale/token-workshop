@@ -83,3 +83,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token creation: sticky active-set label in create form** — the active set name is shown in the main tab area but is easy to lose context of when the create form is open. Show the active set name prominently inside the create form (e.g., "Creating in: primitives") so users know where the token will land before clicking Create.
   Worktree: /tmp/backlog-77899-eFxw07
+
+  ✓ done: Token creation: sticky active-set label in create form
+    Added 'Creating in: [setName]' banner with folder icon at the top of the token create form in TokenList.tsx
+    15 turns · 70s · $0.26
+
+--- Merging: Token creation: sticky active-set label in create form ---
+Already up to date.

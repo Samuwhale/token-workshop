@@ -37,3 +37,16 @@ Already up to date.
 
 --- Merging: Token list: filter state indicator in toolbar ---
 Already up to date.
+[main 1169bea] chore(backlog): done – Token list: filter state indicator in toolbar
+ 6 files changed, 185 insertions(+), 62 deletions(-)
+
+## 2026-03-28 - Token list: filter state indicator in toolbar
+- When ≥2 non-search filters are active (type, ref, duplicates, issues, recent, pinned), individual pills collapse into a compact "Filters (N) ×" badge with a filter icon and clear-all button
+- Clicking the badge toggles an expandable drawer below the search row showing individual filter pills that can be cleared one-by-one
+- When only 0-1 non-search filters are active, the single pill is shown inline as before (no need for the compact indicator)
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  62 items remaining
+===============================================================
+  Claimed: **Token list: "no results" state with smart suggestions** — when a search query returns no results, the current empty state just shows "No tokens found". Add smart suggestions: if the query looks like a path (`colors.brand`), offer "Create a token at this path →"; if the query looks like a type (`shadow`), offer "Filter by type: shadow →". Turns a dead end into a useful fork.
+  Worktree: /tmp/backlog-77523-Y5fX9F

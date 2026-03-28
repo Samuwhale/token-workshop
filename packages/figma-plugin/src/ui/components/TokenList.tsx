@@ -3168,6 +3168,14 @@ export function TokenList({
       {showCreateForm && (
         <div ref={createFormRef} className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex flex-col gap-2">
+            {/* Active set indicator */}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-text-secondary)]">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Creating in:</span>
+              <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{setName}</span>
+            </div>
             {/* Group picker */}
             <div className="relative">
               <label className="block text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Group</label>

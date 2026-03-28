@@ -581,3 +581,11 @@
   - When adding sibling elements inside a JSX conditional `{condition && (<div>...</div>)}`, wrap in a fragment: `{condition && (<><div/><div/></>)}`
   - Type filter wasn't previously shown as a pill (only as the select dropdown highlight) — added it as a pill in both the single-filter inline path and the drawer for consistency
 ---
+
+## 2026-03-28 - Token creation: sticky active-set label in create form
+- Added a "Creating in: [setName]" banner at the top of the token create form, styled as a pill with a folder icon, showing the active set name so users know where the new token will land.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3079
+- **Learnings for future iterations:**
+  - `setName` is available directly in TokenList scope (from props via `ctx: { setName, ... }`), no prop drilling needed.
+  - Simple contextual banners inside forms are an effective low-effort way to surface ambient state (active set, active theme, etc.) without restructuring the UI.
+---
