@@ -399,3 +399,16 @@ Already up to date.
 
 --- Merging: ThemeManager allows concurrent mutations without debounce or disable ---
 Already up to date.
+[main 6ed96d7] chore(backlog): done – ThemeManager allows concurrent mutations without debounce or disable
+ 5 files changed, 94 insertions(+), 66 deletions(-)
+
+## 2026-03-28 - ThemeManager allows concurrent mutations without debounce or disable
+- Added a client-side promise-chain mutex (`mutationChainRef`) to serialize `handleSetState` and `handleBulkSetState` in ThemeManager. Each mutation now queues behind the previous one, preventing interleaved optimistic updates and stale rollback snapshots when buttons are clicked in rapid succession.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L99 (ref declaration), ~L714 (handleSetState wrapper), ~L751 (handleBulkSetState wrapper)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  35 items remaining
+===============================================================
+  Claimed: No inline quick-edit for simple token values — every edit requires opening the full TokenEditor panel (3+ clicks: click row → edit field → save); double-click on a token value in the tree view should open an inline input for rapid tweaks to colors, dimensions, and strings without leaving context
+  Worktree: /tmp/backlog-9651-oaVnEX

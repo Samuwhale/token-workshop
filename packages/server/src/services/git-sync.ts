@@ -389,10 +389,24 @@ export class GitSync {
     const branch = await this.getCurrentBranch();
     const remote = `origin/${branch}`;
 
-    const [localRaw, remoteRaw] = await Promise.all([
-      this.git.raw(['diff', '--name-only', `${remote}..HEAD`]).catch(() => ''),
-      this.git.raw(['diff', '--name-only', `HEAD..${remote}`]).catch(() => ''),
-    ]);
+    // Verify the remote ref exists before diffing — a missing ref means
+    // fetch failed or the branch doesn't exist on the remote.
+    try {
+      await this.git.raw(['rev-parse', '--verify', remote]);
+    } catch {
+      throw new Error(`Remote ref "${remote}" not found. The branch may not exist on the remote or the remote may be unreachable.`);
+    }
+
+    let localRaw: string;
+    let remoteRaw: string;
+    try {
+      [localRaw, remoteRaw] = await Promise.all([
+        this.git.raw(['diff', '--name-only', `${remote}..HEAD`]),
+        this.git.raw(['diff', '--name-only', `HEAD..${remote}`]),
+      ]);
+    } catch (err) {
+      throw new Error(`Failed to compute diff against "${remote}": ${err instanceof Error ? err.message : String(err)}`);
+    }
 
     const localFiles = localRaw.trim().split('\n').filter(Boolean);
     const remoteFiles = remoteRaw.trim().split('\n').filter(Boolean);

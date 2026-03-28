@@ -550,3 +550,14 @@
   - The server already has a file-level lock (`withLock`) and the UI already disables individual rows via `savingKeys` + `pointer-events-none`, but these don't prevent a second call from capturing stale `previousDimensions` for rollback
   - The promise-chain mutex pattern (same as server's `withLock`) is the simplest serialization: `const next = chain.then(task); chain = next.catch(() => {})` — no external deps, composable with existing async/await code
 ---
+
+## 2026-03-28 - Git sync diff silently returns empty on error
+- Removed `.catch(() => '')` from both `git diff` calls in `computeUnifiedDiff()` which silently swallowed errors (unreachable remote, invalid ref) and returned empty strings — making the caller see "no changes" instead of an error
+- Added a `rev-parse --verify` check before diffing to detect missing remote refs early, with a descriptive error message
+- Wrapped the diff `Promise.all` in a try/catch that rethrows with context about what failed
+- The route handler at `GET /api/sync/diff` already catches thrown errors and returns 500 with detail, so no route changes needed
+- Files changed: `packages/server/src/services/git-sync.ts` ~L392-405
+- **Learnings for future iterations:**
+  - `.catch(() => defaultValue)` in Promise.all is a silent-failure anti-pattern — it makes errors indistinguishable from empty results. Always let errors propagate or handle them with meaningful error messages.
+  - The route handler wrapping `computeUnifiedDiff` already had proper error handling (try/catch → 500), so the fix was entirely in the service layer
+---
