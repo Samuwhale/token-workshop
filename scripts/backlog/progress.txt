@@ -266,3 +266,12 @@
   - ResolverPanel.tsx had a pre-existing build-breaking JSX error (`)}` instead of `</div>`) that blocked Gate 2 for all agents — fixed as collateral
   - When merging panels into one with internal tabs, use `flex-1` instead of `h-full` for sub-source containers since they're no longer the root
 ---
+
+## 2026-03-29 - Multi-mode column editing has no undo
+- Already implemented: `handleMultiModeInlineSave` in TokenList.tsx L1559-1593 calls `onPushUndo` with undo/redo callbacks, and the server PATCH handler records operation log entries with before/after snapshots
+- The undo toast (via `useUndo` hook) and Ctrl+Z/Cmd+Z keyboard shortcuts are fully wired
+- Files inspected: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1559-1593, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1214-1222
+- **Learnings for future iterations:**
+  - Both regular inline save and multi-mode inline save follow the same undo pattern (capture old value, PATCH, pushUndo with restore/redo)
+  - Edge case: when oldEntry is undefined (new override in a set), undo doesn't delete the token — this is a pre-existing gap shared by both code paths
+---
