@@ -596,3 +596,12 @@
 - **Learnings for future iterations:**
   - The group dropdown's `onKeyDown` must distinguish between selecting a dropdown item (arrow+Enter) and submitting the create form (plain Enter). Using `groupActiveIdx >= 0` as the guard works well — `-1` means no item is selected so Enter falls through to form submission.
 ---
+
+## 2026-03-28 - Token create form: smart alias suggestion when value matches existing token
+- Added `aliasSuggestion` useMemo in TokenList.tsx that searches `allTokensFlat` for tokens with matching type and value when the user types in the inline create form's value field. Skips alias tokens (only matches concrete values). Uses `valuesEqual` + `parseInlineValue` for type-aware comparison.
+- Renders a dashed-border button below the value input showing "Use reference instead → {path.to.token}" with a link icon. Clicking sets the value to the alias reference string. Uses `formatDisplayPath` for dot-quoted display.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L905 (aliasSuggestion memo), ~L2906 (suggestion button UI)
+- **Learnings for future iterations:**
+  - `parseInlineValue` returns strings as-is for color/string/fontFamily types, so alias references like `{colors.brand.500}` pass through correctly without special handling
+  - `valuesEqual` uses `stableStringify` for object comparison, making it safe for dimension objects like `{value: 16, unit: 'px'}`
+---

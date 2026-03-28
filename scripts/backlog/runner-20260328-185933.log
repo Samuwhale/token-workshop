@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Token create form: path autocomplete with existing groups ---
 Already up to date.
+[main 6161924] chore(backlog): done – Token create form: path autocomplete with existing groups
+ 6 files changed, 78 insertions(+), 17 deletions(-)
+
+## 2026-03-28 - Token create form: path autocomplete with existing groups
+- Replaced simple substring filtering (`.includes()`) with fuzzy scoring (`fuzzyScore`) for the Group field autocomplete in the inline create form. Results are now ranked by relevance score.
+- Added keyboard navigation (ArrowUp/ArrowDown) in the group dropdown with active item highlighting and scroll-into-view.
+- Tab/Enter on an active dropdown item selects it instead of submitting the form.
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  37 items remaining
+===============================================================
+  Claimed: **Token row: resolved value always visible for aliases** — currently alias tokens show the alias path (`{colors.brand.500}`) and require clicking the chain expander to see the final resolved value. Show the resolved value preview (e.g., a color swatch or dimension text) directly in the row at all times, with the alias arrow as a secondary indicator. The click-to-expand chain can still exist for multi-hop chains, but the end result should not be hidden.
+  Worktree: /tmp/backlog-92332-dlbYqc

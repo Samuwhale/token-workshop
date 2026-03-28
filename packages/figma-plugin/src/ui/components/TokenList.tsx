@@ -917,6 +917,28 @@ export function TokenList({
     ).length;
   }, [syncSnapshot, allTokensFlat]);
 
+  // Smart alias suggestion: when the typed value matches an existing token's value, suggest using a reference
+  const aliasSuggestion = useMemo<{ path: string; name: string } | null>(() => {
+    if (!showCreateForm) return null;
+    const raw = newTokenValue.trim();
+    if (!raw) return null;
+    // Don't suggest if user already typed an alias reference
+    if (raw.startsWith('{') && raw.endsWith('}')) return null;
+    const parsed = parseInlineValue(newTokenType, raw);
+    if (parsed === null) return null;
+    for (const [tokenPath, entry] of Object.entries(allTokensFlat)) {
+      // Skip aliases — we want to match concrete values
+      if (typeof entry.$value === 'string' && entry.$value.startsWith('{')) continue;
+      // Only match same-type tokens
+      if (entry.$type !== newTokenType) continue;
+      if (valuesEqual(parsed, entry.$value)) {
+        const segments = tokenPath.split('.');
+        return { path: tokenPath, name: segments[segments.length - 1] };
+      }
+    }
+    return null;
+  }, [showCreateForm, newTokenValue, newTokenType, allTokensFlat]);
+
   const clearFilters = useCallback(() => {
     setSearchQuery('');
     setTypeFilter('');
@@ -2932,6 +2954,16 @@ export function TokenList({
                 onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
               />
             </div>
+            {aliasSuggestion && (
+              <button
+                type="button"
+                onClick={() => setNewTokenValue(`{${aliasSuggestion.path}}`)}
+                className="w-full flex items-center gap-1.5 px-2 py-1 rounded border border-dashed border-[var(--color-figma-accent)] bg-[var(--color-figma-accent-bg,transparent)] text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)] hover:text-white transition-colors cursor-pointer text-left"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <span>Use reference instead &rarr; <strong>{`{${formatDisplayPath(aliasSuggestion.path, aliasSuggestion.name)}}`}</strong></span>
+              </button>
+            )}
             <input
               type="text"
               placeholder="Description (optional)"
