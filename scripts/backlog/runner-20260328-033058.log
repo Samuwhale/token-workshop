@@ -295,3 +295,17 @@ Already up to date.
 
 --- Merging: `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module ---
 Already up to date.
+[main fd6b1af] chore(backlog): done – `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module
+ 8 files changed, 350 insertions(+), 294 deletions(-)
+ create mode 100644 packages/server/src/services/token-tree-utils.ts
+
+## 2026-03-28 - `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module
+- Created `packages/server/src/services/token-tree-utils.ts` (249 lines) with all pure functions: path helpers (`validateTokenPath`, `pathExistsAt`, `getObjectAtPath`, `setGroupAtPath`, `getTokenAtPath`, `setTokenAtPath`, `deleteTokenAtPath`), tree walkers (`walkAliasValues`, `walkLeafTokens`, `collectGroupLeafTokens`), alias ref updaters (`updateAliasRefs`, `updateBulkAliasRefs`), and `isSafeRegex`
+- Converted private class methods to free exported functions — they were already pure (only operated on passed-in `TokenGroup` data, no `this` state)
+- Updated `token-store.ts` (1269 → 1046 lines, −223) to import from the new module
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  60 items remaining
+===============================================================
+  Claimed: TokenGeneratorDialog has no unsaved-changes warning — closing or navigating away from a half-configured generator silently discards all input with no confirmation prompt
+  Worktree: /tmp/backlog-85816-9hdjc5

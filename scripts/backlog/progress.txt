@@ -326,3 +326,13 @@
   - The server package has no `@types/node` in sandbox so `tsc --noEmit` shows hundreds of pre-existing errors; grep for your specific files to verify no new errors
   - `isSafeRegex` was the only function exported from `token-store.ts` and consumed externally (by `lint.ts`) — re-export it from `token-store.ts` for backwards compatibility
 ---
+
+## 2026-03-28 - TokenList.tsx is 4695 lines — largest file in the codebase; split into sub-components (row renderers, drag-drop logic, inline editing, context menu, filter/sort controls)
+- Split TokenList.tsx (4695 lines) into 5 files: TokenList.tsx (2660 lines, orchestrator with state/handlers/layout), TokenTreeNode.tsx (1341 lines, tree row renderer with group/leaf rendering, inline editing, drag-drop, context menus), TokenListModals.tsx (658 lines, all 10 modal dialogs), tokenListTypes.ts (144 lines, shared interfaces/constants/types), tokenListHelpers.tsx (106 lines, pure utility functions). TokenList.tsx reduced by 43%.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` (modified — removed extracted code, added imports), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` (new), `packages/figma-plugin/src/ui/components/TokenListModals.tsx` (new), `packages/figma-plugin/src/ui/components/tokenListTypes.ts` (new), `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` (new)
+- **Learnings for future iterations:**
+  - TokenTreeNode's "Alias to this token" context menu referenced parent-scope variables (`onCreateNew`, `setNewTokenValue` etc.) that weren't in its props — this was dead code masked by esbuild not type-checking. Fixed by using `onCreateSibling` which properly handles the fallback.
+  - Files with JSX must use `.tsx` extension even for "helper" files — `.ts` files fail at build with "Unexpected token" on JSX fragments.
+  - The modals extraction required a flat props interface with ~60 props. A React context would reduce prop drilling but adds complexity — flat props are fine for a single parent-child relationship.
+  - `description` in `getDeleteModalProps` return type is optional (`description?`), must match in the extracted component's props interface.
+---
