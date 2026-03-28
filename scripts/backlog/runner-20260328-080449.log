@@ -390,3 +390,10 @@ Already up to date.
 ===============================================================
   Claimed: Node collection logic duplicated in `selectionHandling.ts` — `remapBindings` and `syncBindings` have nearly identical scope-based node collection (selection vs page); extract to shared helper
   Worktree: /tmp/backlog-63973-5BPn9D
+
+  ✓ done: Node collection logic duplicated in selectionHandling.ts
+    Extracted collectNodesForScope(scope, filter?) helper; remapBindings and syncBindings now use it instead of duplicating scope-based node collection
+    15 turns · 78s · $0.5
+
+--- Merging: Node collection logic duplicated in selectionHandling.ts ---
+Already up to date.

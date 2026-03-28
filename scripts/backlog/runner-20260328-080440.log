@@ -432,3 +432,16 @@ Already up to date.
 
 --- Merging: Cache listAvailableFontsAsync in resolveStyleForWeight ---
 Already up to date.
+[main 116e1af] chore(backlog): done – Cache listAvailableFontsAsync in resolveStyleForWeight
+ 6 files changed, 43 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - describeError helper duplicated in 3 hook files
+- Moved identical `describeError(err, operation)` function from `useGitSync.ts`, `useStyleSync.ts`, `useVariableSync.ts`, and `PublishPanel.tsx` into `shared/utils.ts` as a named export alongside existing `getErrorMessage`
+- Updated all 4 files to import from `shared/utils` instead of defining locally
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` ~L22, `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L2, `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` ~L3, `packages/figma-plugin/src/ui/hooks/useVariableSync.ts` ~L3, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L3
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  32 items remaining
+===============================================================
+  Claimed: Missing imports in `token-store.ts` — `parseReference`, `makeReferenceGlobalRegex`, and `TokenNode` are used but not imported from `@tokenmanager/core`; `isSafeRegex` is re-exported but not imported for local use; these cause compilation failures or silently disable features like circular reference detection
+  Worktree: /tmp/backlog-62956-7SfzPg

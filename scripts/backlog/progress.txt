@@ -566,3 +566,11 @@
   - Build was already broken by a pre-existing missing export (`getNextUnboundProperty` in `selectionInspectorUtils.ts`) — not introduced by this change
   - `PublishPanel.tsx` also had a copy of `describeError` (4 copies total, not 3 as the backlog item stated)
 ---
+- Added server-side `checkOverwrites` method on `GeneratorService` + `POST /api/generators/:id/check-overwrites` route — previews generator output, compares with existing token values, returns list of manually-edited tokens
+- Wired overwrite warning into `useGeneratorDialog.ts` — before PUT (update) calls, checks for modified tokens and shows confirmation dialog listing affected paths
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L221,L258-266 (derivedTokenPaths to Map), `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L43,L158,L191 (types + onDetachFromGenerator prop), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L121,L784,L1047-1063,L1445 (badge + context menu), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1365-1385,L3057 (detach handler), `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L328-349 (overwrite warning), `packages/server/src/services/generator-service.ts` ~L275-307 (checkOverwrites method), `packages/server/src/routes/generators.ts` ~L302-315 (check-overwrites route)
+- **Learnings for future iterations:**
+  - `derivedTokenPaths` was a `Set<string>` computed from generator configs; changing to `Map<string, TokenGenerator>` required no other interface changes since `.has()` works on both
+  - `TokenMapEntry` doesn't carry `$extensions` but `TokenNode` does — for detach, fetch the full token from the server API then PATCH back without the generator extension
+  - The server's `computeResults` (preview) method is reusable for overwrite detection — compare preview output with existing token values
+---

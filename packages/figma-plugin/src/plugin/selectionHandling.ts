@@ -587,22 +587,7 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
   }
 
   try {
-    // Collect nodes to scan
-    let nodes: SceneNode[];
-    if (scope === 'selection') {
-      // Include the selected nodes AND all their descendants
-      const roots = [...figma.currentPage.selection];
-      const all: SceneNode[] = [];
-      for (const root of roots) {
-        all.push(root);
-        if ('findAll' in root) {
-          (root as FrameNode).findAll(() => true).forEach(n => all.push(n));
-        }
-      }
-      nodes = all;
-    } else {
-      nodes = figma.currentPage.findAll(() => true);
-    }
+    const nodes = collectNodesForScope(scope);
 
     let updatedBindings = 0;
     let updatedNodes = 0;
@@ -634,6 +619,27 @@ export async function remapBindings(remapMap: Record<string, string>, scope: 'se
     figma.ui.postMessage({ type: 'remap-complete', updatedBindings: 0, updatedNodes: 0, error: message });
     figma.notify(`Remap failed: ${message}`, { error: true });
   }
+}
+
+// Collect nodes for a scope-based operation.
+// 'selection' includes the selected nodes and all their descendants.
+// 'page' collects all nodes on the current page, optionally filtered.
+function collectNodesForScope(
+  scope: 'selection' | 'page',
+  filter?: (node: SceneNode) => boolean,
+): SceneNode[] {
+  if (scope === 'selection') {
+    const roots = [...figma.currentPage.selection];
+    const all: SceneNode[] = [];
+    for (const root of roots) {
+      all.push(root);
+      if ('findAll' in root) {
+        (root as FrameNode).findAll(() => true).forEach(n => all.push(n));
+      }
+    }
+    return all;
+  }
+  return figma.currentPage.findAll(filter ?? (() => true));
 }
 
 // Snapshot readable properties of a node for the given binding keys.
@@ -691,29 +697,15 @@ export async function scanTokenUsageMap() {
 
 // Sync all bindings on the page or selection with latest token values
 export async function syncBindings(tokenMap: Record<string, { $value: any; $type: string }>, scope: 'page' | 'selection') {
-  let nodes: SceneNode[];
-  if (scope === 'selection') {
-    // Include the selected nodes AND all their descendants
-    const roots = [...figma.currentPage.selection];
-    const all: SceneNode[] = [];
-    for (const root of roots) {
-      all.push(root);
-      if ('findAll' in root) {
-        (root as FrameNode).findAll(() => true).forEach(n => all.push(n));
-      }
+  const nodes = collectNodesForScope(scope, node => {
+    for (const prop of ALL_BINDABLE_PROPERTIES) {
+      if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop)) return true;
     }
-    nodes = all;
-  } else {
-    nodes = figma.currentPage.findAll(node => {
-      for (const prop of ALL_BINDABLE_PROPERTIES) {
-        if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop)) return true;
-      }
-      for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
-        if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey)) return true;
-      }
-      return false;
-    });
-  }
+    for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
+      if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey)) return true;
+    }
+    return false;
+  });
 
   let updated = 0;
   let skipped = 0;
