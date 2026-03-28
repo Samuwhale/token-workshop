@@ -133,3 +133,10 @@ Already up to date.
 ===============================================================
   Claimed: VersionHistoryPanel has no revert/restore actions — the panel shows commit diffs with added/modified/removed badges but is purely informational; add a "Restore this version" button per commit and a "Restore this token" action per changed token row, wiring into the existing operation-log rollback API
   Worktree: /tmp/backlog-9651-5m2acY
+
+  ✓ done: VersionHistoryPanel has no revert/restore actions
+    Added POST /api/sync/log/:hash/restore endpoint and wired "Restore all" button per commit + per-token "Restore" button on each changed row, with undo support via operation-log rollback API.
+    25 turns · 327s · $1.43
+
+--- Merging: VersionHistoryPanel has no revert/restore actions ---
+Already up to date.

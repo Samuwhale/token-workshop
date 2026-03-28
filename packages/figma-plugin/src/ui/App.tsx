@@ -2424,7 +2424,7 @@ export function App() {
           {/* History sub-tab (Ship > History) */}
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'history' && (
               <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
-              <VersionHistoryPanel serverUrl={serverUrl} connected={connected} />
+              <VersionHistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} />
               </ErrorBoundary>
           )}
 

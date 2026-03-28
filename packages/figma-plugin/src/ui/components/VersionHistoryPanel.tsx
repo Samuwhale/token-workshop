@@ -128,12 +128,19 @@ function ChangeSummaryBadges({ added, modified, removed }: { added: number; modi
 
 /* ── Main Panel ──────────────────────────────────────────────────────── */
 
+interface UndoSlot {
+  description: string;
+  restore: () => Promise<void>;
+}
+
 interface VersionHistoryPanelProps {
   serverUrl: string;
   connected: boolean;
+  onPushUndo?: (slot: UndoSlot) => void;
+  onRefreshTokens?: () => void;
 }
 
-export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPanelProps) {
+export function VersionHistoryPanel({ serverUrl, connected, onPushUndo, onRefreshTokens }: VersionHistoryPanelProps) {
   const [commits, setCommits] = useState<CommitEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -141,6 +148,7 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
   const [detail, setDetail] = useState<CommitDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [restoring, setRestoring] = useState<string | null>(null); // 'all' or token path
   const abortRef = useRef<AbortController | null>(null);
 
   // Fetch commits
@@ -203,6 +211,53 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
   const toggleSection = useCallback((key: string) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
+
+  // Restore tokens from a commit
+  const restoreFromCommit = useCallback(async (
+    hash: string,
+    tokens?: Array<{ path: string; set: string }>,
+  ) => {
+    const key = tokens && tokens.length === 1 ? tokens[0].path : 'all';
+    setRestoring(key);
+    try {
+      const res = await fetch(`${serverUrl}/api/sync/log/${hash}/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokens }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Restore failed' }));
+        setError(data.error || 'Restore failed');
+        return;
+      }
+      const result = await res.json() as { restored: number; operationId: string; paths: string[] };
+
+      // Push undo slot — rollback the operation via operation-log
+      if (onPushUndo && result.operationId) {
+        const opId = result.operationId;
+        const desc = tokens && tokens.length === 1
+          ? `Restore ${tokens[0].path}`
+          : `Restore ${result.restored} tokens from ${hash.slice(0, 7)}`;
+        onPushUndo({
+          description: desc,
+          restore: async () => {
+            const rollbackRes = await fetch(`${serverUrl}/api/operations/${opId}/rollback`, { method: 'POST' });
+            if (!rollbackRes.ok) {
+              const data = await rollbackRes.json().catch(() => ({ error: 'Undo failed' }));
+              throw new Error(data.error || 'Undo failed');
+            }
+            onRefreshTokens?.();
+          },
+        });
+      }
+
+      onRefreshTokens?.();
+    } catch (err) {
+      setError(String((err as Error).message || err));
+    } finally {
+      setRestoring(null);
+    }
+  }, [serverUrl, onPushUndo, onRefreshTokens]);
 
   // Not connected state
   if (!connected) {
@@ -320,11 +375,29 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
         {/* Commit info */}
         {commit && (
           <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)]">
-            <p className="text-[11px] font-medium text-[var(--color-figma-text)] leading-snug">{commit.message}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
-              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
-              <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-[var(--color-figma-text)] leading-snug">{commit.message}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
+                  <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
+                </div>
+              </div>
+              {detail && detail.changes.length > 0 && (
+                <button
+                  onClick={() => restoreFromCommit(selectedHash!)}
+                  disabled={restoring !== null}
+                  className="shrink-0 px-2.5 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 transition-colors flex items-center gap-1"
+                  title="Revert all token changes in this commit"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                  {restoring === 'all' ? 'Restoring…' : 'Restore all'}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -360,7 +433,7 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
                   >
                     <div className="divide-y divide-[var(--color-figma-border)]">
                       {changes.map((change, i) => (
-                        <div key={`${change.path}-${i}`} className="px-3 py-2 space-y-1">
+                        <div key={`${change.path}-${i}`} className="px-3 py-2 space-y-1 group/row relative">
                           <div className="flex items-center gap-2">
                             <span
                               className="text-[10px] font-medium uppercase tracking-wide shrink-0 px-1 py-0.5 rounded"
@@ -375,6 +448,18 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
                               {change.path}
                             </span>
                             <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">{change.type}</span>
+                            {/* Per-token restore button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                restoreFromCommit(selectedHash!, [{ path: change.path, set: change.set }]);
+                              }}
+                              disabled={restoring !== null}
+                              className="shrink-0 ml-auto opacity-0 group-hover/row:opacity-100 pointer-events-none group-hover/row:pointer-events-auto transition-opacity px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                              title={`Restore ${change.path} to its previous value`}
+                            >
+                              {restoring === change.path ? 'Restoring…' : 'Restore'}
+                            </button>
                           </div>
 
                           {/* Value preview */}

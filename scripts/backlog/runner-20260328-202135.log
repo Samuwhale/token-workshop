@@ -102,3 +102,16 @@ Already up to date.
 
 --- Merging: ImportPanel conflict resolution has no search or filter ---
 Already up to date.
+[main ac6102d] chore(backlog): done – ImportPanel conflict resolution has no search or filter
+ 6 files changed, 124 insertions(+), 11 deletions(-)
+
+## 2026-03-28 - ImportPanel conflict resolution search and filter
+- Added search field with magnifying glass icon to filter conflict tokens by path
+- Added status filter dropdown (All / Accepted / Rejected) to show only conflicts with a specific resolution
+- Added type filter dropdown (only appears when conflicts span multiple token types) to filter by $type
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  57 items remaining
+===============================================================
+  Claimed: FontFamily value editor is a plain text input with no font discovery — users must type font names from memory; add a searchable dropdown populated from system/web fonts (or at minimum the fonts used in the current Figma file) with a live text preview rendered in each candidate font
+  Worktree: /tmp/backlog-9231-6GajXE

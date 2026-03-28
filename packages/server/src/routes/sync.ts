@@ -1,5 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
+import type { Token } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
+import { snapshotPaths } from '../services/operation-log.js';
 
 export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/sync/status — git status + isRepo + current branch
@@ -238,6 +240,147 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       return { hash, changes, fileCount: fileDiffs.length };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to get commit diff', detail: String(err) });
+    }
+  });
+
+  // POST /api/sync/log/:hash/restore — restore tokens to their state before this commit
+  // Body: { tokens?: Array<{ path: string; set: string }> }
+  // If tokens is omitted, restores ALL changed tokens in the commit.
+  fastify.post<{
+    Params: { hash: string };
+    Body: { tokens?: Array<{ path: string; set: string }> };
+  }>('/sync/log/:hash/restore', async (request, reply) => {
+    const { hash } = request.params;
+    if (!/^[0-9a-f]{4,40}$/i.test(hash)) {
+      return reply.status(400).send({ error: 'Invalid commit hash' });
+    }
+
+    try {
+      const fileDiffs = await fastify.gitSync.getTokenFileDiffs(hash);
+
+      // Build before/after maps per set
+      const beforeBySet = new Map<string, Map<string, Token>>();
+      const afterBySet = new Map<string, Map<string, Token>>();
+      for (const diff of fileDiffs) {
+        const setName = diff.file.replace('.tokens.json', '');
+        const beforeTokens = new Map<string, Token>();
+        const afterTokens = new Map<string, Token>();
+        if (diff.before) {
+          try {
+            for (const [p, t] of flattenTokenGroup(JSON.parse(diff.before))) {
+              beforeTokens.set(p, t as Token);
+            }
+          } catch { /* skip */ }
+        }
+        if (diff.after) {
+          try {
+            for (const [p, t] of flattenTokenGroup(JSON.parse(diff.after))) {
+              afterTokens.set(p, t as Token);
+            }
+          } catch { /* skip */ }
+        }
+        beforeBySet.set(setName, beforeTokens);
+        afterBySet.set(setName, afterTokens);
+      }
+
+      // Determine which tokens to restore
+      const requested = request.body?.tokens;
+      const toRestore: Array<{ path: string; set: string; token: Token | null }> = [];
+
+      if (requested && requested.length > 0) {
+        // Restore specific tokens
+        for (const { path: tokenPath, set: setName } of requested) {
+          const before = beforeBySet.get(setName);
+          const after = afterBySet.get(setName);
+          if (!before && !after) continue;
+          // The "before" state of this commit is what we want to restore to
+          const beforeToken = before?.get(tokenPath) ?? null;
+          const afterToken = after?.get(tokenPath) ?? null;
+          // Only restore if the token actually changed in this commit
+          if (beforeToken || afterToken) {
+            toRestore.push({ path: tokenPath, set: setName, token: beforeToken });
+          }
+        }
+      } else {
+        // Restore all changed tokens
+        for (const [setName, beforeTokens] of beforeBySet) {
+          const afterTokens = afterBySet.get(setName) ?? new Map();
+          // Added in this commit → remove (restore to null)
+          for (const [p] of afterTokens) {
+            if (!beforeTokens.has(p)) {
+              toRestore.push({ path: p, set: setName, token: null });
+            }
+          }
+          // Removed in this commit → restore
+          for (const [p, t] of beforeTokens) {
+            if (!afterTokens.has(p)) {
+              toRestore.push({ path: p, set: setName, token: t });
+            }
+          }
+          // Modified → restore to before
+          for (const [p, afterToken] of afterTokens) {
+            const beforeToken = beforeTokens.get(p);
+            if (beforeToken && JSON.stringify(beforeToken.$value) !== JSON.stringify(afterToken.$value)) {
+              toRestore.push({ path: p, set: setName, token: beforeToken });
+            }
+          }
+        }
+      }
+
+      if (toRestore.length === 0) {
+        return reply.status(400).send({ error: 'No tokens to restore' });
+      }
+
+      // Snapshot current state for undo (operation-log)
+      const allPaths = toRestore.map(r => r.path);
+      const allSets = [...new Set(toRestore.map(r => r.set))];
+      const beforeSnapshot: Record<string, { token: Token | null; setName: string }> = {};
+      for (const setName of allSets) {
+        const pathsInSet = toRestore.filter(r => r.set === setName).map(r => r.path);
+        const snap = await snapshotPaths(fastify.tokenStore, setName, pathsInSet);
+        Object.assign(beforeSnapshot, snap);
+      }
+
+      // Group by set and restore
+      const bySet = new Map<string, Array<{ path: string; token: Token | null }>>();
+      for (const { path: p, set: s, token } of toRestore) {
+        let list = bySet.get(s);
+        if (!list) { list = []; bySet.set(s, list); }
+        list.push({ path: p, token });
+      }
+      for (const [setName, items] of bySet) {
+        await fastify.tokenStore.restoreSnapshot(setName, items);
+      }
+
+      // Snapshot after state
+      const afterSnapshot: Record<string, { token: Token | null; setName: string }> = {};
+      for (const setName of allSets) {
+        const pathsInSet = toRestore.filter(r => r.set === setName).map(r => r.path);
+        const snap = await snapshotPaths(fastify.tokenStore, setName, pathsInSet);
+        Object.assign(afterSnapshot, snap);
+      }
+
+      // Record in operation log
+      const isSingle = toRestore.length === 1;
+      const description = isSingle
+        ? `Restore ${toRestore[0].path} from commit ${hash.slice(0, 7)}`
+        : `Restore ${toRestore.length} tokens from commit ${hash.slice(0, 7)}`;
+      const opEntry = fastify.operationLog.record({
+        type: 'version-restore',
+        description,
+        setName: allSets.join(', '),
+        affectedPaths: allPaths,
+        beforeSnapshot,
+        afterSnapshot,
+      });
+
+      return {
+        restored: toRestore.length,
+        operationId: opEntry.id,
+        paths: allPaths,
+      };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to restore tokens', detail: String(err) });
     }
   });
 

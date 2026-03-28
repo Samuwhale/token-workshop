@@ -416,3 +416,17 @@
   - The conflict list uses an IIFE pattern inside JSX; extending it with computed `getFilteredPaths` in the outer IIFE scope allows both bulk actions and list rendering to share filter logic without a separate component
   - Bulk action buttons should scope to visible items when filters are active — changing label to "Accept visible" / "Reject visible" communicates this clearly
 ---
+
+## 2026-03-28 - VersionHistoryPanel has no revert/restore actions
+- Added `POST /api/sync/log/:hash/restore` server endpoint that restores tokens to their before-commit state, with optional per-token filtering via `body.tokens[]`
+- Endpoint snapshots current state, restores via `tokenStore.restoreSnapshot()`, and records in `operationLog` for undo support
+- Added "Restore all" button in commit detail header (visible when there are token changes)
+- Added per-token "Restore" button on each changed token row (appears on hover, faint-always-visible pattern)
+- Both buttons wire through `restoreFromCommit()` which calls the new endpoint and pushes an undo slot via `onPushUndo` that calls `/api/operations/:id/rollback`
+- Added `onPushUndo` and `onRefreshTokens` props to `VersionHistoryPanel`; App.tsx passes `pushUndo` and `refreshAll`
+- Files changed: `packages/server/src/routes/sync.ts` ~L1-4,L243-L363 (new import + restore endpoint), `packages/figma-plugin/src/ui/components/VersionHistoryPanel.tsx` ~L131-155,L205-255,L345-380,L390-410 (props, state, restore logic, UI buttons), `packages/figma-plugin/src/ui/App.tsx` ~L2427 (pass new props)
+- **Learnings for future iterations:**
+  - The git commit diff data (`getTokenFileDiffs`) returns raw before/after JSON content per file — `flattenTokenGroup` is needed to get individual token paths, same as the existing GET route
+  - `restoreSnapshot` accepts `token: null` to delete a token, so "restoring" an added token (which didn't exist before) naturally deletes it
+  - The operation-log `record()` returns the entry with its `id`, which can be passed back to the client for immediate undo wiring — no need for a separate lookup
+---
