@@ -416,7 +416,7 @@ export function App() {
     }
   }, [connected, serverUrl, tokens, markDisconnected]);
 
-  const { heatmapResult, heatmapLoading, triggerHeatmapScan } = useHeatmap();
+  const { heatmapResult, heatmapLoading, heatmapError, triggerHeatmapScan, cancelHeatmapScan } = useHeatmap();
 
   // Listen for variables-applied and capture a sync snapshot
   useEffect(() => {
@@ -2156,7 +2156,9 @@ export function App() {
               <HeatmapPanel
                 result={heatmapResult}
                 loading={heatmapLoading}
+                error={heatmapError}
                 onRescan={triggerHeatmapScan}
+                onCancel={cancelHeatmapScan}
                 onSelectNodes={(ids) => parent.postMessage({ pluginMessage: { type: 'select-heatmap-nodes', nodeIds: ids } }, '*')}
                 availableTokens={allTokensFlat}
                 onBatchBind={(nodeIds, tokenPath, property) => {

@@ -440,3 +440,14 @@
   - Token datalist is limited to 300 entries to avoid browser performance issues; the browser natively filters as the user types.
   - The Quick Bind panel is opt-in per invocation (onBatchBind prop), so HeatmapPanel stays usable without token data.
 ---
+
+## 2026-03-28 - Heatmap scan has no timeout or cancellation
+- Added 30s timeout to heatmap scan — if no response arrives, loading resets and an error message is shown
+- Added cancel button visible during scan so users can abort manually
+- Error state shows "Retry scan" button for recovery
+- Timeout is cleared on unmount and when result arrives (no stale timers)
+- Files changed: `packages/figma-plugin/src/ui/hooks/useHeatmap.ts` ~L1-63, `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L22-27,49,217-255, `packages/figma-plugin/src/ui/App.tsx` ~L419,2156-2160
+- **Learnings for future iterations:**
+  - `useRef` for timeout IDs avoids stale closure issues in callbacks
+  - Always clear timeouts both on success (result received) and on unmount to prevent memory leaks
+---

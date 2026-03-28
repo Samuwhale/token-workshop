@@ -1,0 +1,29 @@
+NOTE: 2 [~] item(s) found — skipping reset (1 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 2 priority item(s) inserted at top of queue
+  → 63 normal item(s) appended to bottom
+--- Inbox drained ---
+  Remaining items: 112
+  Completed total: 358 (next product pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  112 items remaining
+===============================================================
+  Claimed: [HIGH] Heatmap scan has no timeout or cancellation — if the plugin controller drops the connection mid-scan, `heatmapLoading` stays true forever with a stuck spinner and no recovery path
+  Worktree: /tmp/backlog-83965-Kh6hAE
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    2 turns · 0s · $0
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-27 - HeatmapPanel "select all red" action has no follow-up workflow — selecting unbound layers has no batch "bind all to token X" or "create tokens for these" next step
+- Added a "Quick Bind" panel that slides in at the bottom of HeatmapPanel whenever the user clicks any "Select all" button (grouped or filtered view). The panel shows the count of selected layers, a token path input backed by a datalist of all available tokens, a property dropdown (all bindable properties, defaults to fill), and a "Bind N layers" button. Clicking Bind sends a new `batch-bind-heatmap-nodes` controller message that re-selects the heatmap nodes then applies the token to all of them via the existing `applyToSelection` logic.
+- Files changed: `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` (full rewrite with new props + Quick Bind UI), `packages/figma-plugin/src/plugin/controller.ts` ~L84 (new case) + ~L522 (new `batchBindHeatmapNodes` function), `packages/figma-plugin/src/ui/App.tsx` ~L2156 (new `availableTokens` and `onBatchBind` props)
+- **Learnings for future iterations:**
+
+Stop signal received. Exiting after iteration 1.

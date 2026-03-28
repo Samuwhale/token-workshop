@@ -1,0 +1,11 @@
+NOTE: 3 [~] item(s) found — skipping reset (4 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 111
+  Completed total: 358 (next product pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  111 items remaining
+===============================================================
+  Claimed: [HIGH] Token paths are not validated on create — the server accepts paths with double dots (`color..primary`), reserved `$` prefixes, or slashes, which can corrupt the token file and break resolution
+  Worktree: /tmp/backlog-85816-964qSa

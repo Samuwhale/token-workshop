@@ -21,7 +21,9 @@ export interface HeatmapResult {
 interface HeatmapPanelProps {
   result: HeatmapResult | null;
   loading: boolean;
+  error?: string | null;
   onRescan: () => void;
+  onCancel?: () => void;
   onSelectNodes: (ids: string[]) => void;
   availableTokens?: Record<string, TokenMapEntry>;
   onBatchBind?: (nodeIds: string[], tokenPath: string, property: BindableProperty) => void;
@@ -46,7 +48,7 @@ interface QuickBindState {
   statusLabel: string;
 }
 
-export function HeatmapPanel({ result, loading, onRescan, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
+export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['red']));
   const [quickBind, setQuickBind] = useState<QuickBindState | null>(null);
@@ -215,17 +217,43 @@ export function HeatmapPanel({ result, loading, onRescan, onSelectNodes, availab
 
       {/* Loading state */}
       {loading && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-2 text-[var(--color-figma-text-secondary)]">
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-[var(--color-figma-text-secondary)]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin opacity-60" aria-hidden="true">
             <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeOpacity="0.3"/>
             <path d="M21 12a9 9 0 00-9-9"/>
           </svg>
           <span className="text-[11px]">Scanning canvas…</span>
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="px-3 py-1 rounded text-[11px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Error state */}
+      {!loading && error && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500 opacity-70" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{error}</p>
+          <button
+            onClick={onRescan}
+            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+          >
+            Retry scan
+          </button>
         </div>
       )}
 
       {/* Empty / no result */}
-      {!loading && !result && (
+      {!loading && !error && !result && (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-30" aria-hidden="true">
             <rect x="3" y="3" width="18" height="18" rx="2"/>
