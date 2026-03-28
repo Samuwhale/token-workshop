@@ -186,6 +186,44 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     }
   });
 
+  // PUT /api/themes/dimensions-order — reorder dimensions
+  fastify.put<{ Body: { dimensionIds: string[] } }>('/themes/dimensions-order', async (request, reply) => {
+    const { dimensionIds } = request.body || {};
+    if (!Array.isArray(dimensionIds) || dimensionIds.some(id => typeof id !== 'string')) {
+      return reply.status(400).send({ error: 'dimensionIds must be an array of dimension id strings' });
+    }
+    try {
+      let beforeDims: ThemeDimension[] = [];
+      const reordered = await store.withLock(async (dimensions) => {
+        beforeDims = structuredClone(dimensions);
+        const byId = new Map(dimensions.map(d => [d.id, d]));
+        for (const id of dimensionIds) {
+          if (!byId.has(id)) {
+            throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 400 });
+          }
+        }
+        if (dimensionIds.length !== dimensions.length || new Set(dimensionIds).size !== dimensionIds.length) {
+          throw Object.assign(new Error('dimensionIds must list every dimension id exactly once'), { statusCode: 400 });
+        }
+        const newOrder = dimensionIds.map(id => byId.get(id)!);
+        return { dims: newOrder, result: newOrder };
+      });
+      const afterDims = await store.load();
+      await fastify.operationLog.record({
+        type: 'theme-dimensions-reorder',
+        description: 'Reorder theme dimensions',
+        setName: '',
+        affectedPaths: [],
+        beforeSnapshot: {},
+        afterSnapshot: {},
+        metadata: { kind: 'theme-dimensions', before: beforeDims, after: afterDims },
+      });
+      return { dimensions: reordered };
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to reorder dimensions');
+    }
+  });
+
   // DELETE /api/themes/dimensions/:id — delete a dimension
   fastify.delete<{ Params: { id: string } }>('/themes/dimensions/:id', async (request, reply) => {
     const { id } = request.params;

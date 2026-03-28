@@ -123,3 +123,14 @@
   - Sub-tab persistence validation (L291) auto-falls-back when a sub-tab ID is removed from TOP_TABS — no migration code needed
   - ResolverPanel is fully self-contained (all state via props from useResolvers hook) so it can be embedded anywhere without modification
 ---
+
+## 2026-03-29 - Theme dimensions cannot be reordered
+- Added up/down arrow buttons to dimension layer headers in ThemeManager.tsx for reordering dimensions (changes priority order)
+- Added `handleMoveDimension` handler with optimistic UI update + server sync (mirrors existing `handleMoveOption` pattern)
+- Added `PUT /api/themes/dimensions-order` server endpoint that reorders dimensions atomically with lock and operation log
+- Buttons appear on hover, disabled at boundaries (first/last), with tooltips indicating priority direction
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L563-582 (handler), ~L1310-1330 (buttons); `packages/server/src/routes/themes.ts` ~L189-224 (new endpoint)
+- **Learnings for future iterations:**
+  - The dimension reorder endpoint follows the same pattern as options-order: accept full ordered list of IDs, validate completeness, swap atomically
+  - `dimIdx` is already computed in the render loop (`dimensions.indexOf(dim)`) so boundary checks are trivial
+---

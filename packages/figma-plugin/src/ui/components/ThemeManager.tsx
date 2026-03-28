@@ -561,6 +561,31 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
   };
 
+  // --- Move dimension (reorder) ---
+
+  const handleMoveDimension = async (dimId: string, direction: 'up' | 'down') => {
+    if (!connected) return;
+    const idx = dimensions.findIndex(d => d.id === dimId);
+    if (idx === -1) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= dimensions.length) return;
+    const reordered = [...dimensions];
+    [reordered[idx], reordered[newIdx]] = [reordered[newIdx], reordered[idx]];
+    setDimensions(reordered);
+    try {
+      await apiFetch(
+        `${serverUrl}/api/themes/dimensions-order`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dimensionIds: reordered.map(d => d.id) }),
+        },
+      );
+    } catch {
+      fetchDimensions();
+    }
+  };
+
   // --- Delete option ---
 
   const executeDeleteOption = async (dimId: string, optionName: string) => {
@@ -1294,6 +1319,26 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               </svg>
                             </button>
                           </div>
+                          {dimensions.length > 1 && (
+                            <div className="flex items-center gap-0 flex-shrink-0 opacity-0 group-hover:opacity-100">
+                              <button
+                                onClick={() => handleMoveDimension(dim.id, 'up')}
+                                disabled={dimIdx === 0}
+                                className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-25 disabled:pointer-events-none"
+                                title="Move layer up (higher priority)" aria-label="Move layer up"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 15l-6-6-6 6" /></svg>
+                              </button>
+                              <button
+                                onClick={() => handleMoveDimension(dim.id, 'down')}
+                                disabled={dimIdx === dimensions.length - 1}
+                                className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-25 disabled:pointer-events-none"
+                                title="Move layer down (lower priority)" aria-label="Move layer down"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+                              </button>
+                            </div>
+                          )}
                           <button
                             onClick={() => executeDeleteDimension(dim.id)}
                             className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100"
