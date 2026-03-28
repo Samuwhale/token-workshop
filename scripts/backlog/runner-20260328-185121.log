@@ -13,3 +13,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: **Token create form: breadcrumb-style path builder** — the free-text dot-notation path input in the create form requires users to know the naming convention and type it blindly. Replace with a two-field approach: a group picker (hierarchical dropdown/combobox of existing groups) and a separate leaf-name field. Entering a new group name in the picker would create that group. This removes the mental overhead of getting the dots right and makes the hierarchy feel spatial rather than textual.
   Worktree: /tmp/backlog-73432-I7JyOL
+
+  ✓ done: Token create form: breadcrumb-style path builder
+    Replaced single dot-notation path input with group picker combobox (searchable, supports new groups) + separate leaf-name field. Full path shown as preview. Build passes.
+    33 turns · 318s · $1.85
+
+--- Merging: Token create form: breadcrumb-style path builder ---
+Already up to date.

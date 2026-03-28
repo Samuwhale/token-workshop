@@ -548,3 +548,18 @@
   - `ValuePreview` is a pure component that handles all DTCG token types — reuse it anywhere a token value needs visual representation
   - `parseInlineValue` converts raw string input to typed values (dimension objects, booleans, numbers) matching what `ValuePreview` expects
 ---
+
+## 2026-03-28 - Token create form: breadcrumb-style path builder
+- Replaced the single free-text dot-notation path input with a two-field approach: a group picker (searchable combobox of existing groups with inline new-group creation) and a separate leaf-name field
+- `useTokenCreate` hook: replaced `newTokenPath`/`siblingPrefix` state with `newTokenGroup` + `newTokenName`; `newTokenPath` is now a derived `useMemo`. Added `allGroupPaths` param, `filteredGroups` computed list, and `groupDropdownOpen` state for combobox
+- Group picker shows all existing group paths, filters as you type, highlights current selection, offers "(root)" option, and shows a "+ Create" option for new groups
+- Name field shows computed full path preview below the input
+- Name suggestions now extract leaf name from full path before setting `newTokenName`
+- "Create from search" button parses search query at last dot into group + name
+- Cancel / Full Editor buttons now use `resetCreateForm()` instead of duplicating state resets
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` (full rewrite), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L636-660 (hook params/destructuring), ~L2713 (search create), ~L2787-2910 (form JSX)
+- **Learnings for future iterations:**
+  - When splitting a single text input into structured fields, keep the combined value as a derived `useMemo` rather than syncing two states into a third — simpler and avoids desync bugs
+  - Combobox blur→close needs `setTimeout` (~150ms) to allow click events on dropdown items to fire before the dropdown disappears
+  - `onMouseDown={e => e.preventDefault()}` on dropdown items prevents the input blur from firing, which is a cleaner alternative to `setTimeout` for keeping the dropdown open during selection
+---

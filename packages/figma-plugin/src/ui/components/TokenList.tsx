@@ -634,6 +634,8 @@ export function TokenList({
   }, [tokens]);
 
   // --- Custom hooks for extracted state groups ---
+  const allGroupPaths = useMemo(() => collectAllGroupPaths(tokens), [tokens]);
+
   const tokenCreate = useTokenCreate({
     defaultCreateOpen,
     connected,
@@ -641,6 +643,7 @@ export function TokenList({
     setName,
     selectedNodes,
     siblingOrderMap,
+    allGroupPaths,
     onCreateNew,
     onRefresh,
     onPushUndo,
@@ -648,12 +651,13 @@ export function TokenList({
     onRecordTouch: recentlyTouched.recordTouch,
   });
   const {
-    showCreateForm, setShowCreateForm, newTokenPath, setNewTokenPath,
-    newTokenType, setNewTokenType, newTokenValue, setNewTokenValue,
+    showCreateForm, setShowCreateForm,
+    newTokenGroup, setNewTokenGroup, newTokenName, setNewTokenName,
+    newTokenPath, newTokenType, setNewTokenType, newTokenValue, setNewTokenValue,
     newTokenDescription, setNewTokenDescription, typeAutoInferred, setTypeAutoInferred,
-    createError, setCreateError, siblingPrefix, setSiblingPrefix,
-    createFormRef, nameSuggestions, resetCreateForm,
-    handleOpenCreateSibling, handleCreate, handleCreateAndNew,
+    createError, setCreateError,
+    createFormRef, nameSuggestions, filteredGroups, groupDropdownOpen, setGroupDropdownOpen,
+    resetCreateForm, handleOpenCreateSibling, handleCreate, handleCreateAndNew,
   } = tokenCreate;
 
   const findReplace = useFindReplace({
@@ -2711,7 +2715,14 @@ export function TokenList({
                   if (onCreateNew) {
                     onCreateNew(searchQuery);
                   } else {
-                    setNewTokenPath(searchQuery);
+                    const lastDot = searchQuery.lastIndexOf('.');
+                    if (lastDot >= 0) {
+                      setNewTokenGroup(searchQuery.slice(0, lastDot));
+                      setNewTokenName(searchQuery.slice(lastDot + 1));
+                    } else {
+                      setNewTokenGroup('');
+                      setNewTokenName(searchQuery);
+                    }
                     setShowCreateForm(true);
                   }
                 }}
@@ -2778,35 +2789,96 @@ export function TokenList({
       {showCreateForm && (
         <div ref={createFormRef} className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex flex-col gap-2">
-            {siblingPrefix !== null && (
-              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                Creating sibling in <span className="font-medium text-[var(--color-figma-text)]">{siblingPrefix || 'root'}</span>
+            {/* Group picker */}
+            <div className="relative">
+              <label className="block text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Group</label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Root (none)"
+                  value={newTokenGroup}
+                  onChange={e => { setNewTokenGroup(e.target.value); setGroupDropdownOpen(true); setCreateError(''); }}
+                  onFocus={() => setGroupDropdownOpen(true)}
+                  onBlur={() => { setTimeout(() => setGroupDropdownOpen(false), 150); }}
+                  className="w-full px-2 py-1.5 pr-6 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') { setGroupDropdownOpen(false); (e.target as HTMLInputElement).blur(); }
+                    if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); }
+                  }}
+                />
+                <svg className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-figma-text-tertiary)]" width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><path d="M1 2.5l3 3 3-3" /></svg>
               </div>
-            )}
-            <input
-              type="text"
-              placeholder={siblingPrefix ? `${siblingPrefix}.name` : 'Token path (e.g. color.primary.500)'}
-              value={newTokenPath}
-              onChange={e => { setNewTokenPath(e.target.value); setCreateError(''); }}
-              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
-              onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
-              autoFocus
-            />
+              {groupDropdownOpen && filteredGroups.length > 0 && (
+                <div className="absolute z-50 left-0 right-0 mt-0.5 max-h-[140px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg">
+                  <button
+                    type="button"
+                    onMouseDown={e => e.preventDefault()}
+                    onClick={() => { setNewTokenGroup(''); setGroupDropdownOpen(false); }}
+                    className={`w-full text-left px-2 py-1 text-[11px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${!newTokenGroup.trim() ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-tertiary)] italic'}`}
+                  >
+                    (root)
+                  </button>
+                  {filteredGroups.map(gp => (
+                    <button
+                      key={gp}
+                      type="button"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => { setNewTokenGroup(gp); setGroupDropdownOpen(false); }}
+                      className={`w-full text-left px-2 py-1 text-[11px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${gp === newTokenGroup.trim() ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'}`}
+                    >
+                      {gp}
+                    </button>
+                  ))}
+                  {newTokenGroup.trim() && !allGroupPaths.includes(newTokenGroup.trim()) && (
+                    <button
+                      type="button"
+                      onMouseDown={e => e.preventDefault()}
+                      onClick={() => { setGroupDropdownOpen(false); }}
+                      className="w-full text-left px-2 py-1 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    >
+                      + Create &ldquo;{newTokenGroup.trim()}&rdquo;
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            {/* Token name */}
+            <div>
+              <label className="block text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Name</label>
+              <input
+                type="text"
+                placeholder="Token name (e.g. 500, base, primary)"
+                value={newTokenName}
+                onChange={e => { setNewTokenName(e.target.value); setCreateError(''); }}
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
+                autoFocus
+              />
+              {newTokenPath && (
+                <div className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">
+                  Path: <span className="text-[var(--color-figma-text-secondary)]">{newTokenPath}</span>
+                </div>
+              )}
+            </div>
             {createError && <p className="text-[10px] text-[var(--color-figma-error)]">{createError}</p>}
             {nameSuggestions.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 <span className="text-[10px] text-[var(--color-figma-text-tertiary)] self-center mr-0.5">Suggest:</span>
-                {nameSuggestions.map(s => (
-                  <button
-                    key={s.value}
-                    type="button"
-                    title={s.source}
-                    onClick={() => { setNewTokenPath(s.value); setCreateError(''); }}
-                    className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors cursor-pointer"
-                  >
-                    {s.label}
-                  </button>
-                ))}
+                {nameSuggestions.map(s => {
+                  // Suggestions return full paths; extract just the leaf name
+                  const leafName = s.value.includes('.') ? s.value.slice(s.value.lastIndexOf('.') + 1) : s.value;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      title={s.source}
+                      onClick={() => { setNewTokenName(leafName); setCreateError(''); }}
+                      className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors cursor-pointer"
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
               </div>
             )}
             <div className="flex items-center gap-1.5">
@@ -2862,16 +2934,16 @@ export function TokenList({
             <div className="flex gap-1.5">
               <button
                 onClick={handleCreate}
-                disabled={!newTokenPath.trim()}
-                title={!newTokenPath.trim() ? 'Enter a token name first' : 'Create token (Enter)'}
+                disabled={!newTokenName.trim()}
+                title={!newTokenName.trim() ? 'Enter a token name first' : 'Create token (Enter)'}
                 className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
                 Create
               </button>
               <button
                 onClick={handleCreateAndNew}
-                disabled={!newTokenPath.trim()}
-                title={!newTokenPath.trim() ? 'Enter a token name first' : 'Create and start a new token in the same group (Shift+Enter)'}
+                disabled={!newTokenName.trim()}
+                title={!newTokenName.trim() ? 'Enter a token name first' : 'Create and start a new token in the same group (Shift+Enter)'}
                 className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)] hover:text-white disabled:opacity-40 whitespace-nowrap"
               >
                 & New
@@ -2881,7 +2953,7 @@ export function TokenList({
                   onClick={() => {
                     const path = newTokenPath.trim();
                     onCreateNew(path || undefined, newTokenType, newTokenValue.trim() || undefined);
-                    setShowCreateForm(false); setNewTokenPath(''); setNewTokenValue(''); setNewTokenDescription(''); setTypeAutoInferred(false); setSiblingPrefix(null); setCreateError('');
+                    resetCreateForm();
                   }}
                   title="Open full editor with more fields (references, scopes, extensions, modes)"
                   className="px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
@@ -2890,7 +2962,7 @@ export function TokenList({
                 </button>
               )}
               <button
-                onClick={() => { setShowCreateForm(false); setNewTokenPath(''); setNewTokenValue(''); setNewTokenDescription(''); setTypeAutoInferred(false); setSiblingPrefix(null); setCreateError(''); }}
+                onClick={resetCreateForm}
                 className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
               >
                 Cancel

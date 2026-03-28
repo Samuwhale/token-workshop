@@ -11,6 +11,7 @@ export interface UseTokenCreateParams {
   setName: string;
   selectedNodes: SelectionNodeInfo[];
   siblingOrderMap: Map<string, string[]>;
+  allGroupPaths: string[];
   onCreateNew?: (initialPath?: string, initialType?: string, initialValue?: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -25,6 +26,7 @@ export function useTokenCreate({
   setName,
   selectedNodes,
   siblingOrderMap,
+  allGroupPaths,
   onCreateNew,
   onRefresh,
   onPushUndo,
@@ -32,7 +34,8 @@ export function useTokenCreate({
   onRecordTouch,
 }: UseTokenCreateParams) {
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
-  const [newTokenPath, setNewTokenPath] = useState('');
+  const [newTokenGroup, setNewTokenGroup] = useState('');
+  const [newTokenName, setNewTokenName] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
     try { return localStorage.getItem('tm_last_token_type') || 'color'; } catch { return 'color'; }
   });
@@ -44,8 +47,23 @@ export function useTokenCreate({
   const [newTokenDescription, setNewTokenDescription] = useState('');
   const [typeAutoInferred, setTypeAutoInferred] = useState(false);
   const [createError, setCreateError] = useState('');
-  const [siblingPrefix, setSiblingPrefix] = useState<string | null>(null);
+  const [groupDropdownOpen, setGroupDropdownOpen] = useState(false);
   const createFormRef = useRef<HTMLDivElement>(null);
+
+  // Computed full path from group + name
+  const newTokenPath = useMemo(() => {
+    const g = newTokenGroup.trim();
+    const n = newTokenName.trim();
+    if (!n) return '';
+    return g ? `${g}.${n}` : n;
+  }, [newTokenGroup, newTokenName]);
+
+  // Filtered group suggestions for the combobox
+  const filteredGroups = useMemo(() => {
+    const q = newTokenGroup.trim().toLowerCase();
+    if (!q) return allGroupPaths;
+    return allGroupPaths.filter(p => p.toLowerCase().includes(q));
+  }, [newTokenGroup, allGroupPaths]);
 
   // Scroll to and pulse the create form when it appears
   useEffect(() => {
@@ -62,8 +80,8 @@ export function useTokenCreate({
       onCreateNew(groupPath ? groupPath + '.' : '', tokenType || 'color');
       return;
     }
-    setSiblingPrefix(groupPath);
-    setNewTokenPath(groupPath ? groupPath + '.' : '');
+    setNewTokenGroup(groupPath);
+    setNewTokenName('');
     setNewTokenType(tokenType || 'color');
     setShowCreateForm(true);
   }, [onCreateNew]);
@@ -71,24 +89,26 @@ export function useTokenCreate({
   // Smart name suggestions for inline create form
   const nameSuggestions = useMemo(() => {
     if (!showCreateForm) return [];
-    const groupPath = siblingPrefix ?? '';
+    const groupPath = newTokenGroup.trim();
     const siblings = siblingOrderMap.get(groupPath) ?? [];
     const layerName = selectedNodes.length === 1 ? selectedNodes[0].name : null;
     return generateNameSuggestions(newTokenType, newTokenValue, groupPath, siblings, layerName);
-  }, [showCreateForm, siblingPrefix, siblingOrderMap, selectedNodes, newTokenType, newTokenValue]);
+  }, [showCreateForm, newTokenGroup, siblingOrderMap, selectedNodes, newTokenType, newTokenValue]);
 
   const resetCreateForm = useCallback(() => {
     setShowCreateForm(false);
-    setNewTokenPath('');
+    setNewTokenGroup('');
+    setNewTokenName('');
     setNewTokenValue('');
     setNewTokenDescription('');
-    setSiblingPrefix(null);
     setCreateError('');
+    setGroupDropdownOpen(false);
   }, []);
 
   const doCreate = useCallback(async (keepOpen: boolean) => {
     const trimmedPath = newTokenPath.trim();
-    if (!trimmedPath) { setCreateError('Token path cannot be empty'); return; }
+    if (!trimmedPath) { setCreateError('Token name cannot be empty'); return; }
+    if (!newTokenName.trim()) { setCreateError('Token name cannot be empty'); return; }
     if (!connected) return;
     setCreateError('');
     const effectiveSet = setName || 'default';
@@ -116,22 +136,18 @@ export function useTokenCreate({
       const capturedUrl = serverUrl;
       const capturedEncodedPath = createdPath.split('.').map(encodeURIComponent).join('/');
       if (keepOpen) {
-        // Pre-fill the next token in the same group
-        const prefix = createdPath.length > (createdPath.split('.').pop()?.length ?? 0) + 1
-          ? nodeParentPath(createdPath, createdPath.split('.').pop()!)
-          : null;
-        setSiblingPrefix(prefix ?? '');
-        setNewTokenPath(prefix ? prefix + '.' : '');
+        // Keep group, clear name for next token in same group
+        setNewTokenName('');
         setNewTokenValue('');
         setNewTokenDescription('');
         setTypeAutoInferred(false);
         setCreateError('');
       } else {
         setShowCreateForm(false);
-        setNewTokenPath('');
+        setNewTokenGroup('');
+        setNewTokenName('');
         setNewTokenValue('');
         setNewTokenDescription('');
-        setSiblingPrefix(null);
       }
       onRefresh();
       onTokenCreated?.(createdPath);
@@ -156,7 +172,7 @@ export function useTokenCreate({
     } catch (err) {
       setCreateError('Network error — could not create token');
     }
-  }, [newTokenPath, newTokenType, newTokenValue, newTokenDescription, connected, serverUrl, setName, onRefresh, onPushUndo, onTokenCreated, onRecordTouch]);
+  }, [newTokenPath, newTokenName, newTokenType, newTokenValue, newTokenDescription, connected, serverUrl, setName, onRefresh, onPushUndo, onTokenCreated, onRecordTouch]);
 
   const handleCreate = useCallback(() => doCreate(false), [doCreate]);
   const handleCreateAndNew = useCallback(() => doCreate(true), [doCreate]);
@@ -164,8 +180,11 @@ export function useTokenCreate({
   return {
     showCreateForm,
     setShowCreateForm,
+    newTokenGroup,
+    setNewTokenGroup,
+    newTokenName,
+    setNewTokenName,
     newTokenPath,
-    setNewTokenPath,
     newTokenType,
     setNewTokenType,
     newTokenValue,
@@ -176,10 +195,12 @@ export function useTokenCreate({
     setTypeAutoInferred,
     createError,
     setCreateError,
-    siblingPrefix,
-    setSiblingPrefix,
     createFormRef,
     nameSuggestions,
+    filteredGroups,
+    allGroupPaths,
+    groupDropdownOpen,
+    setGroupDropdownOpen,
     resetCreateForm,
     handleOpenCreateSibling,
     handleCreate,

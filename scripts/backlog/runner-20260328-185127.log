@@ -16,3 +16,19 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Token create form: inline value preview ---
 Already up to date.
+[main 8b5c59c] chore(backlog): done – Token create form: inline value preview
+ 9 files changed, 150 insertions(+), 28 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260328-181428.log
+ create mode 100644 scripts/backlog/runner-20260328-185121.log
+ create mode 100644 scripts/backlog/runner-20260328-185127.log
+
+## 2026-03-28 - Token create form: inline value preview
+- Added a live ValuePreview swatch next to the value input in the inline token create form. The preview updates as the user types, using `parseInlineValue` to convert the raw string to the typed value format that `ValuePreview` expects. For colors it shows a swatch, for dimensions a scaled bar, for typography sample text, etc.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2812-2834 (preview + value input wrapper), ~L28 (ValuePreview import)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  22 items remaining
+===============================================================
+  Claimed: **Token create form: type-specific value field placeholders and hints** — the value field shows no placeholder text that tells the user what format is expected for each type. Add contextual placeholder text per type (e.g., `#hex or oklch(...)` for color, `16px / 1rem` for dimension, `400 / bold` for fontWeight). This is especially valuable for users unfamiliar with DTCG value formats.
+  Worktree: /tmp/backlog-73948-wDw8IX
