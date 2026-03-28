@@ -610,3 +610,18 @@
   - CSS `var(--x)` references map cleanly to DTCG `{path}` alias syntax
   - Format detection order matters: CSS and CSV checks must run before the `{`-starts-with JSON branch
 ---
+
+## 2026-03-28 - No token comparison mode
+- Created `ComparePanel.tsx` component showing selected tokens side-by-side in a table with tokens as columns and properties as rows
+- Highlights differing rows with yellow background and asterisk marker
+- Handles structured values (typography, shadow) by breaking into individual property rows
+- Handles simple values (color, dimension, number) with color swatches for color tokens
+- Shows alias references, scopes, and type badges; "All identical" indicator when no differences
+- Added "Compare" button to multi-select toolbar (visible when ≥2 tokens selected), toggles like "Batch edit"
+- Files changed: `packages/figma-plugin/src/ui/components/ComparePanel.tsx` (new, ~230 lines)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L7,L70,L1944-1953,L1995-2002,L1973
+- **Learnings for future iterations:**
+  - The multi-select toolbar pattern (toggle state + inline panel) is consistent across BatchEditor and ComparePanel — new inline panels follow the same `showX` state + conditional render after the toolbar
+  - `resolveTokenValue` from resolveAlias can be used to get resolved values for alias tokens in comparison
+  - `stableStringify` is essential for value comparison (consistent key ordering)
+---

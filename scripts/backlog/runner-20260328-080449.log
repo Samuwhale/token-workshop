@@ -194,3 +194,10 @@ Already up to date.
 ===============================================================
   Claimed: No token comparison mode — no way to compare two or more tokens side-by-side to check consistency; add a "Compare" action in multi-select: show selected tokens in a side-by-side panel with aligned properties, highlighting differences — useful for auditing scale consistency (e.g., are spacing-4 and spacing-6 actually 16px and 24px?)
   Worktree: /tmp/backlog-63973-lSGmA4
+
+  ✓ done: No token comparison mode
+    Added ComparePanel component with side-by-side token comparison table (property rows × token columns), difference highlighting, color swatches, alias display, and scope comparison. Integrated as "Compare" button in multi-select toolbar (≥2 tokens).
+    26 turns · 278s · $1.4
+
+--- Merging: No token comparison mode ---
+Already up to date.

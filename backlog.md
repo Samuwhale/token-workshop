@@ -44,7 +44,7 @@
 - [x] No token pinning or favorites — frequently-used tokens (e.g. brand primary, base spacing) require searching or navigating every time; add a star/pin action on tokens with a "Pinned" section at the top of the token list or a quick-access palette (Cmd+P style) that prioritizes pinned tokens
 - [x] No smart token name suggestions — users must invent names from scratch; when creating a token, suggest names based on: the token type (color → "color/"), the value (blue hex → "blue"), sibling patterns in the same group (if siblings are 100/200/300, suggest the next scale step), and the Figma layer name if created from selection
 - [~] No token comparison mode — no way to compare two or more tokens side-by-side to check consistency; add a "Compare" action in multi-select: show selected tokens in a side-by-side panel with aligned properties, highlighting differences — useful for auditing scale consistency (e.g., are spacing-4 and spacing-6 actually 16px and 24px?)
-- [~] Batch token creation limited to JSON paste — PasteTokensModal only accepts DTCG JSON; add support for tabular input (CSV, TSV, or a spreadsheet-style grid) where each row is name/type/value, and for importing from CSS custom properties (`--color-primary: #ff0000`) and Tailwind config objects — lower the barrier for migrations from other systems
+- [x] Batch token creation limited to JSON paste — PasteTokensModal only accepts DTCG JSON; add support for tabular input (CSV, TSV, or a spreadsheet-style grid) where each row is name/type/value, and for importing from CSS custom properties (`--color-primary: #ff0000`) and Tailwind config objects — lower the barrier for migrations from other systems
 - [~] No contextual token suggestions during property binding — when binding a token to a Figma property, the picker shows all tokens; rank and surface tokens most likely to match: same type as the property, tokens with similar resolved values, tokens frequently bound to the same property type, and tokens used on sibling layers in the same component
 
 ---
@@ -54,7 +54,7 @@
 ### Bugs
 
 - [~] ThemeManager bulk set-status context menu has no ARIA `role="menu"` or `role="menuitem"` — screen readers won't announce it as a menu; add proper roles and focus management matching the TokenList context menu pattern
-- [ ] No loading/saving indicator when toggling set state (Off/Base/On) — optimistic update fires but if the network is slow there's zero feedback that the save is in progress; add a subtle spinner or opacity change during the API call
+- [~] No loading/saving indicator when toggling set state (Off/Base/On) — optimistic update fires but if the network is slow there's zero feedback that the save is in progress; add a subtle spinner or opacity change during the API call
 - [ ] Theme cache returns mutable reference — `load()` returns the cache object directly; route handlers that mutate it (push, filter) change the cached copy in-place, so if `save()` throws the cache is left in an inconsistent state (mutated but not persisted)
 - [ ] Theme option name trimmed inconsistently with lookup — `name.trim()` is used for storage but `findIndex` searches with the untrimmed name; `" light "` won't match existing `"light"`, creating duplicates
 

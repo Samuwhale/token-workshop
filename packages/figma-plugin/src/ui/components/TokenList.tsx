@@ -4,6 +4,7 @@ import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { ApiErrorBody, NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { BatchEditor } from './BatchEditor';
+import { ComparePanel } from './ComparePanel';
 import { TokenCanvas } from './TokenCanvas';
 import { TokenGraph } from './TokenGraph';
 import { colorDeltaE } from '../shared/colorUtils';
@@ -68,6 +69,7 @@ export function TokenList({
   const [dragOverGroupIsInvalid, setDragOverGroupIsInvalid] = useState(false);
   const [dragOverReorder, setDragOverReorder] = useState<{ path: string; position: 'before' | 'after' } | null>(null);
   const [showBatchEditor, setShowBatchEditor] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
   const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
   const [promoteBusy, setPromoteBusy] = useState(false);
   const [showScaffold, setShowScaffold] = useState(false);
@@ -1963,6 +1965,14 @@ export function TokenList({
                 >
                   Batch edit
                 </button>
+                {selectedPaths.size >= 2 && (
+                  <button
+                    onClick={() => setShowCompare(v => !v)}
+                    className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${showCompare ? 'bg-[var(--color-figma-accent)] text-white' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                  >
+                    Compare
+                  </button>
+                )}
                 <button
                   onClick={handleOpenPromoteModal}
                   className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1987,7 +1997,7 @@ export function TokenList({
               </>
             )}
             <button
-              onClick={() => { setSelectMode(false); setSelectedPaths(new Set()); setShowBatchEditor(false); }}
+              onClick={() => { setSelectMode(false); setSelectedPaths(new Set()); setShowBatchEditor(false); setShowCompare(false); }}
               className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >
               Cancel
@@ -2006,6 +2016,15 @@ export function TokenList({
             connected={connected}
             onApply={onRefresh}
             onPushUndo={onPushUndo}
+          />
+        )}
+
+        {/* Compare panel */}
+        {selectMode && showCompare && selectedPaths.size >= 2 && (
+          <ComparePanel
+            selectedPaths={selectedPaths}
+            allTokensFlat={allTokensFlat}
+            onClose={() => setShowCompare(false)}
           />
         )}
 

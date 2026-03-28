@@ -167,3 +167,17 @@ Already up to date.
 
 --- Merging: Batch token creation limited to JSON paste — multi-format support ---
 Already up to date.
+[main 0246bc2] chore(backlog): done – Batch token creation limited to JSON paste — multi-format support
+ 7 files changed, 277 insertions(+), 30 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Batch token creation limited to JSON paste — multi-format support
+- Added CSS custom properties parser: `--color-primary: #ff0000` → `color.primary` with `var()` → DTCG alias conversion
+- Added CSV/TSV parser: auto-detects separator and optional header row (name/type/value columns)
+- Added Tailwind/JS object parser: converts unquoted keys, single quotes, trailing commas to JSON then flattens nested objects
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  73 items remaining
+===============================================================
+  Claimed: No loading/saving indicator when toggling set state (Off/Base/On) — optimistic update fires but if the network is slow there's zero feedback that the save is in progress; add a subtle spinner or opacity change during the API call
+  Worktree: /tmp/backlog-63685-7ytGVu
