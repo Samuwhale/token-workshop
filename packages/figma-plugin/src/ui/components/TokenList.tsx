@@ -297,6 +297,27 @@ export function TokenList({
   const qualifierHintsRef = useRef<HTMLDivElement>(null);
   const qualifierHelpRef = useRef<HTMLDivElement>(null);
 
+  // Cycling placeholder examples for search qualifier discoverability
+  const PLACEHOLDER_EXAMPLES = useMemo(() => [
+    'type:color',
+    'has:alias',
+    'value:#ff0000',
+    'path:colors.brand',
+    'name:500',
+    'type:dimension',
+    'has:duplicate',
+    'desc:primary',
+  ], []);
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  useEffect(() => {
+    if (searchQuery) return; // don't cycle when there's text
+    const id = setInterval(() => {
+      setPlaceholderIdx(i => (i + 1) % PLACEHOLDER_EXAMPLES.length);
+    }, 3000);
+    return () => clearInterval(id);
+  }, [searchQuery, PLACEHOLDER_EXAMPLES]);
+  const [searchFocused, setSearchFocused] = useState(false);
+
   const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || showPinnedOnly;
 
   // Count of active non-search filters (for compact filter indicator)
@@ -2604,8 +2625,8 @@ export function TokenList({
                       setSearchQuery(e.target.value);
                       setHintIndex(0);
                     }}
-                    onFocus={() => setShowQualifierHints(true)}
-                    onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); }}
+                    onFocus={() => { setShowQualifierHints(true); setSearchFocused(true); }}
+                    onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); setSearchFocused(false); }}
                     onKeyDown={e => {
                       if (!showQualifierHints || qualifierHints.length === 0) return;
                       if (e.key === 'ArrowDown') { e.preventDefault(); setHintIndex(i => Math.min(i + 1, qualifierHints.length - 1)); }
@@ -2621,7 +2642,7 @@ export function TokenList({
                         }
                       }
                     }}
-                    placeholder={hasStructuredQualifiers(searchQuery) ? 'Add more filters…' : 'Search (/) — try type: has: value:'}
+                    placeholder={hasStructuredQualifiers(searchQuery) ? 'Add more filters…' : `Search (/) — try ${PLACEHOLDER_EXAMPLES[placeholderIdx]}`}
                     className={`w-full pl-6 pr-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${hasStructuredQualifiers(searchQuery) ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)]'} focus:border-[var(--color-figma-accent)]`}
                   />
                   {/* Qualifier autocomplete hints */}
@@ -2863,6 +2884,24 @@ export function TokenList({
                       Pinned ✕
                     </button>
                   )}
+                </div>
+              )}
+              {/* Qualifier chip bar — shown when search is focused/empty to surface discoverability */}
+              {searchFocused && !searchQuery && (
+                <div className="flex items-center gap-1 px-2 pb-1 flex-wrap">
+                  {QUERY_QUALIFIERS.filter(q => q.example).map(q => (
+                    <button
+                      key={q.qualifier}
+                      onMouseDown={e => {
+                        e.preventDefault();
+                        setSearchQuery(q.example || q.qualifier);
+                        searchRef.current?.focus();
+                      }}
+                      className="px-1.5 py-0.5 rounded text-[9px] font-mono whitespace-nowrap transition-colors border border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5"
+                    >
+                      {q.example || q.qualifier}
+                    </button>
+                  ))}
                 </div>
               )}
             </>)}

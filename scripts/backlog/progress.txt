@@ -358,3 +358,14 @@
   - KeyboardShortcutsModal was missing several existing shortcuts (`N`, `/`, arrow keys) — always check the modal when adding keyboard shortcuts
   - The `handleListKeyDown` handler at TokenList.tsx ~L864 guards letter-key shortcuts with `isTyping` check at line 915
 ---
+
+## 2026-03-29 - Token search qualifier syntax is undiscoverable
+- Added cycling placeholder text that rotates through concrete qualifier examples every 3 seconds (e.g., "Search (/) — try type:color", "Search (/) — try has:alias") instead of the previous static "try type: has: value:" hint
+- Added qualifier chip bar that appears below the search input when focused with an empty query — shows clickable example chips (type:color, value:#ff0000, desc:primary, path:colors.brand, name:500) that insert the example directly into the search
+- Tracked search focus state via `searchFocused` boolean to conditionally show chips
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L294-320 (state + cycling effect), ~L2599-2601 (focus handlers), ~L2619 (dynamic placeholder), ~L2864-2880 (chip bar)
+- **Learnings for future iterations:**
+  - The `QUERY_QUALIFIERS` array in `tokenListUtils.ts` already has `example` fields — filtering to those with examples gives a good subset for chips
+  - `onMouseDown` with `preventDefault()` is needed on chip buttons to prevent the search input from losing focus (triggering blur) before the click registers
+  - The cycling placeholder resets its index when `searchQuery` changes, and the interval is cleaned up when text is entered
+---
