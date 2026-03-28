@@ -577,54 +577,57 @@ export class TokenStore {
     await fs.mkdir(path.dirname(newFilePath), { recursive: true });
     this._startWriteGuard(oldFilePath);
     this._startWriteGuard(newFilePath);
-    await fs.rename(oldFilePath, newFilePath);
-
-    // Step 2: Update $themes.json — roll back file rename on failure
-    const themesPath = path.join(this.dir, '$themes.json');
-    let themesOriginalContent: string | null = null;
     try {
-      const content = await fs.readFile(themesPath, 'utf-8');
-      const data = JSON.parse(content) as { $themes: Array<{ options: Array<{ sets: Record<string, unknown> }> }> };
-      if (Array.isArray(data.$themes)) {
-        themesOriginalContent = content;
-        for (const dimension of data.$themes) {
-          if (!Array.isArray(dimension.options)) continue;
-          for (const option of dimension.options) {
-            if (option.sets && oldName in option.sets) {
-              option.sets[newName] = option.sets[oldName];
-              delete option.sets[oldName];
+      await fs.rename(oldFilePath, newFilePath);
+
+      // Step 2: Update $themes.json — roll back file rename on failure
+      const themesPath = path.join(this.dir, '$themes.json');
+      let themesOriginalContent: string | null = null;
+      try {
+        const content = await fs.readFile(themesPath, 'utf-8');
+        const data = JSON.parse(content) as { $themes: Array<{ options: Array<{ sets: Record<string, unknown> }> }> };
+        if (Array.isArray(data.$themes)) {
+          themesOriginalContent = content;
+          for (const dimension of data.$themes) {
+            if (!Array.isArray(dimension.options)) continue;
+            for (const option of dimension.options) {
+              if (option.sets && oldName in option.sets) {
+                option.sets[newName] = option.sets[oldName];
+                delete option.sets[oldName];
+              }
             }
           }
+          try {
+            await fs.writeFile(themesPath, JSON.stringify(data, null, 2));
+          } catch (writeErr) {
+            // Themes write failed — roll back the file rename
+            await fs.rename(newFilePath, oldFilePath).catch(() => {});
+            throw writeErr;
+          }
         }
-        try {
-          await fs.writeFile(themesPath, JSON.stringify(data, null, 2));
-        } catch (writeErr) {
-          // Themes write failed — roll back the file rename
-          await fs.rename(newFilePath, oldFilePath).catch(() => {});
-          this._writingFiles.delete(oldFilePath);
-          this._writingFiles.delete(newFilePath);
-          throw writeErr;
+      } catch (err) {
+        if (themesOriginalContent !== null) {
+          // We read themes successfully but something failed — re-throw
+          throw err;
         }
+        // No themes file or parse error — that's fine, nothing to update
       }
-    } catch (err) {
-      if (themesOriginalContent !== null) {
-        // We read themes successfully but something failed — re-throw
-        throw err;
-      }
-      // No themes file or parse error — that's fine, nothing to update
+
+      // Step 3: Update in-memory state (cannot fail)
+      const newSet: TokenSet = { name: newName, tokens: set.tokens, filePath: newFilePath };
+      this.sets.set(newName, newSet);
+      this.sets.delete(oldName);
+
+      // Clean up empty parent dirs left behind by the rename
+      await this.removeEmptyParentDirs(oldFilePath);
+
+      this.rebuildFlatTokens();
+      this.emit({ type: 'set-removed', setName: oldName });
+      this.emit({ type: 'set-added', setName: newName });
+    } finally {
+      this._clearWriteGuard(oldFilePath);
+      this._clearWriteGuard(newFilePath);
     }
-
-    // Step 3: Update in-memory state (cannot fail)
-    const newSet: TokenSet = { name: newName, tokens: set.tokens, filePath: newFilePath };
-    this.sets.set(newName, newSet);
-    this.sets.delete(oldName);
-
-    // Clean up empty parent dirs left behind by the rename
-    await this.removeEmptyParentDirs(oldFilePath);
-
-    this.rebuildFlatTokens();
-    this.emit({ type: 'set-removed', setName: oldName });
-    this.emit({ type: 'set-added', setName: newName });
   }
 
   async getToken(setName: string, tokenPath: string): Promise<Token | undefined> {

@@ -439,3 +439,16 @@ Already up to date.
 
 --- Merging: `token-tree-utils.ts` uses `any` for all tree traversal parameters ---
 Already up to date.
+[main 5d4aedd] chore(backlog): done – `token-tree-utils.ts` uses `any` for all tree traversal parameters
+ 5 files changed, 65 insertions(+), 36 deletions(-)
+
+## 2026-03-28 - token-tree-utils.ts uses `any` for all tree traversal parameters
+- Replaced all `any` parameter and return types with proper `TokenGroup`, `Token`, and `TokenTreeNode` types
+- `walkAliasValues`, `updateAliasRefs`, `updateBulkAliasRefs`: `group: any` → `group: TokenGroup`
+- `walkLeafTokens`: `obj: any` → `obj: TokenGroup`
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  26 items remaining
+===============================================================
+  Claimed: `HeatmapPanel.tsx` export functions revoke blob URL before download may complete — `exportCSV` and `exportJSON` (lines 124-148) call `URL.revokeObjectURL(url)` synchronously after `a.click()`, but some browsers process the click asynchronously; the download may receive a revoked URL; should revoke after a short delay or use the `download` event
+  Worktree: /tmp/backlog-9651-6gb4jg

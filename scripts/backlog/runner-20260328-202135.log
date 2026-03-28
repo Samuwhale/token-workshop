@@ -358,3 +358,10 @@ Already up to date.
 ===============================================================
   Claimed: `renameSet` in `token-store.ts` leaks write guards on themes update failure — if the outer catch at line 609 re-throws (themes read succeeded but mutation/other step failed), write guards started at lines 578-579 are never cleaned up; they'll suppress watcher events for up to 30 seconds, hiding any concurrent file changes to the renamed paths
   Worktree: /tmp/backlog-9231-4pWqNr
+
+  ✓ done: renameSet in token-store.ts leaks write guards on themes update failure
+    Wrapped renameSet body in try/finally to ensure _clearWriteGuard is called on both file paths in all code paths (success, themes write failure, outer catch re-throw). Also fixed inner catch using raw .delete() instead of _clearWriteGuard.
+    27 turns · 209s · $0.79
+
+--- Merging: renameSet in token-store.ts leaks write guards on themes update failure ---
+Already up to date.

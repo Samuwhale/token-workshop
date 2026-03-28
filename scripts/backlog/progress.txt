@@ -372,3 +372,13 @@
   - For path-traversal loops where we repeatedly index into child nodes, cast intermediate nodes to `TokenGroup` after verifying they're objects and not tokens (via `isDTCGToken`).
   - `walkAliasValues` modifies `$value` on token objects; since `Token.$value` is a specific union type, use `(obj as Record<string, unknown>)[key] = replaced` to allow string assignment.
 ---
+
+## 2026-03-28 - renameSet in token-store.ts leaks write guards on themes update failure
+- Wrapped the body of `renameSet` after `_startWriteGuard` calls in a `try/finally` block that calls `_clearWriteGuard` for both file paths
+- This fixes three leak paths: (1) outer catch re-throw when themes mutation fails, (2) success path never cleared guards, (3) inner catch used raw `.delete()` instead of `_clearWriteGuard` (leaving 30s timeout timer running)
+- Files changed: `packages/server/src/services/token-store.ts` ~L578-630
+- **Learnings for future iterations:**
+  - When `_startWriteGuard` is called, always pair with `_clearWriteGuard` in a `finally` block — never rely on individual error paths to clean up
+  - Use `_clearWriteGuard` (not `_writingFiles.delete`) to also clear the fallback timeout timer
+  - The `@tokenmanager/core` symlink in root `node_modules` can break when worktrees are cleaned up — fix by re-pointing to the main repo's `packages/core`
+---
