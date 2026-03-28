@@ -117,30 +117,8 @@
 
 ### Maintainability
 
-- [x] `TokenList.tsx` is 4695 lines — largest file in the codebase; split into sub-components (row renderers, drag-drop logic, inline editing, context menu, filter/sort controls)
-- [x] `TokenEditor.tsx` is 2485 lines — extract form sections (value editors per type, metadata editor, alias picker) into separate components
-- [x] `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading
-- [x] `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module
-- [x] `token-store.ts` uses `any` types pervasively for token group traversal — `Record<string, unknown>` with type narrowing would be safer
-
 - [~] Deep Inspect mode has no keyboard shortcut — toggling deep inspection requires clicking a small button; a keyboard shortcut would streamline the inspect workflow
 
-- [x] AliasAutocomplete and RemapAutocompleteInput only support substring matching — no fuzzy search, so typing "clr.prim" won't match "color.primary"; power users with hundreds of tokens need smarter matching
-- [x] AliasAutocomplete shows token path but not the resolved value — when picking an alias, users can't see what color/dimension the alias points to without navigating away
-- [x] SSE connection (useServerEvents) never reconnects after server restart — if the local server is restarted, generator error events stop arriving until the user manually refreshes the plugin
-- [x] TokenGeneratorDialog has no unsaved-changes warning — closing or navigating away from a half-configured generator silently discards all input with no confirmation prompt
-- [x] No error boundary wrapping panels — a runtime error in any single panel (e.g. bad token data in GraphPanel) crashes the entire plugin instead of isolating the failure
-- [x] PropertyPicker dropdown has no search or filter — binding tokens to layer properties requires scrolling a long unfiltered list; layers with many properties (e.g. auto-layout frames) are painful
-- [x] Undo stack is hardcoded to 20 entries with no way to increase — power users making rapid edits (batch rename, generator tweaks) exhaust the stack quickly and lose early history
-- [x] No bulk delete endpoint — deleting multiple tokens requires one API call per token; cleaning up an obsolete group of 50+ tokens is extremely slow
-- [x] Lint rules return violations but never suggest fixes — rules like "no raw hex color" could suggest the nearest matching token alias, but currently only flag the problem
-- [x] Split panel resize handle (usePreviewSplit) is not keyboard accessible — the drag divider between token list and preview has no ARIA role, no focus indicator, and no arrow-key resize support
-- [x] Custom scale generator silently falls back to base value when formula evaluation fails — `runCustomScaleGenerator` in `generator-engine.ts` ~L241 catches `evalExpr`/`substituteVars` errors and silently uses `base` as the computed value; users get incorrect generated tokens with no indication their formula was invalid
-- [x] File watcher suppression in token-store uses fixed 500ms setTimeout — `_writingFiles` entries in `token-store.ts` ~L343 are cleaned up via `setTimeout(500)` after disk writes; if the OS file watcher fires after the timeout expires, the write-triggered event won't be suppressed, causing a spurious reload and potential data race
-- [x] Lint service silently replaces invalid user regex with hardcoded default — when a user's custom `path-pattern` regex is invalid, `lint.ts` ~L180 catches the `RegExp` constructor error and falls back to the default pattern without reporting the issue to the caller or UI
-- [x] Generator create route bypasses type checking with `as unknown as GeneratorConfig` — `generators.ts` ~L102 casts `config ?? {}` through `unknown`, allowing arbitrarily shaped config objects to reach the generator engine without validation
-- [x] useServerEvents onGeneratorError dependency can cause SSE reconnection churn — `useServerEvents.ts` ~L41 includes `onGeneratorError` in the useEffect dependency array; if the caller passes an inline function (not wrapped in useCallback), the EventSource closes and reopens on every render
-- [~] computeUnifiedDiff error result is indistinguishable from "no conflicts" — `git-sync.ts` ~L118 catch block returns `{ localOnly: [], remoteOnly: [], conflicts: [] }`, which the caller interprets as "no differences," silently masking git command failures
 - [~] handleNavigateToAlias silently does nothing when alias target is not in pathToSet — `useTokenNavigation.ts` ~L35 checks `if (pathToSet[aliasPath])` but provides no user feedback when the alias target token doesn't exist or lives in an unloaded set
 - [~] Generator config steps accept arbitrary names without validating they form valid token path segments — `generator-types.ts` step name fields are plain strings with no check for spaces, slashes, or special characters that would produce invalid DTCG token paths
 - [~] ImportPanel has no rollback after import — if a user imports tokens and realizes they're wrong, there's no undo; they must manually delete each imported token one by one
