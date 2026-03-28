@@ -90,17 +90,30 @@ export function inferGroupTokenType(children?: TokenNode[]): string {
   return types.size === 1 ? [...types][0] : 'color';
 }
 
-export function highlightMatch(text: string, query: string): React.ReactNode {
-  if (!query) return text;
-  const lowerText = text.toLowerCase();
-  const lowerQuery = query.toLowerCase();
-  const idx = lowerText.indexOf(lowerQuery);
-  if (idx === -1) return text;
+/**
+ * Highlight all occurrences of any term in `terms` within `text`.
+ * Returns plain text when nothing matches; JSX fragments with <mark> otherwise.
+ */
+export function highlightMatch(text: string, terms: string[]): React.ReactNode {
+  if (!terms.length) return text;
+  // Build a single regex matching any of the terms (longest-first to avoid partial overlap)
+  const escaped = terms
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length)
+    .map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  if (!escaped.length) return text;
+  const re = new RegExp(`(${escaped.join('|')})`, 'gi');
+  const parts = text.split(re);
+  if (parts.length === 1) return text;
   return (
     <>
-      {text.slice(0, idx)}
-      <mark style={{ background: 'rgba(255, 200, 0, 0.45)', color: 'inherit', borderRadius: '2px', padding: '0 1px' }}>{text.slice(idx, idx + query.length)}</mark>
-      {text.slice(idx + query.length)}
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <mark key={i} style={{ background: 'rgba(255, 200, 0, 0.45)', color: 'inherit', borderRadius: '2px', padding: '0 1px' }}>{part}</mark>
+        ) : (
+          part
+        )
+      )}
     </>
   );
 }

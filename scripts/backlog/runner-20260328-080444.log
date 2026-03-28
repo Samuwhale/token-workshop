@@ -133,3 +133,10 @@ Already up to date.
 ===============================================================
   Claimed: Search doesn't highlight matched substrings — filtering narrows the list but doesn't visually mark which part of the path or value matched, making it unclear why a result appeared
   Worktree: /tmp/backlog-63411-bZEXV8
+
+  ✓ done: Search doesn't highlight matched substrings
+    Rewrote highlightMatch to accept parsed term arrays, added searchHighlight memo that extracts name/value terms from structured queries, and wired highlighting into group names, token names, value displays, and cross-set results.
+    50 turns · 303s · $1.57
+
+--- Merging: Search doesn't highlight matched substrings ---
+Already up to date.

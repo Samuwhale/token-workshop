@@ -357,3 +357,14 @@
   - `rawStart` (first visible virtual scroll index) is a local variable derived from `virtualScrollTop` state — safe to use as a `useMemo` dependency since it recomputes on every scroll-triggered re-render.
   - The virtual scroll container's `sticky top-0` works for elements inside the scrollable div — they stick relative to the scroll container, not the viewport.
 ---
+
+## 2026-03-28 - Search doesn't highlight matched substrings
+- Rewrote `highlightMatch()` to accept an array of terms and highlight all occurrences using a single regex (longest-first to avoid partial overlaps).
+- Added `searchHighlight` memo in `TokenList.tsx` that parses the raw search query via `parseStructuredQuery` and extracts `nameTerms` (free text + `name:` + `path:` qualifiers) and `valueTerms` (free text + `value:` qualifiers).
+- Changed `TokenTreeNodeProps.searchQuery` to `searchHighlight: { nameTerms: string[]; valueTerms: string[] }` — group names, token names, and value displays all highlight matched substrings.
+- Cross-set search results also highlight path matches.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` ~L93, `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L145, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L30/~L357/~L690/~L867/~L997, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L24/~L631/~L2280
+- **Learnings for future iterations:**
+  - The old `highlightMatch` accepted a raw query string — structured queries like `name:foo` never matched because qualifiers were included in the match text. Always parse qualifiers out before highlighting.
+  - `String.split(regex_with_capture_group)` interleaves matches at odd indices — convenient for building highlight fragments without manual index tracking.
+---

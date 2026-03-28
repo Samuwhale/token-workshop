@@ -87,3 +87,16 @@ Already up to date.
 
 --- Merging: No breadcrumb trail for deep token trees ---
 Already up to date.
+[main 7f09c14] chore(backlog): done – No breadcrumb trail for deep token trees
+ 6 files changed, 81 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - No breadcrumb trail for deep token trees
+- Added a sticky breadcrumb bar (e.g. `colors › brand › primary`) that appears at the top of the token list scroll container when the user scrolls past a group header into nested content (depth > 0). Each segment is clickable and jumps to that ancestor group.
+- Implementation: `groupNameMap` (useMemo) maps group paths to display names from flatItems. `breadcrumbSegments` (useMemo) walks up the ancestor chain from the first visible item using path slicing. Rendered as a sticky div with `top-0 z-10` inside the virtual scroll container.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1798 (breadcrumb computation), ~L2638 (breadcrumb rendering)
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  89 items remaining
+===============================================================
+  Claimed: No "token in use" indicator in the token list — no visual signal for which tokens are bound to Figma layers; add a subtle usage dot or count on token rows so users can distinguish active tokens from orphans without visiting Analytics
+  Worktree: /tmp/backlog-62956-XTZcaz

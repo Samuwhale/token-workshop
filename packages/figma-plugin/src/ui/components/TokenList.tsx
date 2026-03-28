@@ -21,7 +21,7 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { TokenListProps, DeleteConfirm, PromoteRow } from './tokenListTypes';
 import { VIRTUAL_ITEM_HEIGHT, VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN } from './tokenListTypes';
-import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue } from './tokenListHelpers';
+import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch } from './tokenListHelpers';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenListModals } from './TokenListModals';
 import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
@@ -627,6 +627,21 @@ export function TokenList({
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
+
+  // Compute highlight terms from the parsed search query for substring highlighting
+  const searchHighlight = useMemo(() => {
+    if (!searchQuery) return undefined;
+    const parsed = parseStructuredQuery(searchQuery);
+    const nameTerms: string[] = [];
+    const valueTerms: string[] = [];
+    if (parsed.text) nameTerms.push(parsed.text);
+    nameTerms.push(...parsed.names, ...parsed.paths);
+    valueTerms.push(...parsed.values);
+    // For plain text search, the term also matches values
+    if (parsed.text) valueTerms.push(parsed.text);
+    if (!nameTerms.length && !valueTerms.length) return undefined;
+    return { nameTerms, valueTerms };
+  }, [searchQuery]);
 
   // Cross-set search: debounced server-side search across all sets
   const [crossSetResults, setCrossSetResults] = useState<Array<{ setName: string; path: string; entry: TokenMapEntry }> | null>(null);
@@ -2295,7 +2310,7 @@ export function TokenList({
                           {r.entry.$type === 'color' && typeof r.entry.$value === 'string' && r.entry.$value.startsWith('#') && (
                             <span className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]" style={{ background: r.entry.$value }} />
                           )}
-                          <span className="flex-1 min-w-0 font-mono text-[10px] text-[var(--color-figma-text)] truncate">{r.path}</span>
+                          <span className="flex-1 min-w-0 font-mono text-[10px] text-[var(--color-figma-text)] truncate">{highlightMatch(r.path, searchHighlight?.nameTerms ?? [])}</span>
                           <span className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${TOKEN_TYPE_BADGE_CLASS[r.entry.$type] ?? 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>{r.entry.$type}</span>
                         </button>
                       ))}
@@ -2715,7 +2730,7 @@ export function TokenList({
                 onMoveDown={moveEnabled && sibIdx >= 0 && sibIdx < siblings.length - 1 ? () => handleMoveTokenInGroup(node.path, node.name, 'down') : undefined}
                 chainExpanded={expandedChains.has(node.path)}
                 onToggleChain={handleToggleChain}
-                searchQuery={searchQuery || undefined}
+                searchHighlight={searchHighlight}
                 showFullPath={showRecentlyTouched}
               />
               );

@@ -142,6 +142,7 @@ export interface TokenTreeNodeProps {
   onMoveDown?: () => void;
   chainExpanded?: boolean;
   onToggleChain?: (path: string) => void;
-  searchQuery?: string;
+  /** Parsed highlight terms from search query */
+  searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
   showFullPath?: boolean;
 }
