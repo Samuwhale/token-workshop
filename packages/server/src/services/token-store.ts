@@ -7,6 +7,9 @@ import {
   type TokenSet,
   type ResolvedToken,
   isFormula,
+  isReference,
+  parseReference,
+  makeReferenceGlobalRegex,
   flattenTokenGroup,
   TokenResolver,
 } from '@tokenmanager/core';
@@ -197,6 +200,112 @@ export class TokenStore {
     this.resolver = new TokenResolver(allTokens, '__merged__');
   }
 
+  // -----------------------------------------------------------------------
+  // Circular reference detection
+  // -----------------------------------------------------------------------
+
+  /**
+   * Collect all reference paths from a token value (mirrors TokenResolver.collectReferences).
+   */
+  private collectRefsFromValue(value: unknown): Set<string> {
+    const refs = new Set<string>();
+    if (isReference(value)) {
+      refs.add(parseReference(value));
+      return refs;
+    }
+    if (typeof value === 'string' && isFormula(value)) {
+      for (const m of value.matchAll(makeReferenceGlobalRegex())) {
+        refs.add(m[1]);
+      }
+      return refs;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item != null) for (const r of this.collectRefsFromValue(item)) refs.add(r);
+      }
+      return refs;
+    }
+    if (typeof value === 'object' && value !== null) {
+      for (const v of Object.values(value)) {
+        if (v != null) for (const r of this.collectRefsFromValue(v)) refs.add(r);
+      }
+    }
+    return refs;
+  }
+
+  /**
+   * Build a dependency adjacency map from the current flatTokens,
+   * optionally overriding specific token values (for proposed changes).
+   */
+  private buildDependencyMap(overrides?: Map<string, unknown>): Map<string, Set<string>> {
+    const deps = new Map<string, Set<string>>();
+    for (const [tokenPath, { token }] of this.flatTokens) {
+      const value = overrides?.has(tokenPath) ? overrides.get(tokenPath) : token.$value;
+      deps.set(tokenPath, this.collectRefsFromValue(value));
+    }
+    // Add entries for override paths not yet in flatTokens (new tokens)
+    if (overrides) {
+      for (const [tokenPath, value] of overrides) {
+        if (!deps.has(tokenPath)) {
+          deps.set(tokenPath, this.collectRefsFromValue(value));
+        }
+      }
+    }
+    return deps;
+  }
+
+  /**
+   * Detect if a circular reference would be created by setting the given
+   * token path(s) to the given value(s). Throws with a descriptive cycle
+   * path if a cycle is detected.
+   */
+  checkCircularReferences(changes: Array<{ path: string; value: unknown }>): void {
+    const overrides = new Map<string, unknown>();
+    for (const { path, value } of changes) {
+      overrides.set(path, value);
+    }
+    const deps = this.buildDependencyMap(overrides);
+
+    // DFS with 3-color marking to detect cycles
+    const WHITE = 0, GRAY = 1, BLACK = 2;
+    const color = new Map<string, number>();
+    const parent = new Map<string, string>();
+
+    const dfs = (node: string): void => {
+      color.set(node, GRAY);
+      const nodeDeps = deps.get(node);
+      if (nodeDeps) {
+        for (const dep of nodeDeps) {
+          const depColor = color.get(dep) ?? WHITE;
+          if (depColor === GRAY) {
+            // Reconstruct cycle path
+            const cycle = [dep];
+            let cur = node;
+            while (cur !== dep) {
+              cycle.push(cur);
+              cur = parent.get(cur)!;
+            }
+            cycle.push(dep);
+            cycle.reverse();
+            throw new Error(`Circular reference detected: ${cycle.join(' → ')}`);
+          }
+          if (depColor === WHITE) {
+            parent.set(dep, node);
+            dfs(dep);
+          }
+        }
+      }
+      color.set(node, BLACK);
+    };
+
+    // Only need to check nodes reachable from the changed paths
+    for (const { path } of changes) {
+      if ((color.get(path) ?? WHITE) === WHITE) {
+        dfs(path);
+      }
+    }
+  }
+
   // ----- CRUD operations -----
 
   async getSets(): Promise<string[]> {
@@ -330,6 +439,14 @@ export class TokenStore {
   async replaceSetTokens(name: string, tokens: TokenGroup): Promise<void> {
     const set = this.sets.get(name);
     if (!set) throw new Error(`Set "${name}" not found`);
+    // Check for circular references in the new token set
+    const changes: Array<{ path: string; value: unknown }> = [];
+    for (const [tokenPath, token] of flattenTokenGroup(tokens)) {
+      changes.push({ path: tokenPath, value: token.$value });
+    }
+    if (changes.length > 0) {
+      this.checkCircularReferences(changes);
+    }
     set.tokens = tokens;
     await this.saveSet(name);
     this.rebuildFlatTokens();
@@ -471,6 +588,8 @@ export class TokenStore {
     validateTokenPath(tokenPath);
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     token = this.enrichFormulaExtension(token);
+    // Check for circular references before persisting
+    this.checkCircularReferences([{ path: tokenPath, value: token.$value }]);
     let set = this.sets.get(setName);
     if (!set) {
       set = await this._createSetNoRebuild(setName);
@@ -493,6 +612,10 @@ export class TokenStore {
       if (JSON.stringify(enriched.$extensions) !== JSON.stringify(originalExtensions)) {
         token = { ...token, $extensions: enriched.$extensions };
       }
+    }
+    // Check for circular references before persisting
+    if ('$value' in token && token.$value !== undefined) {
+      this.checkCircularReferences([{ path: tokenPath, value: token.$value }]);
     }
     // Replace known token fields explicitly so stale properties don't persist.
     // A partial update only touches keys that are present in the incoming object.
@@ -519,6 +642,16 @@ export class TokenStore {
     }
     for (const { path: tokenPath } of tokens) {
       validateTokenPath(tokenPath);
+    }
+    // Check for circular references among all proposed changes
+    const changes: Array<{ path: string; value: unknown }> = [];
+    for (const { path: tokenPath, token } of tokens) {
+      const existing = getTokenAtPath(set.tokens, tokenPath);
+      if (existing && strategy === 'skip') continue; // won't be changed
+      changes.push({ path: tokenPath, value: token.$value });
+    }
+    if (changes.length > 0) {
+      this.checkCircularReferences(changes);
     }
     this.beginBatch();
     let imported = 0;

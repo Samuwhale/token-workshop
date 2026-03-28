@@ -559,3 +559,17 @@ Already up to date.
 
 --- Merging: TokenList has no "recently edited" or "recently created" view ---
 Already up to date.
+[main 75f2d5d] chore(backlog): done – TokenList has no "recently edited" or "recently created" view
+ 9 files changed, 210 insertions(+), 16 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useRecentlyTouched.ts
+
+## 2026-03-28 - TokenList has no "recently edited" or "recently created" view
+- Added session-scoped "recently touched" tracking via new `useRecentlyTouched` hook (in-memory Map<path, timestamp>, 500 entry cap with LRU eviction)
+- Clock icon button in toolbar shows count of touched tokens; toggles a filter that flattens the tree and sorts by recency (newest first)
+- Filter pill "Recent ✕" in active filters row to dismiss
+
+===============================================================
+  Iteration 28 / 90  (claude)  —  0 items remaining
+===============================================================
+
+No remaining [ ] items in backlog.md. All done!

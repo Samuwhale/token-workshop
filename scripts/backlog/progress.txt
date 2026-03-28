@@ -312,3 +312,14 @@
   - `filterByDuplicatePaths` from tokenListUtils is reusable for any path-based filter (dups, lint, inspect, recency) — just pass a Set<string>
   - When a filter produces a flat view (no groups), set depth=0 in flatItems and pass showFullPath to TokenTreeNode so users can identify tokens without group context
 ---
+
+## 2026-03-28 - Circular alias references are not prevented at token creation time
+- Added `checkCircularReferences()` method to `TokenStore` that performs DFS cycle detection before persisting token changes. It builds a dependency adjacency map from existing flatTokens with proposed overrides, then runs 3-color DFS from the changed paths to detect cycles.
+- Integrated the check into `createToken`, `updateToken`, `batchUpsertTokens`, and `replaceSetTokens` — all throw before saving if a cycle would be introduced.
+- Route handlers for POST/PATCH/PUT/batch now catch `Circular reference` errors and return HTTP 409 with the cycle path in the error message.
+- Files changed: `packages/server/src/services/token-store.ts` ~L203-L300 (new methods), ~L582,L611,L443,L640 (check calls); `packages/server/src/routes/tokens.ts` ~L359,L390,L302,L214 (409 handling)
+- **Learnings for future iterations:**
+  - `collectReferences` in TokenResolver is private — had to duplicate the logic in TokenStore. Could be extracted to a shared utility if needed again.
+  - The check uses the current `flatTokens` map (all sets merged) plus proposed overrides, so cross-set circular references are also caught.
+  - DFS only starts from changed paths, not all tokens — keeps the check fast for single-token operations.
+---

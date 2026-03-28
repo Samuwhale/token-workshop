@@ -641,3 +641,10 @@ Already up to date.
 ===============================================================
   Claimed: Circular alias references are not prevented at token creation time — the server accepts `{a}` pointing to `{b}` pointing to `{a}`; only detected later by the resolver or lint rules, by which point the user may have built more tokens on top of the broken chain
   Worktree: /tmp/backlog-85816-ISI5jl
+
+  ✓ done: Circular alias references are not prevented at token creation time
+    Added DFS cycle detection in TokenStore.checkCircularReferences() called before persist in createToken, updateToken, batchUpsertTokens, and replaceSetTokens. Returns HTTP 409 with cycle path on circular alias.
+    54 turns · 335s · $2
+
+--- Merging: Circular alias references are not prevented at token creation time ---
+Already up to date.

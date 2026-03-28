@@ -212,6 +212,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const msg = getErrorMessage(err);
       if (msg.includes('Invalid token path') || msg.includes('Invalid set name')) return reply.status(400).send({ error: msg });
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+      if (msg.includes('Circular reference')) return reply.status(409).send({ error: msg });
       return reply.status(500).send({ error: 'Failed to batch upsert tokens', detail: msg });
     }
   });
@@ -299,6 +300,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       } catch (err) {
         const msg = getErrorMessage(err);
         if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        if (msg.includes('Circular reference')) return reply.status(409).send({ error: msg });
         return reply.status(500).send({ error: 'Failed to replace token set', detail: msg });
       }
     },
@@ -358,6 +360,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         if (message.includes('Invalid token path') || message.includes('Invalid set name')) {
           return reply.status(400).send({ error: message });
         }
+        if (message.includes('Circular reference')) {
+          return reply.status(409).send({ error: message });
+        }
         return reply.status(500).send({ error: 'Failed to create token', detail: message });
       }
     },
@@ -386,6 +391,9 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const message = getErrorMessage(err);
         if (message.includes('not found')) {
           return reply.status(404).send({ error: message });
+        }
+        if (message.includes('Circular reference')) {
+          return reply.status(409).send({ error: message });
         }
         return reply.status(500).send({ error: 'Failed to update token', detail: message });
       }
