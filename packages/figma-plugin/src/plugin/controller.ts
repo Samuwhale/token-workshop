@@ -12,11 +12,28 @@ figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
 
 let deepInspectEnabled = false;
 
+/** Extract a human-readable message from an unknown thrown value. */
+function describeError(e: unknown, fallback: string): string {
+  return e instanceof Error ? e.message : fallback;
+}
+
+/** Post a generic error back to the UI so it doesn't hang waiting for a response. */
+function reportError(handler: string, e: unknown): void {
+  const message = describeError(e, `Unexpected error in ${handler}`);
+  console.error(`[controller] ${handler} failed:`, e);
+  figma.notify(`Error: ${message}`, { error: true });
+  figma.ui.postMessage({ type: 'error', message, handler });
+}
+
 // Handle messages from UI
 figma.ui.onmessage = async (msg: PluginMessage) => {
   switch (msg.type) {
     case 'apply-variables':
-      await applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {}, msg.correlationId);
+      try {
+        await applyVariables(msg.tokens, msg.collectionMap ?? {}, msg.modeMap ?? {}, msg.correlationId);
+      } catch (e) {
+        reportError('apply-variables', e);
+      }
       break;
     case 'apply-styles':
       try {
@@ -24,7 +41,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       } catch (e) {
         figma.ui.postMessage({
           type: 'styles-apply-error',
-          error: e instanceof Error ? e.message : 'Failed to apply styles',
+          error: describeError(e, 'Failed to apply styles'),
         });
       }
       break;
@@ -34,7 +51,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       } catch (e) {
         figma.ui.postMessage({
           type: 'variables-read-error',
-          error: e instanceof Error ? e.message : 'Failed to read Figma variables',
+          error: describeError(e, 'Failed to read Figma variables'),
           correlationId: msg.correlationId,
         });
       }
@@ -45,38 +62,74 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       } catch (e) {
         figma.ui.postMessage({
           type: 'styles-read-error',
-          error: e instanceof Error ? e.message : 'Failed to read Figma styles',
+          error: describeError(e, 'Failed to read Figma styles'),
           correlationId: msg.correlationId,
         });
       }
       break;
     case 'export-all-variables':
-      await exportAllVariables();
+      try {
+        await exportAllVariables();
+      } catch (e) {
+        reportError('export-all-variables', e);
+      }
       break;
     case 'apply-to-selection':
-      await applyToSelection(msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+      try {
+        await applyToSelection(msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+      } catch (e) {
+        reportError('apply-to-selection', e);
+      }
       break;
     case 'get-selection':
-      await getSelection(deepInspectEnabled);
+      try {
+        await getSelection(deepInspectEnabled);
+      } catch (e) {
+        reportError('get-selection', e);
+      }
       break;
     case 'set-deep-inspect':
-      deepInspectEnabled = msg.enabled;
-      await getSelection(deepInspectEnabled);
+      try {
+        deepInspectEnabled = msg.enabled;
+        await getSelection(deepInspectEnabled);
+      } catch (e) {
+        reportError('set-deep-inspect', e);
+      }
       break;
     case 'remove-binding':
-      await removeBinding(msg.property);
+      try {
+        await removeBinding(msg.property);
+      } catch (e) {
+        reportError('remove-binding', e);
+      }
       break;
     case 'clear-all-bindings':
-      await clearAllBindings();
+      try {
+        await clearAllBindings();
+      } catch (e) {
+        reportError('clear-all-bindings', e);
+      }
       break;
     case 'sync-bindings':
-      await syncBindings(msg.tokenMap, msg.scope);
+      try {
+        await syncBindings(msg.tokenMap, msg.scope);
+      } catch (e) {
+        reportError('sync-bindings', e);
+      }
       break;
     case 'remap-bindings':
-      await remapBindings(msg.remapMap, msg.scope, deepInspectEnabled);
+      try {
+        await remapBindings(msg.remapMap, msg.scope, deepInspectEnabled);
+      } catch (e) {
+        reportError('remap-bindings', e);
+      }
       break;
     case 'highlight-layer-by-token':
-      await highlightLayersByToken(msg.tokenPath);
+      try {
+        await highlightLayersByToken(msg.tokenPath);
+      } catch (e) {
+        reportError('highlight-layer-by-token', e);
+      }
       break;
     case 'notify':
       figma.notify(msg.message);
@@ -85,37 +138,77 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       figma.ui.resize(msg.width, msg.height);
       break;
     case 'delete-orphan-variables':
-      await deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {});
+      try {
+        await deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {});
+      } catch (e) {
+        reportError('delete-orphan-variables', e);
+      }
       break;
     case 'scan-token-usage':
-      await scanTokenUsageMap();
+      try {
+        await scanTokenUsageMap();
+      } catch (e) {
+        reportError('scan-token-usage', e);
+      }
       break;
     case 'scan-component-coverage':
-      await scanComponentCoverage();
+      try {
+        await scanComponentCoverage();
+      } catch (e) {
+        reportError('scan-component-coverage', e);
+      }
       break;
     case 'select-node':
-      await selectNode(msg.nodeId);
+      try {
+        await selectNode(msg.nodeId);
+      } catch (e) {
+        reportError('select-node', e);
+      }
       break;
     case 'select-next-sibling':
       selectNextSibling();
       break;
     case 'scan-canvas-heatmap':
-      await scanCanvasHeatmap();
+      try {
+        await scanCanvasHeatmap();
+      } catch (e) {
+        reportError('scan-canvas-heatmap', e);
+      }
       break;
     case 'select-heatmap-nodes':
-      await selectHeatmapNodes(msg.nodeIds);
+      try {
+        await selectHeatmapNodes(msg.nodeIds);
+      } catch (e) {
+        reportError('select-heatmap-nodes', e);
+      }
       break;
     case 'batch-bind-heatmap-nodes':
-      await batchBindHeatmapNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+      try {
+        await batchBindHeatmapNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+      } catch (e) {
+        reportError('batch-bind-heatmap-nodes', e);
+      }
       break;
     case 'scan-single-token-usage':
-      await scanTokenUsage(msg.tokenPath);
+      try {
+        await scanTokenUsage(msg.tokenPath);
+      } catch (e) {
+        reportError('scan-single-token-usage', e);
+      }
       break;
     case 'extract-tokens-from-selection':
-      await extractTokensFromSelection();
+      try {
+        await extractTokensFromSelection();
+      } catch (e) {
+        reportError('extract-tokens-from-selection', e);
+      }
       break;
     case 'scan-consistency':
-      await scanConsistency(msg.tokenMap, msg.scope);
+      try {
+        await scanConsistency(msg.tokenMap, msg.scope);
+      } catch (e) {
+        reportError('scan-consistency', e);
+      }
       break;
     case 'search-layers':
       searchLayers(msg.query);
@@ -124,29 +217,45 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       findPeersForProperty(msg.nodeId, msg.property);
       break;
     case 'apply-to-nodes':
-      await applyToNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+      try {
+        await applyToNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+      } catch (e) {
+        reportError('apply-to-nodes', e);
+      }
       break;
     case 'get-available-fonts': {
-      invalidateFontCache();
-      const families = await getAvailableFontFamilies();
-      figma.ui.postMessage({ type: 'fonts-loaded', families });
+      try {
+        invalidateFontCache();
+        const families = await getAvailableFontFamilies();
+        figma.ui.postMessage({ type: 'fonts-loaded', families });
+      } catch (e) {
+        reportError('get-available-fonts', e);
+      }
       break;
     }
     case 'eyedropper':
       sampleSelectionColor();
       break;
     case 'get-active-themes': {
-      const key = `active-themes:${figma.fileKey ?? 'default'}`;
-      const themes = await figma.clientStorage.getAsync(key);
-      figma.ui.postMessage({ type: 'active-themes-loaded', themes: themes ?? {} });
+      try {
+        const key = `active-themes:${figma.fileKey ?? 'default'}`;
+        const themes = await figma.clientStorage.getAsync(key);
+        figma.ui.postMessage({ type: 'active-themes-loaded', themes: themes ?? {} });
+      } catch (e) {
+        reportError('get-active-themes', e);
+      }
       break;
     }
     case 'set-active-themes': {
-      const key = `active-themes:${figma.fileKey ?? 'default'}`;
-      if (msg.themes && Object.keys(msg.themes).length > 0) {
-        await figma.clientStorage.setAsync(key, msg.themes);
-      } else {
-        await figma.clientStorage.deleteAsync(key);
+      try {
+        const key = `active-themes:${figma.fileKey ?? 'default'}`;
+        if (msg.themes && Object.keys(msg.themes).length > 0) {
+          await figma.clientStorage.setAsync(key, msg.themes);
+        } else {
+          await figma.clientStorage.deleteAsync(key);
+        }
+      } catch (e) {
+        reportError('set-active-themes', e);
       }
       break;
     }

@@ -492,3 +492,16 @@ Already up to date.
 
 --- Merging: TokenTableView description edit silently discarded ---
 Already up to date.
+[main 804a4c6] chore(backlog): done – TokenTableView description edit silently discarded
+ 6 files changed, 71 insertions(+), 8 deletions(-)
+
+## 2026-03-28 - TokenTableView description edit silently discarded
+- Fixed `commitEdit` in TokenTableView.tsx: description edits were passing `node.$value` (existing token value) instead of the edited description text `raw` to the save callback
+- Added `onDescriptionSave` prop to TokenTableView that sends `{ $description: text }` via PATCH to the server (which already supports it)
+- Created `handleDescriptionSave` in TokenList.tsx with proper undo/redo support
+
+===============================================================
+  Iteration 24 / 90  (claude)  —  30 items remaining
+===============================================================
+  Claimed: variableSync.ts rollback only restores values, not names or scopes — the snapshot at line 56 captures only `valuesByMode`, so on failure the rollback restores variable values but leaves mutated names (if renamed) and scope overrides (line 81) in their post-mutation state, creating an inconsistent Figma file
+  Worktree: /tmp/backlog-9651-gDTuyj

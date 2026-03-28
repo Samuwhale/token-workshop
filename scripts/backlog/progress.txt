@@ -438,3 +438,16 @@
   - The server PATCH endpoint already accepted `$description` — the bug was purely in the UI not sending the right field
   - Description edits need a separate save callback since `onInlineSave` sends `{ $type, $value }` — mixing description into the value field is a type mismatch
 ---
+
+## 2026-03-28 - Plugin controller.ts ~15 async message handlers lack try-catch
+- Wrapped all 21 bare async handlers in controller.ts with try-catch blocks
+- Added `describeError()` helper to extract message from unknown thrown values
+- Added `reportError()` helper that logs, shows figma.notify with error:true, and posts generic `{ type: 'error', message, handler }` back to UI so it doesn't hang
+- Preserved existing specific error types for apply-styles, read-variables, read-styles (these have dedicated UI listeners)
+- All other handlers use the generic reportError pattern
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L13-210
+- **Learnings for future iterations:**
+  - The 3 existing try-catch handlers used inconsistent field names (`error` vs `message`) — new generic pattern uses `message` + `handler` for consistency
+  - `figma.notify(msg, { error: true })` shows a red notification toast in Figma — useful for surfacing plugin errors visibly
+  - Sync handlers (`notify`, `resize`, `search-layers`, `find-peers-for-property`, `eyedropper`) don't need try-catch since they can't produce unhandled promise rejections
+---
