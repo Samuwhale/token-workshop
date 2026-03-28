@@ -59,3 +59,10 @@ Already up to date.
 ===============================================================
   Claimed: `findVariableInList` matches by `name` (dots) not Figma variable name (slashes) — `applyVariables` passes `token.path` (e.g. `colors.primary.500`) but Figma uses slashes (`colors/primary/500`), so the lookup always fails for nested tokens and creates duplicate variables instead of updating existing ones
   Worktree: /tmp/backlog-84992-GqYRpH
+
+  ✓ done: findVariableInList matches by name (dots) not Figma variable name (slashes)
+    Added dot-to-slash conversion for token.path before findVariableInList lookup and createVariable call, matching the pattern already used for styles in the same file
+    15 turns · 63s · $0.34
+
+--- Merging: findVariableInList matches by name (dots) not Figma variable name (slashes) ---
+Already up to date.

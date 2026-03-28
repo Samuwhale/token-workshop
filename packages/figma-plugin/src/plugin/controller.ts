@@ -186,7 +186,8 @@ async function applyVariables(tokens: any[], collectionMap: Record<string, strin
       const collection = getOrCreateCollection(colName);
 
       // Find existing or create new
-      const existing = findVariableInList(localVariables, collection.id, token.path);
+      const figmaName = token.path.replace(/\./g, '/');
+      const existing = findVariableInList(localVariables, collection.id, figmaName);
       let variable: Variable;
 
       if (existing) {
@@ -196,7 +197,7 @@ async function applyVariables(tokens: any[], collectionMap: Record<string, strin
         }
         variable = existing;
       } else {
-        variable = figma.variables.createVariable(token.path, collection, variableType);
+        variable = figma.variables.createVariable(figmaName, collection, variableType);
         createdVariableIds.push(variable.id);
       }
 

@@ -273,3 +273,11 @@
   - Token paths use dot-separated segments; slashes in URLs are converted to dots at the route level
   - Pre-existing TS errors in token-store.ts (setTimeout, unknown types) — don't be alarmed by them
 ---
+
+## 2026-03-28 - findVariableInList matches by name (dots) not Figma variable name (slashes)
+- Added `token.path.replace(/\./g, '/')` conversion before passing to `findVariableInList` and `createVariable`, matching the same pattern already used for styles in the same file
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L189
+- **Learnings for future iterations:**
+  - Figma variables use `/` as path separator, DTCG tokens use `.` — always convert when crossing the boundary
+  - The styles code in the same file already had the conversion (`token.path.replace(/\./g, '/')`) but variables didn't — look for inconsistencies when fixing one path type
+---

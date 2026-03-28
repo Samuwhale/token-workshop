@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Token paths are not validated on create ---
 Already up to date.
+[main 0105dd2] chore(backlog): done – Token paths are not validated on create
+ 7 files changed, 88 insertions(+), 3 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260328-033326.log
+
+## 2026-03-28 - Token paths are not validated on create
+- Added `validateTokenPath()` in token-store.ts that rejects empty paths, empty segments (double dots), `$`-prefixed segments, and segments containing slashes
+- Applied validation to `createToken`, `batchUpsertTokens`, `renameToken` (new path), and `createGroup`
+- Updated route handlers in tokens.ts to return 400 for validation errors instead of 500
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  107 items remaining
+===============================================================
+  Claimed: `deleteTokenAtPath` won't prune groups that only have `$`-prefixed metadata keys (`$type`, `$description`) — orphaned metadata remains after the last child token is deleted
+  Worktree: /tmp/backlog-85816-1IiAkB
