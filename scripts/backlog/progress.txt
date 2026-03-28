@@ -430,3 +430,16 @@
   - The `readFigmaVariables` helper was shared between variable sync and readiness checks — exposing it from the hook via the return object avoids duplicating the Figma message protocol
   - `VarDiffRow` type is exported from `useVariableSync` and imported by both the hook consumer and the `VarDiffRowItem` component (which renders both variable and style rows)
 ---
+
+## 2026-03-28 - `SelectionInspector.tsx` is 1279 lines — extract property rows, binding UI, and deep-inspect mode into sub-components
+- Extracted 4 new files from the 1289-line monolith, reducing `SelectionInspector.tsx` to 547 lines:
+  - `selectionInspectorUtils.ts` (184 lines) — pure utility functions shared across components (binding resolution, token type mapping, value formatting, undo helpers)
+  - `PropertyRow.tsx` (478 lines) — single property row with color swatch, value display, action buttons, inline bind-existing-token dropdown, and inline create-token form
+  - `DeepInspectSection.tsx` (97 lines) — nested layer inspection showing bound tokens on child nodes
+  - `RemapBindingsPanel.tsx` (141 lines) — bulk find-and-replace panel for token binding paths, with its own remap-complete message listener
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx`, `packages/figma-plugin/src/ui/components/PropertyRow.tsx`, `packages/figma-plugin/src/ui/components/DeepInspectSection.tsx`, `packages/figma-plugin/src/ui/components/RemapBindingsPanel.tsx`, `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts`
+- **Learnings for future iterations:**
+  - When extracting sub-components that need `PROPERTY_LABELS` or similar imports from shared types, import them statically — never use `await import(...)` inside a non-async callback (template literal in undo description triggered a build error).
+  - The `RemapBindingsPanel` is self-contained because it manages its own `window.addEventListener('message')` for `remap-complete` — lifting the listener to the parent was unnecessary coupling.
+  - PropertyRow manages its own local `bindQuery`/`bindSelectedIndex` state but receives `creatingFromProp`/`bindingFromProp` as controlled props from the parent, since only one property can be active at a time across the whole inspector.
+---

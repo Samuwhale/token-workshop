@@ -241,3 +241,26 @@ Already up to date.
 
 --- Merging: `PublishPanel.tsx` is 1642 lines — extract diff computation, variable publishing, and style publishing into separate hooks/components ---
 Already up to date.
+[main 7cb11d2] chore(backlog): done – `PublishPanel.tsx` is 1642 lines — extract diff computation, variable publishing, and style publishing into separate hooks/components
+ 9 files changed, 736 insertions(+), 581 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useGitSync.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useStyleSync.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useVariableSync.ts
+
+## 2026-03-28 - `PublishPanel.tsx` is 1642 lines — extract diff computation, variable publishing, and style publishing into separate hooks/components
+- Extracted three hooks from PublishPanel.tsx (1615→1169 lines, ~28% reduction):
+  - `useVariableSync` (180 lines): variable diff computation, Figma message handling, push/pull sync, computed counts
+  - `useStyleSync` (185 lines): style diff computation, Figma message handling, push/pull sync, computed counts
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  66 items remaining
+===============================================================
+  Claimed: `SelectionInspector.tsx` is 1279 lines — extract property rows, binding UI, and deep-inspect mode into sub-components
+  Worktree: /tmp/backlog-85816-jbhNMs
+
+  ✓ done: `SelectionInspector.tsx` is 1279 lines — extract property rows, binding UI, and deep-inspect mode into sub-components
+    Extracted PropertyRow (478L), DeepInspectSection (97L), RemapBindingsPanel (141L), and selectionInspectorUtils (184L) — SelectionInspector reduced from 1289 to 547 lines. Build passes.
+    31 turns · 390s · $1.83
+
+--- Merging: `SelectionInspector.tsx` is 1279 lines — extract property rows, binding UI, and deep-inspect mode into sub-components ---
+Already up to date.
