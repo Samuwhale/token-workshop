@@ -52,10 +52,10 @@
 
 ### Bugs
 
-- [~] Git sync `applyDiffChoices` pushes even when pull commit fails silently — the push proceeds after a caught pull error, potentially pushing stale state
+- [x] Git sync `applyDiffChoices` pushes even when pull commit fails silently — the push proceeds after a caught pull error, potentially pushing stale state
 - [~] Git sync commit endpoint accepts arbitrary file paths — `files` array is passed directly to `git.add()` with no validation that paths resolve within the token directory; a malicious client could stage files like `../../etc/secrets`
 - [~] Race condition in file write guard — `_writingFiles` entries are cleared via `setTimeout(..., 500ms)`; if writes take longer than 500ms (slow disk, large files), the watcher reloads a partially-written file, corrupting in-memory state
-- [ ] `renameSet` is not atomic — if old file deletion fails after new file creation and theme updates, the system has two files and inconsistent in-memory state with no cleanup for partial failure
+- [~] `renameSet` is not atomic — if old file deletion fails after new file creation and theme updates, the system has two files and inconsistent in-memory state with no cleanup for partial failure
 
 ### QoL
 

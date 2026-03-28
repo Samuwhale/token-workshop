@@ -126,3 +126,16 @@ Already up to date.
 
 --- Merging: Git sync applyDiffChoices pushes even when pull commit fails silently ---
 Already up to date.
+[main 7e79614] chore(backlog): done – Git sync applyDiffChoices pushes even when pull commit fails silently
+ 6 files changed, 46 insertions(+), 6 deletions(-)
+
+## 2026-03-28 - Git sync `applyDiffChoices` pushes even when pull commit fails silently
+- Fixed `applyDiffChoices` in git-sync.ts: the push commit's `.catch()` swallowed errors and let `git.push()` proceed regardless. Replaced `.catch()` with try/catch and a `pushCommitSucceeded` flag — `git.push()` now only runs if the commit succeeded. Also converted pull commit from `.catch()` to try/catch for consistency.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L127–L152
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  98 items remaining
+===============================================================
+  Claimed: `renameSet` is not atomic — if old file deletion fails after new file creation and theme updates, the system has two files and inconsistent in-memory state with no cleanup for partial failure
+  Worktree: /tmp/backlog-84992-oyQUo5

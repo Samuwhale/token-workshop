@@ -49,3 +49,10 @@ Already up to date.
 ===============================================================
   Claimed: Git sync commit endpoint accepts arbitrary file paths — `files` array is passed directly to `git.add()` with no validation that paths resolve within the token directory; a malicious client could stage files like `../../etc/secrets`
   Worktree: /tmp/backlog-92630-5kz3Su
+
+  ✓ done: Git sync commit endpoint accepts arbitrary file paths
+    Added validatePaths() to GitSync that rejects file paths resolving outside the token directory via path.resolve + startsWith check; applied to both commit() and applyDiffChoices()
+    13 turns · 48s · $0.39
+
+--- Merging: Git sync commit endpoint accepts arbitrary file paths ---
+Already up to date.

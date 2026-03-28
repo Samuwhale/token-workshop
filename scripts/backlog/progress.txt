@@ -335,3 +335,12 @@
 - **Learnings for future iterations:**
   - `.catch(() => {})` on a promise chain silently swallows errors and lets subsequent `.then()`/`await` lines execute — prefer try/catch when downstream logic depends on success.
 ---
+
+## 2026-03-28 - Git sync commit endpoint accepts arbitrary file paths
+- Added `validatePaths()` private method to `GitSync` that resolves each file path against `this.dir` and throws if it escapes the token directory (path traversal prevention)
+- Called `validatePaths()` in `commit()` (when `files` array is provided) and `applyDiffChoices()` (for both pull and push file lists)
+- Files changed: `packages/server/src/services/git-sync.ts` ~L13 (validatePaths), ~L42 (commit guard), ~L139 (applyDiffChoices guard)
+- **Learnings for future iterations:**
+  - Path traversal validation: `path.resolve(base, input)` + `startsWith(base + path.sep)` is the standard Node.js pattern. Must also allow `=== base` for edge cases where resolved path equals the dir itself.
+  - Both `commit` and `applyDiffChoices` accept user-provided file arrays — both needed the guard, not just the commit endpoint.
+---

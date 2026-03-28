@@ -10,6 +10,16 @@ export class GitSync {
     this.git = simpleGit(this.dir);
   }
 
+  /** Validate that all file paths resolve within the token directory. */
+  private validatePaths(files: string[]): void {
+    for (const file of files) {
+      const resolved = path.resolve(this.dir, file);
+      if (!resolved.startsWith(this.dir + path.sep) && resolved !== this.dir) {
+        throw new Error(`Path "${file}" resolves outside the token directory`);
+      }
+    }
+  }
+
   async isRepo(): Promise<boolean> {
     try {
       await this.git.revparse(['--git-dir']);
@@ -29,6 +39,7 @@ export class GitSync {
 
   async commit(message: string, files?: string[]): Promise<string> {
     if (files && files.length > 0) {
+      this.validatePaths(files);
       await this.git.add(files);
     } else {
       await this.git.add('.');
@@ -124,6 +135,8 @@ export class GitSync {
   /** Apply direction choices: push, pull, or skip per file */
   async applyDiffChoices(choices: Record<string, 'push' | 'pull' | 'skip'>): Promise<void> {
     const toPull = Object.entries(choices).filter(([, d]) => d === 'pull').map(([f]) => f);
+    const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
+    this.validatePaths([...toPull, ...toPush]);
     if (toPull.length > 0) {
       // Checkout individual files from remote
       const branch = await this.getCurrentBranch();
@@ -138,7 +151,6 @@ export class GitSync {
       }
     }
     // 'push' direction: stage only the selected files, commit, then push
-    const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
     if (toPush.length > 0) {
       await this.git.add(toPush);
       let pushCommitSucceeded = false;
