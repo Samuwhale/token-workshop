@@ -404,3 +404,12 @@
   - The `adaptShortcut` util handles Mac/Windows differences; always use it for user-visible shortcut text
   - Tab tooltips are the least intrusive way to add shortcut hints without layout changes
 ---
+
+## 2026-03-28 - `alert()` used for error feedback in token move operations
+- Replaced `alert()` calls in `handleConfirmMoveToken` with `onError?.()` callback that triggers the existing error toast (`SuccessToast` with `variant="error"`).
+- Added `onError` to `TokenListActions` interface, destructured it in `TokenList`, and passed `setErrorToast` from all three `<TokenList>` call sites in `App.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L57, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L32, ~L1011, ~L1015, ~L1020, `packages/figma-plugin/src/ui/App.tsx` ~L1938, ~L1970, ~L1983
+- **Learnings for future iterations:**
+  - `SuccessToast` already supports `variant="error"` with 8s auto-dismiss — reuse it via `setErrorToast` instead of adding new error UI.
+  - `App.tsx` renders three `<TokenList>` instances (sidebar open, no sidebar, split view) — all must receive the same props.
+---

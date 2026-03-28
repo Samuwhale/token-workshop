@@ -54,6 +54,7 @@ export interface TokenListActions {
   onFilteredCountChange?: (count: number | null) => void;
   onNavigateToSet?: (setName: string, tokenPath: string) => void;
   onTokenTouched?: (path: string) => void;
+  onError?: (msg: string) => void;
 }
 
 export interface TokenListProps {

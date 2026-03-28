@@ -15,7 +15,7 @@
 
 - [x] "Last used token type" stored in sessionStorage resets when plugin window closes — move to localStorage or Figma clientStorage so it persists across sessions
 - [x] Toast auto-dismiss too fast for errors — 3s auto-dismiss doesn't give enough time to read sync/import failure details; increase to 5–8s for error toasts, or make them persist until manually dismissed
-- [~] Keyboard shortcut discoverability is poor — shortcuts only visible via a dedicated modal (`?`); add inline hint text on buttons and menu items (e.g. "Save ⌘↵") so users learn shortcuts in context
+- [x] Keyboard shortcut discoverability is poor — shortcuts only visible via a dedicated modal (`?`); add inline hint text on buttons and menu items (e.g. "Save ⌘↵") so users learn shortcuts in context
 
 ### UX
 
@@ -31,7 +31,7 @@
 
 - [~] `alert()` used for error feedback in token move operations — jarring, unthemed, blocks the UI thread; replace with inline error state or toast matching the existing error banner pattern
 - [~] Hardcoded Tailwind colors in TokenList (`text-orange-500`, `bg-orange-500`, `text-red-500`) and TokenTreeNode (`ring-red-500`) bypass the CSS variable system; replace with `var(--color-figma-warning)` / `var(--color-figma-error)` equivalents
-- [ ] Flat token map silently shadows tokens when two sets define the same path — `rebuildFlatTokens` last-write-wins; `getAllFlatTokens`, `resolveToken`, `getDependents`, and search only see one version, so delete-safety checks miss cross-set references
+- [~] Flat token map silently shadows tokens when two sets define the same path — `rebuildFlatTokens` last-write-wins; `getAllFlatTokens`, `resolveToken`, `getDependents`, and search only see one version, so delete-safety checks miss cross-set references
 - [ ] `inferType` heuristic misclassifies composite tokens — a composition with a `blur` key becomes shadow, `width`+`color` becomes border; confusing when `$type` is omitted
 
 ### QoL

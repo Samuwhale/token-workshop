@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Keyboard shortcut discoverability is poor — shortcuts only visible via a dedicated modal (`?`); add inline hint text on buttons and menu items (e.g. "Save ⌘↵") so users learn shortcuts in context ---
 Already up to date.
+[main 6c30940] chore(backlog): done – Keyboard shortcut discoverability is poor — shortcuts only visible via a dedicated modal (`?`); add inline hint text on buttons and menu items (e.g. "Save ⌘↵") so users learn shortcuts in context
+ 8 files changed, 58 insertions(+), 14 deletions(-)
+
+## 2026-03-28 - Keyboard shortcut discoverability — inline hint text on buttons and menu items
+- Added inline shortcut hints across the UI so users learn shortcuts in context:
+  - Tab bar buttons now show `⌘1`–`⌘4` in title tooltips
+  - Token Editor "Save"/"Create" button shows `⌘↵` inline; "Create & New" shows `⌘⇧↵`
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  102 items remaining
+===============================================================
+  Claimed: Flat token map silently shadows tokens when two sets define the same path — `rebuildFlatTokens` last-write-wins; `getAllFlatTokens`, `resolveToken`, `getDependents`, and search only see one version, so delete-safety checks miss cross-set references
+  Worktree: /tmp/backlog-63685-vEl46z

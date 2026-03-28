@@ -33,3 +33,10 @@ Already up to date.
 ===============================================================
   Claimed: `alert()` used for error feedback in token move operations — jarring, unthemed, blocks the UI thread; replace with inline error state or toast matching the existing error banner pattern
   Worktree: /tmp/backlog-63973-IxM1Zq
+
+  ✓ done: `alert()` used for error feedback in token move operations
+    Replaced alert() calls in handleConfirmMoveToken with onError callback that triggers the existing error toast (SuccessToast variant=\"error\" with 8s auto-dismiss). Added onError prop to TokenListActions, wired through all three TokenList instances in App.tsx.
+    24 turns · 109s · $0.58
+
+--- Merging: `alert()` used for error feedback in token move operations ---
+Already up to date.

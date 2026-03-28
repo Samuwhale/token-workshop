@@ -29,7 +29,7 @@ import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, perSetFlat, collectionMap = {}, modeMap = {} },
-  actions: { onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched },
+  actions: { onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
@@ -1008,16 +1008,16 @@ export function TokenList({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: `Move failed (${res.status})` }));
-        alert(body.error || `Move failed (${res.status})`);
+        onError?.(body.error || `Move failed (${res.status})`);
         return;
       }
     } catch {
-      alert('Move failed: network error');
+      onError?.('Move failed: network error');
       return;
     }
     setMovingToken(null);
     onRefresh();
-  }, [movingToken, moveTargetSet, connected, serverUrl, setName, onRefresh]);
+  }, [movingToken, moveTargetSet, connected, serverUrl, setName, onRefresh, onError]);
 
   const handleDuplicateGroup = useCallback(async (groupPath: string) => {
     if (!connected) return;
