@@ -459,3 +459,11 @@
   - The inline legend bar at the top of the set matrix (bg-secondary row) duplicates STATE_LABELS text — both must be updated together
   - Title attribute tooltips support `\n` newlines for multi-line content including ASCII diagrams — good for lightweight help without adding popover state
 ---
+
+## 2026-03-28 - Theme switcher is buried and hard to discover
+- Replaced the tiny "+ Add theme" dashed button (shown when no dimensions exist) with a more prominent empty-state prompt: "Set up themes to manage light/dark mode, brands, and more" with a Venn-diagram icon, clicking navigates to ThemeManager. Only shows when connected to server (avoids false empty state when disconnected).
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1769-1780
+- **Learnings for future iterations:**
+  - The theme bar already had a `dimensions.length === 0` branch — the fix was making it more descriptive rather than adding new conditional logic
+  - When changing a binary condition to a ternary in JSX (`a : b` → `a : c ? b : null`), don't forget the null fallback or the parser gives a confusing "`:` expected" error
+---

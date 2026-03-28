@@ -209,3 +209,17 @@ Already up to date.
 
 --- Merging: "Off / Base / On" theme set states are confusing ---
 Already up to date.
+[main e167e72] chore(backlog): done – "Off / Base / On" theme set states are confusing
+ 6 files changed, 58 insertions(+), 15 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - "Off / Base / On" theme set states are confusing
+- Renamed three-state toggle labels: "Off" → "Not included", "Base" → "Foundation", "On" → "Override"
+- Updated STATE_DESCRIPTIONS to be clearer about layering semantics (base layer vs top layer)
+- Updated inline legend bar (previously "Off = not used · Base = foundation · On = overrides base") to match new labels
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  64 items remaining
+===============================================================
+  Claimed: ThemeManager is the most complex and least intuitive screen — the matrix of dimensions × options × sets × states doesn't help users build a mental model; redesign around a visual stacking model: dimensions as layers in a stack (top overrides bottom), options as tabs per layer, sets shown with "base" vs "override" clearly distinguished, plus a live preview showing "with these settings, token X resolves to Y"
+  Worktree: /tmp/backlog-63685-f2MwwP

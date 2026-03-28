@@ -255,3 +255,10 @@ Already up to date.
 ===============================================================
   Claimed: Theme switcher is buried and hard to discover — dimension buttons only appear if themes exist, and ThemeManager is behind overflow menu; show an empty-state prompt on the Tokens tab: "Set up themes to manage light/dark mode, brands, and more" linking directly to ThemeManager
   Worktree: /tmp/backlog-63973-XMNHRY
+
+  ✓ done: Theme switcher is buried and hard to discover
+    Replaced tiny '+ Add theme' button with descriptive empty-state prompt 'Set up themes to manage light/dark mode, brands, and more' with icon, linking to ThemeManager. Only shown when connected.
+    16 turns · 179s · $0.67
+
+--- Merging: Theme switcher is buried and hard to discover ---
+Already up to date.

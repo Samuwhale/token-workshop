@@ -1766,14 +1766,18 @@ export function App() {
                     </svg>
                   </button>
                 </>
-              ) : (
+              ) : connected ? (
                 <button
                   onClick={() => navigateTo('define', 'themes')}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border border-dashed border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-dashed border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
                 >
-                  + Add theme
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+                    <circle cx="3.5" cy="5" r="2.5"/>
+                    <circle cx="6.5" cy="5" r="2.5"/>
+                  </svg>
+                  Set up themes to manage light/dark mode, brands, and more
                 </button>
-              )}
+              ) : null}
               {isNarrow && dimBarExpanded && (
                 <button
                   onClick={() => setDimBarExpanded(false)}
