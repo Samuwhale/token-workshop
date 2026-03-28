@@ -140,7 +140,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'delete-orphan-variables':
       try {
-        await deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {});
+        await deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {}, msg.correlationId);
       } catch (e) {
         reportError('delete-orphan-variables', e);
       }
@@ -154,7 +154,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'scan-component-coverage':
       try {
-        await scanComponentCoverage();
+        await scanComponentCoverage(msg.correlationId);
       } catch (e) {
         reportError('scan-component-coverage', e);
       }

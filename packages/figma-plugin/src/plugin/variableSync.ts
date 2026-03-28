@@ -185,7 +185,7 @@ export async function readFigmaVariables(correlationId?: string) {
   figma.ui.postMessage({ type: 'variables-read', collections, correlationId });
 }
 
-export async function deleteOrphanVariables(knownPaths: string[], collectionMap: Record<string, string> = {}) {
+export async function deleteOrphanVariables(knownPaths: string[], collectionMap: Record<string, string> = {}, correlationId?: string) {
   try {
     const knownSet = new Set(knownPaths);
     // All collection names managed by TokenManager: the default plus any custom-mapped names
@@ -193,7 +193,7 @@ export async function deleteOrphanVariables(knownPaths: string[], collectionMap:
     const allCollections = await figma.variables.getLocalVariableCollectionsAsync();
     const managedCollections = allCollections.filter(c => managedNames.has(c.name));
     if (managedCollections.length === 0) {
-      figma.ui.postMessage({ type: 'orphans-deleted', count: 0 });
+      figma.ui.postMessage({ type: 'orphans-deleted', count: 0, correlationId });
       return;
     }
     let deleted = 0;
@@ -208,7 +208,7 @@ export async function deleteOrphanVariables(knownPaths: string[], collectionMap:
         }
       }
     }
-    figma.ui.postMessage({ type: 'orphans-deleted', count: deleted });
+    figma.ui.postMessage({ type: 'orphans-deleted', count: deleted, correlationId });
   } catch (error) {
     figma.ui.postMessage({ type: 'error', message: String(error) });
   }

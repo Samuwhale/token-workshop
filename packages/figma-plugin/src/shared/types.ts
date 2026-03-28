@@ -240,6 +240,7 @@ export interface ApplyVariablesMessage {
 export interface ApplyStylesMessage {
   type: 'apply-styles';
   tokens: import('../plugin/styleSync.js').StyleToken[];
+  correlationId?: string;
 }
 
 export interface ReadVariablesMessage {
@@ -280,10 +281,12 @@ export interface DeleteOrphanVariablesMessage {
   type: 'delete-orphan-variables';
   knownPaths: string[];
   collectionMap?: Record<string, string>;
+  correlationId?: string;
 }
 
 export interface ScanComponentCoverageMessage {
   type: 'scan-component-coverage';
+  correlationId?: string;
 }
 
 export interface SelectNodeMessage {

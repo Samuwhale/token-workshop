@@ -102,7 +102,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const [readinessLoading, setReadinessLoading] = useState(false);
   const [readinessError, setReadinessError] = useState<string | null>(null);
   const [orphansDeleting, setOrphansDeleting] = useState(false);
-  const orphansResolveRef = useRef<((count: number) => void) | null>(null);
+  const orphansPendingRef = useRef<Map<string, (count: number) => void>>(new Map());
 
   // ── Export state ──
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set(['css']));
@@ -119,9 +119,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'orphans-deleted' && orphansResolveRef.current) {
-        orphansResolveRef.current(msg.count ?? 0);
-        orphansResolveRef.current = null;
+      if (msg?.type === 'orphans-deleted' && msg.correlationId) {
+        const resolve = orphansPendingRef.current.get(msg.correlationId);
+        if (resolve) {
+          orphansPendingRef.current.delete(msg.correlationId);
+          resolve(msg.count ?? 0);
+        }
       }
     };
     window.addEventListener('message', handler);
@@ -194,9 +197,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
               try {
                 await new Promise<number>((resolve, reject) => {
-                  const timeout = setTimeout(() => { orphansResolveRef.current = null; reject(new Error('Timeout')); }, TIMEOUTS[attempt]);
-                  orphansResolveRef.current = (count) => { clearTimeout(timeout); resolve(count); };
-                  parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths], collectionMap } }, '*');
+                  const cid = `orphans-${Date.now()}-${Math.random()}`;
+                  const timeout = setTimeout(() => { orphansPendingRef.current.delete(cid); reject(new Error('Timeout')); }, TIMEOUTS[attempt]);
+                  orphansPendingRef.current.set(cid, (count) => { clearTimeout(timeout); resolve(count); });
+                  parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths], collectionMap, correlationId: cid } }, '*');
                 });
                 succeeded = true;
                 break;

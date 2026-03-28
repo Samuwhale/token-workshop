@@ -304,3 +304,22 @@
   - Soft-fail patterns (`if (res.ok) { use data } else { fallback }`) become try/catch blocks — the catch should silently set defaults, not re-throw
   - `Promise.all` with `.ok` checking on raw Response arrays must be restructured to `Promise.allSettled` when using apiFetch (since errors throw instead of returning Response objects)
 ---
+
+## 2026-03-28 - Single-resolve-ref race condition in 4 UI-to-plugin postMessage bridges
+- Replaced all 4 single-ref patterns with Map-based correlation-map pending refs:
+  - `useFigmaSync.ts`: `styleApplyResolveRef` → `styleApplyPendingRef` (Map), added correlationId to `apply-styles` postMessage
+  - `TokenList.tsx`: `varReadResolveRef` + `varReadCorrelIdRef` (two single refs) → `varReadPendingRef` (Map), removed redundant correl-id ref
+  - `PublishPanel.tsx`: `orphansResolveRef` → `orphansPendingRef` (Map), added correlationId to `delete-orphan-variables` postMessage
+  - `AnalyticsPanel.tsx`: `coverageResolveRef` → `coveragePendingRef` (Map), added correlationId to `scan-component-coverage` postMessage
+- Updated plugin side to accept and forward correlationId:
+  - `variableSync.ts`: `deleteOrphanVariables()` gains `correlationId?` param, included in `orphans-deleted` postMessage
+  - `heatmapScanning.ts`: `scanComponentCoverage()` gains `correlationId?` param, included in `component-coverage-result` postMessage
+  - `controller.ts`: passes `msg.correlationId` to both functions
+- Updated shared types: added `correlationId?` to `ApplyStylesMessage`, `DeleteOrphanVariablesMessage`, `ScanComponentCoverageMessage`
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L23-39,77-87; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L61-62,150-161,1825-1836; `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L105,119-129,196-200; `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L104,147-157,164-171; `packages/figma-plugin/src/plugin/variableSync.ts` ~L188,196,211; `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L6,38-43; `packages/figma-plugin/src/plugin/controller.ts` ~L143,157; `packages/figma-plugin/src/shared/types.ts` ~L240-287
+- **Learnings for future iterations:**
+  - The correct pattern: `useRef<Map<string, { resolve, reject }>>( new Map())` — keyed by `cid = \`type-${Date.now()}-${Math.random()}\``; both message handler and timeout use `Map.delete(cid)` for cleanup
+  - The plugin must echo back `correlationId` in the response postMessage for the UI handler to route it to the right pending promise
+  - `TokenList.tsx` had two single refs (`varReadResolveRef` + `varReadCorrelIdRef`) as a partial correlation attempt — still broken for concurrency since only one could be in flight; collapsing to one Map ref is cleaner
+  - `useStyleSync.ts` and `useVariableSync.ts` are the canonical reference implementations for this pattern
+---

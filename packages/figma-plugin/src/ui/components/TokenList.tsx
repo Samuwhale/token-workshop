@@ -58,8 +58,7 @@ export function TokenList({
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const lastSelectedPathRef = useRef<string | null>(null);
-  const varReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
-  const varReadCorrelIdRef = useRef<string | null>(null);
+  const varReadPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
   // Drag/drop state is managed by useDragDrop hook (called below after dependencies)
   const [showBatchEditor, setShowBatchEditor] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
@@ -150,10 +149,12 @@ export function TokenList({
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'variables-read' && msg.correlationId === varReadCorrelIdRef.current && varReadResolveRef.current) {
-        varReadCorrelIdRef.current = null;
-        varReadResolveRef.current(msg.tokens ?? []);
-        varReadResolveRef.current = null;
+      if (msg?.type === 'variables-read' && msg.correlationId) {
+        const resolve = varReadPendingRef.current.get(msg.correlationId);
+        if (resolve) {
+          varReadPendingRef.current.delete(msg.correlationId);
+          resolve(msg.tokens ?? []);
+        }
       }
     };
     window.addEventListener('message', handler);
@@ -1824,14 +1825,10 @@ export function TokenList({
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
         const cid = `tl-vars-${Date.now()}-${Math.random()}`;
         const timeout = setTimeout(() => {
-          if (varReadCorrelIdRef.current === cid) {
-            varReadCorrelIdRef.current = null;
-            varReadResolveRef.current = null;
-          }
+          varReadPendingRef.current.delete(cid);
           reject(new Error('timeout'));
         }, 8000);
-        varReadCorrelIdRef.current = cid;
-        varReadResolveRef.current = (toks) => { clearTimeout(timeout); resolve(toks); };
+        varReadPendingRef.current.set(cid, (toks) => { clearTimeout(timeout); resolve(toks); });
         parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
       });
       const figmaMap = new Map(figmaTokens.map((t: any) => [t.path, String(t.$value ?? '')]));

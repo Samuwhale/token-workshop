@@ -20,18 +20,28 @@ export function useFigmaSync(
   const [groupScopesError, setGroupScopesError] = useState<string | null>(null);
   const [groupScopesProgress, setGroupScopesProgress] = useState<{ done: number; total: number } | null>(null);
   const [syncGroupStylesError, setSyncGroupStylesError] = useState<string | null>(null);
-  const styleApplyResolveRef = useRef<((result: { count: number; total: number; failures: { path: string; error: string }[] }) => void) | null>(null);
+  const styleApplyPendingRef = useRef<Map<string, { resolve: (result: { count: number; total: number; failures: { path: string; error: string }[] }) => void; reject: (err: Error) => void }>>(new Map());
 
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'styles-applied' && styleApplyResolveRef.current) {
-        styleApplyResolveRef.current({
-          count: msg.count ?? 0,
-          total: msg.total ?? msg.count ?? 0,
-          failures: msg.failures ?? [],
-        });
-        styleApplyResolveRef.current = null;
+      if (msg?.type === 'styles-applied' && msg.correlationId) {
+        const entry = styleApplyPendingRef.current.get(msg.correlationId);
+        if (entry) {
+          styleApplyPendingRef.current.delete(msg.correlationId);
+          entry.resolve({
+            count: msg.count ?? 0,
+            total: msg.total ?? msg.count ?? 0,
+            failures: msg.failures ?? [],
+          });
+        }
+      }
+      if (msg?.type === 'styles-apply-error' && msg.correlationId) {
+        const entry = styleApplyPendingRef.current.get(msg.correlationId);
+        if (entry) {
+          styleApplyPendingRef.current.delete(msg.correlationId);
+          entry.reject(new Error(msg.error ?? 'Unknown error'));
+        }
       }
     };
     window.addEventListener('message', handler);
@@ -75,15 +85,16 @@ export function useFigmaSync(
         }
       }
       const result: { count: number; total: number; failures: { path: string; error: string }[] } = await new Promise((resolve, reject) => {
+        const cid = `figma-sync-styles-${Date.now()}-${Math.random()}`;
         const timeout = setTimeout(() => {
-          styleApplyResolveRef.current = null;
+          styleApplyPendingRef.current.delete(cid);
           reject(new Error('Style apply timed out — is the plugin running?'));
         }, 15000);
-        styleApplyResolveRef.current = (r) => {
-          clearTimeout(timeout);
-          resolve(r);
-        };
-        parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
+        styleApplyPendingRef.current.set(cid, {
+          resolve: (r) => { clearTimeout(timeout); resolve(r); },
+          reject: (err) => { clearTimeout(timeout); reject(err); },
+        });
+        parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens, correlationId: cid } }, '*');
       });
       if (result.failures.length > 0) {
         const failedPaths = result.failures.map(f => f.path).join(', ');

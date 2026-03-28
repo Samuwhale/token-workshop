@@ -101,7 +101,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [coverageLoading, setCoverageLoading] = useState(false);
   const [coverageError, setCoverageError] = useState<string | null>(null);
   const [showCoverage, setShowCoverage] = useState(false);
-  const coverageResolveRef = useRef<((data: any) => void) | null>(null);
+  const coveragePendingRef = useRef<Map<string, (data: any) => void>>(new Map());
 
   useEffect(() => {
     lsSetJson(STORAGE_KEYS.ANALYTICS_CANONICAL, canonicalPick);
@@ -147,9 +147,12 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'component-coverage-result' && coverageResolveRef.current) {
-        coverageResolveRef.current(msg);
-        coverageResolveRef.current = null;
+      if (msg?.type === 'component-coverage-result' && msg.correlationId) {
+        const resolve = coveragePendingRef.current.get(msg.correlationId);
+        if (resolve) {
+          coveragePendingRef.current.delete(msg.correlationId);
+          resolve(msg);
+        }
       }
     };
     window.addEventListener('message', handler);
@@ -162,12 +165,13 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     setCoverageError(null);
     try {
       const result = await new Promise<any>((resolve, reject) => {
+        const cid = `coverage-${Date.now()}-${Math.random()}`;
         const timeout = setTimeout(() => {
-          coverageResolveRef.current = null;
+          coveragePendingRef.current.delete(cid);
           reject(new Error('Scan timed out'));
         }, 30000);
-        coverageResolveRef.current = (data) => { clearTimeout(timeout); resolve(data); };
-        parent.postMessage({ pluginMessage: { type: 'scan-component-coverage' } }, '*');
+        coveragePendingRef.current.set(cid, (data) => { clearTimeout(timeout); resolve(data); });
+        parent.postMessage({ pluginMessage: { type: 'scan-component-coverage', correlationId: cid } }, '*');
       });
       setCoverageResult(result);
       setShowCoverage(true);

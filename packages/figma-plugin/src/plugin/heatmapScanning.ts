@@ -3,7 +3,7 @@ import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { applyToSelection } from './selectionHandling.js';
 
 // Scan component nodes for token coverage
-export async function scanComponentCoverage() {
+export async function scanComponentCoverage(correlationId?: string) {
   try {
     const components = figma.currentPage.findAllWithCriteria({ types: ['COMPONENT'] });
     const CHECKABLE_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius'];
@@ -40,6 +40,7 @@ export async function scanComponentCoverage() {
       totalComponents: components.length,
       tokenizedComponents: tokenized,
       untokenized: untokenized.slice(0, 100), // cap list size
+      correlationId,
     });
   } catch (error) {
     figma.ui.postMessage({ type: 'error', message: String(error) });
