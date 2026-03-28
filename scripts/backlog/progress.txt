@@ -440,3 +440,9 @@
   - Server tests in this worktree always fail due to `@tokenmanager/core` workspace link not resolving — pre-existing, confirmed by stash-and-rerun
   - For color swatch previews (colored divs too small for text), use an absolute-positioned 4px bottom stripe rather than text badge
 ---
+
+## 2026-03-28 - code-pass
+- Areas explored: `packages/figma-plugin/src/plugin/styleSync.ts` (per-token style re-fetch, `any` types), `packages/figma-plugin/src/ui/App.tsx` (keyboard shortcuts stale closure, tokens.length boolean dep), `packages/figma-plugin/src/ui/components/TokenTableView.tsx` (description edit no-op), `packages/server/src/services/resolver-store.ts` (unvalidated JSON load), `packages/server/src/routes/generators.ts` (unsafe casts), `packages/server/src/services/generator-service.ts` (runForSourceToken skip-without-requeue), `packages/server/src/routes/tokens.ts`, `packages/server/src/routes/sync.ts`, `packages/server/src/services/token-store.ts`, `packages/server/src/services/git-sync.ts`, `packages/core/src/resolver.ts`, `packages/core/src/dtcg-resolver.ts`, `packages/core/src/dtcg-types.ts`, `packages/figma-plugin/src/plugin/variableSync.ts`, `packages/figma-plugin/src/plugin/selectionHandling.ts`, `packages/figma-plugin/src/ui/components/GraphPanel.tsx`, `packages/figma-plugin/src/ui/components/CommandPalette.tsx`, `packages/figma-plugin/src/ui/hooks/useVariableSync.ts`, `packages/figma-plugin/src/ui/hooks/useStyleSync.ts`, `packages/figma-plugin/src/ui/hooks/useResolvers.ts`
+- Found 6 items — written to backlog-inbox.md
+- Notable: `styleSync.ts` makes N async Figma API calls for N tokens (should be 1), and App.tsx keyboard shortcuts use stale closures due to empty useEffect dep array
+---

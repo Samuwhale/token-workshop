@@ -268,3 +268,16 @@ WARNING: Agent returned unexpected status '' — unclaiming item
 
 --- Merging: Generator output overwrite warning: highlight tokens that will be overwritten (not newly created) in the generator preview with an "update" badge, so users can see they are about to replace hand-tuned values before confirming ---
 Already up to date.
+[main 4aaa0a3] chore(backlog): done – Generator output overwrite warning: highlight tokens that will be overwritten (not newly created) in the generator preview with an "update" badge, so users can see they are about to replace hand-tuned values before confirming
+ 12 files changed, 81 insertions(+), 23 deletions(-)
+
+## 2026-03-28 - Generator output overwrite warning: update badge in preview
+- Added `isOverwrite` prop to `OverrideRow` in `generatorShared.tsx` — renders a small amber "update" badge (warning color, pill shape) next to the step name when the token path already exists in the target set with a different value.
+- Added `overwritePaths?: Set<string>` to `OverrideTable` and `GenericPreview` in `generatorShared.tsx`, forwarding to `OverrideRow`.
+- Updated `ColorSwatchPreview` in `ColorRampGenerator.tsx`: added `overwritePaths` prop, renders an amber 4px bottom stripe on each swatch that will overwrite an existing token, forwards to `OverrideTable`.
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  37 items remaining
+===============================================================
+  Claimed: ResolverPanel contextual help and starter templates — the empty state explains what resolvers are but offers no "Learn more" link, no example, and no "Create from template" action; add a light/dark-mode preset template and a short inline explanation of when to use resolvers vs. themes
+  Worktree: /tmp/backlog-10461-7OdEKM

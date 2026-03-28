@@ -331,3 +331,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    6 items written to inbox: styleSync per-token API re-fetch + any types, App.tsx keyboard shortcut stale closures, App.tsx boolean dep bug, TokenTableView description edit no-op, server JSON load without validation, generator skip-without-requeue
+Already up to date.
