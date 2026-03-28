@@ -359,3 +359,11 @@
   - `export { X } from 'Y'` in TypeScript/ESM does NOT make `X` available locally — only re-exports it. To use locally, need a separate `import` statement.
   - `TokenNode` was never a real type — it was likely a typo/rename artifact. `TokenGroup` from core serves the same purpose.
 ---
+
+## 2026-03-28 - Resolver inconsistent color map initialization
+- Fixed `resolve(path)` to seed the color map with `Color.Black` for already-resolved tokens, matching the behavior of `resolveAll()`. Previously `resolve()` started with an empty map and relied on a lazy `this.resolved.has(dep)` check, leaving color as `undefined` instead of `Black` for cached tokens — an inconsistency in cycle detection state.
+- Files changed: `packages/core/src/resolver.ts` ~L82-88
+- **Learnings for future iterations:**
+  - The three-color DFS cycle detection pattern requires consistent initialization — any token known to be fully resolved must start as Black, not undefined
+  - The lazy `resolved.has()` check at the DFS visit site partially masked the bug, but left the color map in an inconsistent state where resolved tokens had no color entry
+---

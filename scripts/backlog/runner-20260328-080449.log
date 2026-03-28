@@ -437,3 +437,10 @@ Already up to date.
 ===============================================================
   Claimed: Resolver inconsistent color map initialization — `resolve(path)` creates a fresh color map without seeding already-resolved tokens, unlike `resolveAll()` which seeds them; this creates a latent gap in cycle detection for incrementally-added tokens
   Worktree: /tmp/backlog-63973-aEoVuK
+
+  ✓ done: Resolver inconsistent color map initialization
+    Fixed resolve(path) to seed color map with Color.Black for already-resolved tokens, matching resolveAll() behavior. All 31 resolver tests pass.
+    9 turns · 90s · $0.43
+
+--- Merging: Resolver inconsistent color map initialization ---
+Already up to date.

@@ -472,3 +472,17 @@ Already up to date.
 
 --- Merging: CORS origin includes string 'null' ---
 Already up to date.
+[main 372808c] chore(backlog): done – CORS origin includes string 'null'
+ 6 files changed, 32 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - refreshTokens double-fires on initial load
+- Removed `activeSet` from `refreshTokens` useCallback deps by reading it via `activeSetRef` instead
+- Added separate `useEffect` for external `activeSet` changes (user switches tab) with guards to skip: (1) initial mount, (2) internal set changes from `refreshTokens` itself (initial set selection)
+- Uses `internalSetChangeRef` flag set before `setActiveSet` inside `refreshTokens`, and `mountedRef` to skip first render
+
+===============================================================
+  Iteration 24 / 90  (claude)  —  27 items remaining
+===============================================================
+  Claimed: Multiple fetch calls in TokenList with no error handling — `handleRenameGroup`, `executeTokenRename`, `handleDropOnGroup`, `handleDuplicateGroup`, `handleInlineSave` don't check `res.ok` or catch network errors; failed operations push undo slots and refresh as if they succeeded
+  Worktree: /tmp/backlog-62956-JBx3ab

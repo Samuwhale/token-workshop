@@ -79,8 +79,14 @@ export class TokenResolver {
       throw new Error(`Token not found: "${path}"`);
     }
 
-    // Fresh color map — already-resolved tokens are skipped lazily in dfsResolve
+    // Seed color map: mark already-resolved tokens as Black so cycle
+    // detection is consistent with resolveAll() (which does the same).
     this.color = new Map();
+    for (const p of this.tokens.keys()) {
+      if (this.resolved.has(p)) {
+        this.color.set(p, Color.Black);
+      }
+    }
     this.dfsResolve(path);
     const result = this.resolved.get(path);
     if (!result) {
