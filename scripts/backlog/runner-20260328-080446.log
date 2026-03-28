@@ -386,3 +386,17 @@ Already up to date.
 
 --- Merging: Color picker format toggle, recent colors, and from-token shortcut ---
 Already up to date.
+[main aee3074] chore(backlog): done – Color picker format toggle, recent colors, and from-token shortcut
+ 11 files changed, 309 insertions(+), 17 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Color picker format toggle, recent colors, and from-token shortcut
+- Added 3 features to the color editing experience:
+  1. **Format toggle** (Hex/RGB/HSL) in ColorEditor — cycle button next to the text input, preference persisted in localStorage, input accepts all three formats
+  2. **Recent colors strip** in ColorPicker — stores last 12 colors in localStorage, shown as clickable swatches at bottom of picker, persisted on picker close
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  36 items remaining
+===============================================================
+  Claimed: `SET_NAME_RE` regex duplicated — same validation regex defined in both `useSetRename.ts` and `App.tsx`; if the rule changes, both must be updated
+  Worktree: /tmp/backlog-63685-W9s7k9

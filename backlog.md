@@ -107,7 +107,7 @@
 
 ### QoL
 
-- [~] Color picker is hex-only at first glance — no format toggle (Hex/RGB/HSL), no recent colors strip, no "from existing token" shortcut; add format selector, recent colors, and a quick-reference picker
+- [x] Color picker is hex-only at first glance — no format toggle (Hex/RGB/HSL), no recent colors strip, no "from existing token" shortcut; add format selector, recent colors, and a quick-reference picker
 
 ---
 
@@ -134,7 +134,7 @@
 
 - [x] Shadow-to-Figma-effect mapping duplicated — nearly identical conversion logic in `styleSync.ts` (`applyEffectStyle`) and `selectionHandling.ts` (`applyTokenValue` shadow case); extract to a shared helper
 - [~] `describeError` helper duplicated in 3 hook files — identical function in `useGitSync.ts`, `useStyleSync.ts`, and `useVariableSync.ts`; move to `shared/utils.ts` alongside existing `getErrorMessage`
-- [ ] `SET_NAME_RE` regex duplicated — same validation regex defined in both `useSetRename.ts` and `App.tsx`; if the rule changes, both must be updated
+- [~] `SET_NAME_RE` regex duplicated — same validation regex defined in both `useSetRename.ts` and `App.tsx`; if the rule changes, both must be updated
 - [ ] Node collection logic duplicated in `selectionHandling.ts` — `remapBindings` and `syncBindings` have nearly identical scope-based node collection (selection vs page); extract to shared helper
 
 ### Performance

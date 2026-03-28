@@ -218,7 +218,7 @@ interface UseGeneratorsResult {
   loading: boolean;
   refreshGenerators: () => void;
   generatorsBySource: Map<string, TokenGenerator[]>;
-  derivedTokenPaths: Set<string>;
+  derivedTokenPaths: Map<string, TokenGenerator>;
 }
 
 export function useGenerators(serverUrl: string, connected: boolean): UseGeneratorsResult {
@@ -256,13 +256,13 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
   }, [generators]);
 
   const derivedTokenPaths = useMemo(() => {
-    const set = new Set<string>();
+    const map = new Map<string, TokenGenerator>();
     for (const gen of generators) {
       for (const path of computeDerivedPaths(gen)) {
-        set.add(path);
+        map.set(path, gen);
       }
     }
-    return set;
+    return map;
   }, [generators]);
 
   return {

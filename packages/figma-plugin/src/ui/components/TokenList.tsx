@@ -1361,6 +1361,26 @@ export function TokenList({
     recentlyTouched.recordTouch(path);
   }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, recentlyTouched]);
 
+  // Detach a token from its generator by removing the generator extension
+  const handleDetachFromGenerator = useCallback(async (path: string) => {
+    if (!connected) return;
+    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
+    const url = `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`;
+    // Fetch the current token to get its full $extensions
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const { token } = await res.json();
+    const exts: Record<string, unknown> = { ...token?.$extensions };
+    delete exts['com.tokenmanager.generator'];
+    await fetch(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ $extensions: Object.keys(exts).length > 0 ? exts : undefined }),
+    });
+    onRefresh();
+    onRefreshGenerators?.();
+  }, [connected, serverUrl, setName, onRefresh, onRefreshGenerators]);
+
   // Multi-mode inline save — routes edits to a specific override set
   const handleMultiModeInlineSave = useCallback(async (path: string, type: string, newValue: any, targetSet: string) => {
     if (!connected) return;
@@ -3035,6 +3055,7 @@ export function TokenList({
                 onTogglePin={pinnedTokens.togglePin}
                 multiModeValues={multiModeData ? getMultiModeValues(node.path) : undefined}
                 onMultiModeInlineSave={multiModeData ? handleMultiModeInlineSave : undefined}
+                onDetachFromGenerator={handleDetachFromGenerator}
               />
               );
             })}

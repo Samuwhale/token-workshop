@@ -40,7 +40,7 @@ export interface TokenListData {
   lintViolations?: LintViolation[];
   syncSnapshot?: Record<string, string>;
   generators?: TokenGenerator[];
-  derivedTokenPaths?: Set<string>;
+  derivedTokenPaths?: Map<string, TokenGenerator>;
   cascadeDiff?: Record<string, { before: any; after: any }>;
   tokenUsageCounts?: Record<string, number>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
@@ -155,7 +155,7 @@ export interface TokenTreeNodeProps {
   cascadeDiff?: Record<string, { before: any; after: any }>;
   onFilterByType?: (type: string) => void;
   generatorsBySource?: Map<string, TokenGenerator[]>;
-  derivedTokenPaths?: Set<string>;
+  derivedTokenPaths?: Map<string, TokenGenerator>;
   skipChildren?: boolean;
   onJumpToGroup?: (path: string) => void;
   onInlineSave?: (path: string, type: string, newValue: any) => void;
@@ -182,5 +182,10 @@ export interface TokenTreeNodeProps {
   tokenUsageCounts?: Record<string, number>;
   isPinned?: boolean;
   onTogglePin?: (path: string) => void;
-  selectedNodes?: SelectionNodeInfo[];
+  /** Per-option resolved values for multi-mode column view */
+  multiModeValues?: MultiModeValue[];
+  /** Inline save handler that routes to a specific override set */
+  onMultiModeInlineSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
+  /** Detach a token from its generator (removes $extensions['com.tokenmanager.generator']) */
+  onDetachFromGenerator?: (path: string) => void;
 }

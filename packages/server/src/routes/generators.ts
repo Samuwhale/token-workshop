@@ -299,6 +299,21 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // POST /api/generators/:id/check-overwrites — preview which tokens would be overwritten
+  fastify.post<{ Params: { id: string } }>('/generators/:id/check-overwrites', async (request, reply) => {
+    try {
+      const modified = await fastify.generatorService.checkOverwrites(
+        request.params.id,
+        fastify.tokenStore,
+      );
+      return { modified };
+    } catch (err) {
+      const msg = getErrorMessage(err);
+      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+      return reply.status(500).send({ error: msg });
+    }
+  });
+
   // POST /api/generators/:id/run — manually re-run a generator
   fastify.post<{ Params: { id: string } }>('/generators/:id/run', async (request, reply) => {
     try {

@@ -325,6 +325,29 @@ export function useGeneratorDialog({
         overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
         ...(isMultiBrand && inputTable ? { inputTable, targetSetTemplate: targetSetTemplate.trim() } : {}),
       };
+      // When updating an existing generator, check for manually-edited tokens
+      if (isEditing && existingGenerator) {
+        try {
+          const checkRes = await fetch(`${serverUrl}/api/generators/${existingGenerator.id}/check-overwrites`, {
+            method: 'POST',
+          });
+          if (checkRes.ok) {
+            const { modified } = await checkRes.json() as { modified: { path: string }[] };
+            if (modified.length > 0) {
+              const paths = modified.map(m => m.path).join('\n  • ');
+              const confirmed = window.confirm(
+                `${modified.length} token(s) have been manually edited since the last run and will be overwritten:\n\n  • ${paths}\n\nProceed?`,
+              );
+              if (!confirmed) {
+                setSaving(false);
+                return;
+              }
+            }
+          }
+        } catch {
+          // Best-effort — if the check fails, proceed without warning
+        }
+      }
       const saveUrl = isEditing && existingGenerator
         ? `${serverUrl}/api/generators/${existingGenerator.id}`
         : `${serverUrl}/api/generators`;
