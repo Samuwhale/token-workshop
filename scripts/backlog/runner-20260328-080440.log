@@ -264,3 +264,10 @@ Already up to date.
 ===============================================================
   Claimed: No visual diff for Figma variable publish — the Variables section shows added/modified/unchanged counts but no side-by-side preview of old vs. new values with color swatches; users can't visually verify what will change before applying
   Worktree: /tmp/backlog-62956-MIgwOx
+
+  ✓ done: No visual diff for Figma variable publish
+    Added inline color swatches and side-by-side old→new visual diff with arrow indicator to VarDiffRowItem in PublishPanel.tsx for color tokens; non-color values also get improved layout
+    20 turns · 169s · $0.79
+
+--- Merging: No visual diff for Figma variable publish ---
+Already up to date.

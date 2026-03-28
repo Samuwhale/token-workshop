@@ -1165,13 +1165,39 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
 /* ── VarDiffRowItem ──────────────────────────────────────────────────────── */
 
+function isHexColor(v: string | undefined): v is string {
+  return typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v);
+}
+
+function DiffSwatch({ hex }: { hex: string }) {
+  return (
+    <span
+      className="inline-block w-3 h-3 rounded-sm border border-white/20 ring-1 ring-[var(--color-figma-border)] shrink-0 align-middle"
+      style={{ backgroundColor: hex.slice(0, 7) }}
+      aria-hidden="true"
+    />
+  );
+}
+
+function ValueCell({ label, value, type }: { label: string; value: string | undefined; type: string | undefined }) {
+  const v = value ?? '';
+  const showSwatch = (type === 'color' || isHexColor(v)) && isHexColor(v);
+  return (
+    <div className="flex items-center gap-1 min-w-0 flex-1">
+      <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{label}</span>
+      {showSwatch && <DiffSwatch hex={v} />}
+      <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate" title={v}>{truncateValue(v)}</span>
+    </div>
+  );
+}
+
 function VarDiffRowItem({ row, dir, onChange }: {
   row: VarDiffRow;
   dir: 'push' | 'pull' | 'skip';
   onChange: (dir: 'push' | 'pull' | 'skip') => void;
 }) {
   return (
-    <div className="px-3 py-1.5 flex flex-col gap-0.5">
+    <div className="px-3 py-1.5 flex flex-col gap-1">
       <div className="flex items-center gap-2">
         <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={row.path}>{row.path}</span>
         <select
@@ -1185,21 +1211,23 @@ function VarDiffRowItem({ row, dir, onChange }: {
         </select>
       </div>
       {row.cat === 'conflict' && (
-        <div className="flex items-center gap-2 pl-0.5">
-          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Local:</span>
-          <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate" title={row.localValue}>{truncateValue(row.localValue ?? '')}</span>
-          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 mx-0.5">vs</span>
-          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Figma:</span>
-          <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate" title={row.figmaValue}>{truncateValue(row.figmaValue ?? '')}</span>
+        <div className="flex items-center gap-1.5 pl-0.5">
+          <ValueCell label="Local" value={row.localValue} type={row.localType} />
+          <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+            <path d="M1 4h6M5 2l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <ValueCell label="Figma" value={row.figmaValue} type={row.figmaType} />
         </div>
       )}
       {row.cat === 'local-only' && row.localValue !== undefined && (
-        <div className="pl-0.5">
+        <div className="flex items-center gap-1 pl-0.5">
+          {(row.localType === 'color' || isHexColor(row.localValue)) && isHexColor(row.localValue) && <DiffSwatch hex={row.localValue} />}
           <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.localValue)}</span>
         </div>
       )}
       {row.cat === 'figma-only' && row.figmaValue !== undefined && (
-        <div className="pl-0.5">
+        <div className="flex items-center gap-1 pl-0.5">
+          {(row.figmaType === 'color' || isHexColor(row.figmaValue)) && isHexColor(row.figmaValue) && <DiffSwatch hex={row.figmaValue} />}
           <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.figmaValue)}</span>
         </div>
       )}

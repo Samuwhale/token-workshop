@@ -521,3 +521,13 @@
   - simple-git does not internally guard against flag-like arguments — any user-supplied string passed as a branch name could be interpreted as a git flag.
   - The `--` separator is another mitigation approach, but simple-git's `checkout()` and `checkoutLocalBranch()` don't support inserting `--` before the branch arg. Validation is the reliable fix.
 ---
+
+## 2026-03-28 - No visual diff for Figma variable publish
+- Enhanced `VarDiffRowItem` in PublishPanel.tsx with visual diff preview: inline color swatches for hex color values, side-by-side old→new layout with SVG arrow for conflicts, and swatches for local-only/figma-only rows.
+- Added helper components: `isHexColor` (detects hex values), `DiffSwatch` (inline color swatch matching existing codebase pattern), `ValueCell` (label + optional swatch + truncated value).
+- Conflict rows now show `[Local: ■ #hex] → [Figma: ■ #hex]` instead of plain text "Local: ... vs Figma: ...".
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1168
+- **Learnings for future iterations:**
+  - The existing codebase has multiple local `ColorSwatch` implementations (ThemeCompare, ComparePanel, PasteTokensModal) — no shared one exists, so adding a local helper is the established pattern.
+  - VarDiffRow stores values as strings and types as strings; color detection works on both `$type === 'color'` and hex regex fallback since type info may be 'string' for Figma-sourced color variables.
+---

@@ -310,3 +310,16 @@ Already up to date.
 
 --- Merging: Git sync branch names not validated against flag injection ---
 Already up to date.
+[main 44a9f9d] chore(backlog): done – Git sync branch names not validated against flag injection
+ 6 files changed, 46 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - Git sync branch names not validated against flag injection
+- Added `validateBranchName()` method to `GitSync` class that rejects branch names starting with `-` (prevents flag injection like `--orphan`) and names containing control characters.
+- Called from both `checkout()` and `createBranch()` before passing names to simple-git.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L14-L24, ~L81, ~L86
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  57 items remaining
+===============================================================
+  Claimed: No in-plugin Git merge conflict resolution — `git pull` can create merge conflicts in `.tokens.json` files, but there's no conflict resolver UI; users must switch to a code editor to fix JSON conflicts
+  Worktree: /tmp/backlog-63411-ACBZh5
