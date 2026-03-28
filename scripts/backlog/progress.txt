@@ -506,3 +506,14 @@
   - Scanning only 3 levels deep is sufficient for DTCG validation — tokens are typically at depth 1-3
   - Detecting common non-token JSON files (package.json, tsconfig) by key signatures gives much better UX than generic "wrong format" messages
 ---
+
+## 2026-03-28 - Notification history for auto-dismissed toasts
+- Added persistent notification history to `useToastStack` — every push (success/error/action) appends a `NotificationEntry` with timestamp to a capped ring buffer (last 10)
+- Created `NotificationHistory.tsx` dropdown component: shows entries with icon, message, relative timestamp, and a Clear button; click-outside to dismiss
+- Added bell icon button in the panel header toolbar (between heatmap toggle and server connection indicator) with a small accent dot when history is non-empty
+- Files changed: `packages/figma-plugin/src/ui/hooks/useToastStack.ts` ~L1-67, `packages/figma-plugin/src/ui/components/NotificationHistory.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L14,329,1182-1215
+- **Learnings for future iterations:**
+  - Keep history state co-located with the toast hook to avoid prop-drilling a separate context
+  - The `addToHistory` callback must be called before `nextId.current++` happens in each push function, or use the current value — here we read `nextId.current` before incrementing so the entry ID matches the toast ID
+  - Click-outside dismiss pattern: `useEffect` with `mousedown` listener + `ref.contains()` check
+---

@@ -75,3 +75,10 @@ Already up to date.
 ===============================================================
   Claimed: Success and error toasts disappear with no way to review them — `useToastStack` auto-dismisses after ~3 s and there is no persistent notification log; users who missed a message have no way to see it again; add a small notification history accessible from a bell/clock icon in the panel header, showing the last ~10 messages with timestamps
   Worktree: /tmp/backlog-16467-K8aBWy
+
+  ✓ done: Notification history for auto-dismissed toasts
+    Added notification history (last 10 messages with timestamps) accessible via bell icon in panel header; useToastStack now logs every push to a history array; NotificationHistory dropdown shows entries with icons, messages, relative timestamps, and a clear button.
+    16 turns · 197s · $0.89
+
+--- Merging: Notification history for auto-dismissed toasts ---
+Already up to date.

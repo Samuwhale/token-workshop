@@ -97,3 +97,16 @@ Already up to date.
 
 --- Merging: ImportPanel does no upfront schema validation before importing ---
 Already up to date.
+[main f0af020] chore(backlog): done – ImportPanel does no upfront schema validation before importing
+ 6 files changed, 131 insertions(+), 8 deletions(-)
+
+## 2026-03-28 - ImportPanel does no upfront schema validation before importing
+- Added `validateDTCGStructure()` function that checks JSON structure immediately after parse, before `flattenTokenGroup`
+- Validates: must be object (not array/null/primitive), detects known non-token files (package.json, tsconfig, eslint), checks for `$value` or nested objects as DTCG indicators, reports specific errors with examples of expected format
+- Separated JSON parse error from structural validation — parse errors say "Invalid JSON", structure errors explain what's wrong and what DTCG format looks like
+
+===============================================================
+  Iteration 8  (claude)  —  1 items remaining
+===============================================================
+  Claimed: Theme coverage gaps not prominently surfaced — coverage data is fetched in `ThemeManager.tsx` but missing tokens are buried inside collapsible sections; add a summary badge on each theme option (e.g. "12 missing") visible at a glance, and a "Show missing only" filter so users can quickly identify and fill gaps without scrolling through all tokens
+  Worktree: /tmp/backlog-15394-ygTaEU

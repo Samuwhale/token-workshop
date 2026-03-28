@@ -11,6 +11,7 @@ import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { SelectionInspector } from './components/SelectionInspector';
 import { ToastStack } from './components/ToastStack';
+import { NotificationHistory } from './components/NotificationHistory';
 import { useToastStack } from './hooks/useToastStack';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmptyState } from './components/EmptyState';
@@ -325,7 +326,8 @@ export function App() {
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
   const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
-  const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast, pushAction: pushActionToast } = useToastStack();
+  const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast, pushAction: pushActionToast, history: notificationHistory, clearHistory: clearNotificationHistory } = useToastStack();
+  const [showNotificationHistory, setShowNotificationHistory] = useState(false);
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo(undoMaxHistory, setErrorToast);
   const onGeneratorError = useCallback(({ generatorId, message }: { generatorId?: string; message: string }) => {
     const label = generatorId ? `Generator "${generatorId}" failed` : 'Generator auto-run failed';
@@ -1177,6 +1179,37 @@ export function App() {
             <rect x="14" y="14" width="7" height="7" rx="1"/>
           </svg>
         </button>
+
+        {/* Notification history */}
+        <div className="relative">
+          <button
+            onClick={() => setShowNotificationHistory(v => !v)}
+            className={`relative flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
+              showNotificationHistory
+                ? 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)]'
+                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
+            }`}
+            title="Notification history"
+            aria-label="Notification history"
+            aria-haspopup="true"
+            aria-expanded={showNotificationHistory}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            {notificationHistory.length > 0 && !showNotificationHistory && (
+              <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]" aria-hidden="true" />
+            )}
+          </button>
+          {showNotificationHistory && (
+            <NotificationHistory
+              history={notificationHistory}
+              onClear={clearNotificationHistory}
+              onClose={() => setShowNotificationHistory(false)}
+            />
+          )}
+        </div>
 
         {/* Server connection indicator */}
         <button
