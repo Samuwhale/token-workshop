@@ -244,3 +244,16 @@ Already up to date.
 
 --- Merging: SelectionInspector binding failure feedback ---
 Already up to date.
+[main e7ef0f0] chore(backlog): done – SelectionInspector binding failure feedback
+ 9 files changed, 103 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - SelectionInspector binding failure feedback
+- Added round-trip confirmation for token binding: the plugin sandbox already sent `applied-to-selection` responses with `{ count, errors }`, but the UI ignored them. Now SelectionInspector listens for those responses and routes errors to the specific PropertyRow that triggered the binding. PropertyRow shows an inline dismissible error banner with the failure message (e.g., "LayerName: Cannot read properties of undefined").
+- Plugin side: added `targetProperty` to the `applied-to-selection` response so the UI can correlate errors to the correct property row.
+- UI side: added `bindingErrors` state in SelectionInspector, a `useEffect` listener for `applied-to-selection` messages, and an inline error display in PropertyRow with dismiss button.
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  40 items remaining
+===============================================================
+  Claimed: Analytics panel bulk "promote duplicates to alias" — when the duplicate-values view shows N tokens with the same raw value, add a "Promote to alias" button that creates a single canonical token and converts all duplicates to aliases pointing to it, reducing N tokens to 1+N aliases in one action
+  Worktree: /tmp/backlog-9231-TZ0mae

@@ -318,3 +318,10 @@ Already up to date.
 ===============================================================
   Claimed: SelectionInspector "apply to other layers" fast path — after binding a token to one property, show a toast with "Apply to N other selected layers with the same property" so users can bind the same token to a whole multi-selection in one click instead of repeating per layer
   Worktree: /tmp/backlog-9651-XkC840
+
+  ✓ done: SelectionInspector "apply to other layers" fast path
+    After binding a token to a single layer, an actionable toast offers to apply the same binding to N sibling layers with the same property. Plugin finds peers via findPeersForProperty, UI shows toast with Apply button via extended useToastStack, clicking applies via applyToNodes without changing selection.
+    87 turns · 626s · $4.01
+
+--- Merging: SelectionInspector "apply to other layers" fast path ---
+Already up to date.

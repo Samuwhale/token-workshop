@@ -106,7 +106,7 @@ function UndoRow({ description, onUndo, onDismiss, canUndo, canRedo, redoDescrip
 
 function MessageRow({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: number) => void }) {
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
-  const timeout = toast.variant === 'error' ? 8000 : 3000;
+  const timeout = toast.action ? 8000 : toast.variant === 'error' ? 8000 : 3000;
 
   useEffect(() => {
     timerRef.current = setTimeout(() => onDismiss(toast.id), timeout);
@@ -131,6 +131,14 @@ function MessageRow({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: nu
     >
       {iconEl}
       <span className="flex-1 min-w-0 break-words line-clamp-3">{toast.message}</span>
+      {toast.action && (
+        <button
+          onClick={() => { toast.action!.onClick(); onDismiss(toast.id); }}
+          className="shrink-0 px-2 py-0.5 rounded font-medium text-[10px] transition-colors bg-[var(--color-figma-accent)] text-white hover:brightness-110"
+        >
+          {toast.action.label}
+        </button>
+      )}
       <button
         onClick={() => onDismiss(toast.id)}
         aria-label="Dismiss"

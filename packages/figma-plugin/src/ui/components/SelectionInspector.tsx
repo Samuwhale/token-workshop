@@ -156,6 +156,8 @@ interface SelectionInspectorProps {
   onGoToTokens?: () => void;
   /** Increment to trigger create-from-first-property (Cmd+T shortcut) */
   triggerCreateToken?: number;
+  /** Push an actionable toast (with a clickable button) */
+  onPushActionToast?: (message: string, action: { label: string; onClick: () => void }) => void;
 }
 
 export function SelectionInspector({
@@ -174,6 +176,7 @@ export function SelectionInspector({
   onPushUndo,
   onGoToTokens,
   triggerCreateToken,
+  onPushActionToast,
 }: SelectionInspectorProps) {
   const [creatingFromProp, setCreatingFromProp] = useState<BindableProperty | null>(null);
   const [newTokenName, setNewTokenName] = useState('');
@@ -421,6 +424,46 @@ export function SelectionInspector({
           return prev;
         });
       }, 300);
+    }
+
+    // "Apply to peers" fast path: for single-layer selection, check if sibling
+    // layers support the same property and offer to apply the binding in one click
+    if (rootNodes.length === 1 && onPushActionToast) {
+      const nodeId = rootNodes[0].id;
+      parent.postMessage({
+        pluginMessage: { type: 'find-peers-for-property', nodeId, property: prop },
+      }, '*');
+
+      // One-shot listener for the response
+      const handler = (event: MessageEvent) => {
+        const msg = event.data?.pluginMessage;
+        if (msg?.type !== 'peers-for-property-result' || msg.property !== prop) return;
+        window.removeEventListener('message', handler);
+        const peerIds: string[] = msg.nodeIds;
+        if (peerIds.length === 0) return;
+        const propLabel = PROPERTY_LABELS[prop] || prop;
+        onPushActionToast(
+          `Apply ${propLabel} to ${peerIds.length} sibling layer${peerIds.length !== 1 ? 's' : ''}?`,
+          {
+            label: 'Apply',
+            onClick: () => {
+              parent.postMessage({
+                pluginMessage: {
+                  type: 'apply-to-nodes',
+                  nodeIds: peerIds,
+                  tokenPath,
+                  tokenType: entry.$type,
+                  targetProperty: prop,
+                  resolvedValue: resolved.value,
+                },
+              }, '*');
+            },
+          },
+        );
+      };
+      window.addEventListener('message', handler);
+      // Clean up listener after 5s if no response
+      setTimeout(() => window.removeEventListener('message', handler), 5000);
     }
   };
 

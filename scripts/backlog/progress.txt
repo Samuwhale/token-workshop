@@ -403,3 +403,18 @@
   - `figma.ui.postMessage` from the sandbox arrives in the UI as `event.data.pluginMessage` (no wrapper needed on the plugin side, but needs unwrapping on the UI side)
   - Errors are cleared when selection changes to avoid stale error messages persisting across different layers
 ---
+
+## 2026-03-28 - SelectionInspector "apply to other layers" fast path
+- After binding a token to a property on a single-layer selection, the plugin now checks for sibling layers (same parent) that support the same property and don't already have it bound. If peers are found, an actionable toast appears: "Apply [property] to N sibling layers?" with an "Apply" button.
+- Plugin side: Added `findPeersForProperty(nodeId, property)` and `applyToNodes(nodeIds, tokenPath, tokenType, targetProperty, resolvedValue)` to `selectionHandling.ts`. `findPeersForProperty` uses `nodeSupportsProperty()` helper to check capability per property type. `applyToNodes` applies to specific node IDs without changing the Figma selection.
+- Plugin side: Added `find-peers-for-property` and `apply-to-nodes` message handlers to `controller.ts`.
+- Shared types: Added `FindPeersForPropertyMessage` and `ApplyToNodesMessage` to the `PluginMessage` union.
+- UI toast system: Extended `ToastItem` with optional `action: { label, onClick }` and added `pushAction` method to `useToastStack`. `MessageRow` in `ToastStack.tsx` renders an accent-colored action button when present, with 8s auto-dismiss timeout for action toasts.
+- UI SelectionInspector: After `handleBindToken` on single-layer selection, sends `find-peers-for-property` message. A one-shot message listener receives the peer IDs and shows the actionable toast via new `onPushActionToast` prop. Clicking "Apply" sends `apply-to-nodes` to the plugin.
+- App.tsx: Destructured `pushAction` from `useToastStack`, passed as `onPushActionToast` to `SelectionInspector`.
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L876-960, `packages/figma-plugin/src/plugin/controller.ts` ~L7,L122-126, `packages/figma-plugin/src/shared/types.ts` ~L363-378,L412-413, `packages/figma-plugin/src/ui/hooks/useToastStack.ts` ~L3-8,L36-40, `packages/figma-plugin/src/ui/components/ToastStack.tsx` ~L107-113,L130-137, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L155,L175,L401-440, `packages/figma-plugin/src/ui/App.tsx` ~L330,L2326
+- **Learnings for future iterations:**
+  - `figma.getNodeById()` (sync) works fine for sibling lookups since parent/children are always loaded; `getNodeByIdAsync` is needed only for cross-page lookups
+  - Action toasts need longer auto-dismiss (8s vs 3s) since the user needs time to read and decide
+  - One-shot message listeners with a cleanup timeout prevent memory leaks from orphaned listeners
+---

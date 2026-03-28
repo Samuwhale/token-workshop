@@ -327,7 +327,7 @@ export function App() {
   const [clearing, setClearing] = useState(false);
   const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo(undoMaxHistory);
-  const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast } = useToastStack();
+  const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast, pushAction: pushActionToast } = useToastStack();
   const onGeneratorError = useCallback(({ generatorId, message }: { generatorId?: string; message: string }) => {
     const label = generatorId ? `Generator "${generatorId}" failed` : 'Generator auto-run failed';
     setErrorToast(`${label}: ${message}`);
@@ -2322,6 +2322,7 @@ export function App() {
               onPushUndo={pushUndo}
               onGoToTokens={() => navigateTo('define', 'tokens')}
               triggerCreateToken={triggerCreateToken}
+              onPushActionToast={pushActionToast}
             />
             </ErrorBoundary>
           )}

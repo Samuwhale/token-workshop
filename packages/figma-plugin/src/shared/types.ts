@@ -360,6 +360,23 @@ export interface ExtractedTokensMessage {
   tokens: ExtractedTokenEntry[];
 }
 
+// --- Apply to peer layers ---
+
+export interface FindPeersForPropertyMessage {
+  type: 'find-peers-for-property';
+  nodeId: string;
+  property: string;
+}
+
+export interface ApplyToNodesMessage {
+  type: 'apply-to-nodes';
+  nodeIds: string[];
+  tokenPath: string;
+  tokenType: string;
+  targetProperty: string;
+  resolvedValue: any;
+}
+
 // --- Consistency scanner ---
 
 export interface ScanConsistencyMessage {
@@ -404,4 +421,6 @@ export type PluginMessage =
   | ExtractTokensFromSelectionMessage
   | SelectNextSiblingMessage
   | ScanConsistencyMessage
-  | GetAvailableFontsMessage;
+  | GetAvailableFontsMessage
+  | FindPeersForPropertyMessage
+  | ApplyToNodesMessage;

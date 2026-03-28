@@ -1,9 +1,15 @@
 import { useState, useCallback, useRef } from 'react';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface ToastItem {
   id: number;
   message: string;
   variant: 'success' | 'error';
+  action?: ToastAction;
 }
 
 export function useToastStack() {
@@ -24,5 +30,11 @@ export function useToastStack() {
     setToasts(prev => [...prev, { id, message, variant: 'error' }]);
   }, []);
 
-  return { toasts, dismiss, pushSuccess, pushError };
+  const pushAction = useCallback((message: string, action: ToastAction) => {
+    const id = nextId.current++;
+    setToasts(prev => [...prev, { id, message, variant: 'success', action }]);
+    return id;
+  }, []);
+
+  return { toasts, dismiss, pushSuccess, pushError, pushAction };
 }

@@ -872,3 +872,89 @@ export function searchLayers(query: string) {
 
   figma.ui.postMessage({ type: 'search-layers-result', results });
 }
+
+// Check if a node supports a given bindable property
+function nodeSupportsProperty(node: SceneNode, property: string): boolean {
+  switch (property) {
+    case 'fill': return 'fills' in node;
+    case 'stroke': return 'strokes' in node;
+    case 'width': case 'height': return 'resize' in node;
+    case 'paddingTop': case 'paddingRight': case 'paddingBottom': case 'paddingLeft':
+    case 'itemSpacing': return 'paddingTop' in node;
+    case 'cornerRadius': return 'cornerRadius' in node;
+    case 'strokeWeight': return 'strokeWeight' in node;
+    case 'opacity': return 'opacity' in node;
+    case 'typography': return node.type === 'TEXT';
+    case 'shadow': return 'effects' in node;
+    case 'visible': return 'visible' in node;
+    default: return false;
+  }
+}
+
+// Find sibling layers (same parent) that support the given property and don't already have it bound
+export function findPeersForProperty(nodeId: string, property: string) {
+  let sourceNode: BaseNode | null = null;
+  try {
+    sourceNode = figma.getNodeById(nodeId);
+  } catch {
+    figma.ui.postMessage({ type: 'peers-for-property-result', nodeIds: [], property });
+    return;
+  }
+  if (!sourceNode || !('parent' in sourceNode) || !sourceNode.parent) {
+    figma.ui.postMessage({ type: 'peers-for-property-result', nodeIds: [], property });
+    return;
+  }
+
+  const parent = sourceNode.parent;
+  if (!('children' in parent)) {
+    figma.ui.postMessage({ type: 'peers-for-property-result', nodeIds: [], property });
+    return;
+  }
+
+  const peerIds: string[] = [];
+  for (const child of (parent as ChildrenMixin).children) {
+    if (child.id === nodeId) continue;
+    if (!nodeSupportsProperty(child as SceneNode, property)) continue;
+    // Skip if already bound to this property
+    const existing = child.getSharedPluginData(PLUGIN_DATA_NAMESPACE, property);
+    if (existing) continue;
+    peerIds.push(child.id);
+  }
+
+  figma.ui.postMessage({ type: 'peers-for-property-result', nodeIds: peerIds, property });
+}
+
+// Apply a token binding to specific nodes by ID (without changing the current selection)
+export async function applyToNodes(
+  nodeIds: string[],
+  tokenPath: string,
+  tokenType: string,
+  targetProperty: string,
+  resolvedValue: any,
+) {
+  let applied = 0;
+  const errors: string[] = [];
+
+  for (const id of nodeIds) {
+    try {
+      const node = await figma.getNodeByIdAsync(id);
+      if (!node || !('parent' in node)) continue;
+      const sceneNode = node as SceneNode;
+      await applyTokenValue(sceneNode, targetProperty, resolvedValue, tokenType);
+      sceneNode.setSharedPluginData(PLUGIN_DATA_NAMESPACE, targetProperty, tokenPath);
+      applied++;
+    } catch (err) {
+      errors.push(getErrorMessage(err));
+    }
+  }
+
+  if (applied > 0) {
+    figma.notify(`Applied ${tokenPath} to ${applied} additional layer${applied !== 1 ? 's' : ''}`);
+  } else if (errors.length > 0) {
+    figma.notify(`Failed to apply: ${errors[0]}`, { error: true });
+  }
+
+  figma.ui.postMessage({ type: 'applied-to-nodes', count: applied, errors });
+  // Refresh selection so bindings show correctly
+  await getSelection(false);
+}

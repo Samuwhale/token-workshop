@@ -4,7 +4,7 @@ import type { PluginMessage } from '../shared/types.js';
 import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables } from './variableSync.js';
 import { applyStyles, readFigmaStyles } from './styleSync.js';
 import { getAvailableFontFamilies, invalidateFontCache } from './fontLoading.js';
-import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers } from './selectionHandling.js';
+import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes } from './selectionHandling.js';
 import { scanComponentCoverage, selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 import { scanConsistency } from './consistencyScanner.js';
 
@@ -119,6 +119,12 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'search-layers':
       searchLayers(msg.query);
+      break;
+    case 'find-peers-for-property':
+      findPeersForProperty(msg.nodeId, msg.property);
+      break;
+    case 'apply-to-nodes':
+      await applyToNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
       break;
     case 'get-available-fonts': {
       invalidateFontCache();
