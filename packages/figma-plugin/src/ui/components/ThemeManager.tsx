@@ -2,7 +2,7 @@ import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
-import { ConfirmModal } from './ConfirmModal';
+import type { UndoSlot } from '../hooks/useUndo';
 
 const STATE_LABELS: Record<string, string> = {
   disabled: 'Not included',
@@ -22,6 +22,7 @@ interface ThemeManagerProps {
   sets: string[];
   onDimensionsChange?: (dimensions: ThemeDimension[]) => void;
   onNavigateToToken?: (set: string, tokenPath: string) => void;
+  onPushUndo?: (slot: UndoSlot) => void;
 }
 
 type CoverageToken = { path: string; set: string };
@@ -36,7 +37,7 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onPushUndo }: ThemeManagerProps) {
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
 
   useEffect(() => { onDimensionsChange?.(dimensions); }, [dimensions, onDimensionsChange]);
@@ -59,8 +60,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [renameOptionValue, setRenameOptionValue] = useState('');
   const [renameOptionError, setRenameOptionError] = useState<string | null>(null);
 
-  // Delete confirm
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'dimension'; id: string } | { type: 'option'; dimId: string; optionName: string } | null>(null);
+  // (delete confirm removed — deletes are immediate with undo toast)
 
   // Add option per dimension
   const [newOptionNames, setNewOptionNames] = useState<Record<string, string>>({});
@@ -362,6 +362,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // --- Delete dimension ---
 
   const executeDeleteDimension = async (id: string) => {
+    // Snapshot the full dimension (with all options) for undo
+    const snapshot = dimensions.find(d => d.id === id);
+    if (!snapshot) return;
+    const savedDim = JSON.parse(JSON.stringify(snapshot)) as ThemeDimension;
     try {
       const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(id)}`, { method: 'DELETE' });
       if (!res.ok) {
@@ -371,6 +375,36 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       }
       setDimensions(prev => prev.filter(d => d.id !== id));
       debouncedFetchDimensions();
+
+      // Push undo slot to recreate the dimension + all its options
+      onPushUndo?.({
+        description: `Deleted layer "${savedDim.name}"`,
+        restore: async () => {
+          // Recreate the dimension
+          const createRes = await fetch(`${serverUrl}/api/themes/dimensions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: savedDim.id, name: savedDim.name }),
+          });
+          if (!createRes.ok) {
+            const d = await createRes.json().catch(() => ({}));
+            setError(d.error || 'Failed to undo: could not recreate layer');
+            return;
+          }
+          // Recreate each option
+          for (const opt of savedDim.options) {
+            const optRes = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(savedDim.id)}/options`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name: opt.name, sets: opt.sets }),
+            });
+            if (!optRes.ok) {
+              setError(`Undo restored layer but failed to restore option "${opt.name}"`);
+            }
+          }
+          fetchDimensions();
+        },
+      });
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to delete dimension'));
     }
@@ -479,6 +513,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // --- Delete option ---
 
   const executeDeleteOption = async (dimId: string, optionName: string) => {
+    // Snapshot the option for undo
+    const dim = dimensions.find(d => d.id === dimId);
+    const snapshot = dim?.options.find(o => o.name === optionName);
+    if (!snapshot) return;
+    const savedOpt = JSON.parse(JSON.stringify(snapshot)) as ThemeOption;
+    const dimName = dim!.name;
     try {
       const res = await fetch(
         `${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options/${encodeURIComponent(optionName)}`,
@@ -493,6 +533,24 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         d.id === dimId ? { ...d, options: d.options.filter(o => o.name !== optionName) } : d,
       ));
       debouncedFetchDimensions();
+
+      // Push undo slot to recreate the option
+      onPushUndo?.({
+        description: `Deleted option "${optionName}" from "${dimName}"`,
+        restore: async () => {
+          const optRes = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: savedOpt.name, sets: savedOpt.sets }),
+          });
+          if (!optRes.ok) {
+            const d = await optRes.json().catch(() => ({}));
+            setError(d.error || 'Failed to undo: could not recreate option');
+            return;
+          }
+          fetchDimensions();
+        },
+      });
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to delete option'));
     }
@@ -904,7 +962,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             </button>
                           </div>
                           <button
-                            onClick={() => setDeleteConfirm({ type: 'dimension', id: dim.id })}
+                            onClick={() => executeDeleteDimension(dim.id)}
                             className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100"
                             title="Delete layer" aria-label="Delete layer"
                           >
@@ -1042,7 +1100,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                     <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
                                   </svg>
                                 </button>
-                                <button onClick={() => setDeleteConfirm({ type: 'option', dimId: dim.id, optionName: opt.name })} className="p-1.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)]" title="Delete option" aria-label="Delete option">
+                                <button onClick={() => executeDeleteOption(dim.id, opt.name)} className="p-1.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)]" title="Delete option" aria-label="Delete option">
                                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                                   </svg>
@@ -1308,27 +1366,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         </div>
       )}
 
-      {/* Delete confirm modal */}
-      {deleteConfirm && (
-        <ConfirmModal
-          title={deleteConfirm.type === 'dimension' ? 'Delete layer?' : 'Delete option?'}
-          message={
-            deleteConfirm.type === 'dimension'
-              ? `Delete layer "${dimensions.find(d => d.id === deleteConfirm.id)?.name}"? All its options will also be deleted.`
-              : `Delete option "${deleteConfirm.optionName}" from "${dimensions.find(d => d.id === deleteConfirm.dimId)?.name}"?`
-          }
-          confirmLabel="Delete"
-          onConfirm={() => {
-            if (deleteConfirm.type === 'dimension') {
-              executeDeleteDimension(deleteConfirm.id);
-            } else {
-              executeDeleteOption(deleteConfirm.dimId, deleteConfirm.optionName);
-            }
-            setDeleteConfirm(null);
-          }}
-          onCancel={() => setDeleteConfirm(null)}
-        />
-      )}
     </div>
   );
 }

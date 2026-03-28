@@ -102,3 +102,10 @@ Already up to date.
 ===============================================================
   Claimed: [HIGH] ThemeManager dimension/option deletes have no undo — deleting a dimension or option is immediate and permanent with no undo toast or confirmation; users can accidentally destroy an entire theme axis and have no recovery path short of git revert
   Worktree: /tmp/backlog-77155-glLpkV
+
+  ✓ done: ThemeManager dimension/option deletes have no undo
+    Replaced confirmation modal with immediate delete + undo toast. Dimension deletes snapshot the full dimension (with all options) and recreate via POST on undo; option deletes snapshot the option's sets config and recreate similarly. Wired through existing useUndo/UndoToast infrastructure via new onPushUndo prop.
+    33 turns · 214s · $1.24
+
+--- Merging: ThemeManager dimension/option deletes have no undo ---
+Already up to date.

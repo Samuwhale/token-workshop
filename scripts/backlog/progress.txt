@@ -625,3 +625,16 @@
   - `availableTypes` (computed from current set's tokens) is better than a hardcoded type list for suggestions since it only offers types that actually exist in the dataset
   - The existing create-token flow via `onCreateNew` / `setNewTokenGroup+setNewTokenName+setShowCreateForm` already handled path splitting; the smart suggestions preserved this exact logic
 ---
+
+## 2026-03-28 - ThemeManager dimension/option deletes have no undo
+- Replaced confirmation modal with immediate delete + undo via the existing `useUndo` / `UndoToast` infrastructure
+- Added `onPushUndo` prop to `ThemeManager`; App.tsx passes `pushUndo` to it
+- `executeDeleteDimension` now snapshots the full dimension (with all options) before deleting, then pushes an undo slot that recreates the dimension + each option via POST
+- `executeDeleteOption` snapshots the option's `sets` config, then pushes an undo slot that recreates the option via POST
+- Removed `deleteConfirm` state and `ConfirmModal` import — delete buttons now call the execute functions directly
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L5,20,40,63,364,481,965,1103,1370; `packages/figma-plugin/src/ui/App.tsx` ~L2312
+- **Learnings for future iterations:**
+  - The `useUndo` hook + `UndoToast` combo is managed in App.tsx and shared via props — components don't need their own undo state, just an `onPushUndo` callback
+  - For undo of deletes, snapshot the full object (deep clone via JSON round-trip) before the DELETE call, then recreate via POST in the restore callback
+  - `fetchDimensions()` (non-debounced) should be called in restore callbacks to get authoritative server state immediately after undo
+---

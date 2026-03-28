@@ -705,7 +705,7 @@ echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iteratio
 drain_inbox
 
 echo "  Remaining items: $(remaining)"
-echo "  Completed total: $CURRENT_COUNT (next ${NEXT_PASS_TYPE} pass in $NEXT_PASS_IN items)"
+echo "  Completed total: $CURRENT_COUNT (next code pass in $NEXT_CODE_PASS_IN items)"
 echo "  Stop signal:     Ctrl+C  (or: touch $STOP_FILE)"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
@@ -724,12 +724,13 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     if [[ "$REMAINING" -gt 0 ]]; then
       echo "  Inbox drain recovered $REMAINING items — continuing."
     else
-      # Force a discovery pass regardless of counter parity
+      # Backlog complete — run both product and code passes to restock
       if [[ "$TOOL" == "claude" ]] && try_pass_lock; then
         echo $$ > "$PASS_LOCKDIR/pid"
-        TOTAL_DONE=$(get_completed_count)
-        PASS_TYPE=$( _pass_type_for_count "$TOTAL_DONE" )
-        run_special_pass "$PASS_TYPE"
+        run_special_pass "product"
+        drain_inbox
+        REMAINING=$(remaining)
+        run_special_pass "code"
         rm -rf "$PASS_LOCKDIR"
         drain_inbox
         REMAINING=$(remaining)
@@ -865,16 +866,15 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
       # Milestone maintenance passes (skip if stop was requested)
       TOTAL_DONE=$(increment_completed_count)
-      if [ $((TOTAL_DONE % 2)) -eq 0 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
+      if [ $((TOTAL_DONE % 8)) -eq 0 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
         cleanup_if_needed
         # Non-blocking pass lock: if another runner is already running a pass, skip
         if try_pass_lock; then
           echo $$ > "$PASS_LOCKDIR/pid"
-          PASS_TYPE=$( _pass_type_for_count "$TOTAL_DONE" )
-          run_special_pass "$PASS_TYPE"
+          run_special_pass "code"
           rm -rf "$PASS_LOCKDIR"
         else
-          echo "  (maintenance pass skipped — another runner is handling it)"
+          echo "  (code pass skipped — another runner is handling it)"
         fi
       fi
       ;;
