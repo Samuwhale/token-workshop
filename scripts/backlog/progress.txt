@@ -494,3 +494,15 @@
 - **Learnings for future iterations:**
   - When one rename handler has validation and a sibling doesn't, check all rename handlers for parity
 ---
+
+## 2026-03-28 - ImportPanel does no upfront schema validation before importing
+- Added `validateDTCGStructure()` function that checks JSON structure immediately after parse, before `flattenTokenGroup`
+- Validates: must be object (not array/null/primitive), detects known non-token files (package.json, tsconfig, eslint), checks for `$value` or nested objects as DTCG indicators, reports specific errors with examples of expected format
+- Separated JSON parse error from structural validation — parse errors say "Invalid JSON", structure errors explain what's wrong and what DTCG format looks like
+- Also added `detectKnownNonTokenFile()` for friendly messages when user uploads package.json etc.
+- Improved the empty-result message to be more specific about what was missing
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L58-117 (validation functions), ~L130-185 (processJsonFile rewrite)
+- **Learnings for future iterations:**
+  - Scanning only 3 levels deep is sufficient for DTCG validation — tokens are typically at depth 1-3
+  - Detecting common non-token JSON files (package.json, tsconfig) by key signatures gives much better UX than generic "wrong format" messages
+---

@@ -95,3 +95,16 @@ Already up to date.
 
 --- Merging: Theme dimension rename does not validate against existing names ---
 Already up to date.
+[main 66bd7bf] chore(backlog): done – Theme dimension rename does not validate against existing names
+ 6 files changed, 37 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - Theme dimension rename does not validate against existing names
+- Added client-side duplicate name check in `executeRenameDim()` before the server request
+- Mirrors the existing pattern already used by `executeRenameOption()` (line 384)
+- Shows inline error `Dimension "<name>" already exists` via the existing `renameError` state
+
+===============================================================
+  Iteration 7  (claude)  —  2 items remaining
+===============================================================
+  Claimed: WCAG contrast ratio not shown inline in color picker — `ContrastChecker.tsx` exists as a separate panel but there is no live contrast feedback while the user is picking a color; add a small contrast badge (AA/AAA/Fail) inside the color picker that updates in real-time against a configurable background swatch, making it actionable where the decision is being made
+  Worktree: /tmp/backlog-15773-zsaWXz

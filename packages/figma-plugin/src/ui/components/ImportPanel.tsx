@@ -56,6 +56,73 @@ function modeKey(collectionName: string, modeId: string) {
   return `${collectionName}|${modeId}`;
 }
 
+/** Known non-token JSON files that users commonly try to import by mistake. */
+function detectKnownNonTokenFile(obj: Record<string, unknown>): string | null {
+  if ('name' in obj && 'version' in obj && ('dependencies' in obj || 'devDependencies' in obj)) {
+    return 'This looks like a package.json file, not a design token file.';
+  }
+  if ('compilerOptions' in obj || ('include' in obj && 'compilerOptions' in obj)) {
+    return 'This looks like a tsconfig.json file, not a design token file.';
+  }
+  if ('eslintConfig' in obj || ('rules' in obj && 'env' in obj)) {
+    return 'This looks like an ESLint config file, not a design token file.';
+  }
+  return null;
+}
+
+/**
+ * Validate that a parsed JSON object has DTCG-compatible structure.
+ * Returns an error string if invalid, or null if it looks valid.
+ *
+ * A valid DTCG file has nested groups where leaf tokens contain `$value`.
+ * We walk up to 3 levels deep looking for evidence of DTCG structure.
+ */
+function validateDTCGStructure(obj: Record<string, unknown>): string | null {
+  const knownFile = detectKnownNonTokenFile(obj);
+  if (knownFile) {
+    return `${knownFile} DTCG token files contain objects with $type and $value fields.`;
+  }
+
+  // Walk the tree looking for $value (token indicator) or nested objects (group indicator)
+  let hasNestedObjects = false;
+  let hasDollarValue = false;
+  let hasPlainValues = false;
+  const topKeys: string[] = [];
+
+  function scan(node: Record<string, unknown>, depth: number): void {
+    if (depth > 3) return; // don't go too deep for validation
+    for (const [key, val] of Object.entries(node)) {
+      if (key.startsWith('$')) {
+        if (key === '$value') hasDollarValue = true;
+        continue; // skip DTCG meta keys
+      }
+      if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+        hasNestedObjects = true;
+        scan(val as Record<string, unknown>, depth + 1);
+      } else {
+        hasPlainValues = true;
+        if (depth === 0) topKeys.push(key);
+      }
+    }
+  }
+
+  scan(obj, 0);
+
+  if (hasDollarValue || hasNestedObjects) {
+    // Looks plausibly like DTCG — let flattenTokenGroup handle the rest
+    return null;
+  }
+
+  // No nested objects and no $value — definitely not DTCG
+  if (hasPlainValues) {
+    const sample = topKeys.slice(0, 3).map(k => `"${k}"`).join(', ');
+    return `This JSON file doesn't appear to be in DTCG format. Found flat key-value pairs (${sample}${topKeys.length > 3 ? ', …' : ''}) but no token objects with $value fields. Expected a nested structure like: { "group": { "token": { "$type": "color", "$value": "#fff" } } }`;
+  }
+
+  // Empty object
+  return 'The JSON file is empty — no tokens to import.';
+}
+
 export function ImportPanel({ serverUrl, connected, onImported, onImportComplete }: ImportPanelProps) {
   // Variables import state
   const [collectionData, setCollectionData] = useState<CollectionData[]>([]);
@@ -288,15 +355,40 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const json = JSON.parse(reader.result as string);
-        const group = json.tokens ?? json;
+        const raw = reader.result as string;
+        let json: unknown;
+        try {
+          json = JSON.parse(raw);
+        } catch (syntaxErr) {
+          const detail = syntaxErr instanceof SyntaxError ? syntaxErr.message : String(syntaxErr);
+          setError(`Invalid JSON: ${detail}`);
+          return;
+        }
+
+        // Must be a plain object (not array, null, string, etc.)
+        if (json === null || typeof json !== 'object' || Array.isArray(json)) {
+          const actual = json === null ? 'null' : Array.isArray(json) ? 'an array' : `a ${typeof json}`;
+          setError(`Invalid token file: expected a JSON object but got ${actual}. DTCG token files must be a JSON object with nested groups or tokens containing $type and $value fields.`);
+          return;
+        }
+
+        const root = json as Record<string, unknown>;
+        const group = (root.tokens ?? root) as Record<string, unknown>;
+
+        // Validate structure: look for DTCG token indicators ($value/$type) or nested groups
+        const validationError = validateDTCGStructure(group);
+        if (validationError) {
+          setError(validationError);
+          return;
+        }
+
         const flat = flattenTokenGroup(group);
         const importTokens: ImportToken[] = [];
         for (const [path, token] of flat) {
           importTokens.push({ path, $type: token.$type ?? 'unknown', $value: token.$value });
         }
         if (importTokens.length === 0) {
-          setError('No tokens found in file. Make sure it is a valid DTCG JSON file.');
+          setError('No tokens found in file. The file appears to be valid JSON but contains no DTCG tokens (objects with $value fields).');
           return;
         }
         const markedImportTokens = markDuplicatePaths(importTokens);
@@ -310,8 +402,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         existingPathsCacheRef.current = null;
         setExistingTokenMap(null);
       } catch (err) {
-        const detail = err instanceof SyntaxError ? err.message : String(err);
-        setError(`Could not parse JSON file: ${detail}`);
+        setError(`Failed to process token file: ${getErrorMessage(err)}`);
       }
     };
     reader.onerror = () => {

@@ -90,3 +90,10 @@ Already up to date.
 ===============================================================
   Claimed: ImportPanel does no upfront schema validation before importing — user can upload invalid JSON or wrong-format files and the error only surfaces mid-import with a generic message; validate the file structure (check for `$type`/`$value` fields or known nesting format) immediately after file selection and show a clear error before the user clicks Import
   Worktree: /tmp/backlog-15394-hSeO31
+
+  ✓ done: ImportPanel does no upfront schema validation before importing
+    Added validateDTCGStructure() with known-file detection (package.json, tsconfig, eslint), type checks (rejects arrays/nulls/primitives), and DTCG structure scanning ($value/nested-object indicators) — all with specific error messages showing expected format. Validation runs immediately after JSON parse, before flattenTokenGroup.
+    13 turns · 141s · $0.61
+
+--- Merging: ImportPanel does no upfront schema validation before importing ---
+Already up to date.
