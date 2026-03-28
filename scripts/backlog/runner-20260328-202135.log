@@ -82,3 +82,16 @@ Already up to date.
 
 --- Merging: Missing ASSET token type validation in core validator.ts ---
 Already up to date.
+[main 988daa3] chore(backlog): done – Missing ASSET token type validation in core validator.ts
+ 7 files changed, 50 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - Missing ASSET token type validation in core validator.ts
+- Added `case TOKEN_TYPES.ASSET` to the validator switch statement, requiring the value to be a string (URI or data-URI). Previously, asset tokens fell through to the `default` case and were silently accepted regardless of value shape.
+- Added tests for valid asset values (URLs, data URIs, relative paths) and invalid values (number, boolean, object).
+- Files changed: `packages/core/src/validator.ts` ~L200 (new case), `packages/core/src/__tests__/validator.test.ts` ~L404 (new test block)
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  59 items remaining
+===============================================================
+  Claimed: ImportPanel conflict resolution has no search or filter — when importing 50+ tokens with conflicts, users must scroll through every conflict row; add a search field and type/status filter (new/overwrite/skip) to the conflict list so users can quickly find and resolve specific conflicts
+  Worktree: /tmp/backlog-9231-63y7aW

@@ -15,6 +15,8 @@ import { ColorPicker } from './ColorPicker';
 import { getQuickBindTargets } from './selectionInspectorUtils';
 import { useTokenTree } from './TokenTreeContext';
 import { ComplexTypePreviewCard, COMPLEX_PREVIEW_TYPES } from './ComplexTypePreviewCard';
+import { useNearbyTokenMatch } from '../hooks/useNearbyTokenMatch';
+import { TokenNudge } from './TokenNudge';
 
 // ---------------------------------------------------------------------------
 // MultiModeCell — compact inline-editable value cell for a single theme option
@@ -151,6 +153,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   const [inlineEditActive, setInlineEditActive] = useState(false);
   const [inlineEditValue, setInlineEditValue] = useState('');
   const inlineEditEscapedRef = useRef(false);
+  const [inlineNudgeVisible, setInlineNudgeVisible] = useState(false);
   const [quickBound, setQuickBound] = useState<string | null>(null);
   const [pickerProps, setPickerProps] = useState<BindableProperty[] | null>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
@@ -268,6 +271,12 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   const canInlineEdit = !node.isGroup && !isAlias(node.$value) && !!node.$type
     && INLINE_SIMPLE_TYPES.has(node.$type) && !!onInlineSave;
 
+  // Nearby token match for inline editing nudge
+  const nearbyMatches = useNearbyTokenMatch(
+    node.$value, node.$type || '', allTokensFlat, node.path,
+    !node.isGroup && !isAlias(node.$value) && inlineNudgeVisible,
+  );
+
   const handleInlineSubmit = useCallback(() => {
     if (!inlineEditActive) return;
     const raw = inlineEditValue.trim();
@@ -276,6 +285,8 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     if (parsed === null) return; // invalid value — keep editor open
     setInlineEditActive(false);
     onInlineSave?.(node.path, node.$type!, parsed);
+    // Show nudge after saving a raw value — matches will be computed by the hook
+    setInlineNudgeVisible(true);
   }, [inlineEditActive, inlineEditValue, node, onInlineSave]);
 
   // Stepper helpers for number/dimension/fontWeight/duration inline editing
@@ -877,6 +888,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     } else {
       setInlineEditValue(getEditableString(node.$type, node.$value));
       setInlineEditActive(true);
+      setInlineNudgeVisible(false);
     }
   }, [canInlineEdit, node, onInlineSave]);
 
@@ -1298,6 +1310,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             e.stopPropagation();
             setInlineEditValue(getEditableString(node.$type, node.$value));
             setInlineEditActive(true);
+            setInlineNudgeVisible(false);
           }}
         >
           {highlightMatch(formatValue(node.$type, displayValue), searchHighlight?.valueTerms ?? [])}
@@ -1716,6 +1729,24 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         </div>
       )}
     </div>
+
+    {/* Inline nudge — shown after saving a raw value that closely matches an existing token */}
+    {inlineNudgeVisible && nearbyMatches.length > 0 && (
+      <div
+        className="flex items-center border-t border-[var(--color-figma-border)]"
+        style={{ paddingLeft: `${depth * 16 + 12}px` }}
+      >
+        <TokenNudge
+          matches={nearbyMatches}
+          tokenType={node.$type || ''}
+          onAccept={(path) => {
+            setInlineNudgeVisible(false);
+            onInlineSave?.(node.path, node.$type!, `{${path}}`);
+          }}
+          onDismiss={() => setInlineNudgeVisible(false)}
+        />
+      </div>
+    )}
 
     {/* Resolution chain debugger — shows full alias/theme resolution pipeline */}
     {resolutionSteps && resolutionSteps.length >= 2 && chainExpanded && (

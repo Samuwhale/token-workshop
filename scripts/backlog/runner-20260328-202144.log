@@ -83,3 +83,10 @@ Already up to date.
 ===============================================================
   Claimed: "Did you mean this token?" nudge: when a designer pastes/eyedrops a raw value that's within a small delta of an existing token, suggest the token inline — make the systemized path easier than the unsystemized path
   Worktree: /tmp/backlog-10054-ntz9GD
+
+  ✓ done: "Did you mean this token?" nudge
+    Added perceptual nearby-token matching (ΔE for colors, numeric proximity for dimensions/numbers) in both TokenEditor drawer and inline tree editing, replacing the old exact-match-only alias suggestion with a richer "Did you mean?" nudge UI showing up to 3 candidates with distance labels.
+    61 turns · 560s · $3.66
+
+--- Merging: "Did you mean this token?" nudge ---
+Already up to date.

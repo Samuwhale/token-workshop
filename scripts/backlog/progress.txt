@@ -389,3 +389,17 @@
 - **Learnings for future iterations:**
   - The validator switch uses `TOKEN_TYPES.*` constants from constants.ts — always check that new types in constants have a corresponding case
 ---
+
+## 2026-03-28 - "Did you mean this token?" nudge
+- Implemented a "Did you mean this token?" nudge that suggests existing tokens when a raw value is entered that closely matches an existing token's resolved value. Works in two surfaces: the TokenEditor drawer (replaces the old exact-match-only alias suggestion) and inline editing in the token tree (shows a nudge row after saving a raw value).
+- Created `useNearbyTokenMatch` hook that finds tokens within perceptual distance thresholds: ΔE < 5 for colors (using CIELAB), ≤2px or ≤10% for dimensions (same unit), ≤5% for numbers. Debounced at 150ms. Returns top 3 matches sorted by distance with "Exact" (<1 ΔE / 0 diff) or "Close" labels.
+- Created `TokenNudge` component with single-match and multi-match layouts: accent-colored dashed border, color swatches for color tokens, ΔE distance display, accept/dismiss buttons.
+- TokenEditor integration: replaced the `aliasSuggestion` useMemo (exact string match only) with `useNearbyTokenMatch` + `TokenNudge`. Accepting switches to alias mode with `{path}` reference.
+- TokenTreeNode integration: after inline save, enables `useNearbyTokenMatch` which shows a nudge row below the token. Accepting re-saves the value as an alias reference `{path}`. Nudge dismisses on new edit or explicit dismiss.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useNearbyTokenMatch.ts` (new), `packages/figma-plugin/src/ui/components/TokenNudge.tsx` (new), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L22-23 (imports), ~L558-574 (replaced aliasSuggestion with hook), ~L1093-1107 (replaced button with TokenNudge), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L17-18 (imports), ~L153 (inlineNudgeVisible state), ~L271-280 (hook call + handleInlineSubmit nudge trigger), ~L890,1314 (dismiss nudge on new edit), ~L1731-1745 (nudge row render)
+- **Learnings for future iterations:**
+  - The existing `aliasSuggestion` only did exact string comparison — upgrading to perceptual matching (ΔE for colors) is a much better UX for the "did you mean" use case
+  - `colorDeltaE` from `colorUtils.ts` is the right function for perceptual color matching; `colorSimilarity` in `selectionInspectorUtils` uses RGB space and is less accurate
+  - For inline tree editing nudges, showing a row below the token is better than a floating tooltip — it's stable, doesn't require portal rendering, and works with virtual scroll
+  - The hook must be enabled/disabled conditionally (not just return early) to avoid hook call count changes — using the `enabled` parameter pattern
+---
