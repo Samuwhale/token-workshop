@@ -100,3 +100,10 @@ Already up to date.
 ===============================================================
   Claimed: No "token in use" indicator in the token list — no visual signal for which tokens are bound to Figma layers; add a subtle usage dot or count on token rows so users can distinguish active tokens from orphans without visiting Analytics
   Worktree: /tmp/backlog-62956-XTZcaz
+
+  ✓ done: No "token in use" indicator in the token list
+    Added green usage dot + count on token rows showing how many Figma layers each token is bound to; clicking the indicator highlights those layers on canvas. Scans refresh on tab switch and after apply/sync/remap ops.
+    67 turns · 449s · $3.28
+
+--- Merging: No "token in use" indicator in the token list ---
+Already up to date.

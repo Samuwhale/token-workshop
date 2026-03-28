@@ -32,6 +32,7 @@ export interface TokenListData {
   generators?: TokenGenerator[];
   derivedTokenPaths?: Set<string>;
   cascadeDiff?: Record<string, { before: any; after: any }>;
+  tokenUsageCounts?: Record<string, number>;
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
@@ -149,4 +150,5 @@ export interface TokenTreeNodeProps {
   /** Parsed highlight terms from search query */
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
   showFullPath?: boolean;
+  tokenUsageCounts?: Record<string, number>;
 }

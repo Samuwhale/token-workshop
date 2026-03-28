@@ -120,3 +120,16 @@ Already up to date.
 
 --- Merging: No drag-to-reorder tokens within the same group ---
 Already up to date.
+[main f6cecb8] chore(backlog): done – No drag-to-reorder tokens within the same group
+ 8 files changed, 139 insertions(+), 5 deletions(-)
+
+## 2026-03-28 - No drag-to-reorder tokens within the same group
+- Added drag-over/drop handlers on leaf token rows in TokenTreeNode to detect top/bottom half positioning. Added `handleDropReorder` in TokenList.tsx that computes new sibling order and calls the existing `/groups/reorder` API. Visual indicator is a blue accent line at the drop position. Supports multi-select drag reorder. Undo/redo integrated. Only active when sort order is 'default'.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L142 (new props), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L779 (drag handlers + indicator), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L67 (state), ~L1132 (handleDropReorder), ~L2725 (prop wiring)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  86 items remaining
+===============================================================
+  Claimed: No per-token usage/documentation view — no way to see where a specific token is used across the design file (which components, pages, layers) without running a full heatmap scan; add a "Used by" panel per token showing bound layers and dependent tokens in one place
+  Worktree: /tmp/backlog-63973-unuX46

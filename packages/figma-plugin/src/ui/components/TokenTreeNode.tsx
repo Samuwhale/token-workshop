@@ -28,7 +28,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     selectedLeafNodes, onMoveUp, onMoveDown,
     onDragOverToken, onDragLeaveToken, onDropOnToken, dragOverReorder,
     chainExpanded: chainExpandedProp = false,
-    onToggleChain, searchHighlight, showFullPath,
+    onToggleChain, searchQuery, showFullPath, tokenUsageCounts,
   } = props;
 
   const isExpanded = expandedPaths.has(node.path);
@@ -688,7 +688,8 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             derivedTokenPaths={derivedTokenPaths}
             onInlineSave={onInlineSave}
             onRenameToken={onRenameToken}
-            searchHighlight={searchHighlight}
+            searchQuery={searchQuery}
+            tokenUsageCounts={tokenUsageCounts}
           />
         ))}
       </div>
@@ -1048,8 +1049,24 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         const count = duplicateCounts.get(JSON.stringify(node.$value));
         const hasLint = lintViolations.length > 0;
         const worstSeverity = hasLint ? lintViolations.reduce((worst, v) => v.severity === 'error' ? 'error' : worst === 'error' ? 'error' : v.severity === 'warning' ? 'warning' : worst, 'info' as string) : null;
-        return (count || hasLint || cascadeChange || showChainBadge) ? (
+        const usageCount = tokenUsageCounts?.[node.path] ?? 0;
+        return (count || hasLint || cascadeChange || showChainBadge || usageCount > 0) ? (
           <div className="flex items-center gap-1 shrink-0">
+            {usageCount > 0 && (
+              <button
+                className="shrink-0 flex items-center gap-px text-[8px] text-emerald-600 dark:text-emerald-400"
+                title={`Bound to ${usageCount} layer${usageCount !== 1 ? 's' : ''} on this page`}
+                onClick={e => {
+                  e.stopPropagation();
+                  parent.postMessage({ pluginMessage: { type: 'highlight-layer-by-token', tokenPath: node.path } }, '*');
+                }}
+              >
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <circle cx="12" cy="12" r="5"/>
+                </svg>
+                {usageCount > 1 && <span>{usageCount}</span>}
+              </button>
+            )}
             {hasLint && (
               <button
                 onClick={e => {

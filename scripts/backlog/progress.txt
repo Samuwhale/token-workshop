@@ -390,3 +390,22 @@
   - `flatItemsRef` has a narrow type (`{ node: { path: string } }`) — pass node name from the component rather than looking it up from the ref.
   - Drag reorder indicator should only show when sortOrder is 'default' — other sort orders have no user-controllable position.
 ---
+
+## 2026-03-28 - No "token in use" indicator in the token list
+- Added full-stack "token in use" feature: plugin scans all page nodes for token bindings, builds a usage count map, and sends it to the UI where each token row shows a green dot (with count if >1) for bound tokens
+- Clicking the indicator highlights the bound layers on the canvas (reuses existing `highlight-layer-by-token` message)
+- Usage map auto-refreshes when tokens tab is shown, and after apply/sync/remap operations
+- Files changed:
+  - `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L444 (new `scanTokenUsageMap()`)
+  - `packages/figma-plugin/src/shared/types.ts` ~L255 (new `ScanTokenUsageMessage` type)
+  - `packages/figma-plugin/src/plugin/controller.ts` ~L73 (new case for `scan-token-usage`)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L356,L502-L520 (state, message listener, scan trigger)
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L35,L147 (new `tokenUsageCounts` prop)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L31,L2721 (destructure and pass through)
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L30,L692,L1022-L1035 (render usage indicator)
+- **Learnings for future iterations:**
+  - The plugin→UI message pattern for page-wide scans is well-established: add message type, handler in controller.ts, scan function in selectionHandling.ts, listener in App.tsx
+  - `findAll(() => true)` returns all nodes on the page — same pattern used by heatmap scanning
+  - Using `seen` set per-node prevents double-counting when the same token is bound to multiple properties on one node
+  - Re-triggering scans after `applied-to-selection`, `sync-complete`, and `remap-complete` keeps counts fresh without polling
+---

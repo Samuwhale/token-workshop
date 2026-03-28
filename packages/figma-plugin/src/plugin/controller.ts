@@ -3,7 +3,7 @@
 import type { PluginMessage } from '../shared/types.js';
 import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables } from './variableSync.js';
 import { applyStyles, readFigmaStyles } from './styleSync.js';
-import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken } from './selectionHandling.js';
+import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, scanTokenUsageMap } from './selectionHandling.js';
 import { scanComponentCoverage, selectNode, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes } from './heatmapScanning.js';
 
 figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
@@ -69,6 +69,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'delete-orphan-variables':
       await deleteOrphanVariables(msg.knownPaths, msg.collectionMap ?? {});
+      break;
+    case 'scan-token-usage':
+      await scanTokenUsageMap();
       break;
     case 'scan-component-coverage':
       await scanComponentCoverage();

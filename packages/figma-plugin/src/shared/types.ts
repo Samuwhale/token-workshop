@@ -252,6 +252,10 @@ export interface SelectNodeMessage {
   nodeId: string;
 }
 
+export interface ScanTokenUsageMessage {
+  type: 'scan-token-usage';
+}
+
 export interface ScanCanvasHeatmapMessage {
   type: 'scan-canvas-heatmap';
 }
@@ -303,6 +307,7 @@ export type PluginMessage =
   | DeleteOrphanVariablesMessage
   | ScanComponentCoverageMessage
   | SelectNodeMessage
+  | ScanTokenUsageMessage
   | ScanCanvasHeatmapMessage
   | SelectHeatmapNodesMessage
   | BatchBindHeatmapNodesMessage

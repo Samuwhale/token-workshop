@@ -28,7 +28,7 @@ import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
-  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, perSetFlat, collectionMap = {}, modeMap = {} },
+  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {} },
   actions: { onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError },
   defaultCreateOpen,
   highlightedToken,
@@ -2803,6 +2803,7 @@ export function TokenList({
                 onToggleChain={handleToggleChain}
                 searchHighlight={searchHighlight}
                 showFullPath={showRecentlyTouched}
+                tokenUsageCounts={tokenUsageCounts}
               />
               );
             })}
