@@ -146,6 +146,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       if (!name || typeof name !== 'string' || !name.trim()) {
         return reply.status(400).send({ error: 'Option name is required' });
       }
+      const trimmedName = name.trim();
       if (!sets || typeof sets !== 'object') {
         return reply.status(400).send({ error: 'Option must have a sets object' });
       }
@@ -159,8 +160,8 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           return reply.status(404).send({ error: `Dimension "${id}" not found` });
         }
         const dim = dimensions[dimIdx];
-        const optIdx = dim.options.findIndex(o => o.name === name);
-        const option = { name: name.trim(), sets };
+        const optIdx = dim.options.findIndex(o => o.name === trimmedName);
+        const option = { name: trimmedName, sets };
         if (optIdx >= 0) {
           dim.options[optIdx] = option;
         } else {

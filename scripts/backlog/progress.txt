@@ -411,3 +411,11 @@
   - Color similarity via Euclidean RGB distance is simple and effective for ranking — max distance ~441
   - Numeric similarity using ratio-based comparison (`1 - |a-b|/(max+|a-b|)`) handles both small and large values gracefully
 ---
+
+## 2026-03-28 - Theme option name trimmed inconsistently with lookup
+- Fixed server route POST `/api/themes/dimensions/:id/options`: `findIndex` was comparing against untrimmed `name` while storing `name.trim()`, allowing `" light "` to bypass the duplicate check and create a duplicate of `"light"`
+- Introduced `trimmedName` const right after validation, used consistently for both lookup and storage
+- Files changed: `packages/server/src/routes/themes.ts` ~L148,162-163
+- **Learnings for future iterations:**
+  - Always trim user input once at the top of the handler and use the trimmed variable throughout — never mix raw and trimmed values
+---

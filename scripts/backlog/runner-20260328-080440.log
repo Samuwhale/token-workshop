@@ -183,3 +183,10 @@ Already up to date.
 ===============================================================
   Claimed: Theme option name trimmed inconsistently with lookup — `name.trim()` is used for storage but `findIndex` searches with the untrimmed name; `" light "` won't match existing `"light"`, creating duplicates
   Worktree: /tmp/backlog-62956-FeblkS
+
+  ✓ done: Theme option name trimmed inconsistently with lookup
+    Fixed server route: introduced trimmedName const used for both findIndex lookup and storage, preventing whitespace-padded names from bypassing duplicate check
+    19 turns · 83s · $0.46
+
+--- Merging: Theme option name trimmed inconsistently with lookup ---
+Already up to date.

@@ -222,3 +222,16 @@ Already up to date.
 
 --- Merging: Theme cache returns mutable reference ---
 Already up to date.
+[main 5b3328c] chore(backlog): done – Theme cache returns mutable reference
+ 5 files changed, 33 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - No contextual token suggestions during property binding
+- Added contextual scoring/ranking for bind candidates in the property binding picker
+- `scoreBindCandidate()` scores tokens on 4 dimensions: primary type match (+20), value similarity via RGB distance or numeric ratio (+0-30), sibling usage — tokens already bound to same property on sibling nodes (+25), same-node context — shared path prefix with already-bound tokens (+10)
+- `collectSiblingBindings()` and `collectBoundPrefixes()` helper functions gather context from rootNodes
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  69 items remaining
+===============================================================
+  Claimed: ThemeManager calls full `fetchDimensions()` after every mutation (create, rename, delete, reorder, toggle) — redundant after the optimistic update already applied; only re-fetch on error rollback or debounce the re-fetch
+  Worktree: /tmp/backlog-63973-NgLyF1
