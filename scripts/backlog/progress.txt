@@ -517,3 +517,13 @@
   - The `addToHistory` callback must be called before `nextId.current++` happens in each push function, or use the current value — here we read `nextId.current` before incrementing so the entry ID matches the toast ID
   - Click-outside dismiss pattern: `useEffect` with `mousedown` listener + `ref.contains()` check
 ---
+
+## 2026-03-28 - No bulk-fill action for tokens missing from multiple theme sets
+- Added `handleAutoFillAllOptions` function that fills coverage gaps across ALL options in a dimension in one action, batching per-target-set and de-duplicating by missingRef
+- Added cross-option fill banner that appears between option tabs and option content when multiple options have gaps, showing total gap count and a "Fill all options (N)" button
+- Added gap count badges on option tab buttons so users can see at a glance which options have unresolved tokens without clicking each tab
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L667-718 (handleAutoFillAllOptions), ~L1183-1193 (dim-level gap vars), ~L1260-1268 (option tab badges), ~L1306-1320 (cross-option fill banner)
+- **Learnings for future iterations:**
+  - The coverage system already tracks per-option fillable items with `fillValue`/`fillType` and `getOverrideSet`; cross-option features can reuse these helpers directly
+  - Different options may target different override sets, so cross-option batch fill must group by target set and fire parallel requests
+---

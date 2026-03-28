@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: No bulk-fill action for tokens missing from multiple theme sets — when a token exists in a source set but is missing from several enabled sets, the user must open each set individually to add the value; add a "Fill missing in all sets" shortcut in the ThemeManager coverage view that copies the source value into every set that lacks the token
   Worktree: /tmp/backlog-17439-TF9Yyw
+
+  ✓ done: No bulk-fill action for tokens missing from multiple theme sets
+    Added "Fill all options" banner and handler in ThemeManager that batch-fills coverage gaps across all options in a dimension, plus gap count badges on option tabs for at-a-glance visibility.
+    22 turns · 242s · $1.09
+
+--- Merging: No bulk-fill action for tokens missing from multiple theme sets ---
+Already up to date.

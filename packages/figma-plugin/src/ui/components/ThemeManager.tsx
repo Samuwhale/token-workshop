@@ -668,6 +668,59 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
   };
 
+  /** Auto-fill all uncovered tokens across ALL options within a dimension */
+  const handleAutoFillAllOptions = async (dimId: string) => {
+    const dim = dimensions.find(d => d.id === dimId);
+    if (!dim) return;
+    const dimCov = coverage[dimId];
+    if (!dimCov) return;
+
+    // Collect per-set batch payloads: { targetSet -> token[] }
+    const perSetBatch: Record<string, Array<{ path: string; $value: unknown; $type?: string }>> = {};
+    let anyFillable = false;
+    for (const opt of dim.options) {
+      const items = dimCov[opt.name]?.uncovered ?? [];
+      const fillable = items.filter(i => i.missingRef && i.fillValue !== undefined);
+      if (fillable.length === 0) continue;
+      const targetSet = getOverrideSet(dimId, opt.name);
+      if (!targetSet) continue;
+      // De-duplicate by missingRef within each target set
+      if (!perSetBatch[targetSet]) perSetBatch[targetSet] = [];
+      const seenInSet = new Set(perSetBatch[targetSet].map(t => t.path));
+      for (const item of fillable) {
+        if (!item.missingRef || seenInSet.has(item.missingRef)) continue;
+        seenInSet.add(item.missingRef);
+        const t: { path: string; $value: unknown; $type?: string } = { path: item.missingRef, $value: item.fillValue };
+        if (item.fillType) t.$type = item.fillType;
+        perSetBatch[targetSet].push(t);
+        anyFillable = true;
+      }
+    }
+    if (!anyFillable) {
+      setError('No override sets available. Assign sets as Override first.');
+      return;
+    }
+
+    const fillKey = `${dimId}:__all_options__`;
+    setFillingKeys(prev => { const n = new Set(prev); n.add(fillKey); return n; });
+    try {
+      await Promise.all(
+        Object.entries(perSetBatch).map(([targetSet, tokens]) =>
+          apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tokens, strategy: 'skip' }),
+          })
+        )
+      );
+      debouncedFetchDimensions();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to auto-fill tokens'));
+    } finally {
+      setFillingKeys(prev => { const n = new Set(prev); n.delete(fillKey); return n; });
+    }
+  };
+
   // --- Set state toggle ---
 
   const handleSetState = (dimId: string, optionName: string, setName: string, targetState: string) => {
@@ -1125,6 +1178,17 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                   ? Object.entries(opt.sets).filter(([s, status]) => !sets.includes(s) && status !== 'disabled').map(([s]) => s)
                   : [];
 
+                // Cross-option gap totals for this dimension
+                const dimCov = coverage[dim.id] ?? {};
+                const optionsWithGaps = dim.options.filter(o => (dimCov[o.name]?.uncovered.length ?? 0) > 0);
+                const totalDimGaps = optionsWithGaps.reduce((sum, o) => sum + (dimCov[o.name]?.uncovered.length ?? 0), 0);
+                const totalDimFillable = optionsWithGaps.reduce((sum, o) => {
+                  const items = dimCov[o.name]?.uncovered ?? [];
+                  return sum + items.filter(i => i.missingRef && i.fillValue !== undefined).length;
+                }, 0);
+                const multiOptionGaps = optionsWithGaps.length > 1;
+                const isFillAllOptionsInProgress = fillingKeys.has(`${dim.id}:__all_options__`);
+
                 return (
                   <div
                     key={dim.id}
@@ -1187,17 +1251,23 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                       <div className="flex items-center gap-0 px-2 pt-1 pb-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-x-auto">
                         {dim.options.map((o, oIdx) => {
                           const optMatches = dimSearch.trim() !== '' && o.name.toLowerCase().includes(dimSearch.trim().toLowerCase());
+                          const optGapCount = dimCov[o.name]?.uncovered.length ?? 0;
                           return (
                           <button
                             key={o.name}
                             onClick={() => setSelectedOptions(prev => ({ ...prev, [dim.id]: o.name }))}
-                            className={`relative px-2.5 py-1 text-[10px] font-medium rounded-t transition-colors flex-shrink-0 ${
+                            className={`relative px-2.5 py-1 text-[10px] font-medium rounded-t transition-colors flex-shrink-0 flex items-center gap-1 ${
                               selectedOpt === o.name
                                 ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-bg-secondary)]'
                                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
                             }${optMatches ? ' ring-1 ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
                           >
                             {o.name}
+                            {optGapCount > 0 && (
+                              <span className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[8px] font-bold bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)]" title={`${optGapCount} gap${optGapCount !== 1 ? 's' : ''}`}>
+                                {optGapCount}
+                              </span>
+                            )}
                             {selectedOpt === o.name && (
                               <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-[var(--color-figma-accent)] rounded-t" />
                             )}
@@ -1240,6 +1310,25 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           )}
                         </div>
                         {addOptionErrors[dim.id] && <p role="alert" className="text-[10px] text-[var(--color-figma-error)] mt-1">{addOptionErrors[dim.id]}</p>}
+                      </div>
+                    )}
+
+                    {/* Cross-option fill banner */}
+                    {multiOptionGaps && totalDimFillable > 0 && (
+                      <div className="flex items-center justify-between px-3 py-1.5 border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/5">
+                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-warning)]">
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                          <span>{totalDimGaps} gaps across {optionsWithGaps.length} options</span>
+                        </div>
+                        <button
+                          onClick={() => handleAutoFillAllOptions(dim.id)}
+                          disabled={isFillAllOptionsInProgress}
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-colors"
+                          title={`Auto-fill ${totalDimFillable} missing token${totalDimFillable !== 1 ? 's' : ''} across all options`}
+                        >
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                          {isFillAllOptionsInProgress ? 'Filling…' : `Fill all options (${totalDimFillable})`}
+                        </button>
                       </div>
                     )}
 

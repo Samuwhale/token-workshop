@@ -82,3 +82,18 @@ Already up to date.
 
 --- Merging: Notification history for auto-dismissed toasts ---
 Already up to date.
+[main fc66ab4] chore(backlog): done – Notification history for auto-dismissed toasts
+ 8 files changed, 175 insertions(+), 7 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/NotificationHistory.tsx
+
+## 2026-03-28 - Notification history for auto-dismissed toasts
+- Added persistent notification history to `useToastStack` — every push (success/error/action) appends a `NotificationEntry` with timestamp to a capped ring buffer (last 10)
+- Created `NotificationHistory.tsx` dropdown component: shows entries with icon, message, relative timestamp, and a Clear button; click-outside to dismiss
+- Added bell icon button in the panel header toolbar (between heatmap toggle and server connection indicator) with a small accent dot when history is non-empty
+
+===============================================================
+  Iteration 7  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Waiting for work…
