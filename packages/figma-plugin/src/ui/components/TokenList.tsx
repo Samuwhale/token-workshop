@@ -24,6 +24,7 @@ import { VIRTUAL_ITEM_HEIGHT, VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN } fr
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch } from './tokenListHelpers';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenListModals } from './TokenListModals';
+import { TokenTableView } from './TokenTableView';
 import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 
 export function TokenList({
@@ -2612,82 +2613,19 @@ export function TokenList({
             );
           })()
         ) : viewMode === 'table' ? (
-          /* Table view */
-          <div className="overflow-auto flex-1">
-            <table className="w-full text-[10px] border-collapse">
-              <thead className="sticky top-0 bg-[var(--color-figma-bg-secondary)] z-10">
-                <tr className="border-b border-[var(--color-figma-border)]">
-                  <th className="px-2 py-1.5 text-left font-medium text-[var(--color-figma-text-secondary)] w-[40%]">Name</th>
-                  <th className="px-2 py-1.5 text-left font-medium text-[var(--color-figma-text-secondary)] w-[15%]">Type</th>
-                  <th className="px-2 py-1.5 text-left font-medium text-[var(--color-figma-text-secondary)] w-[30%]">Value</th>
-                  <th className="px-2 py-1.5 text-left font-medium text-[var(--color-figma-text-secondary)]">
-                    <button
-                      onClick={() => setShowScopesCol(v => !v)}
-                      className={`flex items-center gap-1 transition-colors ${showScopesCol ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
-                      title="Toggle Scopes column"
-                    >
-                      Scopes
-                      <svg
-                        width="8"
-                        height="8"
-                        viewBox="0 0 8 8"
-                        className={`transition-transform shrink-0 ${showScopesCol ? 'rotate-90' : ''}`}
-                        fill="currentColor"
-                        aria-hidden="true"
-                      >
-                        <path d="M2 1l4 3-4 3V1z" />
-                      </svg>
-                    </button>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayedLeafNodes.length === 0 && filtersActive ? (
-                  <tr>
-                    <td colSpan={showScopesCol ? 4 : 3} className="py-8 text-center text-[10px] text-[var(--color-figma-text-secondary)]">
-                      No tokens match your filters —{' '}
-                      <button onClick={clearFilters} className="underline hover:text-[var(--color-figma-text)] transition-colors">
-                        clear filters
-                      </button>
-                    </td>
-                  </tr>
-                ) : displayedLeafNodes.map(leaf => {
-                  const leafScopes = Array.isArray(leaf.$extensions?.['com.figma.scopes'])
-                    ? (leaf.$extensions!['com.figma.scopes'] as string[])
-                    : [];
-                  return (
-                    <tr
-                      key={leaf.path}
-                      className="border-b border-[var(--color-figma-border)]/50 hover:bg-[var(--color-figma-bg-hover)] cursor-pointer"
-                      onClick={() => onPreview ? onPreview(leaf.path, leaf.name) : onEdit(leaf.path, leaf.name)}
-                      onDoubleClick={() => onEdit(leaf.path, leaf.name)}
-                    >
-                      <td className="px-2 py-1.5 font-mono text-[var(--color-figma-text)] truncate max-w-0" title={leaf.path}>{leaf.path}</td>
-                      <td className="px-2 py-1.5">
-                        <span className={`px-1 py-0.5 rounded text-[8px] font-medium ${TOKEN_TYPE_BADGE_CLASS[leaf.$type ?? ''] ?? 'token-type-string'}`}>{leaf.$type}</span>
-                      </td>
-                      <td className="px-2 py-1.5 text-[var(--color-figma-text-secondary)] truncate max-w-0 font-mono" title={String(leaf.$value)}>
-                        {typeof leaf.$value === 'object' ? JSON.stringify(leaf.$value) : String(leaf.$value ?? '')}
-                      </td>
-                      {showScopesCol && (
-                        <td className="px-2 py-1.5">
-                          {leafScopes.length > 0 ? (
-                            <div className="flex flex-wrap gap-0.5">
-                              {leafScopes.map(s => (
-                                <span key={s} className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[8px]">{s}</span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-[var(--color-figma-text-secondary)]">—</span>
-                          )}
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <TokenTableView
+            leafNodes={displayedLeafNodes}
+            allTokensFlat={allTokensFlat}
+            onEdit={onEdit}
+            onInlineSave={handleInlineSave}
+            connected={connected}
+            highlightedToken={highlightedToken ?? null}
+            filtersActive={filtersActive}
+            onClearFilters={clearFilters}
+            selectMode={selectMode}
+            selectedPaths={selectedPaths}
+            onToggleSelect={handleTokenSelect}
+          />
         ) : displayedTokens.length === 0 && filtersActive ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">

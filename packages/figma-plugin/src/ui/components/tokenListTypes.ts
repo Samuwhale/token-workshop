@@ -86,6 +86,17 @@ export interface PromoteRow {
 export const INLINE_SIMPLE_TYPES = new Set(['color', 'dimension', 'number', 'string', 'boolean', 'fontFamily', 'fontWeight', 'duration', 'asset']);
 
 // ---------------------------------------------------------------------------
+// Table view sort types
+// ---------------------------------------------------------------------------
+
+export type TableSortField = 'name' | 'type' | 'value' | 'resolvedValue' | 'description';
+export type TableSortDir = 'asc' | 'desc';
+export interface TableSort {
+  field: TableSortField;
+  dir: TableSortDir;
+}
+
+// ---------------------------------------------------------------------------
 // TokenTreeNode props
 // ---------------------------------------------------------------------------
 

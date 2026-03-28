@@ -153,3 +153,10 @@ Already up to date.
 ===============================================================
   Claimed: No spreadsheet/table view for tokens — the tree view is good for hierarchy but poor for scanning and bulk editing; add an alternative flat table view (like Tokens Studio) with sortable columns for Name, Type, Value, Resolved Value, Description, and inline cell editing for simple types — toggle between tree and table via a view switcher
   Worktree: /tmp/backlog-63973-HQ3g4s
+
+  ✓ done: No spreadsheet/table view for tokens
+    Created TokenTableView component with sortable columns (Name, Type, Value, Resolved Value, Description), inline cell editing for simple types via double-click, color swatches, alias highlighting, and select mode integration. Replaced the basic inline table in TokenList.tsx.
+    49 turns · 447s · $2.4
+
+--- Merging: No spreadsheet/table view for tokens ---
+Already up to date.

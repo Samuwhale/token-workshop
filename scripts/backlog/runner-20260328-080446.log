@@ -103,3 +103,18 @@ Already up to date.
 
 --- Merging: No read-only token preview panel — selecting a token forces edit mode ---
 Already up to date.
+[main 449654c] chore(backlog): done – No read-only token preview panel — selecting a token forces edit mode
+ 10 files changed, 318 insertions(+), 23 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No read-only token preview panel — selecting a token forces edit mode
+- Added a new `TokenDetailPreview` component that shows token details (name, path, type badge, value, alias chain, resolved value, large color/typography preview) in a read-only panel
+- Single-click on a token now opens the preview panel (side panel on wide windows, drawer on narrow); double-click opens the full editor
+- Added `previewingToken` state to App.tsx alongside `editingToken`; they are mutually exclusive (editing clears preview)
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  82 items remaining
+===============================================================
+  Claimed: No interactive token dependency graph — the Graph tab shows generators but there's no way to visualize the alias/reference graph; add a "Token Flow" view (like Tokens Studio): select a token and see an interactive node graph showing what it references and what references it, with resolved values per theme option — clicking a node navigates to that token
+  Worktree: /tmp/backlog-63685-TAycex

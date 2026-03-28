@@ -459,3 +459,22 @@
   - `handleApplyToSelection` was the old single-click behavior in tree view; it's preserved as fallback when `onPreview` is undefined
   - Grid/table views used `onEdit` directly for single-click; both now use ternary `onPreview ? onPreview(...) : onEdit(...)` + `onDoubleClick` for edit
 ---
+
+## 2026-03-28 - No spreadsheet/table view for tokens
+- Replaced the basic inline table view with a full-featured `TokenTableView` component
+- Added sortable columns: Name (with group prefix dimmed), Type (badge), Value (with color swatch), Resolved Value (shows resolved alias targets), Description
+- Clicking column headers cycles asc -> desc -> clear sort; active sort column highlighted with accent color and arrow indicator
+- Inline cell editing: double-click Value cell (for simple types, non-alias) or Description cell to edit in-place; Enter commits, Escape cancels
+- Color swatches shown inline for color tokens in both Value and Resolved columns
+- Select mode integration with checkboxes
+- Added `TableSort`, `TableSortField`, `TableSortDir` types to `tokenListTypes.ts`
+- Added `sortLeafNodes` utility to `tokenListUtils.ts` with locale-aware numeric sorting
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTableView.tsx` (new, ~260 lines)
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L87-98
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L425-460
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L27,L2614-2626
+- **Learnings for future iterations:**
+  - The existing table view had no sort, no resolved values, no description, and no inline editing
+  - `resolveTokenValue` returns a `ResolveResult` with `.value`, `.wasAlias`, `.chain`, `.error`
+  - Table sort is independent from the tree view's `SortOrder` — uses `TableSort` with field-level granularity
+---
