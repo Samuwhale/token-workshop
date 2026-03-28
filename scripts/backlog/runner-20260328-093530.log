@@ -138,3 +138,25 @@ WARNING: Agent returned unexpected status '' — unclaiming item
 
 --- Merging: TokenTreeNode has 47 props and is 1200+ lines — the deeply-passed prop set is a strong signal for a React context ---
 Already up to date.
+[main f3d042b] chore(backlog): done – TokenTreeNode has 47 props and is 1200+ lines — the deeply-passed prop set is a strong signal for a React context
+ 9 files changed, 229 insertions(+), 187 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/TokenTreeContext.tsx
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - TokenTreeNode context refactor (47 props → 11 per-node props)
+- Introduced `TokenTreeContextType` interface and `TokenTreeContext.tsx` with `useTokenTree()` hook to replace 36+ recursively-forwarded props with React context
+- `TokenTreeNodeProps` reduced from 47 props to 11 per-node props: `node`, `depth`, `isSelected`, `lintViolations`, `skipChildren`, `showFullPath`, `isPinned`, `chainExpanded`, `onMoveUp`, `onMoveDown`, `multiModeValues`
+- Recursive child rendering shrank from 46-line prop pass-through to 6 lines
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  14 items remaining
+===============================================================
+  Claimed: `handleCreate` and `handleCreateAndNew` are near-identical — ~90% shared logic (validation, API call, undo setup) with only the post-success action differing; should be a single function with a parameter
+  Worktree: /tmp/backlog-34977-Sa9asa
+
+  ✓ done: handleCreate and handleCreateAndNew are near-identical — ~90% shared logic
+    Unified into single doCreate(keepOpen) function, eliminating ~60 duplicated lines. Only the post-success form reset differs (close vs keep open with prefix).
+    8 turns · 60s · $0.33
+
+--- Merging: handleCreate and handleCreateAndNew are near-identical — ~90% shared logic ---
+Already up to date.

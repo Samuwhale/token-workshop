@@ -548,3 +548,10 @@
   - `useMemo` for context value is critical — without it, every TokenList render creates a new context object and re-renders all mounted tree nodes
   - `setNewGroupDialogParent` and `handleOpenExtractToAlias` can replace their inline arrow wrappers since they take identical arguments
 ---
+
+## 2026-03-28 - handleCreate and handleCreateAndNew near-identical duplication
+- Extracted shared logic into a single `doCreate(keepOpen: boolean)` function. `handleCreate` calls `doCreate(false)` (closes form), `handleCreateAndNew` calls `doCreate(true)` (keeps form open with parent prefix pre-filled). Eliminated ~60 duplicated lines.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` ~L89-160
+- **Learnings for future iterations:**
+  - The two functions only differed in post-success form state reset — a boolean parameter cleanly distinguishes the two paths
+---

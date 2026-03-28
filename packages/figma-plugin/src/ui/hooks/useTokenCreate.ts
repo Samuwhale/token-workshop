@@ -86,7 +86,7 @@ export function useTokenCreate({
     setCreateError('');
   }, []);
 
-  const handleCreate = useCallback(async () => {
+  const doCreate = useCallback(async (keepOpen: boolean) => {
     const trimmedPath = newTokenPath.trim();
     if (!trimmedPath) { setCreateError('Token path cannot be empty'); return; }
     if (!connected) return;
@@ -115,11 +115,24 @@ export function useTokenCreate({
       const capturedSet = effectiveSet;
       const capturedUrl = serverUrl;
       const capturedEncodedPath = createdPath.split('.').map(encodeURIComponent).join('/');
-      setShowCreateForm(false);
-      setNewTokenPath('');
-      setNewTokenValue('');
-      setNewTokenDescription('');
-      setSiblingPrefix(null);
+      if (keepOpen) {
+        // Pre-fill the next token in the same group
+        const prefix = createdPath.length > (createdPath.split('.').pop()?.length ?? 0) + 1
+          ? nodeParentPath(createdPath, createdPath.split('.').pop()!)
+          : null;
+        setSiblingPrefix(prefix ?? '');
+        setNewTokenPath(prefix ? prefix + '.' : '');
+        setNewTokenValue('');
+        setNewTokenDescription('');
+        setTypeAutoInferred(false);
+        setCreateError('');
+      } else {
+        setShowCreateForm(false);
+        setNewTokenPath('');
+        setNewTokenValue('');
+        setNewTokenDescription('');
+        setSiblingPrefix(null);
+      }
       onRefresh();
       onTokenCreated?.(createdPath);
       onRecordTouch(createdPath);
@@ -145,69 +158,8 @@ export function useTokenCreate({
     }
   }, [newTokenPath, newTokenType, newTokenValue, newTokenDescription, connected, serverUrl, setName, onRefresh, onPushUndo, onTokenCreated, onRecordTouch]);
 
-  const handleCreateAndNew = useCallback(async () => {
-    const trimmedPath = newTokenPath.trim();
-    if (!trimmedPath) { setCreateError('Token path cannot be empty'); return; }
-    if (!connected) return;
-    setCreateError('');
-    const effectiveSet = setName || 'default';
-    const parsedValue2 = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
-    if (parsedValue2 === null) { setCreateError('Invalid value — boolean tokens must be "true" or "false"'); return; }
-    try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath.split('.').map(encodeURIComponent).join('/')}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          $type: newTokenType,
-          $value: parsedValue2,
-          ...(newTokenDescription.trim() ? { $description: newTokenDescription.trim() } : {}),
-        }),
-      });
-      if (!res.ok) {
-        const data: ApiErrorBody = await res.json().catch(() => ({}));
-        setCreateError(data.error || `Failed to create token (${res.status})`);
-        return;
-      }
-      const createdPath = trimmedPath;
-      const createdType = newTokenType;
-      const createdValue = parsedValue2;
-      const capturedSet = effectiveSet;
-      const capturedUrl = serverUrl;
-      const capturedEncodedPath = createdPath.split('.').map(encodeURIComponent).join('/');
-      // Compute parent prefix to pre-fill the next token in the same group
-      const prefix = createdPath.length > (createdPath.split('.').pop()?.length ?? 0) + 1
-        ? nodeParentPath(createdPath, createdPath.split('.').pop()!)
-        : null;
-      setSiblingPrefix(prefix ?? '');
-      setNewTokenPath(prefix ? prefix + '.' : '');
-      setNewTokenValue('');
-      setNewTokenDescription('');
-      setTypeAutoInferred(false);
-      setCreateError('');
-      onRefresh();
-      onTokenCreated?.(createdPath);
-      onRecordTouch(createdPath);
-      if (onPushUndo) {
-        onPushUndo({
-          description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
-          restore: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, { method: 'DELETE' });
-            onRefresh();
-          },
-          redo: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $type: createdType, $value: createdValue }),
-            });
-            onRefresh();
-          },
-        });
-      }
-    } catch (err) {
-      setCreateError('Network error — could not create token');
-    }
-  }, [newTokenPath, newTokenType, newTokenValue, newTokenDescription, connected, serverUrl, setName, onRefresh, onPushUndo, onTokenCreated, onRecordTouch]);
+  const handleCreate = useCallback(() => doCreate(false), [doCreate]);
+  const handleCreateAndNew = useCallback(() => doCreate(true), [doCreate]);
 
   return {
     showCreateForm,
