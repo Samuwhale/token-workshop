@@ -71,3 +71,16 @@ Already up to date.
 ===============================================================
   Claimed: **Token list: density toggle (compact vs comfortable)** — currently all rows are 28px. Power users managing thousands of tokens want maximum density; new users or those reviewing tokens want more breathing room with larger swatches. Add a density preference (compact/default/comfortable) that scales row height and preview sizes. Persist per user.
   Worktree: /tmp/backlog-92332-xxq3rZ
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    6 turns · 171s · $1.01
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - Token list: empty state with scaffolding prompts
+- Replaced the bare "No tokens yet" empty state in TokenList.tsx (shown when all tokens are deleted from a set while the list is mounted) with actionable quick-start buttons: "Use a preset" (opens QuickStartDialog), "Create a token manually" (opens create form/editor), "Create a group" (opens new group dialog)
+- The App-level EmptyState component (EmptyState.tsx) already provides a comprehensive onboarding experience when a set starts empty — this change ensures the inline TokenList empty state is equally useful when tokens are removed mid-session
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2606
+
+Stop signal received. Exiting after iteration 4.

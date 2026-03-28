@@ -7,7 +7,10 @@ Add new patterns here when discovered — keep entries general and reusable, not
 
 - **Pure-JS ZIP builder (no deps)**: For browser/plugin ZIP downloads, use stored (uncompressed) entries — no external library needed. Key: CRC-32 table with poly `0xEDB88320`, local header (30+name bytes, sig `0x04034b50`), central directory (46+name bytes, sig `0x02014b50`), EOCD (22 bytes, sig `0x06054b50`). All multi-byte fields are little-endian (`DataView.setUint16/32(pos, val, true)`). See `ExportPanel.tsx` `buildZipBlob` for a complete reference implementation.
 
-- **Build command**: `cd packages/figma-plugin && npm run build` — the root `npm run build` requires turbo (devDependency) which may not be installed. The plugin build is self-contained and always succeeds.
+- **Validation commands** (run in order): `npx pnpm test` → `npx pnpm build` → `npx pnpm lint` → `node packages/figma-plugin/standalone/validate.mjs` (headless Playwright, graceful skip if not installed). The old single-build command is no longer sufficient — use the full validation pipeline.
+- **ESLint config**: Root `eslint.config.js` (flat config). Runs via `npx pnpm lint`. Key rules: `react-hooks/rules-of-hooks` (error), `react-hooks/exhaustive-deps` (warn), `@typescript-eslint/no-unused-vars` (warn). Plugin sandbox files have `figma` and `__html__` globals.
+- **Standalone UI harness**: `node packages/figma-plugin/standalone/serve.mjs` serves the built UI at `http://localhost:3200` outside of Figma with mocked postMessage. Useful for visual inspection. The `validate.mjs` script does a headless check for console errors.
+- **Token set file naming**: Files must end with `.tokens.json` (not just `.json`) for the TokenStore to discover them.
 - **SVG chevron pattern**: Expand/collapse arrows use `<svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><path d="M2 1l4 3-4 3V1z" /></svg>` with a `rotate-90` class toggled for direction. Never use `▶`/`▼` text characters.
 - **SVG icon pattern (SyncPanel)**: `width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"`. Checkmark: `M20 6L9 17l-5-5`. X: `M18 6L6 18M6 6l12 12`.
 - **`</>` code icon**: `<path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>` with `strokeLinecap="round" strokeLinejoin="round"` on viewBox 0 0 24 24.

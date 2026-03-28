@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TokenManager — Standalone Harness</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #1e1e1e; color: #ccc; display: flex; flex-direction: column; height: 100vh; }
+    #toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #2d2d2d; border-bottom: 1px solid #444; font-size: 13px; flex-shrink: 0; }
+    #toolbar .title { font-weight: 600; color: #fff; }
+    #toolbar .status { padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+    #toolbar .status.ok { background: #2ea04366; color: #4ade80; }
+    #toolbar .status.err { background: #dc262666; color: #f87171; }
+    #log { flex: 0 0 200px; overflow-y: auto; padding: 8px; font-family: 'SF Mono', monospace; font-size: 11px; background: #111; border-top: 1px solid #444; }
+    #log .entry { padding: 2px 0; border-bottom: 1px solid #222; white-space: pre-wrap; word-break: break-all; }
+    #log .entry.from-ui { color: #93c5fd; }
+    #log .entry.to-ui { color: #86efac; }
+    #log .entry.error { color: #fca5a5; }
+    #plugin-frame { flex: 1; border: none; width: 100%; }
+    #resize-bar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; height: 6px; background: #333; cursor: row-resize; }
+    #resize-bar:hover { background: #555; }
+    .btn { background: #444; border: 1px solid #555; color: #ccc; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .btn:hover { background: #555; }
+  </style>
+</head>
+<body>
+  <div id="toolbar">
+    <span class="title">TokenManager Standalone</span>
+    <span id="status" class="status err">no iframe</span>
+    <button class="btn" onclick="clearLog()">Clear Log</button>
+    <button class="btn" onclick="sendSelection()">Mock Selection</button>
+    <span style="flex:1"></span>
+    <span style="font-size:11px;color:#888" id="msg-count">0 messages</span>
+  </div>
+  <iframe id="plugin-frame" src="../dist/ui.html" sandbox="allow-scripts allow-same-origin"></iframe>
+  <div id="resize-bar">⋯</div>
+  <div id="log"></div>
+
+  <script>
+    const frame = document.getElementById('plugin-frame');
+    const logEl = document.getElementById('log');
+    const statusEl = document.getElementById('status');
+    const countEl = document.getElementById('msg-count');
+    let msgCount = 0;
+
+    // --- Message log ---
+    function addLog(dir, type, data) {
+      msgCount++;
+      countEl.textContent = `${msgCount} messages`;
+      const entry = document.createElement('div');
+      entry.className = `entry ${dir}`;
+      const time = new Date().toISOString().slice(11, 23);
+      const summary = JSON.stringify(data).slice(0, 300);
+      entry.textContent = `[${time}] ${dir === 'from-ui' ? 'UI →' : '← UI'} ${type}: ${summary}`;
+      logEl.appendChild(entry);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function clearLog() {
+      logEl.innerHTML = '';
+      msgCount = 0;
+      countEl.textContent = '0 messages';
+    }
+
+    // --- Mock Figma sandbox responses ---
+    // The plugin UI sends messages via parent.postMessage({ pluginMessage: msg }, '*').
+    // We intercept these and respond with canned data where needed.
+
+    const MOCK_HANDLERS = {
+      'get-selection': () => ({
+        type: 'selection',
+        nodes: [],
+      }),
+
+      'get-active-themes': () => ({
+        type: 'active-themes-loaded',
+        themes: {},
+      }),
+
+      'resize': () => null, // no response needed
+
+      'notify': (msg) => {
+        console.log('[Figma mock] notify:', msg.message);
+        return null;
+      },
+
+      'set-deep-inspect': () => null,
+      'eyedropper': () => ({
+        type: 'eyedropper-result',
+        color: '#3B82F6',
+      }),
+    };
+
+    function respondToUI(responseMsg) {
+      if (!responseMsg) return;
+      addLog('to-ui', responseMsg.type, responseMsg);
+      frame.contentWindow.postMessage({ pluginMessage: responseMsg }, '*');
+    }
+
+    // --- Intercept messages from the UI iframe ---
+    window.addEventListener('message', (event) => {
+      // Ignore messages not from the plugin iframe
+      if (event.source !== frame.contentWindow) return;
+
+      const pluginMsg = event.data?.pluginMessage;
+      if (!pluginMsg?.type) return;
+
+      addLog('from-ui', pluginMsg.type, pluginMsg);
+
+      const handler = MOCK_HANDLERS[pluginMsg.type];
+      if (handler) {
+        const response = handler(pluginMsg);
+        if (response) {
+          // Small delay to simulate async Figma API
+          setTimeout(() => respondToUI(response), 10);
+        }
+      }
+    });
+
+    // --- Toolbar actions ---
+    function sendSelection() {
+      respondToUI({
+        type: 'selection',
+        nodes: [{
+          id: '1:2',
+          name: 'Mock Rectangle',
+          type: 'RECTANGLE',
+          bindings: {},
+          capabilities: {
+            hasFills: true,
+            hasStrokes: true,
+            hasAutoLayout: false,
+            isText: false,
+            hasEffects: true,
+          },
+          currentValues: {
+            fill: '#3B82F6',
+            stroke: '#1E3A5F',
+            opacity: 1,
+            cornerRadius: 8,
+            strokeWeight: 1,
+          },
+        }],
+      });
+    }
+
+    // --- Status tracking ---
+    frame.addEventListener('load', () => {
+      statusEl.className = 'status ok';
+      statusEl.textContent = 'loaded';
+    });
+
+    frame.addEventListener('error', () => {
+      statusEl.className = 'status err';
+      statusEl.textContent = 'error';
+    });
+
+    // --- Resizable log panel ---
+    const resizeBar = document.getElementById('resize-bar');
+    let dragging = false;
+    resizeBar.addEventListener('mousedown', (e) => {
+      dragging = true;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const rect = document.body.getBoundingClientRect();
+      const newLogHeight = Math.max(50, rect.bottom - e.clientY);
+      logEl.style.flex = `0 0 ${newLogHeight}px`;
+    });
+    document.addEventListener('mouseup', () => { dragging = false; });
+  </script>
+</body>
+</html>

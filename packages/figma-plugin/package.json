@@ -6,7 +6,9 @@
   "scripts": {
     "build": "node build.mjs",
     "dev": "node build.mjs --watch",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "standalone": "node standalone/serve.mjs",
+    "validate": "node standalone/validate.mjs"
   },
   "dependencies": {
     "@tokenmanager/core": "workspace:*",

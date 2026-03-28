@@ -14,10 +14,15 @@ Codebase patterns are already injected into your context — no need to read a s
    - *Simple* (single file, change is obviously scoped): plan inline, execute, validate.
    - *Complex* (multi-file, behaviour change, or unclear scope): dispatch a plan subagent, review the plan, then execute.
 3. **Implement** the change — match scope to what's right for the plugin. An atomic fix is fine for a typo; a sweeping overhaul across many files is fine when the item calls for it. There are no users yet and no backwards-compatibility constraints, so don't hold back.
-4. **Validate:**
-   - Run `cd packages/figma-plugin && npm run build` — do NOT report success without a passing build.
-   - If a UI class or markup was added, grep for it in the output.
-   - If validation fails: revert your source file changes.
+4. **Validate** — run each gate in order and do NOT report success unless all pass:
+   1. `npx pnpm test` — runs unit/integration tests across all packages.
+   2. `npx pnpm build` — TypeScript + esbuild + Vite compilation.
+   3. `npx pnpm lint` — ESLint (must produce 0 new errors; warnings are acceptable).
+   4. `node packages/figma-plugin/standalone/validate.mjs` — headless Playwright check:
+      loads the built UI in a browser and fails on any console error. Requires Playwright
+      (`npx playwright install chromium` if missing). If Playwright is not available the
+      script exits 0 (graceful skip).
+   - If any gate fails: fix the issue and re-run. If unfixable, revert your source changes.
 5. **Append to `scripts/backlog/progress.txt`** (see format below).
 
 **Important:** Do NOT modify `backlog.md` — the runner script handles all state transitions (`[~]`, `[x]`, `[!]`).

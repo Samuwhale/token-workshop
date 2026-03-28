@@ -7,13 +7,18 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "test": "turbo test",
-    "lint": "turbo lint",
+    "lint": "eslint packages/*/src/",
     "server": "pnpm --filter @tokenmanager/server dev",
     "plugin:build": "pnpm --filter @tokenmanager/figma-plugin build"
   },
   "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "playwright": "^1.58.2",
     "turbo": "^2.4.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.57.2"
   },
   "packageManager": "pnpm@9.15.0",
   "engines": {
