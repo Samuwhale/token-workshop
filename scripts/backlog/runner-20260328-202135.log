@@ -378,3 +378,10 @@ Already up to date.
 ===============================================================
   Claimed: `VersionHistoryPanel.tsx` renders `detail.changes` without validating the response shape — the detail view (line ~255+) assumes `detail.changes` is a valid array after fetching; if the server returns malformed JSON or the endpoint changes, the component will crash instead of showing an error state
   Worktree: /tmp/backlog-9231-I31P5T
+
+  ✓ done: VersionHistoryPanel.tsx renders detail.changes without validating response shape
+    Added response shape validation in fetchDetail (checks Array.isArray on changes), introduced separate detailError state with retry button so malformed responses show an error instead of crashing the component.
+    12 turns · 684s · $0.48
+
+--- Merging: VersionHistoryPanel.tsx renders detail.changes without validating response shape ---
+Already up to date.

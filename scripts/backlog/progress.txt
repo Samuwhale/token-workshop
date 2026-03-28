@@ -479,3 +479,14 @@
   - When a sequential batch loop needs cleanup on early exit, use `break` + flag instead of `return` so post-loop cleanup always runs
   - Informing users about partial state ("Created N tokens before error — use undo to revert") is better UX than silently leaving orphaned tokens
 ---
+
+## 2026-03-28 - VersionHistoryPanel.tsx renders detail.changes without validating response shape
+- Added response shape validation in `fetchDetail`: checks `data.changes` is an array before using it, throws descriptive error otherwise
+- Introduced `detailError` state separate from the shared `error` so the detail view shows its own error + retry button instead of crashing
+- Safely constructs `CommitDetail` with fallback defaults for `hash` and `fileCount` fields
+- Clears `detailError` on back navigation and on re-fetch
+- Files changed: `packages/figma-plugin/src/ui/components/VersionHistoryPanel.tsx` ~L150,183-202,209,410-420
+- **Learnings for future iterations:**
+  - When a component has both a list view and a detail view, use separate error states so detail fetch failures don't clobber the list
+  - Always validate `Array.isArray()` before iterating server response arrays, even with TypeScript `as` casts
+---

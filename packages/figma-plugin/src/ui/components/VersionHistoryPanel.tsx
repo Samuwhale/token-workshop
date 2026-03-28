@@ -147,6 +147,7 @@ export function VersionHistoryPanel({ serverUrl, connected, onPushUndo, onRefres
   const [selectedHash, setSelectedHash] = useState<string | null>(null);
   const [detail, setDetail] = useState<CommitDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [restoring, setRestoring] = useState<string | null>(null); // 'all' or token path
   const abortRef = useRef<AbortController | null>(null);
@@ -180,19 +181,27 @@ export function VersionHistoryPanel({ serverUrl, connected, onPushUndo, onRefres
   // Fetch commit detail
   const fetchDetail = useCallback(async (hash: string) => {
     setDetailLoading(true);
-    setError(null);
+    setDetailError(null);
     try {
       const res = await fetch(`${serverUrl}/api/sync/log/${hash}/tokens`);
       if (!res.ok) throw new Error('Failed to fetch commit details');
-      const data = await res.json() as CommitDetail;
-      setDetail(data);
+      const data = await res.json();
+      if (!data || !Array.isArray(data.changes)) {
+        throw new Error('Invalid response: expected an object with a "changes" array');
+      }
+      const parsed: CommitDetail = {
+        hash: typeof data.hash === 'string' ? data.hash : hash,
+        changes: data.changes,
+        fileCount: typeof data.fileCount === 'number' ? data.fileCount : 0,
+      };
+      setDetail(parsed);
       // Auto-open all set sections
       const sections: Record<string, boolean> = {};
-      const sets = new Set(data.changes.map(c => c.set));
+      const sets = new Set(parsed.changes.map((c: TokenChange) => c.set));
       for (const s of sets) sections[s] = true;
       setOpenSections(sections);
     } catch (err) {
-      setError(String((err as Error).message || err));
+      setDetailError(String((err as Error).message || err));
     } finally {
       setDetailLoading(false);
     }
@@ -206,6 +215,7 @@ export function VersionHistoryPanel({ serverUrl, connected, onPushUndo, onRefres
   const handleBack = useCallback(() => {
     setSelectedHash(null);
     setDetail(null);
+    setDetailError(null);
   }, []);
 
   const toggleSection = useCallback((key: string) => {
@@ -407,6 +417,16 @@ export function VersionHistoryPanel({ serverUrl, connected, onPushUndo, onRefres
           {detailLoading ? (
             <div className="flex items-center justify-center py-8">
               <p className="text-[11px] text-[var(--color-figma-text-secondary)]">Loading changes…</p>
+            </div>
+          ) : detailError ? (
+            <div className="flex flex-col items-center justify-center py-8 gap-2">
+              <p className="text-[11px] text-[var(--color-figma-text-secondary)]">{detailError}</p>
+              <button
+                onClick={() => fetchDetail(selectedHash!)}
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+              >
+                Retry
+              </button>
             </div>
           ) : detail && detail.changes.length === 0 ? (
             <div className="flex items-center justify-center py-8">
