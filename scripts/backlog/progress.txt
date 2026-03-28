@@ -142,3 +142,16 @@
   - The context menu is entirely in TokenTreeNode.tsx ~L1523-1703, rendered as a fixed div with `data-context-menu="token"`
   - `displayValue` (resolved alias value) is already available in scope for the context menu section
 ---
+
+## 2026-03-29 - Deep inspect child bindings are read-only with no modification path
+- Added inline unbind/rebind actions on deep-inspect rows in `DeepInspectSection.tsx`: each bound property now shows hover-reveal buttons for navigate-to-token, remap (opens inline bind panel with token search), and remove binding (X button)
+- Added `removeBindingFromNode` plugin sandbox function that removes a binding from a specific node by ID without changing the Figma selection
+- Wired up `remove-binding-from-node` message in controller.ts
+- SelectionInspector passes `onRemoveBinding` and `onBindToken` callbacks to DeepInspectSection; unbind has undo support via `apply-to-nodes` restore; rebind uses existing `apply-to-nodes` message
+- Added `DeepBindPanel` sub-component with type-compatible token search, keyboard nav, and current-token indicator
+- Files changed: `packages/figma-plugin/src/ui/components/DeepInspectSection.tsx` (full rewrite), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L541-577 (new handlers), ~L838-843 (new props), `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L962-982 (new function), `packages/figma-plugin/src/plugin/controller.ts` ~L227-233 (new case)
+- **Learnings for future iterations:**
+  - `applyToNodes` already existed for applying bindings to specific nodes by ID — only the remove-binding-by-node-ID path was missing
+  - Deep inspect child nodes have `id` field that can be used to target specific nodes without changing Figma selection
+  - The `group/row` hover pattern (using `group-hover/row:opacity-100`) works well for nested action buttons that shouldn't trigger on parent group hover
+---

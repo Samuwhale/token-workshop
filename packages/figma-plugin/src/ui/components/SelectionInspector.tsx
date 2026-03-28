@@ -538,6 +538,48 @@ export function SelectionInspector({
     );
   }
 
+  // Deep inspect: remove binding from a nested child node
+  const handleDeepRemoveBinding = (nodeId: string, property: BindableProperty, tokenPath: string) => {
+    parent.postMessage({ pluginMessage: { type: 'remove-binding-from-node', nodeId, property } }, '*');
+    if (onPushUndo) {
+      const entry = tokenMap[tokenPath];
+      const tokenType = entry?.$type ?? 'unknown';
+      const resolved = entry ? resolveTokenValue(entry.$value, entry.$type, tokenMap) : { value: null };
+      onPushUndo({
+        description: `Unbound "${tokenPath}" from nested layer`,
+        restore: async () => {
+          parent.postMessage({
+            pluginMessage: {
+              type: 'apply-to-nodes',
+              nodeIds: [nodeId],
+              tokenPath,
+              tokenType,
+              targetProperty: property,
+              resolvedValue: resolved.value,
+            },
+          }, '*');
+        },
+      });
+    }
+  };
+
+  // Deep inspect: bind/rebind a token on a nested child node
+  const handleDeepBindToken = (nodeId: string, property: BindableProperty, tokenPath: string) => {
+    const entry = tokenMap[tokenPath];
+    if (!entry) return;
+    const resolved = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+    parent.postMessage({
+      pluginMessage: {
+        type: 'apply-to-nodes',
+        nodeIds: [nodeId],
+        tokenPath,
+        tokenType: entry.$type,
+        targetProperty: property,
+        resolvedValue: resolved.value,
+      },
+    }, '*');
+  };
+
   // Check if there are any visible properties (bindings or current values)
   const hasVisibleProperties = PROPERTY_GROUPS.some(group => {
     if (!shouldShowGroup(group.condition, caps)) return false;
@@ -801,6 +843,8 @@ export function SelectionInspector({
             deepChildNodes={deepChildNodes}
             tokenMap={tokenMap}
             onNavigateToToken={onNavigateToToken}
+            onRemoveBinding={handleDeepRemoveBinding}
+            onBindToken={handleDeepBindToken}
           />
         )}
       </div>

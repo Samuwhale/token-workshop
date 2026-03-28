@@ -4,7 +4,7 @@ import type { PluginMessage } from '../shared/types.js';
 import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables } from './variableSync.js';
 import { applyStyles, readFigmaStyles } from './styleSync.js';
 import { getAvailableFontFamilies, invalidateFontCache } from './fontLoading.js';
-import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes } from './selectionHandling.js';
+import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap, searchLayers, findPeersForProperty, applyToNodes, removeBindingFromNode } from './selectionHandling.js';
 import { scanComponentCoverage, selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 import { scanConsistency } from './consistencyScanner.js';
 
@@ -222,6 +222,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         await applyToNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
       } catch (e) {
         reportError('apply-to-nodes', e);
+      }
+      break;
+    case 'remove-binding-from-node':
+      try {
+        await removeBindingFromNode(msg.nodeId, msg.property);
+      } catch (e) {
+        reportError('remove-binding-from-node', e);
       }
       break;
     case 'get-available-fonts': {

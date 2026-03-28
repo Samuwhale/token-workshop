@@ -958,3 +958,22 @@ export async function applyToNodes(
   // Refresh selection so bindings show correctly
   await getSelection(false);
 }
+
+// Remove a token binding from a specific node by ID (without changing the current selection)
+export async function removeBindingFromNode(nodeId: string, property: string) {
+  try {
+    const node = await figma.getNodeByIdAsync(nodeId);
+    if (!node || !('parent' in node)) {
+      figma.ui.postMessage({ type: 'removed-binding-from-node', success: false, error: 'Node not found' });
+      return;
+    }
+    const sceneNode = node as SceneNode;
+    sceneNode.setSharedPluginData(PLUGIN_DATA_NAMESPACE, property, '');
+    figma.ui.postMessage({ type: 'removed-binding-from-node', success: true, nodeId, property });
+  } catch (err) {
+    const msg = getErrorMessage(err);
+    figma.notify(`Failed to remove binding: ${msg}`, { error: true });
+    figma.ui.postMessage({ type: 'removed-binding-from-node', success: false, error: msg });
+  }
+  await getSelection(false);
+}
