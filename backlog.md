@@ -138,8 +138,8 @@
 
 - [x] TokenList is 1600+ lines with 40+ useState hooks — high re-render surface and hard to reason about; extract related state into custom hooks (`useTokenCreate`, `useFindReplace`, `useDragDrop`)
 - [x] TokenTreeNode has 47 props and is 1200+ lines — the deeply-passed prop set is a strong signal for a React context; many props are forwarded recursively unchanged
-- [~] `handleCreate` and `handleCreateAndNew` are near-identical — ~90% shared logic (validation, API call, undo setup) with only the post-success action differing; should be a single function with a parameter
-- [ ] `DEFAULT_WEIGHT_STYLES` in `fontLoading.ts` is defined but never used — `weightToFontStyleFallback` serves the same purpose and is the one actually called
+- [x] `handleCreate` and `handleCreateAndNew` are near-identical — ~90% shared logic (validation, API call, undo setup) with only the post-success action differing; should be a single function with a parameter
+- [~] `DEFAULT_WEIGHT_STYLES` in `fontLoading.ts` is defined but never used — `weightToFontStyleFallback` serves the same purpose and is the one actually called
 
 - [~] Deep Inspect mode has no keyboard shortcut — toggling deep inspection requires clicking a small button; a keyboard shortcut would streamline the inspect workflow
 

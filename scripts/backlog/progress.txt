@@ -555,3 +555,10 @@
 - **Learnings for future iterations:**
   - The two functions only differed in post-success form state reset — a boolean parameter cleanly distinguishes the two paths
 ---
+
+## 2026-03-28 - DEFAULT_WEIGHT_STYLES in fontLoading.ts is defined but never used
+- Removed unused `DEFAULT_WEIGHT_STYLES` constant; `weightToFontStyleFallback` already serves the same purpose with better intermediate-weight handling.
+- Files changed: `packages/figma-plugin/src/plugin/fontLoading.ts` ~L15
+- **Learnings for future iterations:**
+  - Simple dead-code removal — no references anywhere in the codebase.
+---

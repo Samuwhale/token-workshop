@@ -160,3 +160,23 @@ Already up to date.
 
 --- Merging: handleCreate and handleCreateAndNew are near-identical — ~90% shared logic ---
 Already up to date.
+[main 52c8111] chore(backlog): done – handleCreate and handleCreateAndNew are near-identical — ~90% shared logic
+ 5 files changed, 53 insertions(+), 72 deletions(-)
+
+## 2026-03-28 - handleCreate and handleCreateAndNew near-identical duplication
+- Extracted shared logic into a single `doCreate(keepOpen: boolean)` function. `handleCreate` calls `doCreate(false)` (closes form), `handleCreateAndNew` calls `doCreate(true)` (keeps form open with parent prefix pre-filled). Eliminated ~60 duplicated lines.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` ~L89-160
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  13 items remaining
+===============================================================
+  Claimed: `DEFAULT_WEIGHT_STYLES` in `fontLoading.ts` is defined but never used — `weightToFontStyleFallback` serves the same purpose and is the one actually called
+  Worktree: /tmp/backlog-34977-hVcN1G
+
+  ✓ done: DEFAULT_WEIGHT_STYLES in fontLoading.ts is defined but never used
+    Removed unused DEFAULT_WEIGHT_STYLES constant; weightToFontStyleFallback already covers the same mapping with better intermediate-weight support.
+    7 turns · 27s · $0.21
+
+--- Merging: DEFAULT_WEIGHT_STYLES in fontLoading.ts is defined but never used ---
+Already up to date.

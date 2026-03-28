@@ -12,11 +12,6 @@ export function fontStyleToWeight(style: string): number {
   return 400;
 }
 
-const DEFAULT_WEIGHT_STYLES: Record<number, string> = {
-  100: 'Thin', 200: 'ExtraLight', 300: 'Light', 400: 'Regular',
-  500: 'Medium', 600: 'SemiBold', 700: 'Bold', 800: 'ExtraBold', 900: 'Black',
-};
-
 function weightToFontStyleFallback(weight: number): string {
   if (weight <= 100) return 'Thin';
   if (weight <= 200) return 'ExtraLight';
