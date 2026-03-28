@@ -181,65 +181,31 @@ export interface GeneratorTemplate {
 // Derived path helpers
 // ---------------------------------------------------------------------------
 
-function computeDerivedPaths(generator: TokenGenerator): string[] {
-  const { type, targetGroup, config } = generator;
-  const paths: string[] = [];
-
-  if (type === 'colorRamp') {
-    const cfg = config as ColorRampConfig;
-    for (const step of cfg.steps) {
-      paths.push(`${targetGroup}.${step}`);
-    }
-  } else if (type === 'typeScale') {
-    const cfg = config as TypeScaleConfig;
-    for (const step of cfg.steps) {
-      paths.push(`${targetGroup}.${step.name}`);
-    }
-  } else if (type === 'spacingScale') {
-    const cfg = config as SpacingScaleConfig;
-    for (const step of cfg.steps) {
-      paths.push(`${targetGroup}.${step.name}`);
-    }
-  } else if (type === 'opacityScale') {
-    const cfg = config as OpacityScaleConfig;
-    for (const step of cfg.steps) {
-      paths.push(`${targetGroup}.${step.name}`);
-    }
-  } else if (type === 'borderRadiusScale') {
-    const cfg = config as BorderRadiusScaleConfig;
-    for (const step of cfg.steps) {
-      paths.push(`${targetGroup}.${step.name}`);
-    }
-  } else if (type === 'zIndexScale') {
-    const cfg = config as ZIndexScaleConfig;
-    for (const step of cfg.steps) {
-      paths.push(`${targetGroup}.${step.name}`);
-    }
-  } else if (type === 'customScale') {
-    const cfg = config as CustomScaleConfig;
-    for (const step of cfg.steps) {
-      paths.push(`${targetGroup}.${step.name}`);
-    }
-  } else if (type === 'accessibleColorPair') {
-    const cfg = config as AccessibleColorPairConfig;
-    paths.push(`${targetGroup}.${cfg.backgroundStep}`);
-    paths.push(`${targetGroup}.${cfg.foregroundStep}`);
-  } else if (type === 'darkModeInversion') {
-    const cfg = config as DarkModeInversionConfig;
-    paths.push(`${targetGroup}.${cfg.stepName}`);
-  } else if (type === 'responsiveScale') {
-    const cfg = config as ResponsiveScaleConfig;
-    for (const step of cfg.steps) {
-      paths.push(`${targetGroup}.${step.name}`);
-    }
-  } else if (type === 'contrastCheck') {
-    const cfg = config as ContrastCheckConfig;
-    for (const step of cfg.steps) {
-      paths.push(`${targetGroup}.${step.name}`);
-    }
+function getStepNames(config: Record<string, unknown>): string[] {
+  // Most generators have a `steps` array — items are either primitives
+  // (colorRamp: number[]) or objects with a `name` field.
+  if (Array.isArray(config.steps)) {
+    return config.steps.map((s: unknown) =>
+      typeof s === 'object' && s !== null && 'name' in s
+        ? String((s as { name: unknown }).name)
+        : String(s),
+    );
   }
+  // accessibleColorPair: two named step fields
+  if (typeof config.backgroundStep === 'string' && typeof config.foregroundStep === 'string') {
+    return [config.backgroundStep, config.foregroundStep];
+  }
+  // darkModeInversion: single step field
+  if (typeof config.stepName === 'string') {
+    return [config.stepName];
+  }
+  return [];
+}
 
-  return paths;
+function computeDerivedPaths(generator: TokenGenerator): string[] {
+  return getStepNames(generator.config as Record<string, unknown>).map(
+    (name) => `${generator.targetGroup}.${name}`,
+  );
 }
 
 // ---------------------------------------------------------------------------

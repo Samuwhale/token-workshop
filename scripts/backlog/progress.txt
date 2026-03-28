@@ -277,3 +277,11 @@
 - **Learnings for future iterations:**
   - `utils.ts` is the right home for general token-tree helpers that aren't color-specific. It already contains `stableStringify` which is also token-related.
 ---
+---
+
+## 2026-03-28 - `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types
+- Added `accessibleColorPair`, `darkModeInversion`, `responsiveScale` to `TYPE_LABELS` in TokenGeneratorDialog.tsx, `GRAPH_TYPE_LABELS` in TokenGraph.tsx, `typeLabels` in generatorUtils.ts `autoName()`, `defaultConfigForType()`, `SOURCE_REQUIRED_TYPES`, and `ALL_TYPES`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L52, `packages/figma-plugin/src/ui/components/TokenGraph.tsx` ~L30, `packages/figma-plugin/src/ui/components/generators/generatorUtils.ts` ~L52/~L66/~L80/~L86
+- **Learnings for future iterations:**
+  - When generator types are added to the `GeneratorType` union, they must also be added to ALL_TYPES, SOURCE_REQUIRED_TYPES/STANDALONE_TYPES/FLEXIBLE_TYPES, TYPE_LABELS, GRAPH_TYPE_LABELS, autoName typeLabels, and defaultConfigForType — six places total
+---

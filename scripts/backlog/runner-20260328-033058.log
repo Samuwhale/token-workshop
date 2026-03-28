@@ -133,3 +133,10 @@ Already up to date.
 ===============================================================
   Claimed: `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches — all do the same thing (extract step names from config and build paths); collapse into a single generic function
   Worktree: /tmp/backlog-85816-NUQenw
+
+  ✓ done: `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches
+    Collapsed 11 if-else branches into a generic `getStepNames` helper that inspects config shape at runtime (steps array, backgroundStep/foregroundStep pair, or stepName field), reducing `computeDerivedPaths` to a one-liner.
+    13 turns · 73s · $0.38
+
+--- Merging: `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches ---
+Already up to date.
