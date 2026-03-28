@@ -68,3 +68,10 @@ Already up to date.
 ===============================================================
   Claimed: No suppress/ignore action on individual lint violations in AnalyticsPanel — `suppressedKeys` state already exists in `AnalyticsPanel.tsx` but there is no button to suppress a specific violation; add a per-row dismiss/suppress button so users can acknowledge known issues and reduce noise without disabling the whole rule
   Worktree: /tmp/backlog-15773-5Yzpy7
+
+  ✓ done: No suppress/ignore action on individual lint violations in AnalyticsPanel
+    stale — already done. Per-row Suppress button exists at AnalyticsPanel.tsx L640-650 with hover-reveal UX, plus Suppress All on group headers and unsuppress in suppressed footer.
+    14 turns · 53s · $0.44
+
+--- Merging: No suppress/ignore action on individual lint violations in AnalyticsPanel ---
+Already up to date.

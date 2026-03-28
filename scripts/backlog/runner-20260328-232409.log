@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 
 --- Merging: bulkRename in token-store.ts does not validate for circular alias references after rename ---
 Already up to date.
+[main 62503d7] chore(backlog): done – bulkRename in token-store.ts does not validate for circular alias references after rename
+ 7 files changed, 142 insertions(+), 10 deletions(-)
+
+## 2026-03-28 - bulkRename in token-store.ts does not validate for circular alias references after rename
+- Added circular reference detection after rename + alias updates, before persisting to disk
+- Fixed revert logic to also undo cross-set alias reference updates using a reverse pathMap
+- Moved disk saves (`saveSet`) to after circular check so corrupt state is never persisted
+
+===============================================================
+  Iteration 2  (claude)  —  6 items remaining
+===============================================================
+  Claimed: No bulk-fill action for tokens missing from multiple theme sets — when a token exists in a source set but is missing from several enabled sets, the user must open each set individually to add the value; add a "Fill missing in all sets" shortcut in the ThemeManager coverage view that copies the source value into every set that lacks the token
+  Worktree: /tmp/backlog-17439-TF9Yyw

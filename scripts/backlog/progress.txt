@@ -459,3 +459,13 @@
   - Reverse alias updates can be done by applying `updateBulkAliasRefs` with a flipped pathMap instead of snapshotting token trees
   - Always move disk persistence to after validation checks to avoid partial writes that corrupt on-disk state
 ---
+
+## 2026-03-28 - No suppress/ignore action on individual lint violations in AnalyticsPanel
+- Already implemented: per-row "Suppress" button exists at `AnalyticsPanel.tsx` ~L640-650
+- Per-row button uses hover-reveal pattern (`opacity-0 group-hover:opacity-100`) and adds `suppressKey(issue)` to `suppressedKeys` state
+- "Suppress all" button also exists on group headers at ~L611-621
+- Suppressed items footer with unsuppress/restore at ~L671-699
+- Status: stale — already done
+- **Learnings for future iterations:**
+  - Check implementation before assuming backlog items are unaddressed — suppress button was added in a prior session alongside "Suppress all"
+---
