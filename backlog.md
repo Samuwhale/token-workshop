@@ -30,10 +30,10 @@
 
 ### UX
 
-- [~] No visual token previews in the token list — rows show text-only value representations; add inline previews per type: color swatches, proportional bars for spacing, "Aa" samples for typography, shadow previews, border line segments — this is table-stakes (both Tokens Studio and Figma native do this)
+- [x] No visual token previews in the token list — rows show text-only value representations; add inline previews per type: color swatches, proportional bars for spacing, "Aa" samples for typography, shadow previews, border line segments — this is table-stakes (both Tokens Studio and Figma native do this)
 - [~] No "token in use" indicator in the token list — no visual signal for which tokens are bound to Figma layers; add a subtle usage dot or count on token rows so users can distinguish active tokens from orphans without visiting Analytics
 - [~] Set/file abstraction creates unnecessary cognitive load — users must understand sets (JSON files), folders, and theme activation before making design decisions; for simple use cases (< 200 tokens), auto-organize by type and hide the file abstraction, exposing sets as an advanced organizational tool
-- [ ] No read-only token preview panel — selecting a token forces edit mode to inspect values, risking accidental changes; add a lightweight preview on single-click, reserve edit for double-click or explicit action
+- [~] No read-only token preview panel — selecting a token forces edit mode to inspect values, risking accidental changes; add a lightweight preview on single-click, reserve edit for double-click or explicit action
 - [ ] No per-token usage/documentation view — no way to see where a specific token is used across the design file (which components, pages, layers) without running a full heatmap scan; add a "Used by" panel per token showing bound layers and dependent tokens in one place
 - [ ] No token lifecycle states — all tokens are immediately live with no way to mark them as "draft", "published", or "deprecated"; for multi-team usage, add lifecycle badges and optionally hide deprecated tokens from bind pickers
 - [ ] No spreadsheet/table view for tokens — the tree view is good for hierarchy but poor for scanning and bulk editing; add an alternative flat table view (like Tokens Studio) with sortable columns for Name, Type, Value, Resolved Value, Description, and inline cell editing for simple types — toggle between tree and table via a view switcher

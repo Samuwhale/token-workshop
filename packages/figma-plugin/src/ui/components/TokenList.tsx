@@ -64,6 +64,7 @@ export function TokenList({
   const [dragSource, setDragSource] = useState<{ paths: string[]; names: string[] } | null>(null);
   const [dragOverGroup, setDragOverGroup] = useState<string | null>(null);
   const [dragOverGroupIsInvalid, setDragOverGroupIsInvalid] = useState(false);
+  const [dragOverReorder, setDragOverReorder] = useState<{ path: string; position: 'before' | 'after' } | null>(null);
   const [showBatchEditor, setShowBatchEditor] = useState(false);
   const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
   const [promoteBusy, setPromoteBusy] = useState(false);
@@ -1142,6 +1143,72 @@ export function TokenList({
     }
     onRefresh();
   }, [connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo]);
+
+  const handleDropReorder = useCallback(async (targetPath: string, targetName: string, position: 'before' | 'after') => {
+    if (!dragSource || !connected || !serverUrl || !setName) return;
+    setDragOverReorder(null);
+    const source = dragSource;
+    setDragSource(null);
+    setDragOverGroup(null);
+
+    // Only reorder within same group — all dragged tokens must share the target's parent
+    const targetParent = nodeParentPath(targetPath, targetName) ?? '';
+    const siblings = siblingOrderMap.get(targetParent);
+    if (!siblings) return;
+
+    // Verify all dragged tokens are siblings in the same group
+    for (let i = 0; i < source.paths.length; i++) {
+      const srcParent = nodeParentPath(source.paths[i], source.names[i]) ?? '';
+      if (srcParent !== targetParent) {
+        // Cross-group: fall back to existing move-to-group behaviour
+        return;
+      }
+    }
+    // Don't reorder onto self
+    if (source.paths.length === 1 && source.paths[0] === targetPath) return;
+
+    const draggedNames = new Set(source.names);
+    // Build new order: remove dragged items, then insert at target position
+    const withoutDragged = siblings.filter(n => !draggedNames.has(n));
+    const targetIdx = withoutDragged.indexOf(targetName);
+    if (targetIdx < 0) return;
+    const insertIdx = position === 'before' ? targetIdx : targetIdx + 1;
+    const newOrder = [...withoutDragged.slice(0, insertIdx), ...source.names, ...withoutDragged.slice(insertIdx)];
+
+    const prevOrder = [...siblings];
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),
+    });
+    if (onPushUndo) {
+      const capturedSet = setName;
+      const capturedUrl = serverUrl;
+      const label = source.names.length === 1
+        ? `Reorder "${source.names[0]}"`
+        : `Reorder ${source.names.length} tokens`;
+      onPushUndo({
+        description: label,
+        restore: async () => {
+          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupPath: targetParent, orderedKeys: prevOrder }),
+          });
+          onRefresh();
+        },
+        redo: async () => {
+          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),
+          });
+          onRefresh();
+        },
+      });
+    }
+    onRefresh();
+  }, [dragSource, connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo]);
 
   const handleInlineSave = useCallback(async (path: string, type: string, newValue: any) => {
     if (!connected) return;
@@ -2719,12 +2786,16 @@ export function TokenList({
                 onInlineSave={handleInlineSave}
                 onRenameToken={handleRenameToken}
                 onDragStart={(paths, names) => setDragSource({ paths, names })}
-                onDragEnd={() => { setDragSource(null); setDragOverGroup(null); setDragOverGroupIsInvalid(false); }}
-                onDragOverGroup={(path, invalid) => { setDragOverGroup(path); setDragOverGroupIsInvalid(invalid ?? false); }}
+                onDragEnd={() => { setDragSource(null); setDragOverGroup(null); setDragOverGroupIsInvalid(false); setDragOverReorder(null); }}
+                onDragOverGroup={(path, invalid) => { setDragOverGroup(path); setDragOverGroupIsInvalid(invalid ?? false); setDragOverReorder(null); }}
                 onDropOnGroup={handleDropOnGroup}
                 dragOverGroup={dragOverGroup}
                 dragOverGroupIsInvalid={dragOverGroupIsInvalid}
                 dragSource={dragSource}
+                onDragOverToken={(path, _name, pos) => { setDragOverReorder({ path, position: pos }); setDragOverGroup(null); }}
+                onDragLeaveToken={() => setDragOverReorder(null)}
+                onDropOnToken={(path, name, pos) => handleDropReorder(path, name, pos)}
+                dragOverReorder={sortOrder === 'default' ? dragOverReorder : null}
                 selectedLeafNodes={selectedLeafNodes}
                 onMoveUp={moveEnabled && sibIdx > 0 ? () => handleMoveTokenInGroup(node.path, node.name, 'up') : undefined}
                 onMoveDown={moveEnabled && sibIdx >= 0 && sibIdx < siblings.length - 1 ? () => handleMoveTokenInGroup(node.path, node.name, 'down') : undefined}

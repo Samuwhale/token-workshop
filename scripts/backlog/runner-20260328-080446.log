@@ -83,3 +83,16 @@ Already up to date.
 
 --- Merging: No visual token previews in the token list ---
 Already up to date.
+[main a074b3b] chore(backlog): done – No visual token previews in the token list
+ 6 files changed, 104 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - No visual token previews in the token list
+- Added inline visual previews for dimension, duration, number, and border token types in `ValuePreview.tsx`
+- **Dimension/duration**: proportional square that scales both width and height relative to value (0–64px/4rem/2s range), anchored bottom-left
+- **Number**: horizontal fill bar that scales height (auto-detects 0–1 vs 0–100 range for opacity etc.)
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  87 items remaining
+===============================================================
+  Claimed: No read-only token preview panel — selecting a token forces edit mode to inspect values, risking accidental changes; add a lightweight preview on single-click, reserve edit for double-click or explicit action
+  Worktree: /tmp/backlog-63685-h2UXWP

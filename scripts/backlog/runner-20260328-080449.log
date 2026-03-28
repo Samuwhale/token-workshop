@@ -113,3 +113,10 @@ Already up to date.
 ===============================================================
   Claimed: No drag-to-reorder tokens within the same group — tokens can be dragged between groups but sort order within a group is not user-controllable
   Worktree: /tmp/backlog-63973-jqzq60
+
+  ✓ done: No drag-to-reorder tokens within the same group
+    Added drag-over/drop handlers on leaf token rows with top/bottom half detection, visual blue accent indicator line, and handleDropReorder using existing /groups/reorder API. Supports multi-select, undo/redo, only active in default sort order.
+    47 turns · 334s · $1.98
+
+--- Merging: No drag-to-reorder tokens within the same group ---
+Already up to date.

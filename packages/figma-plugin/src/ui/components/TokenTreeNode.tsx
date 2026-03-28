@@ -26,6 +26,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onInlineSave, onRenameToken, onDragStart, onDragEnd, onDragOverGroup,
     onDropOnGroup, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     selectedLeafNodes, onMoveUp, onMoveDown,
+    onDragOverToken, onDragLeaveToken, onDropOnToken, dragOverReorder,
     chainExpanded: chainExpandedProp = false,
     onToggleChain, searchHighlight, showFullPath,
   } = props;
@@ -755,6 +756,8 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     }
   };
 
+  const reorderPos = dragOverReorder?.path === node.path ? dragOverReorder.position : null;
+
   return (
     <div ref={nodeRef}>
     <div
@@ -773,11 +776,38 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         }
       }}
       onDragEnd={() => onDragEnd?.()}
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('application/x-token-drag')) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const rect = e.currentTarget.getBoundingClientRect();
+        const pos = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+        onDragOverToken?.(node.path, node.name, pos);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          onDragLeaveToken?.();
+        }
+      }}
+      onDrop={(e) => {
+        if (!e.dataTransfer.types.includes('application/x-token-drag')) return;
+        e.preventDefault();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const pos = e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+        onDropOnToken?.(node.path, node.name, pos);
+      }}
       onMouseEnter={() => { setHovered(true); if (inspectMode) onHoverToken?.(node.path); }}
       onMouseLeave={() => { setHovered(false); setShowPicker(false); }}
       onContextMenu={handleContextMenu}
       onKeyDown={handleRowKeyDown}
     >
+      {/* Drag reorder indicator line */}
+      {reorderPos && (
+        <div
+          className="absolute left-0 right-0 h-0.5 bg-[var(--color-figma-accent)] pointer-events-none z-10"
+          style={reorderPos === 'before' ? { top: 0 } : { bottom: 0 }}
+        />
+      )}
       {/* Checkbox for select mode */}
       {selectMode && (
         <input

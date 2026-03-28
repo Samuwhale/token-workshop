@@ -140,6 +140,10 @@ export interface TokenTreeNodeProps {
   dragSource?: { paths: string[]; names: string[] } | null;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  onDragOverToken?: (path: string, name: string, position: 'before' | 'after') => void;
+  onDragLeaveToken?: () => void;
+  onDropOnToken?: (path: string, name: string, position: 'before' | 'after') => void;
+  dragOverReorder?: { path: string; position: 'before' | 'after' } | null;
   chainExpanded?: boolean;
   onToggleChain?: (path: string) => void;
   /** Parsed highlight terms from search query */

@@ -381,3 +381,12 @@
   - Dimension values can be object `{value, unit}`, string, or number — handle all three forms
   - For proportional previews, different units need different reference maximums (px: 64, rem: 4, s: 2)
 ---
+
+## 2026-03-28 - No drag-to-reorder tokens within the same group
+- Added drag-over/drop handlers on leaf token rows in TokenTreeNode to detect top/bottom half positioning. Added `handleDropReorder` in TokenList.tsx that computes new sibling order and calls the existing `/groups/reorder` API. Visual indicator is a blue accent line at the drop position. Supports multi-select drag reorder. Undo/redo integrated. Only active when sort order is 'default'.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L142 (new props), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L779 (drag handlers + indicator), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L67 (state), ~L1132 (handleDropReorder), ~L2725 (prop wiring)
+- **Learnings for future iterations:**
+  - The existing reorder infrastructure (siblingOrderMap, `/groups/reorder` API, handleMoveTokenInGroup) was already solid — drag-to-reorder only needed UI drop zones and a new handler.
+  - `flatItemsRef` has a narrow type (`{ node: { path: string } }`) — pass node name from the component rather than looking it up from the ref.
+  - Drag reorder indicator should only show when sortOrder is 'default' — other sort orders have no user-controllable position.
+---
