@@ -405,3 +405,23 @@ Already up to date.
 
 --- Merging: ThemeValuesSection.handleSave has no .ok check and no catch block ---
 Already up to date.
+[main e3f5ed0] chore(backlog): done – ThemeValuesSection.handleSave has no .ok check and no catch block
+ 5 files changed, 39 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - ThemeValuesSection.handleSave has no .ok check and no catch block
+- Added `res.ok` check to the PATCH fetch in `ThemeValuesSection.handleSave`; throws on non-2xx with response body as message
+- Added `catch` block that sets a `saveError` state instead of silently swallowing errors
+- Edit state is no longer cleared on failure — the dirty value stays in the input so the user can retry
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  24 items remaining
+===============================================================
+  Claimed: `useFindReplace.handleFindReplace` calls `res.json()` before `res.ok` check (~L85) — if the server returns a non-JSON error body on failure, the `res.json()` call throws and the `catch` block reports a generic network error instead of the actual server error message; should call `res.json().catch(()=>({}))` defensively before checking `res.ok`
+  Worktree: /tmp/backlog-9231-Jmdpov
+
+  ✓ done: useFindReplace.handleFindReplace calls res.json() before res.ok check
+    Changed res.json() to res.json().catch(() => ({})) so non-JSON error responses are handled gracefully before the res.ok check; also added res.status to the fallback error message
+    15 turns · 68s · $0.43
+
+--- Merging: useFindReplace.handleFindReplace calls res.json() before res.ok check ---
+Already up to date.

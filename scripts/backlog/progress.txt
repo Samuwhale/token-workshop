@@ -526,3 +526,11 @@
   - `await res.text().catch(() => '')` is a safe way to extract error body without risking a secondary throw
   - For inline save buttons, keep the edited value on failure so the user doesn't lose their input
 ---
+
+## 2026-03-28 - useFindReplace.handleFindReplace calls res.json() before res.ok check
+- Changed `res.json()` to `res.json().catch(() => ({}))` so non-JSON error responses don't throw before the `res.ok` check
+- Also improved the fallback error message to include `res.status` for better diagnostics
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` ~L108-109
+- **Learnings for future iterations:**
+  - Always parse JSON defensively with `.catch(() => ({}))` before checking `res.ok` — non-JSON error bodies (e.g., plain text 500s) will throw from `.json()` and mask the real error
+---

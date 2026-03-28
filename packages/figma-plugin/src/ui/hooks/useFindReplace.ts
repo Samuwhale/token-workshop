@@ -105,8 +105,8 @@ export function useFindReplace({
         body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
         signal: ac.signal,
       });
-      const data = await res.json() as { renamed?: number; skipped?: string[]; aliasesUpdated?: number; error?: string };
-      if (!res.ok) { setFrError(data.error ?? 'Rename failed'); return; }
+      const data = await res.json().catch(() => ({})) as { renamed?: number; skipped?: string[]; aliasesUpdated?: number; error?: string };
+      if (!res.ok) { setFrError(data.error ?? `Rename failed (${res.status})`); return; }
       if ((data.renamed ?? 0) === 0) {
         const skippedCount = data.skipped?.length ?? 0;
         setFrError(skippedCount > 0
