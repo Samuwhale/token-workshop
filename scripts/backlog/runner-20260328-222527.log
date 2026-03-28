@@ -1,0 +1,11 @@
+NOTE: 8 [~] item(s) found — skipping reset (13 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 1
+  Completed total: 732 (next code pass in 8 items, next product pass in 3 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  1 items remaining
+===============================================================
+  Claimed: useSetMergeSplit.ts merge/split undo callbacks use raw `fetch` with no error handling — `handleConfirmMerge` undo (line 168) silently fires a PUT with no `.ok` check, and `handleConfirmSplit` undo (lines 248-261) uses `Promise.allSettled` but only `console.warn`s failures without surfacing them to the user; a failed undo leaves the user believing tokens were restored when they weren't
+  Worktree: /tmp/backlog-65007-LWGjuV

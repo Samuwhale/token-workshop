@@ -1,0 +1,11 @@
+NOTE: 6 [~] item(s) found — skipping reset (7 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 3
+  Completed total: 732 (next code pass in 8 items, next product pass in 3 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  3 items remaining
+===============================================================
+  Claimed: Server-side token value comparisons use `JSON.stringify` (non-deterministic key order) instead of `stableStringify` — affects snapshot diff (manual-snapshot.ts:164-165), sync diff (sync.ts:224-225, 323, 499-500), and generator conflict detection (generator-service.ts:292); composite token values (typography, shadow, border objects) with identical content but different key order will be reported as false-positive diffs or missed as false negatives
+  Worktree: /tmp/backlog-64460-pehCcz

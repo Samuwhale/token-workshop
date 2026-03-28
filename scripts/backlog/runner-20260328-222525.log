@@ -1,0 +1,18 @@
+NOTE: 7 [~] item(s) found — skipping reset (10 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 2
+  Completed total: 732 (next code pass in 8 items, next product pass in 3 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  2 items remaining
+===============================================================
+  Claimed: manual-snapshot.ts `diff()` reconstructs current state with only `$value`/`$type` (line 151) but `save()` captures `$value`/`$type`/`$description`/`$extensions` (lines 79-84) — description and extension changes between snapshot and current state are silently ignored in diffs, and the `JSON.stringify` comparison on `$value` means composite token diffs are unreliable (see previous item)
+  Worktree: /tmp/backlog-64741-3GsiXJ
+
+  ✓ done: manual-snapshot.ts diff() field mismatch and unreliable composite comparison
+    Fixed diff() to capture all 4 token fields (matching save()) and replaced JSON.stringify $value-only comparison with stableStringify on the full token object, so description/extension changes and composite token diffs are now detected correctly.
+    13 turns · 73s · $0.4
+
+--- Merging: manual-snapshot.ts diff() field mismatch and unreliable composite comparison ---
+Already up to date.

@@ -495,3 +495,13 @@
 - **Learnings for future iterations:**
   - Always pair `FileReader.onload` with `FileReader.onerror` — without it, failed reads silently hang with no state change
 ---
+
+## 2026-03-28 - manual-snapshot.ts diff() field mismatch and unreliable composite comparison
+- Fixed `diff()` to capture all 4 fields (`$value`, `$type`, `$description`, `$extensions`) when reconstructing current state, matching what `save()` captures
+- Replaced `JSON.stringify` comparison on `$value` only with `stableStringify` comparison on the full token object, catching changes to any field and handling key-order non-determinism in composite token values
+- Added local `stableStringify` helper (recursive, sorts object keys) to the server package
+- Files changed: `packages/server/src/services/manual-snapshot.ts` ~L7 (stableStringify), ~L162 (field capture), ~L180 (comparison)
+- **Learnings for future iterations:**
+  - When save/serialize captures N fields, every consumer (diff, compare, restore) must handle the same N fields — check symmetry
+  - `JSON.stringify` is unsuitable for deep object comparison when key order may vary (composite tokens, extensions objects)
+---

@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: ImportPanel.tsx missing FileReader.onerror handler causes indefinite hang ---
 Already up to date.
+[main 8c90e05] chore(backlog): done – ImportPanel.tsx missing FileReader.onerror handler causes indefinite hang
+ 7 files changed, 54 insertions(+), 12 deletions(-)
+
+## 2026-03-28 - ImportPanel.tsx missing FileReader.onerror handler causes indefinite hang
+- Added `reader.onerror` handlers to all three file import functions: `processJsonFile` (~L319), `processCSSFile` (~L350), and `processTailwindFile` (~L378). Each handler calls `setError()` with a descriptive message so the user sees feedback instead of an indefinite loading state.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L319, ~L350, ~L378
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Backlog fully drained!

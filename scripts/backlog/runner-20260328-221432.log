@@ -89,3 +89,17 @@ Already up to date.
 ===============================================================
   Claimed: Server routes rely on error message string matching for HTTP status codes — across `tokens.ts`, `themes.ts`, and `sync.ts`, error handlers use patterns like `if (msg.includes('not found')) reply.status(404)` and `if (msg.includes('already exists')) reply.status(409)` to determine HTTP status codes; this is fragile — any internal change to error message wording silently breaks status code mapping; should define typed error classes (e.g. `NotFoundError`, `ConflictError`) with `statusCode` properties and throw those from services, letting a shared error handler map them to HTTP responses (`packages/server/src/routes/tokens.ts`, `themes.ts`, `sync.ts`)
   Worktree: /tmp/backlog-22646-ZGPQzY
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  · unknown
+    4 turns · 117s · $0.94
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - ImportPanel.tsx missing FileReader.onerror handler causes indefinite hang
+- Added `reader.onerror` handlers to all three file import functions: `processJsonFile` (~L319), `processCSSFile` (~L350), and `processTailwindFile` (~L378). Each handler calls `setError()` with a descriptive message so the user sees feedback instead of an indefinite loading state.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L319, ~L350, ~L378
+- **Learnings for future iterations:**
+
+Stop signal received. Exiting after iteration 5.
