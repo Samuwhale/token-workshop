@@ -412,3 +412,10 @@ Already up to date.
 ===============================================================
   Claimed: No inline quick-edit for simple token values — every edit requires opening the full TokenEditor panel (3+ clicks: click row → edit field → save); double-click on a token value in the tree view should open an inline input for rapid tweaks to colors, dimensions, and strings without leaving context
   Worktree: /tmp/backlog-9651-oaVnEX
+
+  ✓ done: No inline quick-edit for simple token values
+    stale — already done. Full inline editing exists: double-click/click activates inline inputs for colors (picker), dimensions/numbers (stepper), strings (text input), booleans (toggle). Enter/blur saves, Escape cancels, with undo support.
+    18 turns · 227s · $1.21
+
+--- Merging: No inline quick-edit for simple token values ---
+Already up to date.

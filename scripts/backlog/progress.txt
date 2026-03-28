@@ -323,3 +323,11 @@
   - `TokenStore.onChange()` returns an unsubscribe function — useful for cleanup if the plugin were ever unregistered, but for server-lifetime caches it's fine to just register and forget
   - The validate script has pre-existing failures (server tests can't resolve `@tokenmanager/core`, eslint binary missing) in worktree environments — server-only changes can't be fully validated via the script
 ---
+
+## 2026-03-28 - No inline quick-edit for simple token values
+- Already fully implemented in `TokenTreeNode.tsx`. Double-click on token name/value area activates inline edit for types in `INLINE_SIMPLE_TYPES` (color, dimension, number, string, boolean, fontFamily, fontWeight, duration, asset). Single-click on value text also activates it. Colors open an inline ColorPicker popover. Numeric types get a stepper with +/- buttons. Strings get a text input. Boolean toggles on click. Enter/blur saves via PATCH with undo support, Escape cancels. Table view (`TokenTableView.tsx`) and multi-mode columns also support inline editing.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+  - The inline editing infrastructure is comprehensive: `activateInlineEdit()` at ~L881, double-click handler at ~L1063, value click at ~L1305, inline input rendering at ~L1225-1297
+  - `INLINE_SIMPLE_TYPES` in `tokenListTypes.ts:132` controls which types get inline editing; additional scalar DTCG types (lineHeight, letterSpacing, percentage, fontStyle, textDecoration, textTransform) could be added but are less commonly used standalone
+---
