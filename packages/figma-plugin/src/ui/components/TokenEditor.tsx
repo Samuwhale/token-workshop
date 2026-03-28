@@ -232,9 +232,18 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     return detectAliasCycle(reference, currentPath, allTokensFlat);
   }, [aliasMode, reference, isCreateMode, editPath, tokenPath, allTokensFlat]);
 
+  // Real-time duplicate path detection in create mode
+  const duplicatePath = useMemo(() => {
+    if (!isCreateMode) return false;
+    const trimmed = editPath.trim();
+    if (!trimmed) return false;
+    return trimmed in allTokensFlat;
+  }, [isCreateMode, editPath, allTokensFlat]);
+
   const canSave = useMemo(() => {
     if (aliasHasCycle) return false;
     if (extensionsJsonError) return false;
+    if (duplicatePath) return false;
     if (tokenType === 'typography' && !aliasMode) {
       const v = typeof value === 'object' && value !== null ? value : {};
       const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
@@ -243,10 +252,11 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       if (fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0) return false;
     }
     return true;
-  }, [aliasHasCycle, extensionsJsonError, tokenType, value, aliasMode]);
+  }, [aliasHasCycle, extensionsJsonError, duplicatePath, tokenType, value, aliasMode]);
 
   const saveBlockReason = useMemo(() => {
     if (aliasHasCycle) return 'Circular reference';
+    if (duplicatePath) return 'A token with this path already exists';
     if (extensionsJsonError) return 'Fix extensions JSON';
     if (tokenType === 'typography' && !aliasMode) {
       const v = typeof value === 'object' && value !== null ? value : {};
@@ -260,7 +270,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     }
     if (isCreateMode && !editPath.trim()) return 'Enter a token path';
     return null;
-  }, [aliasHasCycle, extensionsJsonError, tokenType, value, aliasMode, isCreateMode, editPath]);
+  }, [aliasHasCycle, duplicatePath, extensionsJsonError, tokenType, value, aliasMode, isCreateMode, editPath]);
 
   const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
     color: '#000000',
@@ -467,7 +477,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               onChange={e => { setEditPath(e.target.value); setError(null); }}
               placeholder="Token path (e.g. color.brand.500)"
               autoFocus
-              className="w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)] outline-none pb-0.5 truncate"
+              className={`w-full text-[11px] font-medium text-[var(--color-figma-text)] bg-transparent border-b outline-none pb-0.5 truncate ${duplicatePath ? 'border-[var(--color-figma-danger,#f24822)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
             />
           ) : (
             <div className="flex items-center gap-1.5 min-w-0">
@@ -481,7 +491,11 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               )}
             </div>
           )}
-          <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{isCreateMode ? 'new token' : `in ${setName}`}</div>
+          {isCreateMode && duplicatePath ? (
+            <div className="text-[9px] text-[var(--color-figma-danger,#f24822)]">A token with this path already exists in {pathToSet[editPath.trim()] || setName}</div>
+          ) : (
+            <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{isCreateMode ? 'new token' : `in ${setName}`}</div>
+          )}
         </div>
         {!isCreateMode && <button
           onClick={() => {

@@ -286,3 +286,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor path field has no real-time duplicate detection — creating a token with a path that already exists only fails on save with a cryptic conflict error; the field should warn inline as the user types
   Worktree: /tmp/backlog-10278-l1e6hC
+
+  ✓ done: TokenEditor path field has no real-time duplicate detection
+    Added real-time duplicate path detection in create mode: checks editPath against allTokensFlat, blocks save, shows red border and inline warning with owning set name.
+    19 turns · 172s · $0.78
+
+--- Merging: TokenEditor path field has no real-time duplicate detection ---
+Already up to date.

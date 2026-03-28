@@ -348,3 +348,11 @@
   - The existing `bulk-delete` endpoint with `force: true` is the cleanest rollback mechanism — no new server code needed
   - UndoToast component exists but is designed for the main undo/redo stack; import undo is better as an inline button since it's a one-shot action on the success screen
 ---
+
+## 2026-03-28 - TokenEditor path field has no real-time duplicate detection
+- Added a `duplicatePath` useMemo that checks `editPath.trim()` against `allTokensFlat` keys in create mode. When a duplicate is detected: save is blocked (`canSave` returns false), `saveBlockReason` shows "A token with this path already exists", the input border turns red via `--color-figma-danger`, and an inline message below the input shows the conflict (including which set owns the existing token via `pathToSet`).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L235 (duplicatePath memo), ~L243 (canSave), ~L257 (saveBlockReason), ~L470 (input border class), ~L487 (inline warning message)
+- **Learnings for future iterations:**
+  - `allTokensFlat` is already passed to TokenEditor and contains all tokens across sets — simple `in` check is sufficient for duplicate detection
+  - `pathToSet` maps token paths to their owning set name — useful for cross-set duplicate messages
+---

@@ -398,3 +398,17 @@ Already up to date.
 
 --- Merging: ImportPanel has no rollback after import ---
 Already up to date.
+[main ae3ca69] chore(backlog): done – ImportPanel has no rollback after import
+ 6 files changed, 87 insertions(+), 9 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - ImportPanel has no rollback after import
+- Added undo import feature: after a successful import, an "Undo import" button appears on the success screen that bulk-deletes all imported tokens via `POST /api/tokens/:set/bulk-delete`
+- Tracks rollback info (`lastImport` state) with per-set token paths for both Variables multi-set imports and Styles/JSON single-set imports
+- Uses existing `bulk-delete` endpoint with `force: true` to bypass dependency checks during rollback
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  41 items remaining
+===============================================================
+  Claimed: PreviewPanel silently caps color swatches at 16 tokens — sets with more than 16 colors only show the first 16 with no indication that tokens were omitted or any way to paginate
+  Worktree: /tmp/backlog-85816-3HxoSM
