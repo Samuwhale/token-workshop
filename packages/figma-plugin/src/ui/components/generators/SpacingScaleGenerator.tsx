@@ -56,11 +56,12 @@ const SPACING_STEP_PRESETS = [
 // Preview (also used by borderRadiusScale)
 // ---------------------------------------------------------------------------
 
-export function SpacingPreview({ tokens, overrides, onOverrideChange, onOverrideClear }: {
+export function SpacingPreview({ tokens, overrides, onOverrideChange, onOverrideClear, overwritePaths }: {
   tokens: GeneratedTokenResult[];
   overrides: Record<string, { value: unknown; locked: boolean }>;
   onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
   onOverrideClear: (stepName: string) => void;
+  overwritePaths?: Set<string>;
 }) {
   const maxVal = Math.max(...tokens.map(t => {
     return isDimensionLike(t.value) ? t.value.value : parseFloat(String(t.value)) || 0;
@@ -71,7 +72,7 @@ export function SpacingPreview({ tokens, overrides, onOverrideChange, onOverride
         const val = isDimensionLike(t.value) ? t.value.value : parseFloat(String(t.value)) || 0;
         const pct = Math.max(4, (val / maxVal) * 100);
         return (
-          <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear}>
+          <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>
             <div className="flex-1 h-2 rounded-sm bg-[var(--color-figma-bg)] overflow-hidden">
               <div className="h-full rounded-sm bg-[var(--color-figma-accent)]" style={{ width: `${pct}%`, opacity: 0.7 }} />
             </div>

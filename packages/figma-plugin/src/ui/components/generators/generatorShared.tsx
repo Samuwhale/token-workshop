@@ -28,11 +28,12 @@ export function formatValue(value: unknown): string {
 // Override row + table
 // ---------------------------------------------------------------------------
 
-export function OverrideRow({ token, override, onOverrideChange, onOverrideClear, children }: {
+export function OverrideRow({ token, override, onOverrideChange, onOverrideClear, isOverwrite, children }: {
   token: GeneratedTokenResult;
   override?: { value: unknown; locked: boolean };
   onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
   onOverrideClear: (stepName: string) => void;
+  isOverwrite?: boolean;
   children?: React.ReactNode;
 }) {
   const [editing, setEditing] = useState(false);
@@ -55,6 +56,9 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
   return (
     <div className={`flex items-center gap-1.5 px-1 py-0.5 rounded ${token.warning ? 'bg-[var(--color-figma-error)]/8' : isOverridden ? 'bg-[var(--color-figma-accent)]/8' : ''}`}>
       <span className="w-8 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{token.stepName}</span>
+      {isOverwrite && (
+        <span className="shrink-0 px-1 leading-none rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">update</span>
+      )}
       {token.warning && (
         <span title={token.warning} className="shrink-0 text-[var(--color-figma-error)]" aria-label="Formula error">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -102,16 +106,17 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
   );
 }
 
-export function OverrideTable({ tokens, overrides, onOverrideChange, onOverrideClear }: {
+export function OverrideTable({ tokens, overrides, onOverrideChange, onOverrideClear, overwritePaths }: {
   tokens: GeneratedTokenResult[];
   overrides: Record<string, { value: unknown; locked: boolean }>;
   onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
   onOverrideClear: (stepName: string) => void;
+  overwritePaths?: Set<string>;
 }) {
   return (
     <div className="flex flex-col gap-0.5 mt-1 border-t border-[var(--color-figma-border)] pt-1.5">
       {tokens.map(t => (
-        <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear}>
+        <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>
           <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">{formatValue(t.value)}</span>
         </OverrideRow>
       ))}
@@ -123,11 +128,12 @@ export function OverrideTable({ tokens, overrides, onOverrideChange, onOverrideC
 // Generic preview (used by zIndexScale and customScale)
 // ---------------------------------------------------------------------------
 
-export function GenericPreview({ tokens, overrides, onOverrideChange, onOverrideClear }: {
+export function GenericPreview({ tokens, overrides, onOverrideChange, onOverrideClear, overwritePaths }: {
   tokens: GeneratedTokenResult[];
   overrides: Record<string, { value: unknown; locked: boolean }>;
   onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
   onOverrideClear: (stepName: string) => void;
+  overwritePaths?: Set<string>;
 }) {
   const warningCount = tokens.filter(t => t.warning).length;
   return (
@@ -143,7 +149,7 @@ export function GenericPreview({ tokens, overrides, onOverrideChange, onOverride
         </div>
       )}
       {tokens.map((t) => (
-        <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear}>
+        <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>
           <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate text-right">
             {formatValue(t.value)}
           </span>

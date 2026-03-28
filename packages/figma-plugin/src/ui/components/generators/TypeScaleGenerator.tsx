@@ -86,11 +86,12 @@ const TYPE_STEP_PRESETS = [
 // Preview
 // ---------------------------------------------------------------------------
 
-export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverrideClear }: {
+export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverrideClear, overwritePaths }: {
   tokens: GeneratedTokenResult[];
   overrides: Record<string, { value: unknown; locked: boolean }>;
   onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
   onOverrideClear: (stepName: string) => void;
+  overwritePaths?: Set<string>;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -100,7 +101,7 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
         const unit = isDimensionLike(t.value) ? t.value.unit : '';
         const displayPx = Math.max(8, Math.min(32, numVal * (unit === 'rem' ? 16 : 1)));
         return (
-          <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear}>
+          <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>
             <span className="text-[var(--color-figma-text)] leading-none font-medium" style={{ fontSize: `${displayPx}px` }}>Ag</span>
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 ml-auto">{valStr}</span>
           </OverrideRow>

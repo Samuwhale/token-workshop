@@ -47,11 +47,12 @@ const OPACITY_PRESETS = [
 // Preview
 // ---------------------------------------------------------------------------
 
-export function OpacityPreview({ tokens, overrides, onOverrideChange, onOverrideClear }: {
+export function OpacityPreview({ tokens, overrides, onOverrideChange, onOverrideClear, overwritePaths }: {
   tokens: GeneratedTokenResult[];
   overrides: Record<string, { value: unknown; locked: boolean }>;
   onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
   onOverrideClear: (stepName: string) => void;
+  overwritePaths?: Set<string>;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -59,7 +60,7 @@ export function OpacityPreview({ tokens, overrides, onOverrideChange, onOverride
         const val = Number(t.value);
         const pct = Math.min(100, Math.max(0, val * 100));
         return (
-          <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear}>
+          <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} isOverwrite={overwritePaths?.has(t.path)}>
             <div className="flex-1 h-2 rounded-sm overflow-hidden bg-[var(--color-figma-bg)]">
               <div className="h-full rounded-sm bg-[var(--color-figma-text)]" style={{ width: `${pct}%`, opacity: val }} />
             </div>

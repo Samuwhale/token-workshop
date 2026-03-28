@@ -261,3 +261,10 @@ WARNING: Agent returned unexpected status '' — unclaiming item
 ===============================================================
   Claimed: Generator output overwrite warning: highlight tokens that will be overwritten (not newly created) in the generator preview with an "update" badge, so users can see they are about to replace hand-tuned values before confirming
   Worktree: /tmp/backlog-10461-uywUNS
+
+  ✓ done: Generator output overwrite warning: highlight tokens that will be overwritten (not newly created) in the generator preview with an "update" badge, so users can see they are about to replace hand-tuned values before confirming
+    Added amber "update" badge to OverrideRow for overwritten tokens; amber bottom stripe on color swatches; passed overwritePaths Set to all 5 preview components from TokenGeneratorDialog
+    65 turns · 441s · $2.09
+
+--- Merging: Generator output overwrite warning: highlight tokens that will be overwritten (not newly created) in the generator preview with an "update" badge, so users can see they are about to replace hand-tuned values before confirming ---
+Already up to date.

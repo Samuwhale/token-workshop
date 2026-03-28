@@ -427,3 +427,16 @@
   - Multiple uncovered tokens can reference the same missing path — de-duplicate before batch creation
   - Server tests and eslint fail in worktrees due to broken vitest symlinks and missing @eslint/js — pre-existing environment issue, not related to code changes
 ---
+
+## 2026-03-28 - Generator output overwrite warning: update badge in preview
+- Added `isOverwrite` prop to `OverrideRow` in `generatorShared.tsx` — renders a small amber "update" badge (warning color, pill shape) next to the step name when the token path already exists in the target set with a different value.
+- Added `overwritePaths?: Set<string>` to `OverrideTable` and `GenericPreview` in `generatorShared.tsx`, forwarding to `OverrideRow`.
+- Updated `ColorSwatchPreview` in `ColorRampGenerator.tsx`: added `overwritePaths` prop, renders an amber 4px bottom stripe on each swatch that will overwrite an existing token, forwards to `OverrideTable`.
+- Added `overwritePaths` prop to `TypeScalePreview`, `SpacingPreview`, `OpacityPreview` — each passes `isOverwrite={overwritePaths?.has(t.path)}` to its `OverrideRow` calls.
+- In `TokenGeneratorDialog.tsx`: added `useMemo` import, computed `overwritePaths = new Set(overwrittenEntries.map(e => e.path))`, passed to all 5 preview components.
+- Files changed: `packages/figma-plugin/src/ui/components/generators/generatorShared.tsx`, `packages/figma-plugin/src/ui/components/generators/ColorRampGenerator.tsx`, `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx`, `packages/figma-plugin/src/ui/components/generators/SpacingScaleGenerator.tsx`, `packages/figma-plugin/src/ui/components/generators/OpacityScaleGenerator.tsx`, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx`
+- **Learnings for future iterations:**
+  - The `overwrittenEntries` array was already computed in `useGeneratorDialog.ts` and the confirmation dialog already used it — the preview just needed to receive the paths as a `Set<string>` to do per-row badge rendering
+  - Server tests in this worktree always fail due to `@tokenmanager/core` workspace link not resolving — pre-existing, confirmed by stash-and-rerun
+  - For color swatch previews (colored divs too small for text), use an absolute-positioned 4px bottom stripe rather than text badge
+---

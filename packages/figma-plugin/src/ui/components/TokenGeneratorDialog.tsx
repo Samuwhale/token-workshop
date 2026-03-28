@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { ValueDiff } from './ValueDiff';
 import { swatchBgColor } from '../shared/colorUtils';
@@ -204,6 +205,11 @@ export function TokenGeneratorDialog({
     onSaved,
     onInterceptSemanticMapping,
   });
+
+  const overwritePaths = useMemo(
+    () => new Set(overwrittenEntries.map(e => e.path)),
+    [overwrittenEntries],
+  );
 
   const handleClose = () => {
     if (isDirtyRef.current && !window.confirm('You have unsaved changes. Discard and close?')) return;
@@ -485,19 +491,19 @@ export function TokenGeneratorDialog({
             {selectedType !== 'contrastCheck' && !previewError && previewTokens.length > 0 && (
               <div className="border border-[var(--color-figma-border)] rounded p-2.5 bg-[var(--color-figma-bg-secondary)]">
                 {selectedType === 'colorRamp' && (
-                  <ColorSwatchPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} />
+                  <ColorSwatchPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
                 {selectedType === 'typeScale' && (
-                  <TypeScalePreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} />
+                  <TypeScalePreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
                 {(selectedType === 'spacingScale' || selectedType === 'borderRadiusScale') && (
-                  <SpacingPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} />
+                  <SpacingPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
                 {selectedType === 'opacityScale' && (
-                  <OpacityPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} />
+                  <OpacityPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
                 {(selectedType === 'zIndexScale' || selectedType === 'customScale') && (
-                  <GenericPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} />
+                  <GenericPreview tokens={previewTokens} overrides={pendingOverrides} onOverrideChange={handleOverrideChange} onOverrideClear={handleOverrideClear} overwritePaths={overwritePaths} />
                 )}
               </div>
             )}

@@ -271,3 +271,9 @@ Already up to date.
 - After binding a token to a property on a single-layer selection, the plugin now checks for sibling layers (same parent) that support the same property and don't already have it bound. If peers are found, an actionable toast appears: "Apply [property] to N sibling layers?" with an "Apply" button.
 - Plugin side: Added `findPeersForProperty(nodeId, property)` and `applyToNodes(nodeIds, tokenPath, tokenType, targetProperty, resolvedValue)` to `selectionHandling.ts`. `findPeersForProperty` uses `nodeSupportsProperty()` helper to check capability per property type. `applyToNodes` applies to specific node IDs without changing the Figma selection.
 - Plugin side: Added `find-peers-for-property` and `apply-to-nodes` message handlers to `controller.ts`.
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  39 items remaining
+===============================================================
+  Claimed: Batch editor live regex match preview — when the batch rename pattern field contains a valid regex, show a live preview table of "original path → new path" for all matching tokens before the user clicks Apply, so accidental over-broad patterns are caught before they land
+  Worktree: /tmp/backlog-9231-TEdZ0G

@@ -41,11 +41,12 @@ const COLOR_STEP_PRESETS = [
 // Preview
 // ---------------------------------------------------------------------------
 
-export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOverrideClear }: {
+export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOverrideClear, overwritePaths }: {
   tokens: GeneratedTokenResult[];
   overrides: Record<string, { value: unknown; locked: boolean }>;
   onOverrideChange: (stepName: string, value: string, locked: boolean) => void;
   onOverrideClear: (stepName: string) => void;
+  overwritePaths?: Set<string>;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -55,7 +56,7 @@ export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOver
             key={t.stepName}
             className="flex-1 min-w-0 relative"
             style={{ background: String(t.value) }}
-            title={`${t.path}: ${String(t.value)}`}
+            title={`${t.path}: ${String(t.value)}${overwritePaths?.has(t.path) ? ' (will overwrite)' : ''}`}
           >
             {t.isOverridden && (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -63,6 +64,9 @@ export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOver
                   <path d="M8 1.5L6.5 3 9 5.5l1.5-1.5L8 1.5zM5.5 4l-4 4 .5 2 2-.5 4-4L5.5 4z"/>
                 </svg>
               </div>
+            )}
+            {overwritePaths?.has(t.path) && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--color-figma-warning)]" aria-hidden="true" />
             )}
           </div>
         ))}
@@ -75,7 +79,7 @@ export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOver
           </>
         )}
       </div>
-      <OverrideTable tokens={tokens} overrides={overrides} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} />
+      <OverrideTable tokens={tokens} overrides={overrides} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear} overwritePaths={overwritePaths} />
     </div>
   );
 }
