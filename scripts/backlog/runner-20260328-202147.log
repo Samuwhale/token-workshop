@@ -232,3 +232,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥24) ---
   → Archived 24 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 55)
+[main 6389822] chore(backlog): archive 24 completed items + trim progress
+ 5 files changed, 33 insertions(+), 360 deletions(-)
+  (code pass skipped — another runner is handling it)
+
+## 2026-03-28 - useGeneratorDialog.ts silently swallows fetch errors for existing set tokens
+- Added `existingTokensError` state; replaced `.catch(() => {})` with a catch that sets the error (ignoring AbortError)
+- The fetch now throws on non-ok responses (e.g. 404) and the error message is surfaced to the user
+- The "Review & Create/Update" button is disabled while `existingTokensError` is set, blocking saves that would silently skip conflict detection
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  42 items remaining
+===============================================================
+  Claimed: Generator output overwrite warning: highlight tokens that will be overwritten (not newly created) in the generator preview with an "update" badge, so users can see they are about to replace hand-tuned values before confirming
+  Worktree: /tmp/backlog-10461-wUao2j

@@ -276,3 +276,10 @@ Already up to date.
 ===============================================================
   Claimed: `git-sync.ts` conflict parser skips `>>>>>>>` marker with unchecked `i++` (~line 45) — if the closing marker is the last line in the file and is malformed or missing, the parser silently produces incomplete conflict data
   Worktree: /tmp/backlog-9651-dHX97d
+
+  ✓ done: git-sync.ts conflict parser skips >>>>>>> marker with unchecked i++
+    Added bounds checks after while loops in parseConflictMarkers and resolveConflictContent so missing/malformed ======= or >>>>>>> markers cause clean exit instead of silent data corruption. Added 11 unit tests.
+    37 turns · 235s · $1.25
+
+--- Merging: git-sync.ts conflict parser skips >>>>>>> marker with unchecked i++ ---
+Already up to date.

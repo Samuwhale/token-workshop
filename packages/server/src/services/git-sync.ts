@@ -36,12 +36,16 @@ export function parseConflictMarkers(content: string): ConflictRegion[] {
         oursLines.push(lines[i]);
         i++;
       }
+      // If ======= marker is missing, this region is malformed — skip it
+      if (i >= lines.length) break;
       i++; // skip =======
       // Collect "theirs" lines until >>>>>>>
       while (i < lines.length && !lines[i].startsWith('>>>>>>>')) {
         theirsLines.push(lines[i]);
         i++;
       }
+      // If >>>>>>> marker is missing, this region is malformed — skip it
+      if (i >= lines.length) break;
       i++; // skip >>>>>>>
       regions.push({
         index: regionIndex++,
@@ -77,10 +81,20 @@ export function resolveConflictContent(
         oursLines.push(lines[i]);
         i++;
       }
+      // If ======= marker is missing, emit remaining lines as-is and stop
+      if (i >= lines.length) {
+        result.push(...oursLines);
+        break;
+      }
       i++; // skip =======
       while (i < lines.length && !lines[i].startsWith('>>>>>>>')) {
         theirsLines.push(lines[i]);
         i++;
+      }
+      // If >>>>>>> marker is missing, emit remaining lines as-is and stop
+      if (i >= lines.length) {
+        result.push(...theirsLines);
+        break;
       }
       i++; // skip >>>>>>>
       const choice = choices[regionIndex] ?? 'ours';

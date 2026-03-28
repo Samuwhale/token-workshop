@@ -313,3 +313,14 @@
   - Always clear the error state at the top of the effect before starting the new fetch so stale errors don't persist across targetSet changes
   - The confirmation dialog doesn't need guarding separately because blocking the first-step button makes it unreachable
 ---
+
+## 2026-03-28 - git-sync.ts conflict parser skips >>>>>>> marker with unchecked i++
+- Added bounds checks after while loops in `parseConflictMarkers` and `resolveConflictContent` — if `=======` or `>>>>>>>` markers are missing/malformed, the parser now breaks out cleanly instead of silently advancing past the array end and producing incomplete conflict data
+- `parseConflictMarkers`: malformed regions are skipped (not added to results)
+- `resolveConflictContent`: on malformed regions, emits the collected lines as-is and stops (prevents data loss)
+- Added 11 unit tests covering well-formed conflicts, missing `>>>>>>>`, missing `=======`, and edge cases
+- Files changed: `packages/server/src/services/git-sync.ts` ~L39-48, ~L82-93; `packages/server/src/__tests__/git-sync.test.ts` (new)
+- **Learnings for future iterations:**
+  - Server package `node_modules` in worktrees may have an incomplete directory (containing only `.vite/`) that prevents the validate script's symlink logic from triggering — `[ ! -d ]` check passes but deps are missing. May need to check for a specific dep rather than the directory itself.
+  - `simple-git` must be mocked (`vi.mock('simple-git', () => ({ default: () => ({}) }))`) for unit tests of pure functions in files that also import it at top level
+---

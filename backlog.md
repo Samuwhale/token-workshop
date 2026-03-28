@@ -124,7 +124,7 @@
 - [~] `git-sync.ts` conflict parser skips `>>>>>>>` marker with unchecked `i++` (~line 45) — if the closing marker is the last line in the file and is malformed or missing, the parser silently produces incomplete conflict data
 
 - [~] Rename conflict detection: warn when renaming a token that is referenced by aliases — show a list of dependent tokens and offer "Auto-update all aliases" so users don't silently break their token graph when refactoring paths
-- [ ] Generator output overwrite warning: highlight tokens that will be overwritten (not newly created) in the generator preview with an "update" badge, so users can see they are about to replace hand-tuned values before confirming
+- [~] Generator output overwrite warning: highlight tokens that will be overwritten (not newly created) in the generator preview with an "update" badge, so users can see they are about to replace hand-tuned values before confirming
 - [ ] Git sync diff preview before push — add a "Preview changes" button that fetches the pending diff and shows before/after values per changed token without committing, so users can catch accidental deletions before they propagate to the repo
 - [ ] Variable/style sync dry run — add a "Preview sync" button next to Apply in the variable and style sync sections of PublishPanel that shows adds/updates/deletes without writing to Figma, mirroring how git diff works
 - [ ] SelectionInspector "apply to other layers" fast path — after binding a token to one property, show a toast with "Apply to N other selected layers with the same property" so users can bind the same token to a whole multi-selection in one click instead of repeating per layer
