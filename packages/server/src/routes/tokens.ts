@@ -128,6 +128,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(201).send({ groupPath, set });
       } catch (err) {
         const msg = getErrorMessage(err);
+        if (msg.includes('Invalid token path')) return reply.status(400).send({ error: msg });
         if (msg.includes('not found')) return reply.status(404).send({ error: msg });
         if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
         return reply.status(500).send({ error: msg });
@@ -209,6 +210,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       return result;
     } catch (err) {
       const msg = getErrorMessage(err);
+      if (msg.includes('Invalid token path') || msg.includes('Invalid set name')) return reply.status(400).send({ error: msg });
       if (msg.includes('not found')) return reply.status(404).send({ error: msg });
       return reply.status(500).send({ error: 'Failed to batch upsert tokens', detail: msg });
     }
@@ -243,6 +245,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return result;
       } catch (err) {
         const msg = getErrorMessage(err);
+        if (msg.includes('Invalid token path')) return reply.status(400).send({ error: msg });
         if (msg.includes('not found')) return reply.status(404).send({ error: msg });
         if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
         return reply.status(500).send({ error: msg });
@@ -351,7 +354,11 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.tokenStore.createToken(set, tokenPath, body as Token);
         return reply.status(201).send({ path: tokenPath, set, token: body });
       } catch (err) {
-        return reply.status(500).send({ error: 'Failed to create token', detail: String(err) });
+        const message = getErrorMessage(err);
+        if (message.includes('Invalid token path') || message.includes('Invalid set name')) {
+          return reply.status(400).send({ error: message });
+        }
+        return reply.status(500).send({ error: 'Failed to create token', detail: message });
       }
     },
   );

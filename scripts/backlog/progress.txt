@@ -263,3 +263,13 @@
 - **Learnings for future iterations:**
   - When a previous backlog item extracts a helper and replaces call sites across many files, verify all call sites also have the import added
 ---
+
+## 2026-03-28 - Token paths are not validated on create
+- Added `validateTokenPath()` in token-store.ts that rejects empty paths, empty segments (double dots), `$`-prefixed segments, and segments containing slashes
+- Applied validation to `createToken`, `batchUpsertTokens`, `renameToken` (new path), and `createGroup`
+- Updated route handlers in tokens.ts to return 400 for validation errors instead of 500
+- Files changed: `packages/server/src/services/token-store.ts` ~L17, `packages/server/src/routes/tokens.ts` ~L131,~L213,~L248,~L354
+- **Learnings for future iterations:**
+  - Token paths use dot-separated segments; slashes in URLs are converted to dots at the route level
+  - Pre-existing TS errors in token-store.ts (setTimeout, unknown types) — don't be alarmed by them
+---

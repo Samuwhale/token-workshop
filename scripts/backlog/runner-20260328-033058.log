@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: [HIGH] Token paths are not validated on create — the server accepts paths with double dots (`color..primary`), reserved `$` prefixes, or slashes, which can corrupt the token file and break resolution
   Worktree: /tmp/backlog-85816-964qSa
+
+  ✓ done: Token paths are not validated on create
+    Added validateTokenPath() to token-store.ts rejecting empty segments, $-prefixed segments, and slashes; applied to createToken, batchUpsertTokens, renameToken, createGroup; route handlers return 400 for validation errors
+    28 turns · 181s · $0.91
+
+--- Merging: Token paths are not validated on create ---
+Already up to date.

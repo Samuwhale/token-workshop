@@ -45,3 +45,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 54)
+[main 9ef6114] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 218 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - getErrorMessage used in App.tsx useSyncBindings but never imported
+- Added `getErrorMessage` to the existing import from `./shared/utils` in App.tsx line 40
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L40
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  109 items remaining
+===============================================================
+  Claimed: `findVariableInList` matches by `name` (dots) not Figma variable name (slashes) — `applyVariables` passes `token.path` (e.g. `colors.primary.500`) but Figma uses slashes (`colors/primary/500`), so the lookup always fails for nested tokens and creates duplicate variables instead of updating existing ones
+  Worktree: /tmp/backlog-84992-GqYRpH

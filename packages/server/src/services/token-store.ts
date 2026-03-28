@@ -15,6 +15,36 @@ import {
 const MAX_REGEX_LENGTH = 200;
 
 /**
+ * Validate a dot-separated token path.
+ * Rejects empty paths, empty segments (double dots), segments starting with
+ * the reserved DTCG `$` prefix, and segments containing `/` or `\`.
+ */
+function validateTokenPath(tokenPath: string): void {
+  if (!tokenPath) {
+    throw new Error('Token path must not be empty');
+  }
+  const segments = tokenPath.split('.');
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    if (seg === '') {
+      throw new Error(
+        `Invalid token path "${tokenPath}": contains an empty segment (double dot or leading/trailing dot)`,
+      );
+    }
+    if (seg.startsWith('$')) {
+      throw new Error(
+        `Invalid token path "${tokenPath}": segment "${seg}" starts with reserved "$" prefix`,
+      );
+    }
+    if (seg.includes('/') || seg.includes('\\')) {
+      throw new Error(
+        `Invalid token path "${tokenPath}": segment "${seg}" contains a slash`,
+      );
+    }
+  }
+}
+
+/**
  * Detect regex patterns vulnerable to catastrophic backtracking (ReDoS).
  * Checks for nested quantifiers: a quantified group whose contents also
  * contain a quantifier, e.g. `(a+)+`, `(x*|y+)*`, `(?:a{2,})+`.
@@ -456,6 +486,7 @@ export class TokenStore {
     if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(setName)) {
       throw new Error(`Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`);
     }
+    validateTokenPath(tokenPath);
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     token = this.enrichFormulaExtension(token);
     let set = this.sets.get(setName);
@@ -503,6 +534,9 @@ export class TokenStore {
     let set = this.sets.get(setName);
     if (!set) {
       set = await this._createSetNoRebuild(setName);
+    }
+    for (const { path: tokenPath } of tokens) {
+      validateTokenPath(tokenPath);
     }
     this.beginBatch();
     let imported = 0;
@@ -818,6 +852,7 @@ export class TokenStore {
   }
 
   async renameToken(setName: string, oldPath: string, newPath: string): Promise<{ aliasesUpdated: number }> {
+    validateTokenPath(newPath);
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
     const token = this.getTokenAtPath(set.tokens, oldPath);
@@ -1053,6 +1088,7 @@ export class TokenStore {
   // ----- Group creation -----
 
   async createGroup(setName: string, groupPath: string): Promise<void> {
+    validateTokenPath(groupPath);
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
     if (this.pathExistsAt(set.tokens, groupPath)) {
