@@ -100,3 +100,10 @@ Already up to date.
 
 --- Merging: Race condition in file write guard ---
 Already up to date.
+[main cfcb300] chore(backlog): done – Race condition in file write guard
+ 7 files changed, 68 insertions(+), 23 deletions(-)
+
+## 2026-03-28 - Race condition in file write guard
+- Replaced fixed 500ms `setTimeout` cleanup of `_writingFiles` entries with event-driven cleanup: the watcher callbacks now clear the guard when they see (and suppress) a write-triggered event. A 30-second fallback timeout prevents memory leaks if the watcher never fires.
+- Changed `_writingFiles` from `Set<string>` to `Map<string, ReturnType<typeof setTimeout>>` to track per-file fallback timers.
+- Added `_startWriteGuard(filePath)` and `_clearWriteGuard(filePath)` helper methods.

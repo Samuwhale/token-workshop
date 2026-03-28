@@ -436,13 +436,38 @@ async function scanCanvasHeatmap() {
     const CHECKABLE_FIGMA_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'itemSpacing'];
     const VISUAL_TYPES = new Set(['FRAME', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE', 'RECTANGLE', 'ELLIPSE', 'POLYGON', 'STAR', 'VECTOR', 'LINE', 'TEXT']);
 
-    const nodes = figma.currentPage.findAll(n => VISUAL_TYPES.has(n.type));
+    // Collect visual nodes via batched traversal to avoid freezing on large pages.
+    // Instead of figma.currentPage.findAll (synchronous, blocks until every node is visited),
+    // we walk the tree in chunks and yield between batches.
+    const BATCH_SIZE = 200;
+    const nodes: SceneNode[] = [];
+    const stack: readonly SceneNode[] = [...figma.currentPage.children];
+    let walkCount = 0;
+    const walkStack = [...stack];
+    while (walkStack.length > 0) {
+      const current = walkStack.pop()!;
+      if (VISUAL_TYPES.has(current.type)) {
+        nodes.push(current);
+      }
+      if ('children' in current) {
+        const container = current as ChildrenMixin & SceneNode;
+        for (let c = container.children.length - 1; c >= 0; c--) {
+          walkStack.push(container.children[c]);
+        }
+      }
+      walkCount++;
+      if (walkCount % BATCH_SIZE === 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
+      }
+    }
 
     type HeatmapStatus = 'green' | 'yellow' | 'red';
     const result: { id: string; name: string; type: string; status: HeatmapStatus; boundCount: number; totalCheckable: number }[] = [];
     let greenCount = 0, yellowCount = 0, redCount = 0;
 
-    for (const node of nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+
       // Figma variable bindings
       const figmaBound = (node as SceneNode & { boundVariables?: Record<string, unknown> }).boundVariables ?? {};
       const figmaBoundProps = new Set<string>(
@@ -490,6 +515,16 @@ async function scanCanvasHeatmap() {
       }
 
       result.push({ id: node.id, name: node.name, type: node.type, status, boundCount, totalCheckable });
+
+      // Yield between batches to prevent freezing
+      if ((i + 1) % BATCH_SIZE === 0) {
+        figma.ui.postMessage({
+          type: 'canvas-heatmap-progress',
+          processed: i + 1,
+          total: nodes.length,
+        });
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
+      }
     }
 
     figma.ui.postMessage({

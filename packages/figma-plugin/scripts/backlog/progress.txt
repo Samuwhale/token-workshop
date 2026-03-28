@@ -72,3 +72,11 @@
   - The core validator (`validator.ts`) already has a `CSS_NAMED_COLORS` set — the controller needs its own map with actual hex values since it must convert, not just validate
   - rgb() values can be 0-255 integers or 0-100% — the regex captures the optional `%` suffix to distinguish
 ---
+
+## 2026-03-28 - scanCanvasHeatmap can freeze Figma on large pages
+- Replaced synchronous `findAll` with a manual tree walk that yields every 200 nodes via `setTimeout(0)`. Processing loop also yields every 200 nodes with progress messages (`canvas-heatmap-progress`). Matches the batching pattern used by `syncBindings`.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L434 (scanCanvasHeatmap rewritten)
+- **Learnings for future iterations:**
+  - `figma.currentPage.findAll` is synchronous and blocks the plugin thread — for any scan over the full page, use a manual stack-based DFS with periodic `await setTimeout(0)` yields
+  - Yielding during both collection and processing phases is important — a large page can have tens of thousands of nodes
+---
