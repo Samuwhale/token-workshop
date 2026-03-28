@@ -215,3 +215,10 @@ Already up to date.
 ===============================================================
   Claimed: Theme cache returns mutable reference — `load()` returns the cache object directly; route handlers that mutate it (push, filter) change the cached copy in-place, so if `save()` throws the cache is left in an inconsistent state (mutated but not persisted)
   Worktree: /tmp/backlog-63973-rVORCQ
+
+  ✓ done: Theme cache returns mutable reference
+    load() and save() now use structuredClone to return/store deep copies, preventing in-place mutation of the cached theme dimensions array.
+    9 turns · 96s · $0.38
+
+--- Merging: Theme cache returns mutable reference ---
+Already up to date.

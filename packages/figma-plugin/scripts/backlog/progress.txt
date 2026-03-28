@@ -114,3 +114,12 @@
 - **Learnings for future iterations:**
   - Only `tm_last_token_type` needed migration to localStorage. Other sessionStorage keys (expand state, search, filters) are intentionally session-scoped.
 ---
+
+## 2026-03-28 - Theme cache returns mutable reference
+- `load()` now returns `structuredClone(cache)` instead of the raw cache reference
+- `save()` also clones the incoming array before storing it in cache, so callers can't mutate the cached copy after save
+- Files changed: `packages/server/src/routes/themes.ts` ~L43,L50
+- **Learnings for future iterations:**
+  - `structuredClone` is the simplest deep-clone for JSON-serializable data in modern Node
+  - Both read and write paths need cloning: load returns a clone so mutations don't affect cache; save stores a clone so post-save mutations by the caller don't affect it either
+---

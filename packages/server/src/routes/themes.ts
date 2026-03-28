@@ -40,13 +40,13 @@ function createDimensionsStore(tokenDir: string): DimensionsStore {
         cache = [];
         cachedMtimeMs = mtime;
       }
-      return cache;
+      return structuredClone(cache);
     },
 
     async save(dimensions: ThemeDimension[]): Promise<void> {
       const data: ThemesFile = { $themes: dimensions };
       await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-      cache = dimensions;
+      cache = structuredClone(dimensions);
       cachedMtimeMs = await fileMtimeMs();
     },
   };
