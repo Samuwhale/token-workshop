@@ -30,10 +30,36 @@ interface HeatmapPanelProps {
 }
 
 const STATUS_COLORS = {
-  green: { dot: 'bg-emerald-500', text: 'text-emerald-600', bar: 'bg-emerald-500', label: 'Fully bound' },
-  yellow: { dot: 'bg-amber-400', text: 'text-amber-600', bar: 'bg-amber-400', label: 'Partially bound' },
-  red: { dot: 'bg-red-500', text: 'text-red-600', bar: 'bg-red-500', label: 'No bindings' },
+  green: { text: 'text-emerald-600', bar: 'bg-emerald-500', label: 'Fully bound' },
+  yellow: { text: 'text-amber-600', bar: 'bg-amber-400', label: 'Partially bound' },
+  red: { text: 'text-red-600', bar: 'bg-red-500', label: 'No bindings' },
 };
+
+/** Distinct shape per status so meaning isn't conveyed by color alone. */
+function StatusIcon({ status, size = 8 }: { status: 'green' | 'yellow' | 'red'; size?: number }) {
+  if (status === 'green') {
+    // Checkmark
+    return (
+      <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-emerald-500" aria-label="Fully bound">
+        <path d="M2 5.5l2.5 2.5L8 3" />
+      </svg>
+    );
+  }
+  if (status === 'yellow') {
+    // Dash / minus
+    return (
+      <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="shrink-0 text-amber-500" aria-label="Partially bound">
+        <path d="M2.5 5h5" />
+      </svg>
+    );
+  }
+  // X mark
+  return (
+    <svg width={size} height={size} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-red-500" aria-label="No bindings">
+      <path d="M2.5 2.5l5 5M7.5 2.5l-5 5" />
+    </svg>
+  );
+}
 
 const NODE_TYPE_LABELS: Record<string, string> = {
   FRAME: 'Frame', COMPONENT: 'Component', COMPONENT_SET: 'Component set',
@@ -167,22 +193,38 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
               </button>
             </div>
           </div>
-          {/* Coverage bar */}
+          {/* Coverage bar — uses patterns in addition to color for a11y */}
           {result.total > 0 && (
             <div className="flex h-2 rounded overflow-hidden gap-px mb-2">
+              <svg className="absolute w-0 h-0" aria-hidden="true">
+                <defs>
+                  <pattern id="hm-pat-red" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <rect width="6" height="6" fill="#ef4444" />
+                    <line x1="0" y1="0" x2="0" y2="6" stroke="#fff" strokeWidth="1.5" strokeOpacity="0.35" />
+                  </pattern>
+                  <pattern id="hm-pat-yellow" width="4" height="4" patternUnits="userSpaceOnUse">
+                    <rect width="4" height="4" fill="#fbbf24" />
+                    <circle cx="2" cy="2" r="0.8" fill="#fff" fillOpacity="0.4" />
+                  </pattern>
+                </defs>
+              </svg>
               {result.red > 0 && (
                 <div
+                  style={{ flex: result.red, background: 'url(#hm-pat-red)' }}
                   className="bg-red-500"
-                  style={{ flex: result.red }}
                   title={`${result.red} unbound`}
-                />
+                >
+                  <svg className="w-full h-full"><rect width="100%" height="100%" fill="url(#hm-pat-red)" /></svg>
+                </div>
               )}
               {result.yellow > 0 && (
                 <div
+                  style={{ flex: result.yellow, background: 'url(#hm-pat-yellow)' }}
                   className="bg-amber-400"
-                  style={{ flex: result.yellow }}
                   title={`${result.yellow} partial`}
-                />
+                >
+                  <svg className="w-full h-full"><rect width="100%" height="100%" fill="url(#hm-pat-yellow)" /></svg>
+                </div>
               )}
               {result.green > 0 && (
                 <div
@@ -205,7 +247,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
                   onClick={() => setFilter(prev => prev === s ? 'all' : s)}
                   className={`flex items-center gap-1 text-[10px] transition-opacity ${filter !== 'all' && filter !== s ? 'opacity-40' : ''}`}
                 >
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+                  <StatusIcon status={s} size={8} />
                   <span className={cfg.text}>{count}</span>
                   <span className="text-[var(--color-figma-text-secondary)]">{cfg.label}</span>
                 </button>
@@ -294,7 +336,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
                     <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`shrink-0 transition-transform text-[var(--color-figma-text-secondary)] ${isExpanded ? 'rotate-90' : ''}`} aria-hidden="true">
                       <path d="M2 1l4 3-4 3V1z"/>
                     </svg>
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`} />
+                    <StatusIcon status={status} size={10} />
                     <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{cfg.label}</span>
                     <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto">{nodes.length}</span>
                     {nodes.length > 0 && (
@@ -399,7 +441,7 @@ function NodeRow({ node, onSelect }: { node: HeatmapNode; onSelect: () => void }
       onClick={onSelect}
       className="w-full flex items-center gap-2 px-3 py-1.5 text-left border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
     >
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
+      <StatusIcon status={node.status} size={8} />
       <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate">{node.name}</span>
       <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{typeLabel}</span>
       {node.totalCheckable > 0 && (

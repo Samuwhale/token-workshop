@@ -383,3 +383,11 @@
   - `isAlias`/`extractAliasPath` should accept `undefined` too since `TokenNode.$value` is optional.
   - The Figma plugin controller (`controller.ts`) uses its own inline `{ $value: any; $type: string }` type for `tokenMap` — it's separate from `TokenMapEntry` and not affected by this change.
 ---
+
+## 2026-03-28 - HeatmapPanel color-only status indicators — red/yellow/green indicators rely solely on color with no pattern/icon distinction for color vision deficiencies
+- Replaced all colored-dot indicators with distinct SVG shape icons: checkmark (green/fully bound), dash (yellow/partially bound), X mark (red/no bindings). Added `StatusIcon` component with `aria-label` for screen readers. Coverage bar segments for red and yellow now include SVG pattern fills (diagonal stripes for red, dots for yellow) in addition to color, so all three states are distinguishable without color vision.
+- Files changed: `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L32–L65 (StatusIcon + STATUS_COLORS), ~L172–L207 (coverage bar patterns), ~L209 (legend), ~L298 (group header), ~L403 (NodeRow)
+- **Learnings for future iterations:**
+  - SVG `<pattern>` defs can be placed in a zero-size `<svg>` and referenced via `fill="url(#id)"` in child SVGs within the same DOM tree. The `<defs>` SVG must be in the same parent container.
+  - For a11y status indicators, the triple of checkmark/dash/X is universally understood and doesn't require a legend to interpret.
+---

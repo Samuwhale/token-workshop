@@ -118,3 +118,16 @@ Already up to date.
 
 --- Merging: `$value` typed as `any` in `TokenNode` interface (`useTokens.ts`) — type safety lost throughout entire token data flow ---
 Already up to date.
+[main 31112a7] chore(backlog): done – `$value` typed as `any` in `TokenNode` interface (`useTokens.ts`) — type safety lost throughout entire token data flow
+ 8 files changed, 57 insertions(+), 20 deletions(-)
+
+## 2026-03-28 - `$value` typed as `any` in `TokenNode` interface (`useTokens.ts`) — type safety lost throughout entire token data flow
+- Replaced `any` with `TokenValue | TokenReference` on `TokenNode.$value` (useTokens.ts) and `TokenMapEntry.$value` (types.ts). Updated `resolveAlias.ts` functions (`isAlias`, `extractAliasPath`, `resolveTokenValue`, `ResolveResult`, `resolveObjectSubprops`, `resolveAllAliases`) to use the proper types instead of `any`. Added `import type { TokenValue, TokenReference }` from `@tokenmanager/core` in both files.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L3,~L17,~L29, `packages/figma-plugin/src/shared/types.ts` ~L2,~L146, `packages/figma-plugin/src/shared/resolveAlias.ts` ~L1,~L6,~L10,~L16,~L24,~L85,~L113
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  70 items remaining
+===============================================================
+  Claimed: `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks
+  Worktree: /tmp/backlog-10278-FXjKKM

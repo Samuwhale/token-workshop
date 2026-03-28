@@ -212,3 +212,10 @@ Already up to date.
 ===============================================================
   Claimed: HeatmapPanel color-only status indicators — red/yellow/green indicators rely solely on color with no pattern/icon distinction for color vision deficiencies
   Worktree: /tmp/backlog-92630-5E3Wc8
+
+  ✓ done: HeatmapPanel color-only status indicators
+    Replaced color-only dots with distinct SVG icons (checkmark/dash/X) and added pattern fills to coverage bar segments for color-blind accessibility.
+    16 turns · 102s · $0.51
+
+--- Merging: HeatmapPanel color-only status indicators ---
+Already up to date.
