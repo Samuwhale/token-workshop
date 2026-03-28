@@ -3,7 +3,8 @@ import { evalExpr, isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { ColorPicker } from './ColorPicker';
-import { formatHexAs, parseColorInput, type ColorFormat } from '../shared/colorUtils';
+import { formatHexAs, parseColorInput, swatchBgColor, isWideGamutColor, type ColorFormat } from '../shared/colorUtils';
+import { GamutIndicator } from './GamutIndicator';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
 export const inputClass = 'w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]';
@@ -38,7 +39,7 @@ export function ColorSwatchButton({ color, onChange, className = 'w-8 h-8' }: { 
         type="button"
         onClick={() => setOpen(!open)}
         className={`${className} rounded border border-[var(--color-figma-border)] cursor-pointer`}
-        style={{ backgroundColor: color.slice(0, 7) }}
+        style={{ backgroundColor: swatchBgColor(color) }}
         title="Pick color"
         aria-label="Pick color"
       />
@@ -49,18 +50,20 @@ export function ColorSwatchButton({ color, onChange, className = 'w-8 h-8' }: { 
   );
 }
 
-const FORMAT_CYCLE: ColorFormat[] = ['hex', 'rgb', 'hsl'];
+const FORMAT_CYCLE: ColorFormat[] = ['hex', 'rgb', 'hsl', 'oklch', 'p3'];
 
 export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { value: any; onChange: (v: any) => void; autoFocus?: boolean; allTokensFlat?: Record<string, TokenMapEntry> }) {
-  const hex = typeof value === 'string' ? value : '#000000';
+  const colorStr = typeof value === 'string' ? value : '#000000';
   const [pickerOpen, setPickerOpen] = useState(false);
   const [format, setFormat] = useState<ColorFormat>(() => {
     const saved = lsGet(STORAGE_KEYS.COLOR_FORMAT);
-    return (saved === 'rgb' || saved === 'hsl') ? saved : 'hex';
+    if (saved === 'rgb' || saved === 'hsl' || saved === 'oklch' || saved === 'p3') return saved;
+    return 'hex';
   });
   const [editingText, setEditingText] = useState<string | null>(null);
+  const wideGamut = isWideGamutColor(colorStr);
 
-  const displayValue = editingText ?? formatHexAs(hex, format);
+  const displayValue = editingText ?? formatHexAs(colorStr, format);
 
   const cycleFormat = () => {
     const next = FORMAT_CYCLE[(FORMAT_CYCLE.indexOf(format) + 1) % FORMAT_CYCLE.length];
@@ -79,14 +82,17 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
 
   return (
     <div className="relative flex gap-2 items-center">
-      <button
-        type="button"
-        onClick={() => setPickerOpen(!pickerOpen)}
-        className="w-10 h-10 rounded border border-[var(--color-figma-border)] cursor-pointer shrink-0 overflow-hidden hover:ring-2 hover:ring-[var(--color-figma-accent)]/50 transition-shadow"
-        style={{ backgroundColor: hex.slice(0, 7) }}
-        title="Pick color"
-        aria-label="Pick color"
-      />
+      <div className="flex flex-col items-center gap-0.5 shrink-0">
+        <button
+          type="button"
+          onClick={() => setPickerOpen(!pickerOpen)}
+          className="w-10 h-10 rounded border border-[var(--color-figma-border)] cursor-pointer shrink-0 overflow-hidden hover:ring-2 hover:ring-[var(--color-figma-accent)]/50 transition-shadow"
+          style={{ backgroundColor: swatchBgColor(colorStr) }}
+          title="Pick color"
+          aria-label="Pick color"
+        />
+        {wideGamut && <GamutIndicator color={colorStr} />}
+      </div>
       <div className="flex-1 flex gap-1 items-center min-w-0">
         <input
           type="text"
@@ -102,7 +108,7 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
           }}
           onBlur={e => commitText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') commitText((e.target as HTMLInputElement).value); }}
-          placeholder={format === 'hex' ? '#000000' : format === 'rgb' ? 'rgb(0, 0, 0)' : 'hsl(0, 0%, 0%)'}
+          placeholder={format === 'hex' ? '#000000' : format === 'rgb' ? 'rgb(0, 0, 0)' : format === 'oklch' ? 'oklch(0.7 0.15 180)' : format === 'p3' ? 'color(display-p3 1 0 0)' : 'hsl(0, 0%, 0%)'}
           autoFocus={autoFocus}
           className={inputClass}
         />
@@ -117,7 +123,7 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
       </div>
       {pickerOpen && (
         <ColorPicker
-          value={hex}
+          value={colorStr}
           onChange={onChange}
           onClose={() => setPickerOpen(false)}
           allTokensFlat={allTokensFlat}

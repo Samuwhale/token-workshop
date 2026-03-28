@@ -1,3 +1,5 @@
+import { swatchBgColor } from '../shared/colorUtils';
+
 interface ValueDiffProps {
   type: string;
   before: any;
@@ -16,7 +18,7 @@ export function OriginalValuePreview({ type, value }: { type: string; value: any
           <>
             <div
               className="w-4 h-4 rounded-sm border border-white/30 ring-1 ring-[var(--color-figma-border)] shrink-0"
-              style={{ backgroundColor: value.slice(0, 7) }}
+              style={{ backgroundColor: swatchBgColor(value) }}
               aria-hidden="true"
             />
             <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{value}</span>

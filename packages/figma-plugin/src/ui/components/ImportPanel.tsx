@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
+import { swatchBgColor } from '../shared/colorUtils';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
@@ -720,7 +721,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         <>
           <span
             className="w-3 h-3 rounded-sm border border-white/20 ring-1 ring-[var(--color-figma-border)] shrink-0 inline-block"
-            style={{ backgroundColor: value.slice(0, 7) }}
+            style={{ backgroundColor: swatchBgColor(value) }}
           />
           {value}
         </>

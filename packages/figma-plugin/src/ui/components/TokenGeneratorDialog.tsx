@@ -1,5 +1,6 @@
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { ValueDiff } from './ValueDiff';
+import { swatchBgColor } from '../shared/colorUtils';
 import type {
   TokenGenerator,
   GeneratorType,
@@ -307,7 +308,7 @@ export function TokenGeneratorDialog({
                       {token.type === 'color' && typeof token.value === 'string' && (
                         <div
                           className="w-3.5 h-3.5 rounded-sm border border-white/30 ring-1 ring-[var(--color-figma-border)] shrink-0"
-                          style={{ backgroundColor: String(token.value).slice(0, 7) }}
+                          style={{ backgroundColor: swatchBgColor(String(token.value)) }}
                           aria-hidden="true"
                         />
                       )}

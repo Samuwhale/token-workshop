@@ -131,32 +131,68 @@ export function hslToHex(h: number, s: number, l: number): string {
 // Format display / parse helpers (for multi-format color input)
 // ---------------------------------------------------------------------------
 
-export type ColorFormat = 'hex' | 'rgb' | 'hsl';
+export type ColorFormat = 'hex' | 'rgb' | 'hsl' | 'oklch' | 'p3';
 
-/** Display a hex color in the chosen format. */
-export function formatHexAs(hex: string, format: ColorFormat): string {
-  const clean = hex.slice(0, 7); // strip alpha for display
-  if (format === 'hex') return clean;
-  const rgb = hexToRgb(clean);
-  if (!rgb) return clean;
-  if (format === 'rgb') {
-    return `rgb(${Math.round(rgb.r * 255)}, ${Math.round(rgb.g * 255)}, ${Math.round(rgb.b * 255)})`;
+/** Display a color value in the chosen format. Handles both hex and CSS Color 4 strings. */
+export function formatHexAs(colorStr: string, format: ColorFormat): string {
+  // For hex input, use legacy fast path for hex/rgb/hsl
+  if (colorStr.startsWith('#')) {
+    const clean = colorStr.slice(0, 7); // strip alpha for display
+    if (format === 'hex') return clean;
+    const rgb = hexToRgb(clean);
+    if (!rgb) return clean;
+    if (format === 'rgb') {
+      return `rgb(${Math.round(rgb.r * 255)}, ${Math.round(rgb.g * 255)}, ${Math.round(rgb.b * 255)})`;
+    }
+    if (format === 'hsl') {
+      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      return `hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`;
+    }
+    // oklch/p3 need core parser
+    return formatWideGamut(colorStr, format);
   }
-  // hsl
-  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-  return `hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`;
+  // Non-hex input (CSS Color 4 string): use core parser for all formats
+  return formatWideGamut(colorStr, format);
 }
 
-/** Parse a color string in hex, rgb(), or hsl() format back to #RRGGBB. Returns null if invalid. */
+function formatWideGamut(colorStr: string, format: ColorFormat): string {
+  try {
+    const { parseAnyColor, toOklch, toDisplayP3, toSrgb, serializeColor, toHex } = require('@tokenmanager/core');
+    const parsed = parseAnyColor(colorStr);
+    if (!parsed) return colorStr;
+    switch (format) {
+      case 'hex': return toHex(parsed);
+      case 'rgb': {
+        const srgb = toSrgb(parsed);
+        return `rgb(${Math.round(srgb.coords[0] * 255)}, ${Math.round(srgb.coords[1] * 255)}, ${Math.round(srgb.coords[2] * 255)})`;
+      }
+      case 'hsl': {
+        const srgb = toSrgb(parsed);
+        const hsl = rgbToHsl(srgb.coords[0], srgb.coords[1], srgb.coords[2]);
+        return `hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`;
+      }
+      case 'oklch': return serializeColor(toOklch(parsed));
+      case 'p3': return serializeColor(toDisplayP3(parsed));
+    }
+  } catch {
+    return colorStr;
+  }
+}
+
+/**
+ * Parse a color string in any supported format.
+ * Returns the canonical CSS string: hex for sRGB colors, CSS Color 4 syntax for wide-gamut.
+ * Returns null if the input is not a valid color.
+ */
 export function parseColorInput(input: string): string | null {
   const trimmed = input.trim();
-  // hex
+  // hex — fast path
   if (trimmed.startsWith('#')) {
     const clean = normalizeHex(trimmed);
     if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean)) return clean.slice(0, 7);
     return null;
   }
-  // rgb(r, g, b)
+  // rgb(r, g, b) — fast path
   const rgbMatch = trimmed.match(/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i);
   if (rgbMatch) {
     const [, rs, gs, bs] = rgbMatch;
@@ -164,13 +200,21 @@ export function parseColorInput(input: string): string | null {
     if (r > 255 || g > 255 || b > 255) return null;
     return rgbToHex(r / 255, g / 255, b / 255);
   }
-  // hsl(h, s%, l%)
+  // hsl(h, s%, l%) — fast path
   const hslMatch = trimmed.match(/^hsl\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/i);
   if (hslMatch) {
     const [, hs, ss, ls] = hslMatch;
     const h = parseInt(hs, 10), s = parseInt(ss, 10), l = parseInt(ls, 10);
     if (h > 360 || s > 100 || l > 100) return null;
     return hslToHex(h, s, l);
+  }
+  // CSS Color 4 — oklch(), oklab(), color(display-p3 ...), hwb(), lab(), lch()
+  try {
+    const { parseAnyColor, serializeColor } = require('@tokenmanager/core');
+    const parsed = parseAnyColor(trimmed);
+    if (parsed) return serializeColor(parsed);
+  } catch {
+    // core not available
   }
   return null;
 }
@@ -282,9 +326,74 @@ export function hexToLuminance(hex: string): number | null {
 }
 
 export function wcagContrast(hex1: string, hex2: string): number | null {
-  const l1 = hexToLuminance(hex1);
-  const l2 = hexToLuminance(hex2);
+  const l1 = colorLuminance(hex1);
+  const l2 = colorLuminance(hex2);
   if (l1 === null || l2 === null) return null;
   const [lighter, darker] = l1 > l2 ? [l1, l2] : [l2, l1];
   return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Get WCAG relative luminance for any CSS color string.
+ * Falls back to hex parsing for backwards compat, uses core parser for CSS Color 4.
+ */
+export function colorLuminance(colorStr: string): number | null {
+  // Fast path for hex
+  const hexLum = hexToLuminance(colorStr);
+  if (hexLum !== null) return hexLum;
+  // CSS Color 4 — use core parser
+  try {
+    const { parseAnyColor, parsedColorLuminance } = require('@tokenmanager/core');
+    const parsed = parseAnyColor(colorStr);
+    if (parsed) return parsedColorLuminance(parsed);
+  } catch {
+    // core not available
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Wide-gamut helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Get a CSS value suitable for `backgroundColor` style property.
+ * Handles both hex (strips alpha for `.slice(0,7)` compat) and CSS Color 4 strings.
+ */
+export function swatchBgColor(colorStr: string): string {
+  if (typeof colorStr !== 'string') return '#000000';
+  // Hex: strip alpha for swatch display
+  if (colorStr.startsWith('#')) return colorStr.slice(0, 7);
+  // CSS Color 4: browsers render these natively
+  return colorStr;
+}
+
+/**
+ * Check if a color string exceeds sRGB gamut.
+ * Returns false for hex colors and unparseable strings.
+ */
+export function isWideGamutColor(colorStr: string): boolean {
+  if (!colorStr || typeof colorStr !== 'string') return false;
+  // Hex is always sRGB
+  if (colorStr.startsWith('#')) return false;
+  try {
+    const { isWideGamut } = require('@tokenmanager/core');
+    return isWideGamut(colorStr);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get sRGB hex fallback for any color string.
+ */
+export function getSrgbFallback(colorStr: string): string | null {
+  if (!colorStr || typeof colorStr !== 'string') return null;
+  if (colorStr.startsWith('#')) return colorStr.slice(0, 7);
+  try {
+    const { srgbFallbackHex } = require('@tokenmanager/core');
+    return srgbFallbackHex(colorStr);
+  } catch {
+    return null;
+  }
 }

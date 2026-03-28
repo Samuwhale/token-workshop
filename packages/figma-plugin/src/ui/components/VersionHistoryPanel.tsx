@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { swatchBgColor } from '../shared/colorUtils';
 import { ValueDiff } from './ValueDiff';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
@@ -104,7 +105,7 @@ function ColorSwatch({ color }: { color: string }) {
   return (
     <div
       className="w-3.5 h-3.5 rounded-sm border border-white/30 ring-1 ring-[var(--color-figma-border)] shrink-0 inline-block"
-      style={{ backgroundColor: color.slice(0, 7) }}
+      style={{ backgroundColor: swatchBgColor(color) }}
       aria-hidden="true"
     />
   );

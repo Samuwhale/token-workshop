@@ -69,6 +69,26 @@ export { evalExpr, substituteVars } from './eval-expr.js';
 export { hexToLab, labToHex, wcagLuminance } from './color-math.js';
 export { applyColorModifiers, validateColorModifiers } from './color-modifier.js';
 
+// CSS Color Module 4 parser
+export type { ColorSpace, ParsedColor } from './color-parse.js';
+export {
+  parseAnyColor,
+  exceedsSrgb,
+  isWideGamut,
+  srgbFallbackHex,
+  toOklch,
+  toSrgb,
+  toDisplayP3,
+  toHex,
+  toOklabColor,
+  serializeColor,
+  parsedColorLuminance,
+  linearSrgbToOklab,
+  oklabToLinearSrgb,
+  oklabToOklch,
+  oklchToOklab,
+} from './color-parse.js';
+
 // Resolver
 export { TokenResolver } from './resolver.js';
 

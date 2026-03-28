@@ -273,3 +273,24 @@ Already up to date.
 
 --- Merging: No generator preview before committing ---
 Already up to date.
+[main 5d1ed93] chore(backlog): done – No generator preview before committing
+ 6 files changed, 207 insertions(+), 12 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No generator preview before committing
+- Added a dry-run confirmation step to the generator dialog. Clicking "Create"/"Update" now shows a "Review Changes" screen with summary badges (N new, N modified), a list of new tokens with values/color swatches, and modified tokens shown via ValueDiff (before→after). User can go back to edit or confirm to commit.
+- The existing live preview API and overwrite diff computation were already in place — the change was purely UI-side: split `handleSave` into validation→show confirmation, and `handleConfirmSave` for the actual commit.
+- The "Create" button label now says "Review (N tokens)" to signal the preview step.
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  8 items remaining
+===============================================================
+  Claimed: No wide-gamut color support — color picker and value storage are limited to sRGB hex; add support for Display P3, OKLCh, and other CSS Color Module 4 color spaces as specified in DTCG v2025.10 — show a gamut indicator when a color exceeds sRGB and provide a fallback swatch
+  Worktree: /tmp/backlog-34977-K7qRGo
+
+  ✓ done: No wide-gamut color support
+    Added CSS Color Module 4 support: universal parser (oklch/oklab/display-p3/hwb/lab/lch), OKLCh-based gamut mapping, P3 gamut indicator badge, sRGB fallback swatch, oklch+p3 format cycling in ColorEditor, oklch tab in ColorPicker, wide-gamut-aware swatch rendering across 15+ files. Build passes.
+    75 turns · 843s · $5.66
+
+--- Merging: No wide-gamut color support ---
+Already up to date.

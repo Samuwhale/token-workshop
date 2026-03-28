@@ -1,3 +1,5 @@
+import { isWideGamutColor, swatchBgColor, getSrgbFallback } from '../shared/colorUtils';
+
 export function ValuePreview({ type, value }: { type?: string; value?: any }) {
   // Unresolved alias — show warning icon
   if (typeof value === 'string' && value.startsWith('{')) {
@@ -13,12 +15,21 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
   }
 
   if (type === 'color' && typeof value === 'string') {
+    const wg = isWideGamutColor(value);
+    const fallback = wg ? getSrgbFallback(value) : null;
     return (
-      <div
-        className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0"
-        style={{ backgroundColor: value }}
-        title={value}
-      />
+      <div className="relative shrink-0 flex items-center gap-1">
+        <div
+          className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0"
+          style={{ backgroundColor: swatchBgColor(value) }}
+          title={value + (wg ? `\nsRGB fallback: ${fallback}` : '')}
+        />
+        {wg && (
+          <span className="px-1 py-px rounded text-[7px] font-bold leading-none bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/30 shrink-0" title={`Wide-gamut · sRGB fallback: ${fallback}`}>
+            P3
+          </span>
+        )}
+      </div>
     );
   }
 

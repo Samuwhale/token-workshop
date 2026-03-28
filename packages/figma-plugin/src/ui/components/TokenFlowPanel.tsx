@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { swatchBgColor } from '../shared/colorUtils';
 import type { TokenMapEntry } from '../../shared/types';
 import { extractAliasPath, isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { TokenValue, TokenReference } from '@tokenmanager/core';
@@ -191,7 +192,7 @@ function FlowNodeCard({
         {node.resolvedHex && (
           <span
             className="inline-block w-3 h-3 rounded-sm border border-[var(--color-figma-border)] flex-shrink-0"
-            style={{ backgroundColor: node.resolvedHex.slice(0, 7) }}
+            style={{ backgroundColor: swatchBgColor(node.resolvedHex) }}
           />
         )}
         <span className="font-medium truncate">{node.path.split('.').pop()}</span>

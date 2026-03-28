@@ -6,6 +6,7 @@ import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { formatValue, formatDisplayPath, sortLeafNodes } from './tokenListUtils';
 import { getEditableString, parseInlineValue } from './tokenListHelpers';
 import { INLINE_SIMPLE_TYPES } from './tokenListTypes';
+import { swatchBgColor } from '../shared/colorUtils';
 import type { TableSort, TableSortField } from './tokenListTypes';
 
 interface TokenTableViewProps {
@@ -257,7 +258,7 @@ export function TokenTableView({
                       {isValidColor && (
                         <span
                           className="inline-block w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
-                          style={{ backgroundColor: colorHex.slice(0, 7) }}
+                          style={{ backgroundColor: swatchBgColor(colorHex) }}
                         />
                       )}
                       {aliasRef ? (
@@ -280,7 +281,7 @@ export function TokenTableView({
                       {isValidColor && (
                         <span
                           className="inline-block w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0"
-                          style={{ backgroundColor: resolvedStr.slice(0, 7) }}
+                          style={{ backgroundColor: swatchBgColor(resolvedStr) }}
                         />
                       )}
                       {resolvedStr}

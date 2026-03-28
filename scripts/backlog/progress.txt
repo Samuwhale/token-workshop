@@ -417,3 +417,39 @@
   - The generator dialog already had full preview infrastructure (live preview API, overwrittenEntries diff) — the missing piece was just a UI confirmation gate
   - `previewTokens` is empty in multi-brand mode by design (fetchPreview skips); handle this gracefully in any new UI that depends on preview data
 ---
+
+## 2026-03-28 - No wide-gamut color support
+- Added full CSS Color Module 4 support: parsing, gamut detection, sRGB fallback, and OKLCh/OKLAB/Display P3 color spaces
+- Created `packages/core/src/color-parse.ts` — universal color parser/serializer with ParsedColor type, OKLAB/OKLCh math (Bjorn Ottosson matrices), gamut mapping via binary search on OKLCh chroma, conversions between all supported spaces
+- Exported new functions from `packages/core/src/index.ts`: parseAnyColor, exceedsSrgb, isWideGamut, srgbFallbackHex, toOklch, toSrgb, toDisplayP3, toHex, serializeColor, etc.
+- Updated `packages/figma-plugin/src/ui/shared/colorUtils.ts`:
+  - Extended `ColorFormat` type to include 'oklch' and 'p3'
+  - Updated `formatHexAs` to handle CSS Color 4 strings in all formats
+  - Updated `parseColorInput` to accept oklch(), oklab(), color(display-p3), hwb(), lab(), lch() input
+  - Added `swatchBgColor()` — replaces all `hex.slice(0,7)` patterns with gamut-aware rendering
+  - Added `isWideGamutColor()`, `getSrgbFallback()`, `colorLuminance()` helpers
+  - Updated `wcagContrast` to use `colorLuminance` which handles any CSS color string
+- Created `packages/figma-plugin/src/ui/components/GamutIndicator.tsx` — "P3" badge shown next to wide-gamut colors, with fallback swatch option
+- Updated `packages/figma-plugin/src/ui/components/ValuePreview.tsx` — shows gamut indicator badge for wide-gamut color tokens
+- Updated `packages/figma-plugin/src/ui/components/ValueEditors.tsx`:
+  - FORMAT_CYCLE extended to ['hex', 'rgb', 'hsl', 'oklch', 'p3']
+  - ColorEditor shows GamutIndicator when color exceeds sRGB
+  - Swatch uses `swatchBgColor()` for native wide-gamut rendering
+  - Placeholders updated for new formats
+- Updated `packages/figma-plugin/src/ui/components/ColorPicker.tsx`:
+  - Added 'oklch' color space tab with L/C/H channel inputs
+  - Handles CSS Color 4 input in hex text field
+  - Syncs from non-hex prop values
+  - Token swatches include CSS Color 4 colors
+  - Shows "Outside sRGB gamut (clamped for preview)" warning in oklch/p3 modes
+- Updated all `.slice(0, 7)` swatch sites (7 files) to use `swatchBgColor()`:
+  - TokenTableView, TokenGeneratorDialog, ColorScaleGenerator, PublishPanel, ImportPanel, ValueDiff, TokenFlowPanel, VersionHistoryPanel
+- Updated `packages/figma-plugin/src/plugin/colorUtils.ts` — added oklch(), oklab(), color(display-p3) parsing with self-contained OKLAB→sRGB conversion for Figma's plugin sandbox (gamut-maps to sRGB for Figma's API)
+- Files changed: `packages/core/src/color-parse.ts` (new), `packages/core/src/index.ts`, `packages/figma-plugin/src/ui/shared/colorUtils.ts`, `packages/figma-plugin/src/ui/components/GamutIndicator.tsx` (new), `packages/figma-plugin/src/ui/components/ValuePreview.tsx`, `packages/figma-plugin/src/ui/components/ValueEditors.tsx`, `packages/figma-plugin/src/ui/components/ColorPicker.tsx`, `packages/figma-plugin/src/ui/components/TokenTableView.tsx`, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx`, `packages/figma-plugin/src/ui/components/ColorScaleGenerator.tsx`, `packages/figma-plugin/src/ui/components/PublishPanel.tsx`, `packages/figma-plugin/src/ui/components/ImportPanel.tsx`, `packages/figma-plugin/src/ui/components/ValueDiff.tsx`, `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx`, `packages/figma-plugin/src/ui/components/VersionHistoryPanel.tsx`, `packages/figma-plugin/src/plugin/colorUtils.ts`
+- **Learnings for future iterations:**
+  - `require('@tokenmanager/core')` inside try-catch blocks works in Vite UI bundles — Vite resolves them at bundle time and they don't create TDZ issues (unlike module-level re-exports). Good pattern for optional core dependency usage in utility files.
+  - Browser `backgroundColor` style property natively supports CSS Color 4 strings (oklch(), color(display-p3 ...)) in modern browsers — no need to convert to hex for rendering. Just pass the raw CSS string.
+  - OKLCh gamut mapping to sRGB uses binary search on chroma: reduce C while keeping L and H fixed until the color fits within sRGB linear RGB [0,1] bounds. 32 iterations gives sub-perceptual precision.
+  - Figma's plugin sandbox only works with sRGB {r,g,b} floats, so wide-gamut colors must be gamut-mapped when syncing to Figma. The original CSS Color 4 value stays in the DTCG token; Figma gets the closest sRGB approximation.
+  - The plugin sandbox cannot import from @tokenmanager/core (different bundle), so OKLab→sRGB math must be duplicated inline in plugin/colorUtils.ts.
+---

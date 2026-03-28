@@ -117,6 +117,48 @@ export function parseColor(value: string): { rgb: RGB; a: number } | null {
     return { rgb, a: Math.max(0, Math.min(1, a)) };
   }
 
+  // oklch()
+  const oklchMatch = trimmed.match(/^oklch\(\s*([\d.]+)(%?)\s+(?:,?\s*)([\d.]+)\s+(?:,?\s*)([\d.]+)\s*(?:\/\s*([\d.]+)(%?))?\s*\)$/i);
+  if (oklchMatch) {
+    let L = parseFloat(oklchMatch[1]);
+    if (oklchMatch[2] === '%') L = L / 100;
+    const C = parseFloat(oklchMatch[3]);
+    const H = parseFloat(oklchMatch[4]);
+    let a = 1;
+    if (oklchMatch[5] !== undefined) { a = parseFloat(oklchMatch[5]); if (oklchMatch[6] === '%') a = a / 100; }
+    const srgb = oklchToSrgb(L, C, H);
+    return { rgb: srgb, a: Math.max(0, Math.min(1, a)) };
+  }
+
+  // oklab()
+  const oklabMatch = trimmed.match(/^oklab\(\s*([\d.]+)(%?)\s+(?:,?\s*)([-\d.]+)\s+(?:,?\s*)([-\d.]+)\s*(?:\/\s*([\d.]+)(%?))?\s*\)$/i);
+  if (oklabMatch) {
+    let L = parseFloat(oklabMatch[1]);
+    if (oklabMatch[2] === '%') L = L / 100;
+    const oa = parseFloat(oklabMatch[3]);
+    const ob = parseFloat(oklabMatch[4]);
+    let alpha = 1;
+    if (oklabMatch[5] !== undefined) { alpha = parseFloat(oklabMatch[5]); if (oklabMatch[6] === '%') alpha = alpha / 100; }
+    const srgb = oklabToSrgbDirect(L, oa, ob);
+    return { rgb: srgb, a: Math.max(0, Math.min(1, alpha)) };
+  }
+
+  // color(display-p3 r g b) / color(srgb r g b)
+  const colorMatch = trimmed.match(/^color\(\s*(display-p3|srgb)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*(?:\/\s*([\d.]+)(%?))?\s*\)$/i);
+  if (colorMatch) {
+    const space = colorMatch[1].toLowerCase();
+    const c0 = parseFloat(colorMatch[2]);
+    const c1 = parseFloat(colorMatch[3]);
+    const c2 = parseFloat(colorMatch[4]);
+    let a = 1;
+    if (colorMatch[5] !== undefined) { a = parseFloat(colorMatch[5]); if (colorMatch[6] === '%') a = a / 100; }
+    if (space === 'display-p3') {
+      const srgb = p3ToSrgbDirect(c0, c1, c2);
+      return { rgb: srgb, a: Math.max(0, Math.min(1, a)) };
+    }
+    return { rgb: { r: clamp01(c0), g: clamp01(c1), b: clamp01(c2) }, a: Math.max(0, Math.min(1, a)) };
+  }
+
   // Named CSS colors
   const named = CSS_NAMED_COLORS[trimmed.toLowerCase()];
   if (named) {
@@ -127,6 +169,50 @@ export function parseColor(value: string): { rgb: RGB; a: number } | null {
   }
 
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// OKLCh/OKLAB → sRGB conversion (self-contained for plugin sandbox)
+// ---------------------------------------------------------------------------
+
+function clamp01(v: number): number { return Math.max(0, Math.min(1, v)); }
+
+function fromLinearSrgb(c: number): number {
+  const v = Math.max(0, Math.min(1, c));
+  return v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+}
+
+function oklabToSrgbDirect(L: number, a: number, b: number): RGB {
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+  const l = l_ * l_ * l_;
+  const m = m_ * m_ * m_;
+  const s = s_ * s_ * s_;
+  const r = fromLinearSrgb( 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s);
+  const g = fromLinearSrgb(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s);
+  const b2 = fromLinearSrgb(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s);
+  return { r: clamp01(r), g: clamp01(g), b: clamp01(b2) };
+}
+
+function oklchToSrgb(L: number, C: number, H: number): RGB {
+  const rad = (H * Math.PI) / 180;
+  return oklabToSrgbDirect(L, C * Math.cos(rad), C * Math.sin(rad));
+}
+
+function toLinearP3(c: number): number {
+  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+function p3ToSrgbDirect(pr: number, pg: number, pb: number): RGB {
+  const R = toLinearP3(pr), G = toLinearP3(pg), B = toLinearP3(pb);
+  const X = 0.4865709 * R + 0.2656677 * G + 0.1982173 * B;
+  const Y = 0.2289746 * R + 0.6917385 * G + 0.0792869 * B;
+  const Z = 0.0000000 * R + 0.0451134 * G + 1.0439444 * B;
+  const r = fromLinearSrgb( 3.2406 * X - 1.5372 * Y - 0.4986 * Z);
+  const g = fromLinearSrgb(-0.9689 * X + 1.8758 * Y + 0.0415 * Z);
+  const b = fromLinearSrgb( 0.0557 * X - 0.2040 * Y + 1.0570 * Z);
+  return { r: clamp01(r), g: clamp01(g), b: clamp01(b) };
 }
 
 export function rgbToHex(color: RGB | RGBA, alpha = 1): string {

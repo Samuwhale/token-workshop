@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { swatchBgColor } from '../shared/colorUtils';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { PLATFORMS } from '../shared/platforms';
@@ -1272,7 +1273,7 @@ function DiffSwatch({ hex }: { hex: string }) {
   return (
     <span
       className="inline-block w-3 h-3 rounded-sm border border-white/20 ring-1 ring-[var(--color-figma-border)] shrink-0 align-middle"
-      style={{ backgroundColor: hex.slice(0, 7) }}
+      style={{ backgroundColor: swatchBgColor(hex) }}
       aria-hidden="true"
     />
   );

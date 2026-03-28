@@ -11,7 +11,18 @@ import {
   p3ToSrgb,
   isP3InSrgbGamut,
   wcagContrast,
+  swatchBgColor,
+  isWideGamutColor,
+  getSrgbFallback,
 } from '../shared/colorUtils';
+import {
+  parseAnyColor,
+  toOklch,
+  toHex as coreToHex,
+  oklchToOklab,
+  oklabToLinearSrgb,
+  serializeColor,
+} from '@tokenmanager/core';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
 import type { TokenMapEntry } from '../../shared/types';
 
@@ -19,11 +30,11 @@ import type { TokenMapEntry } from '../../shared/types';
 // Types
 // ---------------------------------------------------------------------------
 
-type ColorSpace = 'hex' | 'hsl' | 'lch' | 'p3';
+type ColorSpace = 'hex' | 'hsl' | 'lch' | 'p3' | 'oklch';
 
 interface ColorPickerProps {
-  value: string;          // #RRGGBB or #RRGGBBAA
-  onChange: (hex: string) => void;
+  value: string;          // #RRGGBB, #RRGGBBAA, or CSS Color 4 string
+  onChange: (color: string) => void;
   onClose: () => void;
   allTokensFlat?: Record<string, TokenMapEntry>;
 }
@@ -216,14 +227,32 @@ function ChannelInput({
 // Main component
 // ---------------------------------------------------------------------------
 
+/** Parse initial value (hex or CSS Color 4) to HSL + alpha for the picker's internal model. */
+function parseInitialColor(value: string): { h: number; s: number; l: number; alpha: number; initialSpace: ColorSpace } {
+  // Try hex first
+  const hsl = hexToHsl(value);
+  if (hsl) return { ...hsl, alpha: parseAlpha(value), initialSpace: 'hex' };
+  // Try CSS Color 4 via core parser
+  const parsed = parseAnyColor(value);
+  if (parsed) {
+    const hex = coreToHex(parsed);
+    const hsl2 = hexToHsl(hex);
+    if (hsl2) {
+      const space: ColorSpace = parsed.space === 'oklch' ? 'oklch' : parsed.space === 'display-p3' ? 'p3' : 'hex';
+      return { ...hsl2, alpha: parsed.alpha, initialSpace: space };
+    }
+  }
+  return { h: 0, s: 0, l: 0, alpha: 1, initialSpace: 'hex' };
+}
+
 export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPickerProps) {
-  // Parse initial color
-  const initHsl = hexToHsl(value) ?? { h: 0, s: 0, l: 0 };
-  const [hue, setHue] = useState(initHsl.h);
-  const [sat, setSat] = useState(initHsl.s);
-  const [lit, setLit] = useState(initHsl.l);
-  const [alpha, setAlpha] = useState(parseAlpha(value));
-  const [space, setSpace] = useState<ColorSpace>('hex');
+  // Parse initial color — supports both hex and CSS Color 4
+  const init = parseInitialColor(value);
+  const [hue, setHue] = useState(init.h);
+  const [sat, setSat] = useState(init.s);
+  const [lit, setLit] = useState(init.l);
+  const [alpha, setAlpha] = useState(init.alpha);
+  const [space, setSpace] = useState<ColorSpace>(init.initialSpace);
   const [hexInput, setHexInput] = useState(value);
   const [hexInputError, setHexInputError] = useState(false);
   const [alphaInput, setAlphaInput] = useState(() => Math.round(parseAlpha(value) * 100) + '%');
@@ -252,14 +281,23 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   useEffect(() => {
     if (value !== prevValue.current) {
       prevValue.current = value;
-      const hsl = hexToHsl(value);
+      // Try hex first, then CSS Color 4
+      let hsl = hexToHsl(value);
+      let newAlpha = parseAlpha(value);
+      if (!hsl) {
+        const parsed = parseAnyColor(value);
+        if (parsed) {
+          const hex = coreToHex(parsed);
+          hsl = hexToHsl(hex);
+          newAlpha = parsed.alpha;
+        }
+      }
       if (hsl) {
         // Preserve hue for achromatic colors
         if (hsl.s > 0.5) setHue(hsl.h);
         setSat(hsl.s);
         setLit(hsl.l);
       }
-      const newAlpha = parseAlpha(value);
       setAlpha(newAlpha);
       if (!alphaEditing.current) setAlphaInput(Math.round(newAlpha * 100) + '%');
       setHexInput(value);
@@ -294,13 +332,19 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   const [tokenSearch, setTokenSearch] = useState('');
   const colorTokens = useMemo(() => {
     if (!allTokensFlat) return [];
-    const entries: { path: string; hex: string }[] = [];
+    const entries: { path: string; hex: string; cssColor: string }[] = [];
     for (const [path, entry] of Object.entries(allTokensFlat)) {
       if (entry.$type !== 'color') continue;
       const v = entry.$value;
       if (typeof v !== 'string' || v.startsWith('{')) continue;
       if (/^#[0-9a-fA-F]{6,8}$/.test(v)) {
-        entries.push({ path, hex: v.slice(0, 7) });
+        entries.push({ path, hex: v.slice(0, 7), cssColor: v.slice(0, 7) });
+      } else {
+        // CSS Color 4 string — get sRGB fallback hex for the picker, keep original for display
+        const parsed = parseAnyColor(v);
+        if (parsed) {
+          entries.push({ path, hex: coreToHex(parsed), cssColor: v });
+        }
       }
     }
     return entries;
@@ -379,16 +423,15 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  // Handle hex text input
+  // Handle hex/color text input
   const onHexInputChange = (text: string) => {
     const trimmed = text.trim();
     setHexInput(trimmed);
+    // Try hex first
     const clean = trimmed.startsWith('#') ? trimmed : '#' + trimmed;
-    const isValid = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean);
-    // Show error only when value is long enough to be complete but invalid
-    const isComplete = clean.length >= 7;
-    setHexInputError(isComplete && !isValid);
-    if (isValid) {
+    const isValidHex = /^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean);
+    if (isValidHex) {
+      setHexInputError(false);
       const hsl = hexToHsl(clean);
       if (hsl) {
         if (hsl.s > 0.5) setHue(hsl.h);
@@ -397,7 +440,25 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
       }
       if (clean.length === 9) setAlpha(parseInt(clean.slice(7), 16) / 255);
       else setAlpha(1);
+      return;
     }
+    // Try CSS Color 4 (oklch, oklab, color(display-p3 ...), etc.)
+    const parsed = parseAnyColor(trimmed);
+    if (parsed) {
+      setHexInputError(false);
+      const hex = coreToHex(parsed);
+      const hsl = hexToHsl(hex);
+      if (hsl) {
+        if (hsl.s > 0.5) setHue(hsl.h);
+        setSat(hsl.s);
+        setLit(hsl.l);
+      }
+      setAlpha(parsed.alpha);
+      return;
+    }
+    // Show error only when value is long enough to be complete but invalid
+    const isComplete = clean.length >= 7 || trimmed.includes(')');
+    setHexInputError(isComplete);
   };
 
   // Color space channel editors
@@ -454,6 +515,42 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
               <div className="text-[10px] text-[var(--color-figma-warning)] flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] inline-block" />
                 Outside sRGB gamut (clamped)
+              </div>
+            )}
+          </div>
+        );
+      }
+      case 'oklch': {
+        // Convert current HSL → hex → OKLCh for display
+        const parsed = parseAnyColor(hex6);
+        const oklch = parsed ? toOklch(parsed) : { coords: [0, 0, 0] as [number, number, number] };
+        const [oL, oC, oH] = oklch.coords;
+        const updateFromOklch = (L: number, C: number, H: number) => {
+          const lab = oklchToOklab(L, C, H);
+          const lin = oklabToLinearSrgb(lab.L, lab.a, lab.b);
+          // Gamut-map for the picker's internal HSL model
+          const sr = Math.max(0, Math.min(1, lin.r <= 0.0031308 ? 12.92 * lin.r : 1.055 * Math.pow(Math.max(0, lin.r), 1 / 2.4) - 0.055));
+          const sg = Math.max(0, Math.min(1, lin.g <= 0.0031308 ? 12.92 * lin.g : 1.055 * Math.pow(Math.max(0, lin.g), 1 / 2.4) - 0.055));
+          const sb = Math.max(0, Math.min(1, lin.b <= 0.0031308 ? 12.92 * lin.b : 1.055 * Math.pow(Math.max(0, lin.b), 1 / 2.4) - 0.055));
+          const newHex = rgbToHex(sr, sg, sb);
+          const hsl = hexToHsl(newHex);
+          if (hsl) { setHue(hsl.h); setSat(hsl.s); setLit(hsl.l); }
+        };
+        // Check if the color at current OKLCh values exceeds sRGB
+        const lab = oklchToOklab(oL, oC, oH);
+        const linRgb = oklabToLinearSrgb(lab.L, lab.a, lab.b);
+        const inSrgb = linRgb.r >= -0.001 && linRgb.r <= 1.001 && linRgb.g >= -0.001 && linRgb.g <= 1.001 && linRgb.b >= -0.001 && linRgb.b <= 1.001;
+        return (
+          <div className="flex flex-col gap-1">
+            <div className="flex gap-1">
+              <ChannelInput label="L" value={oL} min={0} max={1} step={0.01} decimals={3} onChange={L => updateFromOklch(L, oC, oH)} />
+              <ChannelInput label="C" value={oC} min={0} max={0.4} step={0.005} decimals={3} onChange={C => updateFromOklch(oL, C, oH)} />
+              <ChannelInput label="H" value={oH} min={0} max={360} step={1} decimals={1} onChange={H => updateFromOklch(oL, oC, H)} />
+            </div>
+            {!inSrgb && (
+              <div className="text-[10px] text-[var(--color-figma-warning)] flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] inline-block" />
+                Outside sRGB gamut (clamped for preview)
               </div>
             )}
           </div>
@@ -570,7 +667,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
 
       {/* Color space tabs */}
       <div className="flex gap-0.5 text-[10px]">
-        {(['hex', 'hsl', 'lch', 'p3'] as ColorSpace[]).map(s => (
+        {(['hex', 'hsl', 'lch', 'oklch', 'p3'] as ColorSpace[]).map(s => (
           <button
             key={s}
             type="button"
@@ -767,8 +864,8 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
                       if (hsl) { setHue(hsl.h); setSat(hsl.s); setLit(hsl.l); }
                     }}
                     className="w-5 h-5 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer transition-colors shrink-0"
-                    style={{ backgroundColor: t.hex }}
-                    aria-label={`Token ${t.path}: ${t.hex}`}
+                    style={{ backgroundColor: t.cssColor }}
+                    aria-label={`Token ${t.path}: ${t.cssColor}`}
                   />
                 ))}
                 {filteredTokens.length === 0 && (

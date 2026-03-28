@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
+import { swatchBgColor } from '../shared/colorUtils';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { hexToLab, labToHex } from '@tokenmanager/core';
 import { ColorPicker } from './ColorPicker';
@@ -189,7 +190,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
                   type="button"
                   onClick={() => setPickerOpen(!pickerOpen)}
                   className="w-8 h-8 rounded border border-[var(--color-figma-border)] cursor-pointer"
-                  style={{ backgroundColor: baseHex.slice(0, 7) }}
+                  style={{ backgroundColor: swatchBgColor(baseHex) }}
                   title="Pick color"
                   aria-label="Pick color"
                 />
