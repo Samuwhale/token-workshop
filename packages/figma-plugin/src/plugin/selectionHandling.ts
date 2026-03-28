@@ -185,7 +185,7 @@ export async function applyToSelection(tokenPath: string, tokenType: string, tar
   } else {
     figma.notify(`Applied ${tokenPath} to ${applied} layer(s)`);
   }
-  figma.ui.postMessage({ type: 'applied-to-selection', count: applied, errors });
+  figma.ui.postMessage({ type: 'applied-to-selection', count: applied, errors, targetProperty });
   await getSelection(false);
 }
 

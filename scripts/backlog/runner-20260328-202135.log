@@ -237,3 +237,10 @@ Already up to date.
 ===============================================================
   Claimed: SelectionInspector binding failure feedback — binding a token currently posts to the plugin sandbox with no response; add a round-trip confirmation so the inspector shows an inline error if the binding fails (invalid token type for the property, node locked, etc.)
   Worktree: /tmp/backlog-9231-uUrD35
+
+  ✓ done: SelectionInspector binding failure feedback
+    Added round-trip binding confirmation: plugin sandbox now includes targetProperty in applied-to-selection response; SelectionInspector listens for errors and shows inline dismissible error banners on the failing PropertyRow. Errors auto-clear on selection change.
+    62 turns · 333s · $2.44
+
+--- Merging: SelectionInspector binding failure feedback ---
+Already up to date.

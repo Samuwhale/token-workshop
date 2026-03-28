@@ -44,6 +44,9 @@ interface PropertyRowProps {
   onBindToken: (prop: BindableProperty, tokenPath: string) => void;
   onTokenCreated: (tokenPath: string, prop: BindableProperty, tokenType: string, tokenValue: any) => void;
   onRemoveBinding: (prop: BindableProperty) => void;
+  onDismissBindingError: (prop: BindableProperty) => void;
+  /** Inline error message from the plugin sandbox when binding fails */
+  bindingError: string | null;
   onNavigateToToken?: (tokenPath: string) => void;
   /** Controlled state for inline create */
   newTokenName: string;
@@ -69,6 +72,8 @@ export function PropertyRow({
   onBindToken,
   onTokenCreated,
   onRemoveBinding,
+  onDismissBindingError,
+  bindingError,
   onNavigateToToken,
   newTokenName,
   onNewTokenNameChange,
@@ -314,6 +319,26 @@ export function PropertyRow({
         </div>
         )}
       </div>
+
+      {/* Binding error feedback */}
+      {bindingError && (
+        <div className="mx-2 mb-1 flex items-start gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-error,#f56565)]/10 border border-[var(--color-figma-error,#f56565)]/20" role="alert">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px text-[var(--color-figma-error,#f56565)]" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
+          </svg>
+          <span className="text-[10px] text-[var(--color-figma-error,#f56565)] flex-1 leading-snug">{bindingError}</span>
+          <button
+            onClick={() => onDismissBindingError(prop)}
+            className="p-0.5 rounded text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-error,#f56565)]/20 transition-colors shrink-0"
+            title="Dismiss"
+            aria-label="Dismiss error"
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Inline: bind existing token */}
       {bindingFromProp === prop && (

@@ -188,11 +188,36 @@ export function SelectionInspector({
   // Remap bindings state
   const [showRemapPanel, setShowRemapPanel] = useState(false);
 
+  // Binding error feedback from the plugin sandbox
+  const [bindingErrors, setBindingErrors] = useState<Partial<Record<BindableProperty, string>>>({});
+
   // Extract tokens from selection state
   const [showExtractPanel, setShowExtractPanel] = useState(false);
   const [showLayerSearch, setShowLayerSearch] = useState(false);
 
   const prevNodeIdsRef = useRef<string>('');
+
+  // Listen for binding results from the plugin sandbox
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const msg = event.data?.pluginMessage;
+      if (msg?.type === 'applied-to-selection' && msg.targetProperty) {
+        if (msg.errors?.length > 0) {
+          setBindingErrors(prev => ({ ...prev, [msg.targetProperty]: msg.errors[0] }));
+        } else {
+          // Clear any previous error for this property on success
+          setBindingErrors(prev => {
+            if (!(msg.targetProperty in prev)) return prev;
+            const next = { ...prev };
+            delete next[msg.targetProperty as BindableProperty];
+            return next;
+          });
+        }
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   // Keyboard shortcut: Cmd+Shift+D to toggle deep inspect
   useEffect(() => {
@@ -261,6 +286,7 @@ export function SelectionInspector({
       setCreatingFromProp(null);
       setNewTokenName('');
       setShowExtractPanel(false);
+      setBindingErrors({});
     }
   }, [selectedNodes]);
 
@@ -706,6 +732,7 @@ export function SelectionInspector({
                     creatingFromProp={creatingFromProp}
                     bindingFromProp={bindingFromProp}
                     lastBoundProp={lastBoundProp}
+                    bindingError={bindingErrors[prop] ?? null}
                     onOpenCreate={openCreateFromProp}
                     onOpenBind={openBindFromProp}
                     onCancelCreate={cancelCreate}
@@ -713,6 +740,7 @@ export function SelectionInspector({
                     onBindToken={handleBindToken}
                     onTokenCreated={handleTokenCreated}
                     onRemoveBinding={handleRemoveBinding}
+                    onDismissBindingError={(p) => setBindingErrors(prev => { const n = { ...prev }; delete n[p]; return n; })}
                     onNavigateToToken={onNavigateToToken}
                     newTokenName={newTokenName}
                     onNewTokenNameChange={setNewTokenName}

@@ -267,3 +267,16 @@ Already up to date.
 
 --- Merging: Variable/style sync dry run — Preview sync button ---
 Already up to date.
+[main 8ab7bfb] chore(backlog): done – Variable/style sync dry run — Preview sync button
+ 6 files changed, 191 insertions(+), 18 deletions(-)
+
+## 2026-03-28 - Variable/style sync dry run — Preview sync button
+- Added "Preview" button next to "Apply" in both the Figma Variables and Figma Styles sync sections of PublishPanel
+- Preview opens a `SyncPreviewModal` showing a git-diff-style dry-run summary: adds, updates, removes grouped by direction (to Figma / to local) with token paths and color swatches
+- New `ConfirmAction` types: `'preview-vars'` and `'preview-styles'`
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  41 items remaining
+===============================================================
+  Claimed: ThemeManager coverage gap "auto-fill from source" — the coverage view already highlights tokens missing in a theme option; add an "Auto-fill from source" action per uncovered token (and a "Fill all" bulk button) that copies the source-set value into the option as a new override token
+  Worktree: /tmp/backlog-10054-deQnAk

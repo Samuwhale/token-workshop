@@ -392,3 +392,14 @@
   - `isHexColor` and `DiffSwatch` are function declarations (not const arrow) so they hoist above `SyncPreviewModal` even when defined below it in the file
   - Worktree validation environment has pre-existing failures: server tests (missing fastify), plugin token-parsers test (missing @tokenmanager/core), eslint binary missing entirely
 ---
+
+## 2026-03-28 - SelectionInspector binding failure feedback
+- Added round-trip confirmation for token binding: the plugin sandbox already sent `applied-to-selection` responses with `{ count, errors }`, but the UI ignored them. Now SelectionInspector listens for those responses and routes errors to the specific PropertyRow that triggered the binding. PropertyRow shows an inline dismissible error banner with the failure message (e.g., "LayerName: Cannot read properties of undefined").
+- Plugin side: added `targetProperty` to the `applied-to-selection` response so the UI can correlate errors to the correct property row.
+- UI side: added `bindingErrors` state in SelectionInspector, a `useEffect` listener for `applied-to-selection` messages, and an inline error display in PropertyRow with dismiss button.
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L188, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L195-215, ~L282, ~L720, `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L44-46, ~L70-72, ~L319-335
+- **Learnings for future iterations:**
+  - The plugin sandbox was already sending `applied-to-selection` responses — the missing piece was the UI listening for them and correlating to the property
+  - `figma.ui.postMessage` from the sandbox arrives in the UI as `event.data.pluginMessage` (no wrapper needed on the plugin side, but needs unwrapping on the UI side)
+  - Errors are cleared when selection changes to avoid stale error messages persisting across different layers
+---

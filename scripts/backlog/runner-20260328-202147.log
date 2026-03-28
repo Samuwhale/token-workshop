@@ -246,3 +246,18 @@ Already up to date.
 ===============================================================
   Claimed: Generator output overwrite warning: highlight tokens that will be overwritten (not newly created) in the generator preview with an "update" badge, so users can see they are about to replace hand-tuned values before confirming
   Worktree: /tmp/backlog-10461-wUao2j
+
+  · unknown
+    101 turns · 910s · $3.37
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - Variable/style sync dry run — Preview sync button
+- Added "Preview" button next to "Apply" in both the Figma Variables and Figma Styles sync sections of PublishPanel
+- Preview opens a `SyncPreviewModal` showing a git-diff-style dry-run summary: adds, updates, removes grouped by direction (to Figma / to local) with token paths and color swatches
+- New `ConfirmAction` types: `'preview-vars'` and `'preview-styles'`
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  41 items remaining
+===============================================================
+  Claimed: Generator output overwrite warning: highlight tokens that will be overwritten (not newly created) in the generator preview with an "update" badge, so users can see they are about to replace hand-tuned values before confirming
+  Worktree: /tmp/backlog-10461-uywUNS
