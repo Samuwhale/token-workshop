@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: styleSync.ts re-fetches ALL Figma styles from scratch for every single token ---
 Already up to date.
+[main 5f08085] chore(backlog): done – styleSync.ts re-fetches ALL Figma styles from scratch for every single token
+ 7 files changed, 184 insertions(+), 38 deletions(-)
+
+## 2026-03-28 - styleSync.ts re-fetches ALL Figma styles from scratch for every single token
+- Cached style lists upfront: `applyStyles` now fetches paint/text/effect styles once via `figma.getLocalPaintStylesAsync()` etc., stores them in a `StyleCache` object, and passes the cache to each per-type applicator. Newly created styles are pushed into the cache arrays so subsequent tokens can find them without re-fetching.
+- Replaced all 6 `any` type annotations with proper discriminated union types (`StyleToken = ColorStyleToken | GradientStyleToken | TypographyStyleToken | ShadowStyleToken`) using core DTCG types from `@tokenmanager/core`.
+- Typed the `readFigmaStyles` output tokens with `ReadStyleToken` union (`ReadColorToken | ReadTypographyToken | ReadShadowToken`).
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  19 items remaining
+===============================================================
+  Claimed: TokenTableView description edit is a no-op — `commitEdit` (line 132) passes `node.$value` (the unchanged token value) instead of `editValue` (the user's edited description text) to `onInlineSave`, so all description edits in the table view are silently discarded; the code even has a comment acknowledging the intent but the implementation doesn't follow through (`packages/figma-plugin/src/ui/components/TokenTableView.tsx` ~L125-133)
+  Worktree: /tmp/backlog-23617-yaqi2C

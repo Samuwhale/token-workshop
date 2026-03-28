@@ -605,7 +605,7 @@ export function App() {
     if (activeTopTab === 'define' && activeSubTab === 'tokens' && tokens.length > 0) {
       parent.postMessage({ pluginMessage: { type: 'scan-token-usage' } }, '*');
     }
-  }, [activeTopTab, activeSubTab, tokens.length > 0]);
+  }, [activeTopTab, activeSubTab, tokens.length]);
 
   // Close overflow menu on Escape key (not on outside click — accidental mis-clicks dismiss it)
   useEffect(() => {

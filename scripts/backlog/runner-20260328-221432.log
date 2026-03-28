@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: App.tsx `useEffect` dependency `tokens.length > 0` (line 608) is a boolean expression, not a reactive value — the scan-token-usage message is only sent when the boolean flips from `false` to `true` (0→N tokens), but never re-fires when tokens are added/removed after the initial load (e.g. 5→10 tokens); should use `tokens.length` directly so usage counts refresh when the token set changes (`packages/figma-plugin/src/ui/App.tsx` ~L604-608)
   Worktree: /tmp/backlog-22646-d2mk6s
+
+  ✓ done: App.tsx useEffect dependency tokens.length > 0 is boolean not reactive value
+    Changed dependency from `tokens.length > 0` (boolean) to `tokens.length` (number) so scan-token-usage re-fires on every token count change, not just the initial 0→N flip.
+    6 turns · 42s · $0.21
+
+--- Merging: App.tsx useEffect dependency tokens.length > 0 is boolean not reactive value ---
+Already up to date.

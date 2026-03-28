@@ -340,3 +340,10 @@
   - Figma style APIs (`getLocalPaintStylesAsync` etc.) are async round-trips; caching the result and mutating the local array (push newly created styles) avoids O(n) API calls for n tokens.
   - `import('...').Type` syntax in interface fields avoids circular import issues when shared types need to reference plugin-only types.
 ---
+
+## 2026-03-28 - App.tsx useEffect dependency `tokens.length > 0` is a boolean expression, not a reactive value
+- Fixed dependency array in the scan-token-usage useEffect: changed `tokens.length > 0` (boolean, only flips once) to `tokens.length` (number, changes on every add/remove) so the plugin re-scans token usage whenever the token count changes
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L608
+- **Learnings for future iterations:**
+  - React useEffect dependency arrays containing boolean expressions (e.g., `x > 0`) only trigger when the boolean flips, not when the underlying value changes — always use the raw value and guard inside the effect body instead
+---
