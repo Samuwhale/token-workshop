@@ -188,7 +188,7 @@ export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: Type
               >
                 {step.name}
               </text>
-              {/* Value label */}
+              {/* Value label + inline Ag preview */}
               <text
                 x={PAD_L + bw + 4}
                 y={y + 3}
@@ -199,6 +199,28 @@ export function TypeScaleStaircaseEditor({ config, sourceValue, onChange }: Type
               >
                 {formatted}{unit}
               </text>
+              {/* Live text size sample */}
+              <foreignObject
+                x={PAD_L + bw + 38}
+                y={y - Math.max(4, Math.min(14, val * (unit === 'rem' ? 16 : 1) * 0.3))}
+                width={40}
+                height={Math.max(8, Math.min(28, val * (unit === 'rem' ? 16 : 1) * 0.6)) + 2}
+                style={{ overflow: 'visible', pointerEvents: 'none' }}
+              >
+                <span
+                  style={{
+                    fontSize: `${Math.max(6, Math.min(22, val * (unit === 'rem' ? 16 : 1) * 0.45))}px`,
+                    lineHeight: 1,
+                    color: isBase ? 'var(--color-figma-accent)' : 'var(--color-figma-text)',
+                    fontWeight: isBase ? 600 : 400,
+                    userSelect: 'none',
+                    display: 'block',
+                    opacity: isDragging ? 1 : 0.6,
+                  }}
+                >
+                  Ag
+                </span>
+              </foreignObject>
               {/* Drag hint arrows for non-base steps */}
               {!isBase && (
                 <g opacity={isDragging ? 0.8 : 0} style={{ transition: 'opacity 0.15s' }}>

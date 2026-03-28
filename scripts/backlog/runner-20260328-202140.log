@@ -358,3 +358,16 @@ Already up to date.
 
 --- Merging: CommandPalette structured search qualifiers ---
 Already up to date.
+[main 1ba4983] chore(backlog): done – CommandPalette structured search qualifiers
+ 7 files changed, 124 insertions(+), 12 deletions(-)
+
+## 2026-03-28 - CommandPalette structured search qualifiers
+- Integrated `parseStructuredQuery` from `tokenListUtils.ts` into `CommandPalette.tsx` token search mode (prefixed with `>`). Qualifiers `type:`, `has:alias`/`has:ref`/`has:direct`/`has:description`, `value:`, `path:`, and `name:` now work in the palette, matching the same filter expressiveness as TokenList search. Qualifiers are applied first, then free-text fuzzy matching runs on the filtered set.
+- Added clickable qualifier hint chips shown when token mode is active with no query typed. Added match count summary when qualifiers are active. Updated placeholder text and footer hints to surface available qualifiers.
+- Extended `TokenEntry` interface with `isAlias` and `description` optional fields. Updated `App.tsx` `paletteTokens` builder to populate `isAlias` from `isAlias(entry.$value)`.
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  39 items remaining
+===============================================================
+  Claimed: Operation log (undo history) is in-memory only and lost on server restart — `OperationLog` stores entries in a plain array with `MAX_ENTRIES=50`; restarting the server wipes all undo history with no way to recover recent operations
+  Worktree: /tmp/backlog-9651-bqxHQl

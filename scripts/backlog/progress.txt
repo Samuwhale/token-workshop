@@ -475,3 +475,16 @@
   - The palette works with flat `TokenEntry[]` not `TokenNode[]`, so a separate flat-list filter function was needed rather than reusing `filterTokenNodesStructured`
   - `has:duplicate` and `has:extension` qualifiers are not supported in the palette because the flat `TokenEntry` doesn't carry that data — could be added later
 ---
+
+## 2026-03-28 - Interactive generator preview
+- Added live client-side color swatch strip to BezierCurveEditor that computes colors using the same Lab math as the server engine, giving instant visual feedback while dragging curve control points (no server round-trip needed)
+- Added inline "Ag" text samples to TypeScaleStaircaseEditor via foreignObject, sized proportionally to each step's computed value, providing immediate typographic preview while dragging ratio
+- Wired sourceHex and chromaBoost through ColorRampConfigEditor → BezierCurveEditor so the live swatches reflect the actual source color and chroma settings
+- Added `require` export condition to core package.json (needed for Vite IIFE build resolution)
+- Files changed: `packages/figma-plugin/src/ui/components/generators/BezierCurveEditor.tsx` ~L1-L260, `packages/figma-plugin/src/ui/components/generators/TypeScaleStaircaseEditor.tsx` ~L193-L214, `packages/figma-plugin/src/ui/components/generators/ColorRampGenerator.tsx` ~L87,L129, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L441, `packages/core/package.json` ~L10
+- **Learnings for future iterations:**
+  - The interactive editors (BezierCurveEditor, TypeScaleStaircaseEditor) already existed with drag support — the missing piece was inline visual preview computed client-side rather than requiring the 300ms debounced server preview
+  - The color ramp engine logic (Lab color space, bell-shaped chroma curve) can be replicated client-side using hexToLab/labToHex from @tokenmanager/core for instant preview
+  - SVG foreignObject enables inline HTML rendering (e.g., styled text at computed font sizes) within SVG interactive editors
+  - Core package.json only had `import` export condition; Vite IIFE builds need `require` condition too
+---

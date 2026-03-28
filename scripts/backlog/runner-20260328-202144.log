@@ -300,3 +300,10 @@ Already up to date.
 ===============================================================
   Claimed: Interactive generator preview — color ramp and type scale generators currently require changing numeric inputs and re-running to see adjustments; add a draggable curve handle (for color ramp lightness/chroma arc) and a live staircase handle (for type scale ratio) so visual tuning happens without multiple generate-and-inspect cycles
   Worktree: /tmp/backlog-10054-pRI6wL
+
+  ✓ done: Interactive generator preview
+    Added live client-side color swatch strip to BezierCurveEditor (instant Lab-computed colors during drag) and inline Ag text samples to TypeScaleStaircaseEditor (proportionally sized via foreignObject), eliminating server round-trips for visual tuning
+    57 turns · 435s · $3.21
+
+--- Merging: Interactive generator preview ---
+Already up to date.

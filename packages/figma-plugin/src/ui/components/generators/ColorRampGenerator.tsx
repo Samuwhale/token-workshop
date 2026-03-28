@@ -88,7 +88,7 @@ export function ColorSwatchPreview({ tokens, overrides, onOverrideChange, onOver
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function ColorRampConfigEditor({ config, onChange }: { config: ColorRampConfig; onChange: (c: ColorRampConfig) => void }) {
+export function ColorRampConfigEditor({ config, onChange, sourceHex }: { config: ColorRampConfig; onChange: (c: ColorRampConfig) => void; sourceHex?: string }) {
   const activePresetIdx = COLOR_STEP_PRESETS.findIndex(
     p => p.steps.length === config.steps.length && p.steps.every((s, i) => s === config.steps[i])
   );
@@ -136,6 +136,8 @@ export function ColorRampConfigEditor({ config, onChange }: { config: ColorRampC
         darkEnd={config.darkEnd}
         stepCount={config.steps.length}
         onChange={c => onChange({ ...config, lightnessCurve: c })}
+        sourceHex={sourceHex}
+        chromaBoost={config.chromaBoost}
       />
       <div>
         <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">

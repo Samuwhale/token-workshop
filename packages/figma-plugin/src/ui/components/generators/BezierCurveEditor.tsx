@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
+import { labToHex, hexToLab } from '@tokenmanager/core';
 
 // ---------------------------------------------------------------------------
 // Bezier math (local copy — cannot import from @tokenmanager/core in plugin UI)
@@ -58,6 +59,10 @@ interface BezierCurveEditorProps {
   darkEnd: number;
   stepCount: number;
   onChange: (curve: [number, number, number, number]) => void;
+  /** Source color hex — when provided, renders a live color swatch strip. */
+  sourceHex?: string;
+  /** Chroma boost multiplier — used for live color swatch computation. */
+  chromaBoost?: number;
 }
 
 const W = 240;
@@ -66,7 +71,7 @@ const PAD = 24;
 const GW = W - PAD * 2;
 const GH = H - PAD * 2;
 
-export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChange }: BezierCurveEditorProps) {
+export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChange, sourceHex, chromaBoost = 1.0 }: BezierCurveEditorProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<0 | 1 | null>(null);
 
@@ -135,6 +140,20 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
     const [, y] = toSvg(0, v);
     return y;
   });
+
+  // Compute live color swatches client-side (mirrors runColorRampGenerator logic)
+  const sourceLab = sourceHex ? hexToLab(sourceHex) : null;
+  const liveSwatches: string[] | null = sourceLab
+    ? stepDots.map((dot, i) => {
+        const t = stepCount > 1 ? i / (stepCount - 1) : 0.5;
+        const L = dot.lstar;
+        // Bell-shaped chroma factor: peaks around t≈0.4, tapers to near-zero at both ends
+        const chromaFactor = Math.min(1, 4.5 * t * (1 - t) * 1.5) * chromaBoost;
+        const a = sourceLab[1] * chromaFactor;
+        const b = sourceLab[2] * chromaFactor;
+        return labToHex(L, a, b);
+      })
+    : null;
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -238,6 +257,19 @@ export function BezierCurveEditor({ curve, lightEnd, darkEnd, stepCount, onChang
           Dark
         </text>
       </svg>
+      {/* Live color swatch strip — computed client-side for instant feedback */}
+      {liveSwatches && (
+        <div className="flex gap-0 rounded overflow-hidden h-5" title="Live preview — drag curve to adjust">
+          {liveSwatches.map((hex, i) => (
+            <div
+              key={i}
+              className="flex-1 min-w-0"
+              style={{ background: hex }}
+              title={`Step ${i + 1}: ${hex}`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
