@@ -54,3 +54,10 @@ Already up to date.
   Discovery pass added 9 items — continuing.
   Claimed: Lint violations not shown inline on token list rows — `useLint.ts` hook data is available in `TokenList.tsx` but violations are only surfaced in the AnalyticsPanel tab; add a small warning indicator on each token row that has an active lint violation so users can see issues without leaving the token list
   Worktree: /tmp/backlog-17062-mVTN2j
+
+  ✓ done: Lint violations not shown inline on token list rows
+    stale — already done. TokenTreeNode.tsx lines 1346-1361 renders warning triangle icons with severity coloring per token row, fed by lintViolations prop from TokenList.tsx line 3433.
+    8 turns · 115s · $0.46
+
+--- Merging: Lint violations not shown inline on token list rows ---
+Already up to date.

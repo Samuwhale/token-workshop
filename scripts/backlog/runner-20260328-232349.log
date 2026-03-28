@@ -75,3 +75,16 @@ Already up to date.
 
 --- Merging: No suppress/ignore action on individual lint violations in AnalyticsPanel ---
 Already up to date.
+[main c378a50] chore(backlog): done – No suppress/ignore action on individual lint violations in AnalyticsPanel
+ 5 files changed, 33 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - No suppress/ignore action on individual lint violations in AnalyticsPanel
+- Already implemented: per-row "Suppress" button exists at `AnalyticsPanel.tsx` ~L640-650
+- Per-row button uses hover-reveal pattern (`opacity-0 group-hover:opacity-100`) and adds `suppressKey(issue)` to `suppressedKeys` state
+- "Suppress all" button also exists on group headers at ~L611-621
+
+===============================================================
+  Iteration 6  (claude)  —  5 items remaining
+===============================================================
+  Claimed: Theme dimension rename does not validate against existing names — renaming a dimension to a name already in use is only rejected by the server after the request is sent; check for name collisions client-side in `ThemeManager.tsx` and show an inline error before the rename is submitted
+  Worktree: /tmp/backlog-15773-zuB3v9

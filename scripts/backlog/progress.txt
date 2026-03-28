@@ -469,3 +469,12 @@
 - **Learnings for future iterations:**
   - Check implementation before assuming backlog items are unaddressed — suppress button was added in a prior session alongside "Suppress all"
 ---
+
+## 2026-03-28 - Lint violations not shown inline on token list rows
+- Already implemented: `useLint.ts` hook data flows through `TokenList.tsx` (line 3433) to `TokenTreeNode.tsx` (lines 1346-1361)
+- Each token row receives filtered `lintViolations` prop, rendered as a warning triangle SVG with severity-based coloring (error/warning/info) and tooltip
+- Toolbar also shows a lint count badge (TokenList.tsx lines 2399-2409)
+- No changes needed — stale item, already done
+- **Learnings for future iterations:**
+  - Always verify backlog items against current code before implementing — features may have been added in prior sessions
+---
