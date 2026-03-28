@@ -538,3 +538,17 @@ Already up to date.
 
 --- Merging: TokenEditor dependents section doesn't refresh after saving changes ---
 Already up to date.
+[main 346b68b] chore(backlog): done – TokenEditor dependents section doesn't refresh after saving changes
+ 6 files changed, 38 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - TokenEditor dependents section doesn't refresh after saving changes
+- Patched `colorFlatMap` memo in TokenEditor to overlay the current editor's value for the token being edited, so dependent previews always reflect the latest saved/loaded value even when the parent's `allTokensFlat` is stale from an async refresh
+- Root cause: after save, `handleEditorSave` calls `setEditingToken(null)` + `refreshAll()` (async). On reopen, `fetchToken()` gets fresh value but `allTokensFlat` prop may still be stale, causing `resolveRefValue` for dependents to use the old color
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L148-161
+
+===============================================================
+  Iteration 27 / 90  (claude)  —  11 items remaining
+===============================================================
+  Claimed: TokenList has no "recently edited" or "recently created" view — after creating tokens across multiple groups, there's no way to see what you just touched without remembering paths; useful during long editing sessions
+  Worktree: /tmp/backlog-92630-0F92Ks

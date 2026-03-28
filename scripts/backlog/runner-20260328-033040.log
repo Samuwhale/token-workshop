@@ -523,3 +523,9 @@ Already up to date.
 ===============================================================
   Claimed: TokenList double-click to edit is undiscoverable — the only visual affordance is a pencil icon on hover; new users don't know double-click opens the editor since there's no tooltip or onboarding hint
   Worktree: /tmp/backlog-84992-emBJIp
+
+  ✓ done: TokenList double-click to edit is undiscoverable
+    Made pencil icon always faintly visible (opacity-40) as a hint, added 'Double-click to edit' tooltip on token rows, and added Double-click entry to keyboard shortcuts modal
+    17 turns · 141s · $0.67
+
+--- Merging: TokenList double-click to edit is undiscoverable ---

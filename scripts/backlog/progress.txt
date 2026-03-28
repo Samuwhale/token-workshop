@@ -379,3 +379,12 @@
   - The `colorFlatMap` is derived from `allTokensFlat` (parent prop) but the editor fetches its own token value independently — these can be out of sync after save due to async parent refresh
   - Overlaying the editor's own value into derived maps is a general pattern for fixing stale-prop issues in editors that fetch their own data
 ---
+
+## 2026-03-28 - Inline create form has no path to full TokenEditor
+- Added an expand/full-editor button (expand icon) to the inline create form's button row that opens the full TokenEditor via `onCreateNew`, passing the current path, type, and value
+- Fixed "Create from search" button to also route through `onCreateNew` when available instead of always forcing the inline form
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2544 (button row), ~L2392 (create from search)
+- **Learnings for future iterations:**
+  - The inline create form is a fallback when `onCreateNew` isn't provided, and also reachable via "Create from search" which bypasses the `onCreateNew` check
+  - When adding escalation paths between simple→advanced UIs, carry forward all entered data (path, type, value) to avoid user frustration
+---

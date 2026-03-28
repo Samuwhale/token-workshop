@@ -554,3 +554,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenList inline create form and full TokenEditor both support creation but with different field sets — inline form has path+value+description+type; full editor has those plus aliases, modifiers, scopes, extensions, modes; there's no obvious path from "I need more fields" to "open full editor" during inline creation
   Worktree: /tmp/backlog-85816-UHsAT5
+
+  ✓ done: Inline create form has no path to full TokenEditor
+    Added expand-to-full-editor button in inline create form that opens TokenEditor with current path/type/value; fixed "Create from search" to also use onCreateNew when available
+    19 turns · 184s · $0.8
+
+--- Merging: Inline create form has no path to full TokenEditor ---
+Already up to date.
