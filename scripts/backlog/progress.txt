@@ -425,3 +425,14 @@
 - **Learnings for future iterations:**
   - This is another instance of the known Hook declaration order (TDZ) pattern: `const` arrow functions used in `useMemo`/`useCallback` must appear above those hooks in the function body. TypeScript does NOT catch this — it only checks scope existence, not temporal ordering.
 ---
+
+## 2026-03-28 - useStyleSync.ts race condition: single resolve ref instead of correlation map
+- Replaced `styleReadResolveRef` (single ref overwritten on concurrent calls) with `styleReadPendingRef` Map keyed by correlationId, matching the pattern already used in `useVariableSync`
+- Same fix applied to `styleApplyResolveRef` → `styleApplyPendingRef`
+- Updated plugin sandbox `applyStyles` to accept and forward `correlationId`, and `controller.ts` to pass it through for both success and error responses (`read-styles` already supported it)
+- Error responses (`styles-read-error`, `styles-apply-error`) now also carry `correlationId` and reject the correct pending promise instead of setting global error state
+- Files changed: `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` ~L46,51-82,87-98,161-172; `packages/figma-plugin/src/plugin/controller.ts` ~L38-47; `packages/figma-plugin/src/plugin/styleSync.ts` ~L50,78-83
+- **Learnings for future iterations:**
+  - When a UI↔plugin message pair uses a single resolve ref, concurrent calls cause the earlier promise to never resolve (or resolve with wrong data). Always use a correlation map for request/response patterns over postMessage.
+  - The plugin sandbox (`styleSync.ts`) already forwarded `correlationId` for `styles-read` but not for `styles-applied` — check both directions when fixing correlation issues.
+---

@@ -37,11 +37,12 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'apply-styles':
       try {
-        await applyStyles(msg.tokens);
+        await applyStyles(msg.tokens, msg.correlationId);
       } catch (e) {
         figma.ui.postMessage({
           type: 'styles-apply-error',
           error: describeError(e, 'Failed to apply styles'),
+          correlationId: msg.correlationId,
         });
       }
       break;

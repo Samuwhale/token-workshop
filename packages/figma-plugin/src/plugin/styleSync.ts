@@ -47,7 +47,7 @@ interface StyleCache {
 // Public entry point
 // ---------------------------------------------------------------------------
 
-export async function applyStyles(tokens: StyleToken[]) {
+export async function applyStyles(tokens: StyleToken[], correlationId?: string) {
   // Fetch all local styles once upfront instead of per-token.
   const cache: StyleCache = {
     paintStyles: await figma.getLocalPaintStylesAsync(),
@@ -80,6 +80,7 @@ export async function applyStyles(tokens: StyleToken[]) {
     count: successCount,
     total: tokens.length,
     failures,
+    correlationId,
   });
 }
 

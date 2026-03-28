@@ -1,0 +1,11 @@
+NOTE: 8 [~] item(s) found — skipping reset (16 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 8
+  Completed total: 725 (next code pass in 10 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  8 items remaining
+===============================================================
+  Claimed: `useDragDrop.ts` multi-token move partial failure leaves tokens moved without undo — `handleDropOnGroup` (lines 64-86) moves tokens one-by-one in a loop; if the Nth token's rename fails, it returns early at line 84 without ever reaching the undo setup at line 88; tokens 1..N-1 are already moved on the server but `onPushUndo` is never called, so the user cannot undo the partial move; similarly the undo/redo callbacks (lines 96-115) don't check individual rename responses — if one fails mid-batch the rest continue silently, leaving tokens in an inconsistent state
+  Worktree: /tmp/backlog-48637-8E1pKv

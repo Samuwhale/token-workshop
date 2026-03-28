@@ -498,3 +498,10 @@ Already up to date.
 ===============================================================
   Claimed: useStyleSync.ts race condition: single resolve ref instead of correlation map — `styleReadResolveRef` is overwritten on concurrent `computeStyleDiff` calls, so the earlier call's promise resolves with the later call's data; `useVariableSync` already uses a `Map<correlationId, resolver>` — adopt the same pattern (`useStyleSync.ts` ~L46,96)
   Worktree: /tmp/backlog-9231-Ad0ZAE
+
+  ✓ done: useStyleSync.ts race condition: single resolve ref instead of correlation map
+    Replaced single styleReadResolveRef/styleApplyResolveRef with correlationId-keyed Maps (matching useVariableSync pattern). Updated plugin sandbox applyStyles to forward correlationId. All 4 validation gates pass.
+    25 turns · 118s · $0.69
+
+--- Merging: useStyleSync.ts race condition: single resolve ref instead of correlation map ---
+Already up to date.

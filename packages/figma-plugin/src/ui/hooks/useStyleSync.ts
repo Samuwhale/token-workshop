@@ -43,34 +43,43 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
   const [styleSyncing, setStyleSyncing] = useState(false);
   const [styleError, setStyleError] = useState<string | null>(null);
   const [styleChecked, setStyleChecked] = useState(false);
-  const styleReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
-  const styleApplyResolveRef = useRef<((result: { count: number; total: number; failures: { path: string; error: string }[] }) => void) | null>(null);
+  const styleReadPendingRef = useRef<Map<string, { resolve: (tokens: any[]) => void; reject: (err: Error) => void }>>(new Map());
+  const styleApplyPendingRef = useRef<Map<string, { resolve: (result: { count: number; total: number; failures: { path: string; error: string }[] }) => void; reject: (err: Error) => void }>>(new Map());
 
   // Message handler for style reads
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'styles-read' && styleReadResolveRef.current) {
-        styleReadResolveRef.current(msg.tokens ?? []);
-        styleReadResolveRef.current = null;
+      if (msg?.type === 'styles-read' && msg.correlationId) {
+        const entry = styleReadPendingRef.current.get(msg.correlationId);
+        if (entry) {
+          styleReadPendingRef.current.delete(msg.correlationId);
+          entry.resolve(msg.tokens ?? []);
+        }
       }
-      if (msg?.type === 'styles-read-error') {
-        setStyleError(`Read styles failed: ${msg.error ?? 'Unknown error'}`);
-        setStyleLoading(false);
-        styleReadResolveRef.current = null;
+      if (msg?.type === 'styles-read-error' && msg.correlationId) {
+        const entry = styleReadPendingRef.current.get(msg.correlationId);
+        if (entry) {
+          styleReadPendingRef.current.delete(msg.correlationId);
+          entry.reject(new Error(msg.error ?? 'Unknown error'));
+        }
       }
-      if (msg?.type === 'styles-apply-error') {
-        setStyleError(`Apply styles failed: ${msg.error ?? 'Unknown error'}`);
-        setStyleSyncing(false);
+      if (msg?.type === 'styles-apply-error' && msg.correlationId) {
+        const entry = styleApplyPendingRef.current.get(msg.correlationId);
+        if (entry) {
+          styleApplyPendingRef.current.delete(msg.correlationId);
+          entry.reject(new Error(msg.error ?? 'Unknown error'));
+        }
       }
-      if (msg?.type === 'styles-applied') {
-        if (styleApplyResolveRef.current) {
-          styleApplyResolveRef.current({
+      if (msg?.type === 'styles-applied' && msg.correlationId) {
+        const entry = styleApplyPendingRef.current.get(msg.correlationId);
+        if (entry) {
+          styleApplyPendingRef.current.delete(msg.correlationId);
+          entry.resolve({
             count: msg.count ?? 0,
             total: msg.total ?? msg.count ?? 0,
             failures: msg.failures ?? [],
           });
-          styleApplyResolveRef.current = null;
         }
       }
     };
@@ -85,15 +94,16 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     setStyleChecked(false);
     try {
       const figmaTokens: any[] = await new Promise((resolve, reject) => {
+        const cid = `style-read-${Date.now()}-${Math.random()}`;
         const timeout = setTimeout(() => {
-          styleReadResolveRef.current = null;
+          styleReadPendingRef.current.delete(cid);
           reject(new Error('Figma read timed out \u2014 is the plugin running?'));
         }, 10000);
-        styleReadResolveRef.current = (tokens) => {
-          clearTimeout(timeout);
-          resolve(tokens);
-        };
-        parent.postMessage({ pluginMessage: { type: 'read-styles' } }, '*');
+        styleReadPendingRef.current.set(cid, {
+          resolve: (tokens) => { clearTimeout(timeout); resolve(tokens); },
+          reject: (err) => { clearTimeout(timeout); reject(err); },
+        });
+        parent.postMessage({ pluginMessage: { type: 'read-styles', correlationId: cid } }, '*');
       });
 
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
@@ -159,15 +169,16 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
           $value: r.localRaw,
         }));
         pushResult = await new Promise((resolve, reject) => {
+          const cid = `style-apply-${Date.now()}-${Math.random()}`;
           const timeout = setTimeout(() => {
-            styleApplyResolveRef.current = null;
+            styleApplyPendingRef.current.delete(cid);
             reject(new Error('Style apply timed out — is the plugin running?'));
           }, 15000);
-          styleApplyResolveRef.current = (result) => {
-            clearTimeout(timeout);
-            resolve(result);
-          };
-          parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
+          styleApplyPendingRef.current.set(cid, {
+            resolve: (result) => { clearTimeout(timeout); resolve(result); },
+            reject: (err) => { clearTimeout(timeout); reject(err); },
+          });
+          parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens, correlationId: cid } }, '*');
         });
       }
 
