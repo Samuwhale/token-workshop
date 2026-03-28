@@ -505,3 +505,29 @@ Already up to date.
 
 --- Merging: Coverage gap scrollable list in ThemeManager has no keyboard navigation ---
 Already up to date.
+[main 4638d80] chore(backlog): done – Coverage gap scrollable list in ThemeManager has no keyboard navigation
+ 5 files changed, 37 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - Coverage gap scrollable list in ThemeManager has no keyboard navigation
+- Added `tabIndex={0}`, `role="list"`, `aria-label`, and focus ring styles to both `max-h-32 overflow-y-auto` containers (coverage gaps at ~L1116 and stale sets at ~L1140) so they can receive keyboard focus and scroll via arrow keys.
+- Added `role="listitem"` to child elements for semantic correctness.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1116, ~L1140
+
+===============================================================
+  Iteration 25 / 90  (claude)  —  17 items remaining
+===============================================================
+  Claimed: Minimum text size of 9px used for secondary content across both pages — borderline legible even on high-DPI; audit all `text-[9px]` usage and bump to 10px where space allows
+  Worktree: /tmp/backlog-63973-ZNdpw6
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    2 turns · 3s · $0
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - Coverage gap scrollable list in ThemeManager has no keyboard navigation
+- Added `tabIndex={0}`, `role="list"`, `aria-label`, and focus ring styles to both `max-h-32 overflow-y-auto` containers (coverage gaps at ~L1116 and stale sets at ~L1140) so they can receive keyboard focus and scroll via arrow keys.
+- Added `role="listitem"` to child elements for semantic correctness.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1116, ~L1140
+
+Stop signal received. Exiting after iteration 25.

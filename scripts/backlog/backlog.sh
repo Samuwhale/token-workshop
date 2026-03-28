@@ -702,11 +702,31 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "  Iteration $i / $MAX_ITERATIONS  ($TOOL)  —  $REMAINING items remaining"
   echo "==============================================================="
 
-  # Early exit: no [ ] items left
+  # Backlog empty — run a discovery pass to replenish before giving up
   if [[ "$REMAINING" -eq 0 ]]; then
     echo ""
-    echo "No remaining [ ] items in backlog.md. All done!"
-    exit 0
+    echo "  Backlog empty — running discovery pass to replenish…"
+    drain_inbox  # pick up any stragglers first
+    REMAINING=$(remaining)
+    if [[ "$REMAINING" -gt 0 ]]; then
+      echo "  Inbox drain recovered $REMAINING items — continuing."
+    else
+      # Force a discovery pass regardless of counter parity
+      if [[ "$TOOL" == "claude" ]] && mkdir "$PASS_LOCKDIR" 2>/dev/null; then
+        echo $$ > "$PASS_LOCKDIR/pid"
+        TOTAL_DONE=$(get_completed_count)
+        PASS_TYPE=$( _pass_type_for_count "$TOTAL_DONE" )
+        run_special_pass "$PASS_TYPE"
+        rm -rf "$PASS_LOCKDIR"
+        drain_inbox
+        REMAINING=$(remaining)
+      fi
+      if [[ "$REMAINING" -eq 0 ]]; then
+        echo "  Discovery pass produced no new items. Backlog fully drained!"
+        exit 0
+      fi
+      echo "  Discovery pass added $REMAINING items — continuing."
+    fi
   fi
 
   # ── Claim an item under lock ──

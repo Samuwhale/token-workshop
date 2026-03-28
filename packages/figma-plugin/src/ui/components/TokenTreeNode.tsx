@@ -494,7 +494,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                   onClick={e => { e.stopPropagation(); onMoveUp(); }}
                   title="Move up"
                   aria-label="Move up"
-                  className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                  className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M18 15l-6-6-6 6"/>
@@ -506,7 +506,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                   onClick={e => { e.stopPropagation(); onMoveDown(); }}
                   title="Move down"
                   aria-label="Move down"
-                  className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                  className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M6 9l6 6 6-6"/>
@@ -520,7 +520,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 }}
                 title="Add token to group"
                 aria-label="Add token to group"
-                className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                   <path d="M12 5v14M5 12h14"/>
@@ -537,7 +537,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 }}
                 title="Group actions"
                 aria-label="Group actions"
-                className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+                className="p-1.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>

@@ -472,3 +472,15 @@
 - **Learnings for future iterations:**
   - `overflow-y-auto` containers with no focusable children are keyboard-inaccessible — `tabIndex={0}` lets them receive focus and enables native keyboard scrolling.
 ---
+
+## 2026-03-28 - Interactive targets below 24px in both token and theme pages
+- Increased padding on all undersized interactive targets to meet 24px+ minimum:
+  - ThemeManager reorder/rename/duplicate/delete option buttons: `p-0.5` → `p-1.5` (5 buttons)
+  - TokenTreeNode group action buttons (move up/down, add token, group actions): `p-1` → `p-1.5` (4 buttons)
+  - TokenList view mode toggle buttons: `py-0.5` → `py-1` (5 buttons + multi-mode toggle)
+  - TokenList expand/collapse all buttons: `p-1` → `p-1.5` (2 buttons)
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1025-1045, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L493-545, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2240-2290
+- **Learnings for future iterations:**
+  - Icon-only buttons with 10px SVGs need at least `p-1.5` (6px padding) for ~22px targets; `p-0.5` only yields ~12px
+  - Text buttons with `text-[9px]` need `py-1` instead of `py-0.5` to clear 24px height threshold
+---

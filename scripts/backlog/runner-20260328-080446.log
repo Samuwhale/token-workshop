@@ -481,3 +481,16 @@ Already up to date.
 ===============================================================
   Claimed: No `aria-live` regions for dynamic status messages — copy feedback, apply result, delete error, and ThemeManager error banner appear dynamically but aren't announced by screen readers; wrap in `aria-live="polite"`
   Worktree: /tmp/backlog-63685-IaxPkn
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    3 turns · 72s · $0.31
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - Coverage gap scrollable list in ThemeManager has no keyboard navigation
+- Added `tabIndex={0}`, `role="list"`, `aria-label`, and focus ring styles to both `max-h-32 overflow-y-auto` containers (coverage gaps at ~L1116 and stale sets at ~L1140) so they can receive keyboard focus and scroll via arrow keys.
+- Added `role="listitem"` to child elements for semantic correctness.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1116, ~L1140
+
+Stop signal received. Exiting after iteration 23.

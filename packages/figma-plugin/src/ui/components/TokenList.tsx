@@ -2243,7 +2243,7 @@ export function TokenList({
                     onClick={() => setViewMode(mode)}
                     title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : mode === 'grid' ? 'Grid view — color swatches' : mode === 'canvas' ? 'Canvas — spatial map' : 'JSON editor'}
                     aria-pressed={viewMode === mode}
-                    className={`px-1.5 py-0.5 rounded text-[9px] transition-colors capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    className={`px-1.5 py-1 rounded text-[9px] transition-colors capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                   >
                     {mode === 'json' ? '</>' : mode}
                   </button>
@@ -2258,7 +2258,7 @@ export function TokenList({
                     onClick={handleExpandAll}
                     title="Expand all groups"
                     aria-label="Expand all groups"
-                    className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                    className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
                   >
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                       <path d="M2 3.5l3 3 3-3"/>
@@ -2269,7 +2269,7 @@ export function TokenList({
                     onClick={handleCollapseAll}
                     title="Collapse all groups"
                     aria-label="Collapse all groups"
-                    className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                    className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
                   >
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                       <path d="M2 6.5l3-3 3 3"/>
@@ -2287,7 +2287,7 @@ export function TokenList({
                     onClick={toggleMultiMode}
                     title={multiModeEnabled ? 'Hide mode columns' : 'Show values per theme mode side-by-side'}
                     aria-pressed={multiModeEnabled}
-                    className={`px-1.5 py-0.5 rounded text-[9px] transition-colors flex items-center gap-0.5 ${multiModeEnabled ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    className={`px-1.5 py-1 rounded text-[9px] transition-colors flex items-center gap-0.5 ${multiModeEnabled ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <rect x="3" y="3" width="7" height="18" rx="1" />
