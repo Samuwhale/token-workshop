@@ -475,3 +475,16 @@ Already up to date.
 
 --- Merging: TokenList search doesn't support structured queries ---
 Already up to date.
+[main 7d59d26] chore(backlog): done – TokenList search doesn't support structured queries
+ 8 files changed, 286 insertions(+), 13 deletions(-)
+
+## 2026-03-28 - TokenList search doesn't support structured queries
+- Added structured query parser supporting qualifiers: `type:`, `has:alias`, `has:direct`, `has:duplicate`, `has:description`, `has:extension`, `value:`, `desc:`, `path:`, `name:`
+- Parser extracts qualifiers from the search string and leaves remainder as free-text; all qualifiers are AND-ed together
+- Added autocomplete dropdown that shows matching qualifier hints as user types (with keyboard nav via Arrow/Tab/Enter)
+
+===============================================================
+  Iteration 24 / 90  (claude)  —  6 items remaining
+===============================================================
+  Claimed: PasteTokensModal doesn't validate token path segments — pasted paths with spaces, special characters, or reserved `$` prefixes pass through parsing without error and fail silently on the server
+  Worktree: /tmp/backlog-10278-65pret

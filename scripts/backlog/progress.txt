@@ -423,3 +423,15 @@
   - `stableStringify` is already imported in TokenList.tsx but needed a new import in tokenListUtils.ts for value matching
   - The qualifier autocomplete uses `onBlur` with 150ms setTimeout to allow `onMouseDown` on hint items to fire before the dropdown closes
 ---
+
+## 2026-03-28 - BatchEditor has no progress indicator for large operations
+- Added `progress` state (`{ current, total } | null`) to BatchEditor
+- Converted `handleApply` and `handleMove` from `Promise.allSettled` to sequential loops with per-token progress updates (matching `handleRename`'s existing pattern)
+- Added progress counter to `handleRename`'s existing sequential loop
+- Added progress bar UI: a thin accent-colored bar with `current/total` counter, shown in the feedback area during operations
+- All three handlers (`handleApply`, `handleMove`, `handleRename`) clear progress in their `finally` blocks
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L85 (state), ~L302-318 (handleApply loop), ~L374-387 (handleMove loop), ~L415-442 (handleRename counter), ~L633-648 (progress bar UI)
+- **Learnings for future iterations:**
+  - Converting `Promise.allSettled` to sequential loops is the simplest way to get per-item progress — the trade-off is slower execution but better UX for large batches
+  - `tabular-nums` class keeps the counter from jumping as digits change width
+---

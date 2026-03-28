@@ -83,6 +83,7 @@ export function BatchEditor({
   const [moving, setMoving] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null);
   const [showTypeConfirm, setShowTypeConfirm] = useState(false);
   const descriptionRef = useRef<HTMLInputElement>(null);
   const findTextRef = useRef<HTMLInputElement>(null);
@@ -298,11 +299,23 @@ export function BatchEditor({
 
     setApplying(true);
     setFeedback(null);
+    setProgress({ current: 0, total: ops.length });
 
     try {
-      const results = await Promise.allSettled(ops.map(({ path, patch }) => patchToken(path, patch)));
-      const succeeded = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
+      let succeeded = 0;
+      let failed = 0;
+      const results: PromiseSettledResult<void>[] = [];
+      for (let i = 0; i < ops.length; i++) {
+        try {
+          await patchToken(ops[i].path, ops[i].patch);
+          results.push({ status: 'fulfilled', value: undefined });
+          succeeded++;
+        } catch (e) {
+          results.push({ status: 'rejected', reason: e });
+          failed++;
+        }
+        setProgress({ current: i + 1, total: ops.length });
+      }
 
       if (succeeded > 0) {
         if (onPushUndo) {
@@ -347,6 +360,7 @@ export function BatchEditor({
       setFeedback({ ok: false, msg: 'Error — check server connection' });
     } finally {
       setApplying(false);
+      setProgress(null);
     }
   };
 
@@ -354,19 +368,24 @@ export function BatchEditor({
     if (!connected || !canMove) return;
     setMoving(true);
     setFeedback(null);
+    setProgress({ current: 0, total: selectedEntries.length });
     try {
-      const results = await Promise.allSettled(
-        selectedEntries.map(async ({ path }) => {
+      let succeeded = 0;
+      let failed = 0;
+      for (let i = 0; i < selectedEntries.length; i++) {
+        try {
           const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tokenPath: path, targetSet }),
+            body: JSON.stringify({ tokenPath: selectedEntries[i].path, targetSet }),
           });
-          if (!res.ok) throw new Error(`Move ${path} failed (${res.status})`);
-        })
-      );
-      const succeeded = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
+          if (!res.ok) throw new Error(`Move ${selectedEntries[i].path} failed (${res.status})`);
+          succeeded++;
+        } catch {
+          failed++;
+        }
+        setProgress({ current: i + 1, total: selectedEntries.length });
+      }
 
       if (succeeded > 0) onApply();
 
@@ -382,6 +401,7 @@ export function BatchEditor({
       setFeedback({ ok: false, msg: 'Move failed — check server connection' });
     } finally {
       setMoving(false);
+      setProgress(null);
     }
   };
 
@@ -392,10 +412,12 @@ export function BatchEditor({
       : selectedEntries.filter(({ path }) => path.includes(findText));
     setRenaming(true);
     setFeedback(null);
+    setProgress({ current: 0, total: toRename.length });
     try {
       // Rename sequentially to avoid conflicts when paths share prefixes
       let succeeded = 0;
       let failed = 0;
+      let done = 0;
       for (const { path } of toRename) {
         const newPath = useRegex && parsedRegex
           ? path.replace(new RegExp(findText, 'g'), replaceText)
@@ -415,6 +437,8 @@ export function BatchEditor({
         } else {
           succeeded++; // no-op rename counts as success
         }
+        done++;
+        setProgress({ current: done, total: toRename.length });
       }
 
       if (succeeded > 0) onApply();
@@ -433,6 +457,7 @@ export function BatchEditor({
       setFeedback({ ok: false, msg: 'Rename failed — check server connection' });
     } finally {
       setRenaming(false);
+      setProgress(null);
     }
   };
 
@@ -607,7 +632,19 @@ export function BatchEditor({
 
       {/* Footer: feedback + Apply button */}
       <div className="flex items-center justify-between pt-0.5">
-        {feedback ? (
+        {progress ? (
+          <div className="flex items-center gap-2 flex-1 mr-2">
+            <div className="flex-1 h-1.5 rounded-full bg-[var(--color-figma-bg-secondary)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[var(--color-figma-accent)] transition-[width] duration-150"
+                style={{ width: `${Math.round((progress.current / progress.total) * 100)}%` }}
+              />
+            </div>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] tabular-nums shrink-0">
+              {progress.current}/{progress.total}
+            </span>
+          </div>
+        ) : feedback ? (
           <span className={`text-[10px] ${feedback.ok ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
             {feedback.msg}
           </span>

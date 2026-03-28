@@ -564,3 +564,10 @@ Already up to date.
 ===============================================================
   Claimed: BatchEditor has no progress indicator for large operations — processing 500+ tokens shows no progress bar or count; the UI appears frozen until the operation completes
   Worktree: /tmp/backlog-84992-ub2JrD
+
+  ✓ done: BatchEditor has no progress indicator for large operations
+    Added progress bar with current/total counter to all three batch operations (apply, move, rename) by converting parallel Promise.allSettled to sequential loops with per-token progress state updates
+    28 turns · 178s · $0.95
+
+--- Merging: BatchEditor has no progress indicator for large operations ---
+Already up to date.
