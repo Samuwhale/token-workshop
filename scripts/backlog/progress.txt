@@ -110,3 +110,16 @@
   - The token diff computation (flatten + compare) is duplicated across 4 routes; a shared helper would reduce this but wasn't extracted to keep the change focused
   - Figma variable/style publish already had full preview modals (`SyncPreviewModal` + `SyncDiffSummary`) — only git push/pull was missing dry-run
 ---
+
+## 2026-03-29 - Merge Resolvers panel into Theme Manager as an "advanced mode"
+- Removed `resolvers` from `DefineSubTab` type and `TOP_TABS` sub-tab list, eliminating it as a separate navigation tab
+- Extended the existing `themesView` toggle (Manage / Compare) to include a third "Resolvers" mode
+- Moved `ResolverPanel` rendering from its own sub-tab block into the Themes section, rendered when `themesView === 'resolvers'`
+- Updated ResolverPanel header from "DTCG Resolvers" to "Resolver Composition" and updated "Resolvers vs Themes" empty-state copy to reference the Manage tab instead of explaining themes as a separate concept
+- localStorage validation in `navigateTo` gracefully falls back to default when a persisted 'resolvers' sub-tab is no longer valid
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L166,209,339,2130-2190; `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L173-175,362-370
+- **Learnings for future iterations:**
+  - The existing `themesView` toggle pattern (manage/compare) is easily extensible — adding a third mode is trivial
+  - Sub-tab persistence validation (L291) auto-falls-back when a sub-tab ID is removed from TOP_TABS — no migration code needed
+  - ResolverPanel is fully self-contained (all state via props from useResolvers hook) so it can be embedded anywhere without modification
+---

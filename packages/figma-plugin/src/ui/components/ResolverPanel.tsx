@@ -185,54 +185,15 @@ function ResolverInner({
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header — only shown in standalone mode */}
-      {showHeader && (
-        <>
-          <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)]">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
-                  DTCG Resolvers
-                </span>
-                <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">v2025.10</span>
-                <PanelHelpIcon panelKey="resolvers" title="Resolvers" expanded={help.expanded} onToggle={help.toggle} />
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={handleMigrate}
-                  disabled={migrating || !connected}
-                  className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50 transition-colors"
-                  title="Convert existing $themes.json to a resolver"
-                >
-                  {migrating ? 'Converting…' : 'From Themes'}
-                </button>
-                <button
-                  onClick={() => setCreating(true)}
-                  className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
-                >
-                  + New
-                </button>
-              </div>
-            </div>
-            {migrateError && (
-              <div className="mt-1 text-[10px] text-red-500">{migrateError}</div>
-            )}
-          </div>
-          {help.expanded && (
-            <PanelHelpBanner
-              title="Resolvers"
-              description="Define how token sets merge based on dimensions like theme, density, or platform. Each resolver picks base sets and applies modifier overrides in order, producing a single flat token output."
-              onDismiss={help.dismiss}
-            />
-          )}
-        </>
-      )}
-
-      {/* Inline toolbar when embedded (no standalone header) */}
-      {!showHeader && (
-        <div className="shrink-0 px-3 py-1.5 border-b border-[var(--color-figma-border)] flex items-center justify-between">
-          <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-            {resolvers.length} resolver{resolvers.length !== 1 ? 's' : ''}
+      {/* Header */}
+      <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)]">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-semibold text-[var(--color-figma-text)]">
+              Resolver Composition
+            </span>
+            <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">DTCG v2025.10</span>
+            <PanelHelpIcon panelKey="resolvers" title="Resolvers" expanded={help.expanded} onToggle={help.toggle} />
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -406,18 +367,16 @@ function ResolverInner({
               </button>
             </div>
 
-            {/* Resolvers vs Themes note — only in standalone mode */}
-            {showHeader && (
-              <div className="w-full max-w-[260px] pt-1 border-t border-[var(--color-figma-border)]">
-                <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium mb-1.5">Resolvers vs. Themes</p>
-                <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed text-left">
-                  Use <span className="text-[var(--color-figma-text-secondary)] font-medium">resolvers</span> when token sets combine along multiple independent dimensions (e.g. brand × mode × density). A single resolver replaces an exponential number of per-combination files.
-                </p>
-                <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed text-left mt-1">
-                  Use <span className="text-[var(--color-figma-text-secondary)] font-medium">themes</span> for simpler scenarios where each variation is already captured in its own set and you just need to switch between them.
-                </p>
-              </div>
-            )}
+            {/* When to use resolvers note */}
+            <div className="w-full max-w-[260px] pt-1 border-t border-[var(--color-figma-border)]">
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium mb-1.5">When to use resolvers</p>
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed text-left">
+                Use <span className="text-[var(--color-figma-text-secondary)] font-medium">resolvers</span> when token sets combine along multiple independent dimensions (e.g. brand × mode × density). A single resolver replaces an exponential number of per-combination files.
+              </p>
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed text-left mt-1">
+                For simpler scenarios, switch back to the <span className="text-[var(--color-figma-text-secondary)] font-medium">Manage</span> tab to use theme dimensions directly.
+              </p>
+            </div>
           </div>
         )}
 

@@ -338,7 +338,7 @@ export function App() {
   useServerEvents(serverUrl, connected, onGeneratorError);
   const onResizeHandleMouseDown = useWindowResize();
   const { isExpanded, toggleExpand } = useWindowExpand();
-  const [themesView, setThemesView] = useState<'manage' | 'compare'>('manage');
+  const [themesView, setThemesView] = useState<'manage' | 'compare' | 'resolvers'>('manage');
   const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
@@ -2140,17 +2140,17 @@ export function App() {
             <div className="flex flex-col h-full overflow-hidden">
               {/* Manage / Compare toggle */}
               <div className="shrink-0 flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                {(['manage', 'compare'] as const).map(v => (
+                {([{ id: 'manage', label: 'Manage' }, { id: 'compare', label: 'Compare' }, { id: 'resolvers', label: 'Resolvers' }] as const).map(v => (
                   <button
-                    key={v}
-                    onClick={() => setThemesView(v)}
-                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors capitalize ${
-                      themesView === v
+                    key={v.id}
+                    onClick={() => setThemesView(v.id)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                      themesView === v.id
                         ? 'bg-[var(--color-figma-accent)] text-white'
                         : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
                     }`}
                   >
-                    {v}
+                    {v.label}
                   </button>
                 ))}
               </div>
@@ -2175,7 +2175,7 @@ export function App() {
                       deleteResolver: resolverState.deleteResolver,
                     }} />
                   </ErrorBoundary>
-                ) : (
+                ) : themesView === 'compare' ? (
                   <ErrorBoundary panelName="Theme Compare" onReset={() => setThemesView('manage')}>
                     <ThemeCompare
                       dimensions={dimensions}
@@ -2189,12 +2189,31 @@ export function App() {
                       }}
                     />
                   </ErrorBoundary>
+                ) : (
+                  <ErrorBoundary panelName="Resolvers" onReset={() => setThemesView('manage')}>
+                    <ResolverPanel
+                      serverUrl={serverUrl}
+                      connected={connected}
+                      sets={sets}
+                      resolvers={resolverState.resolvers}
+                      activeResolver={resolverState.activeResolver}
+                      setActiveResolver={resolverState.setActiveResolver}
+                      resolverInput={resolverState.resolverInput}
+                      setResolverInput={resolverState.setResolverInput}
+                      activeModifiers={resolverState.activeModifiers}
+                      resolvedTokens={resolverState.resolvedTokens}
+                      resolverError={resolverState.resolverError}
+                      loading={resolverState.loading}
+                      fetchResolvers={resolverState.fetchResolvers}
+                      convertFromThemes={resolverState.convertFromThemes}
+                      deleteResolver={resolverState.deleteResolver}
+                    />
+                  </ErrorBoundary>
                 )}
               </div>
             </div>
           )}
 
-          {/* Resolvers are now embedded in ThemeManager's advanced mode */}
 
           {/* Export sub-tab (Ship > Export) */}
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'export' && (
