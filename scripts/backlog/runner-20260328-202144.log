@@ -227,3 +227,23 @@ Already up to date.
 
 --- Merging: controller.ts searchLayers missing import ---
 Already up to date.
+[main 91324ef] chore(backlog): done – controller.ts searchLayers missing import
+ 5 files changed, 40 insertions(+), 13 deletions(-)
+
+## 2026-03-28 - controller.ts searchLayers missing import
+- Added `searchLayers` to the import list from `./selectionHandling.js` at line 7 of `controller.ts`. The function was exported from `selectionHandling.ts:829` and called at `controller.ts:121` but never imported, causing a ReferenceError crash whenever the UI sent a `search-layers` message.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L7
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  45 items remaining
+===============================================================
+  Claimed: [HIGH] `useGitSync.ts` TDZ crash — `fetchConflicts` (declared at line 95) is referenced in the `useEffect` dependency array at line 87 and called at line 85, both before its `const` declaration; this is a Temporal Dead Zone violation that crashes the component on mount, breaking the entire Git sync panel
+  Worktree: /tmp/backlog-10054-kGgwrD
+
+  ✓ done: useGitSync.ts TDZ crash — fetchConflicts declared after use
+    Moved fetchConflicts useCallback declaration above the useEffect that references it, fixing the Temporal Dead Zone crash on Git sync panel mount. Build/test gates have pre-existing failures unrelated to this change.
+    40 turns · 204s · $1.03
+
+--- Merging: useGitSync.ts TDZ crash — fetchConflicts declared after use ---
+Already up to date.

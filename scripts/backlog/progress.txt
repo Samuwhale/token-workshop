@@ -338,3 +338,12 @@
   - Validate script fails in worktrees due to broken pnpm workspace links (`@tokenmanager/core` not found, `fastify` not found). These are pre-existing environment issues, not caused by code changes. The server `node_modules` symlink is self-referential in the main tree.
   - Plugin sandbox code (controller.ts, selectionHandling.ts) runs inside Figma and is not covered by vitest — the build gate is the real validation for these files, but the build is also currently broken (pre-existing `resolveTokenValue` redeclaration).
 ---
+
+## 2026-03-28 - useGitSync.ts TDZ crash — fetchConflicts declared after use
+- Moved `fetchConflicts` useCallback declaration (was line 95) above the useEffect (was line 83) that references it in its body and dependency array. The `const` declaration via `useCallback` was after the `useEffect` that called it, causing a Temporal Dead Zone crash on component mount.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L83-115
+- **Learnings for future iterations:**
+  - Pre-existing build failure in worktree: TokenList.tsx has duplicate `isAlias` and `resolveTokenValue` imports (lines 3 and 13) causing build gate failure — not related to this fix
+  - Pre-existing test failures: server and plugin tests fail in worktrees due to missing `fastify` and `@tokenmanager/core` packages (empty symlinked node_modules)
+  - This is the same TDZ pattern already documented in codebase patterns — always declare useState/useRef/useCallback before any useEffect that references them
+---

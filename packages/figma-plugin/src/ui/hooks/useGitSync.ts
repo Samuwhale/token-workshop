@@ -80,18 +80,6 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     }
   }, [serverUrl, connected]);
 
-  useEffect(() => {
-    fetchStatus();
-    fetchConflicts();
-    return () => { fetchAbortRef.current?.abort(); };
-  }, [fetchStatus, fetchConflicts]);
-
-  useEffect(() => {
-    if (!lastSynced) return;
-    const id = setInterval(() => setTick(t => t + 1), 30_000);
-    return () => clearInterval(id);
-  }, [lastSynced]);
-
   const fetchConflicts = useCallback(async () => {
     try {
       const res = await fetch(`${serverUrl}/api/sync/conflicts`);
@@ -113,6 +101,18 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
       // Conflict fetch failure is non-fatal
     }
   }, [serverUrl]);
+
+  useEffect(() => {
+    fetchStatus();
+    fetchConflicts();
+    return () => { fetchAbortRef.current?.abort(); };
+  }, [fetchStatus, fetchConflicts]);
+
+  useEffect(() => {
+    if (!lastSynced) return;
+    const id = setInterval(() => setTick(t => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, [lastSynced]);
 
   const resolveConflicts = useCallback(async () => {
     setResolvingConflicts(true);
