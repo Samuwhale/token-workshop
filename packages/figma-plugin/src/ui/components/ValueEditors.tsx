@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, type Ref } from 'react';
 import { evalExpr, isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
+import { FormulaInput } from './FormulaInput';
 import { ColorPicker } from './ColorPicker';
 import { formatHexAs, parseColorInput, swatchBgColor, isWideGamutColor, type ColorFormat } from '../shared/colorUtils';
 import { GamutIndicator } from './GamutIndicator';
@@ -197,7 +198,7 @@ const UNIT_CONVERSIONS: Record<string, Record<string, (v: number) => number>> = 
   '%': { px: v => v, rem: v => v, em: v => v },
 };
 
-export function DimensionEditor({ value, onChange, allTokensFlat = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; autoFocus?: boolean }) {
+export function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToSet = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string>; autoFocus?: boolean }) {
   const val = typeof value === 'object' ? value : { value: value ?? 0, unit: 'px' };
   const isFormulaValue = typeof val.value === 'string' && isFormula(val.value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
@@ -229,13 +230,12 @@ export function DimensionEditor({ value, onChange, allTokensFlat = {}, autoFocus
     <div className="flex flex-col gap-1">
       <div className="flex gap-2 items-center">
         {formulaMode ? (
-          <input
-            type="text"
-            aria-label="Dimension value"
+          <FormulaInput
             value={formulaStr}
-            onChange={e => onChange({ ...val, value: e.target.value })}
-            placeholder="{spacing.base} * 2"
-            className={inputClass + ' flex-1 font-mono'}
+            onChange={v => onChange({ ...val, value: v })}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            filterType="dimension"
             autoFocus
           />
         ) : (
@@ -679,7 +679,7 @@ export function BorderEditor({ value, onChange, allTokensFlat, pathToSet }: { va
   );
 }
 
-export function NumberEditor({ value, onChange, allTokensFlat = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; autoFocus?: boolean }) {
+export function NumberEditor({ value, onChange, allTokensFlat = {}, pathToSet = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string>; autoFocus?: boolean }) {
   const isFormulaValue = typeof value === 'string' && isFormula(value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
   const numVal = formulaMode ? 0 : (parseFloat(value) || 0);
@@ -700,12 +700,12 @@ export function NumberEditor({ value, onChange, allTokensFlat = {}, autoFocus }:
     <div className="flex flex-col gap-1">
       <div className="flex gap-2 items-center">
         {formulaMode ? (
-          <input
-            type="text"
+          <FormulaInput
             value={formulaStr}
-            onChange={e => onChange(e.target.value)}
-            placeholder="{spacing.base} * 2"
-            className={inputClass + ' flex-1 font-mono'}
+            onChange={onChange}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            filterType="number"
             autoFocus
           />
         ) : (

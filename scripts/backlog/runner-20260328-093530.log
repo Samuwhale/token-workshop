@@ -316,3 +316,24 @@ Already up to date.
 
 --- Merging: No live typography preview in the editor ---
 Already up to date.
+[main d965759] chore(backlog): done – No live typography preview in the editor
+ 5 files changed, 116 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No live typography preview in the editor
+- Added a live preview block to `TypographyEditor` that renders sample text ("The quick brown fox…") with the current font-family, size, weight, line-height, and letter-spacing values. Preview updates in real-time as properties change. Sample text is user-editable via an input field below the preview.
+- Added `resolveTypographyValue` helper to resolve alias references (e.g., `{heading.size}`) to their actual values for preview rendering.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L344-510
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  6 items remaining
+===============================================================
+  Claimed: No expression/formula builder with autocomplete — formula mode (`fx`) accepts expressions like `{spacing.base} * 2` but provides no syntax help; add autocomplete for token references inside formulas, operator hints, live evaluation preview showing the computed result, and error highlighting for invalid expressions
+  Worktree: /tmp/backlog-34977-K9ON4t
+
+  ✓ done: No expression/formula builder with autocomplete
+    Created FormulaInput component with token reference autocomplete (fuzzy-matched, triggered inside braces), operator hint bar, syntax highlighting overlay (valid refs colored, invalid refs with wavy underline), and wired it into DimensionEditor and NumberEditor replacing the plain text inputs.
+    29 turns · 294s · $1.57
+
+--- Merging: No expression/formula builder with autocomplete ---
+Already up to date.
