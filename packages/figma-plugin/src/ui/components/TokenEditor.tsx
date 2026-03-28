@@ -1063,20 +1063,25 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                 ? <ValueDiff type={tokenType} before={initialRef.current.value} after={value} />
                 : <OriginalValuePreview type={tokenType} value={initialRef.current.value} />
             )}
-            {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} autoFocus={!isCreateMode} allTokensFlat={allTokensFlat} />}
-            {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} autoFocus={!isCreateMode} />}
-            {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} fontFamilyRef={fontFamilyRef} fontSizeRef={fontSizeRef} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} availableFonts={availableFonts} />}
-            {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
-            {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
-            {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-            {tokenType === 'number' && <NumberEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} autoFocus={!isCreateMode} />}
-            {tokenType === 'duration' && <DurationEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
-            {tokenType === 'fontFamily' && <FontFamilyEditor value={value} onChange={setValue} autoFocus={!isCreateMode} availableFonts={availableFonts} />}
-            {tokenType === 'fontWeight' && <FontWeightEditor value={value} onChange={setValue} />}
-            {tokenType === 'strokeStyle' && <StrokeStyleEditor value={value} onChange={setValue} />}
-            {tokenType === 'string' && <StringEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
-            {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
-            {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
+            {(() => {
+              const baseValue: TokenMapEntry['$value'] | undefined = extendsPath ? allTokensFlat[extendsPath]?.$value : undefined;
+              return (<>
+                {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} autoFocus={!isCreateMode} allTokensFlat={allTokensFlat} />}
+                {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} autoFocus={!isCreateMode} />}
+                {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} fontFamilyRef={fontFamilyRef} fontSizeRef={fontSizeRef} baseValue={baseValue} availableFonts={availableFonts} />}
+                {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} baseValue={baseValue} />}
+                {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} baseValue={baseValue} />}
+                {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+                {tokenType === 'number' && <NumberEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} autoFocus={!isCreateMode} />}
+                {tokenType === 'duration' && <DurationEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
+                {tokenType === 'fontFamily' && <FontFamilyEditor value={value} onChange={setValue} autoFocus={!isCreateMode} availableFonts={availableFonts} />}
+                {tokenType === 'fontWeight' && <FontWeightEditor value={value} onChange={setValue} />}
+                {tokenType === 'strokeStyle' && <StrokeStyleEditor value={value} onChange={setValue} />}
+                {tokenType === 'string' && <StringEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
+                {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
+                {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} baseValue={baseValue} />}
+              </>);
+            })()}
             {tokenType === 'asset' && <AssetEditor value={value} onChange={setValue} />}
             {/* Smart alias suggestion — exact & near matches */}
             <TokenNudge

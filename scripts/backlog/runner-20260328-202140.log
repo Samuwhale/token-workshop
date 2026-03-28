@@ -263,3 +263,16 @@ Already up to date.
 
 --- Merging: useFindReplace.ts bulk-rename fetch has no abort signal or timeout ---
 Already up to date.
+[main 5af994f] chore(backlog): done – useFindReplace.ts bulk-rename fetch has no abort signal or timeout
+ 8 files changed, 82 insertions(+), 12 deletions(-)
+
+## 2026-03-28 - useFindReplace.ts bulk-rename fetch has no abort signal or timeout
+- Added AbortController + 30s timeout to the bulk-rename fetch in `handleFindReplace`
+- Added `cancelFindReplace` callback that aborts the in-flight request, exposed from the hook
+- Added `AbortSignal.timeout(30s)` to undo/redo restore callbacks as well
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  46 items remaining
+===============================================================
+  Claimed: `git-sync.ts` conflict parser skips `>>>>>>>` marker with unchecked `i++` (~line 45) — if the closing marker is the last line in the file and is malformed or missing, the parser silently produces incomplete conflict data
+  Worktree: /tmp/backlog-9651-dHX97d

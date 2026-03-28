@@ -613,3 +613,11 @@
   - `AbortSignal.timeout()` is a clean one-liner for undo/redo callbacks that don't need user-cancellable abort controllers
   - For the primary action, use `AbortController` + `setTimeout` so the user can cancel manually before the timeout fires
 ---
+
+## 2026-03-28 - TokenEditor.tsx repeated `as any` cast for baseValue
+- Extracted `extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined` into a single typed variable `const baseValue: TokenMapEntry['$value'] | undefined` using an IIFE wrapper around the editor block. The four duplicate casts (TypographyEditor, ShadowEditor, BorderEditor, CompositionEditor) now reference the single variable. No `as any` needed since editor components accept `baseValue?: any`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1066-1084
+- **Learnings for future iterations:**
+  - When JSX inline expressions need a local variable, an IIFE `{(() => { const x = …; return (<>…</>); })()}` works cleanly without extracting a new component.
+  - Editor `baseValue` props are typed `any`, so `TokenMapEntry['$value']` is assignable without casts.
+---
