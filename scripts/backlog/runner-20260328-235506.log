@@ -80,3 +80,19 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 
   Backlog empty — running discovery pass to replenish…
   Discovery pass produced no new items. Waiting for work…
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 2 duplicate item(s) skipped
+  → Priority item(s) appended (no existing [ ] items found)
+  → 11 normal item(s) appended to bottom
+--- Inbox drained ---
+  Discovery pass added 12 items — continuing.
+  Claimed: [HIGH] Snapshot save/restore bypasses tokenLock — `POST /api/snapshots` and `POST /api/snapshots/:id/restore` in `packages/server/src/routes/snapshots.ts` call `manualSnapshots.save()` and `restore()` on the TokenStore without acquiring the token write lock (`tokenLock`); a concurrent token write from any other route can interleave with a restore, leaving the store in a mixed state; `sync.ts:353` has the same gap for `POST /api/sync/log/:hash/restore`; both should wrap the tokenStore interaction in `withLock`
+  Worktree: /tmp/backlog-94410-UCZMV4
+
+  ✓ done: Snapshot save/restore bypasses tokenLock
+    stale — already done. All three routes (POST /snapshots, POST /snapshots/:id/restore, POST /sync/log/:hash/restore) already use withLock. Fixed in commit 9d42e42.
+    8 turns · 31s · $0.25
+
+--- Merging: Snapshot save/restore bypasses tokenLock ---
+Already up to date.

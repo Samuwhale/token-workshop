@@ -84,3 +84,8 @@ Already up to date.
 
   Backlog empty — running discovery pass to replenish…
   Discovery pass produced no new items. Waiting for work…
+
+  → Stop requested — will exit after current item completes.
+  Discovery pass added 11 items — continuing.
+  Claimed: manual-snapshot.ts shadows its own import of stableStringify and snapshot diff ignores $type/$description changes — `packages/server/src/services/manual-snapshot.ts` imports `stableStringify` from `./stable-stringify.js` (L7) but immediately redefines a local function with the same name (L10-18) that shadows the import, making the import dead code; separately, the `diff()` method at L181-184 only compares `$value` fields using `stableStringify`, so changes to `$type` or `$description` are silently ignored in snapshot diffs — a token whose type changes from `color` to `string` with the same value will show as unchanged, but restore will overwrite its type
+  Worktree: /tmp/backlog-92075-Y8Yzdj

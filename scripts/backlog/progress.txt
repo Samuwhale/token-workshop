@@ -314,3 +314,10 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: Set operations (create/rename/delete/reorder) are completely absent from the operation log — no undo possible for structural changes; Resolvers and Themes are separate panels solving the same problem with different mental models and should be consolidated; variable/style sync has no value-level diff preview despite Git sync already having one
 ---
+
+## 2026-03-29 - Snapshot save/restore bypasses tokenLock
+- Already implemented: all three routes (`POST /api/snapshots`, `POST /api/snapshots/:id/restore`, `POST /api/sync/log/:hash/restore`) already wrap tokenStore interactions in `withLock`. Commit `9d42e42` previously addressed this.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Check git log for recent fixes before starting work — items may already be resolved
+---
