@@ -4,7 +4,13 @@ import { getErrorMessage } from '../shared/utils.js';
 
 export async function applyVariables(tokens: any[], collectionMap: Record<string, string> = {}, modeMap: Record<string, string> = {}, correlationId?: string) {
   // Rollback tracking — populated before any mutations occur
-  const variableSnapshots = new Map<string, Record<string, VariableValue>>(); // varId → {modeId → value}
+  interface VariableSnapshot {
+    valuesByMode: Record<string, VariableValue>;
+    name: string;
+    scopes: string[];
+    pluginData: { tokenPath: string; tokenSet: string };
+  }
+  const variableSnapshots = new Map<string, VariableSnapshot>();
   const createdVariableIds: string[] = [];
   const createdCollectionIds: string[] = [];
 
@@ -51,9 +57,17 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
       let variable: Variable;
 
       if (existing) {
-        // Snapshot current values before modifying so we can roll back on error
+        // Snapshot all mutable state before modifying so we can roll back on error
         if (!variableSnapshots.has(existing.id)) {
-          variableSnapshots.set(existing.id, structuredClone(existing.valuesByMode));
+          variableSnapshots.set(existing.id, {
+            valuesByMode: structuredClone(existing.valuesByMode),
+            name: existing.name,
+            scopes: [...existing.scopes],
+            pluginData: {
+              tokenPath: existing.getPluginData('tokenPath'),
+              tokenSet: existing.getPluginData('tokenSet'),
+            },
+          });
         }
         variable = existing;
       } else {
@@ -91,13 +105,23 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
     // Attempt to roll back all changes made before the failure
     let rolledBack = false;
     try {
-      // Restore original values for variables that existed before this operation
+      // Restore all original state for variables that existed before this operation
       for (const [varId, snapshot] of variableSnapshots) {
         const v = await figma.variables.getVariableByIdAsync(varId);
         if (v) {
-          for (const [modeId, value] of Object.entries(snapshot)) {
+          // Restore values
+          for (const [modeId, value] of Object.entries(snapshot.valuesByMode)) {
             try { v.setValueForMode(modeId, value as VariableValue); } catch { /* ignore individual restore errors */ }
           }
+          // Restore name
+          try { v.name = snapshot.name; } catch { /* ignore */ }
+          // Restore scopes
+          try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch { /* ignore */ }
+          // Restore plugin data
+          try {
+            v.setPluginData('tokenPath', snapshot.pluginData.tokenPath);
+            v.setPluginData('tokenSet', snapshot.pluginData.tokenSet);
+          } catch { /* ignore */ }
         }
       }
       // Delete variables created during this operation (reverse order)

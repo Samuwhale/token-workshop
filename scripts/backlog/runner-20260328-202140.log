@@ -505,3 +505,10 @@ Already up to date.
 ===============================================================
   Claimed: variableSync.ts rollback only restores values, not names or scopes — the snapshot at line 56 captures only `valuesByMode`, so on failure the rollback restores variable values but leaves mutated names (if renamed) and scope overrides (line 81) in their post-mutation state, creating an inconsistent Figma file
   Worktree: /tmp/backlog-9651-gDTuyj
+
+  ✓ done: variableSync.ts rollback only restores values, not names or scopes
+    Expanded snapshot to capture name, scopes, and pluginData alongside valuesByMode; rollback now restores all four properties for a consistent Figma file on failure.
+    9 turns · 60s · $0.34
+
+--- Merging: variableSync.ts rollback only restores values, not names or scopes ---
+Already up to date.

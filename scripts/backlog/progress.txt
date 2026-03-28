@@ -451,3 +451,13 @@
   - `figma.notify(msg, { error: true })` shows a red notification toast in Figma — useful for surfacing plugin errors visibly
   - Sync handlers (`notify`, `resize`, `search-layers`, `find-peers-for-property`, `eyedropper`) don't need try-catch since they can't produce unhandled promise rejections
 ---
+
+## 2026-03-28 - variableSync.ts rollback only restores values, not names or scopes
+- Expanded the snapshot captured before mutations to include `name`, `scopes`, and `pluginData` (tokenPath, tokenSet) in addition to `valuesByMode`
+- Updated the rollback logic to restore all four properties on failure, not just values
+- Introduced a `VariableSnapshot` interface inside `applyVariables` for type safety
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L6-12, ~L54-64, ~L95-112
+- **Learnings for future iterations:**
+  - When snapshotting for rollback, enumerate every mutable property the function touches — not just the "primary" one
+  - Figma `Variable.scopes` requires the cast `(v as Variable & { scopes: string[] })` since the plugin typings don't expose the setter directly
+---
