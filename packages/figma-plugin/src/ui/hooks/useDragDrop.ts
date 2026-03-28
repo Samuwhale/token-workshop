@@ -60,13 +60,19 @@ export function useDragDrop({
     const source = dragSource;
     setDragSource(null);
     setDragOverGroup(null);
-    const moves: Array<{ oldPath: string; newPath: string }> = [];
+    const planned: Array<{ oldPath: string; newPath: string }> = [];
     for (let i = 0; i < source.paths.length; i++) {
       const oldPath = source.paths[i];
       const name = source.names[i];
       const newPath = targetGroupPath ? `${targetGroupPath}.${name}` : name;
       if (newPath === oldPath) continue;
-      moves.push({ oldPath, newPath });
+      planned.push({ oldPath, newPath });
+    }
+    if (planned.length === 0) return;
+
+    const succeeded: Array<{ oldPath: string; newPath: string }> = [];
+    const failures: string[] = [];
+    for (const { oldPath, newPath } of planned) {
       try {
         const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
           method: 'POST',
@@ -75,47 +81,75 @@ export function useDragDrop({
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({ error: `Move failed (${res.status})` }));
-          onError?.(data.error || `Move failed (${res.status})`);
-          onRefresh();
-          return;
+          failures.push(data.error || `Move "${oldPath}" failed (${res.status})`);
+          break; // stop on first failure — later renames may depend on earlier ones
         }
+        succeeded.push({ oldPath, newPath });
       } catch {
-        onError?.('Move token failed: network error');
-        onRefresh();
-        return;
+        failures.push(`Move "${oldPath}" failed: network error`);
+        break;
       }
     }
-    if (onPushUndo && moves.length > 0) {
+    if (failures.length > 0) {
+      const summary = succeeded.length > 0
+        ? `${failures[0]} (${succeeded.length}/${planned.length} moved)`
+        : failures[0];
+      onError?.(summary);
+    }
+    // Always push undo for whatever succeeded, so partially-moved tokens can be reverted
+    if (onPushUndo && succeeded.length > 0) {
       const capturedSet = setName;
       const capturedUrl = serverUrl;
-      const label = moves.length === 1
-        ? `Move "${moves[0].oldPath.split('.').pop() ?? moves[0].oldPath}"`
-        : `Move ${moves.length} tokens`;
+      const label = succeeded.length === planned.length
+        ? (planned.length === 1
+          ? `Move "${planned[0].oldPath.split('.').pop() ?? planned[0].oldPath}"`
+          : `Move ${planned.length} tokens`)
+        : `Move ${succeeded.length}/${planned.length} tokens (partial)`;
       onPushUndo({
         description: label,
         restore: async () => {
-          for (const { oldPath, newPath } of moves) {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
-            });
+          // Reverse in reverse order to undo correctly
+          const failures: string[] = [];
+          for (let i = succeeded.length - 1; i >= 0; i--) {
+            const { oldPath, newPath } = succeeded[i];
+            try {
+              const res = await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
+              });
+              if (!res.ok) failures.push(oldPath);
+            } catch {
+              failures.push(oldPath);
+            }
+          }
+          if (failures.length > 0) {
+            onError?.(`Undo failed for ${failures.length} token(s)`);
           }
           onRefresh();
         },
         redo: async () => {
-          for (const { oldPath, newPath } of moves) {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ oldPath, newPath }),
-            });
+          const failures: string[] = [];
+          for (const { oldPath, newPath } of succeeded) {
+            try {
+              const res = await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ oldPath, newPath }),
+              });
+              if (!res.ok) failures.push(oldPath);
+            } catch {
+              failures.push(oldPath);
+            }
+          }
+          if (failures.length > 0) {
+            onError?.(`Redo failed for ${failures.length} token(s)`);
           }
           onRefresh();
         },
       });
     }
-    for (const { oldPath, newPath } of moves) {
+    for (const { oldPath, newPath } of succeeded) {
       onRenamePath(oldPath, newPath);
     }
     onRefresh();

@@ -76,3 +76,16 @@ Already up to date.
 
 --- Merging: Fragile network-error detection breaks disconnect banner on Firefox ---
 Already up to date.
+[main 4bb5fe7] chore(backlog): done – Fragile network-error detection breaks disconnect banner on Firefox
+ 11 files changed, 57 insertions(+), 14 deletions(-)
+
+## 2026-03-28 - Fragile network-error detection breaks disconnect banner on Firefox
+- Extracted `isNetworkError(err)` helper into `shared/apiFetch.ts` that checks for `TypeError`, Chrome's `'Failed to fetch'`, and Firefox's `'NetworkError'`
+- Replaced all inline network-error detection across 5 files (7 call sites) with the shared helper
+- `useTokens.ts` already had the correct multi-string check — now all hooks use the same logic
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  5 items remaining
+===============================================================
+  Claimed: Server routes rely on error message string matching for HTTP status codes — across `tokens.ts`, `themes.ts`, and `sync.ts`, error handlers use patterns like `if (msg.includes('not found')) reply.status(404)` and `if (msg.includes('already exists')) reply.status(409)` to determine HTTP status codes; this is fragile — any internal change to error message wording silently breaks status code mapping; should define typed error classes (e.g. `NotFoundError`, `ConflictError`) with `statusCode` properties and throw those from services, letting a shared error handler map them to HTTP responses (`packages/server/src/routes/tokens.ts`, `themes.ts`, `sync.ts`)
+  Worktree: /tmp/backlog-22646-ZGPQzY

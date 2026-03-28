@@ -446,3 +446,15 @@
   - Chrome: `TypeError: Failed to fetch`, Firefox: `TypeError: NetworkError when attempting to fetch resource`, Safari: `TypeError: Load failed` — centralize detection in one place
   - When the same error-matching pattern is copy-pasted across hooks, extract a shared helper immediately to prevent drift
 ---
+
+## 2026-03-28 - useDragDrop.ts multi-token move partial failure leaves tokens moved without undo
+- Separated move planning from execution: collect all intended moves first, then execute sequentially
+- Track `succeeded` moves separately from `planned` moves so undo always covers what actually happened
+- On first failure, stop moving (later renames may depend on earlier ones) and report partial progress (e.g., "2/5 moved")
+- Always push undo for `succeeded` moves even on partial failure, so user can revert
+- Undo now reverses in reverse order for correctness, and both undo/redo check individual responses — failures are counted and reported via `onError`
+- Files changed: `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L58-155
+- **Learnings for future iterations:**
+  - When batch mutations are sequential and order-dependent (rename A→B then C→D where D might reference B), stop on first failure rather than continuing — unlike independent writes where `Promise.allSettled` is appropriate
+  - Always separate "what we plan to do" from "what we actually did" so undo/error reporting is accurate
+---

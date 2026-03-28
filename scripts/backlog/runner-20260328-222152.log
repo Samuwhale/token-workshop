@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: `useDragDrop.ts` multi-token move partial failure leaves tokens moved without undo — `handleDropOnGroup` (lines 64-86) moves tokens one-by-one in a loop; if the Nth token's rename fails, it returns early at line 84 without ever reaching the undo setup at line 88; tokens 1..N-1 are already moved on the server but `onPushUndo` is never called, so the user cannot undo the partial move; similarly the undo/redo callbacks (lines 96-115) don't check individual rename responses — if one fails mid-batch the rest continue silently, leaving tokens in an inconsistent state
   Worktree: /tmp/backlog-48637-8E1pKv
+
+  ✓ done: useDragDrop.ts multi-token move partial failure leaves tokens moved without undo
+    Separated planned vs succeeded moves; undo now always pushed for succeeded moves even on partial failure; undo/redo callbacks check individual responses and report failures
+    6 turns · 65s · $0.3
+
+--- Merging: useDragDrop.ts multi-token move partial failure leaves tokens moved without undo ---
+Already up to date.
