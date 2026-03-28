@@ -30,6 +30,8 @@ export const STORAGE_KEYS = {
   EXPORT_CSS_SELECTOR:   'exportPanel.cssSelector',
   UNDO_MAX_HISTORY:      'tm_undo_max_history',
   HIDE_DEPRECATED:       'tm_hide_deprecated',
+  RECENT_COLORS:         'tm_recent_colors',
+  COLOR_FORMAT:          'tm_color_format',
 } as const;
 
 /** Per-set dynamic key builders */

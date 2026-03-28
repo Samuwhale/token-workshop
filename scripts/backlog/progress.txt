@@ -507,3 +507,25 @@
   - `colorUtils.ts` is a natural home for shared plugin-side conversion helpers since both `styleSync.ts` and `selectionHandling.ts` already import from it
   - Pre-existing build error (`getNextUnboundProperty` missing export in `selectionInspectorUtils.ts`) still blocks full plugin build; plugin-side esbuild verified separately
 ---
+
+## 2026-03-28 - Color picker format toggle, recent colors, and from-token shortcut
+- Added 3 features to the color editing experience:
+  1. **Format toggle** (Hex/RGB/HSL) in ColorEditor — cycle button next to the text input, preference persisted in localStorage, input accepts all three formats
+  2. **Recent colors strip** in ColorPicker — stores last 12 colors in localStorage, shown as clickable swatches at bottom of picker, persisted on picker close
+  3. **"From Token" shortcut** in ColorPicker — collapsible section with searchable color token swatches from allTokensFlat, click to apply
+- Added `formatHexAs()` and `parseColorInput()` utility functions to colorUtils.ts for multi-format display/parsing
+- Threaded `allTokensFlat` prop from TokenEditor → ColorEditor → ColorPicker (optional prop, backward compatible)
+- Also fixed pre-existing build error: added missing `getNextUnboundProperty` export in selectionInspectorUtils.ts
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L131-175 (format/parse helpers)
+  - `packages/figma-plugin/src/ui/shared/storage.ts` ~L33-34 (RECENT_COLORS, COLOR_FORMAT keys)
+  - `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L50-115 (ColorEditor with format toggle)
+  - `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L17-48,L283-310,L710-770 (recent colors, token swatches, close persistence)
+  - `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L727 (pass allTokensFlat to ColorEditor)
+  - `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L386-412 (getNextUnboundProperty)
+- **Learnings for future iterations:**
+  - `hexToRgb` in colorUtils returns 0-1 range values, not 0-255 — must multiply by 255 for display
+  - ColorPicker onChange fires on every pointer drag — persist recent colors only on close, not on each change
+  - `allTokensFlat` token values can be aliases (strings starting with `{`) — filter these out when showing color swatches
+  - Pre-existing missing export `getNextUnboundProperty` blocks all builds — fix was needed regardless of this item
+---

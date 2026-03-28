@@ -128,6 +128,54 @@ export function hslToHex(h: number, s: number, l: number): string {
 }
 
 // ---------------------------------------------------------------------------
+// Format display / parse helpers (for multi-format color input)
+// ---------------------------------------------------------------------------
+
+export type ColorFormat = 'hex' | 'rgb' | 'hsl';
+
+/** Display a hex color in the chosen format. */
+export function formatHexAs(hex: string, format: ColorFormat): string {
+  const clean = hex.slice(0, 7); // strip alpha for display
+  if (format === 'hex') return clean;
+  const rgb = hexToRgb(clean);
+  if (!rgb) return clean;
+  if (format === 'rgb') {
+    return `rgb(${Math.round(rgb.r * 255)}, ${Math.round(rgb.g * 255)}, ${Math.round(rgb.b * 255)})`;
+  }
+  // hsl
+  const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+  return `hsl(${Math.round(hsl.h)}, ${Math.round(hsl.s)}%, ${Math.round(hsl.l)}%)`;
+}
+
+/** Parse a color string in hex, rgb(), or hsl() format back to #RRGGBB. Returns null if invalid. */
+export function parseColorInput(input: string): string | null {
+  const trimmed = input.trim();
+  // hex
+  if (trimmed.startsWith('#')) {
+    const clean = normalizeHex(trimmed);
+    if (/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(clean)) return clean.slice(0, 7);
+    return null;
+  }
+  // rgb(r, g, b)
+  const rgbMatch = trimmed.match(/^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i);
+  if (rgbMatch) {
+    const [, rs, gs, bs] = rgbMatch;
+    const r = parseInt(rs, 10), g = parseInt(gs, 10), b = parseInt(bs, 10);
+    if (r > 255 || g > 255 || b > 255) return null;
+    return rgbToHex(r / 255, g / 255, b / 255);
+  }
+  // hsl(h, s%, l%)
+  const hslMatch = trimmed.match(/^hsl\(\s*(\d{1,3})\s*,\s*(\d{1,3})%\s*,\s*(\d{1,3})%\s*\)$/i);
+  if (hslMatch) {
+    const [, hs, ss, ls] = hslMatch;
+    const h = parseInt(hs, 10), s = parseInt(ss, 10), l = parseInt(ls, 10);
+    if (h > 360 || s > 100 || l > 100) return null;
+    return hslToHex(h, s, l);
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // LCH (Cylindrical CIELAB) conversions
 // ---------------------------------------------------------------------------
 

@@ -726,7 +726,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                 ? <ValueDiff type={tokenType} before={initialRef.current.value} after={value} />
                 : <OriginalValuePreview type={tokenType} value={initialRef.current.value} />
             )}
-            {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
+            {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} autoFocus={!isCreateMode} allTokensFlat={allTokensFlat} />}
             {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} autoFocus={!isCreateMode} />}
             {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} fontFamilyRef={fontFamilyRef} fontSizeRef={fontSizeRef} />}
             {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}

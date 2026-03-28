@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   hexToRgb,
   rgbToHex,
@@ -12,6 +12,8 @@ import {
   isP3InSrgbGamut,
   wcagContrast,
 } from '../shared/colorUtils';
+import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
+import type { TokenMapEntry } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -23,6 +25,25 @@ interface ColorPickerProps {
   value: string;          // #RRGGBB or #RRGGBBAA
   onChange: (hex: string) => void;
   onClose: () => void;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+}
+
+// ---------------------------------------------------------------------------
+// Recent colors helpers
+// ---------------------------------------------------------------------------
+
+const MAX_RECENT = 12;
+
+function getRecentColors(): string[] {
+  return lsGetJson<string[]>(STORAGE_KEYS.RECENT_COLORS, []);
+}
+
+function pushRecentColor(hex: string): void {
+  const color = hex.slice(0, 7).toLowerCase();
+  if (!/^#[0-9a-f]{6}$/.test(color)) return;
+  const recent = getRecentColors().filter(c => c !== color);
+  recent.unshift(color);
+  lsSetJson(STORAGE_KEYS.RECENT_COLORS, recent.slice(0, MAX_RECENT));
 }
 
 // ---------------------------------------------------------------------------
@@ -195,7 +216,7 @@ function ChannelInput({
 // Main component
 // ---------------------------------------------------------------------------
 
-export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
+export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPickerProps) {
   // Parse initial color
   const initHsl = hexToHsl(value) ?? { h: 0, s: 0, l: 0 };
   const [hue, setHue] = useState(initHsl.h);
@@ -259,16 +280,48 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
     if (!alphaEditing.current) setAlphaInput(Math.round(alpha * 100) + '%');
   }, [hue, sat, lit, alpha]);
 
+  // Persist recent color on close
+  const closeAndSave = useCallback(() => {
+    pushRecentColor(hslToHex(hue, sat, lit));
+    onClose();
+  }, [hue, sat, lit, onClose]);
+
+  // Recent colors state
+  const [recentColors, setRecentColors] = useState(getRecentColors);
+
+  // Token color swatches
+  const [showTokens, setShowTokens] = useState(false);
+  const [tokenSearch, setTokenSearch] = useState('');
+  const colorTokens = useMemo(() => {
+    if (!allTokensFlat) return [];
+    const entries: { path: string; hex: string }[] = [];
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      if (entry.$type !== 'color') continue;
+      const v = entry.$value;
+      if (typeof v !== 'string' || v.startsWith('{')) continue;
+      if (/^#[0-9a-fA-F]{6,8}$/.test(v)) {
+        entries.push({ path, hex: v.slice(0, 7) });
+      }
+    }
+    return entries;
+  }, [allTokensFlat]);
+
+  const filteredTokens = useMemo(() => {
+    if (!tokenSearch) return colorTokens.slice(0, 24);
+    const q = tokenSearch.toLowerCase();
+    return colorTokens.filter(t => t.path.toLowerCase().includes(q)).slice(0, 24);
+  }, [colorTokens, tokenSearch]);
+
   // Click outside to close
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-        onClose();
+        closeAndSave();
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [onClose]);
+  }, [closeAndSave]);
 
   // Draw color area
   useEffect(() => {
@@ -655,6 +708,75 @@ export function ColorPicker({ value, onChange, onClose }: ColorPickerProps) {
           {eyedropperState === 'success' ? 'Sampled!' : eyedropperState === 'waiting' ? 'Waiting…' : 'Sample'}
         </button>
       </div>
+
+      {/* Recent colors */}
+      {recentColors.length > 0 && (
+        <div className="border-t border-[var(--color-figma-border)] pt-2 flex flex-col gap-1">
+          <div className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase">Recent</div>
+          <div className="flex gap-1 flex-wrap">
+            {recentColors.map((c, i) => (
+              <button
+                key={`${c}-${i}`}
+                type="button"
+                title={c}
+                onClick={() => {
+                  const hsl = hexToHsl(c);
+                  if (hsl) { setHue(hsl.h); setSat(hsl.s); setLit(hsl.l); }
+                }}
+                className="w-5 h-5 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer transition-colors"
+                style={{ backgroundColor: c }}
+                aria-label={`Recent color ${c}`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* From existing token */}
+      {colorTokens.length > 0 && (
+        <div className="border-t border-[var(--color-figma-border)] pt-2 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => setShowTokens(!showTokens)}
+            className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)] uppercase hover:text-[var(--color-figma-text)] transition-colors"
+          >
+            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={showTokens ? 'rotate-90' : ''}>
+              <path d="M2 1l4 3-4 3V1z" />
+            </svg>
+            From Token
+          </button>
+          {showTokens && (
+            <div className="flex flex-col gap-1">
+              <input
+                type="text"
+                value={tokenSearch}
+                onChange={e => setTokenSearch(e.target.value)}
+                placeholder="Search tokens…"
+                className={inputClass + ' text-left'}
+              />
+              <div className="flex gap-1 flex-wrap max-h-[80px] overflow-y-auto">
+                {filteredTokens.map(t => (
+                  <button
+                    key={t.path}
+                    type="button"
+                    title={t.path}
+                    onClick={() => {
+                      const hsl = hexToHsl(t.hex);
+                      if (hsl) { setHue(hsl.h); setSat(hsl.s); setLit(hsl.l); }
+                    }}
+                    className="w-5 h-5 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer transition-colors shrink-0"
+                    style={{ backgroundColor: t.hex }}
+                    aria-label={`Token ${t.path}: ${t.hex}`}
+                  />
+                ))}
+                {filteredTokens.length === 0 && (
+                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">No matches</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

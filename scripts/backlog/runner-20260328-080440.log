@@ -392,3 +392,16 @@ Already up to date.
 
 --- Merging: Shadow-to-Figma-effect mapping duplicated ---
 Already up to date.
+[main 08455d9] chore(backlog): done – Shadow-to-Figma-effect mapping duplicated
+ 7 files changed, 53 insertions(+), 31 deletions(-)
+
+## 2026-03-28 - Shadow-to-Figma-effect mapping duplicated
+- Extracted duplicated shadow-to-Figma-effect conversion logic into `shadowTokenToEffects()` in `colorUtils.ts`
+- Both `styleSync.ts` (`applyEffectStyle`) and `selectionHandling.ts` (`applyTokenValue` shadow case) now call the shared helper
+- Files changed: `packages/figma-plugin/src/plugin/colorUtils.ts` ~L153-168, `packages/figma-plugin/src/plugin/styleSync.ts` ~L1,L104, `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L6,L127-131
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  37 items remaining
+===============================================================
+  Claimed: `describeError` helper duplicated in 3 hook files — identical function in `useGitSync.ts`, `useStyleSync.ts`, and `useVariableSync.ts`; move to `shared/utils.ts` alongside existing `getErrorMessage`
+  Worktree: /tmp/backlog-62956-jWp6OD
