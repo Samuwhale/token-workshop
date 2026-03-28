@@ -50,3 +50,10 @@ Already up to date.
 ===============================================================
   Claimed: Consistency scanner: scan selection/page for values that are close-to-but-not-exactly a token (colors 2% off, spacing 1px away), surface as suggestions with one-click snap-to-token
   Worktree: /tmp/backlog-52272-DPkokp
+
+  ✓ done: Consistency scanner: scan selection/page for values that are close-to-but-not-exactly a token (colors 2% off, spacing 1px away), surface as suggestions with one-click snap-to-token
+    New "Consistency" sub-tab under Apply: scans fills/strokes (±10 RGB units), dimensions (±1px), opacity (±2%) against all tokens; surfaces grouped suggestions with snap-all button that applies the token and removes the card
+    48 turns · 534s · $1.78
+
+--- Merging: Consistency scanner: scan selection/page for values that are close-to-but-not-exactly a token (colors 2% off, spacing 1px away), surface as suggestions with one-click snap-to-token ---
+Already up to date.

@@ -430,3 +430,18 @@
   - Opacity-like numbers (0-1): checkerboard + fill overlay is the standard pattern from color pickers, immediately recognizable
   - cubicBezier curve SVG: use `pad` offset to keep endpoints off the swatch edge; diagonal reference line shows linear for comparison
 ---
+
+## 2026-03-28 - Consistency scanner
+- Implemented full consistency scanner: scans selection or full page for values close-to-but-not-exactly a design token, surfaces as suggestions with one-click snap-to-token
+- **Scanner logic** (`packages/figma-plugin/src/plugin/consistencyScanner.ts`, new): walks nodes, skips already-bound properties, compares fill/stroke colors (RGB Euclidean distance 0.5–10 = "near match"), dimensions (|diff| ≤ 1px), opacity (|diff| ≤ 2%). Groups results by `tokenPath::property` key, sorted by instance count
+- **Types** (`packages/figma-plugin/src/shared/types.ts`): added `ScanConsistencyMessage` and added it to `PluginMessage` union
+- **Controller** (`packages/figma-plugin/src/plugin/controller.ts`): added `'scan-consistency'` case calling `scanConsistency(msg.tokenMap, msg.scope)`
+- **UI panel** (`packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx`, new): scope toggle (Full page / Selection), Scan button, progress bar, suggestion cards with token path + property label + instance count + "Snap all" button, expandable instance list showing actual→token value with color swatches, post-snap removal of snapped cards
+- **App.tsx** (`packages/figma-plugin/src/ui/App.tsx`): added `'consistency'` to `ApplySubTab` type, added "Consistency" sub-tab to Apply tab array, imported and rendered `ConsistencyPanel`; reuses `batch-bind-heatmap-nodes` for snap operation
+- Files changed: `packages/figma-plugin/src/plugin/consistencyScanner.ts` (new), `packages/figma-plugin/src/shared/types.ts` ~L363, `packages/figma-plugin/src/plugin/controller.ts` ~L7,113, `packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L26,162,209
+- **Learnings for future iterations:**
+  - `batch-bind-heatmap-nodes` is a general "select nodes by ID and apply token" handler — reuse it for any bulk snap operation rather than writing new sandbox code
+  - Figma's "mixed" cornerRadius is a Symbol; checking `typeof val !== 'number'` correctly skips it
+  - Pre-bucketing tokens by type (colorTokens/dimTokens/numTokens arrays) before the node loop avoids O(nodes × tokens) full-map iterations per property
+  - Color "exact match" threshold of 0.5 RGB units handles floating-point hex round-trip noise without hiding true near-matches
+---

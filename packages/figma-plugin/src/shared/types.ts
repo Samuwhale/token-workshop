@@ -360,6 +360,15 @@ export interface ExtractedTokensMessage {
   tokens: ExtractedTokenEntry[];
 }
 
+// --- Consistency scanner ---
+
+export interface ScanConsistencyMessage {
+  type: 'scan-consistency';
+  /** Flat resolved token map (path → {$value, $type}) */
+  tokenMap: Record<string, { $value: any; $type: string }>;
+  scope: 'selection' | 'page';
+}
+
 /** Discriminated union of all UI→Controller messages */
 export type PluginMessage =
   | ApplyVariablesMessage
@@ -389,4 +398,5 @@ export type PluginMessage =
   | SetActiveThemesMessage
   | ScanSingleTokenUsageMessage
   | ExtractTokensFromSelectionMessage
-  | SelectNextSiblingMessage;
+  | SelectNextSiblingMessage
+  | ScanConsistencyMessage;

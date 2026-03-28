@@ -24,6 +24,7 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { QuickApplyPicker } from './components/QuickApplyPicker';
 import { PreviewPanel } from './components/PreviewPanel';
 import { HeatmapPanel } from './components/HeatmapPanel';
+import { ConsistencyPanel } from './components/ConsistencyPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
 import { TokenFlowPanel } from './components/TokenFlowPanel';
 import { ExportPanel } from './components/ExportPanel';
@@ -160,7 +161,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'resolvers' | 'generators' | 'flow';
-type ApplySubTab = 'inspect' | 'heatmap';
+type ApplySubTab = 'inspect' | 'heatmap' | 'consistency';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 
@@ -210,6 +211,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },
     { id: 'heatmap', label: 'Heatmap' },
+    { id: 'consistency', label: 'Consistency' },
   ]},
   { id: 'ship', label: 'Ship', subTabs: [
     { id: 'publish', label: 'Publish' },
@@ -2404,6 +2406,16 @@ export function App() {
                   if (!entry) return;
                   parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
                 }}
+              />
+              </ErrorBoundary>
+          )}
+
+          {/* Consistency sub-tab (Apply > Consistency) */}
+          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'consistency' && (
+              <ErrorBoundary panelName="Consistency" onReset={() => navigateTo('apply', 'inspect')}>
+              <ConsistencyPanel
+                availableTokens={allTokensFlat}
+                onSelectNode={(nodeId) => parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*')}
               />
               </ErrorBoundary>
           )}

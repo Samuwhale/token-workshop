@@ -5,6 +5,7 @@ import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVar
 import { applyStyles, readFigmaStyles } from './styleSync.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap } from './selectionHandling.js';
 import { scanComponentCoverage, selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
+import { scanConsistency } from './consistencyScanner.js';
 
 figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
 
@@ -111,6 +112,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'extract-tokens-from-selection':
       await extractTokensFromSelection();
+      break;
+    case 'scan-consistency':
+      await scanConsistency(msg.tokenMap, msg.scope);
       break;
     case 'search-layers':
       searchLayers(msg.query);

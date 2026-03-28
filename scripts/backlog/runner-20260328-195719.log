@@ -55,3 +55,16 @@ Already up to date.
 
 --- Merging: Visual token list rendering: type-specific previews ---
 Already up to date.
+[main c99d7c8] chore(backlog): done – Visual token list rendering: type-specific previews
+ 7 files changed, 449 insertions(+), 53 deletions(-)
+
+## 2026-03-28 - Visual token list rendering: type-specific previews
+- Rewrote `ValuePreview.tsx` with rich visual previews for every token type:
+  - **Color**: unchanged (already good) — swatch with P3 badge
+  - **Typography**: "Aa" now rendered in actual fontFamily, fontWeight, and scaled fontSize (proportional to real size, capped to fit swatch) instead of hardcoded 9px
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  73 items remaining
+===============================================================
+  Claimed: Smart naming suggestions: pattern-match existing token names and suggest paths for new tokens (e.g. if `color.brand.primary/secondary/tertiary` exist, suggest `color.brand.{?}` not a blank field)
+  Worktree: /tmp/backlog-51603-gfE2rS
