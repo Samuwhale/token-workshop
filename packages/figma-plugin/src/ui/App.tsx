@@ -629,38 +629,41 @@ export function App() {
     return () => document.removeEventListener('mousedown', handler);
   }, [tabMenuOpen]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts — use a stable callback ref so the effect never
+  // re-registers the listener yet always calls the latest handler.
+  const keyboardShortcutRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  keyboardShortcutRef.current = (e: KeyboardEvent) => {
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
+      e.preventDefault();
+      setShowPasteModal(true);
+    }
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'k') {
+      e.preventDefault();
+      setShowCommandPalette(v => !v);
+    }
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 't') {
+      e.preventDefault();
+      navigateTo('apply', 'inspect');
+      setTriggerCreateToken(n => n + 1);
+    }
+    const tabIndex = ['1', '2', '3'].indexOf(e.key);
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && tabIndex !== -1 && tabIndex < TOP_TABS.length) {
+      e.preventDefault();
+      navigateTo(TOP_TABS[tabIndex].id);
+    }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'a') {
+      e.preventDefault();
+      setShowQuickApply(v => !v);
+    }
+    if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      setShowKeyboardShortcuts(v => !v);
+    }
+  };
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable) return;
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'v') {
-        e.preventDefault();
-        setShowPasteModal(true);
-      }
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'k') {
-        e.preventDefault();
-        setShowCommandPalette(v => !v);
-      }
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 't') {
-        e.preventDefault();
-        navigateTo('apply', 'inspect');
-        setTriggerCreateToken(n => n + 1);
-      }
-      const tabIndex = ['1', '2', '3'].indexOf(e.key);
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && tabIndex !== -1 && tabIndex < TOP_TABS.length) {
-        e.preventDefault();
-        navigateTo(TOP_TABS[tabIndex].id);
-      }
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'a') {
-        e.preventDefault();
-        setShowQuickApply(v => !v);
-      }
-      if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
-        e.preventDefault();
-        setShowKeyboardShortcuts(v => !v);
-      }
-    };
+    const handler = (e: KeyboardEvent) => keyboardShortcutRef.current(e);
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);

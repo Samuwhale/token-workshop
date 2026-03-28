@@ -36,3 +36,16 @@ Already up to date.
 
 --- Merging: App.tsx useEffect dependency tokens.length > 0 is boolean not reactive value ---
 Already up to date.
+[main c18b210] chore(backlog): done – App.tsx useEffect dependency tokens.length > 0 is boolean not reactive value
+ 6 files changed, 31 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - App.tsx useEffect dependency `tokens.length > 0` is a boolean expression, not a reactive value
+- Fixed dependency array in the scan-token-usage useEffect: changed `tokens.length > 0` (boolean, only flips once) to `tokens.length` (number, changes on every add/remove) so the plugin re-scans token usage whenever the token count changes
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L608
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  18 items remaining
+===============================================================
+  Claimed: Server-side JSON files loaded without runtime validation — `resolver-store.ts` `loadFile` (line 249) casts `JSON.parse(content) as ResolverFile` with no shape validation, and `generator-routes.ts` uses `as unknown as GeneratorConfig` casts extensively (lines ~50-115) instead of runtime validation; invalid data from hand-edited or corrupted files silently enters the system and causes crashes later during resolution/execution; both should use a validation function (like `validateTokenBody` in tokens.ts) before accepting parsed JSON (`packages/server/src/services/resolver-store.ts` ~L244, `packages/server/src/routes/generators.ts`)
+  Worktree: /tmp/backlog-22646-pJpMNn

@@ -347,3 +347,10 @@
 - **Learnings for future iterations:**
   - React useEffect dependency arrays containing boolean expressions (e.g., `x > 0`) only trigger when the boolean flips, not when the underlying value changes — always use the raw value and guard inside the effect body instead
 ---
+
+## 2026-03-28 - App.tsx keyboard shortcuts effect stale closures
+- Replaced empty `[]` dependency array `useEffect` with stable callback ref pattern: `keyboardShortcutRef.current` is assigned on every render, and the effect delegates to `keyboardShortcutRef.current(e)` — the listener is registered once but always calls the latest handler, eliminating stale closures over `navigateTo`, `setTriggerCreateToken`, and `setShowQuickApply`.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L633-669
+- **Learnings for future iterations:**
+  - In this specific case `navigateTo` also had `[]` deps (stable), and the state setters used updater functions (also stable), so the bug wasn't actively manifesting. But the pattern was still fragile — any future addition of state reads to `navigateTo` or direct state values in the handler would silently create stale closures. The ref pattern future-proofs the effect.
+---
