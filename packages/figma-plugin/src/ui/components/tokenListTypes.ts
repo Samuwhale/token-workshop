@@ -53,6 +53,7 @@ export interface TokenListActions {
   onToggleIssuesOnly?: () => void;
   onFilteredCountChange?: (count: number | null) => void;
   onNavigateToSet?: (setName: string, tokenPath: string) => void;
+  onTokenTouched?: (path: string) => void;
 }
 
 export interface TokenListProps {
@@ -141,4 +142,5 @@ export interface TokenTreeNodeProps {
   chainExpanded?: boolean;
   onToggleChain?: (path: string) => void;
   searchQuery?: string;
+  showFullPath?: boolean;
 }

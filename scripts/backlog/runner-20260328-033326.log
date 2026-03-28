@@ -552,3 +552,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenList has no "recently edited" or "recently created" view — after creating tokens across multiple groups, there's no way to see what you just touched without remembering paths; useful during long editing sessions
   Worktree: /tmp/backlog-92630-0F92Ks
+
+  ✓ done: TokenList has no "recently edited" or "recently created" view
+    Added session-scoped recently-touched tracking with useRecentlyTouched hook, clock icon toggle in toolbar, recency-sorted flat view with full paths, and filter pill — tracks inline edits, creates, duplicates, renames, drag-moves, and editor saves
+    71 turns · 536s · $3.52
+
+--- Merging: TokenList has no "recently edited" or "recently created" view ---
+Already up to date.

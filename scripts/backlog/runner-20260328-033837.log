@@ -495,3 +495,16 @@ Already up to date.
 
 --- Merging: PasteTokensModal doesn't validate token path segments ---
 Already up to date.
+[main 2828eec] chore(backlog): done – PasteTokensModal doesn't validate token path segments
+ 5 files changed, 88 insertions(+), 17 deletions(-)
+
+## 2026-03-28 - PasteTokensModal doesn't validate token path segments
+- Added client-side `validateTokenPath()` that mirrors server rules: rejects empty segments, `$` prefixes, slashes, and whitespace in segments
+- Added `validationError` field to `PasteTokenRow`; invalid rows shown with red highlighting and error message, excluded from confirm count
+- Prefix input also validated — error shown inline below the field
+
+===============================================================
+  Iteration 25 / 90  (claude)  —  1 items remaining
+===============================================================
+  Claimed: No server-side token search endpoint — the client must fetch all tokens across all sets and filter in-memory; with 1000+ tokens across 10+ sets, initial load is slow and search can't leverage indexes
+  Worktree: /tmp/backlog-10278-M4bdhh

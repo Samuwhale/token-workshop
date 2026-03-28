@@ -295,3 +295,20 @@
   - Server's `validateTokenPath` in `token-tree-utils.ts` is the canonical path validator — client-side validation should mirror its rules
   - The modal already handles server errors in `handleConfirm` catch block, but showing errors one-at-a-time on submission is poor UX — proactive validation is better
 ---
+
+## 2026-03-28 - TokenList has no "recently edited" or "recently created" view
+- Added session-scoped "recently touched" tracking via new `useRecentlyTouched` hook (in-memory Map<path, timestamp>, 500 entry cap with LRU eviction)
+- Clock icon button in toolbar shows count of touched tokens; toggles a filter that flattens the tree and sorts by recency (newest first)
+- Filter pill "Recent ✕" in active filters row to dismiss
+- Tracks: inline edits, token creation (both create and create-and-new), duplicate, rename, drag-move, and editor drawer saves (via `highlightedToken` change detection)
+- When recency filter is active, tokens show full dotted path (via `showFullPath` prop on TokenTreeNode) since group hierarchy is flattened
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useRecentlyTouched.ts` (new file)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L26, ~L31, ~L83-94, ~L481, ~L594-597, ~L628-635, ~L712, ~L864, ~L914, ~L1023, ~L1098, ~L1135, ~L1211, ~L1905-1920, ~L2040-2049, ~L2537
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L56, ~L145
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L30, ~L866
+- **Learnings for future iterations:**
+  - `highlightedToken` prop is always set to saved path after editor drawer save — makes it a reliable proxy for tracking drawer-based edits without needing a separate callback
+  - `filterByDuplicatePaths` from tokenListUtils is reusable for any path-based filter (dups, lint, inspect, recency) — just pass a Set<string>
+  - When a filter produces a flat view (no groups), set depth=0 in flatItems and pass showFullPath to TokenTreeNode so users can identify tokens without group context
+---

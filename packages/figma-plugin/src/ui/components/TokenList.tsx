@@ -24,11 +24,12 @@ import { VIRTUAL_ITEM_HEIGHT, VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN } fr
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue } from './tokenListHelpers';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenListModals } from './TokenListModals';
+import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, perSetFlat, collectionMap = {}, modeMap = {} },
-  actions: { onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet },
+  actions: { onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
@@ -79,6 +80,17 @@ export function TokenList({
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupError, setNewGroupError] = useState('');
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
+  const recentlyTouched = useRecentlyTouched();
+
+  // Track editor saves: highlightedToken is set to saved path after TokenEditor save
+  const prevHighlightRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (highlightedToken && highlightedToken !== prevHighlightRef.current) {
+      recentlyTouched.recordTouch(highlightedToken);
+    }
+    prevHighlightRef.current = highlightedToken ?? null;
+  }, [highlightedToken, recentlyTouched]);
 
   const generatorsBySource = useMemo(() => {
     const map = new Map<string, TokenGenerator[]>();
@@ -489,7 +501,7 @@ export function TokenList({
     return QUERY_QUALIFIERS.filter(q => q.qualifier.toLowerCase().startsWith(lw));
   }, [searchQuery]);
 
-  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly;
+  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched;
 
   // Compute paths with lint violations for issues-only filter
   const lintPaths = useMemo(() => {
@@ -604,8 +616,12 @@ export function TokenList({
     if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
     if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
     if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
+    if (showRecentlyTouched) {
+      if (recentlyTouched.paths.size > 0) result = filterByDuplicatePaths(result, recentlyTouched.paths);
+      else result = [];
+    }
     return result;
-  }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths]);
+  }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths]);
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
@@ -658,10 +674,16 @@ export function TokenList({
   }, [displayedLeafNodes, filtersActive, onFilteredCountChange]);
 
   // Flat list of visible nodes for virtual scrolling (respects expand/collapse state)
-  const flatItems = useMemo(
-    () => (viewMode !== 'tree' ? [] : flattenVisible(displayedTokens, expandedPaths)),
-    [displayedTokens, expandedPaths, viewMode]
-  );
+  const flatItems = useMemo(() => {
+    if (viewMode !== 'tree') return [];
+    if (showRecentlyTouched) {
+      // In recency mode, flatten and sort by timestamp (newest first)
+      const leaves = flattenLeafNodes(displayedTokens);
+      leaves.sort((a, b) => (recentlyTouched.timestamps.get(b.path) ?? 0) - (recentlyTouched.timestamps.get(a.path) ?? 0));
+      return leaves.map(node => ({ node, depth: 0 }));
+    }
+    return flattenVisible(displayedTokens, expandedPaths);
+  }, [displayedTokens, expandedPaths, viewMode, showRecentlyTouched, recentlyTouched.paths, recentlyTouched.timestamps]);
 
   // Toggle alias chain expansion for a token row
   const handleToggleChain = useCallback((path: string) => {
@@ -746,6 +768,7 @@ export function TokenList({
     setTypeFilter('');
     setRefFilter('all');
     setShowDuplicates(false);
+    setShowRecentlyTouched(false);
     if (showIssuesOnly && onToggleIssuesOnly) onToggleIssuesOnly();
   }, [setSearchQuery, setTypeFilter, setRefFilter, setShowDuplicates, showIssuesOnly, onToggleIssuesOnly]);
 
@@ -885,7 +908,8 @@ export function TokenList({
       });
     }
     onRefresh();
-  }, [connected, serverUrl, setName, onRefresh, onPushUndo]);
+    recentlyTouched.renamePath(oldPath, newPath);
+  }, [connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched]);
 
   const handleDropOnGroup = useCallback(async (targetGroupPath: string) => {
     if (!dragSource || !connected) return;
@@ -935,8 +959,9 @@ export function TokenList({
         },
       });
     }
+    for (const { oldPath, newPath } of moves) recentlyTouched.renamePath(oldPath, newPath);
     onRefresh();
-  }, [dragSource, connected, serverUrl, setName, onRefresh, onPushUndo]);
+  }, [dragSource, connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched]);
 
   const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
@@ -1056,7 +1081,8 @@ export function TokenList({
       body: JSON.stringify({ $type: token.$type, $value: token.$value }),
     });
     onRefresh();
-  }, [connected, serverUrl, setName, allTokensFlat, onRefresh]);
+    recentlyTouched.recordTouch(newPath);
+  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, recentlyTouched]);
 
   const handleMoveTokenInGroup = useCallback(async (nodePath: string, nodeName: string, direction: 'up' | 'down') => {
     if (!connected || !serverUrl || !setName) return;
@@ -1131,7 +1157,8 @@ export function TokenList({
       });
     }
     onRefresh();
-  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo]);
+    recentlyTouched.recordTouch(path);
+  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, recentlyTouched]);
 
   const handleCreate = async () => {
     const trimmedPath = newTokenPath.trim();
@@ -1169,6 +1196,7 @@ export function TokenList({
       setSiblingPrefix(null);
       onRefresh();
       onTokenCreated?.(createdPath);
+      recentlyTouched.recordTouch(createdPath);
       if (onPushUndo) {
         onPushUndo({
           description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
@@ -1232,6 +1260,7 @@ export function TokenList({
       setCreateError('');
       onRefresh();
       onTokenCreated?.(createdPath);
+      recentlyTouched.recordTouch(createdPath);
       if (onPushUndo) {
         onPushUndo({
           description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
@@ -1927,6 +1956,23 @@ export function TokenList({
                 <option value="by-value">By value</option>
               </select>
 
+              {/* Recently touched filter */}
+              {recentlyTouched.count > 0 && (
+                <button
+                  onClick={() => setShowRecentlyTouched(v => !v)}
+                  title={showRecentlyTouched ? 'Show all tokens' : `Show ${recentlyTouched.count} recently touched token${recentlyTouched.count !== 1 ? 's' : ''}`}
+                  aria-label={showRecentlyTouched ? 'Show all tokens' : 'Show recently touched tokens'}
+                  aria-pressed={showRecentlyTouched}
+                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${showRecentlyTouched ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+                    <circle cx="5" cy="5" r="4" />
+                    <path d="M5 3v2.5l1.5 1" />
+                  </svg>
+                  {recentlyTouched.count}
+                </button>
+              )}
+
               {/* Selection filter */}
               <button
                 onClick={() => setInspectMode(v => !v)}
@@ -2101,6 +2147,15 @@ export function TokenList({
                     className="shrink-0 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap transition-colors bg-red-500/10 text-red-500 hover:bg-red-500/20"
                   >
                     Issues ✕
+                  </button>
+                )}
+                {showRecentlyTouched && (
+                  <button
+                    onClick={() => setShowRecentlyTouched(false)}
+                    title="Clear recently touched filter"
+                    className="shrink-0 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    Recent ✕
                   </button>
                 )}
                 {filtersActive && (
@@ -2564,6 +2619,7 @@ export function TokenList({
                 chainExpanded={expandedChains.has(node.path)}
                 onToggleChain={handleToggleChain}
                 searchQuery={searchQuery || undefined}
+                showFullPath={showRecentlyTouched}
               />
               );
             })}

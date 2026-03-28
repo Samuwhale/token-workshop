@@ -27,7 +27,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onDropOnGroup, dragOverGroup, dragOverGroupIsInvalid, dragSource,
     selectedLeafNodes, onMoveUp, onMoveDown,
     chainExpanded: chainExpandedProp = false,
-    onToggleChain, searchQuery,
+    onToggleChain, searchQuery, showFullPath,
   } = props;
 
   const isExpanded = expandedPaths.has(node.path);
@@ -864,7 +864,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               className="text-[11px] text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none w-32 shrink-0"
             />
           ) : (
-            <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{highlightMatch(node.name, searchQuery ?? '')}</span>
+            <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{highlightMatch(showFullPath ? formatDisplayPath(node.path, node.name) : node.name, searchQuery ?? '')}</span>
           )}
           {!renamingToken && node.$type && (
             <button
