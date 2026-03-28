@@ -559,3 +559,13 @@
   - Manually created tokens intentionally get no source tag — absence of badge means "created here"
   - Generator-derived tokens already have their own distinct badge via `derivedTokenPaths`, so provenance badges are complementary, not overlapping
 ---
+
+## 2026-03-28 - Token list: "Promote duplicates" callout
+- Added a persistent banner below the filter pills that appears when the "show duplicates" filter is active. The banner shows the count of non-alias tokens with duplicate values and offers a "Promote all to aliases" button that opens the existing promote modal pre-populated with all duplicate tokens.
+- Refactored `handleOpenPromoteModal` to accept an optional `pathsOverride?: Set<string>` parameter (falls back to `selectedPaths` when omitted), so both the banner and the existing batch toolbar "Link to tokens" action share the same logic.
+- Added `promotableDuplicateCount` useMemo that computes non-alias token count from `duplicateValuePaths` for accurate banner copy.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L323 (new memo), ~L1729 (refactored handleOpenPromoteModal signature), ~L2556 (new banner JSX)
+- **Learnings for future iterations:**
+  - Passing an optional paths override to an existing handler is cleaner than duplicating the promote-row-building logic in a new handler.
+  - The banner count should exclude aliases (`!isAlias(t.$value)`) since the promote action silently skips them — showing a count that matches what actually gets promoted avoids confusion.
+---

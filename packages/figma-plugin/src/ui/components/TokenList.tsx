@@ -344,6 +344,12 @@ export function TokenList({
     return { duplicateValuePaths: paths, duplicateCounts: counts };
   }, [debouncedTokens]);
 
+  // Count of non-alias tokens with duplicate values — used by the promote banner
+  const promotableDuplicateCount = useMemo(() => {
+    const flat = flattenTokens(tokens);
+    return flat.filter(t => duplicateValuePaths.has(t.path) && !isAlias(t.$value)).length;
+  }, [tokens, duplicateValuePaths]);
+
   const availableTypes = useMemo(() => {
     const types = new Set<string>();
     const collect = (nodes: TokenNode[]) => {
@@ -1725,9 +1731,10 @@ export function TokenList({
   };
 
 
-  const handleOpenPromoteModal = () => {
+  const handleOpenPromoteModal = (pathsOverride?: Set<string>) => {
     const flat = flattenTokens(tokens);
-    const selectedFlat = flat.filter(t => selectedPaths.has(t.path) && !isAlias(t.$value));
+    const sourcePaths = pathsOverride ?? selectedPaths;
+    const selectedFlat = flat.filter(t => sourcePaths.has(t.path) && !isAlias(t.$value));
     const rows: PromoteRow[] = selectedFlat.map(t => {
       // Find candidate primitives: same type, not an alias, not the token itself
       const candidates = Object.entries(allTokensFlat).filter(
@@ -2552,6 +2559,23 @@ export function TokenList({
           </div>
         )}
       </div>
+      {/* Promote duplicates callout — shown when the duplicates filter is active */}
+      {showDuplicates && promotableDuplicateCount > 0 && (
+        <div role="status" aria-live="polite" className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-[11px]">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+          </svg>
+          <span className="flex-1 text-[var(--color-figma-text-secondary)]">
+            {promotableDuplicateCount} token{promotableDuplicateCount !== 1 ? 's' : ''} share duplicate values
+          </span>
+          <button
+            onClick={() => handleOpenPromoteModal(duplicateValuePaths)}
+            className="shrink-0 px-2 py-0.5 rounded text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] font-medium transition-colors"
+          >
+            Promote all to aliases
+          </button>
+        </div>
+      )}
       {/* Delete error banner */}
       {deleteError && (
         <div role="alert" className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)] text-white text-[11px]">

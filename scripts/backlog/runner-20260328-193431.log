@@ -62,3 +62,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token list: "Promote duplicates" callout** — when the "show duplicates" filter is active, show a persistent banner offering "Promote N duplicate values to primitives and alias them" as a single action, instead of requiring the user to multi-select and find "Link to tokens" in the batch toolbar. The current flow for this is too buried.
   Worktree: /tmp/backlog-77899-uRkMyl
+
+  ✓ done: Token list: "Promote duplicates" callout
+    Added a persistent banner when the duplicates filter is active showing the count of promotable tokens with a one-click "Promote all to aliases" button that reuses the existing promote modal logic via an optional paths override parameter
+    13 turns · 172s · $0.48
+
+--- Merging: Token list: "Promote duplicates" callout ---
+Already up to date.
