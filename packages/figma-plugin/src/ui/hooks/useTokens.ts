@@ -131,21 +131,31 @@ export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<stri
   const setsData = await setsRes.json();
   const setNames: string[] = setsData.sets || [];
 
-  const results = await Promise.all(
+  const results = await Promise.allSettled(
     setNames.map(async (setName) => {
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
-      if (!res.ok) return null;
+      if (!res.ok) throw new Error(`${setName}: ${res.statusText}`);
       const data = await res.json();
       return data.tokens || {};
     })
   );
 
+  const failed: string[] = [];
   const map: Record<string, TokenMapEntry> = {};
-  for (const tokens of results) {
-    if (!tokens) continue;
-    for (const [path, entry] of flattenWithNames(tokens)) {
-      map[path] = entry;
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === 'rejected') {
+      failed.push(setNames[i]);
+      console.error(`Failed to fetch token set "${setNames[i]}":`, result.reason);
+    } else {
+      for (const [path, entry] of flattenWithNames(result.value)) {
+        map[path] = entry;
+      }
     }
+  }
+
+  if (failed.length > 0) {
+    throw new Error(`Failed to fetch token set${failed.length > 1 ? 's' : ''}: ${failed.join(', ')}`);
   }
 
   return map;
@@ -161,28 +171,39 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
   const setsData = await setsRes.json();
   const setNames: string[] = setsData.sets || [];
 
-  const results = await Promise.all(
+  const results = await Promise.allSettled(
     setNames.map(async (setName) => {
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
-      if (!res.ok) return { setName, tokens: null };
+      if (!res.ok) throw new Error(`${setName}: ${res.statusText}`);
       const data = await res.json();
       return { setName, tokens: data.tokens || {} };
     })
   );
 
+  const failed: string[] = [];
   const flat: Record<string, TokenMapEntry> = {};
   const pathToSet: Record<string, string> = {};
   const perSetFlat: Record<string, Record<string, TokenMapEntry>> = {};
 
-  for (const { setName, tokens } of results) {
-    if (!tokens) continue;
-    const setMap: Record<string, TokenMapEntry> = {};
-    for (const [path, entry] of flattenWithNames(tokens)) {
-      setMap[path] = entry;
-      flat[path] = entry;
-      if (!(path in pathToSet)) pathToSet[path] = setName; // first set wins
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === 'rejected') {
+      failed.push(setNames[i]);
+      console.error(`Failed to fetch token set "${setNames[i]}":`, result.reason);
+    } else {
+      const { setName, tokens } = result.value;
+      const setMap: Record<string, TokenMapEntry> = {};
+      for (const [path, entry] of flattenWithNames(tokens)) {
+        setMap[path] = entry;
+        flat[path] = entry;
+        if (!(path in pathToSet)) pathToSet[path] = setName; // first set wins
+      }
+      perSetFlat[setName] = setMap;
     }
-    perSetFlat[setName] = setMap;
+  }
+
+  if (failed.length > 0) {
+    throw new Error(`Failed to fetch token set${failed.length > 1 ? 's' : ''}: ${failed.join(', ')}`);
   }
 
   return { flat, pathToSet, perSetFlat };

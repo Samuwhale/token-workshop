@@ -565,3 +565,14 @@
 - **Learnings for future iterations:**
   - When a backlog item cites specific line numbers, the code may have already been fixed between item creation and execution — check current file state first.
 ---
+
+## 2026-03-28 - fetchAllTokensFlat and fetchAllTokensFlatWithSets silently drop individual set-fetch failures
+- Changed both functions from `Promise.all` (returning `null` on per-set failure) to `Promise.allSettled`, collecting failed set names and throwing a descriptive error after processing all results
+- Per-set failures now log to console.error and propagate to callers via a thrown Error listing the failed set names
+- All callers already have try/catch or .catch() handlers that surface errors appropriately
+- Also rebuilt the core package dist (colorDeltaE was added to source but not compiled) and copied into node_modules to fix a pre-existing server test failure
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L134-161, ~L174-209
+- **Learnings for future iterations:**
+  - `Promise.allSettled` is the right primitive when you want to collect all results and surface partial failures — use it over `Promise.all` with `.catch(() => null)` whenever callers need to know about failures
+  - The core package dist can become stale when a new export is added but `tsc` hasn't been run. Symptoms: `typeof m.exportedFn === 'undefined'` at runtime even though the source has it. Fix: run `node /Users/samuel/Documents/Projects/TokenManager/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc -p packages/core/tsconfig.json` and copy dist to node_modules/@tokenmanager/core/dist/
+---
