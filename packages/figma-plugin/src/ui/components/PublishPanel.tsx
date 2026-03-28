@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { flattenTokenGroup } from '@tokenmanager/core';
 import { getErrorMessage } from '../shared/utils';
 import { PLATFORMS } from '../shared/platforms';
 import type { Platform } from '../shared/platforms';
@@ -65,48 +66,11 @@ interface ReadinessCheck {
 
 /* ── Constants & helpers ─────────────────────────────────────────────────── */
 
-function flattenForVarDiff(
-  group: Record<string, any>,
-  prefix = ''
-): { path: string; value: string; type: string }[] {
-  const result: { path: string; value: string; type: string }[] = [];
-  for (const [key, val] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (val && typeof val === 'object' && '$value' in val) {
-      result.push({ path, value: String(val.$value), type: String(val.$type ?? 'string') });
-    } else if (val && typeof val === 'object') {
-      result.push(...flattenForVarDiff(val, path));
-    }
-  }
-  return result;
-}
-
 function truncateValue(v: string, max = 24): string {
   return v.length > max ? v.slice(0, max) + '\u2026' : v;
 }
 
-const STYLE_TYPES = ['color', 'typography', 'shadow'] as const;
-
-function flattenForStyleDiff(
-  group: Record<string, any>,
-  prefix = ''
-): { path: string; value: any; type: string }[] {
-  const result: { path: string; value: any; type: string }[] = [];
-  for (const [key, val] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    const path = prefix ? `${prefix}.${key}` : key;
-    if (val && typeof val === 'object' && '$value' in val) {
-      const type = String(val.$type ?? 'string');
-      if ((STYLE_TYPES as readonly string[]).includes(type)) {
-        result.push({ path, value: val.$value, type });
-      }
-    } else if (val && typeof val === 'object') {
-      result.push(...flattenForStyleDiff(val, path));
-    }
-  }
-  return result;
-}
+const STYLE_TYPES = new Set(['color', 'typography', 'shadow']);
 
 function summarizeStyleValue(value: any, type: string): string {
   if (type === 'color') return String(value);
@@ -352,14 +316,15 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
       const data = await res.json();
-      const localFlat = flattenForVarDiff(data.tokens || {});
+      const localTokens = flattenTokenGroup(data.tokens || {});
 
       const figmaMap = new Map<string, { value: string; type: string }>(
         figmaTokens.map(t => [t.path, { value: String(t.$value ?? ''), type: String(t.$type ?? 'string') }])
       );
-      const localMap = new Map<string, { value: string; type: string }>(
-        localFlat.map(t => [t.path, { value: t.value, type: t.type }])
-      );
+      const localMap = new Map<string, { value: string; type: string }>();
+      for (const [path, token] of localTokens) {
+        localMap.set(path, { value: String(token.$value), type: String(token.$type ?? 'string') });
+      }
 
       const rows: VarDiffRow[] = [];
       for (const [path, local] of localMap) {
@@ -480,14 +445,18 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
       const data = await res.json();
-      const localFlat = flattenForStyleDiff(data.tokens || {});
+      const localTokens = flattenTokenGroup(data.tokens || {});
 
       const figmaMap = new Map<string, { raw: any; type: string }>(
         figmaTokens.map(t => [t.path, { raw: t.$value, type: String(t.$type ?? 'string') }])
       );
-      const localMap = new Map<string, { raw: any; type: string }>(
-        localFlat.map(t => [t.path, { raw: t.value, type: t.type }])
-      );
+      const localMap = new Map<string, { raw: any; type: string }>();
+      for (const [path, token] of localTokens) {
+        const type = String(token.$type ?? 'string');
+        if (STYLE_TYPES.has(type)) {
+          localMap.set(path, { raw: token.$value, type });
+        }
+      }
 
       const rows: StyleDiffRow[] = [];
       for (const [path, local] of localMap) {
@@ -577,10 +546,13 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
       const data = await res.json();
-      const localFlat = flattenForVarDiff(data.tokens || {});
+      const localTokens = flattenTokenGroup(data.tokens || {});
+      const localFlat = Array.from(localTokens, ([path, token]) => ({
+        path, value: String(token.$value), type: String(token.$type ?? 'string'),
+      }));
 
       const figmaMap = new Map<string, any>(figmaTokens.map(t => [t.path, t]));
-      const localPaths = new Set(localFlat.map(t => t.path));
+      const localPaths = new Set(localTokens.keys());
 
       const missingInFigma = localFlat.filter(t => !figmaMap.has(t.path));
       const missingScopes = figmaTokens.filter(t =>

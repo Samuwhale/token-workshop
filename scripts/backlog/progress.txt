@@ -261,3 +261,12 @@
 - **Learnings for future iterations:**
   - When a ReDoS-safe regex utility already exists in the codebase, export it rather than duplicating — check token-store.ts for `isSafeRegex`.
 ---
+
+## 2026-03-28 - Duplicated flattenForVarDiff/flattenForStyleDiff in PublishPanel.tsx
+- Removed both `flattenForVarDiff` and `flattenForStyleDiff` local helpers (~40 lines) and replaced all three call sites with `flattenTokenGroup` from `@tokenmanager/core`
+- The var-diff call sites now iterate the returned `Map<string, DTCGToken>` to build the same `{path, value, type}` shape inline
+- The style-diff call site filters by `STYLE_TYPES` (converted from `readonly` array to `Set` for cleaner `.has()`) during iteration
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L2 (import), ~L68-109 (removed helpers), ~L355, ~L483, ~L549 (call sites)
+- **Learnings for future iterations:**
+  - `flattenTokenGroup` returns `Map<string, DTCGToken>` — when call sites need array-of-objects shape, use `Array.from(map, ([path, token]) => ({...}))` for a single-pass conversion
+---

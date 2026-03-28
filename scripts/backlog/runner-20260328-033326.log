@@ -129,3 +129,10 @@ Already up to date.
 ===============================================================
   Claimed: Duplicated `flattenForVarDiff`/`flattenForStyleDiff` in `PublishPanel.tsx` — duplicates logic from `flattenTokenGroup` in core and `flattenWithNames` in `useTokens`
   Worktree: /tmp/backlog-92630-e5SS52
+
+  ✓ done: Duplicated flattenForVarDiff/flattenForStyleDiff in PublishPanel.tsx
+    Removed both local flatten helpers (~40 lines) and replaced all 3 call sites with flattenTokenGroup from @tokenmanager/core
+    22 turns · 85s · $0.52
+
+--- Merging: Duplicated flattenForVarDiff/flattenForStyleDiff in PublishPanel.tsx ---
+Already up to date.

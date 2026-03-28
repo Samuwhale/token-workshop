@@ -58,3 +58,16 @@ Already up to date.
 
 --- Merging: Lint path-pattern rule vulnerable to ReDoS ---
 Already up to date.
+[main 6b01b65] chore(backlog): done – Lint path-pattern rule vulnerable to ReDoS
+ 7 files changed, 36 insertions(+), 5 deletions(-)
+
+## 2026-03-28 - Lint `path-pattern` rule vulnerable to ReDoS
+- Added `isSafeRegex()` guard before `new RegExp(pattern)` in lint.ts path-pattern rule. Unsafe patterns now fall back to the default regex, matching the existing catch-block behavior for invalid patterns.
+- Exported `isSafeRegex` from `token-store.ts` so it can be reused by lint.ts.
+- Files changed: `packages/server/src/services/lint.ts` ~L4 (import), ~L178 (guard); `packages/server/src/services/token-store.ts` ~L52 (export)
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  84 items remaining
+===============================================================
+  Claimed: `countLeafNodes` is in `colorUtils.ts` despite being unrelated to colors — misplaced token tree utility function
+  Worktree: /tmp/backlog-10278-6y3c2W
