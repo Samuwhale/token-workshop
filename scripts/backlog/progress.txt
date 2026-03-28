@@ -605,3 +605,12 @@
   - `parseInlineValue` returns strings as-is for color/string/fontFamily types, so alias references like `{colors.brand.500}` pass through correctly without special handling
   - `valuesEqual` uses `stableStringify` for object comparison, making it safe for dimension objects like `{value: 16, unit: 'px'}`
 ---
+
+## 2026-03-28 - Token row: hover tooltip with full dot-notation path
+- Replaced the name-area tooltip (previously just the path) with a rich multi-line tooltip showing: full dot-notation path, type, resolved value, and description (if set)
+- Removed redundant path-only title from the name `<span>` since the parent div now carries the comprehensive tooltip
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L967-972 (rich tooltip on name div), ~L1013 (removed redundant title from span)
+- **Learnings for future iterations:**
+  - Native HTML `title` attributes support `\n` for multi-line tooltips — no custom tooltip component needed for simple info display
+  - The outer name/info div's title was previously an action hint ("Double-click to edit"); replacing it with the token info tooltip is a better use since action hints are less important than content identification
+---

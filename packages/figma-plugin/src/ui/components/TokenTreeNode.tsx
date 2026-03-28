@@ -964,7 +964,12 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       {/* Name and info — single-click previews (non-select mode), double-click edits */}
       {/* ctrl/cmd-click enters select mode; shift-click range-selects */}
       <div
-        title={!selectMode ? (canInlineEdit ? 'Double-click to edit inline · Space to open editor' : 'Double-click to open editor') : undefined}
+        title={[
+          formatDisplayPath(node.path, node.name),
+          node.$type ? `Type: ${node.$type}` : null,
+          `Value: ${formatValue(node.$type, displayValue)}`,
+          node.$description ? `Description: ${node.$description}` : null,
+        ].filter(Boolean).join('\n')}
         className={`flex-1 min-w-0${!selectMode ? ' cursor-pointer' : ''}`}
         onClick={(e) => {
           if (selectMode || e.ctrlKey || e.metaKey) {
@@ -1010,7 +1015,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               className="text-[11px] text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none w-32 shrink-0"
             />
           ) : (
-            <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{highlightMatch(showFullPath ? formatDisplayPath(node.path, node.name) : node.name, searchHighlight?.nameTerms ?? [])}</span>
+            <span className="text-[11px] text-[var(--color-figma-text)] truncate">{highlightMatch(showFullPath ? formatDisplayPath(node.path, node.name) : node.name, searchHighlight?.nameTerms ?? [])}</span>
           )}
           {!renamingToken && node.$type && (
             <button
