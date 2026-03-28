@@ -172,7 +172,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
       [d.path, d.type, formatThemeValue(d.valueA, d.type), formatThemeValue(d.valueB, d.type)].join('\t')
     );
     return [header, ...lines].join('\n');
-  }, [filteredDiffs, labelA, labelB]);
+  }, [labelA, labelB]);
 
   const handleCopy = useCallback(async () => {
     const text = buildTsv(filteredDiffs);

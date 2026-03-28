@@ -629,3 +629,10 @@
   - When a retry loop catches errors, always check the error type before retrying — bare `catch {}` masks real failures
   - The `describeError()` utility is available for consistent error formatting across the UI
 ---
+
+## 2026-03-28 - buildTsv unnecessary filteredDiffs dependency
+- Removed `filteredDiffs` from `buildTsv` useCallback dependency array in ThemeCompare.tsx — the function receives data via its `rows` parameter and never references `filteredDiffs` directly
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L175
+- **Learnings for future iterations:**
+  - When a useCallback takes data as a parameter, its dependency array should only include closed-over values (like `labelA`, `labelB`), not the data that will be passed at call time
+---
