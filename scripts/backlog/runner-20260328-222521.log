@@ -16,3 +16,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Server-side token value comparisons use JSON.stringify (non-deterministic key order) instead of stableStringify ---
 Already up to date.
+[main 1123cde] chore(backlog): done – Server-side token value comparisons use JSON.stringify (non-deterministic key order) instead of stableStringify
+ 9 files changed, 56 insertions(+), 9 deletions(-)
+ create mode 100644 packages/server/src/services/stable-stringify.ts
+
+--- Cleanup: archiving completed items (≥23) ---
+  → Archived 23 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 53)
