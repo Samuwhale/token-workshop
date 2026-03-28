@@ -98,3 +98,15 @@
   - The lint config API already supports all CRUD operations including a `/default` endpoint — no server changes needed
   - Settings panel sections follow a consistent card pattern: `rounded border` wrapper, `bg-secondary` header with uppercase label, `p-3` content area
 ---
+
+## 2026-03-29 - No publish dry-run — no way to preview what a Git push or Figma variable publish will change before executing
+- Added server-side `getPushPreview()` and `getPullPreview()` methods to `GitSync` service that fetch+diff token files between local HEAD and remote tracking branch, returning both commit list and token-level changes (added/modified/removed)
+- Added `GET /api/sync/push/preview` and `GET /api/sync/pull/preview` routes that compute token-level diffs using `flattenTokenGroup` and `stableStringify`
+- Extended `useGitDiff` hook with `pushPreview`/`pullPreview` state, loading flags, and fetch/clear callbacks; passed through `useGitSync`
+- Replaced simple text-only `ConfirmModal`s for git push/pull with new `GitPreviewModal` component that auto-fetches preview on open, shows commit list + token-level add/modify/remove diff with color swatches, and has Cancel/Confirm buttons
+- Files changed: `packages/server/src/services/git-sync.ts` ~L396-470 (two new methods), `packages/server/src/routes/sync.ts` ~L452-570 (two new routes), `packages/figma-plugin/src/ui/hooks/useGitDiff.ts` (full rewrite with new types/state), `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L68-80,130-143 (passthrough), `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1505-1540 (replaced modals), ~L1769-1920 (new GitPreviewModal component)
+- **Learnings for future iterations:**
+  - `git log --from=A --to=B` via simple-git maps to `git log A..B` — use `from: remote, to: HEAD` for push preview and vice versa for pull
+  - The token diff computation (flatten + compare) is duplicated across 4 routes; a shared helper would reduce this but wasn't extracted to keep the change focused
+  - Figma variable/style publish already had full preview modals (`SyncPreviewModal` + `SyncDiffSummary`) — only git push/pull was missing dry-run
+---

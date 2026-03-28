@@ -393,6 +393,83 @@ export class GitSync {
     return results;
   }
 
+  /** Token-level diff of what a push would send (local HEAD vs remote tracking branch).
+   *  Also returns the list of commits that would be pushed. */
+  async getPushPreview(): Promise<{
+    commits: Array<{ hash: string; date: string; message: string; author: string }>;
+    fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }>;
+  }> {
+    await this.git.fetch();
+    const branch = await this.getCurrentBranch();
+    const remote = `origin/${branch}`;
+
+    // Commits that would be pushed
+    const logResult = await this.git.log({ from: remote, to: 'HEAD' });
+    const commits = logResult.all.map(e => ({
+      hash: e.hash,
+      date: e.date,
+      message: e.message,
+      author: e.author_name,
+    }));
+
+    // File-level diff (with content) for token files
+    const raw = await this.git.raw(['diff', '--name-status', `${remote}..HEAD`]);
+    const lines = raw.trim().split('\n').filter(Boolean);
+    const fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
+
+    for (const line of lines) {
+      const [status, ...pathParts] = line.split('\t');
+      const filePath = pathParts.join('\t');
+      if (!filePath.endsWith('.tokens.json')) continue;
+
+      const s = status.charAt(0) as 'A' | 'M' | 'D';
+      const before = s !== 'A' ? await this.showFileAtCommit(remote, filePath) : null;
+      const after = s !== 'D' ? await this.showFileAtCommit('HEAD', filePath) : null;
+      fileDiffs.push({ file: filePath, status: s, before, after });
+    }
+
+    return { commits, fileDiffs };
+  }
+
+  /** Token-level diff of what a pull would bring in (remote tracking branch vs local HEAD).
+   *  Also returns the list of incoming commits. */
+  async getPullPreview(): Promise<{
+    commits: Array<{ hash: string; date: string; message: string; author: string }>;
+    fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }>;
+  }> {
+    await this.git.fetch();
+    const branch = await this.getCurrentBranch();
+    const remote = `origin/${branch}`;
+
+    // Commits that would be pulled
+    const logResult = await this.git.log({ from: 'HEAD', to: remote });
+    const commits = logResult.all.map(e => ({
+      hash: e.hash,
+      date: e.date,
+      message: e.message,
+      author: e.author_name,
+    }));
+
+    // File-level diff: what remote has that local doesn't
+    const raw = await this.git.raw(['diff', '--name-status', `HEAD..${remote}`]);
+    const lines = raw.trim().split('\n').filter(Boolean);
+    const fileDiffs: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
+
+    for (const line of lines) {
+      const [status, ...pathParts] = line.split('\t');
+      const filePath = pathParts.join('\t');
+      if (!filePath.endsWith('.tokens.json')) continue;
+
+      const s = status.charAt(0) as 'A' | 'M' | 'D';
+      // "before" = current local state (HEAD), "after" = what remote has
+      const before = s !== 'A' ? await this.showFileAtCommit('HEAD', filePath) : null;
+      const after = s !== 'D' ? await this.showFileAtCommit(remote, filePath) : null;
+      fileDiffs.push({ file: filePath, status: s, before, after });
+    }
+
+    return { commits, fileDiffs };
+  }
+
   /** Compare local HEAD vs remote tracking branch.
    *  Returns categorized file lists. Requires remote to be configured. */
   async computeUnifiedDiff(): Promise<{

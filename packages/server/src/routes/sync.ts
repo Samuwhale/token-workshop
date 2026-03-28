@@ -449,6 +449,146 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // GET /api/sync/push/preview — token-level diff of what push would send + commit list
+  fastify.get('/sync/push/preview', async (_request, reply) => {
+    try {
+      const isRepo = await fastify.gitSync.isRepo();
+      if (!isRepo) return reply.status(400).send({ error: 'Not a git repository' });
+
+      const { commits, fileDiffs } = await fastify.gitSync.getPushPreview();
+
+      const changes: Array<{
+        path: string;
+        set: string;
+        type: string;
+        status: 'added' | 'modified' | 'removed';
+        before?: any;
+        after?: any;
+      }> = [];
+
+      for (const diff of fileDiffs) {
+        const setName = diff.file.replace('.tokens.json', '');
+        const beforeTokens = new Map<string, any>();
+        const afterTokens = new Map<string, any>();
+
+        if (diff.before) {
+          try {
+            const parsed = JSON.parse(diff.before);
+            for (const [p, t] of flattenTokenGroup(parsed)) beforeTokens.set(p, t);
+          } catch { /* skip */ }
+        }
+        if (diff.after) {
+          try {
+            const parsed = JSON.parse(diff.after);
+            for (const [p, t] of flattenTokenGroup(parsed)) afterTokens.set(p, t);
+          } catch { /* skip */ }
+        }
+
+        for (const [p, token] of afterTokens) {
+          if (!beforeTokens.has(p)) {
+            changes.push({ path: p, set: setName, type: token.$type || 'unknown', status: 'added', after: token.$value });
+          }
+        }
+        for (const [p, token] of beforeTokens) {
+          if (!afterTokens.has(p)) {
+            changes.push({ path: p, set: setName, type: token.$type || 'unknown', status: 'removed', before: token.$value });
+          }
+        }
+        for (const [p, afterToken] of afterTokens) {
+          const beforeToken = beforeTokens.get(p);
+          if (beforeToken) {
+            const bVal = stableStringify(beforeToken.$value);
+            const aVal = stableStringify(afterToken.$value);
+            if (bVal !== aVal) {
+              changes.push({
+                path: p,
+                set: setName,
+                type: afterToken.$type || beforeToken.$type || 'unknown',
+                status: 'modified',
+                before: beforeToken.$value,
+                after: afterToken.$value,
+              });
+            }
+          }
+        }
+      }
+
+      return { commits, changes, fileCount: fileDiffs.length };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to compute push preview', detail: String(err) });
+    }
+  });
+
+  // GET /api/sync/pull/preview — token-level diff of what pull would bring in + commit list
+  fastify.get('/sync/pull/preview', async (_request, reply) => {
+    try {
+      const isRepo = await fastify.gitSync.isRepo();
+      if (!isRepo) return reply.status(400).send({ error: 'Not a git repository' });
+
+      const { commits, fileDiffs } = await fastify.gitSync.getPullPreview();
+
+      const changes: Array<{
+        path: string;
+        set: string;
+        type: string;
+        status: 'added' | 'modified' | 'removed';
+        before?: any;
+        after?: any;
+      }> = [];
+
+      for (const diff of fileDiffs) {
+        const setName = diff.file.replace('.tokens.json', '');
+        const beforeTokens = new Map<string, any>();
+        const afterTokens = new Map<string, any>();
+
+        if (diff.before) {
+          try {
+            const parsed = JSON.parse(diff.before);
+            for (const [p, t] of flattenTokenGroup(parsed)) beforeTokens.set(p, t);
+          } catch { /* skip */ }
+        }
+        if (diff.after) {
+          try {
+            const parsed = JSON.parse(diff.after);
+            for (const [p, t] of flattenTokenGroup(parsed)) afterTokens.set(p, t);
+          } catch { /* skip */ }
+        }
+
+        for (const [p, token] of afterTokens) {
+          if (!beforeTokens.has(p)) {
+            changes.push({ path: p, set: setName, type: token.$type || 'unknown', status: 'added', after: token.$value });
+          }
+        }
+        for (const [p, token] of beforeTokens) {
+          if (!afterTokens.has(p)) {
+            changes.push({ path: p, set: setName, type: token.$type || 'unknown', status: 'removed', before: token.$value });
+          }
+        }
+        for (const [p, afterToken] of afterTokens) {
+          const beforeToken = beforeTokens.get(p);
+          if (beforeToken) {
+            const bVal = stableStringify(beforeToken.$value);
+            const aVal = stableStringify(afterToken.$value);
+            if (bVal !== aVal) {
+              changes.push({
+                path: p,
+                set: setName,
+                type: afterToken.$type || beforeToken.$type || 'unknown',
+                status: 'modified',
+                before: beforeToken.$value,
+                after: afterToken.$value,
+              });
+            }
+          }
+        }
+      }
+
+      return { commits, changes, fileCount: fileDiffs.length };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to compute pull preview', detail: String(err) });
+    }
+  });
+
   // GET /api/sync/diff/tokens — token-level diff of uncommitted working tree changes vs HEAD
   fastify.get('/sync/diff/tokens', async (_request, reply) => {
     try {

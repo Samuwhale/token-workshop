@@ -73,10 +73,18 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     applyingDiff,
     tokenPreview,
     tokenPreviewLoading,
+    pushPreview,
+    pushPreviewLoading,
+    pullPreview,
+    pullPreviewLoading,
     computeDiff,
     applyDiff,
     fetchTokenPreview,
     clearTokenPreview,
+    fetchPushPreview,
+    clearPushPreview,
+    fetchPullPreview,
+    clearPullPreview,
   } = useGitDiff({ serverUrl, fetchStatus, setGitError });
 
   // Wrap doAction to handle pull-specific conflict & notification logic
@@ -132,5 +140,13 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     tokenPreviewLoading,
     fetchTokenPreview,
     clearTokenPreview,
+    pushPreview,
+    pushPreviewLoading,
+    pullPreview,
+    pullPreviewLoading,
+    fetchPushPreview,
+    clearPushPreview,
+    fetchPullPreview,
+    clearPullPreview,
   };
 }

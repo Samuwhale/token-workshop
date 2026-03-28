@@ -8,25 +8,48 @@ interface UseGitDiffOptions {
   setGitError: (v: string | null) => void;
 }
 
+export interface TokenChange {
+  path: string;
+  set: string;
+  type: string;
+  status: 'added' | 'modified' | 'removed';
+  before?: any;
+  after?: any;
+}
+
+export interface GitPreviewCommit {
+  hash: string;
+  date: string;
+  message: string;
+  author: string;
+}
+
+export interface GitPreview {
+  commits: GitPreviewCommit[];
+  changes: TokenChange[];
+  fileCount: number;
+}
+
 export interface UseGitDiffReturn {
   diffView: { localOnly: string[]; remoteOnly: string[]; conflicts: string[] } | null;
   diffLoading: boolean;
   diffChoices: Record<string, 'push' | 'pull' | 'skip'>;
   setDiffChoices: (v: Record<string, 'push' | 'pull' | 'skip'>) => void;
   applyingDiff: boolean;
-  tokenPreview: Array<{
-    path: string;
-    set: string;
-    type: string;
-    status: 'added' | 'modified' | 'removed';
-    before?: any;
-    after?: any;
-  }> | null;
+  tokenPreview: TokenChange[] | null;
   tokenPreviewLoading: boolean;
+  pushPreview: GitPreview | null;
+  pushPreviewLoading: boolean;
+  pullPreview: GitPreview | null;
+  pullPreviewLoading: boolean;
   computeDiff: () => Promise<void>;
   applyDiff: () => Promise<void>;
   fetchTokenPreview: () => Promise<void>;
   clearTokenPreview: () => void;
+  fetchPushPreview: () => Promise<void>;
+  clearPushPreview: () => void;
+  fetchPullPreview: () => Promise<void>;
+  clearPullPreview: () => void;
 }
 
 export function useGitDiff({
@@ -38,15 +61,12 @@ export function useGitDiff({
   const [diffLoading, setDiffLoading] = useState(false);
   const [diffChoices, setDiffChoices] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
   const [applyingDiff, setApplyingDiff] = useState(false);
-  const [tokenPreview, setTokenPreview] = useState<Array<{
-    path: string;
-    set: string;
-    type: string;
-    status: 'added' | 'modified' | 'removed';
-    before?: any;
-    after?: any;
-  }> | null>(null);
+  const [tokenPreview, setTokenPreview] = useState<TokenChange[] | null>(null);
   const [tokenPreviewLoading, setTokenPreviewLoading] = useState(false);
+  const [pushPreview, setPushPreview] = useState<GitPreview | null>(null);
+  const [pushPreviewLoading, setPushPreviewLoading] = useState(false);
+  const [pullPreview, setPullPreview] = useState<GitPreview | null>(null);
+  const [pullPreviewLoading, setPullPreviewLoading] = useState(false);
 
   const computeDiff = useCallback(async () => {
     setDiffLoading(true);
@@ -88,7 +108,7 @@ export function useGitDiff({
     setTokenPreviewLoading(true);
     setGitError(null);
     try {
-      const data = await apiFetch<{ changes: typeof tokenPreview; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`);
+      const data = await apiFetch<{ changes: TokenChange[]; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`);
       setTokenPreview(data.changes ?? []);
     } catch (err) {
       setGitError(describeError(err, 'Token preview'));
@@ -101,6 +121,40 @@ export function useGitDiff({
     setTokenPreview(null);
   }, []);
 
+  const fetchPushPreview = useCallback(async () => {
+    setPushPreviewLoading(true);
+    setGitError(null);
+    try {
+      const data = await apiFetch<GitPreview>(`${serverUrl}/api/sync/push/preview`);
+      setPushPreview(data);
+    } catch (err) {
+      setGitError(describeError(err, 'Push preview'));
+    } finally {
+      setPushPreviewLoading(false);
+    }
+  }, [serverUrl, setGitError]);
+
+  const clearPushPreview = useCallback(() => {
+    setPushPreview(null);
+  }, []);
+
+  const fetchPullPreview = useCallback(async () => {
+    setPullPreviewLoading(true);
+    setGitError(null);
+    try {
+      const data = await apiFetch<GitPreview>(`${serverUrl}/api/sync/pull/preview`);
+      setPullPreview(data);
+    } catch (err) {
+      setGitError(describeError(err, 'Pull preview'));
+    } finally {
+      setPullPreviewLoading(false);
+    }
+  }, [serverUrl, setGitError]);
+
+  const clearPullPreview = useCallback(() => {
+    setPullPreview(null);
+  }, []);
+
   return {
     diffView,
     diffLoading,
@@ -109,9 +163,17 @@ export function useGitDiff({
     applyingDiff,
     tokenPreview,
     tokenPreviewLoading,
+    pushPreview,
+    pushPreviewLoading,
+    pullPreview,
+    pullPreviewLoading,
     computeDiff,
     applyDiff,
     fetchTokenPreview,
     clearTokenPreview,
+    fetchPushPreview,
+    clearPushPreview,
+    fetchPullPreview,
+    clearPullPreview,
   };
 }
