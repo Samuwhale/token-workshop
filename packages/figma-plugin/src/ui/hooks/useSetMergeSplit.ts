@@ -136,17 +136,31 @@ export function useSetMergeSplit({
           }));
         }
       }
-      const writeResults = await Promise.all(writes);
-      for (const wr of writeResults) {
-        await checkedFetch(wr, 'Failed to write token during merge');
-      }
+      const writeResults = await Promise.all(writes.map(async (p, i) => {
+        try {
+          const res = await p;
+          if (!res.ok) {
+            const text = await res.text().catch(() => res.statusText);
+            return { index: i, error: `${res.status}: ${text}` };
+          }
+          return null;
+        } catch (err) {
+          return { index: i, error: err instanceof Error ? err.message : String(err) };
+        }
+      }));
+      const failures = writeResults.filter((r): r is { index: number; error: string } => r !== null);
       const srcName = mergingSet;
       const targetName = mergeTargetSet;
       setMergingSet(null);
       setMergeChecked(false);
       setActiveSet(mergeTargetSet);
       refreshTokens();
-      setSuccessToast(`Merged "${srcName}" into "${targetName}"`);
+      if (failures.length > 0) {
+        const ok = writes.length - failures.length;
+        setErrorToast(`Merge partially applied: ${ok}/${writes.length} tokens written. ${failures.length} failed.`);
+      } else {
+        setSuccessToast(`Merged "${srcName}" into "${targetName}"`);
+      }
       const url = serverUrl;
       pushUndo({
         description: `Merged "${srcName}" into "${targetName}"`,
@@ -231,9 +245,13 @@ export function useSetMergeSplit({
       pushUndo({
         description: `Split "${name}" into ${count} sets`,
         restore: async () => {
-          await Promise.all(createdNames.map(n =>
+          const deleteResults = await Promise.allSettled(createdNames.map(n =>
             fetch(`${url}/api/sets/${encodeURIComponent(n)}`, { method: 'DELETE' })
           ));
+          const deleteFailed = deleteResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok));
+          if (deleteFailed.length > 0) {
+            console.warn(`Undo split: ${deleteFailed.length}/${createdNames.length} set deletions failed`);
+          }
           if (wasDeleted) {
             await fetch(`${url}/api/sets`, {
               method: 'POST',

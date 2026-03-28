@@ -561,3 +561,14 @@
   - `.catch(() => defaultValue)` in Promise.all is a silent-failure anti-pattern — it makes errors indistinguishable from empty results. Always let errors propagate or handle them with meaningful error messages.
   - The route handler wrapping `computeUnifiedDiff` already had proper error handling (try/catch → 500), so the fix was entirely in the service layer
 ---
+
+## 2026-03-28 - Promise.all() batch server writes with no partial-failure handling
+- Added per-item try/catch to `useVariableSync.applyVarDiff` (modeled after the already-correct `useStyleSync` pattern): each PATCH is wrapped individually, failures are collected, and a summary error message shows which paths failed and how many succeeded.
+- Changed `useSetMergeSplit.handleConfirmMerge` to collect all write results instead of throwing on first non-ok response: failures are counted and a partial-success toast is shown when some writes fail.
+- Changed undo split in `useSetMergeSplit` to use `Promise.allSettled` so all delete attempts complete even if some fail, with a console warning for failures.
+- Note: `useStyleSync` already had proper partial-failure handling — no changes needed there.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useVariableSync.ts` ~L135-160, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L139-155, ~L248
+- **Learnings for future iterations:**
+  - `useStyleSync` was already the gold standard pattern for batch writes with partial-failure handling — always check if a sibling hook already solved the same problem before implementing from scratch
+  - `Promise.allSettled` is ideal for undo/cleanup operations where you want all attempts to complete regardless of individual failures
+---

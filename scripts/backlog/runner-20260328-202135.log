@@ -318,3 +318,10 @@ Already up to date.
 ===============================================================
   Claimed: Multiple hooks use `Promise.all()` for batch server writes with no partial-failure handling — `useSetMergeSplit` (merge), `useStyleSync` (apply diff), and `useVariableSync` (apply diff) all reject on first failure, leaving tokens partially written with no rollback and no indication of which items succeeded
   Worktree: /tmp/backlog-9231-x8HAj7
+
+  ✓ done: Promise.all() batch server writes with no partial-failure handling
+    Added per-item error handling to useVariableSync (modeled after useStyleSync), useSetMergeSplit merge writes (collects failures instead of throwing on first), and undo split (Promise.allSettled). useStyleSync already had proper handling.
+    31 turns · 209s · $1.14
+
+--- Merging: Promise.all() batch server writes with no partial-failure handling ---
+Already up to date.
