@@ -1150,6 +1150,25 @@ export class TokenStore {
     }
   }
 
+  async copyToken(fromSet: string, tokenPath: string, toSet: string): Promise<void> {
+    if (fromSet === toSet) throw new BadRequestError('Source and target sets are the same');
+    const source = this.sets.get(fromSet);
+    if (!source) throw new NotFoundError(`Set "${fromSet}" not found`);
+    const target = this.sets.get(toSet);
+    if (!target) throw new NotFoundError(`Set "${toSet}" not found`);
+    const token = getTokenAtPath(source.tokens, tokenPath);
+    if (!token) throw new NotFoundError(`Token "${tokenPath}" not found in set "${fromSet}"`);
+    if (pathExistsAt(target.tokens, tokenPath)) throw new ConflictError(`Path "${tokenPath}" already exists in target set "${toSet}"`);
+    this.beginBatch();
+    try {
+      setTokenAtPath(target.tokens, tokenPath, structuredClone(token));
+      await this.saveSet(toSet);
+      this.rebuildFlatTokens();
+    } finally {
+      this.endBatch();
+    }
+  }
+
   async duplicateGroup(setName: string, groupPath: string): Promise<{ newGroupPath: string; count: number }> {
     const set = this.sets.get(setName);
     if (!set) throw new NotFoundError(`Set "${setName}" not found`);

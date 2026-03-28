@@ -188,6 +188,7 @@ export interface TokenTreeContextType {
   onUpdateGroupMeta?: (groupPath: string, meta: { $type?: string | null; $description?: string | null }) => Promise<void>;
   onRequestMoveGroup?: (groupPath: string) => void;
   onRequestMoveToken?: (tokenPath: string) => void;
+  onRequestCopyToken?: (tokenPath: string) => void;
   onDuplicateGroup?: (groupPath: string) => void;
   onDuplicateToken?: (path: string) => void;
   onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;

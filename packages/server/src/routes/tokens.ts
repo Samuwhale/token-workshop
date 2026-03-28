@@ -340,6 +340,26 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // POST /api/tokens/:set/tokens/copy — copy a single token to a different set
+  fastify.post<{ Params: { set: string }; Body: { tokenPath: string; targetSet: string } }>(
+    '/tokens/:set/tokens/copy',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { tokenPath, targetSet } = request.body ?? {};
+      if (!tokenPath || !targetSet) {
+        return reply.status(400).send({ error: 'tokenPath and targetSet are required' });
+      }
+      return withLock(async () => {
+        try {
+          await fastify.tokenStore.copyToken(set, tokenPath, targetSet);
+          return { copied: true };
+        } catch (err) {
+          return handleRouteError(reply, err);
+        }
+      });
+    },
+  );
+
   // GET /api/tokens/:set/raw — get the raw nested DTCG token group for a set
   fastify.get<{ Params: { set: string } }>('/tokens/:set/raw', async (request, reply) => {
     const { set } = request.params;

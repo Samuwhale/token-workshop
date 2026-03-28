@@ -1191,7 +1191,9 @@ export function TokenList({
   // Group management
   const [movingGroup, setMovingGroup] = useState<string | null>(null);
   const [movingToken, setMovingToken] = useState<string | null>(null);
+  const [copyingToken, setCopyingToken] = useState<string | null>(null);
   const [moveTargetSet, setMoveTargetSet] = useState('');
+  const [copyTargetSet, setCopyTargetSet] = useState('');
 
   const executeGroupRename = useCallback(async (oldGroupPath: string, newGroupPath: string, updateAliases = true) => {
     if (!connected) return;
@@ -1357,6 +1359,28 @@ export function TokenList({
     onRefresh();
     setOperationLoading(null);
   }, [movingToken, moveTargetSet, connected, serverUrl, setName, onRefresh, onError]);
+
+  const handleRequestCopyToken = useCallback((tokenPath: string) => {
+    const otherSets = sets.filter(s => s !== setName);
+    setCopyTargetSet(otherSets[0] ?? '');
+    setCopyingToken(tokenPath);
+  }, [sets, setName]);
+
+  const handleConfirmCopyToken = useCallback(async () => {
+    if (!copyingToken || !copyTargetSet || !connected) { setCopyingToken(null); return; }
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/copy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenPath: copyingToken, targetSet: copyTargetSet }),
+      });
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Copy failed: network error');
+      return;
+    }
+    setCopyingToken(null);
+    onRefresh();
+  }, [copyingToken, copyTargetSet, connected, serverUrl, setName, onRefresh, onError]);
 
   const handleDuplicateGroup = useCallback(async (groupPath: string) => {
     if (!connected) return;
@@ -2125,6 +2149,7 @@ export function TokenList({
     onUpdateGroupMeta: handleUpdateGroupMeta,
     onRequestMoveGroup: handleRequestMoveGroup,
     onRequestMoveToken: handleRequestMoveToken,
+    onRequestCopyToken: handleRequestCopyToken,
     onDuplicateGroup: handleDuplicateGroup,
     onDuplicateToken: handleDuplicateToken,
     onExtractToAlias: handleOpenExtractToAlias,
@@ -3920,6 +3945,11 @@ export function TokenList({
         onSetMovingGroup={setMovingGroup}
         handleConfirmMoveToken={handleConfirmMoveToken}
         handleConfirmMoveGroup={handleConfirmMoveGroup}
+        copyingToken={copyingToken}
+        copyTargetSet={copyTargetSet}
+        onSetCopyTargetSet={setCopyTargetSet}
+        onSetCopyingToken={setCopyingToken}
+        handleConfirmCopyToken={handleConfirmCopyToken}
       />
     </div>
   );

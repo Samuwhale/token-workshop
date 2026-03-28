@@ -321,3 +321,17 @@
   - The `path` in export results is just the filename (e.g., `variables.css`), not including the platform buildPath prefix — the server's style-dict service strips it
   - Platform folder names map: css→css, dart→dart, ios-swift→ios, android→android, json→json, scss→scss, less→less, typescript→ts
 ---
+---
+
+## 2026-03-29 - Selection inspector "Apply to peers" toast is ephemeral and easy to miss
+- Made action toasts persistent (no auto-dismiss timer) — they now stay until user clicks the action or dismisses
+- Replaced ephemeral toast-based peer suggestion with persistent inline banner in SelectionInspector that stays until dismissed or selection changes
+- Banner shows "Apply [Property] to N siblings?" with Apply button and dismiss X, positioned above the "All properties bound" footer
+- Removed `onPushActionToast` prop from SelectionInspector (peer flow now uses local state instead of toast system)
+- Fixed pre-existing build error in ResolverPanel.tsx L215: `)}` should have been `</div>` (unclosed div tag)
+- Files changed: `packages/figma-plugin/src/ui/components/ToastStack.tsx` ~L109 (persistent action toasts), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L200 (peerSuggestion state), ~L445-468 (store peers as state), ~L820-855 (inline banner), `packages/figma-plugin/src/ui/App.tsx` ~L2111 (removed prop), `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L215 (build fix)
+- **Learnings for future iterations:**
+  - Action toasts with interactive buttons should generally persist — ephemeral actionable UI is an anti-pattern
+  - The peer detection flow (`find-peers-for-property` → `peers-for-property-result`) is fully async via postMessage; storing the result as component state rather than firing a toast gives much better UX control
+  - ResolverPanel.tsx had a pre-existing broken JSX (unclosed `<div>`) that prevented all builds — worth checking build before and after changes
+---

@@ -124,7 +124,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     selectedLeafNodes,
     onEdit, onPreview, onDelete, onDeleteGroup, onToggleSelect,
     onNavigateToAlias, onCreateSibling, onCreateGroup, onRenameGroup,
-    onUpdateGroupMeta, onRequestMoveGroup, onRequestMoveToken,
+    onUpdateGroupMeta, onRequestMoveGroup, onRequestMoveToken, onRequestCopyToken,
     onDuplicateGroup, onDuplicateToken, onExtractToAlias, onHoverToken,
     onExtractToAliasForLint, onSyncGroup, onSyncGroupStyles,
     onSetGroupScopes, onGenerateScaleFromGroup, onFilterByType,
@@ -1598,6 +1598,16 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             }}
           >
             <span>Move to set...</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
+          </button>
+          <button
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setContextMenuPos(null);
+              onRequestCopyToken?.(node.path);
+            }}
+          >
+            <span>Copy to set...</span>
           </button>
           {onTogglePin && (
             <button
