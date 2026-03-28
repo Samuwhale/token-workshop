@@ -22,6 +22,7 @@ export interface ColorRampConfig {
   lightEnd: number;
   darkEnd: number;
   chromaBoost: number;
+  lightnessCurve?: [number, number, number, number];
   includeSource: boolean;
   sourceStep?: number;
 }

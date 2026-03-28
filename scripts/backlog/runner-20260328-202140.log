@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Interactive scale curve editors: draggable bezier for color ramp lightness distribution, visual staircase for type scale with adjustable ratio — make generator output directly manipulable
   Worktree: /tmp/backlog-9651-w30TIJ
+
+  ✓ done: Interactive scale curve editors: draggable bezier for color ramp lightness distribution, visual staircase for type scale with adjustable ratio
+    Added BezierCurveEditor (draggable cubic bezier for color ramp lightness distribution with presets and L* labels) and TypeScaleStaircaseEditor (visual staircase with drag-to-adjust ratio and named ratio snapping). Extended ColorRampConfig with optional lightnessCurve field, updated generator engine with Newton-Raphson bezier solver, threaded sourceValue to TypeScaleConfigEditor.
+    51 turns · 523s · $3.39
+
+--- Merging: Interactive scale curve editors: draggable bezier for color ramp lightness distribution, visual staircase for type scale with adjustable ratio ---
+Already up to date.

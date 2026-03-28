@@ -47,6 +47,10 @@ function validateGeneratorConfig(
       if (typeof c.darkEnd !== 'number') return { error: 'colorRamp config requires "darkEnd" as number' };
       if (typeof c.chromaBoost !== 'number') return { error: 'colorRamp config requires "chromaBoost" as number' };
       if (typeof c.includeSource !== 'boolean') return { error: 'colorRamp config requires "includeSource" as boolean' };
+      if (c.lightnessCurve !== undefined) {
+        if (!Array.isArray(c.lightnessCurve) || c.lightnessCurve.length !== 4 || !c.lightnessCurve.every((v: unknown) => typeof v === 'number'))
+          return { error: 'colorRamp config "lightnessCurve" must be [number, number, number, number]' };
+      }
       return { validated: c as unknown as GeneratorConfig };
     }
     case 'typeScale': {

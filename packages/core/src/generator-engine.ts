@@ -24,6 +24,53 @@ import { evalExpr, substituteVars } from './eval-expr.js';
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Evaluate a cubic bezier curve at a given x value.
+ * The curve is defined by control points (0,0), (cx1,cy1), (cx2,cy2), (1,1).
+ * Uses Newton-Raphson with bisection fallback to solve x -> t, then evaluates y(t).
+ */
+function evaluateCubicBezier(x: number, cx1: number, cy1: number, cx2: number, cy2: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+
+  // Bezier x(t) = 3(1-t)^2*t*cx1 + 3(1-t)*t^2*cx2 + t^3
+  const xAt = (t: number) => {
+    const t1 = 1 - t;
+    return 3 * t1 * t1 * t * cx1 + 3 * t1 * t * t * cx2 + t * t * t;
+  };
+  // dx/dt
+  const dxAt = (t: number) => {
+    const t1 = 1 - t;
+    return 3 * t1 * t1 * cx1 + 6 * t1 * t * (cx2 - cx1) + 3 * t * t * (1 - cx2);
+  };
+
+  // Newton-Raphson to find t for given x
+  let t = x; // initial guess
+  for (let i = 0; i < 8; i++) {
+    const err = xAt(t) - x;
+    if (Math.abs(err) < 1e-7) break;
+    const d = dxAt(t);
+    if (Math.abs(d) < 1e-7) break;
+    t -= err / d;
+  }
+
+  // Bisection fallback if Newton went out of range
+  if (t < 0 || t > 1) {
+    let lo = 0, hi = 1;
+    t = x;
+    for (let i = 0; i < 20; i++) {
+      const val = xAt(t);
+      if (Math.abs(val - x) < 1e-7) break;
+      if (val < x) lo = t; else hi = t;
+      t = (lo + hi) / 2;
+    }
+  }
+
+  // Evaluate y(t)
+  const t1 = 1 - t;
+  return 3 * t1 * t1 * t * cy1 + 3 * t1 * t * t * cy2 + t * t * t;
+}
+
 /** Clamp non-finite values (Infinity, -Infinity, NaN) to a fallback. */
 function sanitizeNumber(
   value: number,
@@ -76,8 +123,10 @@ export function runColorRampGenerator(
     }
 
     const t = n > 1 ? i / (n - 1) : 0.5;
-    // Slight power curve so mid-tones are more evenly spaced
-    const eased = Math.pow(t, 0.85);
+    // Use bezier curve if provided, otherwise legacy power curve
+    const eased = config.lightnessCurve
+      ? evaluateCubicBezier(t, config.lightnessCurve[0], config.lightnessCurve[1], config.lightnessCurve[2], config.lightnessCurve[3])
+      : Math.pow(t, 0.85);
     const L = lightEnd - eased * (lightEnd - darkEnd);
     // Bell-shaped chroma factor: peaks around t≈0.4, tapers to near-zero at both ends
     const chromaFactor = Math.min(1, 4.5 * t * (1 - t) * 1.5) * chromaBoost;

@@ -39,6 +39,12 @@ export interface ColorRampConfig {
    */
   chromaBoost: number;
   /**
+   * Cubic bezier control points for lightness distribution curve.
+   * Format: [cx1, cy1, cx2, cy2] where (0,0) is start and (1,1) is end.
+   * When absent, falls back to the legacy power curve (t^0.85).
+   */
+  lightnessCurve?: [number, number, number, number];
+  /**
    * When true, one step is pinned so it reproduces the source color exactly.
    * The step to pin is specified by `sourceStep`.
    */

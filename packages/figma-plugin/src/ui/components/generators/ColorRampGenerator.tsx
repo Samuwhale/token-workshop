@@ -1,6 +1,7 @@
 import { labToHex } from '@tokenmanager/core';
 import type { ColorRampConfig, GeneratedTokenResult } from '../../hooks/useGenerators';
 import { OverrideRow, OverrideTable } from './generatorShared';
+import { BezierCurveEditor } from './BezierCurveEditor';
 
 /** Convert a Lab L* value to a neutral-gray hex swatch color. */
 function lstarToSwatchHex(Lstar: number): string {
@@ -125,6 +126,13 @@ export function ColorRampConfigEditor({ config, onChange }: { config: ColorRampC
           <input type="range" min={2} max={30} step={1} value={config.darkEnd} onChange={e => onChange({ ...config, darkEnd: Number(e.target.value) })} className="w-full accent-[var(--color-figma-accent)] h-1.5" />
         </div>
       </div>
+      <BezierCurveEditor
+        curve={config.lightnessCurve ?? [0.42, 0, 0.58, 1]}
+        lightEnd={config.lightEnd}
+        darkEnd={config.darkEnd}
+        stepCount={config.steps.length}
+        onChange={c => onChange({ ...config, lightnessCurve: c })}
+      />
       <div>
         <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
           Chroma boost

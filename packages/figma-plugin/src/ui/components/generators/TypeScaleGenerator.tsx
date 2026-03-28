@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TypeScaleConfig, TypeScaleStep, GeneratedTokenResult } from '../../hooks/useGenerators';
 import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
+import { TypeScaleStaircaseEditor } from './TypeScaleStaircaseEditor';
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -113,7 +114,7 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
 // Config editor
 // ---------------------------------------------------------------------------
 
-export function TypeScaleConfigEditor({ config, onChange }: { config: TypeScaleConfig; onChange: (c: TypeScaleConfig) => void }) {
+export function TypeScaleConfigEditor({ config, onChange, sourceValue }: { config: TypeScaleConfig; onChange: (c: TypeScaleConfig) => void; sourceValue?: number }) {
   const [customRatio, setCustomRatio] = useState('');
   const [isCustomRatio, setIsCustomRatio] = useState(false);
   const activePresetRatio = TYPE_RATIO_PRESETS.find(p => Math.abs(p.value - config.ratio) < 0.0001);
@@ -147,6 +148,13 @@ export function TypeScaleConfigEditor({ config, onChange }: { config: TypeScaleC
           </div>
         </div>
       </div>
+      {sourceValue !== undefined && sourceValue > 0 && (
+        <TypeScaleStaircaseEditor
+          config={config}
+          sourceValue={sourceValue}
+          onChange={c => { setIsCustomRatio(false); onChange(c); }}
+        />
+      )}
       <div>
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Steps</label>
         <div className="flex gap-1.5">
