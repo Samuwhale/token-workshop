@@ -181,3 +181,16 @@ Already up to date.
 
 --- Merging: No token scoping to limit where tokens can be applied ---
 Already up to date.
+[main c15a043] chore(backlog): done – No token scoping to limit where tokens can be applied
+ 10 files changed, 145 insertions(+), 12 deletions(-)
+
+## 2026-03-28 - No token scoping to limit where tokens can be applied
+- Added token scoping so tokens with Figma variable scopes (`$extensions['com.figma.scopes']`) are filtered in bind pickers — scoped tokens only appear for compatible properties (e.g. FILL_COLOR-scoped color tokens only show for fill bindings, not stroke)
+- Added `$scopes` field to `TokenMapEntry` and `SCOPE_TO_PROPERTIES` mapping bridging Figma scope values to `BindableProperty` values
+- Scopes propagated through `flattenWithNames` so they're available in the tokenMap used by bind pickers
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  77 items remaining
+===============================================================
+  Claimed: No token comparison mode — no way to compare two or more tokens side-by-side to check consistency; add a "Compare" action in multi-select: show selected tokens in a side-by-side panel with aligned properties, highlighting differences — useful for auditing scale consistency (e.g., are spacing-4 and spacing-6 actually 16px and 24px?)
+  Worktree: /tmp/backlog-63973-lSGmA4

@@ -90,6 +90,154 @@ export function inferGroupTokenType(children?: TokenNode[]): string {
   return types.size === 1 ? [...types][0] : 'color';
 }
 
+// ---------------------------------------------------------------------------
+// Smart name suggestions for the inline create form
+// ---------------------------------------------------------------------------
+
+const TYPE_PREFIXES: Record<string, string> = {
+  color: 'color', dimension: 'size', typography: 'typography', shadow: 'shadow',
+  border: 'border', gradient: 'gradient', duration: 'duration',
+  fontFamily: 'font-family', fontWeight: 'font-weight', strokeStyle: 'stroke-style',
+  number: 'number', string: 'string', boolean: 'boolean',
+};
+
+/** Map a hex color to a rough human-readable name. */
+function hexToName(hex: string): string | null {
+  const h = hex.replace('#', '').toLowerCase();
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return null;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const l = (max + min) / 2 / 255;
+  if (max - min < 30) {
+    if (l < 0.15) return 'black';
+    if (l > 0.85) return 'white';
+    return 'gray';
+  }
+  let hue = 0;
+  const d = max - min;
+  if (max === r) hue = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+  else if (max === g) hue = ((b - r) / d + 2) * 60;
+  else hue = ((r - g) / d + 4) * 60;
+  if (hue < 15 || hue >= 345) return 'red';
+  if (hue < 45) return 'orange';
+  if (hue < 70) return 'yellow';
+  if (hue < 160) return 'green';
+  if (hue < 200) return 'teal';
+  if (hue < 260) return 'blue';
+  if (hue < 300) return 'purple';
+  return 'pink';
+}
+
+/** Detect numeric scale pattern in sibling names and suggest the next step. */
+function nextScaleStep(siblingNames: string[]): string | null {
+  const nums = siblingNames.map(n => parseInt(n, 10)).filter(n => !isNaN(n));
+  if (nums.length < 2) return null;
+  nums.sort((a, b) => a - b);
+  // Check for constant step (e.g. 100, 200, 300)
+  const steps = new Set<number>();
+  for (let i = 1; i < nums.length; i++) steps.add(nums[i] - nums[i - 1]);
+  if (steps.size === 1) {
+    const step = [...steps][0];
+    return String(nums[nums.length - 1] + step);
+  }
+  return null;
+}
+
+const COMMON_SCALE_NAMES = ['2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl'];
+
+/** Detect named scale pattern and suggest the next entry. */
+function nextNamedScaleStep(siblingNames: string[]): string | null {
+  const lower = siblingNames.map(n => n.toLowerCase());
+  const indices = lower.map(n => COMMON_SCALE_NAMES.indexOf(n)).filter(i => i >= 0);
+  if (indices.length < 1) return null;
+  indices.sort((a, b) => a - b);
+  const next = indices[indices.length - 1] + 1;
+  if (next < COMMON_SCALE_NAMES.length) return COMMON_SCALE_NAMES[next];
+  return null;
+}
+
+/** Sanitize a Figma layer name into a valid token name segment. */
+function sanitizeLayerName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase();
+}
+
+export interface NameSuggestion {
+  label: string;    // Display text for the chip
+  value: string;    // Full path to insert
+  source: string;   // Why this was suggested (tooltip)
+}
+
+/**
+ * Generate name suggestions for the inline create form.
+ * @param tokenType   Current selected token type
+ * @param value       Current value input
+ * @param prefix      Group prefix (siblingPrefix or '')
+ * @param siblingNames Names of sibling tokens in the target group
+ * @param layerName   Figma selection layer name, if any
+ */
+export function generateNameSuggestions(
+  tokenType: string,
+  value: string,
+  prefix: string,
+  siblingNames: string[],
+  layerName: string | null,
+): NameSuggestion[] {
+  const suggestions: NameSuggestion[] = [];
+  const seen = new Set<string>();
+  const add = (label: string, val: string, source: string) => {
+    if (seen.has(val)) return;
+    seen.add(val);
+    suggestions.push({ label, value: val, source });
+  };
+
+  const dot = prefix && !prefix.endsWith('.') ? '.' : '';
+
+  // 1. Type-based prefix (only when no prefix already set)
+  if (!prefix) {
+    const typePrefix = TYPE_PREFIXES[tokenType] || tokenType;
+    add(`${typePrefix}.`, `${typePrefix}.`, 'Based on token type');
+  }
+
+  // 2. Value-based name (colors)
+  const trimVal = value.trim();
+  if (trimVal && /^#[0-9a-fA-F]{6,8}$/.test(trimVal)) {
+    const colorName = hexToName(trimVal);
+    if (colorName) {
+      const full = prefix ? `${prefix}${dot}${colorName}` : `color.${colorName}`;
+      add(colorName, full, `Color name for ${trimVal}`);
+    }
+  }
+
+  // 3. Sibling pattern — numeric scale
+  if (siblingNames.length >= 2) {
+    const nextNum = nextScaleStep(siblingNames);
+    if (nextNum) {
+      add(nextNum, `${prefix}${dot}${nextNum}`, `Next in scale: ${siblingNames.slice(-2).join(', ')}, …`);
+    }
+  }
+
+  // 4. Sibling pattern — named scale (xs, sm, md, lg, xl)
+  if (siblingNames.length >= 1) {
+    const nextNamed = nextNamedScaleStep(siblingNames);
+    if (nextNamed) {
+      add(nextNamed, `${prefix}${dot}${nextNamed}`, `Next size in scale`);
+    }
+  }
+
+  // 5. Figma layer name
+  if (layerName) {
+    const sanitized = sanitizeLayerName(layerName);
+    if (sanitized && sanitized.length > 0 && sanitized.length < 60) {
+      const full = prefix ? `${prefix}${dot}${sanitized}` : sanitized;
+      add(sanitized, full, `From Figma layer "${layerName}"`);
+    }
+  }
+
+  return suggestions;
+}
+
 /**
  * Highlight all occurrences of any term in `terms` within `text`.
  * Returns plain text when nothing matches; JSX fragments with <mark> otherwise.

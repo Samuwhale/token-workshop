@@ -540,3 +540,17 @@
   - Tokens without scopes pass all filters (opt-in restriction model), maintaining backward compatibility
   - The `SCOPE_TO_PROPERTIES` map bridges Figma's variable scope vocabulary to the plugin's `BindableProperty` type
 ---
+
+## 2026-03-28 - No smart token name suggestions
+- Added `generateNameSuggestions()` engine in `tokenListHelpers.tsx` with 5 suggestion sources: type-based prefix (e.g. "color."), hex-to-color-name (hue mapping), numeric scale pattern detection (100/200/300 → 400), named scale detection (xs/sm/md → lg), and Figma layer name sanitization
+- Added clickable suggestion chips row in the inline create form, appearing between the name input and value input
+- Suggestions update reactively as token type, value, sibling context, and Figma selection change
+- Also fixed pre-existing broken `buildTreeByType` import by adding the missing function to `tokenListUtils.ts`
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` ~L93-195 (new `generateNameSuggestions` + helpers)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L24 (import), ~L745-753 (memo), ~L774-787 (suggestion chips UI)
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L463-494 (new `buildTreeByType`)
+- **Learnings for future iterations:**
+  - `siblingOrderMap` already provides ordered child names per group path — ideal for pattern detection without extra queries
+  - `selectedNodes[0].name` provides the Figma layer name; only suggest when exactly 1 node is selected to avoid ambiguity
+  - Pre-existing broken import (`buildTreeByType`) was blocking builds; had to fix it as part of validation
+---

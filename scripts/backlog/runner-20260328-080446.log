@@ -139,3 +139,10 @@ Already up to date.
 ===============================================================
   Claimed: No smart token name suggestions — users must invent names from scratch; when creating a token, suggest names based on: the token type (color → "color/"), the value (blue hex → "blue"), sibling patterns in the same group (if siblings are 100/200/300, suggest the next scale step), and the Figma layer name if created from selection
   Worktree: /tmp/backlog-63685-BCxiuZ
+
+  ✓ done: No smart token name suggestions
+    Added smart name suggestion chips to inline create form with 5 sources: type prefix, hex color name, numeric scale pattern, named scale pattern (xs/sm/md/lg), and Figma layer name. Suggestions appear as clickable chips that populate the name field.
+    39 turns · 280s · $1.61
+
+--- Merging: No smart token name suggestions ---
+Already up to date.

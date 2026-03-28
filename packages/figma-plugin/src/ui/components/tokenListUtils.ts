@@ -461,35 +461,34 @@ export function sortLeafNodes(
 }
 
 /**
- * Build a TokenNode[] tree from a flat token map, organized by $type at the top level.
- * Each top-level group is a type folder (e.g. "color", "dimension"), children are the
- * individual tokens within that type, preserving their dot-separated path hierarchy.
+ * Build a tree organized by token type from a flat token map.
+ * Each top-level node is a group named after the type (e.g. "color", "dimension").
+ * Used in simple mode to give a merged view across all sets.
  */
 export function buildTreeByType(flat: Record<string, TokenMapEntry>): TokenNode[] {
-  const byType: Record<string, Array<[string, TokenMapEntry]>> = {};
+  const byType = new Map<string, TokenNode[]>();
   for (const [path, entry] of Object.entries(flat)) {
-    const t = entry.$type || 'unknown';
-    (byType[t] ??= []).push([path, entry]);
+    const type = entry.$type || 'unknown';
+    if (!byType.has(type)) byType.set(type, []);
+    const segments = path.split('.');
+    byType.get(type)!.push({
+      path,
+      name: segments[segments.length - 1],
+      $type: entry.$type,
+      $value: entry.$value,
+      isGroup: false,
+    });
   }
-
-  const roots: TokenNode[] = [];
-  for (const [type, entries] of Object.entries(byType).sort(([a], [b]) => a.localeCompare(b))) {
-    const children: TokenNode[] = entries
-      .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
-      .map(([path, entry]) => ({
-        path,
-        name: entry.$name || path.split('.').pop() || path,
-        $type: entry.$type,
-        $value: entry.$value,
-        isGroup: false,
-      }));
-    roots.push({
+  const groups: TokenNode[] = [];
+  for (const [type, children] of byType) {
+    groups.push({
       path: type,
       name: type,
-      $type: type,
       isGroup: true,
+      $type: type,
       children,
     });
   }
-  return roots;
+  groups.sort((a, b) => a.name.localeCompare(b.name));
+  return groups;
 }

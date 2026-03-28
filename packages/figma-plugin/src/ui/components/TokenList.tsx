@@ -21,7 +21,7 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { TokenListProps, DeleteConfirm, PromoteRow } from './tokenListTypes';
 import { VIRTUAL_ITEM_HEIGHT, VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN } from './tokenListTypes';
-import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch } from './tokenListHelpers';
+import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions } from './tokenListHelpers';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenListModals } from './TokenListModals';
 import { TokenTableView } from './TokenTableView';
@@ -742,6 +742,15 @@ export function TokenList({
     walk(tokens, '');
     return map;
   }, [tokens]);
+
+  // Smart name suggestions for inline create form
+  const nameSuggestions = useMemo(() => {
+    if (!showCreateForm) return [];
+    const groupPath = siblingPrefix ?? '';
+    const siblings = siblingOrderMap.get(groupPath) ?? [];
+    const layerName = selectedNodes.length === 1 ? selectedNodes[0].name : null;
+    return generateNameSuggestions(newTokenType, newTokenValue, groupPath, siblings, layerName);
+  }, [showCreateForm, siblingPrefix, siblingOrderMap, selectedNodes, newTokenType, newTokenValue]);
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
@@ -2772,6 +2781,22 @@ export function TokenList({
               autoFocus
             />
             {createError && <p className="text-[10px] text-[var(--color-figma-error)]">{createError}</p>}
+            {nameSuggestions.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] self-center mr-0.5">Suggest:</span>
+                {nameSuggestions.map(s => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    title={s.source}
+                    onClick={() => { setNewTokenPath(s.value); setCreateError(''); }}
+                    className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors cursor-pointer"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <input
               type="text"
               placeholder="Value (optional, e.g. #FF0000, 16px)"
