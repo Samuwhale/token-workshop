@@ -405,3 +405,24 @@ Already up to date.
 
 --- Merging: Graph tab crashes — `graphScrollRef is not defined` ---
 Already up to date.
+[main 8a582f6] chore(backlog): done – Graph tab crashes — `graphScrollRef is not defined`
+ 4 files changed, 30 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Graph tab crashes — `graphScrollRef is not defined`
+- Already fixed in a prior session. The `graphScrollRef` reference was removed from `GraphPanel.tsx` as part of the node-graph canvas feature work (see progress entry for "No visual node-graph editor"). No occurrences of `graphScrollRef` remain in the source. Build passes.
+- Files changed: none (already resolved)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  2 items remaining
+===============================================================
+  Claimed: TokenList delete has no user-facing error feedback — catch block only logs to console, user sees token disappear optimistically even if server rejects the delete
+  Worktree: /tmp/backlog-34977-CqVAOU
+
+  ✓ done: TokenList delete has no user-facing error feedback
+    stale — already done. Catch block sets deleteError state with getErrorMessage(), error banner renders at L2374-2378, and setLocallyDeletedPaths only runs on success so tokens don't disappear optimistically.
+    11 turns · 56s · $0.33
+
+--- Merging: TokenList delete has no user-facing error feedback ---
+Already up to date.
