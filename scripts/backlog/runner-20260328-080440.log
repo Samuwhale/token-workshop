@@ -486,3 +486,10 @@ Already up to date.
 ===============================================================
   Claimed: Multiple fetch calls in TokenList with no error handling — `handleRenameGroup`, `executeTokenRename`, `handleDropOnGroup`, `handleDuplicateGroup`, `handleInlineSave` don't check `res.ok` or catch network errors; failed operations push undo slots and refresh as if they succeeded
   Worktree: /tmp/backlog-62956-JBx3ab
+
+  ✓ done: Multiple fetch calls in TokenList with no error handling
+    Added res.ok checks and try/catch to handleRenameGroup, executeTokenRename, handleDropOnGroup, handleDuplicateGroup, handleInlineSave — failed operations now call onError and return early without pushing undo slots or refreshing as if succeeded
+    16 turns · 135s · $0.69
+
+--- Merging: Multiple fetch calls in TokenList with no error handling ---
+Already up to date.

@@ -392,3 +392,15 @@
   - The existing client-side `useUndo` hook coexists with server-side operation log — Cmd+Z uses the fast client stack, command palette shows persistent server history
   - Pre-existing build was broken by missing `getNextUnboundProperty` export — unrelated to this item but had to be fixed for build validation
 ---
+
+## 2026-03-28 - Multiple fetch calls in TokenList with no error handling
+- Added `res.ok` checks and try/catch network error handling to 5 functions: `handleRenameGroup`, `executeTokenRename`, `handleDropOnGroup`, `handleDuplicateGroup`, `handleInlineSave`
+- On failure, calls `onError?.(message)` and returns early — no undo slot is pushed and no refresh-as-if-succeeded occurs
+- Undo/redo callbacks left as best-effort (they run later asynchronously)
+- Pattern matches existing `handleConfirmMoveToken` which already had proper error handling
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L977-1370
+- **Learnings for future iterations:**
+  - `onError` is an optional prop already wired up in TokenList — use it for all user-facing error messages from fetch calls
+  - The codebase has inconsistent error handling — some functions check `res.ok`, others don't. When adding new fetch calls, always check.
+  - For multi-step loops (handleDropOnGroup), call `onRefresh()` before returning on mid-loop failure so partial moves are reflected in UI
+---

@@ -414,3 +414,18 @@ Already up to date.
 
 --- Merging: No undo for destructive operations beyond toast ---
 Already up to date.
+[main 44a4d0d] chore(backlog): done – No undo for destructive operations beyond toast
+ 14 files changed, 508 insertions(+), 5 deletions(-)
+ create mode 100644 packages/server/src/routes/operations.ts
+ create mode 100644 packages/server/src/services/operation-log.ts
+
+## 2026-03-28 - No undo for destructive operations beyond toast
+- Implemented server-side operation log with rollback for all write operations, plus command palette integration
+- New `OperationLog` service: in-memory ring buffer (50 entries max) with `record()`, `getRecent()`, `rollback()` methods
+- Snapshot helpers (`snapshotPaths`, `snapshotSet`, `snapshotGroup`) capture token state before/after each mutation
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  25 items remaining
+===============================================================
+  Claimed: `useSetMetadata` silently swallows save errors — `handleSaveMetadata` catches all errors with `// best-effort; close modal regardless`; user gets no feedback that their changes failed
+  Worktree: /tmp/backlog-63411-bTt5vZ

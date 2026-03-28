@@ -976,11 +976,21 @@ export function TokenList({
 
   const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
     if (!connected) return;
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ oldGroupPath, newGroupPath }),
-    });
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldGroupPath, newGroupPath }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: `Rename failed (${res.status})` }));
+        onError?.(data.error || `Rename failed (${res.status})`);
+        return;
+      }
+    } catch {
+      onError?.('Rename group failed: network error');
+      return;
+    }
     if (onPushUndo) {
       const capturedSet = setName;
       const capturedUrl = serverUrl;
@@ -1005,15 +1015,25 @@ export function TokenList({
       });
     }
     onRefresh();
-  }, [connected, serverUrl, setName, onRefresh, onPushUndo]);
+  }, [connected, serverUrl, setName, onRefresh, onPushUndo, onError]);
 
   const executeTokenRename = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ oldPath, newPath }),
-    });
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPath, newPath }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: `Rename failed (${res.status})` }));
+        onError?.(data.error || `Rename failed (${res.status})`);
+        return;
+      }
+    } catch {
+      onError?.('Rename token failed: network error');
+      return;
+    }
     setRenameTokenConfirm(null);
     if (onPushUndo) {
       const capturedSet = setName;
@@ -1041,7 +1061,7 @@ export function TokenList({
     onRefresh();
     recentlyTouched.renamePath(oldPath, newPath);
     pinnedTokens.renamePin(oldPath, newPath);
-  }, [connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched, pinnedTokens]);
+  }, [connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched, pinnedTokens, onError]);
 
   const handleDropOnGroup = useCallback(async (targetGroupPath: string) => {
     if (!dragSource || !connected) return;
@@ -1055,11 +1075,23 @@ export function TokenList({
       const newPath = targetGroupPath ? `${targetGroupPath}.${name}` : name;
       if (newPath === oldPath) continue;
       moves.push({ oldPath, newPath });
-      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldPath, newPath }),
-      });
+      try {
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ oldPath, newPath }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({ error: `Move failed (${res.status})` }));
+          onError?.(data.error || `Move failed (${res.status})`);
+          onRefresh();
+          return;
+        }
+      } catch {
+        onError?.('Move token failed: network error');
+        onRefresh();
+        return;
+      }
     }
     if (onPushUndo && moves.length > 0) {
       const capturedSet = setName;
@@ -1096,7 +1128,7 @@ export function TokenList({
       pinnedTokens.renamePin(oldPath, newPath);
     }
     onRefresh();
-  }, [dragSource, connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched, pinnedTokens]);
+  }, [dragSource, connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched, pinnedTokens, onError]);
 
   const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
@@ -1156,13 +1188,23 @@ export function TokenList({
 
   const handleDuplicateGroup = useCallback(async (groupPath: string) => {
     if (!connected) return;
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/duplicate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupPath }),
-    });
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/duplicate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupPath }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: `Duplicate failed (${res.status})` }));
+        onError?.(data.error || `Duplicate failed (${res.status})`);
+        return;
+      }
+    } catch {
+      onError?.('Duplicate group failed: network error');
+      return;
+    }
     onRefresh();
-  }, [connected, serverUrl, setName, onRefresh]);
+  }, [connected, serverUrl, setName, onRefresh, onError]);
 
   const handleUpdateGroupMeta = useCallback(async (
     groupPath: string,
@@ -1331,11 +1373,21 @@ export function TokenList({
     if (!connected) return;
     const oldEntry = allTokensFlat[path];
     const encodedPath = path.split('.').map(encodeURIComponent).join('/');
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ $type: type, $value: newValue }),
-    });
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ $type: type, $value: newValue }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: `Save failed (${res.status})` }));
+        onError?.(data.error || `Save failed (${res.status})`);
+        return;
+      }
+    } catch {
+      onError?.('Save failed: network error');
+      return;
+    }
     if (onPushUndo && oldEntry) {
       onPushUndo({
         description: `Edit ${path}`,
@@ -1359,7 +1411,7 @@ export function TokenList({
     }
     onRefresh();
     recentlyTouched.recordTouch(path);
-  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, recentlyTouched]);
+  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, recentlyTouched, onError]);
 
   // Detach a token from its generator by removing the generator extension
   const handleDetachFromGenerator = useCallback(async (path: string) => {
