@@ -104,7 +104,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [undoing, setUndoing] = useState(false);
 
   const clearConflictState = useCallback(() => {
-    clearConflictState();
+    setConflictPaths(null);
     setConflictExistingValues(null);
     setConflictDecisions(new Map());
   }, []);

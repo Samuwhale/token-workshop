@@ -640,3 +640,10 @@
   - `pointer-events-none` on the card prevents hover flicker since the card itself doesn't need interaction
   - A 300ms delay on hover state prevents preview popups during casual list scrolling
 ---
+
+## 2026-03-28 - ImportPanel `clearConflictState` calls itself recursively
+- Fixed infinite recursion bug: `clearConflictState()` on line 107 called itself instead of `setConflictPaths(null)`. Replaced the self-call with the correct state setter.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L107
+- **Learnings for future iterations:**
+  - When a `useCallback` body accidentally calls itself instead of a state setter, TypeScript won't catch it since the function signature is valid. Watch for copy-paste errors where a function name was used as a placeholder and never replaced.
+---
