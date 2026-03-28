@@ -348,3 +348,12 @@
   - Cross-set dependency tracking must be separate from the resolver (which needs one token per path for value resolution) — build a parallel dependents map by scanning all entries.
   - Changing `getAllFlatTokens` from Record to Array is a breaking API change but necessary since JS objects can't have duplicate keys.
 ---
+
+## 2026-03-28 - No breadcrumb trail for deep token trees
+- Added a sticky breadcrumb bar (e.g. `colors › brand › primary`) that appears at the top of the token list scroll container when the user scrolls past a group header into nested content (depth > 0). Each segment is clickable and jumps to that ancestor group.
+- Implementation: `groupNameMap` (useMemo) maps group paths to display names from flatItems. `breadcrumbSegments` (useMemo) walks up the ancestor chain from the first visible item using path slicing. Rendered as a sticky div with `top-0 z-10` inside the virtual scroll container.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1798 (breadcrumb computation), ~L2638 (breadcrumb rendering)
+- **Learnings for future iterations:**
+  - `rawStart` (first visible virtual scroll index) is a local variable derived from `virtualScrollTop` state — safe to use as a `useMemo` dependency since it recomputes on every scroll-triggered re-render.
+  - The virtual scroll container's `sticky top-0` works for elements inside the scrollable div — they stick relative to the scroll container, not the viewport.
+---

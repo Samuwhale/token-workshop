@@ -63,3 +63,16 @@ Already up to date.
 
 --- Merging: No bulk delete in multi-select mode ---
 Already up to date.
+[main 3644b69] chore(backlog): done – No bulk delete in multi-select mode
+ 3 files changed, 29 insertions(+), 1 deletion(-)
+
+## 2026-03-28 - Flat token map silently shadows tokens when two sets define the same path
+- Changed `flatTokens` from `Map<string, single_entry>` to `Map<string, Array<entries>>` so all sets' versions of a token are preserved.
+- Added `crossSetDependents` map built by scanning ALL token entries across ALL sets, used by `getDependents()` for accurate delete-safety checks.
+- Updated `rebuildFlatTokens` to push entries into arrays instead of overwriting.
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  90 items remaining
+===============================================================
+  Claimed: No visual token previews in the token list — rows show text-only value representations; add inline previews per type: color swatches, proportional bars for spacing, "Aa" samples for typography, shadow previews, border line segments — this is table-stakes (both Tokens Studio and Figma native do this)
+  Worktree: /tmp/backlog-63685-y4IY4C

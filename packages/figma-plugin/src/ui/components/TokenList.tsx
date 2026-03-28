@@ -1796,6 +1796,39 @@ export function TokenList({
   const virtualTopPad = itemOffsets[virtualStartIdx];
   const virtualBottomPad = Math.max(0, totalVirtualH - itemOffsets[virtualEndIdx]);
 
+  // Breadcrumb: build ancestor path segments for the first visible item
+  // Map group paths → display names from the flat items list
+  const groupNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const { node } of flatItems) {
+      if (node.isGroup) map.set(node.path, node.name);
+    }
+    return map;
+  }, [flatItems]);
+
+  const breadcrumbSegments = useMemo(() => {
+    if (flatItems.length === 0 || rawStart >= flatItems.length) return [];
+    const topItem = flatItems[rawStart];
+    if (topItem.depth === 0) return [];
+    // Walk up the ancestor chain from the top visible item
+    const segments: Array<{ name: string; path: string }> = [];
+    let currentPath = topItem.node.path;
+    let currentName = topItem.node.name;
+    while (currentPath.length > currentName.length) {
+      const parentPath = currentPath.slice(0, currentPath.length - currentName.length - 1);
+      if (!parentPath) break;
+      const parentName = groupNameMap.get(parentPath);
+      if (parentName) {
+        segments.unshift({ name: parentName, path: parentPath });
+        currentPath = parentPath;
+        currentName = parentName;
+      } else {
+        break;
+      }
+    }
+    return segments;
+  }, [flatItems, rawStart, groupNameMap]);
+
   return (
     <div className="flex flex-col h-full" onKeyDown={handleListKeyDown}>
       {/* Toolbars — fixed above the scrollable token list */}
@@ -2603,6 +2636,22 @@ export function TokenList({
           </div>
         ) : (
           <div className="py-1">
+            {breadcrumbSegments.length > 0 && (
+              <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg)] border-b border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)]">
+                {breadcrumbSegments.map((seg, i) => (
+                  <span key={seg.path} className="flex items-center gap-0.5">
+                    {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
+                    <button
+                      className="hover:text-[var(--color-figma-text)] hover:underline truncate max-w-[120px]"
+                      title={seg.path}
+                      onClick={() => handleJumpToGroup(seg.path)}
+                    >
+                      {seg.name}
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
             <div style={{ height: virtualTopPad }} aria-hidden="true" />
             {flatItems.slice(virtualStartIdx, virtualEndIdx).map(({ node, depth }) => {
               const moveEnabled = sortOrder === 'default' && connected;

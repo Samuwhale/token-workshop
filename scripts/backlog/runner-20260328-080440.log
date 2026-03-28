@@ -80,3 +80,10 @@ Already up to date.
 ===============================================================
   Claimed: No breadcrumb trail for deep token trees — once expanded 4+ levels, users lose spatial context; show a sticky breadcrumb (e.g. `colors › brand › primary`) when scrolled deep into a group
   Worktree: /tmp/backlog-62956-JQkNj5
+
+  ✓ done: No breadcrumb trail for deep token trees
+    Added sticky breadcrumb bar (e.g. colors › brand › primary) at top of token list when scrolled into nested groups. Segments are clickable to jump to ancestor groups. Single file change in TokenList.tsx.
+    24 turns · 187s · $0.88
+
+--- Merging: No breadcrumb trail for deep token trees ---
+Already up to date.
