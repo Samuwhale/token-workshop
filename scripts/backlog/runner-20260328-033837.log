@@ -1,0 +1,11 @@
+NOTE: 5 [~] item(s) found — skipping reset (10 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 96
+  Completed total: 371 (next product pass in 1 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  96 items remaining
+===============================================================
+  Claimed: `scanCanvasHeatmap` can freeze Figma on large pages — `findAll` iterates every node synchronously and reads plugin data for all bindable properties with no batching or yielding, unlike `syncBindings` which batches
+  Worktree: /tmp/backlog-10278-LNXq2U

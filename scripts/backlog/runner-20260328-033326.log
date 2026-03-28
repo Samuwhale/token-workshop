@@ -56,3 +56,16 @@ Already up to date.
 
 --- Merging: Git sync commit endpoint accepts arbitrary file paths ---
 Already up to date.
+[main a9e6401] chore(backlog): done – Git sync commit endpoint accepts arbitrary file paths
+ 6 files changed, 45 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - Git sync commit endpoint accepts arbitrary file paths
+- Added `validatePaths()` private method to `GitSync` that resolves each file path against `this.dir` and throws if it escapes the token directory (path traversal prevention)
+- Called `validatePaths()` in `commit()` (when `files` array is provided) and `applyDiffChoices()` (for both pull and push file lists)
+- Files changed: `packages/server/src/services/git-sync.ts` ~L13 (validatePaths), ~L42 (commit guard), ~L139 (applyDiffChoices guard)
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  97 items remaining
+===============================================================
+  Claimed: `setGroupScopesProgress` called but never declared — `handleApplyGroupScopes` in `useFigmaSync.ts` calls `setGroupScopesProgress(...)` three times but neither the state nor setter exist; throws `ReferenceError` at runtime when applying group scopes
+  Worktree: /tmp/backlog-92630-M6gUpL

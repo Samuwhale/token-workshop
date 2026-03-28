@@ -428,18 +428,20 @@ export class TokenStore {
     const oldFilePath = path.join(this.dir, `${oldName}.tokens.json`);
     const newFilePath = path.join(this.dir, `${newName}.tokens.json`);
 
-    // Write new file first (safe: new name doesn't exist yet)
+    // Step 1: Rename the file atomically (same filesystem, so fs.rename is atomic)
     await fs.mkdir(path.dirname(newFilePath), { recursive: true });
+    this._writingFiles.add(oldFilePath);
     this._writingFiles.add(newFilePath);
-    await fs.writeFile(newFilePath, JSON.stringify(set.tokens, null, 2));
-    setTimeout(() => this._writingFiles.delete(newFilePath), 500);
+    await fs.rename(oldFilePath, newFilePath);
 
-    // Update $themes.json: replace all references to oldName with newName
+    // Step 2: Update $themes.json — roll back file rename on failure
     const themesPath = path.join(this.dir, '$themes.json');
+    let themesOriginalContent: string | null = null;
     try {
       const content = await fs.readFile(themesPath, 'utf-8');
       const data = JSON.parse(content) as { $themes: Array<{ options: Array<{ sets: Record<string, unknown> }> }> };
       if (Array.isArray(data.$themes)) {
+        themesOriginalContent = content;
         for (const dimension of data.$themes) {
           if (!Array.isArray(dimension.options)) continue;
           for (const option of dimension.options) {
@@ -449,21 +451,34 @@ export class TokenStore {
             }
           }
         }
-        await fs.writeFile(themesPath, JSON.stringify(data, null, 2));
+        try {
+          await fs.writeFile(themesPath, JSON.stringify(data, null, 2));
+        } catch (writeErr) {
+          // Themes write failed — roll back the file rename
+          await fs.rename(newFilePath, oldFilePath).catch(() => {});
+          this._writingFiles.delete(oldFilePath);
+          this._writingFiles.delete(newFilePath);
+          throw writeErr;
+        }
       }
-    } catch {
+    } catch (err) {
+      if (themesOriginalContent !== null) {
+        // We read themes successfully but something failed — re-throw
+        throw err;
+      }
       // No themes file or parse error — that's fine, nothing to update
     }
 
-    // Update in-memory state
+    // Step 3: Update in-memory state (cannot fail)
     const newSet: TokenSet = { name: newName, tokens: set.tokens, filePath: newFilePath };
     this.sets.set(newName, newSet);
     this.sets.delete(oldName);
 
-    // Delete old file
-    this._writingFiles.add(oldFilePath);
-    await fs.unlink(oldFilePath);
-    setTimeout(() => this._writingFiles.delete(oldFilePath), 500);
+    // Clean up watcher suppression and empty parent dirs
+    setTimeout(() => {
+      this._writingFiles.delete(oldFilePath);
+      this._writingFiles.delete(newFilePath);
+    }, 500);
     await this.removeEmptyParentDirs(oldFilePath);
 
     this.rebuildFlatTokens();

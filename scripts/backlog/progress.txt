@@ -344,3 +344,11 @@
   - Path traversal validation: `path.resolve(base, input)` + `startsWith(base + path.sep)` is the standard Node.js pattern. Must also allow `=== base` for edge cases where resolved path equals the dir itself.
   - Both `commit` and `applyDiffChoices` accept user-provided file arrays — both needed the guard, not just the commit endpoint.
 ---
+
+## 2026-03-28 - renameSet is not atomic
+- Replaced write-new-then-delete-old with atomic `fs.rename`, added rollback of file rename if `$themes.json` write fails. Eliminates the window where two files exist and the risk of inconsistent state on partial failure.
+- Files changed: `packages/server/src/services/token-store.ts` ~L420
+- **Learnings for future iterations:**
+  - `fs.rename` is atomic on the same filesystem — prefer it over write+delete for renames within `this.dir`
+  - When rolling back, use `.catch(() => {})` on the rollback itself to avoid masking the original error
+---
