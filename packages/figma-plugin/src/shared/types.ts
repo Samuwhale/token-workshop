@@ -181,3 +181,125 @@ export interface RemapCompleteMessage {
   updatedNodes: number;
   error?: string;
 }
+
+// --- Additional UI→Controller message types ---
+
+export interface ApplyVariablesMessage {
+  type: 'apply-variables';
+  tokens: any[];
+  collectionMap?: Record<string, string>;
+  modeMap?: Record<string, string>;
+  correlationId?: string;
+}
+
+export interface ApplyStylesMessage {
+  type: 'apply-styles';
+  tokens: any[];
+}
+
+export interface ReadVariablesMessage {
+  type: 'read-variables';
+  correlationId?: string;
+}
+
+export interface ReadStylesMessage {
+  type: 'read-styles';
+  correlationId?: string;
+}
+
+export interface ExportAllVariablesMessage {
+  type: 'export-all-variables';
+}
+
+export interface GetSelectionMessage {
+  type: 'get-selection';
+}
+
+export interface HighlightLayerByTokenMessage {
+  type: 'highlight-layer-by-token';
+  tokenPath: string;
+}
+
+export interface NotifyMessage {
+  type: 'notify';
+  message: string;
+}
+
+export interface ResizeMessage {
+  type: 'resize';
+  width: number;
+  height: number;
+}
+
+export interface DeleteOrphanVariablesMessage {
+  type: 'delete-orphan-variables';
+  knownPaths: string[];
+  collectionMap?: Record<string, string>;
+}
+
+export interface ScanComponentCoverageMessage {
+  type: 'scan-component-coverage';
+}
+
+export interface SelectNodeMessage {
+  type: 'select-node';
+  nodeId: string;
+}
+
+export interface ScanCanvasHeatmapMessage {
+  type: 'scan-canvas-heatmap';
+}
+
+export interface SelectHeatmapNodesMessage {
+  type: 'select-heatmap-nodes';
+  nodeIds: string[];
+}
+
+export interface BatchBindHeatmapNodesMessage {
+  type: 'batch-bind-heatmap-nodes';
+  nodeIds: string[];
+  tokenPath: string;
+  tokenType: string;
+  targetProperty: string;
+  resolvedValue: any;
+}
+
+export interface EyedropperMessage {
+  type: 'eyedropper';
+}
+
+export interface GetActiveThemesMessage {
+  type: 'get-active-themes';
+}
+
+export interface SetActiveThemesMessage {
+  type: 'set-active-themes';
+  themes: Record<string, string>;
+}
+
+/** Discriminated union of all UI→Controller messages */
+export type PluginMessage =
+  | ApplyVariablesMessage
+  | ApplyStylesMessage
+  | ReadVariablesMessage
+  | ReadStylesMessage
+  | ExportAllVariablesMessage
+  | ApplyToSelectionMessage
+  | GetSelectionMessage
+  | SetDeepInspectMessage
+  | RemoveBindingMessage
+  | ClearAllBindingsMessage
+  | SyncBindingsMessage
+  | RemapBindingsMessage
+  | HighlightLayerByTokenMessage
+  | NotifyMessage
+  | ResizeMessage
+  | DeleteOrphanVariablesMessage
+  | ScanComponentCoverageMessage
+  | SelectNodeMessage
+  | ScanCanvasHeatmapMessage
+  | SelectHeatmapNodesMessage
+  | BatchBindHeatmapNodesMessage
+  | EyedropperMessage
+  | GetActiveThemesMessage
+  | SetActiveThemesMessage;

@@ -248,3 +248,10 @@ Already up to date.
 ===============================================================
   Claimed: `PluginMessage` loosely typed as `{ type: string; [key: string]: any }` — the shared types file defines specific message types but they aren't used in the controller switch statement; easy to typo property names
   Worktree: /tmp/backlog-84992-DJGkQv
+
+  ✓ done: PluginMessage loosely typed as { type: string; [key: string]: any }
+    Created 18 new message interfaces and a PluginMessage discriminated union in shared/types.ts; replaced loose local interface in controller.ts with imported union for type-safe switch narrowing; added postPluginMessage() helper for UI-side type safety.
+    19 turns · 174s · $0.74
+
+--- Merging: PluginMessage loosely typed as { type: string; [key: string]: any } ---
+Already up to date.

@@ -1,6 +1,6 @@
 // This runs in Figma's sandbox (no DOM access)
 
-import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
+import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP, type PluginMessage } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 import { getErrorMessage } from '../shared/utils.js';
 
@@ -108,11 +108,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
   }
 };
 
-// Message types
-interface PluginMessage {
-  type: string;
-  [key: string]: any;
-}
+// PluginMessage type imported from shared/types.ts
 
 // Sample fill color from the first selected node and send it back to UI
 function sampleSelectionColor() {

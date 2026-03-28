@@ -180,3 +180,16 @@ Already up to date.
 
 --- Merging: `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names ---
 Already up to date.
+[main 14411db] chore(backlog): done – `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names
+ 5 files changed, 38 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names
+- Replaced the hardcoded regex `/\b(base|index|multiplier|prev)\b/g` with a dynamically-built regex from `Object.keys(vars)`. Keys are sorted longest-first to prevent partial matches and regex-escaped for safety. Empty `vars` short-circuits to return the formula unchanged.
+- Files changed: `packages/core/src/eval-expr.ts` ~L107
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  75 items remaining
+===============================================================
+  Claimed: `weightToFontStyle` mapping in controller uses hardcoded English style names — fonts using "Book", "Roman", "Demi" etc. cause `loadFontAsync` to throw, silently skipping typography application
+  Worktree: /tmp/backlog-85816-9GmE5J

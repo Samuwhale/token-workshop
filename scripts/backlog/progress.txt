@@ -330,3 +330,12 @@
 - **Learnings for future iterations:**
   - When building a regex from user-supplied keys, sort longest-first and escape special chars to avoid partial-match and injection bugs.
 ---
+
+## 2026-03-28 - PluginMessage loosely typed as { type: string; [key: string]: any } — shared types not used in controller switch
+- Added 18 missing message type interfaces to `shared/types.ts` for every UI→Controller message (e.g., `ApplyVariablesMessage`, `NotifyMessage`, `ResizeMessage`, etc.). Created a `PluginMessage` discriminated union type of all 24 message interfaces. Replaced the loose local `interface PluginMessage { type: string; [key: string]: any }` in controller.ts with the imported union — TypeScript now narrows `msg` in each switch case so property access is type-checked. Added `postPluginMessage(msg: PluginMessage)` helper in `shared/utils.ts` for type-safe message sending from the UI side.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L185, `packages/figma-plugin/src/plugin/controller.ts` ~L3,~L111, `packages/figma-plugin/src/shared/utils.ts` ~L1
+- **Learnings for future iterations:**
+  - The controller switch already covered all message types — the only change needed was replacing the loose interface with a discriminated union import.
+  - `shared/utils.ts` only had one export before; safe to add imports from `shared/types.ts` there since it's a local shared module (not a re-export from `@tokenmanager/core`).
+  - UI call sites use `parent.postMessage({ pluginMessage: {...} }, '*')` — a typed wrapper (`postPluginMessage`) can be adopted incrementally without breaking existing code.
+---
