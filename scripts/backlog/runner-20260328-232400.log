@@ -54,3 +54,10 @@ Already up to date.
   Discovery pass added 10 items — continuing.
   Claimed: No batch delete for selected tokens — select mode in `TokenList.tsx` allows multi-select but provides no batch delete action; users must delete tokens one at a time even when many are selected; add a "Delete selected (N)" button in the selection toolbar with a single confirmation dialog showing the count and any alias dependents
   Worktree: /tmp/backlog-16467-4gpMr8
+
+  ✓ done: No batch delete for selected tokens
+    stale — already done. Full batch delete flow exists: UI button (L2186), orphan counting (L1605), confirmation dialog with alias warnings (L1938), bulk-delete API endpoint, and undo support.
+    12 turns · 130s · $0.57
+
+--- Merging: No batch delete for selected tokens ---
+Already up to date.

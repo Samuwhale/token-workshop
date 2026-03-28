@@ -478,3 +478,10 @@
 - **Learnings for future iterations:**
   - Always verify backlog items against current code before implementing — features may have been added in prior sessions
 ---
+
+## 2026-03-28 - No batch delete for selected tokens
+- Already fully implemented: "Delete N" button exists in selection toolbar (TokenList.tsx ~L2186-2191), `requestBulkDelete` handler counts orphan aliases (L1605-1616), confirmation dialog shows count + broken alias warning (L1938-1945), `executeDelete` handles bulk type via `POST /api/tokens/:set/bulk-delete` (L1654-1662), server endpoint exists in tokens.ts ~L535, undo support included
+- Files changed: none — feature already complete
+- **Learnings for future iterations:**
+  - Always check if a backlog item has already been implemented before starting work
+---
