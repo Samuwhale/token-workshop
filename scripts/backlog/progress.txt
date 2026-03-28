@@ -281,3 +281,11 @@
   - Figma variables use `/` as path separator, DTCG tokens use `.` — always convert when crossing the boundary
   - The styles code in the same file already had the conversion (`token.path.replace(/\./g, '/')`) but variables didn't — look for inconsistencies when fixing one path type
 ---
+
+## 2026-03-28 - deleteTokenAtPath won't prune groups with only $-prefixed metadata keys
+- Changed the empty-group check in `deleteTokenAtPath` from `Object.keys(child).length === 0` to `Object.keys(child).every(k => k.startsWith('$'))`, so groups containing only DTCG metadata keys ($type, $description, etc.) are pruned after the last real child token is deleted. The `every` check on an empty array still returns true, so truly empty groups continue to be pruned as before.
+- Files changed: `packages/server/src/services/token-store.ts` ~L1191
+- **Learnings for future iterations:**
+  - `Array.prototype.every()` returns `true` for empty arrays, so the new check subsumes the old `length === 0` check — no special case needed
+  - DTCG metadata keys always start with `$` — this is a reliable discriminator for "has no real child tokens"
+---

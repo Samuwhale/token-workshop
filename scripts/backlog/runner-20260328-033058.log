@@ -30,3 +30,10 @@ Already up to date.
 ===============================================================
   Claimed: `deleteTokenAtPath` won't prune groups that only have `$`-prefixed metadata keys (`$type`, `$description`) — orphaned metadata remains after the last child token is deleted
   Worktree: /tmp/backlog-85816-1IiAkB
+
+  ✓ done: deleteTokenAtPath won't prune groups that only have $-prefixed metadata keys
+    Changed empty-group check to prune groups where all remaining keys are $-prefixed metadata (e.g. $type, $description), not just truly empty groups
+    11 turns · 53s · $0.28
+
+--- Merging: deleteTokenAtPath won't prune groups that only have $-prefixed metadata keys ---
+Already up to date.

@@ -66,3 +66,16 @@ Already up to date.
 
 --- Merging: findVariableInList matches by name (dots) not Figma variable name (slashes) ---
 Already up to date.
+[main e6ad05c] chore(backlog): done – findVariableInList matches by name (dots) not Figma variable name (slashes)
+ 6 files changed, 35 insertions(+), 5 deletions(-)
+
+## 2026-03-28 - findVariableInList matches by name (dots) not Figma variable name (slashes)
+- Added `token.path.replace(/\./g, '/')` conversion before passing to `findVariableInList` and `createVariable`, matching the same pattern already used for styles in the same file
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L189
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  106 items remaining
+===============================================================
+  Claimed: `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block — if `saveSet` throws, batch depth is never decremented and all subsequent rebuilds are suppressed
+  Worktree: /tmp/backlog-84992-NDsTPY

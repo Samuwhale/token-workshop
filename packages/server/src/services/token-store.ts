@@ -1188,7 +1188,8 @@ export class TokenStore {
     // Walk back up and remove any parent group that is now empty.
     for (let i = chain.length - 1; i >= 0; i--) {
       const { obj, key } = chain[i];
-      if (typeof obj[key] === 'object' && obj[key] !== null && Object.keys(obj[key]).length === 0) {
+      const child = obj[key];
+      if (typeof child === 'object' && child !== null && Object.keys(child).every(k => k.startsWith('$'))) {
         delete obj[key];
       } else {
         break;
