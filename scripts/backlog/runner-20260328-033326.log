@@ -265,3 +265,18 @@ Already up to date.
 
 --- Merging: AliasAutocomplete and RemapAutocompleteInput only support substring matching — no fuzzy search ---
 Already up to date.
+[main 3664061] chore(backlog): done – AliasAutocomplete and RemapAutocompleteInput only support substring matching — no fuzzy search
+ 7 files changed, 132 insertions(+), 18 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/shared/fuzzyMatch.ts
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Fuzzy search for AliasAutocomplete and RemapAutocompleteInput
+- Added `fuzzyScore()` utility in `packages/figma-plugin/src/ui/shared/fuzzyMatch.ts` that scores query-target pairs using ordered character matching with bonuses for consecutive matches, segment boundaries, and camelCase transitions
+- Replaced `path.toLowerCase().includes(q)` substring matching with fuzzy scoring + sort-by-score in both autocomplete components
+- Files changed: `packages/figma-plugin/src/ui/shared/fuzzyMatch.ts` (new), `packages/figma-plugin/src/ui/components/AliasAutocomplete.tsx` ~L28, `packages/figma-plugin/src/ui/components/RemapAutocompleteInput.tsx` ~L24
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  62 items remaining
+===============================================================
+  Claimed: AliasAutocomplete shows token path but not the resolved value — when picking an alias, users can't see what color/dimension the alias points to without navigating away
+  Worktree: /tmp/backlog-92630-p5OPjS

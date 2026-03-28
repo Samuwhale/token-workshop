@@ -303,3 +303,14 @@
   - Fuzzy match with segment-boundary awareness (dots, slashes, dashes) works well for dotted token paths like `color.primary.base`
   - Exact substring match should still get a large score bonus so it ranks above scattered fuzzy hits
 ---
+
+## 2026-03-28 - `token-store.ts` uses `any` types pervasively for token group traversal
+- Replaced all 22 `any` type annotations in `token-store.ts` with a local `TokenNode` type alias (`Record<string, unknown>`) and targeted `as TokenNode` casts after runtime type narrowing (`typeof x === 'object' && x !== null`).
+- For read-only traversal (path existence checks, token lookups), used `let current: unknown` with narrowing before property access.
+- For mutating traversal (set token, delete token, reorder), used `let current: TokenNode` since we need indexed writes.
+- Files changed: `packages/server/src/services/token-store.ts` ~L17 (type alias), ~L25-53 (walkAliasValues), ~L62 (walkLeafTokens), ~L320-346 (reorderGroupChildren), ~L787-835 (collectGroupLeafTokens, updateAliasRefs, updateBulkAliasRefs, pathExistsAt), ~L1136-1226 (updateGroup, getObjectAtPath, setGroupAtPath, getTokenAtPath, setTokenAtPath, deleteTokenAtPath)
+- **Learnings for future iterations:**
+  - `TokenGroup` index signature (`[key: string]: Token | TokenGroup | ...`) is assignable to `Record<string, unknown>` so no forced casts needed at call sites
+  - For traversal variables: use `unknown` when only reading (forces narrowing), `TokenNode` when writing (allows indexed assignment)
+  - The server package lacks `@types/node` so `tsc --noEmit` shows many pre-existing errors; filter for your specific file to validate
+---

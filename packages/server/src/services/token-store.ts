@@ -14,37 +14,40 @@ import {
 
 const MAX_REGEX_LENGTH = 200;
 
+/** A loosely-typed node used when traversing token group trees. */
+type TokenNode = Record<string, unknown>;
+
 /**
  * Walk every $value in a token tree and apply `updateString` to string values
  * (including string leaves inside composite/object $values).
  * Returns the number of $value fields that were modified.
  */
 function walkAliasValues(
-  group: any,
+  group: TokenNode,
   updateString: (s: string) => string | null,
 ): number {
   let count = 0;
-  const updateComposite = (obj: any) => {
+  const updateComposite = (obj: TokenNode) => {
     for (const k of Object.keys(obj)) {
       const v = obj[k];
       if (typeof v === 'string') {
         const replaced = updateString(v);
         if (replaced !== null) { obj[k] = replaced; count++; }
       } else if (typeof v === 'object' && v !== null) {
-        updateComposite(v);
+        updateComposite(v as TokenNode);
       }
     }
   };
-  const walk = (obj: any) => {
+  const walk = (obj: TokenNode) => {
     for (const key of Object.keys(obj)) {
       const val = obj[key];
       if (key === '$value' && typeof val === 'string') {
         const replaced = updateString(val);
         if (replaced !== null) { obj[key] = replaced; count++; }
       } else if (key === '$value' && typeof val === 'object' && val !== null) {
-        updateComposite(val);
+        updateComposite(val as TokenNode);
       } else if (typeof val === 'object' && val !== null) {
-        walk(val);
+        walk(val as TokenNode);
       }
     }
   };
@@ -57,17 +60,17 @@ function walkAliasValues(
  * Skips `$`-prefixed keys (DTCG metadata).
  */
 function walkLeafTokens(
-  obj: any,
+  obj: TokenNode,
   visitor: (relativePath: string, token: Token) => void,
   prefix = '',
 ): void {
-  for (const [key, val] of Object.entries(obj as object)) {
+  for (const [key, val] of Object.entries(obj)) {
     if (key.startsWith('$')) continue;
     const relPath = prefix ? `${prefix}.${key}` : key;
     if (isDTCGToken(val)) {
       visitor(relPath, val as Token);
     } else if (typeof val === 'object' && val !== null) {
-      walkLeafTokens(val, visitor, relPath);
+      walkLeafTokens(val as TokenNode, visitor, relPath);
     }
   }
 }
@@ -315,13 +318,13 @@ export class TokenStore {
   async reorderGroupChildren(setName: string, groupPath: string, orderedKeys: string[]): Promise<void> {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
-    let group: Record<string, any>;
+    let group: TokenNode;
     if (groupPath) {
       const found = this.getObjectAtPath(set.tokens, groupPath);
       if (!found) throw new Error(`Group "${groupPath}" not found in set "${setName}"`);
       group = found;
     } else {
-      group = set.tokens as Record<string, any>;
+      group = set.tokens as TokenNode;
     }
     const nonMetaKeys = Object.keys(group).filter(k => !k.startsWith('$'));
     const orderedSet = new Set(orderedKeys);
@@ -331,7 +334,7 @@ export class TokenStore {
     for (const key of nonMetaKeys) {
       if (!orderedSet.has(key)) throw new Error(`Key "${key}" is missing from orderedKeys`);
     }
-    const reordered: Record<string, any> = {};
+    const reordered: TokenNode = {};
     for (const [k, v] of Object.entries(group)) {
       if (k.startsWith('$')) reordered[k] = v;
     }
@@ -782,21 +785,21 @@ export class TokenStore {
   /** Collect all leaf tokens under a group path, with relative paths from the group root */
   private collectGroupLeafTokens(tokens: TokenGroup, groupPath: string): Array<{ relativePath: string; token: Token }> {
     const parts = groupPath.split('.');
-    let current: any = tokens;
+    let current: unknown = tokens;
     for (const part of parts) {
       if (!current || typeof current !== 'object') return [];
-      current = current[part];
+      current = (current as TokenNode)[part];
     }
     if (!current || typeof current !== 'object' || isDTCGToken(current)) return [];
     const result: Array<{ relativePath: string; token: Token }> = [];
-    walkLeafTokens(current, (relativePath, token) => {
+    walkLeafTokens(current as TokenNode, (relativePath, token) => {
       result.push({ relativePath, token });
     });
     return result;
   }
 
   /** Update alias $value references from oldGroupPath to newGroupPath across a token tree */
-  private updateAliasRefs(group: any, oldGroupPath: string, newGroupPath: string): number {
+  private updateAliasRefs(group: TokenNode, oldGroupPath: string, newGroupPath: string): number {
     const escapedOld = oldGroupPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const refRegex = new RegExp(`\\{(${escapedOld})(\\.[^}]*)?\\}`, 'g');
     return walkAliasValues(group, (s) => {
@@ -811,7 +814,7 @@ export class TokenStore {
   }
 
   /** Update alias $value references using a full path map (oldPath -> newPath) */
-  private updateBulkAliasRefs(group: any, pathMap: Map<string, string>): number {
+  private updateBulkAliasRefs(group: TokenNode, pathMap: Map<string, string>): number {
     const refRegex = /\{([^}]+)\}/g;
     return walkAliasValues(group, (s) => {
       if (!s.includes('{')) return null;
@@ -826,10 +829,10 @@ export class TokenStore {
 
   private pathExistsAt(tokens: TokenGroup, path: string): boolean {
     const parts = path.split('.');
-    let current: any = tokens;
+    let current: unknown = tokens;
     for (const part of parts) {
       if (!current || typeof current !== 'object') return false;
-      current = current[part];
+      current = (current as TokenNode)[part];
     }
     return current !== undefined;
   }
@@ -1131,9 +1134,9 @@ export class TokenStore {
   ): Promise<void> {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
-    let group: Record<string, any>;
+    let group: TokenNode;
     if (!groupPath) {
-      group = set.tokens as Record<string, any>;
+      group = set.tokens as TokenNode;
     } else {
       const found = this.getObjectAtPath(set.tokens, groupPath);
       if (!found) throw new Error(`Group "${groupPath}" not found in set "${setName}"`);
@@ -1152,46 +1155,46 @@ export class TokenStore {
     this.emit({ type: 'token-updated', setName, tokenPath: groupPath });
   }
 
-  private getObjectAtPath(tokens: TokenGroup, path: string): Record<string, any> | undefined {
+  private getObjectAtPath(tokens: TokenGroup, path: string): TokenNode | undefined {
     const parts = path.split('.');
-    let current: any = tokens;
+    let current: unknown = tokens;
     for (const part of parts) {
       if (!current || typeof current !== 'object') return undefined;
-      current = current[part];
+      current = (current as TokenNode)[part];
     }
-    return (current && typeof current === 'object' && !isDTCGToken(current)) ? current : undefined;
+    return (current && typeof current === 'object' && !isDTCGToken(current)) ? (current as TokenNode) : undefined;
   }
 
-  private setGroupAtPath(tokens: TokenGroup, path: string, group: Record<string, any>): void {
+  private setGroupAtPath(tokens: TokenGroup, path: string, group: TokenNode): void {
     const parts = path.split('.');
-    let current: any = tokens;
+    let current: TokenNode = tokens as TokenNode;
     for (let i = 0; i < parts.length - 1; i++) {
       if (!current[parts[i]] || isDTCGToken(current[parts[i]])) {
         current[parts[i]] = {};
       }
-      current = current[parts[i]];
+      current = current[parts[i]] as TokenNode;
     }
     current[parts[parts.length - 1]] = group;
   }
 
   private getTokenAtPath(group: TokenGroup, tokenPath: string): Token | undefined {
     const parts = tokenPath.split('.');
-    let current: any = group;
+    let current: unknown = group;
     for (const part of parts) {
       if (!current || typeof current !== 'object') return undefined;
-      current = current[part];
+      current = (current as TokenNode)[part];
     }
     return isDTCGToken(current) ? (current as Token) : undefined;
   }
 
   private setTokenAtPath(group: TokenGroup, tokenPath: string, token: Token): void {
     const parts = tokenPath.split('.');
-    let current: any = group;
+    let current: TokenNode = group as TokenNode;
     for (let i = 0; i < parts.length - 1; i++) {
       if (!current[parts[i]] || typeof current[parts[i]] !== 'object' || isDTCGToken(current[parts[i]])) {
         current[parts[i]] = {};
       }
-      current = current[parts[i]];
+      current = current[parts[i]] as TokenNode;
     }
     current[parts[parts.length - 1]] = token;
   }
@@ -1199,12 +1202,12 @@ export class TokenStore {
   private deleteTokenAtPath(group: TokenGroup, tokenPath: string): boolean {
     const parts = tokenPath.split('.');
     // Track the chain of parent objects so we can prune empty groups after deletion.
-    const chain: Array<{ obj: any; key: string }> = [];
-    let current: any = group;
+    const chain: Array<{ obj: TokenNode; key: string }> = [];
+    let current: TokenNode = group as TokenNode;
     for (let i = 0; i < parts.length - 1; i++) {
       if (!current[parts[i]]) return false;
       chain.push({ obj: current, key: parts[i] });
-      current = current[parts[i]];
+      current = current[parts[i]] as TokenNode;
     }
     const last = parts[parts.length - 1];
     if (!(last in current)) return false;
@@ -1213,7 +1216,7 @@ export class TokenStore {
     for (let i = chain.length - 1; i >= 0; i--) {
       const { obj, key } = chain[i];
       const child = obj[key];
-      if (typeof child === 'object' && child !== null && Object.keys(child).every(k => k.startsWith('$'))) {
+      if (typeof child === 'object' && child !== null && Object.keys(child as TokenNode).every(k => k.startsWith('$'))) {
         delete obj[key];
       } else {
         break;

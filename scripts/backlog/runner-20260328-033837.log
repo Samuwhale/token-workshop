@@ -184,3 +184,10 @@ Already up to date.
 ===============================================================
   Claimed: `token-store.ts` uses `any` types pervasively for token group traversal — `Record<string, unknown>` with type narrowing would be safer
   Worktree: /tmp/backlog-10278-KegRD1
+
+  ✓ done: `token-store.ts` uses `any` types pervasively for token group traversal
+    Replaced all 22 `any` annotations with `TokenNode` (Record<string, unknown>) type alias and proper narrowing — zero new type errors, build passes.
+    40 turns · 211s · $1.11
+
+--- Merging: `token-store.ts` uses `any` types pervasively for token group traversal ---
+Already up to date.
