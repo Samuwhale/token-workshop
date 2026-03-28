@@ -1,0 +1,11 @@
+NOTE: 11 [~] item(s) found — skipping reset (16 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 1
+  Completed total: 736 (next code pass in 4 items, next product pass in 9 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  1 items remaining
+===============================================================
+  Claimed: git-sync.ts applyDiffChoices silently swallows checkout and commit failures — L420-421 catches per-file `git checkout origin/branch -- file` failures with `console.warn` and continues, meaning the user sees success even though some files weren't pulled; L425-428 catches commit failures the same way, so a failed pull-commit is invisible; push path (L435-438) has the same pattern; these should propagate partial-failure info to the caller so the UI can report which files failed
+  Worktree: /tmp/backlog-86933-UFYgaf

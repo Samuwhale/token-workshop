@@ -1,0 +1,11 @@
+NOTE: 6 [~] item(s) found — skipping reset (1 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 6
+  Completed total: 736 (next code pass in 4 items, next product pass in 9 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  6 items remaining
+===============================================================
+  Claimed: Duplicate Figma plugin message-promise pattern across useStyleSync, useVariableSync, and useFigmaSync — each hook independently implements correlationId tracking, pendingRef maps, timeout+Promise wrappers, and message event listeners for roundtrip plugin communication; should extract a shared `useFigmaMessage(type, responseType, timeout)` hook that returns a `send(payload): Promise<response>` function, eliminating ~100 lines of boilerplate and ensuring consistent timeout/error handling
+  Worktree: /tmp/backlog-85364-ndTIsb

@@ -563,7 +563,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             <kbd className="hidden group-focus-visible/group:inline text-[9px] leading-none px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] font-sans ml-auto shrink-0" aria-hidden="true">N</kbd>
           )}
           {!selectMode && !renamingGroup && (
-            <div className="absolute right-1 top-0 bottom-0 flex items-center gap-0.5 opacity-0 group-hover/group:opacity-100 pointer-events-none group-hover/group:pointer-events-auto transition-opacity">
+            <div className="hidden group-hover/group:flex items-center gap-0.5 shrink-0 ml-auto">
               {onMoveUp && (
                 <button
                   onClick={e => { e.stopPropagation(); onMoveUp(); }}
@@ -1379,32 +1379,49 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         ) : null;
       })()}
 
-      {/* Hover actions — absolutely positioned to avoid layout shift */}
+      {/* Quick-bound indicator — visible when not hovering */}
+      {!selectMode && quickBound && (
+        <span className="p-1 text-[var(--color-figma-success)] shrink-0 group-hover:hidden" title={`Bound to ${quickBound}`}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </span>
+      )}
+      {/* Pinned indicator — visible when not hovering */}
+      {!selectMode && isPinned && onTogglePin && (
+        <button
+          onClick={e => { e.stopPropagation(); onTogglePin(node.path); }}
+          title="Unpin token"
+          aria-label="Unpin token"
+          className="p-1 rounded text-[var(--color-figma-accent)] shrink-0 group-hover:hidden"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        </button>
+      )}
+      {/* Hover actions — in-flow to avoid overlapping status indicators */}
       {!selectMode && (
-        <div className="absolute right-1 top-0 bottom-0 flex items-center gap-0.5 pointer-events-none group-hover:pointer-events-auto">
+        <div className="hidden group-hover:flex items-center gap-0.5 shrink-0 ml-auto">
           {/* Pin/star toggle */}
           {onTogglePin && (
             <button
               onClick={e => { e.stopPropagation(); onTogglePin(node.path); }}
               title={isPinned ? 'Unpin token' : 'Pin token'}
               aria-label={isPinned ? 'Unpin token' : 'Pin token'}
-              className={`p-1 rounded hover:bg-[var(--color-figma-bg-hover)] transition-opacity ${
-                isPinned
-                  ? 'text-[var(--color-figma-accent)] opacity-100 pointer-events-auto'
-                  : 'text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
-              }`}
+              className={`p-1 rounded hover:bg-[var(--color-figma-bg-hover)] ${isPinned ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`}
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
               </svg>
             </button>
           )}
-          {/* Edit button — always faintly visible as a hint that rows are editable */}
+          {/* Edit button */}
           <button
             onClick={() => onEdit(node.path, node.name)}
             title="Edit (or double-click row)"
             aria-label="Edit token"
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity"
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -1415,7 +1432,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               onClick={e => { e.stopPropagation(); onMoveUp(); }}
               title="Move up"
               aria-label="Move up"
-              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
+              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 15l-6-6-6 6"/>
@@ -1427,7 +1444,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               onClick={e => { e.stopPropagation(); onMoveDown(); }}
               title="Move down"
               aria-label="Move down"
-              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
+              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M6 9l6 6 6-6"/>
@@ -1445,11 +1462,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               return `Apply to ${targets.map(t => PROPERTY_LABELS[t]).join(', ')}`;
             })()}
             aria-label={quickBound ? `Bound to ${quickBound}` : 'Apply to selection'}
-            className={`p-1 rounded transition-opacity ${
-              quickBound
-                ? 'text-[var(--color-figma-success)] opacity-100'
-                : 'hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100'
-            }`}
+            className={`p-1 rounded ${quickBound ? 'text-[var(--color-figma-success)]' : 'hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]'}`}
           >
             {quickBound ? (
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
@@ -1465,7 +1478,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             onClick={e => { e.stopPropagation(); handleCopyPath(); }}
             title={copiedWhat === 'path' ? 'Copied!' : 'Copy token path'}
             aria-label={copiedWhat === 'path' ? 'Copied' : 'Copy token path'}
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >
             {copiedWhat === 'path' ? (
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2.5" aria-hidden="true">
@@ -1481,7 +1494,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             onClick={handleCopyValue}
             title={copiedWhat === 'value' ? 'Copied!' : 'Copy value'}
             aria-label={copiedWhat === 'value' ? 'Copied' : 'Copy value'}
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >
             {copiedWhat === 'value' ? (
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2.5" aria-hidden="true">

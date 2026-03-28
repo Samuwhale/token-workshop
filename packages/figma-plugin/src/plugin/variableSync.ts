@@ -7,6 +7,8 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
   interface VariableSnapshot {
     valuesByMode: Record<string, VariableValue>;
     name: string;
+    description: string;
+    hiddenFromPublishing: boolean;
     scopes: string[];
     pluginData: { tokenPath: string; tokenSet: string };
   }
@@ -62,6 +64,8 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
           variableSnapshots.set(existing.id, {
             valuesByMode: structuredClone(existing.valuesByMode),
             name: existing.name,
+            description: existing.description,
+            hiddenFromPublishing: existing.hiddenFromPublishing,
             scopes: [...existing.scopes],
             pluginData: {
               tokenPath: existing.getPluginData('tokenPath'),
@@ -115,6 +119,10 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
           }
           // Restore name
           try { v.name = snapshot.name; } catch { /* ignore */ }
+          // Restore description
+          try { v.description = snapshot.description; } catch { /* ignore */ }
+          // Restore hiddenFromPublishing
+          try { v.hiddenFromPublishing = snapshot.hiddenFromPublishing; } catch { /* ignore */ }
           // Restore scopes
           try { (v as Variable & { scopes: string[] }).scopes = snapshot.scopes; } catch { /* ignore */ }
           // Restore plugin data

@@ -1,0 +1,18 @@
+NOTE: 10 [~] item(s) found — skipping reset (13 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 2
+  Completed total: 736 (next code pass in 4 items, next product pass in 9 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  2 items remaining
+===============================================================
+  Claimed: variableSync.ts rollback snapshot is incomplete — when snapshotting existing Figma variables before mutation (L62-70), only `valuesByMode`, `name`, `scopes`, and two `pluginData` keys are captured; `description` and `hiddenFromPublishing` are omitted, so if the rollback path fires after a partial failure, those properties are lost; the rollback loop (around L130+) should restore all mutable Variable properties
+  Worktree: /tmp/backlog-86603-mO7L2R
+
+  ✓ done: variableSync.ts rollback snapshot is incomplete
+    Added description and hiddenFromPublishing to VariableSnapshot interface, snapshot capture, and rollback restoration loop
+    11 turns · 81s · $0.36
+
+--- Merging: variableSync.ts rollback snapshot is incomplete ---
+Already up to date.

@@ -329,3 +329,11 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: Three hooks (useStyleSync, useVariableSync, useFigmaSync) each independently implement the same Figma plugin message-promise pattern with correlationId tracking, timeout, and event listeners — ~100 lines of duplicated boilerplate that should be a shared hook
 ---
+
+## 2026-03-28 - variableSync.ts rollback snapshot is incomplete
+- Added `description` and `hiddenFromPublishing` to the `VariableSnapshot` interface and snapshot capture (L62-72)
+- Added restoration of both properties in the rollback loop (L112-115)
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L7-14, ~L62-72, ~L112-127
+- **Learnings for future iterations:**
+  - When snapshotting mutable state for rollback, check against the Figma Variable API docs for all writable properties — easy to miss `description` and `hiddenFromPublishing` since they aren't commonly mutated
+---
