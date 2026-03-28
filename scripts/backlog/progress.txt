@@ -505,3 +505,14 @@
   - When save/serialize captures N fields, every consumer (diff, compare, restore) must handle the same N fields — check symmetry
   - `JSON.stringify` is unsuitable for deep object comparison when key order may vary (composite tokens, extensions objects)
 ---
+
+## 2026-03-28 - useSetMergeSplit.ts merge/split undo callbacks use raw fetch with no error handling
+- The undo restore callbacks in both merge and split already threw errors on failure, but `useUndo.executeUndo` (and `executeRedo`) had no catch handler — errors became unhandled promise rejections invisible to the user
+- Added `onError` callback parameter to `useUndo()`, with a stable ref to avoid re-renders. `executeUndo` and `executeRedo` now catch errors from restore/redo callbacks and surface them via `onError`
+- Wired `setErrorToast` from `useToastStack` as the `onError` handler in `App.tsx` (reordered hook calls so `useToastStack` precedes `useUndo`)
+- Improved split undo's `Promise.allSettled` to check `.ok` on fulfilled responses and include per-set error details in the thrown message
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L11,~L38,~L56, `packages/figma-plugin/src/ui/App.tsx` ~L328-329, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L249-265
+- **Learnings for future iterations:**
+  - When restore callbacks throw, the error must be caught at the `executeUndo` call site — otherwise it's an unhandled promise rejection. A centralized `onError` callback on the undo hook is cleaner than having each restore callback try to access toast functions via closure
+  - Reordering React hooks is safe as long as the total count and order remain stable across renders
+---

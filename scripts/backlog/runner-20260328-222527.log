@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: useSetMergeSplit.ts merge/split undo callbacks use raw `fetch` with no error handling — `handleConfirmMerge` undo (line 168) silently fires a PUT with no `.ok` check, and `handleConfirmSplit` undo (lines 248-261) uses `Promise.allSettled` but only `console.warn`s failures without surfacing them to the user; a failed undo leaves the user believing tokens were restored when they weren't
   Worktree: /tmp/backlog-65007-LWGjuV
+
+  ✓ done: useSetMergeSplit.ts merge/split undo callbacks use raw fetch with no error handling
+    Added onError callback to useUndo so executeUndo/executeRedo catch restore errors and surface them via error toast; improved split undo to include per-set error details
+    18 turns · 142s · $0.68
+
+--- Merging: useSetMergeSplit.ts merge/split undo callbacks use raw fetch with no error handling ---
+Already up to date.

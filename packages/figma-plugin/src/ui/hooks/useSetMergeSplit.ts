@@ -246,10 +246,11 @@ export function useSetMergeSplit({
       pushUndo({
         description: `Split "${name}" into ${count} sets`,
         restore: async () => {
-          const deleteResults = await Promise.allSettled(createdNames.map(n =>
-            fetch(`${url}/api/sets/${encodeURIComponent(n)}`, { method: 'DELETE' })
-          ));
-          const deleteFailed = deleteResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok));
+          const deleteResults = await Promise.allSettled(createdNames.map(async n => {
+            const res = await fetch(`${url}/api/sets/${encodeURIComponent(n)}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(`${n}: ${res.status} ${res.statusText}`);
+          }));
+          const deleteFailed = deleteResults.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
           if (wasDeleted) {
             const recreateRes = await fetch(`${url}/api/sets`, {
               method: 'POST',
@@ -260,7 +261,8 @@ export function useSetMergeSplit({
           }
           refreshTokens();
           if (deleteFailed.length > 0) {
-            throw new Error(`Undo split: ${deleteFailed.length}/${createdNames.length} split sets could not be deleted`);
+            const details = deleteFailed.map(r => r.reason?.message ?? String(r.reason)).join('; ');
+            throw new Error(`Undo split: ${deleteFailed.length}/${createdNames.length} split sets could not be deleted (${details})`);
           }
         },
       });

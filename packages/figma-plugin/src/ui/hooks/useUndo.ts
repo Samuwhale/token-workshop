@@ -8,7 +8,7 @@ export interface UndoSlot {
 
 const DEFAULT_MAX_HISTORY = 20;
 
-export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY) {
+export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY, onError?: (message: string) => void) {
   const limit = Math.max(1, Math.min(200, Math.round(maxHistory)));
   // past[last] = most recent undoable action
   const [past, setPast] = useState<UndoSlot[]>([]);
@@ -30,6 +30,9 @@ export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY) {
     setDismissed(false);
   }, []);
 
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
+
   const executeUndo = useCallback(async () => {
     if (executingRef.current) return;
     const p = pastRef.current;
@@ -43,6 +46,9 @@ export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY) {
       if (slot.redo) {
         setFuture(f => [...f, slot]);
       }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      onErrorRef.current?.(`Undo failed: ${msg}`);
     } finally {
       executingRef.current = false;
     }
@@ -60,6 +66,9 @@ export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY) {
       // Only move between stacks after successful redo
       setFuture(prev => prev.filter(s => s !== slot));
       setPast(p => [...p, slot]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      onErrorRef.current?.(`Redo failed: ${msg}`);
     } finally {
       executingRef.current = false;
     }

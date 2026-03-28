@@ -16,3 +16,24 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: manual-snapshot.ts diff() field mismatch and unreliable composite comparison ---
 Already up to date.
+[main 57141d0] chore(backlog): done – manual-snapshot.ts diff() field mismatch and unreliable composite comparison
+ 16 files changed, 189 insertions(+), 6 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260328-222515.log
+ create mode 100644 scripts/backlog/runner-20260328-222519.log
+ create mode 100644 scripts/backlog/runner-20260328-222521.log
+ create mode 100644 scripts/backlog/runner-20260328-222525.log
+ create mode 100644 scripts/backlog/runner-20260328-222527.log
+ create mode 100644 scripts/backlog/runner-20260328-222529.log
+ create mode 100644 scripts/backlog/runner-20260328-222532.log
+
+## 2026-03-28 - manual-snapshot.ts diff() field mismatch and unreliable composite comparison
+- Fixed `diff()` to capture all 4 fields (`$value`, `$type`, `$description`, `$extensions`) when reconstructing current state, matching what `save()` captures
+- Replaced `JSON.stringify` comparison on `$value` only with `stableStringify` comparison on the full token object, catching changes to any field and handling key-order non-determinism in composite token values
+- Added local `stableStringify` helper (recursive, sorts object keys) to the server package
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Backlog fully drained!
