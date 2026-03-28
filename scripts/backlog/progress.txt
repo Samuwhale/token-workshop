@@ -372,3 +372,18 @@
   - The IIFE pattern `{condition && (() => { ... })()}` works for inline multi-line logic in JSX without extracting a sub-component
   - CSS vars `--color-figma-success` and `--color-figma-text-tertiary` are already defined in styles.css
 ---
+
+## 2026-03-28 - Context-aware token surfacing
+- Implemented context-aware token suggestions in the Selection Inspector. When a Figma layer is selected, the plugin now surfaces 5-8 most relevant tokens based on type matching, value similarity, sibling usage, and existing bindings — shown in a collapsible "Suggested" section above the property groups.
+- Added `rankTokensForSelection()` scoring function that aggregates `scoreBindCandidate` scores across all eligible properties, with bonus scoring for already-bound tokens and a minimum threshold of 15 to filter irrelevant results.
+- Created `SuggestedTokens.tsx` component with color swatches, token paths, match reason labels, property labels, and hover-reveal Apply buttons.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L430-555 — new `SuggestedToken` type and `rankTokensForSelection()` function
+  - `packages/figma-plugin/src/ui/components/SuggestedTokens.tsx` (new) — collapsible suggested tokens UI component
+  - `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L1,12,22,441,648 — import useMemo, import new modules, add suggestions memo, render SuggestedTokens
+- **Learnings for future iterations:**
+  - `lsGet`/`lsSet` are in `../shared/storage.ts`, not `../shared/utils.ts` — the storage module was centralized
+  - The existing `scoreBindCandidate` + `collectSiblingBindings` + `collectBoundPrefixes` infrastructure in `selectionInspectorUtils.ts` is highly reusable for aggregate scoring — no need to duplicate logic
+  - `CAPABILITY_FILTER` (mapping properties to capability keys) is a module-level const not exported — had to reference it in the same file rather than importing it in a separate module
+  - `useMemo` deps for `caps` object: since it's created fresh each render, listing individual boolean fields (`caps.hasFills`, etc.) in the dep array avoids unnecessary re-computation
+---

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   PROPERTY_GROUPS,
   PROPERTY_LABELS,
@@ -16,9 +16,11 @@ import {
   getTokenTypeForProperty,
   getNextUnboundProperty,
   buildRemoveBindingUndo,
+  rankTokensForSelection,
   SUGGESTED_NAMES,
   suggestTokenPath,
 } from './selectionInspectorUtils';
+import { SuggestedTokens } from './SuggestedTokens';
 import { PropertyRow } from './PropertyRow';
 import { DeepInspectSection } from './DeepInspectSection';
 import { RemapBindingsPanel } from './RemapBindingsPanel';
@@ -436,6 +438,13 @@ export function SelectionInspector({
 
   const hasAnyTokens = Object.keys(tokenMap).length > 0;
 
+  // Context-aware token suggestions for the current selection
+  const suggestions = useMemo(
+    () => hasSelection && hasAnyTokens ? rankTokensForSelection(rootNodes, tokenMap, caps) : [],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hasSelection, hasAnyTokens, rootNodes, tokenMap, caps.hasFills, caps.hasStrokes, caps.hasAutoLayout, caps.isText, caps.hasEffects],
+  );
+
   // Check if all visible properties with values are bound (no more unbound to advance to)
   const allPropertiesBound = hasSelection && totalBindings > 0 && getNextUnboundProperty(null, rootNodes, caps) === null;
 
@@ -633,6 +642,15 @@ export function SelectionInspector({
           tokenMap={tokenMap}
           onTokenCreated={onTokenCreated}
           onClose={() => setShowExtractPanel(false)}
+        />
+      )}
+
+      {/* Context-aware suggested tokens */}
+      {suggestions.length > 0 && (
+        <SuggestedTokens
+          suggestions={suggestions}
+          onApply={handleBindToken}
+          onNavigateToToken={onNavigateToToken}
         />
       )}
 

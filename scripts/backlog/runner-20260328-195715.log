@@ -33,3 +33,10 @@ Already up to date.
 ===============================================================
   Claimed: Context-aware token surfacing: read current Figma selection and surface only the 5-8 most relevant tokens (type-matched, nearby-usage-ranked) instead of the full list — this is the single highest-impact discovery improvement
   Worktree: /tmp/backlog-51273-29jgNL
+
+  ✓ done: Context-aware token surfacing
+    Added collapsible "Suggested" section in SelectionInspector that ranks tokens by type match, value similarity, sibling usage, and existing bindings — surfaces top 8 most relevant tokens with one-click Apply buttons
+    40 turns · 444s · $2.9
+
+--- Merging: Context-aware token surfacing ---
+Already up to date.

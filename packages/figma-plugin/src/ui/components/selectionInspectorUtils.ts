@@ -424,6 +424,137 @@ export function getQuickBindTargets(
   });
 }
 
+// ---------------------------------------------------------------------------
+// Context-aware token surfacing
+// ---------------------------------------------------------------------------
+
+export interface SuggestedToken {
+  path: string;
+  entry: TokenMapEntry;
+  score: number;
+  bestProperty: BindableProperty;
+  resolvedValue: any;
+  matchReason: 'value-match' | 'already-bound' | 'sibling-usage' | 'type-match';
+}
+
+/**
+ * Rank all tokens by relevance to the current Figma selection and return the top N.
+ * Aggregates scores across all visible, capable properties of the selection.
+ */
+export function rankTokensForSelection(
+  rootNodes: SelectionNodeInfo[],
+  tokenMap: Record<string, TokenMapEntry>,
+  caps: NodeCapabilities,
+  limit = 8,
+): SuggestedToken[] {
+  if (rootNodes.length === 0) return [];
+  const tokenEntries = Object.entries(tokenMap);
+  if (tokenEntries.length === 0) return [];
+
+  // Collect eligible properties (visible + capable + has a current value)
+  const eligibleProps: BindableProperty[] = [];
+  for (const group of PROPERTY_GROUPS) {
+    if (!shouldShowGroup(group.condition, caps)) continue;
+    for (const prop of group.properties) {
+      const capKey = CAPABILITY_FILTER[prop];
+      if (capKey && !caps[capKey]) continue;
+      const val = getCurrentValue(rootNodes, prop);
+      if (val !== undefined && val !== null) eligibleProps.push(prop);
+    }
+  }
+  if (eligibleProps.length === 0) return [];
+
+  // Pre-compute context data per property
+  const propContext = new Map<BindableProperty, {
+    currentValue: any;
+    compatibleTypes: Set<string>;
+    siblingBindings: Set<string>;
+    existingBinding: string | null | 'mixed';
+  }>();
+  const boundPrefixes = collectBoundPrefixes(rootNodes);
+
+  for (const prop of eligibleProps) {
+    propContext.set(prop, {
+      currentValue: getCurrentValue(rootNodes, prop),
+      compatibleTypes: new Set(getCompatibleTokenTypes(prop)),
+      siblingBindings: collectSiblingBindings(rootNodes, prop),
+      existingBinding: getBindingForProperty(rootNodes, prop),
+    });
+  }
+
+  // Score each token across all eligible properties, keep best
+  const scored: SuggestedToken[] = [];
+
+  for (const [tokenPath, entry] of tokenEntries) {
+    let bestScore = -1;
+    let bestProp: BindableProperty = eligibleProps[0];
+    let bestReason: SuggestedToken['matchReason'] = 'type-match';
+    let bestResolved: any = null;
+
+    // Quick check: does this token type match ANY eligible property?
+    const tokenType = entry.$type;
+    const typeProps = TOKEN_PROPERTY_MAP[tokenType];
+    if (!typeProps || typeProps.length === 0) continue;
+
+    // Resolve the token value once (used for similarity scoring)
+    const resolved = resolveTokenValue(entry.$value, entry.$type, tokenMap);
+    const resolvedValue = resolved.value;
+
+    for (const prop of eligibleProps) {
+      const ctx = propContext.get(prop)!;
+
+      // Type compatibility check
+      if (!ctx.compatibleTypes.has(tokenType)) continue;
+
+      // Scope compatibility check
+      if (!isTokenScopeCompatible(entry, prop)) continue;
+
+      // Use existing scoring infrastructure
+      const score = scoreBindCandidate(
+        tokenPath, entry, prop, ctx.currentValue, resolvedValue,
+        ctx.siblingBindings, boundPrefixes,
+      );
+
+      // Bonus: already bound on this selection (+15)
+      let bonus = 0;
+      let reason: SuggestedToken['matchReason'] = 'type-match';
+      if (ctx.existingBinding === tokenPath) {
+        bonus += 15;
+        reason = 'already-bound';
+      } else if (ctx.siblingBindings.has(tokenPath)) {
+        reason = 'sibling-usage';
+      } else if (score >= 40) {
+        // High value similarity
+        reason = 'value-match';
+      }
+
+      const total = score + bonus;
+      if (total > bestScore) {
+        bestScore = total;
+        bestProp = prop;
+        bestReason = reason;
+        bestResolved = resolvedValue;
+      }
+    }
+
+    // Minimum threshold to avoid surfacing irrelevant tokens
+    if (bestScore >= 15) {
+      scored.push({
+        path: tokenPath,
+        entry,
+        score: bestScore,
+        bestProperty: bestProp,
+        resolvedValue: bestResolved,
+        matchReason: bestReason,
+      });
+    }
+  }
+
+  // Sort descending by score and return top N
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit);
+}
+
 /** Build an undo slot for removing a single binding */
 export function buildRemoveBindingUndo(
   binding: string,
