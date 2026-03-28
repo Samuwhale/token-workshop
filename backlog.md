@@ -31,22 +31,10 @@
 
 ### Bugs
 
-- [x] No loading/saving indicator when toggling set state (Off/Base/On) — optimistic update fires but if the network is slow there's zero feedback that the save is in progress; add a subtle spinner or opacity change during the API call
-- [x] Theme cache returns mutable reference — `load()` returns the cache object directly; route handlers that mutate it (push, filter) change the cached copy in-place, so if `save()` throws the cache is left in an inconsistent state (mutated but not persisted)
-- [x] Theme option name trimmed inconsistently with lookup — `name.trim()` is used for storage but `findIndex` searches with the untrimmed name; `" light "` won't match existing `"light"`, creating duplicates
-
 ### QoL
-
-- [x] ThemeManager fetches all token sets on mount to compute coverage gaps — with many sets or large token files this creates a waterfall of requests and memory pressure; move coverage computation server-side or lazy-load per-option on expand
-- [x] ThemeManager calls full `fetchDimensions()` after every mutation (create, rename, delete, reorder, toggle) — redundant after the optimistic update already applied; only re-fetch on error rollback or debounce the re-fetch
-- [x] ThemeManager empty state could be more scannable — single paragraph at 10px explaining dimensions; break into structured examples with clickable quick-start dimension names (e.g. "Color Mode", "Brand", "Density")
-- [x] "Off / Base / On" theme set states are confusing — the three-state toggle (disabled/source/enabled) is cryptic; rename to "Not included" / "Foundation" / "Override", add inline help tooltip, and show a visual stack diagram explaining the layering model
-- [x] Theme Compare lacks actionable output — you can see diffs between theme options but can't fix gaps directly from the compare view; add inline "create missing token" and "edit value" actions so users don't have to navigate away
 
 ### UX
 
-- [x] Theme switcher is buried and hard to discover — dimension buttons only appear if themes exist, and ThemeManager is behind overflow menu; show an empty-state prompt on the Tokens tab: "Set up themes to manage light/dark mode, brands, and more" linking directly to ThemeManager
-- [x] ThemeManager is the most complex and least intuitive screen — the matrix of dimensions × options × sets × states doesn't help users build a mental model; redesign around a visual stacking model: dimensions as layers in a stack (top overrides bottom), options as tabs per layer, sets shown with "base" vs "override" clearly distinguished, plus a live preview showing "with these settings, token X resolves to Y"
 - [~] Tokens and themes are edited in completely separate interfaces — unlike Figma's native variables where mode values are columns next to each other, TokenManager requires global theme switching to see one value at a time; add an optional multi-mode column view to the token list showing resolved values per theme option side-by-side, with inline editing that auto-routes changes to the correct override set
 
 ---
@@ -55,19 +43,9 @@
 
 ### Bugs
 
-- [x] `convertFromFigmaValue` crashes on undefined COLOR values — when a variable has no value set for a mode, `valuesByMode[modeId]` is `undefined`; calling `rgbToHex(undefined)` throws TypeError; needs a null guard before conversion
-- [x] `convertToFigmaValue` returns NaN for non-numeric strings — for number/fontWeight/percentage types, `parseFloat(value)` on a non-numeric string returns NaN, which is passed to `variable.setValueForMode()` and throws in the Figma API
-- [x] Variable snapshots shallow-copy `valuesByMode` — COLOR variable values are objects (`{r,g,b,a}`); if Figma returns the same reference and it later mutates, the snapshot won't preserve the original; needs deep copy for rollback safety
-- [x] Git sync branch names not validated against flag injection — `checkout` and `createBranch` pass user-supplied names directly to simple-git; a name like `--orphan` could be interpreted as a flag
-
 ### QoL
 
-- [x] No visual diff for Figma variable publish — the Variables section shows added/modified/unchanged counts but no side-by-side preview of old vs. new values with color swatches; users can't visually verify what will change before applying
-
 ### UX
-
-- [x] No in-plugin Git merge conflict resolution — `git pull` can create merge conflicts in `.tokens.json` files, but there's no conflict resolver UI; users must switch to a code editor to fix JSON conflicts
-- [x] No visual version history or changelog — beyond raw `git log`, there's no timeline of token changes with before/after value diffs; useful for reviewing what changed between design reviews or releases
 
 ---
 
@@ -82,10 +60,6 @@
 
 ### Bugs
 
-- [x] `parseDimValue` returns 0 for string dimensions — DTCG dimension tokens like `"16px"` or `"1.5rem"` hit neither the `number` nor `object` branch, so all string dimensions silently become 0 when applied to layers
-- [x] `applyTextStyle` modifies text style properties without loading font — when `fontFamily` is falsy the font-loading block is skipped, but `fontSize`/`lineHeight`/`letterSpacing` are still set on the style, which throws if the font isn't loaded
-- [x] Opacity percentage values silently clamped to 1.0 — DTCG allows opacity as 0–100 percentage; a token with value `50` (meaning 50%) is clamped to 1.0 (fully opaque) because there's no unit-awareness for opacity
-- [~] `lineHeight` handled inconsistently — numeric values are treated as multipliers and converted to percent (`val * 100`), but `{unit: '%', value: 150}` is silently ignored; also, unitless-as-percent interpretation may be wrong for systems where unitless means pixels
 - [~] Missing error handling in controller for `apply-styles` and `read-styles` — these message handlers await without try/catch; errors are unhandled and the UI receives no feedback (contrast with `read-variables` which has proper error handling)
 
 ### QoL
