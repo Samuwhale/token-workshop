@@ -113,26 +113,43 @@ export interface TableSort {
 }
 
 // ---------------------------------------------------------------------------
-// TokenTreeNode props
+// TokenTreeContext — shared state & callbacks provided via React context
 // ---------------------------------------------------------------------------
 
-export interface TokenTreeNodeProps {
-  node: TokenNode;
-  depth: number;
-  onEdit: (path: string, name?: string) => void;
-  onPreview?: (path: string, name?: string) => void;
-  onDelete: (path: string) => void;
-  onDeleteGroup: (path: string, name: string, tokenCount: number) => void;
+export interface TokenTreeContextType {
+  // --- Shared data ---
   setName: string;
   selectionCapabilities: NodeCapabilities | null;
   allTokensFlat: Record<string, TokenMapEntry>;
   selectMode: boolean;
-  isSelected: boolean;
-  onToggleSelect: (path: string, modifiers?: { shift: boolean; ctrl: boolean }) => void;
   expandedPaths: Set<string>;
-  onToggleExpand: (path: string) => void;
   duplicateCounts: Map<string, number>;
   highlightedToken: string | null;
+  inspectMode?: boolean;
+  syncSnapshot?: Record<string, string>;
+  cascadeDiff?: Record<string, { before: any; after: any }>;
+  generatorsBySource?: Map<string, TokenGenerator[]>;
+  derivedTokenPaths?: Map<string, TokenGenerator>;
+  tokenUsageCounts?: Record<string, number>;
+  /** Parsed highlight terms from search query */
+  searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
+  /** Selected Figma nodes — used for quick-bind scope narrowing */
+  selectedNodes: SelectionNodeInfo[];
+
+  // --- Drag state ---
+  dragOverGroup?: string | null;
+  dragOverGroupIsInvalid?: boolean;
+  dragSource?: { paths: string[]; names: string[] } | null;
+  dragOverReorder?: { path: string; position: 'before' | 'after' } | null;
+  selectedLeafNodes?: TokenNode[];
+
+  // --- Action callbacks ---
+  onEdit: (path: string, name?: string) => void;
+  onPreview?: (path: string, name?: string) => void;
+  onDelete: (path: string) => void;
+  onDeleteGroup: (path: string, name: string, tokenCount: number) => void;
+  onToggleSelect: (path: string, modifiers?: { shift: boolean; ctrl: boolean }) => void;
+  onToggleExpand: (path: string) => void;
   onNavigateToAlias?: (path: string) => void;
   onCreateSibling?: (groupPath: string, tokenType: string) => void;
   onCreateGroup?: (parentGroupPath: string) => void;
@@ -143,49 +160,44 @@ export interface TokenTreeNodeProps {
   onDuplicateGroup?: (groupPath: string) => void;
   onDuplicateToken?: (path: string) => void;
   onExtractToAlias?: (path: string, $type?: string, $value?: any) => void;
-  inspectMode?: boolean;
   onHoverToken?: (path: string) => void;
-  lintViolations?: LintViolation[];
   onExtractToAliasForLint?: (path: string, $type?: string, $value?: any) => void;
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
   onSetGroupScopes?: (groupPath: string) => void;
   onGenerateScaleFromGroup?: (groupPath: string, tokenType: string | null) => void;
-  syncSnapshot?: Record<string, string>;
-  cascadeDiff?: Record<string, { before: any; after: any }>;
   onFilterByType?: (type: string) => void;
-  generatorsBySource?: Map<string, TokenGenerator[]>;
-  derivedTokenPaths?: Map<string, TokenGenerator>;
-  skipChildren?: boolean;
   onJumpToGroup?: (path: string) => void;
   onInlineSave?: (path: string, type: string, newValue: any) => void;
   onRenameToken?: (oldPath: string, newPath: string) => void;
+  onDetachFromGenerator?: (path: string) => void;
+  onToggleChain?: (path: string) => void;
+  onTogglePin?: (path: string) => void;
   onDragStart?: (paths: string[], names: string[]) => void;
   onDragEnd?: () => void;
   onDragOverGroup?: (groupPath: string | null, invalid?: boolean) => void;
   onDropOnGroup?: (groupPath: string) => void;
-  dragOverGroup?: string | null;
-  dragOverGroupIsInvalid?: boolean;
-  selectedLeafNodes?: TokenNode[];
-  dragSource?: { paths: string[]; names: string[] } | null;
-  onMoveUp?: () => void;
-  onMoveDown?: () => void;
   onDragOverToken?: (path: string, name: string, position: 'before' | 'after') => void;
   onDragLeaveToken?: () => void;
   onDropOnToken?: (path: string, name: string, position: 'before' | 'after') => void;
-  dragOverReorder?: { path: string; position: 'before' | 'after' } | null;
-  chainExpanded?: boolean;
-  onToggleChain?: (path: string) => void;
-  /** Parsed highlight terms from search query */
-  searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
+  onMultiModeInlineSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
+}
+
+// ---------------------------------------------------------------------------
+// TokenTreeNode props — per-node values only (shared state comes from context)
+// ---------------------------------------------------------------------------
+
+export interface TokenTreeNodeProps {
+  node: TokenNode;
+  depth: number;
+  isSelected: boolean;
+  lintViolations?: LintViolation[];
+  skipChildren?: boolean;
   showFullPath?: boolean;
-  tokenUsageCounts?: Record<string, number>;
   isPinned?: boolean;
-  onTogglePin?: (path: string) => void;
+  chainExpanded?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   /** Per-option resolved values for multi-mode column view */
   multiModeValues?: MultiModeValue[];
-  /** Inline save handler that routes to a specific override set */
-  onMultiModeInlineSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
-  /** Detach a token from its generator (removes $extensions['com.tokenmanager.generator']) */
-  onDetachFromGenerator?: (path: string) => void;
 }

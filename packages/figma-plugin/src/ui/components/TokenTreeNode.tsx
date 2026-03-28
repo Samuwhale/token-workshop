@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useLayoutEffect, Fragment } from 'react';
 import { TokenTreeNodeProps } from './tokenListTypes';
+import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS, PROPERTY_LABELS } from '../../shared/types';
 import type { BindableProperty } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
@@ -11,6 +12,7 @@ import { PropertyPicker } from './PropertyPicker';
 import { ValuePreview } from './ValuePreview';
 import { ColorPicker } from './ColorPicker';
 import { getQuickBindTargets } from './selectionInspectorUtils';
+import { useTokenTree } from './TokenTreeContext';
 
 // ---------------------------------------------------------------------------
 // MultiModeCell — compact inline-editable value cell for a single theme option
@@ -101,26 +103,32 @@ function MultiModeCell({
 
 export function TokenTreeNode(props: TokenTreeNodeProps) {
   const {
-    node, depth, onEdit, onPreview, onDelete, onDeleteGroup, setName,
-    selectionCapabilities, allTokensFlat, selectMode, isSelected,
-    onToggleSelect, expandedPaths, onToggleExpand, duplicateCounts,
-    highlightedToken, onNavigateToAlias, onCreateSibling, onCreateGroup,
-    onRenameGroup, onUpdateGroupMeta, onRequestMoveGroup, onRequestMoveToken,
-    onDuplicateGroup, onDuplicateToken, onExtractToAlias, inspectMode,
-    onHoverToken, lintViolations = [], onExtractToAliasForLint,
-    onSyncGroup, onSyncGroupStyles, onSetGroupScopes,
-    onGenerateScaleFromGroup, syncSnapshot, cascadeDiff, onFilterByType,
-    generatorsBySource, derivedTokenPaths, skipChildren, onJumpToGroup,
-    onInlineSave, onRenameToken, onDragStart, onDragEnd, onDragOverGroup,
-    onDropOnGroup, dragOverGroup, dragOverGroupIsInvalid, dragSource,
-    selectedLeafNodes, onMoveUp, onMoveDown,
-    onDragOverToken, onDragLeaveToken, onDropOnToken, dragOverReorder,
+    node, depth, isSelected, lintViolations = [],
+    skipChildren, showFullPath, isPinned,
     chainExpanded: chainExpandedProp = false,
-    onToggleChain, searchQuery, showFullPath, tokenUsageCounts,
-    isPinned, onTogglePin,
-    multiModeValues, onMultiModeInlineSave,
-    onDetachFromGenerator,
+    onMoveUp, onMoveDown, multiModeValues,
   } = props;
+
+  const ctx = useTokenTree();
+  const {
+    setName, selectionCapabilities, allTokensFlat, selectMode,
+    expandedPaths, onToggleExpand, duplicateCounts, highlightedToken,
+    inspectMode, syncSnapshot, cascadeDiff, generatorsBySource,
+    derivedTokenPaths, tokenUsageCounts, searchHighlight, selectedNodes,
+    dragOverGroup, dragOverGroupIsInvalid, dragSource, dragOverReorder,
+    selectedLeafNodes,
+    onEdit, onPreview, onDelete, onDeleteGroup, onToggleSelect,
+    onNavigateToAlias, onCreateSibling, onCreateGroup, onRenameGroup,
+    onUpdateGroupMeta, onRequestMoveGroup, onRequestMoveToken,
+    onDuplicateGroup, onDuplicateToken, onExtractToAlias, onHoverToken,
+    onExtractToAliasForLint, onSyncGroup, onSyncGroupStyles,
+    onSetGroupScopes, onGenerateScaleFromGroup, onFilterByType,
+    onJumpToGroup, onInlineSave, onRenameToken, onDetachFromGenerator,
+    onToggleChain, onTogglePin, onDragStart, onDragEnd,
+    onDragOverGroup, onDropOnGroup,
+    onDragOverToken, onDragLeaveToken, onDropOnToken,
+    onMultiModeInlineSave,
+  } = ctx;
 
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -773,48 +781,8 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             key={child.path}
             node={child}
             depth={depth + 1}
-            onEdit={onEdit}
-            onPreview={onPreview}
-            onDelete={onDelete}
-            onDeleteGroup={onDeleteGroup}
-            setName={setName}
-            selectionCapabilities={selectionCapabilities}
-            allTokensFlat={allTokensFlat}
-            selectMode={selectMode}
             isSelected={false}
-            onToggleSelect={onToggleSelect}
-            expandedPaths={expandedPaths}
-            onToggleExpand={onToggleExpand}
-            duplicateCounts={duplicateCounts}
-            highlightedToken={highlightedToken}
-            onNavigateToAlias={onNavigateToAlias}
-            onCreateSibling={onCreateSibling}
-            onCreateGroup={onCreateGroup}
-            onRenameGroup={onRenameGroup}
-            onUpdateGroupMeta={onUpdateGroupMeta}
-            onRequestMoveGroup={onRequestMoveGroup}
-            onRequestMoveToken={onRequestMoveToken}
-            onDuplicateGroup={onDuplicateGroup}
-            onDuplicateToken={onDuplicateToken}
-            onExtractToAlias={onExtractToAlias}
-            inspectMode={inspectMode}
-            onHoverToken={onHoverToken}
             lintViolations={lintViolations.filter(v => v.path === child.path)}
-            onExtractToAliasForLint={onExtractToAliasForLint}
-            onSyncGroup={onSyncGroup}
-            onSyncGroupStyles={onSyncGroupStyles}
-            onSetGroupScopes={onSetGroupScopes}
-            onGenerateScaleFromGroup={onGenerateScaleFromGroup}
-            syncSnapshot={syncSnapshot}
-            cascadeDiff={cascadeDiff}
-            onFilterByType={onFilterByType}
-            generatorsBySource={generatorsBySource}
-            derivedTokenPaths={derivedTokenPaths}
-            onInlineSave={onInlineSave}
-            onRenameToken={onRenameToken}
-            searchQuery={searchQuery}
-            tokenUsageCounts={tokenUsageCounts}
-            onDetachFromGenerator={onDetachFromGenerator}
           />
         ))}
       </div>

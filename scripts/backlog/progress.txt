@@ -531,3 +531,20 @@
   - `flattenTokens` is used by multiple unrelated features (apply variables/styles, promote modal, find/replace preview) — it stayed in TokenList since only find/replace was extracted; future extractions should move it to tokenListHelpers
   - The drag event handlers in JSX were inlining state setter calls that also cleared related state (e.g., `setDragOverReorder(null)` inside `handleDragOverGroup`). These cross-state interactions must be replicated in the hook's callbacks, not just the individual setters.
 ---
+
+## 2026-03-28 - TokenTreeNode context refactor (47 props → 11 per-node props)
+- Introduced `TokenTreeContextType` interface and `TokenTreeContext.tsx` with `useTokenTree()` hook to replace 36+ recursively-forwarded props with React context
+- `TokenTreeNodeProps` reduced from 47 props to 11 per-node props: `node`, `depth`, `isSelected`, `lintViolations`, `skipChildren`, `showFullPath`, `isPinned`, `chainExpanded`, `onMoveUp`, `onMoveDown`, `multiModeValues`
+- Recursive child rendering shrank from 46-line prop pass-through to 6 lines
+- Both call sites in `TokenList.tsx` (pinned tokens + main virtual scroll) shrank from ~35 props each to ~8–12 props
+- Fixed `searchHighlight` bug: was destructured as `searchQuery` (not in interface) while `searchHighlight` was used unbound in JSX — now properly sourced from context
+- Fixed `selectedNodes` ghost prop: was passed from TokenList but never in TokenTreeNodeProps/destructured — now properly provided via context, enabling quick-bind scope narrowing
+- Added `tokenUsageCounts` to TokenList's data destructure (was in interface but never destructured — always undefined)
+- Removed dead `toggleSelect` function (replaced by unified `handleTokenSelect` via context)
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts`, `packages/figma-plugin/src/ui/components/TokenTreeContext.tsx` (new), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx`, `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - Ghost props (passed but never in interface or destructured) are a strong signal that prop drilling has outgrown its usefulness — context is the right fix
+  - `searchQuery` vs `searchHighlight` naming mismatch was invisible because `?.` optional chaining + `?? []` fallback silently produced empty arrays — search highlighting was broken in tree view
+  - `useMemo` for context value is critical — without it, every TokenList render creates a new context object and re-renders all mounted tree nodes
+  - `setNewGroupDialogParent` and `handleOpenExtractToAlias` can replace their inline arrow wrappers since they take identical arguments
+---

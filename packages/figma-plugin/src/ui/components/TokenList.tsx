@@ -25,6 +25,8 @@ import { VIRTUAL_ITEM_HEIGHT, VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN } fr
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions } from './tokenListHelpers';
 import { TokenTreeNode } from './TokenTreeNode';
+import { TokenTreeProvider } from './TokenTreeContext';
+import type { TokenTreeContextType } from './tokenListTypes';
 import { TokenListModals } from './TokenListModals';
 import { TokenTableView } from './TokenTableView';
 import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
@@ -35,7 +37,7 @@ import { useDragDrop } from '../hooks/useDragDrop';
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
-  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {} },
+  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {} },
   actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError },
   defaultCreateOpen,
   highlightedToken,
@@ -1469,15 +1471,6 @@ export function TokenList({
     }
   };
 
-  const toggleSelect = (path: string) => {
-    setSelectedPaths(prev => {
-      const next = new Set(prev);
-      if (next.has(path)) next.delete(path);
-      else next.add(path);
-      return next;
-    });
-  };
-
   // Handles token selection with modifier key support:
   // - ctrl/cmd-click: enter select mode and toggle the token
   // - shift-click (in select mode): range-select from last selected to current
@@ -1800,6 +1793,83 @@ export function TokenList({
     }
     return segments;
   }, [flatItems, rawStart, groupNameMap]);
+
+  // --- Token tree context: shared state & callbacks for all TokenTreeNode instances ---
+  const treeCtx: TokenTreeContextType = useMemo(() => ({
+    setName,
+    selectionCapabilities,
+    allTokensFlat,
+    selectMode,
+    expandedPaths,
+    duplicateCounts,
+    highlightedToken: highlightedToken ?? null,
+    inspectMode,
+    syncSnapshot,
+    cascadeDiff,
+    generatorsBySource,
+    derivedTokenPaths,
+    tokenUsageCounts,
+    searchHighlight,
+    selectedNodes,
+    dragOverGroup,
+    dragOverGroupIsInvalid,
+    dragSource,
+    dragOverReorder,
+    selectedLeafNodes,
+    onEdit,
+    onPreview,
+    onDelete: requestDeleteToken,
+    onDeleteGroup: requestDeleteGroup,
+    onToggleSelect: handleTokenSelect,
+    onToggleExpand: handleToggleExpand,
+    onNavigateToAlias,
+    onCreateSibling: handleOpenCreateSibling,
+    onCreateGroup: setNewGroupDialogParent,
+    onRenameGroup: handleRenameGroup,
+    onUpdateGroupMeta: handleUpdateGroupMeta,
+    onRequestMoveGroup: handleRequestMoveGroup,
+    onRequestMoveToken: handleRequestMoveToken,
+    onDuplicateGroup: handleDuplicateGroup,
+    onDuplicateToken: handleDuplicateToken,
+    onExtractToAlias: handleOpenExtractToAlias,
+    onHoverToken: handleHoverToken,
+    onExtractToAliasForLint: handleOpenExtractToAlias,
+    onSyncGroup,
+    onSyncGroupStyles,
+    onSetGroupScopes,
+    onGenerateScaleFromGroup,
+    onFilterByType: setTypeFilter,
+    onJumpToGroup: handleJumpToGroup,
+    onInlineSave: handleInlineSave,
+    onRenameToken: handleRenameToken,
+    onDetachFromGenerator: handleDetachFromGenerator,
+    onToggleChain: handleToggleChain,
+    onTogglePin: pinnedTokens.togglePin,
+    onDragStart: handleDragStart,
+    onDragEnd: handleDragEnd,
+    onDragOverGroup: handleDragOverGroup,
+    onDropOnGroup: handleDropOnGroup,
+    onDragOverToken: handleDragOverToken,
+    onDragLeaveToken: handleDragLeaveToken,
+    onDropOnToken: handleDropReorder,
+    onMultiModeInlineSave: multiModeData ? handleMultiModeInlineSave : undefined,
+  }), [
+    setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
+    duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
+    generatorsBySource, derivedTokenPaths, tokenUsageCounts, searchHighlight,
+    selectedNodes, dragOverGroup, dragOverGroupIsInvalid, dragSource,
+    dragOverReorder, selectedLeafNodes, onEdit, onPreview, requestDeleteToken,
+    requestDeleteGroup, handleTokenSelect, handleToggleExpand, onNavigateToAlias,
+    handleOpenCreateSibling, handleRenameGroup, handleUpdateGroupMeta,
+    handleRequestMoveGroup, handleRequestMoveToken, handleDuplicateGroup,
+    handleDuplicateToken, handleOpenExtractToAlias, handleHoverToken,
+    onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup,
+    setTypeFilter, handleJumpToGroup, handleInlineSave, handleRenameToken,
+    handleDetachFromGenerator, handleToggleChain, pinnedTokens.togglePin,
+    handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
+    handleDragOverToken, handleDragLeaveToken, handleDropReorder,
+    multiModeData, handleMultiModeInlineSave,
+  ]);
 
   return (
     <div className="flex flex-col h-full" onKeyDown={handleListKeyDown}>
@@ -2313,6 +2383,7 @@ export function TokenList({
         className="flex-1 overflow-y-auto"
         onScroll={e => { const top = e.currentTarget.scrollTop; virtualScrollTopRef.current = top; setVirtualScrollTop(top); }}
       >
+      <TokenTreeProvider value={treeCtx}>
         {/* Multi-mode column headers */}
         {multiModeData && viewMode === 'tree' && (
           <div className="sticky top-0 z-20 flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -2342,33 +2413,11 @@ export function TokenList({
                 key={`pinned-${node.path}`}
                 node={node}
                 depth={0}
-                onEdit={onEdit}
-                onPreview={onPreview}
-                onDelete={requestDeleteToken}
-                onDeleteGroup={requestDeleteGroup}
-                setName={setName}
-                selectionCapabilities={selectionCapabilities}
-                selectedNodes={selectedNodes}
-                allTokensFlat={allTokensFlat}
-                selectMode={selectMode}
                 isSelected={selectedPaths.has(node.path)}
-                onToggleSelect={toggleSelect}
-                expandedPaths={expandedPaths}
-                onToggleExpand={handleToggleExpand}
-                duplicateCounts={duplicateCounts}
-                highlightedToken={highlightedToken ?? null}
-                onNavigateToAlias={onNavigateToAlias}
                 skipChildren
                 showFullPath
                 isPinned={true}
-                onTogglePin={pinnedTokens.togglePin}
-                syncSnapshot={syncSnapshot}
-                cascadeDiff={cascadeDiff}
-                onInlineSave={handleInlineSave}
-                tokenUsageCounts={tokenUsageCounts}
-                searchHighlight={searchHighlight}
                 multiModeValues={multiModeData ? getMultiModeValues(node.path) : undefined}
-                onMultiModeInlineSave={multiModeData ? handleMultiModeInlineSave : undefined}
               />
             ))}
           </div>
@@ -2707,77 +2756,21 @@ export function TokenList({
                 node={node}
                 depth={depth}
                 skipChildren
-                onEdit={onEdit}
-                onPreview={onPreview}
-                onDelete={requestDeleteToken}
-                onDeleteGroup={requestDeleteGroup}
-                setName={setName}
-                selectionCapabilities={selectionCapabilities}
-                selectedNodes={selectedNodes}
-                allTokensFlat={allTokensFlat}
-                selectMode={selectMode}
                 isSelected={node.isGroup ? false : selectedPaths.has(node.path)}
-                onToggleSelect={handleTokenSelect}
-                expandedPaths={expandedPaths}
-                onToggleExpand={handleToggleExpand}
-                duplicateCounts={duplicateCounts}
-                highlightedToken={highlightedToken ?? null}
-                onNavigateToAlias={onNavigateToAlias}
-                onCreateSibling={handleOpenCreateSibling}
-                onCreateGroup={(parentPath) => setNewGroupDialogParent(parentPath)}
-                onRenameGroup={handleRenameGroup}
-                onUpdateGroupMeta={handleUpdateGroupMeta}
-                onRequestMoveGroup={handleRequestMoveGroup}
-                onRequestMoveToken={handleRequestMoveToken}
-                onDuplicateGroup={handleDuplicateGroup}
-                onDuplicateToken={handleDuplicateToken}
-                onExtractToAlias={handleOpenExtractToAlias}
-                inspectMode={inspectMode}
-                onHoverToken={handleHoverToken}
                 lintViolations={lintViolations.filter(v => v.path === node.path)}
-                onExtractToAliasForLint={(path, $type, $value) => handleOpenExtractToAlias(path, $type, $value)}
-                onSyncGroup={onSyncGroup}
-                onSyncGroupStyles={onSyncGroupStyles}
-                onSetGroupScopes={onSetGroupScopes}
-                onGenerateScaleFromGroup={onGenerateScaleFromGroup}
-                syncSnapshot={syncSnapshot}
-                cascadeDiff={cascadeDiff}
-                onFilterByType={setTypeFilter}
-                generatorsBySource={generatorsBySource}
-                derivedTokenPaths={derivedTokenPaths}
-                onJumpToGroup={handleJumpToGroup}
-                onInlineSave={handleInlineSave}
-                onRenameToken={handleRenameToken}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragOverGroup={handleDragOverGroup}
-                onDropOnGroup={handleDropOnGroup}
-                dragOverGroup={dragOverGroup}
-                dragOverGroupIsInvalid={dragOverGroupIsInvalid}
-                dragSource={dragSource}
-                onDragOverToken={handleDragOverToken}
-                onDragLeaveToken={handleDragLeaveToken}
-                onDropOnToken={(path, name, pos) => handleDropReorder(path, name, pos)}
-                dragOverReorder={sortOrder === 'default' ? dragOverReorder : null}
-                selectedLeafNodes={selectedLeafNodes}
+                chainExpanded={expandedChains.has(node.path)}
+                showFullPath={showRecentlyTouched || showPinnedOnly}
+                isPinned={pinnedTokens.isPinned(node.path)}
                 onMoveUp={moveEnabled && sibIdx > 0 ? () => handleMoveTokenInGroup(node.path, node.name, 'up') : undefined}
                 onMoveDown={moveEnabled && sibIdx >= 0 && sibIdx < siblings.length - 1 ? () => handleMoveTokenInGroup(node.path, node.name, 'down') : undefined}
-                chainExpanded={expandedChains.has(node.path)}
-                onToggleChain={handleToggleChain}
-                searchHighlight={searchHighlight}
-                showFullPath={showRecentlyTouched || showPinnedOnly}
-                tokenUsageCounts={tokenUsageCounts}
-                isPinned={pinnedTokens.isPinned(node.path)}
-                onTogglePin={pinnedTokens.togglePin}
                 multiModeValues={multiModeData ? getMultiModeValues(node.path) : undefined}
-                onMultiModeInlineSave={multiModeData ? handleMultiModeInlineSave : undefined}
-                onDetachFromGenerator={handleDetachFromGenerator}
               />
               );
             })}
             <div style={{ height: virtualBottomPad }} aria-hidden="true" />
           </div>
         )}
+      </TokenTreeProvider>
       </div>
 
       {/* Create form */}

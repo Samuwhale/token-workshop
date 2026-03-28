@@ -100,3 +100,41 @@ Already up to date.
 
 --- Merging: Extract TokenList state into custom hooks (useTokenCreate, useFindReplace, useDragDrop) ---
 Already up to date.
+[main cc620a3] chore(backlog): done – Extract TokenList state into custom hooks (useTokenCreate, useFindReplace, useDragDrop)
+ 9 files changed, 876 insertions(+), 590 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useDragDrop.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useFindReplace.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useTokenCreate.ts
+
+## 2026-03-28 - Extract TokenList state into custom hooks (useTokenCreate, useFindReplace, useDragDrop)
+- Extracted 14 useState hooks and their associated callbacks/effects/memos from TokenList.tsx into 3 custom hooks:
+  - `useTokenCreate` (236 lines): showCreateForm, newTokenPath, newTokenType, newTokenValue, newTokenDescription, typeAutoInferred, createError, siblingPrefix + createFormRef, nameSuggestions, handleCreate, handleCreateAndNew, handleOpenCreateSibling, resetCreateForm
+  - `useFindReplace` (151 lines): showFindReplace, frFind, frReplace, frIsRegex, frError, frBusy + frRegexError, frPreview, handleFindReplace. Extracted `flattenTokenPaths` as a local helper.
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  15 items remaining
+===============================================================
+  Claimed: TokenTreeNode has 47 props and is 1200+ lines — the deeply-passed prop set is a strong signal for a React context; many props are forwarded recursively unchanged
+  Worktree: /tmp/backlog-34977-t4uRSu
+
+  · unknown
+    101 turns · 840s · $6.43
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - Extract TokenList state into custom hooks (useTokenCreate, useFindReplace, useDragDrop)
+- Extracted 14 useState hooks and their associated callbacks/effects/memos from TokenList.tsx into 3 custom hooks:
+  - `useTokenCreate` (236 lines): showCreateForm, newTokenPath, newTokenType, newTokenValue, newTokenDescription, typeAutoInferred, createError, siblingPrefix + createFormRef, nameSuggestions, handleCreate, handleCreateAndNew, handleOpenCreateSibling, resetCreateForm
+  - `useFindReplace` (151 lines): showFindReplace, frFind, frReplace, frIsRegex, frError, frBusy + frRegexError, frPreview, handleFindReplace. Extracted `flattenTokenPaths` as a local helper.
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  15 items remaining
+===============================================================
+  Claimed: TokenTreeNode has 47 props and is 1200+ lines — the deeply-passed prop set is a strong signal for a React context; many props are forwarded recursively unchanged
+  Worktree: /tmp/backlog-34977-4Ekw8e
+
+  ✓ done: TokenTreeNode has 47 props and is 1200+ lines — the deeply-passed prop set is a strong signal for a React context
+    Introduced TokenTreeContext with useTokenTree() hook — reduced TokenTreeNodeProps from 47 to 11 per-node props, recursive call from 46 lines to 6, fixed searchHighlight/selectedNodes/tokenUsageCounts bugs. Build passes.
+    95 turns · 876s · $5.97
+
+--- Merging: TokenTreeNode has 47 props and is 1200+ lines — the deeply-passed prop set is a strong signal for a React context ---
+Already up to date.
