@@ -647,3 +647,10 @@
 - **Learnings for future iterations:**
   - When a `useCallback` body accidentally calls itself instead of a state setter, TypeScript won't catch it since the function signature is valid. Watch for copy-paste errors where a function name was used as a placeholder and never replaced.
 ---
+
+## 2026-03-28 - `scanTokenUsageMap` called but never imported in controller.ts
+- Already fixed in a previous session: `scanTokenUsageMap` is imported from `selectionHandling.ts` on line 6 of controller.ts
+- Files changed: none (already done)
+- **Learnings for future iterations:**
+  - Check progress.txt for prior fixes before starting work — duplicate items can appear in the backlog
+---
