@@ -323,3 +323,9 @@
   - `TokenList.tsx` had two single refs (`varReadResolveRef` + `varReadCorrelIdRef`) as a partial correlation attempt — still broken for concurrency since only one could be in flight; collapsing to one Map ref is cleaner
   - `useStyleSync.ts` and `useVariableSync.ts` are the canonical reference implementations for this pattern
 ---
+
+## 2026-03-28 - code-pass
+- Areas explored: `packages/server/src/services/` (all service files: token-store, generator-service, git-sync, manual-snapshot, operation-log, resolver-store, lint, style-dict, themes-to-resolver), `packages/figma-plugin/src/plugin/` (all sandbox files: styleSync, variableSync, consistencyScanner, heatmapScanning, selectionHandling, variableUtils, colorUtils, controller), `packages/core/src/` (all core files: color-modifier, color-math, color-parse, resolver, dtcg-types, validator, constants, types), `packages/figma-plugin/src/ui/hooks/` (useStyleSync, useVariableSync, useFigmaSync, useGeneratorDialog, useGitSync, useServerEvents, useSelection, useHeatmap, useDragDrop, useSetMergeSplit, useTableCreate, useUndo, useTokenCreate, useNearbyTokenMatch, useResolvers, useThemeSwitcher, useAvailableFonts, usePreviewSplit, useToastStack)
+- Found 6 items — written to backlog-inbox.md
+- Notable: Three hooks (useStyleSync, useVariableSync, useFigmaSync) each independently implement the same Figma plugin message-promise pattern with correlationId tracking, timeout, and event listeners — ~100 lines of duplicated boilerplate that should be a shared hook
+---
