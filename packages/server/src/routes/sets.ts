@@ -49,6 +49,15 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         const set = await fastify.tokenStore.createSet(name, tokens as TokenGroup | undefined);
+        await fastify.operationLog.record({
+          type: 'set-create',
+          description: `Create set "${name}"`,
+          setName: name,
+          affectedPaths: [],
+          beforeSnapshot: {},
+          afterSnapshot: {},
+          metadata: { kind: 'set-create', name, tokens: set.tokens },
+        });
         return reply.status(201).send({ name: set.name, tokens: set.tokens });
       } catch (err) {
         return reply.status(500).send({ error: 'Failed to create set', detail: String(err) });
@@ -62,6 +71,11 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
     const { description = '', figmaCollection, figmaMode } = request.body || {};
     return withLock(async () => {
       try {
+        const beforeDesc = fastify.tokenStore.getSetDescriptions();
+        const beforeColl = fastify.tokenStore.getSetCollectionNames();
+        const beforeMode = fastify.tokenStore.getSetModeNames();
+        const beforeMeta = { description: beforeDesc[name], collectionName: beforeColl[name], modeName: beforeMode[name] };
+
         await fastify.tokenStore.updateSetDescription(name, description);
         if (figmaCollection !== undefined) {
           await fastify.tokenStore.updateSetCollectionName(name, figmaCollection);
@@ -69,6 +83,24 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         if (figmaMode !== undefined) {
           await fastify.tokenStore.updateSetModeName(name, figmaMode);
         }
+
+        const afterDesc = fastify.tokenStore.getSetDescriptions();
+        const afterColl = fastify.tokenStore.getSetCollectionNames();
+        const afterMode = fastify.tokenStore.getSetModeNames();
+        await fastify.operationLog.record({
+          type: 'set-metadata',
+          description: `Update metadata for set "${name}"`,
+          setName: name,
+          affectedPaths: [],
+          beforeSnapshot: {},
+          afterSnapshot: {},
+          metadata: {
+            kind: 'set-metadata',
+            name,
+            before: beforeMeta,
+            after: { description: afterDesc[name], collectionName: afterColl[name], modeName: afterMode[name] },
+          },
+        });
         return { updated: true, name, description };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to update metadata');
@@ -92,6 +124,15 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         await fastify.tokenStore.renameSet(name, newName);
         await fastify.generatorService.updateSetName(name, newName);
+        await fastify.operationLog.record({
+          type: 'set-rename',
+          description: `Rename set "${name}" to "${newName}"`,
+          setName: name,
+          affectedPaths: [],
+          beforeSnapshot: {},
+          afterSnapshot: {},
+          metadata: { kind: 'set-rename', oldName: name, newName },
+        });
         return { renamed: true, oldName: name, newName };
       } catch (err) {
         return handleRouteError(reply, err, 'Failed to rename set');
@@ -106,7 +147,17 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(400).send({ error: 'order must be an array of set names' });
     }
     return withLock(async () => {
+      const previousOrder = await fastify.tokenStore.getSets();
       fastify.tokenStore.reorderSets(order);
+      await fastify.operationLog.record({
+        type: 'set-reorder',
+        description: 'Reorder sets',
+        setName: '',
+        affectedPaths: [],
+        beforeSnapshot: {},
+        afterSnapshot: {},
+        metadata: { kind: 'set-reorder', previousOrder, newOrder: order },
+      });
       return { reordered: true };
     });
   });
@@ -143,10 +194,33 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
 
+        // Capture full set data before deletion for undo
+        const setData = await fastify.tokenStore.getSet(name);
+        const descriptions = fastify.tokenStore.getSetDescriptions();
+        const collectionNames = fastify.tokenStore.getSetCollectionNames();
+        const modeNames = fastify.tokenStore.getSetModeNames();
+
         const deleted = await fastify.tokenStore.deleteSet(name);
         if (!deleted) {
           return reply.status(404).send({ error: `Token set "${name}" not found` });
         }
+
+        await fastify.operationLog.record({
+          type: 'set-delete',
+          description: `Delete set "${name}"`,
+          setName: name,
+          affectedPaths: [],
+          beforeSnapshot: {},
+          afterSnapshot: {},
+          metadata: {
+            kind: 'set-delete',
+            name,
+            tokens: setData!.tokens,
+            description: descriptions[name],
+            collectionName: collectionNames[name],
+            modeName: modeNames[name],
+          },
+        });
         return { deleted: true, name };
       } catch (err) {
         return reply.status(500).send({ error: 'Failed to delete set', detail: String(err) });

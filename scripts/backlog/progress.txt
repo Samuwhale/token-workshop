@@ -50,3 +50,20 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: Set operations (create/rename/delete/reorder) are completely absent from the operation log — no undo possible for structural changes; Resolvers and Themes are separate panels solving the same problem with different mental models and should be consolidated; variable/style sync has no value-level diff preview despite Git sync already having one
 ---
+
+## 2026-03-29 - Set/theme/resolver operations missing from operation log
+- Added `OperationMetadata` discriminated union to `operation-log.ts` with 9 structural operation kinds: set-create, set-delete, set-rename, set-reorder, set-metadata, theme-dimensions, resolver-create, resolver-update, resolver-delete
+- Extended `rollback()` with `rollbackStructural()` dispatch + `invertMetadata()` for building inverse undo records
+- Added operation log recording to all 5 mutating set routes (create, rename, delete, reorder, metadata update) in `sets.ts`
+- Added operation log recording to all 7 mutating theme routes (dimension create/rename/delete, option create-or-update/rename/reorder/delete) in `themes.ts`
+- Added operation log recording to all 4 mutating resolver routes (create, create-from-themes, update, delete) in `resolvers.ts`
+- Extracted `DimensionsStore` interface and `createDimensionsStore` factory as exports from `themes.ts`, shared via Fastify decoration so both theme routes and rollback route can access the same instance
+- Updated `operations.ts` rollback route to pass `dimensionsStore` and `resolverStore` to the extended `rollback()` method
+- Files changed: `packages/server/src/services/operation-log.ts` ~L1-230, `packages/server/src/routes/sets.ts` ~L44-180, `packages/server/src/routes/themes.ts` ~L10-380, `packages/server/src/routes/resolvers.ts` ~L25-120, `packages/server/src/routes/operations.ts` ~L17, `packages/server/src/index.ts` ~L30,65-72,125-135
+- **Learnings for future iterations:**
+  - Structural operations don't fit the token-path-based `beforeSnapshot`/`afterSnapshot` model — a `metadata` discriminated union on `OperationEntry` cleanly extends the system without breaking existing token-level undo
+  - Theme dimensions are small enough to snapshot the entire array before/after each mutation — no need for granular per-dimension snapshots
+  - `DimensionsStore` was previously local to `themes.ts` — extracting to a shared Fastify decoration avoids creating a second store instance and ensures cache coherence
+  - The `withLock` callback in `DimensionsStore` is the right place to capture `beforeDims = structuredClone(dimensions)` since the lock serializes access
+  - `invertMetadata()` enables the rollback record itself to be undoable (redo) using the same structural dispatch
+---

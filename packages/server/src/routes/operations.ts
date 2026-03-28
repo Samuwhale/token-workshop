@@ -14,7 +14,10 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Params: { id: string } }>('/operations/:id/rollback', async (request, reply) => {
     return withLock(async () => {
       try {
-        const result = await fastify.operationLog.rollback(request.params.id, fastify.tokenStore);
+        const result = await fastify.operationLog.rollback(request.params.id, fastify.tokenStore, {
+          dimensionsStore: fastify.dimensionsStore,
+          resolverStore: fastify.resolverStore,
+        });
         return result;
       } catch (err) {
         return handleRouteError(reply, err);
