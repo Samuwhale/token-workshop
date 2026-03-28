@@ -67,3 +67,17 @@
   - The `withLock` callback in `DimensionsStore` is the right place to capture `beforeDims = structuredClone(dimensions)` since the lock serializes access
   - `invertMetadata()` enables the rollback record itself to be undoable (redo) using the same structural dispatch
 ---
+
+## 2026-03-29 - Merge Resolvers panel into Theme Manager as an "advanced mode"
+- Merged the standalone Resolvers sub-tab into Theme Manager with progressive disclosure via simple/advanced mode toggle
+- Refactored `ResolverPanel.tsx` into `ResolverInner` (shared body) with `ResolverPanel` (standalone header) and `ResolverContent` (embeddable, no header) as thin wrappers
+- Added `resolverState` prop to `ThemeManager` — when provided, renders a simple/advanced toggle bar at the top
+- In advanced mode, ThemeManager renders `ResolverContent` with an inline toolbar (resolver count + create/migrate actions)
+- Removed `'resolvers'` from `DefineSubTab` union type and `TOP_TABS` array in App.tsx
+- Removed the standalone Resolvers rendering block from App.tsx (~20 lines)
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx`, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L7-8,23,52-53,989-1030, `packages/figma-plugin/src/ui/App.tsx` ~L8,162,206,2408,2445-2465
+- **Learnings for future iterations:**
+  - The `showHeader` boolean pattern on a shared inner component is cleaner than extracting a huge intermediate prop interface for body-only content
+  - ThemeManager's `themesView` (manage/compare) and the new `themeMode` (simple/advanced) are orthogonal — compare view works in both modes
+  - The `navigateTo` fallback handles removed sub-tabs: if localStorage stores a sub-tab ID not in `TOP_TABS`, it falls back to `DEFAULT_SUB_TABS[topTab]`
+---

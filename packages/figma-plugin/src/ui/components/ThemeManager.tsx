@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 import type { UndoSlot } from '../hooks/useUndo';
+import type { ResolverContentProps } from './ResolverPanel';
+import { ResolverContent } from './ResolverPanel';
 
 const STATE_LABELS: Record<string, string> = {
   disabled: 'Not included',
@@ -24,6 +26,8 @@ interface ThemeManagerProps {
   onDimensionsChange?: (dimensions: ThemeDimension[]) => void;
   onNavigateToToken?: (set: string, tokenPath: string) => void;
   onPushUndo?: (slot: UndoSlot) => void;
+  /** Resolver state — when provided, enables the Advanced mode toggle */
+  resolverState?: ResolverContentProps;
 }
 
 type CoverageToken = {
@@ -47,7 +51,8 @@ function slugify(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onPushUndo }: ThemeManagerProps) {
+export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, onNavigateToToken, onPushUndo, resolverState }: ThemeManagerProps) {
+  const [themeMode, setThemeMode] = useState<'simple' | 'advanced'>('simple');
   const [dimensions, setDimensions] = useState<ThemeDimension[]>([]);
 
   useEffect(() => { onDimensionsChange?.(dimensions); }, [dimensions, onDimensionsChange]);
@@ -981,8 +986,63 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     });
   }, [dimensions, dimSearch]);
 
+  // Advanced mode: render the resolver UI instead of the theme dimension grid
+  if (themeMode === 'advanced' && resolverState) {
+    return (
+      <div className="flex flex-col h-full">
+        {/* Mode toggle bar */}
+        <div className="shrink-0 px-3 py-1.5 border-b border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
+          <div className="flex items-center gap-1">
+            {(['simple', 'advanced'] as const).map(m => (
+              <button
+                key={m}
+                onClick={() => setThemeMode(m)}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors capitalize ${
+                  themeMode === m
+                    ? 'bg-[var(--color-figma-accent)] text-white'
+                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">DTCG Resolvers</span>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <ResolverContent {...resolverState} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
+      {/* Mode toggle bar — only shown when resolver state is available */}
+      {resolverState && (
+        <div className="shrink-0 px-3 py-1.5 border-b border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
+          <div className="flex items-center gap-1">
+            {(['simple', 'advanced'] as const).map(m => (
+              <button
+                key={m}
+                onClick={() => setThemeMode(m)}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors capitalize ${
+                  themeMode === m
+                    ? 'bg-[var(--color-figma-accent)] text-white'
+                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          {resolverState.resolvers.length > 0 && (
+            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+              {resolverState.resolvers.length} resolver{resolverState.resolvers.length !== 1 ? 's' : ''} available
+            </span>
+          )}
+        </div>
+      )}
       {error && (
         <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] flex items-center justify-between">
           <span>{error}</span>

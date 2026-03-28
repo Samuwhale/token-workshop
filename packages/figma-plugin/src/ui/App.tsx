@@ -5,7 +5,7 @@ import { TokenEditor } from './components/TokenEditor';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ThemeManager } from './components/ThemeManager';
 import { ThemeCompare } from './components/ThemeCompare';
-import { ResolverPanel } from './components/ResolverPanel';
+// ResolverPanel is now embedded inside ThemeManager's advanced mode
 import { PublishPanel } from './components/PublishPanel';
 import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
@@ -163,7 +163,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
-type DefineSubTab = 'tokens' | 'themes' | 'resolvers' | 'generators' | 'flow';
+type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'flow';
 type ApplySubTab = 'inspect' | 'heatmap' | 'consistency';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history' | 'snapshots';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
@@ -207,7 +207,6 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
   { id: 'define', label: 'Define', subTabs: [
     { id: 'tokens', label: 'Tokens' },
     { id: 'themes', label: 'Themes' },
-    { id: 'resolvers', label: 'Resolvers' },
     { id: 'generators', label: 'Generators' },
     { id: 'flow', label: 'Token Flow' },
   ]},
@@ -2145,7 +2144,23 @@ export function App() {
               <div className="flex-1 overflow-hidden">
                 {themesView === 'manage' ? (
                   <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
-                    <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(set, path) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onPushUndo={pushUndo} />
+                    <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(set, path) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} onPushUndo={pushUndo} resolverState={{
+                      serverUrl,
+                      connected,
+                      sets,
+                      resolvers: resolverState.resolvers,
+                      activeResolver: resolverState.activeResolver,
+                      setActiveResolver: resolverState.setActiveResolver,
+                      resolverInput: resolverState.resolverInput,
+                      setResolverInput: resolverState.setResolverInput,
+                      activeModifiers: resolverState.activeModifiers,
+                      resolvedTokens: resolverState.resolvedTokens,
+                      resolverError: resolverState.resolverError,
+                      loading: resolverState.loading,
+                      fetchResolvers: resolverState.fetchResolvers,
+                      convertFromThemes: resolverState.convertFromThemes,
+                      deleteResolver: resolverState.deleteResolver,
+                    }} />
                   </ErrorBoundary>
                 ) : (
                   <ErrorBoundary panelName="Theme Compare" onReset={() => setThemesView('manage')}>
@@ -2166,28 +2181,7 @@ export function App() {
             </div>
           )}
 
-          {/* Resolvers sub-tab (Define > Resolvers) */}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'resolvers' && (
-            <ErrorBoundary panelName="Resolvers" onReset={() => navigateTo('define', 'tokens')}>
-              <ResolverPanel
-                serverUrl={serverUrl}
-                connected={connected}
-                sets={sets}
-                resolvers={resolverState.resolvers}
-                activeResolver={resolverState.activeResolver}
-                setActiveResolver={resolverState.setActiveResolver}
-                resolverInput={resolverState.resolverInput}
-                setResolverInput={resolverState.setResolverInput}
-                activeModifiers={resolverState.activeModifiers}
-                resolvedTokens={resolverState.resolvedTokens}
-                resolverError={resolverState.resolverError}
-                loading={resolverState.loading}
-                fetchResolvers={resolverState.fetchResolvers}
-                convertFromThemes={resolverState.convertFromThemes}
-                deleteResolver={resolverState.deleteResolver}
-              />
-            </ErrorBoundary>
-          )}
+          {/* Resolvers are now embedded in ThemeManager's advanced mode */}
 
           {/* Export sub-tab (Ship > Export) */}
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'export' && (
