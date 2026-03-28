@@ -149,3 +149,20 @@ export function parseDimValue(dim: any): number {
   if (typeof dim === 'object' && dim.value != null) return dim.value;
   return 0;
 }
+
+/** Convert a DTCG shadow token value (single or array) to Figma DropShadowEffect[]. */
+export function shadowTokenToEffects(value: any): DropShadowEffect[] {
+  const shadows = Array.isArray(value) ? value : [value];
+  return shadows.map((s: any) => {
+    const color = parseColor(s.color);
+    return {
+      type: s.type === 'innerShadow' ? 'INNER_SHADOW' : 'DROP_SHADOW',
+      color: color ? { ...color.rgb, a: color.a } : { r: 0, g: 0, b: 0, a: 0.25 },
+      offset: { x: parseDimValue(s.offsetX), y: parseDimValue(s.offsetY) },
+      radius: parseDimValue(s.blur),
+      spread: parseDimValue(s.spread),
+      visible: true,
+      blendMode: 'NORMAL',
+    } as DropShadowEffect;
+  });
+}

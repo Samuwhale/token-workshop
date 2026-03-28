@@ -372,3 +372,23 @@ Already up to date.
 
 --- Merging: Theme load-modify-save races on concurrent requests ---
 Already up to date.
+[main 3daf205] chore(backlog): done – Theme load-modify-save races on concurrent requests
+ 7 files changed, 158 insertions(+), 93 deletions(-)
+
+## 2026-03-28 - Theme load-modify-save races on concurrent requests
+- Added promise-chain mutex (`withLock`) to `DimensionsStore` that serializes all load-modify-save transactions
+- Refactored all 7 mutation routes (POST/PUT/DELETE for dimensions and options) to use `withLock` instead of separate load/save calls
+- Error handling uses `statusCode`-tagged errors thrown inside the lock callback, caught in the route handler
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  38 items remaining
+===============================================================
+  Claimed: Shadow-to-Figma-effect mapping duplicated — nearly identical conversion logic in `styleSync.ts` (`applyEffectStyle`) and `selectionHandling.ts` (`applyTokenValue` shadow case); extract to a shared helper
+  Worktree: /tmp/backlog-62956-TpdxJb
+
+  ✓ done: Shadow-to-Figma-effect mapping duplicated
+    Extracted shared `shadowTokenToEffects()` helper in colorUtils.ts; both styleSync.ts and selectionHandling.ts now use it instead of inline duplication.
+    28 turns · 159s · $0.76
+
+--- Merging: Shadow-to-Figma-effect mapping duplicated ---
+Already up to date.

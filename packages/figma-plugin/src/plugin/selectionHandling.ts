@@ -3,7 +3,7 @@ import type { ExtractedTokenEntry } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 import { getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
-import { parseColor, rgbToHex, parseDimValue } from './colorUtils.js';
+import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './colorUtils.js';
 import { resolveStyleForWeight, fontStyleToWeight } from './fontLoading.js';
 
 // Apply a resolved token value to a specific node property
@@ -125,19 +125,7 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
 
     case 'shadow':
       if ('effects' in node) {
-        const shadows = Array.isArray(value) ? value : [value];
-        (node as Record<string, unknown>)['effects'] = shadows.map((s: Record<string, unknown>) => {
-          const color = parseColor(s['color']);
-          return {
-            type: s['type'] === 'innerShadow' ? 'INNER_SHADOW' : 'DROP_SHADOW',
-            color: color ? { ...color.rgb, a: color.a } : { r: 0, g: 0, b: 0, a: 0.25 },
-            offset: { x: parseDimValue(s['offsetX']), y: parseDimValue(s['offsetY']) },
-            radius: parseDimValue(s['blur']),
-            spread: parseDimValue(s['spread']),
-            visible: true,
-            blendMode: 'NORMAL',
-          } as DropShadowEffect;
-        });
+        (node as Record<string, unknown>)['effects'] = shadowTokenToEffects(value);
       }
       break;
 

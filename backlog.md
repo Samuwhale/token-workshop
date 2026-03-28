@@ -116,7 +116,7 @@
 ### Bugs
 
 - [x] Set rename is not atomic — comment says "atomic (same filesystem, so fs.rename is atomic)" but code uses `fs.writeFile` then `fs.unlink`; if the process crashes between steps, both files exist on disk and the next startup loads both
-- [~] Theme load-modify-save races on concurrent requests — every mutation route does `load()` → modify → `save()` with no locking; two concurrent requests (e.g., two browser tabs adding options) can race and the second save overwrites the first's changes
+- [x] Theme load-modify-save races on concurrent requests — every mutation route does `load()` → modify → `save()` with no locking; two concurrent requests (e.g., two browser tabs adding options) can race and the second save overwrites the first's changes
 
 ### QoL
 
@@ -132,7 +132,7 @@
 
 ### Redundancy & Duplication
 
-- [ ] Shadow-to-Figma-effect mapping duplicated — nearly identical conversion logic in `styleSync.ts` (`applyEffectStyle`) and `selectionHandling.ts` (`applyTokenValue` shadow case); extract to a shared helper
+- [~] Shadow-to-Figma-effect mapping duplicated — nearly identical conversion logic in `styleSync.ts` (`applyEffectStyle`) and `selectionHandling.ts` (`applyTokenValue` shadow case); extract to a shared helper
 - [ ] `describeError` helper duplicated in 3 hook files — identical function in `useGitSync.ts`, `useStyleSync.ts`, and `useVariableSync.ts`; move to `shared/utils.ts` alongside existing `getErrorMessage`
 - [ ] `SET_NAME_RE` regex duplicated — same validation regex defined in both `useSetRename.ts` and `App.tsx`; if the rule changes, both must be updated
 - [ ] Node collection logic duplicated in `selectionHandling.ts` — `remapBindings` and `syncBindings` have nearly identical scope-based node collection (selection vs page); extract to shared helper

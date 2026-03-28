@@ -498,3 +498,12 @@
   - The `withLock` callback pattern (return `{ dims, result }`) keeps the lock scope tight and ensures save always happens atomically with the modification
   - Pre-existing build error (`getNextUnboundProperty` missing export) prevents full plugin build validation; server-only changes verified via transpile check
 ---
+
+## 2026-03-28 - Shadow-to-Figma-effect mapping duplicated
+- Extracted duplicated shadow-to-Figma-effect conversion logic into `shadowTokenToEffects()` in `colorUtils.ts`
+- Both `styleSync.ts` (`applyEffectStyle`) and `selectionHandling.ts` (`applyTokenValue` shadow case) now call the shared helper
+- Files changed: `packages/figma-plugin/src/plugin/colorUtils.ts` ~L153-168, `packages/figma-plugin/src/plugin/styleSync.ts` ~L1,L104, `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L6,L127-131
+- **Learnings for future iterations:**
+  - `colorUtils.ts` is a natural home for shared plugin-side conversion helpers since both `styleSync.ts` and `selectionHandling.ts` already import from it
+  - Pre-existing build error (`getNextUnboundProperty` missing export in `selectionInspectorUtils.ts`) still blocks full plugin build; plugin-side esbuild verified separately
+---

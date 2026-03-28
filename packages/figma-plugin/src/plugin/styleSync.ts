@@ -1,4 +1,4 @@
-import { parseColor, rgbToHex, parseDimValue } from './colorUtils.js';
+import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './colorUtils.js';
 import { fontStyleToWeight, resolveStyleForWeight } from './fontLoading.js';
 
 export async function applyStyles(tokens: any[]) {
@@ -101,19 +101,7 @@ async function applyEffectStyle(token: any) {
     style = figma.createEffectStyle();
     style.name = token.path.replace(/\./g, '/');
   }
-  const shadows = Array.isArray(token.$value) ? token.$value : [token.$value];
-  style.effects = shadows.map((s: any) => {
-    const color = parseColor(s.color);
-    return {
-      type: s.type === 'innerShadow' ? 'INNER_SHADOW' : 'DROP_SHADOW',
-      color: color ? { ...color.rgb, a: color.a } : { r: 0, g: 0, b: 0, a: 0.25 },
-      offset: { x: parseDimValue(s.offsetX), y: parseDimValue(s.offsetY) },
-      radius: parseDimValue(s.blur),
-      spread: parseDimValue(s.spread),
-      visible: true,
-      blendMode: 'NORMAL',
-    } as DropShadowEffect;
-  });
+  style.effects = shadowTokenToEffects(token.$value);
   style.setPluginData('tokenPath', token.path);
 }
 
