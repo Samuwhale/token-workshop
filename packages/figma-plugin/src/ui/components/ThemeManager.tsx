@@ -1113,7 +1113,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               Missing values ({coverage[dim.id][selectedOpt].uncovered.length})
                             </div>
                             <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can't be resolved within the active sets.</p>
-                            <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
+                            <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Missing tokens for ${selectedOpt}`}>
                               {coverage[dim.id][selectedOpt].uncovered.map(item => (
                                 onNavigateToToken && item.set ? (
                                   <button
@@ -1121,11 +1121,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                     onClick={() => onNavigateToToken(item.set, item.path)}
                                     className="text-left text-[9px] text-[var(--color-figma-warning)] font-mono truncate hover:underline cursor-pointer"
                                     title={`Navigate to ${item.path} in set "${item.set}"`}
+                                    role="listitem"
                                   >
                                     {item.path}
                                   </button>
                                 ) : (
-                                  <div key={item.path} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate">{item.path}</div>
+                                  <div key={item.path} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate" role="listitem">{item.path}</div>
                                 )
                               ))}
                             </div>
@@ -1137,9 +1138,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               Deleted sets ({staleSetNames.length})
                             </div>
                             <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These sets are referenced but no longer exist.</p>
-                            <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
+                            <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Deleted sets for ${selectedOpt}`}>
                               {staleSetNames.map(s => (
-                                <div key={s} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate" title={s}>{s}</div>
+                                <div key={s} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate" role="listitem" title={s}>{s}</div>
                               ))}
                             </div>
                           </div>

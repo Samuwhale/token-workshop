@@ -484,3 +484,24 @@ Already up to date.
 
 --- Merging: Token badge text contrast fails WCAG AA ---
 Already up to date.
+[main f3600ae] chore(backlog): done – Token badge text contrast fails WCAG AA
+ 6 files changed, 41 insertions(+), 7 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Token badge text contrast fails WCAG AA
+- Lightened four badge text CSS custom properties in `styles.css` to improve contrast ratios against the `#2c2c2c` dark background:
+  - `--token-badge-shadow-text`: `#95a5a6` → `#b8c9ca` (5.46:1 → 8.14:1)
+  - `--token-badge-number-text`: `#1abc9c` → `#40ceb2` (5.80:1 → 7.11:1)
+
+===============================================================
+  Iteration 24 / 90  (claude)  —  18 items remaining
+===============================================================
+  Claimed: Coverage gap scrollable list in ThemeManager has no keyboard navigation — the `max-h-32 overflow-y-auto` container traps keyboard focus; add `tabIndex={0}` or ensure inner buttons receive focus naturally
+  Worktree: /tmp/backlog-63973-87QG31
+
+  ✓ done: Coverage gap scrollable list in ThemeManager has no keyboard navigation
+    Added tabIndex={0}, role='list', aria-label, and focus ring to both max-h-32 overflow-y-auto containers so they receive keyboard focus and scroll naturally. Added role='listitem' to children.
+    10 turns · 52s · $0.29
+
+--- Merging: Coverage gap scrollable list in ThemeManager has no keyboard navigation ---
+Already up to date.

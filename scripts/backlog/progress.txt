@@ -464,3 +464,11 @@
   - The original colors were borderline-passing (5.46–7.10:1) rather than truly failing; lightening to 7:1+ provides comfortable margin.
   - Badge text colors are defined as CSS custom properties in `:root` — single-file change, no component modifications needed.
 ---
+
+## 2026-03-28 - Coverage gap scrollable list in ThemeManager has no keyboard navigation
+- Added `tabIndex={0}`, `role="list"`, `aria-label`, and focus ring styles to both `max-h-32 overflow-y-auto` containers (coverage gaps at ~L1116 and stale sets at ~L1140) so they can receive keyboard focus and scroll via arrow keys.
+- Added `role="listitem"` to child elements for semantic correctness.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1116, ~L1140
+- **Learnings for future iterations:**
+  - `overflow-y-auto` containers with no focusable children are keyboard-inaccessible — `tabIndex={0}` lets them receive focus and enables native keyboard scrolling.
+---
