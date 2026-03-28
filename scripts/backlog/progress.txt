@@ -331,3 +331,13 @@
   - The core dist directory is not committed; `npm run build` in `packages/core` must run first for server imports to resolve at runtime
   - This backlog item was likely filed before the function was added and became stale
 ---
+
+## 2026-03-28 - Missing imports in `token-store.ts`
+- Fixed `TokenNode` (not defined anywhere) → replaced with `TokenGroup` (already imported from `@tokenmanager/core`)
+- Fixed `isSafeRegex` — was re-exported via `export { isSafeRegex } from '...'` which doesn't create a local binding; changed to separate import + re-export
+- `parseReference` and `makeReferenceGlobalRegex` were already correctly imported (backlog item partially stale on those)
+- Files changed: `packages/server/src/services/token-store.ts` ~L29 (isSafeRegex import), L369/L375/L385/L1254/L1256 (TokenNode→TokenGroup)
+- **Learnings for future iterations:**
+  - `export { X } from 'Y'` in TypeScript/ESM does NOT make `X` available locally — only re-exports it. To use locally, need a separate `import` statement.
+  - `TokenNode` was never a real type — it was likely a typo/rename artifact. `TokenGroup` from core serves the same purpose.
+---

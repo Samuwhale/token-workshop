@@ -445,3 +445,10 @@ Already up to date.
 ===============================================================
   Claimed: Missing imports in `token-store.ts` — `parseReference`, `makeReferenceGlobalRegex`, and `TokenNode` are used but not imported from `@tokenmanager/core`; `isSafeRegex` is re-exported but not imported for local use; these cause compilation failures or silently disable features like circular reference detection
   Worktree: /tmp/backlog-62956-7SfzPg
+
+  ✓ done: Missing imports in `token-store.ts`
+    Replaced undefined `TokenNode` with `TokenGroup` (already imported) and added local import for `isSafeRegex` alongside its re-export. `parseReference` and `makeReferenceGlobalRegex` were already imported correctly.
+    24 turns · 93s · $0.48
+
+--- Merging: Missing imports in `token-store.ts` ---
+Already up to date.

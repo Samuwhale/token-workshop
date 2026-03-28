@@ -423,3 +423,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 50)
+[main a2b8ab7] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 283 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Missing export validateStepName in generator-service.ts
+- Already implemented — `validateStepName` exists in `packages/core/src/generator-types.ts` ~L325, exported from `packages/core/src/index.ts` ~L105, and imported in `packages/server/src/services/generator-service.ts` ~L34
+- No changes needed; build passes successfully
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  30 items remaining
+===============================================================
+  Claimed: Resolver inconsistent color map initialization — `resolve(path)` creates a fresh color map without seeding already-resolved tokens, unlike `resolveAll()` which seeds them; this creates a latent gap in cycle detection for incrementally-added tokens
+  Worktree: /tmp/backlog-63973-aEoVuK

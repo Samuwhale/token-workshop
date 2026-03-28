@@ -26,7 +26,8 @@ import {
   updateBulkAliasRefs,
 } from './token-tree-utils.js';
 
-export { isSafeRegex } from './token-tree-utils.js';
+import { isSafeRegex } from './token-tree-utils.js';
+export { isSafeRegex };
 
 export class TokenStore {
   private dir: string;
@@ -366,13 +367,13 @@ export class TokenStore {
   async reorderGroupChildren(setName: string, groupPath: string, orderedKeys: string[]): Promise<void> {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
-    let group: TokenNode;
+    let group: TokenGroup;
     if (groupPath) {
       const found = getObjectAtPath(set.tokens, groupPath);
       if (!found) throw new Error(`Group "${groupPath}" not found in set "${setName}"`);
       group = found;
     } else {
-      group = set.tokens as TokenNode;
+      group = set.tokens as TokenGroup;
     }
     const nonMetaKeys = Object.keys(group).filter(k => !k.startsWith('$'));
     const orderedSet = new Set(orderedKeys);
@@ -382,7 +383,7 @@ export class TokenStore {
     for (const key of nonMetaKeys) {
       if (!orderedSet.has(key)) throw new Error(`Key "${key}" is missing from orderedKeys`);
     }
-    const reordered: TokenNode = {};
+    const reordered: TokenGroup = {};
     for (const [k, v] of Object.entries(group)) {
       if (k.startsWith('$')) reordered[k] = v;
     }
@@ -1251,9 +1252,9 @@ export class TokenStore {
   ): Promise<void> {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
-    let group: TokenNode;
+    let group: TokenGroup;
     if (!groupPath) {
-      group = set.tokens as TokenNode;
+      group = set.tokens as TokenGroup;
     } else {
       const found = getObjectAtPath(set.tokens, groupPath);
       if (!found) throw new Error(`Group "${groupPath}" not found in set "${setName}"`);
