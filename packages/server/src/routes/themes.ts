@@ -10,12 +10,15 @@ interface DimensionsStore {
   filePath: string;
   load(): Promise<ThemeDimension[]>;
   save(dimensions: ThemeDimension[]): Promise<void>;
+  /** Run an exclusive load-modify-save transaction. Prevents concurrent mutations from racing. */
+  withLock<T>(fn: (dims: ThemeDimension[]) => Promise<{ dims: ThemeDimension[]; result: T }>): Promise<T>;
 }
 
 function createDimensionsStore(tokenDir: string): DimensionsStore {
   const filePath = path.join(tokenDir, '$themes.json');
   let cache: ThemeDimension[] | null = null;
   let cachedMtimeMs: number | null = null;
+  let lockChain: Promise<unknown> = Promise.resolve();
 
   async function fileMtimeMs(): Promise<number | null> {
     try {
@@ -26,7 +29,7 @@ function createDimensionsStore(tokenDir: string): DimensionsStore {
     }
   }
 
-  return {
+  const store: DimensionsStore = {
     filePath,
 
     async load(): Promise<ThemeDimension[]> {
@@ -50,7 +53,21 @@ function createDimensionsStore(tokenDir: string): DimensionsStore {
       cache = structuredClone(dimensions);
       cachedMtimeMs = await fileMtimeMs();
     },
+
+    withLock<T>(fn: (dims: ThemeDimension[]) => Promise<{ dims: ThemeDimension[]; result: T }>): Promise<T> {
+      const next = lockChain.then(async () => {
+        const dims = await store.load();
+        const { dims: updated, result } = await fn(dims);
+        await store.save(updated);
+        return result;
+      });
+      // Chain subsequent callers behind this one regardless of success/failure
+      lockChain = next.catch(() => {});
+      return next;
+    },
   };
+
+  return store;
 }
 
 function validateSets(sets: Record<string, unknown>): string | null {
@@ -88,15 +105,17 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       return reply.status(400).send({ error: 'Dimension name is required' });
     }
     try {
-      const dimensions = await store.load();
-      if (dimensions.some(d => d.id === id)) {
-        return reply.status(409).send({ error: `Dimension with id "${id}" already exists` });
-      }
-      const dimension: ThemeDimension = { id, name: name.trim(), options: [] };
-      dimensions.push(dimension);
-      await store.save(dimensions);
+      const dimension = await store.withLock(async (dimensions) => {
+        if (dimensions.some(d => d.id === id)) {
+          throw Object.assign(new Error(`Dimension with id "${id}" already exists`), { statusCode: 409 });
+        }
+        const dim: ThemeDimension = { id, name: name.trim(), options: [] };
+        dimensions.push(dim);
+        return { dims: dimensions, result: dim };
+      });
       return reply.status(201).send({ dimension });
-    } catch (err) {
+    } catch (err: any) {
+      if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
       return reply.status(500).send({ error: 'Failed to create dimension', detail: String(err) });
     }
   });
@@ -109,15 +128,17 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       return reply.status(400).send({ error: 'Dimension name is required' });
     }
     try {
-      const dimensions = await store.load();
-      const idx = dimensions.findIndex(d => d.id === id);
-      if (idx === -1) {
-        return reply.status(404).send({ error: `Dimension "${id}" not found` });
-      }
-      dimensions[idx] = { ...dimensions[idx], name: name.trim() };
-      await store.save(dimensions);
-      return { dimension: dimensions[idx] };
-    } catch (err) {
+      const dimension = await store.withLock(async (dimensions) => {
+        const idx = dimensions.findIndex(d => d.id === id);
+        if (idx === -1) {
+          throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+        }
+        dimensions[idx] = { ...dimensions[idx], name: name.trim() };
+        return { dims: dimensions, result: dimensions[idx] };
+      });
+      return { dimension };
+    } catch (err: any) {
+      if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
       return reply.status(500).send({ error: 'Failed to rename dimension', detail: String(err) });
     }
   });
@@ -126,14 +147,16 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
   fastify.delete<{ Params: { id: string } }>('/themes/dimensions/:id', async (request, reply) => {
     const { id } = request.params;
     try {
-      const dimensions = await store.load();
-      const filtered = dimensions.filter(d => d.id !== id);
-      if (filtered.length === dimensions.length) {
-        return reply.status(404).send({ error: `Dimension "${id}" not found` });
-      }
-      await store.save(filtered);
+      await store.withLock(async (dimensions) => {
+        const filtered = dimensions.filter(d => d.id !== id);
+        if (filtered.length === dimensions.length) {
+          throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+        }
+        return { dims: filtered, result: undefined };
+      });
       return { deleted: true, id };
-    } catch (err) {
+    } catch (err: any) {
+      if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
       return reply.status(500).send({ error: 'Failed to delete dimension', detail: String(err) });
     }
   });
@@ -155,22 +178,24 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       if (setsError) return reply.status(400).send({ error: setsError });
 
       try {
-        const dimensions = await store.load();
-        const dimIdx = dimensions.findIndex(d => d.id === id);
-        if (dimIdx === -1) {
-          return reply.status(404).send({ error: `Dimension "${id}" not found` });
-        }
-        const dim = dimensions[dimIdx];
-        const optIdx = dim.options.findIndex(o => o.name === trimmedName);
-        const option = { name: trimmedName, sets };
-        if (optIdx >= 0) {
-          dim.options[optIdx] = option;
-        } else {
-          dim.options.push(option);
-        }
-        await store.save(dimensions);
-        return reply.status(optIdx >= 0 ? 200 : 201).send({ option });
-      } catch (err) {
+        const { option, status } = await store.withLock(async (dimensions) => {
+          const dimIdx = dimensions.findIndex(d => d.id === id);
+          if (dimIdx === -1) {
+            throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+          }
+          const dim = dimensions[dimIdx];
+          const optIdx = dim.options.findIndex(o => o.name === trimmedName);
+          const opt = { name: trimmedName, sets };
+          if (optIdx >= 0) {
+            dim.options[optIdx] = opt;
+          } else {
+            dim.options.push(opt);
+          }
+          return { dims: dimensions, result: { option: opt, status: optIdx >= 0 ? 200 : 201 } };
+        });
+        return reply.status(status).send({ option });
+      } catch (err: any) {
+        if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
         return reply.status(500).send({ error: 'Failed to save option', detail: String(err) });
       }
     },
@@ -187,23 +212,25 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       }
       const newName = name.trim();
       try {
-        const dimensions = await store.load();
-        const dimIdx = dimensions.findIndex(d => d.id === id);
-        if (dimIdx === -1) {
-          return reply.status(404).send({ error: `Dimension "${id}" not found` });
-        }
-        const dim = dimensions[dimIdx];
-        const optIdx = dim.options.findIndex(o => o.name === optionName);
-        if (optIdx === -1) {
-          return reply.status(404).send({ error: `Option "${optionName}" not found in dimension "${id}"` });
-        }
-        if (newName !== optionName && dim.options.some(o => o.name === newName)) {
-          return reply.status(409).send({ error: `Option "${newName}" already exists in this dimension` });
-        }
-        dim.options[optIdx] = { ...dim.options[optIdx], name: newName };
-        await store.save(dimensions);
-        return { option: dim.options[optIdx] };
-      } catch (err) {
+        const option = await store.withLock(async (dimensions) => {
+          const dimIdx = dimensions.findIndex(d => d.id === id);
+          if (dimIdx === -1) {
+            throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+          }
+          const dim = dimensions[dimIdx];
+          const optIdx = dim.options.findIndex(o => o.name === optionName);
+          if (optIdx === -1) {
+            throw Object.assign(new Error(`Option "${optionName}" not found in dimension "${id}"`), { statusCode: 404 });
+          }
+          if (newName !== optionName && dim.options.some(o => o.name === newName)) {
+            throw Object.assign(new Error(`Option "${newName}" already exists in this dimension`), { statusCode: 409 });
+          }
+          dim.options[optIdx] = { ...dim.options[optIdx], name: newName };
+          return { dims: dimensions, result: dim.options[optIdx] };
+        });
+        return { option };
+      } catch (err: any) {
+        if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
         return reply.status(500).send({ error: 'Failed to rename option', detail: String(err) });
       }
     },
@@ -219,26 +246,27 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         return reply.status(400).send({ error: 'options must be an array of option name strings' });
       }
       try {
-        const dimensions = await store.load();
-        const dimIdx = dimensions.findIndex(d => d.id === id);
-        if (dimIdx === -1) {
-          return reply.status(404).send({ error: `Dimension "${id}" not found` });
-        }
-        const dim = dimensions[dimIdx];
-        const byName = new Map(dim.options.map(o => [o.name, o]));
-        // Validate all names exist
-        for (const name of options) {
-          if (!byName.has(name)) {
-            return reply.status(400).send({ error: `Option "${name}" not found in dimension "${id}"` });
+        const dimension = await store.withLock(async (dimensions) => {
+          const dimIdx = dimensions.findIndex(d => d.id === id);
+          if (dimIdx === -1) {
+            throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
           }
-        }
-        if (options.length !== dim.options.length || new Set(options).size !== options.length) {
-          return reply.status(400).send({ error: 'options must list every option name exactly once' });
-        }
-        dimensions[dimIdx] = { ...dim, options: options.map(n => byName.get(n)!) };
-        await store.save(dimensions);
-        return { dimension: dimensions[dimIdx] };
-      } catch (err) {
+          const dim = dimensions[dimIdx];
+          const byName = new Map(dim.options.map(o => [o.name, o]));
+          for (const name of options) {
+            if (!byName.has(name)) {
+              throw Object.assign(new Error(`Option "${name}" not found in dimension "${id}"`), { statusCode: 400 });
+            }
+          }
+          if (options.length !== dim.options.length || new Set(options).size !== options.length) {
+            throw Object.assign(new Error('options must list every option name exactly once'), { statusCode: 400 });
+          }
+          dimensions[dimIdx] = { ...dim, options: options.map(n => byName.get(n)!) };
+          return { dims: dimensions, result: dimensions[dimIdx] };
+        });
+        return { dimension };
+      } catch (err: any) {
+        if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
         return reply.status(500).send({ error: 'Failed to reorder options', detail: String(err) });
       }
     },
@@ -250,20 +278,22 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     async (request, reply) => {
       const { id, optionName } = request.params;
       try {
-        const dimensions = await store.load();
-        const dimIdx = dimensions.findIndex(d => d.id === id);
-        if (dimIdx === -1) {
-          return reply.status(404).send({ error: `Dimension "${id}" not found` });
-        }
-        const dim = dimensions[dimIdx];
-        const filtered = dim.options.filter(o => o.name !== optionName);
-        if (filtered.length === dim.options.length) {
-          return reply.status(404).send({ error: `Option "${optionName}" not found in dimension "${id}"` });
-        }
-        dimensions[dimIdx] = { ...dim, options: filtered };
-        await store.save(dimensions);
+        await store.withLock(async (dimensions) => {
+          const dimIdx = dimensions.findIndex(d => d.id === id);
+          if (dimIdx === -1) {
+            throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
+          }
+          const dim = dimensions[dimIdx];
+          const filtered = dim.options.filter(o => o.name !== optionName);
+          if (filtered.length === dim.options.length) {
+            throw Object.assign(new Error(`Option "${optionName}" not found in dimension "${id}"`), { statusCode: 404 });
+          }
+          dimensions[dimIdx] = { ...dim, options: filtered };
+          return { dims: dimensions, result: undefined };
+        });
         return { deleted: true, id, optionName };
-      } catch (err) {
+      } catch (err: any) {
+        if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
         return reply.status(500).send({ error: 'Failed to delete option', detail: String(err) });
       }
     },

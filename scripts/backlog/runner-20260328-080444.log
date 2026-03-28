@@ -393,3 +393,17 @@ Already up to date.
 
 --- Merging: Set rename is not atomic ---
 Already up to date.
+[main c1c3bec] chore(backlog): done – Set rename is not atomic
+ 6 files changed, 34 insertions(+), 7 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Set rename is not atomic
+- Replaced non-atomic `fs.writeFile` + `fs.unlink` with a single `fs.rename` call for set file renames. The comment claimed atomicity but the implementation wrote the new file then deleted the old one — a crash between steps would leave both files on disk. Now uses `fs.rename` which is truly atomic on the same filesystem.
+- Files changed: `packages/server/src/services/token-store.ts` ~L561-565 (writeFile→rename), ~L607-608 (removed unlink of old file)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  39 items remaining
+===============================================================
+  Claimed: No undo for destructive operations beyond toast — bulk delete, group rename, and generator runs have confirmation modals but no rollback; implement undo for all write operations via server-side operation log, or at minimum show "last 5 operations" with rollback in the command palette
+  Worktree: /tmp/backlog-63411-X7RYLD

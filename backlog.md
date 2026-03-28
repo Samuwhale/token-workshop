@@ -115,14 +115,14 @@
 
 ### Bugs
 
-- [~] Set rename is not atomic — comment says "atomic (same filesystem, so fs.rename is atomic)" but code uses `fs.writeFile` then `fs.unlink`; if the process crashes between steps, both files exist on disk and the next startup loads both
+- [x] Set rename is not atomic — comment says "atomic (same filesystem, so fs.rename is atomic)" but code uses `fs.writeFile` then `fs.unlink`; if the process crashes between steps, both files exist on disk and the next startup loads both
 - [~] Theme load-modify-save races on concurrent requests — every mutation route does `load()` → modify → `save()` with no locking; two concurrent requests (e.g., two browser tabs adding options) can race and the second save overwrites the first's changes
 
 ### QoL
 
 - [~] Git commit allows submit with empty message — the commit form doesn't disable the button when the message field is blank
 - [!] No publish dry-run — no way to preview what a Git push or Figma variable publish will change before executing
-- [ ] No undo for destructive operations beyond toast — bulk delete, group rename, and generator runs have confirmation modals but no rollback; implement undo for all write operations via server-side operation log, or at minimum show "last 5 operations" with rollback in the command palette
+- [~] No undo for destructive operations beyond toast — bulk delete, group rename, and generator runs have confirmation modals but no rollback; implement undo for all write operations via server-side operation log, or at minimum show "last 5 operations" with rollback in the command palette
 
 ### UX
 

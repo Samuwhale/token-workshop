@@ -486,3 +486,15 @@
   - `fs.rename` is atomic on the same filesystem and handles both creation of the new path and removal of the old path in one syscall. Always prefer it over write+unlink for same-filesystem moves.
   - Write guards (`_startWriteGuard`) must be set on both old and new paths before `fs.rename` so the file watcher ignores both the disappearance and appearance events.
 ---
+
+## 2026-03-28 - Theme load-modify-save races on concurrent requests
+- Added promise-chain mutex (`withLock`) to `DimensionsStore` that serializes all load-modify-save transactions
+- Refactored all 7 mutation routes (POST/PUT/DELETE for dimensions and options) to use `withLock` instead of separate load/save calls
+- Error handling uses `statusCode`-tagged errors thrown inside the lock callback, caught in the route handler
+- `lockChain` variable chains each mutation behind the previous one; failures don't block subsequent requests (`next.catch(() => {})`)
+- Files changed: `packages/server/src/routes/themes.ts` ~L9-70 (store), ~L79-270 (all mutation routes)
+- **Learnings for future iterations:**
+  - Promise-chain mutex is the simplest Node.js concurrency control: `lockChain = lockChain.then(work); lockChain = lockChain.catch(() => {})` — no external deps needed
+  - The `withLock` callback pattern (return `{ dims, result }`) keeps the lock scope tight and ensures save always happens atomically with the modification
+  - Pre-existing build error (`getNextUnboundProperty` missing export) prevents full plugin build validation; server-only changes verified via transpile check
+---
