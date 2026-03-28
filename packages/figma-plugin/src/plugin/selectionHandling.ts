@@ -1,9 +1,10 @@
 import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
+import type { ExtractedTokenEntry } from '../shared/types.js';
 import { isAlias, resolveTokenValue } from '../shared/resolveAlias.js';
 import { getErrorMessage } from '../shared/utils.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { parseColor, rgbToHex, parseDimValue } from './colorUtils.js';
-import { resolveStyleForWeight } from './fontLoading.js';
+import { resolveStyleForWeight, fontStyleToWeight } from './fontLoading.js';
 
 // Apply a resolved token value to a specific node property
 export async function applyTokenValue(node: SceneNode, property: string, value: any, tokenType: string) {
@@ -334,6 +335,234 @@ export async function getSelection(deepInspectEnabled: boolean) {
   }
 
   figma.ui.postMessage({ type: 'selection', nodes: info });
+}
+
+// Extract tokenizable properties from the current selection
+export async function extractTokensFromSelection() {
+  const selection = figma.currentPage.selection;
+  if (selection.length === 0) {
+    figma.ui.postMessage({ type: 'extracted-tokens', tokens: [] });
+    return;
+  }
+
+  const entries: ExtractedTokenEntry[] = [];
+
+  function slugify(name: string): string {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'layer';
+  }
+
+  for (const node of selection) {
+    const slug = slugify(node.name);
+    const n = node as Record<string, unknown>;
+
+    // Fill color
+    if ('fills' in node) {
+      const fills = n['fills'];
+      if (Array.isArray(fills) && fills.length > 0 && fills[0].type === 'SOLID') {
+        const hex = rgbToHex(fills[0].color, fills[0].opacity ?? 1);
+        entries.push({
+          property: 'fill',
+          tokenType: 'color',
+          suggestedName: `color.${slug}`,
+          value: hex,
+          layerName: node.name,
+          layerId: node.id,
+        });
+      }
+    }
+
+    // Stroke color
+    if ('strokes' in node) {
+      const strokes = n['strokes'];
+      if (Array.isArray(strokes) && strokes.length > 0 && strokes[0].type === 'SOLID') {
+        const hex = rgbToHex(strokes[0].color, strokes[0].opacity ?? 1);
+        entries.push({
+          property: 'stroke',
+          tokenType: 'color',
+          suggestedName: `color.${slug}.stroke`,
+          value: hex,
+          layerName: node.name,
+          layerId: node.id,
+        });
+      }
+    }
+
+    // Dimensions: width, height
+    if ('width' in node && typeof n['width'] === 'number') {
+      entries.push({
+        property: 'width',
+        tokenType: 'dimension',
+        suggestedName: `size.${slug}.width`,
+        value: { value: Math.round((n['width'] as number) * 100) / 100, unit: 'px' },
+        layerName: node.name,
+        layerId: node.id,
+      });
+    }
+    if ('height' in node && typeof n['height'] === 'number') {
+      entries.push({
+        property: 'height',
+        tokenType: 'dimension',
+        suggestedName: `size.${slug}.height`,
+        value: { value: Math.round((n['height'] as number) * 100) / 100, unit: 'px' },
+        layerName: node.name,
+        layerId: node.id,
+      });
+    }
+
+    // Corner radius
+    if ('cornerRadius' in node && typeof n['cornerRadius'] === 'number' && (n['cornerRadius'] as number) > 0) {
+      entries.push({
+        property: 'cornerRadius',
+        tokenType: 'dimension',
+        suggestedName: `radius.${slug}`,
+        value: { value: n['cornerRadius'] as number, unit: 'px' },
+        layerName: node.name,
+        layerId: node.id,
+      });
+    }
+
+    // Stroke weight
+    if ('strokeWeight' in node && typeof n['strokeWeight'] === 'number' && (n['strokeWeight'] as number) > 0) {
+      entries.push({
+        property: 'strokeWeight',
+        tokenType: 'dimension',
+        suggestedName: `border.${slug}.stroke-weight`,
+        value: { value: n['strokeWeight'] as number, unit: 'px' },
+        layerName: node.name,
+        layerId: node.id,
+      });
+    }
+
+    // Padding / spacing (auto-layout frames)
+    if ('paddingTop' in node) {
+      const pt = n['paddingTop'] as number;
+      const pr = n['paddingRight'] as number;
+      const pb = n['paddingBottom'] as number;
+      const pl = n['paddingLeft'] as number;
+      if (pt > 0) entries.push({ property: 'paddingTop', tokenType: 'dimension', suggestedName: `spacing.${slug}.padding-top`, value: { value: pt, unit: 'px' }, layerName: node.name, layerId: node.id });
+      if (pr > 0) entries.push({ property: 'paddingRight', tokenType: 'dimension', suggestedName: `spacing.${slug}.padding-right`, value: { value: pr, unit: 'px' }, layerName: node.name, layerId: node.id });
+      if (pb > 0) entries.push({ property: 'paddingBottom', tokenType: 'dimension', suggestedName: `spacing.${slug}.padding-bottom`, value: { value: pb, unit: 'px' }, layerName: node.name, layerId: node.id });
+      if (pl > 0) entries.push({ property: 'paddingLeft', tokenType: 'dimension', suggestedName: `spacing.${slug}.padding-left`, value: { value: pl, unit: 'px' }, layerName: node.name, layerId: node.id });
+    }
+    if ('itemSpacing' in node && typeof n['itemSpacing'] === 'number' && (n['itemSpacing'] as number) > 0) {
+      entries.push({
+        property: 'itemSpacing',
+        tokenType: 'dimension',
+        suggestedName: `spacing.${slug}.gap`,
+        value: { value: n['itemSpacing'] as number, unit: 'px' },
+        layerName: node.name,
+        layerId: node.id,
+      });
+    }
+
+    // Border (stroke + strokeWeight combined)
+    if ('strokes' in node && 'strokeWeight' in node) {
+      const strokes = n['strokes'];
+      const sw = n['strokeWeight'];
+      if (Array.isArray(strokes) && strokes.length > 0 && strokes[0].type === 'SOLID' && typeof sw === 'number' && sw > 0) {
+        const hex = rgbToHex(strokes[0].color, strokes[0].opacity ?? 1);
+        entries.push({
+          property: 'border',
+          tokenType: 'border',
+          suggestedName: `border.${slug}`,
+          value: { color: hex, width: { value: sw, unit: 'px' }, style: 'solid' },
+          layerName: node.name,
+          layerId: node.id,
+        });
+      }
+    }
+
+    // Typography (TEXT nodes only)
+    if (node.type === 'TEXT') {
+      const textNode = node as TextNode;
+      const fontName = textNode.fontName;
+      const fontSize = textNode.fontSize;
+      if (fontName !== figma.mixed && fontSize !== figma.mixed) {
+        const weight = fontStyleToWeight(fontName.style);
+        const typoValue: Record<string, any> = {
+          fontFamily: fontName.family,
+          fontWeight: weight,
+          fontSize: { value: fontSize, unit: 'px' },
+        };
+        const lh = textNode.lineHeight;
+        if (lh !== figma.mixed && typeof lh === 'object') {
+          if ((lh as any).unit === 'PIXELS') {
+            typoValue.lineHeight = { value: (lh as any).value, unit: 'px' };
+          } else if ((lh as any).unit === 'PERCENT') {
+            typoValue.lineHeight = (lh as any).value / 100;
+          }
+        }
+        const ls = textNode.letterSpacing;
+        if (ls !== figma.mixed && typeof ls === 'object' && (ls as any).unit === 'PIXELS' && (ls as any).value !== 0) {
+          typoValue.letterSpacing = { value: (ls as any).value, unit: 'px' };
+        }
+        entries.push({
+          property: 'typography',
+          tokenType: 'typography',
+          suggestedName: `typography.${slug}`,
+          value: typoValue,
+          layerName: node.name,
+          layerId: node.id,
+        });
+      }
+    }
+
+    // Shadow / effects
+    if ('effects' in node) {
+      const effects = n['effects'];
+      if (Array.isArray(effects)) {
+        const shadows = effects.filter((e: any) =>
+          (e.type === 'DROP_SHADOW' || e.type === 'INNER_SHADOW') && e.visible !== false
+        );
+        if (shadows.length > 0) {
+          const shadowValue = shadows.map((s: any) => ({
+            type: s.type === 'INNER_SHADOW' ? 'innerShadow' : 'dropShadow',
+            color: rgbToHex(s.color, s.color.a ?? 1),
+            offsetX: { value: s.offset.x, unit: 'px' },
+            offsetY: { value: s.offset.y, unit: 'px' },
+            blur: { value: s.radius, unit: 'px' },
+            spread: { value: s.spread ?? 0, unit: 'px' },
+          }));
+          entries.push({
+            property: 'shadow',
+            tokenType: 'shadow',
+            suggestedName: `shadow.${slug}`,
+            value: shadowValue.length === 1 ? shadowValue[0] : shadowValue,
+            layerName: node.name,
+            layerId: node.id,
+          });
+        }
+      }
+    }
+
+    // Opacity (only if non-default)
+    if ('opacity' in node && typeof n['opacity'] === 'number' && (n['opacity'] as number) < 1) {
+      entries.push({
+        property: 'opacity',
+        tokenType: 'number',
+        suggestedName: `opacity.${slug}`,
+        value: Math.round((n['opacity'] as number) * 100) / 100,
+        layerName: node.name,
+        layerId: node.id,
+      });
+    }
+  }
+
+  // Deduplicate entries with identical type+value: keep first, set layerCount
+  const deduped: ExtractedTokenEntry[] = [];
+  const seen = new Map<string, number>(); // valueKey -> index in deduped
+  for (const entry of entries) {
+    const valueKey = `${entry.tokenType}::${JSON.stringify(entry.value)}`;
+    const existing = seen.get(valueKey);
+    if (existing !== undefined) {
+      deduped[existing].layerCount = (deduped[existing].layerCount ?? 1) + 1;
+    } else {
+      seen.set(valueKey, deduped.length);
+      deduped.push({ ...entry, layerCount: 1 });
+    }
+  }
+
+  figma.ui.postMessage({ type: 'extracted-tokens', tokens: deduped });
 }
 
 // Select canvas layers that are bound to a specific token path

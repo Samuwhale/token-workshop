@@ -554,3 +554,25 @@
   - `selectedNodes[0].name` provides the Figma layer name; only suggest when exactly 1 node is selected to avoid ambiguity
   - Pre-existing broken import (`buildTreeByType`) was blocking builds; had to fix it as part of validation
 ---
+
+## 2026-03-28 - No "create token from Figma selection" flow — add "Extract tokens from selection"
+- Added full "Extract tokens from selection" feature: plugin sandbox reads fills, strokes, dimensions, typography, shadows, borders, opacity from selected layers and sends structured extraction data to the UI
+- New `ExtractTokensPanel` component renders a batch creation form with checkboxes, editable names (pre-populated from layer names), type badges, value previews, conflict detection (overwrite warnings), and progress tracking
+- "Extract" button added to SelectionInspector toolbar, visible when connected with an active set
+- Deduplication: identical type+value entries across layers are merged with a layer count badge
+- Typography extraction reads fontFamily, fontWeight (via `fontStyleToWeight`), fontSize, lineHeight, letterSpacing from TEXT nodes (skips mixed-value text)
+- Shadow extraction reads DROP_SHADOW and INNER_SHADOW effects with color, offset, blur, spread
+- Border extraction combines stroke color + strokeWeight into DTCG border composite value
+- Also fixed pre-existing build failure: added missing `buildTreeByType` export to `tokenListUtils.ts`
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L293-316,L338
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L1-7,L340-530
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L7,L97-99
+- Files changed: `packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx` (new file, ~260 lines)
+- Files changed: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L24,L73,L145,L407-420,L438-446
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L462-488
+- **Learnings for future iterations:**
+  - `fontStyleToWeight` already exists in `fontLoading.ts` — no need to create a new mapping
+  - Figma TEXT nodes return `figma.mixed` for font properties when the text has mixed styles — must guard against this
+  - The `readCurrentValues` function in selectionHandling.ts only reads basic props (fills, strokes, dimensions); typography/shadow/border extraction needed to be written from scratch for the extraction feature
+  - Pre-existing build failure (`buildTreeByType` missing export) blocked the build — had to fix it as part of this item
+---

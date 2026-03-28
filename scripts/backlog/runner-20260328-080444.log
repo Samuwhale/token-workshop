@@ -194,3 +194,10 @@ Already up to date.
 ===============================================================
   Claimed: No "create token from Figma selection" flow — users must manually read values from selected layers and re-enter them; add "Extract tokens from selection" that reads fill colors, font properties, dimensions, shadows, borders from selected layers and pre-populates a batch token creation form with suggested names based on the layer/component context
   Worktree: /tmp/backlog-63411-rYkMOJ
+
+  ✓ done: No "create token from Figma selection" flow — add "Extract tokens from selection"
+    Added full extract-tokens-from-selection feature: plugin reads fills, fonts, dimensions, shadows, borders from selected layers; new ExtractTokensPanel shows batch creation form with editable names, type badges, value previews, deduplication, and conflict detection; "Extract" button in SelectionInspector toolbar.
+    62 turns · 552s · $4.09
+
+--- Merging: No "create token from Figma selection" flow — add "Extract tokens from selection" ---
+Already up to date.

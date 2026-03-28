@@ -21,6 +21,7 @@ import {
 import { PropertyRow } from './PropertyRow';
 import { DeepInspectSection } from './DeepInspectSection';
 import { RemapBindingsPanel } from './RemapBindingsPanel';
+import { ExtractTokensPanel } from './ExtractTokensPanel';
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -70,6 +71,9 @@ export function SelectionInspector({
 
   // Remap bindings state
   const [showRemapPanel, setShowRemapPanel] = useState(false);
+
+  // Extract tokens from selection state
+  const [showExtractPanel, setShowExtractPanel] = useState(false);
 
   const prevNodeIdsRef = useRef<string>('');
 
@@ -141,6 +145,7 @@ export function SelectionInspector({
       setLastBoundProp(null);
       setCreatingFromProp(null);
       setNewTokenName('');
+      setShowExtractPanel(false);
     }
   }, [selectedNodes]);
 
@@ -403,11 +408,25 @@ export function SelectionInspector({
             )}
           </>
         )}
+        {/* Extract tokens from selection button */}
+        {connected && activeSet && (
+          <button
+            onClick={() => { setShowExtractPanel(prev => !prev); setShowRemapPanel(false); }}
+            title="Extract tokens from selected layers (fills, fonts, dimensions, shadows, borders)"
+            className={`ml-auto text-[9px] px-1.5 py-0.5 rounded transition-colors ${
+              showExtractPanel
+                ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
+                : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+            }`}
+          >
+            Extract
+          </button>
+        )}
         {/* Remap bindings button */}
         <button
-          onClick={() => setShowRemapPanel(prev => !prev)}
+          onClick={() => { setShowRemapPanel(prev => !prev); setShowExtractPanel(false); }}
           title="Bulk-remap token binding paths (useful after renaming tokens)"
-          className={`ml-auto text-[9px] px-1.5 py-0.5 rounded transition-colors ${
+          className={`${!connected || !activeSet ? 'ml-auto ' : ''}text-[9px] px-1.5 py-0.5 rounded transition-colors ${
             showRemapPanel
               ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
               : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -432,6 +451,18 @@ export function SelectionInspector({
           tokenMap={tokenMap}
           initialMissingTokens={freshSyncResult?.missingTokens}
           onClose={() => setShowRemapPanel(false)}
+        />
+      )}
+
+      {/* Extract tokens panel */}
+      {showExtractPanel && (
+        <ExtractTokensPanel
+          connected={connected}
+          activeSet={activeSet}
+          serverUrl={serverUrl}
+          tokenMap={tokenMap}
+          onTokenCreated={onTokenCreated}
+          onClose={() => setShowExtractPanel(false)}
         />
       )}
 

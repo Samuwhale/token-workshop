@@ -319,6 +319,28 @@ export interface ScanTokenUsageMessage {
   tokenPath: string;
 }
 
+// --- Extract tokens from selection ---
+
+export interface ExtractTokensFromSelectionMessage {
+  type: 'extract-tokens-from-selection';
+}
+
+export interface ExtractedTokenEntry {
+  property: BindableProperty | 'border';
+  tokenType: string;
+  suggestedName: string;
+  value: any;
+  layerName: string;
+  layerId: string;
+  /** Number of layers sharing this exact value (for deduplication) */
+  layerCount?: number;
+}
+
+export interface ExtractedTokensMessage {
+  type: 'extracted-tokens';
+  tokens: ExtractedTokenEntry[];
+}
+
 /** Discriminated union of all UI→Controller messages */
 export type PluginMessage =
   | ApplyVariablesMessage
@@ -346,4 +368,5 @@ export type PluginMessage =
   | EyedropperMessage
   | GetActiveThemesMessage
   | SetActiveThemesMessage
-  | ScanTokenUsageMessage;
+  | ScanTokenUsageMessage
+  | ExtractTokensFromSelectionMessage;

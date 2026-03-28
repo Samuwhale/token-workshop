@@ -146,3 +146,17 @@ Already up to date.
 
 --- Merging: No smart token name suggestions ---
 Already up to date.
+[main 2148ba2] chore(backlog): done – No smart token name suggestions
+ 8 files changed, 231 insertions(+), 25 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No smart token name suggestions
+- Added `generateNameSuggestions()` engine in `tokenListHelpers.tsx` with 5 suggestion sources: type-based prefix (e.g. "color."), hex-to-color-name (hue mapping), numeric scale pattern detection (100/200/300 → 400), named scale detection (xs/sm/md → lg), and Figma layer name sanitization
+- Added clickable suggestion chips row in the inline create form, appearing between the name input and value input
+- Suggestions update reactively as token type, value, sibling context, and Figma selection change
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  76 items remaining
+===============================================================
+  Claimed: Batch token creation limited to JSON paste — PasteTokensModal only accepts DTCG JSON; add support for tabular input (CSV, TSV, or a spreadsheet-style grid) where each row is name/type/value, and for importing from CSS custom properties (`--color-primary: #ff0000`) and Tailwind config objects — lower the barrier for migrations from other systems
+  Worktree: /tmp/backlog-63685-aPA3hU

@@ -460,18 +460,15 @@ export function sortLeafNodes(
   return sorted;
 }
 
-/**
- * Build a tree organized by token type from a flat token map.
- * Each top-level node is a group named after the type (e.g. "color", "dimension").
- * Used in simple mode to give a merged view across all sets.
- */
+/** Group a flat token map into a tree organized by token $type, for simple mode.
+ *  Returns top-level group nodes like "color", "dimension", etc. with leaf children. */
 export function buildTreeByType(flat: Record<string, TokenMapEntry>): TokenNode[] {
-  const byType = new Map<string, TokenNode[]>();
+  const groups = new Map<string, TokenNode[]>();
   for (const [path, entry] of Object.entries(flat)) {
     const type = entry.$type || 'unknown';
-    if (!byType.has(type)) byType.set(type, []);
+    if (!groups.has(type)) groups.set(type, []);
     const segments = path.split('.');
-    byType.get(type)!.push({
+    groups.get(type)!.push({
       path,
       name: segments[segments.length - 1],
       $type: entry.$type,
@@ -479,16 +476,14 @@ export function buildTreeByType(flat: Record<string, TokenMapEntry>): TokenNode[
       isGroup: false,
     });
   }
-  const groups: TokenNode[] = [];
-  for (const [type, children] of byType) {
-    groups.push({
+  const result: TokenNode[] = [];
+  for (const [type, children] of groups) {
+    result.push({
       path: type,
       name: type,
       isGroup: true,
-      $type: type,
       children,
     });
   }
-  groups.sort((a, b) => a.name.localeCompare(b.name));
-  return groups;
+  return result;
 }
