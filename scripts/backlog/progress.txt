@@ -398,3 +398,12 @@
 - **Learnings for future iterations:**
   - The ColorPicker already has a two-way sync: prop→state via useEffect ~L229, state→prop via useEffect ~L250. The `prevValue` ref prevents infinite loops between them.
 ---
+
+## 2026-03-28 - CSS selector injection in export — `cssSelector` from request body is passed directly to Style Dictionary with no sanitization
+- Added `isValidCssSelector()` validation function in the export route that rejects braces, semicolons, angle brackets, comments, @-rules, backticks, quotes, and backslashes. Also enforces a 200-char max length and requires the selector to start with a valid selector character.
+- Returns 400 with a descriptive error message when validation fails, before the value reaches Style Dictionary.
+- Files changed: `packages/server/src/routes/export.ts` ~L8 (validation function), ~L97 (validation check before use)
+- **Learnings for future iterations:**
+  - Style Dictionary's `selector` option is interpolated directly into CSS output — any string that can break out of the selector context (braces, semicolons) is an injection vector
+  - Pre-existing tsc errors in the server package are module resolution issues (missing type declarations), not code errors — don't be alarmed by them
+---

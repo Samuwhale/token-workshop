@@ -188,3 +188,16 @@ Already up to date.
 
 --- Merging: ColorPicker initializes HSL state from props but never syncs ---
 Already up to date.
+[main 14755a0] chore(backlog): done – ColorPicker initializes HSL state from props but never syncs
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - ColorPicker initializes HSL state from props but never syncs
+- Stale — already done. The `useEffect` at ColorPicker.tsx ~L229 already syncs HSL state from the `value` prop. It tracks `prevValue` via ref and updates `hue`, `sat`, `lit`, `alpha`, `hexInput`, and `hexInputError` whenever the prop changes. Hue is intentionally preserved for achromatic colors (s < 0.5).
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  88 items remaining
+===============================================================
+  Claimed: Duplicated `flattenTokenGroup` in `useGeneratorDialog.ts` — re-implements the same function already available from `@tokenmanager/core`
+  Worktree: /tmp/backlog-84992-f6kra7

@@ -109,3 +109,10 @@ Already up to date.
 ===============================================================
   Claimed: CSS selector injection in export — `cssSelector` from request body is passed directly to Style Dictionary with no sanitization
   Worktree: /tmp/backlog-92630-9uixbE
+
+  ✓ done: CSS selector injection in export
+    Added isValidCssSelector() server-side validation in export route that rejects braces, semicolons, comments, and other unsafe characters before the value reaches Style Dictionary. Returns 400 on invalid input.
+    12 turns · 61s · $0.32
+
+--- Merging: CSS selector injection in export ---
+Already up to date.

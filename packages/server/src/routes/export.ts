@@ -4,6 +4,22 @@ import type { TokenGroup } from '@tokenmanager/core';
 
 const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json'];
 
+/**
+ * Validate a CSS selector string to prevent injection.
+ * Allows typical selectors: element names, classes, IDs, attributes, pseudo-classes,
+ * combinators, and common punctuation — but rejects braces, semicolons, comments,
+ * and other characters that could break out of a selector context.
+ */
+function isValidCssSelector(selector: string): boolean {
+  if (!selector || selector.length > 200) return false;
+  // Reject characters that could escape the selector context in CSS output
+  // Braces, semicolons, angle brackets, comments, @-rules, backticks, quotes
+  if (/[{};<>`@\\]|\/\*|\*\//.test(selector)) return false;
+  // Must look like a selector (starts with a word char, dot, hash, colon, or bracket)
+  if (!/^[a-zA-Z.#:\[*]/.test(selector)) return false;
+  return true;
+}
+
 export const exportRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/export — export tokens to specified platforms
   // Optional body fields:
@@ -76,6 +92,12 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
             error: sets && sets.length > 0
               ? `None of the requested sets exist: ${sets.join(', ')}`
               : 'No token data available to export',
+          });
+        }
+
+        if (cssSelector && !isValidCssSelector(cssSelector)) {
+          return reply.status(400).send({
+            error: 'Invalid CSS selector — must not contain braces, semicolons, or other unsafe characters',
           });
         }
 
