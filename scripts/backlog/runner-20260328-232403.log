@@ -16,3 +16,8 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 
 --- Merging: Server routes rely on error message string matching for HTTP status codes ---
 Already up to date.
+[main 4d52e66] chore(backlog): done – Server routes rely on error message string matching for HTTP status codes
+ 19 files changed, 226 insertions(+), 189 deletions(-)
+ create mode 100644 packages/server/src/errors.ts
+
+--- Inbox has new items — triaging into backlog.md ---

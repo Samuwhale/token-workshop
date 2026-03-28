@@ -568,3 +568,14 @@
   - `handleRouteError` also handles the `Object.assign(new Error(), { statusCode })` pattern from themes.ts, ensuring backward compat
   - The `getErrorMessage` helper in `utils.ts` is now dead code (moved to `errors.ts`), but left in place since removing it is out of scope
 ---
+
+## 2026-03-28 - Theme coverage gaps not prominently surfaced
+- Added missing-count badge on each theme option tab (e.g. "12") with warning color, visible at a glance without selecting the option
+- Added "Show unfillable only" filter toggle in the expanded coverage gaps section to quickly isolate tokens that cannot be auto-filled
+- Coverage data was already computed per-option in the `CoverageMap` — badges just read `coverage[dim.id]?.[o.name]?.uncovered.length`
+- Filter uses a `showMissingOnly: Set<string>` keyed by `covKey` to toggle per-option
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L83 (state), ~L1190-1210 (tab badges), ~L1390-1420 (filter toggle)
+- **Learnings for future iterations:**
+  - Coverage data is already computed for ALL options in a dimension, not just the selected one — so badges can be added to non-selected tabs cheaply
+  - The `covKey` pattern (`${dim.id}:${optionName}`) is reused for expandedCoverage, expandedStale, and now showMissingOnly
+---

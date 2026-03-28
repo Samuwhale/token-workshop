@@ -83,6 +83,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [coverage, setCoverage] = useState<CoverageMap>({});
   const [expandedCoverage, setExpandedCoverage] = useState<Set<string>>(new Set());
   const [expandedStale, setExpandedStale] = useState<Set<string>>(new Set());
+  const [showMissingOnly, setShowMissingOnly] = useState<Set<string>>(new Set());
 
   // Per-option set ordering
   const [optionSetOrders, setOptionSetOrders] = useState<Record<string, Record<string, string[]>>>({});
@@ -1251,7 +1252,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                       <div className="flex items-center gap-0 px-2 pt-1 pb-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-x-auto">
                         {dim.options.map((o, oIdx) => {
                           const optMatches = dimSearch.trim() !== '' && o.name.toLowerCase().includes(dimSearch.trim().toLowerCase());
-                          const optGapCount = dimCov[o.name]?.uncovered.length ?? 0;
+                          const optMissingCount = coverage[dim.id]?.[o.name]?.uncovered.length ?? 0;
                           return (
                           <button
                             key={o.name}
@@ -1263,9 +1264,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             }${optMatches ? ' ring-1 ring-[var(--color-figma-accent)]/40 rounded' : ''}`}
                           >
                             {o.name}
-                            {optGapCount > 0 && (
-                              <span className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[8px] font-bold bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)]" title={`${optGapCount} gap${optGapCount !== 1 ? 's' : ''}`}>
-                                {optGapCount}
+                            {optMissingCount > 0 && (
+                              <span
+                                className="inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[9px] font-bold leading-none bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)]"
+                                title={`${optMissingCount} missing token${optMissingCount !== 1 ? 's' : ''}`}
+                              >
+                                {optMissingCount}
                               </span>
                             )}
                             {selectedOpt === o.name && (
@@ -1467,13 +1471,33 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         {/* Coverage gaps */}
                         {expandedCoverage.has(covKey) && (coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 && (() => {
                           const uncoveredItems = coverage[dim.id][selectedOpt].uncovered;
+                          const isFilteringMissing = showMissingOnly.has(covKey);
+                          const displayItems = isFilteringMissing
+                            ? uncoveredItems.filter(i => i.missingRef && i.fillValue === undefined)
+                            : uncoveredItems;
                           const fillableCount = uncoveredItems.filter(i => i.missingRef && i.fillValue !== undefined).length;
+                          const unfillableCount = uncoveredItems.length - fillableCount;
                           const isFillAllInProgress = fillingKeys.has(`${dim.id}:${selectedOpt}:__all__`);
                           return (
                           <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/10 px-3 py-2">
                             <div className="flex items-center justify-between mb-1">
-                              <div className="text-[10px] font-medium text-[var(--color-figma-warning)]">
-                                Missing values ({uncoveredItems.length})
+                              <div className="flex items-center gap-2">
+                                <div className="text-[10px] font-medium text-[var(--color-figma-warning)]">
+                                  Missing values ({uncoveredItems.length})
+                                </div>
+                                {unfillableCount > 0 && unfillableCount < uncoveredItems.length && (
+                                  <button
+                                    onClick={() => setShowMissingOnly(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
+                                    className={`text-[9px] px-1 py-0.5 rounded transition-colors ${
+                                      isFilteringMissing
+                                        ? 'bg-[var(--color-figma-warning)]/25 text-[var(--color-figma-warning)] font-medium'
+                                        : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                                    }`}
+                                    title={isFilteringMissing ? 'Show all gaps' : `Show only ${unfillableCount} unfillable gaps`}
+                                  >
+                                    {isFilteringMissing ? `Unfillable only (${unfillableCount})` : 'Show unfillable only'}
+                                  </button>
+                                )}
                               </div>
                               {fillableCount > 0 && (
                                 <button
@@ -1489,7 +1513,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             </div>
                             <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can&apos;t be resolved within the active sets.</p>
                             <div className="flex flex-col gap-0.5 max-h-40 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Missing tokens for ${selectedOpt}`}>
-                              {uncoveredItems.map(item => {
+                              {displayItems.map(item => {
                                 const canFill = !!(item.missingRef && item.fillValue !== undefined);
                                 const isFilling = fillingKeys.has(`${dim.id}:${selectedOpt}:${item.path}`);
                                 return (
