@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { fuzzyScore } from '../shared/fuzzyMatch';
+import { nextSemanticSteps, nextScaleStep, nextNamedScaleStep, nextOrdinalStep } from './tokenListHelpers';
 
 interface PathAutocompleteProps {
   query: string;
@@ -25,19 +26,27 @@ export function PathAutocomplete({
   const [activeIdx, setActiveIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Build unique group prefixes + full token paths
+  // Build unique group prefixes + full token paths + ghost suggestions
   const suggestions = useMemo(() => {
     const groups = new Set<string>();
     const tokenPaths = Object.keys(allTokensFlat);
+    // Map group → child leaf names for pattern detection
+    const groupChildren = new Map<string, string[]>();
 
     for (const path of tokenPaths) {
-      // Collect every ancestor group prefix
-      // Use the known segment structure: walk segments
       const parts = splitPath(path);
       let prefix = '';
       for (let i = 0; i < parts.length - 1; i++) {
         prefix = prefix ? prefix + '.' + parts[i] : parts[i];
         groups.add(prefix);
+      }
+      // Record leaf name under its parent group
+      if (parts.length >= 2) {
+        const parent = parts.slice(0, -1).join('.');
+        const leaf = parts[parts.length - 1];
+        const existing = groupChildren.get(parent);
+        if (existing) existing.push(leaf);
+        else groupChildren.set(parent, [leaf]);
       }
     }
 
@@ -45,33 +54,75 @@ export function PathAutocomplete({
     if (!q) return [];
 
     // Score both groups (with trailing dot hint) and token paths
-    const scored: { label: string; isGroup: boolean; score: number }[] = [];
+    const scored: { label: string; isGroup: boolean; isGhost: boolean; score: number }[] = [];
 
     for (const g of groups) {
       const score = fuzzyScore(q, g);
       if (score >= 0) {
-        scored.push({ label: g, isGroup: true, score });
+        scored.push({ label: g, isGroup: true, isGhost: false, score });
       }
     }
 
     for (const p of tokenPaths) {
       const score = fuzzyScore(q, p);
       if (score >= 0) {
-        // Slightly deprioritize full paths vs group matches so groups appear first
-        scored.push({ label: p, isGroup: false, score: score - 1 });
+        scored.push({ label: p, isGroup: false, isGhost: false, score: score - 1 });
+      }
+    }
+
+    // Ghost suggestions: when the query ends with a dot (targeting a group), suggest next names
+    const qDot = q.endsWith('.') ? q.slice(0, -1) : null;
+    const ghostGroup = qDot && groups.has(qDot) ? qDot : null;
+    // Also match if the query is an exact group (without trailing dot)
+    const exactGroup = !qDot && groups.has(q) ? q : null;
+    const targetGroup = ghostGroup ?? exactGroup;
+
+    if (targetGroup) {
+      const siblings = groupChildren.get(targetGroup) ?? [];
+      if (siblings.length >= 1) {
+        const ghostPaths: string[] = [];
+
+        // Semantic sequence suggestions
+        const semantic = nextSemanticSteps(siblings);
+        if (semantic) {
+          for (const s of semantic.suggestions.slice(0, 3)) {
+            ghostPaths.push(`${targetGroup}.${s}`);
+          }
+        }
+
+        // Numeric scale
+        const numNext = nextScaleStep(siblings);
+        if (numNext) ghostPaths.push(`${targetGroup}.${numNext}`);
+
+        // Named scale
+        const namedNext = nextNamedScaleStep(siblings);
+        if (namedNext) ghostPaths.push(`${targetGroup}.${namedNext}`);
+
+        // Ordinal
+        const ordNext = nextOrdinalStep(siblings);
+        if (ordNext) ghostPaths.push(`${targetGroup}.${ordNext}`);
+
+        const ghostSeen = new Set(tokenPaths);
+        for (const gp of ghostPaths) {
+          if (ghostSeen.has(gp)) continue;
+          ghostSeen.add(gp);
+          // Give ghosts moderate score so they appear after exact matches but before weak fuzzy matches
+          scored.push({ label: gp, isGroup: false, isGhost: true, score: 50 });
+        }
       }
     }
 
     scored.sort((a, b) => {
-      // Groups before tokens at same score
+      // Ghosts always go after non-ghosts
+      if (a.isGhost !== b.isGhost) return a.isGhost ? 1 : -1;
       if (b.score !== a.score) return b.score - a.score;
       if (a.isGroup !== b.isGroup) return a.isGroup ? -1 : 1;
       return a.label.localeCompare(b.label);
     });
 
-    // Deduplicate (a path could also be a group prefix)
+    // Deduplicate
     const seen = new Set<string>();
-    const results: { label: string; isGroup: boolean }[] = [];
+    const results: { label: string; isGroup: boolean; isGhost: boolean }[] = [];
     for (const item of scored) {
       if (seen.has(item.label)) continue;
       seen.add(item.label);
@@ -124,7 +175,7 @@ export function PathAutocomplete({
       ref={listRef}
       className="absolute z-50 mt-0.5 left-0 right-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg overflow-y-auto max-h-40"
     >
-      {suggestions.map(({ label, isGroup }, idx) => (
+      {suggestions.map(({ label, isGroup, isGhost }, idx) => (
         <button
           key={label}
           data-idx={idx}
@@ -135,8 +186,12 @@ export function PathAutocomplete({
           onMouseEnter={() => setActiveIdx(idx)}
           className={`w-full flex items-center gap-1.5 px-2 py-1 text-left transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
         >
-          {/* Icon: folder for groups, dot for tokens */}
-          {isGroup ? (
+          {/* Icon: folder for groups, sparkle for ghosts, dot for tokens */}
+          {isGhost ? (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-accent)]">
+              <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
+            </svg>
+          ) : isGroup ? (
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-text-secondary)]">
               <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
@@ -145,11 +200,11 @@ export function PathAutocomplete({
               <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />
             </span>
           )}
-          <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate">
+          <span className={`flex-1 text-[10px] truncate ${isGhost ? 'text-[var(--color-figma-text-secondary)] italic' : 'text-[var(--color-figma-text)]'}`}>
             {label}{isGroup ? '.' : ''}
           </span>
           <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0">
-            {isGroup ? 'group' : 'token'}
+            {isGhost ? 'new' : isGroup ? 'group' : 'token'}
           </span>
         </button>
       ))}

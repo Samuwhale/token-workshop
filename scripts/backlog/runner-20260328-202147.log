@@ -16,3 +16,27 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: Before/After snapshots: "Save this state" → experiment → "Compare with saved" → keep or revert — two buttons, zero git concepts, designed for trying things and showing stakeholders ---
 Already up to date.
+[main b97db16] chore(backlog): done – Before/After snapshots: "Save this state" → experiment → "Compare with saved" → keep or revert — two buttons, zero git concepts, designed for trying things and showing stakeholders
+ 22 files changed, 1001 insertions(+), 23 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/SnapshotPanel.tsx
+ create mode 100644 packages/server/src/routes/snapshots.ts
+ create mode 100644 packages/server/src/services/manual-snapshot.ts
+ create mode 100644 scripts/backlog/runner-20260328-201922.log
+ create mode 100644 scripts/backlog/runner-20260328-201924.log
+ create mode 100644 scripts/backlog/runner-20260328-201926.log
+ create mode 100644 scripts/backlog/runner-20260328-201928.log
+ create mode 100644 scripts/backlog/runner-20260328-202135.log
+ create mode 100644 scripts/backlog/runner-20260328-202140.log
+ create mode 100644 scripts/backlog/runner-20260328-202144.log
+ create mode 100644 scripts/backlog/runner-20260328-202147.log
+
+## 2026-03-28 - Before/After snapshots
+- Implemented manual snapshot feature: save current token state, compare with saved, revert
+- Server: `packages/server/src/services/manual-snapshot.ts` — `ManualSnapshotStore` class; persists snapshots to `{tokenDir}/.tokenmanager/snapshots.json`; methods: `save`, `list`, `get`, `delete`, `diff`, `restore`
+- Server: `packages/server/src/routes/snapshots.ts` — REST routes: POST /api/snapshots, GET /api/snapshots, DELETE /api/snapshots/:id, GET /api/snapshots/:id/diff, POST /api/snapshots/:id/restore
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  71 items remaining
+===============================================================
+  Claimed: Inline theme editing in token editor: when editing a token that participates in themes, show all theme values side-by-side in the editor instead of requiring navigation to a separate Themes panel
+  Worktree: /tmp/backlog-10461-bG4Bvy

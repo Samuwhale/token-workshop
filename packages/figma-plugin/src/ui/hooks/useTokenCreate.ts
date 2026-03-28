@@ -58,7 +58,9 @@ export function useTokenCreate({
   const [typeAutoInferred, setTypeAutoInferred] = useState(false);
   const [createError, setCreateError] = useState('');
   const [groupDropdownOpen, setGroupDropdownOpen] = useState(false);
+  const [nameIsAutoSuggested, setNameIsAutoSuggested] = useState(false);
   const createFormRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   // Computed full path from group + name
   const newTokenPath = useMemo(() => {
@@ -123,16 +125,44 @@ export function useTokenCreate({
     }
   }, [showCreateForm]);
 
+  // Auto-select pre-filled name so typing replaces it
+  useEffect(() => {
+    if (nameIsAutoSuggested && showCreateForm && nameInputRef.current) {
+      requestAnimationFrame(() => {
+        nameInputRef.current?.select();
+      });
+      setNameIsAutoSuggested(false);
+    }
+  }, [nameIsAutoSuggested, showCreateForm]);
+
   const handleOpenCreateSibling = useCallback((groupPath: string, tokenType: string) => {
     if (onCreateNew) {
       onCreateNew(groupPath ? groupPath + '.' : '', tokenType || 'color');
       return;
     }
     setNewTokenGroup(groupPath);
-    setNewTokenName('');
+    // Auto-fill name from sibling pattern if available
+    const siblings = siblingOrderMap.get(groupPath) ?? [];
+    const layerName = selectedNodes.length === 1 ? selectedNodes[0].name : null;
+    const suggestions = generateNameSuggestions(tokenType || 'color', '', groupPath, siblings, layerName);
+    if (suggestions.length > 0) {
+      const first = suggestions[0];
+      const leafName = first.value.includes('.') ? first.value.slice(first.value.lastIndexOf('.') + 1) : first.value;
+      // Only auto-fill pattern-based suggestions (not type prefix or layer name)
+      if (!first.value.endsWith('.') && leafName.length > 0) {
+        setNewTokenName(leafName);
+        setNameIsAutoSuggested(true);
+      } else {
+        setNewTokenName('');
+        setNameIsAutoSuggested(false);
+      }
+    } else {
+      setNewTokenName('');
+      setNameIsAutoSuggested(false);
+    }
     setNewTokenType(tokenType || 'color');
     setShowCreateForm(true);
-  }, [onCreateNew]);
+  }, [onCreateNew, siblingOrderMap, selectedNodes]);
 
   // Smart name suggestions for inline create form
   const nameSuggestions = useMemo(() => {
@@ -245,6 +275,7 @@ export function useTokenCreate({
     createError,
     setCreateError,
     createFormRef,
+    nameInputRef,
     nameSuggestions,
     filteredGroups,
     allGroupPaths,

@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Smart naming suggestions: pattern-match existing token names and suggest paths for new tokens (e.g. if `color.brand.primary/secondary/tertiary` exist, suggest `color.brand.{?}` not a blank field)
   Worktree: /tmp/backlog-10054-cpcEKt
+
+  ✓ done: Smart naming suggestions: pattern-match existing token names and suggest paths for new tokens
+    Added 11 semantic sequence dictionaries, ordinal detection, and prefix+suffix patterns to generateNameSuggestions. Enhanced all 3 creation surfaces: inline form (sibling context, dynamic placeholder, auto-fill), PathAutocomplete (ghost suggestions with sparkle icon), and table create (suggestion chips). All validation gates pass.
+    50 turns · 503s · $2.95
+
+--- Merging: Smart naming suggestions: pattern-match existing token names and suggest paths for new tokens ---
+Already up to date.

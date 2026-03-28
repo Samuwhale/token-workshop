@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { UndoSlot } from './useUndo';
-import { parseInlineValue } from '../components/tokenListHelpers';
+import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
 import { getDefaultValue } from '../components/tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
 
@@ -21,6 +21,7 @@ export interface UseTableCreateParams {
   connected: boolean;
   serverUrl: string;
   setName: string;
+  siblingOrderMap: Map<string, string[]>;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onTokenCreated?: (path: string) => void;
@@ -31,6 +32,7 @@ export function useTableCreate({
   connected,
   serverUrl,
   setName,
+  siblingOrderMap,
   onRefresh,
   onPushUndo,
   onTokenCreated,
@@ -185,6 +187,16 @@ export function useTableCreate({
     resetTableCreate();
   }, [connected, busy, tableRows, tableGroup, setName, serverUrl, onRefresh, onPushUndo, onTokenCreated, onRecordTouch, resetTableCreate]);
 
+  // Smart suggestions for the table create group
+  const tableSuggestions = useMemo(() => {
+    if (!showTableCreate) return [];
+    const group = tableGroup.trim();
+    const siblings = siblingOrderMap.get(group) ?? [];
+    // Determine dominant type from existing rows
+    const rowType = tableRows[0]?.type || 'color';
+    return generateNameSuggestions(rowType, '', group, siblings, null);
+  }, [showTableCreate, tableGroup, siblingOrderMap, tableRows]);
+
   return {
     showTableCreate,
     setShowTableCreate,
@@ -200,5 +212,6 @@ export function useTableCreate({
     resetTableCreate,
     openTableCreate,
     handleCreateAll,
+    tableSuggestions,
   };
 }

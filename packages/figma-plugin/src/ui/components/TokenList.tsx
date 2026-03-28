@@ -735,7 +735,7 @@ export function TokenList({
     newTokenPath, pathValidation, newTokenType, setNewTokenType, newTokenValue, setNewTokenValue,
     newTokenDescription, setNewTokenDescription, typeAutoInferred, setTypeAutoInferred,
     createError, setCreateError,
-    createFormRef, nameSuggestions, filteredGroups, groupDropdownOpen, setGroupDropdownOpen,
+    createFormRef, nameInputRef, nameSuggestions, filteredGroups, groupDropdownOpen, setGroupDropdownOpen,
     groupActiveIdx, setGroupActiveIdx,
     resetCreateForm, handleOpenCreateSibling, handleCreate, handleCreateAndNew,
   } = tokenCreate;
@@ -744,6 +744,7 @@ export function TokenList({
     connected,
     serverUrl,
     setName,
+    siblingOrderMap,
     onRefresh,
     onPushUndo,
     onTokenCreated,
@@ -755,6 +756,7 @@ export function TokenList({
     tableRows, rowErrors, createAllError, busy: tableCreateBusy,
     addRow: addTableRow, removeRow: removeTableRow, updateRow: updateTableRow,
     resetTableCreate, openTableCreate, handleCreateAll,
+    tableSuggestions,
   } = tableCreate;
 
   // Scroll active group autocomplete item into view
@@ -3465,10 +3467,33 @@ export function TokenList({
             </div>
             {/* Token name */}
             <div>
-              <label className="block text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Name</label>
+              <div className="flex items-baseline gap-1 mb-0.5">
+                <label className="text-[10px] text-[var(--color-figma-text-tertiary)]">Name</label>
+                {(() => {
+                  const siblings = siblingOrderMap.get(newTokenGroup.trim());
+                  if (!siblings || siblings.length === 0) return null;
+                  const display = siblings.length <= 5
+                    ? siblings.join(', ')
+                    : siblings.slice(0, 4).join(', ') + `, +${siblings.length - 4} more`;
+                  return (
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)] truncate" title={siblings.join(', ')}>
+                      siblings: {display}
+                    </span>
+                  );
+                })()}
+              </div>
               <input
                 type="text"
-                placeholder="Token name (e.g. 500, base, primary)"
+                placeholder={(() => {
+                  // Dynamic placeholder based on sibling patterns
+                  if (nameSuggestions.length > 0) {
+                    const first = nameSuggestions[0];
+                    const leafName = first.value.includes('.') ? first.value.slice(first.value.lastIndexOf('.') + 1) : first.value;
+                    return `e.g. ${leafName}`;
+                  }
+                  return 'Token name (e.g. 500, base, primary)';
+                })()}
+                ref={nameInputRef}
                 value={newTokenName}
                 onChange={e => { setNewTokenName(e.target.value); setCreateError(''); }}
                 className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${createError || pathValidation.error ? 'border-[var(--color-figma-error)]' : pathValidation.warning ? 'border-amber-400' : 'border-[var(--color-figma-border)]'}`}
@@ -3641,6 +3666,40 @@ export function TokenList({
                 {allGroupPaths.map(g => <option key={g} value={g} />)}
               </datalist>
             </div>
+            {/* Smart name suggestions for table create */}
+            {tableSuggestions.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] self-center mr-0.5">Suggest:</span>
+                {tableSuggestions.map(s => {
+                  const leafName = s.value.includes('.') ? s.value.slice(s.value.lastIndexOf('.') + 1) : s.value;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      title={s.source}
+                      onClick={() => {
+                        // Fill the next empty row, or add a new row
+                        const emptyRow = tableRows.find(r => !r.name.trim());
+                        if (emptyRow) {
+                          updateTableRow(emptyRow.id, 'name', leafName);
+                        } else {
+                          addTableRow();
+                          // We need to set it after the row is added
+                          requestAnimationFrame(() => {
+                            const inputs = document.querySelectorAll<HTMLInputElement>('[data-table-name-input]');
+                            const last = inputs[inputs.length - 1];
+                            if (last) { last.value = leafName; last.dispatchEvent(new Event('input', { bubbles: true })); }
+                          });
+                        }
+                      }}
+                      className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors cursor-pointer"
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {/* Token rows */}
             <div>
               {/* Column headers */}

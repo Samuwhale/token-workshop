@@ -158,10 +158,108 @@ function nextNamedScaleStep(siblingNames: string[]): string | null {
   return null;
 }
 
+/**
+ * Known semantic token name sequences. Each array is an ordered progression.
+ * When 2+ siblings match entries in a sequence, we suggest the next missing entry.
+ */
+const SEMANTIC_SEQUENCES: { name: string; values: string[] }[] = [
+  { name: 'brand hierarchy', values: ['primary', 'secondary', 'tertiary', 'quaternary'] },
+  { name: 'state variants', values: ['default', 'hover', 'active', 'focus', 'disabled', 'visited'] },
+  { name: 'semantic roles', values: ['success', 'warning', 'error', 'info'] },
+  { name: 'emphasis', values: ['subtle', 'default', 'strong', 'strongest'] },
+  { name: 'lightness', values: ['lightest', 'lighter', 'light', 'base', 'dark', 'darker', 'darkest'] },
+  { name: 'surface', values: ['background', 'surface', 'foreground', 'overlay'] },
+  { name: 'text roles', values: ['heading', 'body', 'caption', 'label', 'placeholder'] },
+  { name: 'feedback', values: ['positive', 'negative', 'caution', 'neutral'] },
+  { name: 'interaction', values: ['rest', 'hover', 'pressed', 'selected', 'disabled'] },
+  { name: 'contrast', values: ['low', 'medium', 'high'] },
+  { name: 'density', values: ['compact', 'default', 'comfortable', 'spacious'] },
+];
+
+/**
+ * Find the best semantic sequence match and return all missing entries.
+ * Requires 2+ siblings to match entries in a single sequence.
+ */
+function nextSemanticSteps(siblingNames: string[]): { suggestions: string[]; sequenceName: string } | null {
+  const lower = new Set(siblingNames.map(n => n.toLowerCase()));
+  let bestMatch: { suggestions: string[]; sequenceName: string; matchCount: number } | null = null;
+
+  for (const seq of SEMANTIC_SEQUENCES) {
+    const matched = seq.values.filter(v => lower.has(v));
+    if (matched.length < 2) continue;
+    // Find the next entries in the sequence that aren't present
+    const missing = seq.values.filter(v => !lower.has(v));
+    if (missing.length === 0) continue;
+    if (!bestMatch || matched.length > bestMatch.matchCount) {
+      bestMatch = { suggestions: missing, sequenceName: seq.name, matchCount: matched.length };
+    }
+  }
+  return bestMatch ? { suggestions: bestMatch.suggestions, sequenceName: bestMatch.sequenceName } : null;
+}
+
+/**
+ * Detect zero-padded ordinal patterns (01, 02, 03 → 04) in siblings.
+ */
+function nextOrdinalStep(siblingNames: string[]): string | null {
+  // Check for zero-padded numbers like 01, 02, 03
+  const padded = siblingNames.filter(n => /^0\d+$/.test(n));
+  if (padded.length >= 2) {
+    const nums = padded.map(Number).sort((a, b) => a - b);
+    const padLen = padded[0].length;
+    const next = nums[nums.length - 1] + 1;
+    return String(next).padStart(padLen, '0');
+  }
+  return null;
+}
+
+/**
+ * Detect common prefix+suffix patterns in siblings and suggest next.
+ * E.g. "btn-sm", "btn-md", "btn-lg" with known scale embedded.
+ */
+function nextPrefixSuffixPattern(siblingNames: string[]): { suggestion: string; source: string } | null {
+  if (siblingNames.length < 2) return null;
+  // Find common prefix (by hyphen/underscore segments)
+  const splitByDelim = (s: string) => s.split(/[-_]/);
+  const segments0 = splitByDelim(siblingNames[0]);
+  if (segments0.length < 2) return null;
+
+  // Check if all siblings share the same prefix segment(s)
+  for (let prefixLen = 1; prefixLen < segments0.length; prefixLen++) {
+    const prefix = segments0.slice(0, prefixLen).join('-');
+    const suffixes: string[] = [];
+    let allMatch = true;
+    for (const name of siblingNames) {
+      if (!name.startsWith(prefix + '-') && !name.startsWith(prefix + '_')) {
+        allMatch = false;
+        break;
+      }
+      const delim = name[prefix.length];
+      suffixes.push(name.slice(prefix.length + 1));
+      // Only consider single-segment suffixes
+      if (splitByDelim(name.slice(prefix.length + 1)).length > 1) { allMatch = false; break; }
+    }
+    if (!allMatch || suffixes.length < 2) continue;
+
+    // Check if suffixes follow a known scale
+    const scaleIdx = suffixes.map(s => COMMON_SCALE_NAMES.indexOf(s.toLowerCase())).filter(i => i >= 0);
+    if (scaleIdx.length >= 2) {
+      scaleIdx.sort((a, b) => a - b);
+      const next = scaleIdx[scaleIdx.length - 1] + 1;
+      if (next < COMMON_SCALE_NAMES.length) {
+        const delim = siblingNames[0][prefix.length];
+        return { suggestion: `${prefix}${delim}${COMMON_SCALE_NAMES[next]}`, source: `Next size: ${prefix}-*` };
+      }
+    }
+  }
+  return null;
+}
+
 /** Sanitize a Figma layer name into a valid token name segment. */
 function sanitizeLayerName(name: string): string {
   return name.replace(/[^a-zA-Z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').toLowerCase();
 }
+
+export { nextSemanticSteps, nextScaleStep, nextNamedScaleStep, nextOrdinalStep };
 
 export interface NameSuggestion {
   label: string;    // Display text for the chip
@@ -226,7 +324,34 @@ export function generateNameSuggestions(
     }
   }
 
-  // 5. Figma layer name
+  // 5. Sibling pattern — semantic sequences (primary/secondary/tertiary, etc.)
+  if (siblingNames.length >= 2) {
+    const semantic = nextSemanticSteps(siblingNames);
+    if (semantic) {
+      // Add up to 3 suggestions from the sequence
+      for (const s of semantic.suggestions.slice(0, 3)) {
+        add(s, `${prefix}${dot}${s}`, `Next in ${semantic.sequenceName}: ${siblingNames.filter(n => SEMANTIC_SEQUENCES.find(seq => seq.name === semantic.sequenceName)?.values.includes(n.toLowerCase())).join(', ')}, …`);
+      }
+    }
+  }
+
+  // 6. Sibling pattern — zero-padded ordinals (01, 02, 03 → 04)
+  if (siblingNames.length >= 2) {
+    const nextOrd = nextOrdinalStep(siblingNames);
+    if (nextOrd) {
+      add(nextOrd, `${prefix}${dot}${nextOrd}`, `Next ordinal: ${siblingNames.slice(-2).join(', ')}, …`);
+    }
+  }
+
+  // 7. Sibling pattern — prefix+suffix (btn-sm, btn-md → btn-lg)
+  if (siblingNames.length >= 2) {
+    const prefixSuffix = nextPrefixSuffixPattern(siblingNames);
+    if (prefixSuffix) {
+      add(prefixSuffix.suggestion, `${prefix}${dot}${prefixSuffix.suggestion}`, prefixSuffix.source);
+    }
+  }
+
+  // 8. Figma layer name
   if (layerName) {
     const sanitized = sanitizeLayerName(layerName);
     if (sanitized && sanitized.length > 0 && sanitized.length < 60) {

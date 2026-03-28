@@ -458,3 +458,18 @@
   - `flattenTokenGroup` from `@tokenmanager/core` is the right way to get flat token lists from a `TokenGroup`; do not re-export it through shared utils (TDZ risk)
   - When persisting to disk in a service, use lazy load pattern (`ensureLoaded` flag) to defer file reads until first access rather than loading in constructor
 ---
+
+## 2026-03-28 - Smart naming suggestions
+- Implemented pattern-matching of existing token names to suggest paths for new tokens across all three creation surfaces
+- **tokenListHelpers.tsx**: Added 11 semantic sequence dictionaries (brand hierarchy, state variants, semantic roles, emphasis, lightness, surface, text roles, feedback, interaction, contrast, density) plus zero-padded ordinal detection and prefix+suffix compound patterns. `generateNameSuggestions()` now suggests up to 3 missing entries from matched sequences (requires 2+ siblings to match). Exported pattern functions for reuse.
+- **PathAutocomplete.tsx**: Added ghost suggestions — when query targets a group (exact match or trailing dot), computes pattern-based suggestions for tokens that don't exist yet. Ghost entries render with a sparkle icon, italic text, and "new" badge to distinguish from existing items.
+- **useTableCreate.ts**: Added `tableSuggestions` computed from `siblingOrderMap` + `generateNameSuggestions`. Accepts new `siblingOrderMap` param.
+- **TokenList.tsx**: Added suggestion chip bar above table create rows (clicking fills next empty row). Inline create form now shows sibling context ("siblings: primary, secondary, tertiary") and dynamic placeholder ("e.g. quaternary"). Name input has `ref={nameInputRef}` for auto-select.
+- **useTokenCreate.ts**: `handleOpenCreateSibling` now auto-fills the name input with the first pattern-based suggestion, auto-selects text so typing replaces it. Added `nameIsAutoSuggested` state and `nameInputRef`.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` ~L148-250, `packages/figma-plugin/src/ui/components/PathAutocomplete.tsx` ~L4,29-120,140-165, `packages/figma-plugin/src/ui/hooks/useTableCreate.ts` ~L1,20-38,185-195,200, `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` ~L59-62,126-150,130-140, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L738,755,3467-3500,3645-3675
+- **Learnings for future iterations:**
+  - `generateNameSuggestions` is the single entry point for all name suggestions — add new pattern detectors there, not in individual components
+  - Ghost suggestions in autocompletes should sort after real matches to avoid confusion; use a simple `isGhost` flag in sort comparator
+  - Auto-filling an input with a suggested value requires `requestAnimationFrame(() => input.select())` to work after React's controlled input update
+  - Semantic sequences need 2+ sibling matches (not just 1) to avoid false positives — a single "primary" token shouldn't suggest "secondary" without more context
+---
