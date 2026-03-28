@@ -228,3 +228,24 @@ Already up to date.
 
 --- Merging: No import conflict resolution UI ---
 Already up to date.
+[main ce3cf32] chore(backlog): done – No import conflict resolution UI
+ 5 files changed, 264 insertions(+), 91 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No import conflict resolution UI
+- Replaced the simple skip/overwrite strategy picker with a per-token merge conflict view showing current vs. incoming values with individual accept/reject toggles
+- Key changes:
+  - `existingPaths` (Set<string>) expanded to `existingTokenMap` (Map with $type/$value) so conflict view can show current token values
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  10 items remaining
+===============================================================
+  Claimed: No visual node-based generator editor — generators are configured via form dialogs with dropdowns and number inputs; add a node-graph editor (like Tokens Studio's Graph Engine or Blender shader nodes) where users connect source tokens to transform nodes (lighten, darken, scale, mix, contrast-check) to output tokens — makes complex generation logic visible and composable
+  Worktree: /tmp/backlog-34977-GE5gta
+
+  ✓ done: No visual node-based generator editor
+    Built full SVG node-graph editor with pan/zoom, draggable nodes, port-based wiring, transform nodes (lighten/darken/scale/mix/contrastCheck), minimap, and list/graph view toggle in GraphPanel. 4 new files + 1 modified.
+    36 turns · 541s · $3.45
+
+--- Merging: No visual node-based generator editor ---
+Already up to date.

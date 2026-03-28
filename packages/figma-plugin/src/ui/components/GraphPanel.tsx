@@ -2,6 +2,7 @@ import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
 import { isDimensionLike } from './generators/generatorShared';
+import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 
 // ---------------------------------------------------------------------------
 // Graph template definitions
@@ -922,6 +923,7 @@ export function GraphPanel({
   const [browsingTemplates, setBrowsingTemplates] = useState(false);
   const [justApplied, setJustApplied] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'graph' | 'list'>('graph');
 
   const handleSelectTemplate = (template: GraphTemplate) => {
     setSelectedTemplate(template);
@@ -978,7 +980,7 @@ export function GraphPanel({
   // Pipeline view — generators exist (and not browsing templates)
   if (setGenerators.length > 0 && !browsingTemplates) {
     return (
-      <div className="flex flex-col h-full overflow-hidden" ref={graphScrollRef}>
+      <div className="flex flex-col h-full overflow-hidden">
         <div className="px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0 flex items-center justify-between">
           <div>
             <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Graph</div>
@@ -990,6 +992,38 @@ export function GraphPanel({
             </div>
           </div>
           <div className="flex items-center gap-1.5">
+            {/* View mode toggle */}
+            <div className="flex items-center rounded border border-[var(--color-figma-border)] overflow-hidden">
+              <button
+                onClick={() => setViewMode('graph')}
+                className={`p-1 transition-colors ${viewMode === 'graph' ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'}`}
+                title="Node graph view"
+                aria-label="Node graph view"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="2" y="14" width="6" height="6" rx="1" />
+                  <rect x="16" y="4" width="6" height="6" rx="1" />
+                  <rect x="16" y="14" width="6" height="6" rx="1" />
+                  <path d="M8 17h2a2 2 0 002-2V9a2 2 0 012-2h2" />
+                  <path d="M12 17h4" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1 transition-colors ${viewMode === 'list' ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)]'}`}
+                title="List view"
+                aria-label="List view"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="8" y1="6" x2="21" y2="6" />
+                  <line x1="8" y1="12" x2="21" y2="12" />
+                  <line x1="8" y1="18" x2="21" y2="18" />
+                  <line x1="3" y1="6" x2="3.01" y2="6" />
+                  <line x1="3" y1="12" x2="3.01" y2="12" />
+                  <line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
+              </button>
+            </div>
             <button
               onClick={() => exportGraphAsSVG(setGenerators, activeSet)}
               className="p-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1013,36 +1047,8 @@ export function GraphPanel({
           </div>
         </div>
 
-        {/* Search bar */}
-        <div className="px-3 pt-2.5 pb-1 shrink-0">
-          <div className="relative">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none" aria-hidden="true">
-              <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search generators…"
-              aria-label="Search generators"
-              className="w-full pl-6 pr-6 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
-                aria-label="Clear search"
-              >
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-
         {justApplied && (
-          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center gap-1.5">
+          <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center gap-1.5 shrink-0">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M20 6L9 17l-5-5" />
             </svg>
@@ -1050,21 +1056,64 @@ export function GraphPanel({
           </div>
         )}
 
-        <div className="flex-1 p-3 flex flex-col gap-2">
-          {filteredGenerators.length > 0
-            ? filteredGenerators.map(gen => (
-                <GeneratorPipelineCard key={gen.id} generator={gen} />
-              ))
-            : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <p className="text-[11px] text-[var(--color-figma-text-secondary)] mb-1">No generators match</p>
-                <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
-                  Try a different search term
-                </p>
+        {/* Node graph view */}
+        {viewMode === 'graph' && (
+          <NodeGraphCanvas
+            generators={setGenerators}
+            activeSet={activeSet}
+            serverUrl={serverUrl}
+            onRefresh={onRefresh}
+          />
+        )}
+
+        {/* List view (fallback) */}
+        {viewMode === 'list' && (
+          <>
+            {/* Search bar */}
+            <div className="px-3 pt-2.5 pb-1 shrink-0">
+              <div className="relative">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+                </svg>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search generators…"
+                  aria-label="Search generators"
+                  className="w-full pl-6 pr-6 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
-            )
-          }
-        </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+              {filteredGenerators.length > 0
+                ? filteredGenerators.map(gen => (
+                    <GeneratorPipelineCard key={gen.id} generator={gen} />
+                  ))
+                : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <p className="text-[11px] text-[var(--color-figma-text-secondary)] mb-1">No generators match</p>
+                    <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+                      Try a different search term
+                    </p>
+                  </div>
+                )
+              }
+            </div>
+          </>
+        )}
       </div>
     );
   }

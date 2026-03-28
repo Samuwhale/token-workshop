@@ -383,3 +383,26 @@
   - When multiple state variables must be cleared together, a `clearConflictState()` helper prevents forgetting one; use `useCallback` so it's stable for event handlers
   - The batch import API only supports global strategy, but per-token decisions can be achieved by simply excluding rejected tokens from the import list and using 'overwrite' strategy — no server changes needed
 ---
+
+## 2026-03-28 - Visual node-based generator editor
+- Built a full node-graph editor for generator visualization and composition, replacing the flat pipeline card list as the default view in GraphPanel
+- New files created in `packages/figma-plugin/src/ui/components/nodeGraph/`:
+  - `nodeGraphTypes.ts` — types (GraphNode, GraphEdge, Port, WiringState, TransformOp), layout constants, `generatorsToGraph()` conversion, `createTransformNode()` factory
+  - `useNodeGraph.ts` — state management hook with node drag, edge wiring, transform node CRUD, localStorage position persistence, and generator sync
+  - `NodeRenderer.tsx` — SVG node renderer with color-coded node kinds (source/generator/transform/output), interactive port circles for wiring, inline transform parameter editors, and kind-specific icons
+  - `NodeGraphCanvas.tsx` — main SVG canvas with pan (drag), zoom (scroll wheel with cursor-centered zoom), dot-grid background, bezier edge rendering, edge selection/deletion, temporary wiring visualization, right-click context menu for adding transform nodes (lighten/darken/scale/mix/contrastCheck), minimap, fit-to-view, and keyboard shortcuts (Delete/Backspace/Escape)
+- Modified `GraphPanel.tsx` — added NodeGraphCanvas import, view mode toggle (graph/list), node graph is now the default view when generators exist, list view preserved as fallback. Fixed pre-existing undefined `graphScrollRef` bug.
+- Transform nodes available: Lighten, Darken, Scale, Mix, Contrast Check — each with typed ports and inline parameter controls
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/nodeGraph/nodeGraphTypes.ts` (new)
+  - `packages/figma-plugin/src/ui/components/nodeGraph/useNodeGraph.ts` (new)
+  - `packages/figma-plugin/src/ui/components/nodeGraph/NodeRenderer.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/nodeGraph/NodeGraphCanvas.tsx` (new)
+  - `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1-5 (import), ~L923 (viewMode state), ~L979-1120 (replaced pipeline view with graph/list toggle)
+- **Learnings for future iterations:**
+  - SVG `<foreignObject>` works well for embedding HTML form controls (inputs) inside SVG node editors
+  - `color-mix(in srgb, ...)` CSS function is great for computed header backgrounds from CSS custom properties
+  - Pan/zoom in SVG: use a single `<g transform="translate(px,py) scale(z)">` wrapper; convert screen→graph coords via `(screen - pan) / zoom`
+  - Port wiring: track `fromDirection` so the bezier curve always flows left-to-right regardless of which port the user starts from
+  - ResizeObserver is needed to track container dimensions for fit-to-view calculations
+---
