@@ -242,7 +242,8 @@ export function App() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [clearConfirmText, setClearConfirmText] = useState('');
   const [clearing, setClearing] = useState(false);
-  const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo();
+  const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
+  const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo(undoMaxHistory);
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [errorToast, setErrorToast] = useState<string | null>(null);
   const onGeneratorError = useCallback(({ generatorId, message }: { generatorId?: string; message: string }) => {
@@ -1760,6 +1761,31 @@ export function App() {
                       {checking ? 'Connecting…' : 'Save & Connect'}
                     </button>
                   </div>
+                </div>
+              </div>
+              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Undo History</span>
+                </div>
+                <div className="p-3 flex flex-col gap-2">
+                  <label className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Max undo steps</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={200}
+                      value={undoMaxHistory}
+                      onChange={e => {
+                        const v = Math.max(1, Math.min(200, Math.round(Number(e.target.value) || 20)));
+                        setUndoMaxHistory(v);
+                        lsSetJson(STORAGE_KEYS.UNDO_MAX_HISTORY, v);
+                      }}
+                      className="w-16 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] text-right outline-none focus:border-[var(--color-figma-accent)]"
+                    />
+                  </label>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+                    Number of undo actions to keep in history (1–200). Default is 20.
+                  </p>
                 </div>
               </div>
               <div className="rounded border border-[var(--color-figma-error)] overflow-hidden opacity-80">

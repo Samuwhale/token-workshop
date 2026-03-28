@@ -24,6 +24,7 @@ export const STORAGE_KEYS = {
   THEME_CARD_ORDER:      'themeCardOrder',
   EXPORT_PLATFORMS:      'exportPanel.selectedPlatforms',
   EXPORT_CSS_SELECTOR:   'exportPanel.cssSelector',
+  UNDO_MAX_HISTORY:      'tm_undo_max_history',
 } as const;
 
 /** Per-set dynamic key builders */

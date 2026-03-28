@@ -6,9 +6,10 @@ export interface UndoSlot {
   redo?: () => Promise<void>;
 }
 
-const MAX_HISTORY = 20;
+const DEFAULT_MAX_HISTORY = 20;
 
-export function useUndo() {
+export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY) {
+  const limit = Math.max(1, Math.min(200, Math.round(maxHistory)));
   // past[last] = most recent undoable action
   const [past, setPast] = useState<UndoSlot[]>([]);
   // future[last] = most recent redoable action (from an undo)
@@ -23,7 +24,7 @@ export function useUndo() {
   const pushUndo = useCallback((slot: UndoSlot) => {
     setPast(prev => {
       const next = [...prev, slot];
-      return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
+      return next.length > limit ? next.slice(next.length - limit) : next;
     });
     setFuture([]);
     setDismissed(false);

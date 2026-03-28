@@ -322,3 +322,16 @@ Already up to date.
 
 --- Merging: No error boundary wrapping panels ---
 Already up to date.
+[main a1490cd] chore(backlog): done – No error boundary wrapping panels
+ 6 files changed, 73 insertions(+), 12 deletions(-)
+
+## 2026-03-28 - No error boundary wrapping panels
+- Enhanced existing `ErrorBoundary` class in App.tsx to accept `panelName` and `onReset` props. Wrapped all 11 panel components (Import, Export, Heatmap, Preview, Graph, Inspector, Publish, Analytics, Themes, Compare Themes) with individual `<ErrorBoundary>` instances. Each shows the panel name in the error message and offers a "Dismiss" button (navigates back to tokens tab or closes overflow panel) alongside the existing "Reload" button. The outer ErrorBoundary remains as a last-resort catch-all.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L52 (ErrorBoundary class), ~L1621-2037 (panel wrappings)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  55 items remaining
+===============================================================
+  Claimed: Lint rules return violations but never suggest fixes — rules like "no raw hex color" could suggest the nearest matching token alias, but currently only flag the problem
+  Worktree: /tmp/backlog-84992-JYXDIo

@@ -300,3 +300,10 @@ Already up to date.
 ===============================================================
   Claimed: Undo stack is hardcoded to 20 entries with no way to increase — power users making rapid edits (batch rename, generator tweaks) exhaust the stack quickly and lose early history
   Worktree: /tmp/backlog-92630-eKeOie
+
+  ✓ done: Undo stack is hardcoded to 20 entries with no way to increase
+    Made undo history limit configurable (1–200) via Settings panel, persisted in localStorage. Default remains 20.
+    28 turns · 129s · $0.71
+
+--- Merging: Undo stack is hardcoded to 20 entries with no way to increase ---
+Already up to date.

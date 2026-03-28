@@ -374,3 +374,14 @@
   - React class component error boundaries can accept props for contextual error messages — no need for a separate PanelErrorBoundary component
   - The `onReset` callback should both clear the error state (`setState({ error: null })`) and navigate away, so the boundary is reusable if the user returns to the panel
 ---
+
+## 2026-03-28 - Undo stack is hardcoded to 20 entries with no way to increase
+- Made `useUndo` accept a configurable `maxHistory` parameter (clamped 1–200, default 20)
+- Added `UNDO_MAX_HISTORY` localStorage key to `storage.ts`
+- Added "Undo History" section in Settings panel with a number input for max undo steps
+- App.tsx reads persisted value via `lsGetJson` and passes it to `useUndo`
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L9-12,27; `packages/figma-plugin/src/ui/shared/storage.ts` ~L27; `packages/figma-plugin/src/ui/App.tsx` ~L233-234, ~L1750-1770
+- **Learnings for future iterations:**
+  - Settings panel sections in App.tsx are rendered between the Server card and Danger Zone card — new settings go between those two `div` blocks
+  - `useUndo`'s `pushUndo` uses the `limit` closure variable; since it's derived from a prop, changing maxHistory takes effect on the next push without needing to trim existing entries
+---
