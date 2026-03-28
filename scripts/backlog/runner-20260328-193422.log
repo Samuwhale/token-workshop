@@ -109,3 +109,29 @@ Already up to date.
 
 --- Merging: ThemeManager dimension/option deletes have no undo ---
 Already up to date.
+[main c212125] chore(backlog): done – ThemeManager dimension/option deletes have no undo
+ 8 files changed, 102 insertions(+), 39 deletions(-)
+
+## 2026-03-28 - ThemeManager dimension/option deletes have no undo
+- Replaced confirmation modal with immediate delete + undo via the existing `useUndo` / `UndoToast` infrastructure
+- Added `onPushUndo` prop to `ThemeManager`; App.tsx passes `pushUndo` to it
+- `executeDeleteDimension` now snapshots the full dimension (with all options) before deleting, then pushes an undo slot that recreates the dimension + each option via POST
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  71 items remaining
+===============================================================
+  Claimed: [HIGH] Style sync reports full success on partial failure — `styleSync.ts` catches per-style errors with `console.error` but posts `styles-applied` with the total count regardless; if 3 of 5 styles fail, the UI shows "5 styles applied" with no indication of failures
+  Worktree: /tmp/backlog-77155-yF8dTY
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    4 turns · 12s · $0.11
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - ThemeManager dimension/option deletes have no undo
+- Replaced confirmation modal with immediate delete + undo via the existing `useUndo` / `UndoToast` infrastructure
+- Added `onPushUndo` prop to `ThemeManager`; App.tsx passes `pushUndo` to it
+- `executeDeleteDimension` now snapshots the full dimension (with all options) before deleting, then pushes an undo slot that recreates the dimension + each option via POST
+
+Stop signal received. Exiting after iteration 5.

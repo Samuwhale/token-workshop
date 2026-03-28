@@ -2,6 +2,8 @@ import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './col
 import { fontStyleToWeight, resolveStyleForWeight } from './fontLoading.js';
 
 export async function applyStyles(tokens: any[]) {
+  let successCount = 0;
+  const failures: { path: string; error: string }[] = [];
   for (const token of tokens) {
     try {
       if (token.$type === 'color') {
@@ -13,11 +15,19 @@ export async function applyStyles(tokens: any[]) {
       } else if (token.$type === 'shadow') {
         await applyEffectStyle(token);
       }
+      successCount++;
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       console.error(`Failed to apply style for ${token.path}:`, error);
+      failures.push({ path: token.path, error: message });
     }
   }
-  figma.ui.postMessage({ type: 'styles-applied', count: tokens.length });
+  figma.ui.postMessage({
+    type: 'styles-applied',
+    count: successCount,
+    total: tokens.length,
+    failures,
+  });
 }
 
 async function applyPaintStyle(token: any) {

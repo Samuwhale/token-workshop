@@ -63,3 +63,13 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+
+  → Stop requested — will exit after current item completes.
+  · product pass: no result — skipped
+
+## 2026-03-28 - ThemeManager dimension/option deletes have no undo
+- Replaced confirmation modal with immediate delete + undo via the existing `useUndo` / `UndoToast` infrastructure
+- Added `onPushUndo` prop to `ThemeManager`; App.tsx passes `pushUndo` to it
+- `executeDeleteDimension` now snapshots the full dimension (with all options) before deleting, then pushes an undo slot that recreates the dimension + each option via POST
+
+Stop signal received. Exiting after iteration 3.

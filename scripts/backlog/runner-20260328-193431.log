@@ -104,3 +104,16 @@ Already up to date.
 ===============================================================
   Claimed: **Token creation: multi-token "table create" mode** — a lightweight mode for creating several tokens in a group at once, like a spreadsheet: each row is a token with name / type / value columns, and pressing Tab moves to the next cell. This is faster than creating tokens one-by-one with "Create & New" for scenarios like setting up a spacing scale from scratch.
   Worktree: /tmp/backlog-77899-6MDiuq
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    10 turns · 266s · $0.55
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - ThemeManager dimension/option deletes have no undo
+- Replaced confirmation modal with immediate delete + undo via the existing `useUndo` / `UndoToast` infrastructure
+- Added `onPushUndo` prop to `ThemeManager`; App.tsx passes `pushUndo` to it
+- `executeDeleteDimension` now snapshots the full dimension (with all options) before deleting, then pushes an undo slot that recreates the dimension + each option via POST
+
+Stop signal received. Exiting after iteration 5.

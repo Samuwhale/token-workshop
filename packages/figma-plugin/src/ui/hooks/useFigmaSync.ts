@@ -1,5 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 
@@ -18,6 +18,24 @@ export function useFigmaSync(
   const [groupScopesApplying, setGroupScopesApplying] = useState(false);
   const [groupScopesError, setGroupScopesError] = useState<string | null>(null);
   const [groupScopesProgress, setGroupScopesProgress] = useState<{ done: number; total: number } | null>(null);
+  const [syncGroupStylesError, setSyncGroupStylesError] = useState<string | null>(null);
+  const styleApplyResolveRef = useRef<((result: { count: number; total: number; failures: { path: string; error: string }[] }) => void) | null>(null);
+
+  useEffect(() => {
+    const handler = (ev: MessageEvent) => {
+      const msg = ev.data?.pluginMessage;
+      if (msg?.type === 'styles-applied' && styleApplyResolveRef.current) {
+        styleApplyResolveRef.current({
+          count: msg.count ?? 0,
+          total: msg.total ?? msg.count ?? 0,
+          failures: msg.failures ?? [],
+        });
+        styleApplyResolveRef.current = null;
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const handleSyncGroup = useCallback(async () => {
     if (!syncGroupPending || !connected) return;
@@ -44,6 +62,7 @@ export function useFigmaSync(
     if (!syncGroupStylesPending || !connected) return;
     const saved = syncGroupStylesPending;
     setSyncGroupStylesPending(null);
+    setSyncGroupStylesError(null);
     try {
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
@@ -54,7 +73,23 @@ export function useFigmaSync(
           tokens.push({ path, $type: entry.$type, $value: entry.$value });
         }
       }
-      parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
+      const result: { count: number; total: number; failures: { path: string; error: string }[] } = await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          styleApplyResolveRef.current = null;
+          reject(new Error('Style apply timed out — is the plugin running?'));
+        }, 15000);
+        styleApplyResolveRef.current = (r) => {
+          clearTimeout(timeout);
+          resolve(r);
+        };
+        parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
+      });
+      if (result.failures.length > 0) {
+        const failedPaths = result.failures.map(f => f.path).join(', ');
+        setSyncGroupStylesError(`${result.count}/${result.total} styles created. Failed: ${failedPaths}`);
+      } else {
+        parent.postMessage({ pluginMessage: { type: 'notify', message: `${result.count} style${result.count !== 1 ? 's' : ''} created` } }, '*');
+      }
     } catch (err) {
       console.error('Failed to create styles from group:', err);
       setSyncGroupStylesPending(saved);
@@ -127,6 +162,7 @@ export function useFigmaSync(
     groupScopesProgress,
     handleSyncGroup,
     handleSyncGroupStyles,
+    syncGroupStylesError,
     handleApplyGroupScopes,
   };
 }

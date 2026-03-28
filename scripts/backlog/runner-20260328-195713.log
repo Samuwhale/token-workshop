@@ -1,0 +1,11 @@
+NOTE: 4 [~] item(s) found — skipping reset (4 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 72
+  Completed total: 613 (next code pass in 3 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  72 items remaining
+===============================================================
+  Claimed: [HIGH] Plugin sandbox operations don't use `figma.group()` for undo batching — each variable creation, binding update, or property change in batch operations (apply-variables, sync-bindings, batch-bind-heatmap-nodes) creates a separate Figma undo step, so applying 50 tokens produces 50 undo entries instead of one atomic operation
+  Worktree: /tmp/backlog-51036-6eKFfy

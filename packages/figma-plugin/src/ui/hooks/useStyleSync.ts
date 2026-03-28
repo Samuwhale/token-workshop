@@ -44,6 +44,7 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
   const [styleError, setStyleError] = useState<string | null>(null);
   const [styleChecked, setStyleChecked] = useState(false);
   const styleReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
+  const styleApplyResolveRef = useRef<((result: { count: number; total: number; failures: { path: string; error: string }[] }) => void) | null>(null);
 
   // Message handler for style reads
   useEffect(() => {
@@ -61,6 +62,16 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
       if (msg?.type === 'styles-apply-error') {
         setStyleError(`Apply styles failed: ${msg.error ?? 'Unknown error'}`);
         setStyleSyncing(false);
+      }
+      if (msg?.type === 'styles-applied') {
+        if (styleApplyResolveRef.current) {
+          styleApplyResolveRef.current({
+            count: msg.count ?? 0,
+            total: msg.total ?? msg.count ?? 0,
+            failures: msg.failures ?? [],
+          });
+          styleApplyResolveRef.current = null;
+        }
       }
     };
     window.addEventListener('message', handler);
@@ -139,13 +150,25 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
       const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
       const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
 
+      let pushResult: { count: number; total: number; failures: { path: string; error: string }[] } | null = null;
+
       if (pushRows.length > 0) {
         const tokens = pushRows.map(r => ({
           path: r.path,
           $type: r.localType ?? 'string',
           $value: r.localRaw,
         }));
-        parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
+        pushResult = await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            styleApplyResolveRef.current = null;
+            reject(new Error('Style apply timed out — is the plugin running?'));
+          }, 15000);
+          styleApplyResolveRef.current = (result) => {
+            clearTimeout(timeout);
+            resolve(result);
+          };
+          parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
+        });
       }
 
       if (pullRows.length > 0) {
@@ -161,7 +184,13 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
       setStyleRows([]);
       setStyleDirs({});
       setStyleChecked(true);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Style sync applied' } }, '*');
+
+      if (pushResult && pushResult.failures.length > 0) {
+        const failedPaths = pushResult.failures.map(f => f.path).join(', ');
+        setStyleError(`${pushResult.count}/${pushResult.total} styles applied. Failed: ${failedPaths}`);
+      } else {
+        parent.postMessage({ pluginMessage: { type: 'notify', message: 'Style sync applied' } }, '*');
+      }
     } catch (err) {
       setStyleError(describeError(err, 'Apply style sync'));
     } finally {

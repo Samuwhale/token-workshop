@@ -112,3 +112,15 @@ Already up to date.
 ===============================================================
   Claimed: [HIGH] Plugin sandbox operations don't use `figma.group()` for undo batching — each variable creation, binding update, or property change in batch operations (apply-variables, sync-bindings, batch-bind-heatmap-nodes) creates a separate Figma undo step, so applying 50 tokens produces 50 undo entries instead of one atomic operation
   Worktree: /tmp/backlog-76772-t5A0kd
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - ThemeManager dimension/option deletes have no undo
+- Replaced confirmation modal with immediate delete + undo via the existing `useUndo` / `UndoToast` infrastructure
+- Added `onPushUndo` prop to `ThemeManager`; App.tsx passes `pushUndo` to it
+- `executeDeleteDimension` now snapshots the full dimension (with all options) before deleting, then pushes an undo slot that recreates the dimension + each option via POST
+
+Stop signal received. Exiting after iteration 6.

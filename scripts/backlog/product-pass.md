@@ -12,6 +12,7 @@ Find **5–15 concrete, actionable items** across the product and write them to 
 
 Good targets (in priority order):
 
+- **Simplification & consolidation** — features that overlap, panels that could be merged, concepts that could be unified, sections that exist separately but serve the same user goal. If two features do 80% the same thing, propose merging them. If a panel exists but adds more complexity than value, propose removing or folding it into something else. If the app has accumulated features that made sense individually but create cognitive overload together, propose reorganizing. Nothing is sacred — but don't simplify just for the sake of it; simplify when it genuinely makes the product clearer or more powerful.
 - **Missing features** — things a power user would expect (batch operations, keyboard shortcuts, search, quick actions, drag-and-drop, undo, copy/paste tokens). Think: "what can Figma's native variable UI do that we can't?" and "what can we do that Figma can't?"
 - **Workflow friction** — things that take 5 clicks when they should take 1, flows that break focus, missing "fast paths" for common operations
 - **UX gaps** — unclear flows, missing affordances, confusing labels, no empty states, no confirmation before destructive actions, poor information hierarchy
@@ -24,9 +25,11 @@ Items can range from atomic fixes to full overhauls — don't artificially limit
 - Small: `- [ ] No confirmation before deleting a non-empty group`
 - Ambitious: `- [ ] Add keyboard-navigable token tree with expand/collapse and multi-select`
 - Bold: `- [ ] Add inline token value editing on double-click instead of requiring the editor panel`
+- Consolidation: `- [ ] Merge the Resolvers panel into the Theme Manager — resolvers are essentially theme-scoped value overrides and having them as a separate panel adds a concept users must learn without adding capability`
+- Removal: `- [ ] Remove the table view — the tree view with "resolve all" toggle covers the same use case with better hierarchy, and maintaining two views doubles the surface area for bugs`
 - Overhaul: `- [ ] Restructure the token editor from a monolithic 1600-line component into a composition of focused sub-components with shared context — the current prop-drilling and useState sprawl makes every change risky`
 
-Overhaul items are encouraged when a whole area of the product would benefit from a rethink rather than incremental patches. The implementing agent has full freedom to touch as many files as needed.
+Overhaul, consolidation, and removal items are encouraged when a whole area of the product would benefit from a rethink rather than incremental patches. Don't bloat the app — if removing or merging something makes it simpler without losing real value, that's a win. The implementing agent has full freedom to touch as many files as needed.
 
 ---
 

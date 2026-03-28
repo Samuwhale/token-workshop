@@ -638,3 +638,18 @@
   - For undo of deletes, snapshot the full object (deep clone via JSON round-trip) before the DELETE call, then recreate via POST in the restore callback
   - `fetchDimensions()` (non-debounced) should be called in restore callbacks to get authoritative server state immediately after undo
 ---
+
+## 2026-03-28 - Style sync reports full success on partial failure
+- Fixed `applyStyles()` in `styleSync.ts` to track per-token success/failure counts and include `{ count, total, failures[] }` in the `styles-applied` message instead of always reporting `tokens.length`
+- Updated `useStyleSync.ts` to await the `styles-applied` response via a promise/ref pattern, showing partial failure errors with failed token paths in the style error UI
+- Updated `useFigmaSync.ts` (`handleSyncGroupStyles`) to also await the response and surface errors via a new `syncGroupStylesError` state, bridged to `errorToast` in `App.tsx`
+- Files changed:
+  - `packages/figma-plugin/src/plugin/styleSync.ts` ~L4-30 — track successCount/failures, include in message
+  - `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` ~L47,62-70,150-172 — add styleApplyResolveRef, handle styles-applied, await in applyStyleDiff
+  - `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L2,20-38,43-78,131 — add styleApplyResolveRef + listener, await in handleSyncGroupStyles, export syncGroupStylesError
+  - `packages/figma-plugin/src/ui/App.tsx` ~L492-496 — destructure syncGroupStylesError, useEffect to bridge to errorToast
+- **Learnings for future iterations:**
+  - The `styles-applied` message was fire-and-forget with no UI listener — both `useStyleSync` (PublishPanel) and `useFigmaSync` (group context menu) sent `apply-styles` without awaiting results
+  - When two hooks both listen for the same message type, use ref-based resolve patterns (null when inactive) to avoid cross-talk — only the hook that initiated the request will have a non-null ref
+  - The `applyStyleDiff` function was setting `styleSyncing(false)` in its finally block before the async response arrived — converting to an awaited promise fixed the race
+---

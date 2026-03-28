@@ -489,7 +489,11 @@ export function App() {
   const tabMenuRef = useRef<HTMLDivElement>(null);
 
   // Group sync + scope state
-  const { syncGroupPending, setSyncGroupPending, syncGroupStylesPending, setSyncGroupStylesPending, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
+  const { syncGroupPending, setSyncGroupPending, syncGroupStylesPending, setSyncGroupStylesPending, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, syncGroupStylesError, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
+
+  useEffect(() => {
+    if (syncGroupStylesError) setErrorToast(syncGroupStylesError);
+  }, [syncGroupStylesError]);
 
   // Set management hooks
   const { editingMetadataSet, metadataDescription, setMetadataDescription, metadataCollectionName, setMetadataCollectionName, metadataModeName, setMetadataModeName, closeSetMetadata, openSetMetadata, handleSaveMetadata } = useSetMetadata({ serverUrl, connected, setDescriptions, setCollectionNames, setModeNames, refreshTokens, setTabMenuOpen, onError: setErrorToast });

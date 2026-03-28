@@ -1,0 +1,11 @@
+NOTE: 6 [~] item(s) found — skipping reset (10 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 70
+  Completed total: 613 (next code pass in 3 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  70 items remaining
+===============================================================
+  Claimed: **Token list: group-level "coverage" indicator for themes** — when a token set is part of a multi-dimensional theme, show a small indicator on group rows telling how many of the group's tokens have overrides across all theme dimensions. E.g., "12/15 themed" next to the `colors.brand` group header. This lets you quickly spot where theme coverage is incomplete without going to the ThemeManager panel.
+  Worktree: /tmp/backlog-51603-sVAKTo
