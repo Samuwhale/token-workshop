@@ -469,3 +469,13 @@
 - **Learnings for future iterations:**
   - When two parallel code paths build the same payload shape (here: tokens for variables vs styles), check they include the same fields
 ---
+
+## 2026-03-28 - useTableCreate.handleCreateAll partial batch creation leaves tokens without undo
+- Changed `handleCreateAll` to use a `batchAborted` flag + `break` instead of early `return` on mid-batch failures
+- After the loop, undo slot is pushed for any successfully created tokens regardless of whether the batch was aborted
+- On abort with partial success, sets `createAllError` message informing user they can undo the partial creation
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTableCreate.ts` ~L121-186
+- **Learnings for future iterations:**
+  - When a sequential batch loop needs cleanup on early exit, use `break` + flag instead of `return` so post-loop cleanup always runs
+  - Informing users about partial state ("Created N tokens before error — use undo to revert") is better UX than silently leaving orphaned tokens
+---

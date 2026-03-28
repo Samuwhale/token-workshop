@@ -118,6 +118,8 @@ export function useTableCreate({
     const effectiveSet = setName || 'default';
     const created: Array<{ path: string; encodedPath: string; type: string; value: unknown }> = [];
 
+    let batchAborted = false;
+
     for (const row of rowsToCreate) {
       const g = tableGroup.trim();
       const n = row.name.trim();
@@ -129,8 +131,8 @@ export function useTableCreate({
 
       if (parsedValue === null) {
         setRowErrors(prev => ({ ...prev, [row.id]: 'Invalid value for type' }));
-        setBusy(false);
-        return;
+        batchAborted = true;
+        break;
       }
 
       try {
@@ -142,46 +144,57 @@ export function useTableCreate({
         if (!res.ok) {
           const data = await res.json().catch(() => ({})) as { error?: string };
           setRowErrors(prev => ({ ...prev, [row.id]: data.error || `Failed (${res.status})` }));
-          setBusy(false);
-          onRefresh();
-          return;
+          batchAborted = true;
+          break;
         }
         created.push({ path, encodedPath, type: row.type, value: parsedValue });
       } catch {
         setCreateAllError('Network error — could not create tokens');
-        setBusy(false);
-        return;
+        batchAborted = true;
+        break;
       }
     }
 
-    onRefresh();
-    for (const c of created) {
-      onTokenCreated?.(c.path);
-      onRecordTouch(c.path);
+    // Always refresh and register undo for any tokens that were created,
+    // even if the batch was aborted mid-way through.
+    if (created.length > 0) {
+      onRefresh();
+      for (const c of created) {
+        onTokenCreated?.(c.path);
+        onRecordTouch(c.path);
+      }
+
+      if (onPushUndo) {
+        const capturedUrl = serverUrl;
+        const capturedSet = effectiveSet;
+        onPushUndo({
+          description: `Create ${created.length} token${created.length > 1 ? 's' : ''}`,
+          restore: async () => {
+            for (const c of created) {
+              await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${c.encodedPath}`, { method: 'DELETE' });
+            }
+            onRefresh();
+          },
+          redo: async () => {
+            for (const c of created) {
+              await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${c.encodedPath}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ $type: c.type, $value: c.value }),
+              });
+            }
+            onRefresh();
+          },
+        });
+      }
     }
 
-    if (onPushUndo && created.length > 0) {
-      const capturedUrl = serverUrl;
-      const capturedSet = effectiveSet;
-      onPushUndo({
-        description: `Create ${created.length} token${created.length > 1 ? 's' : ''}`,
-        restore: async () => {
-          for (const c of created) {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${c.encodedPath}`, { method: 'DELETE' });
-          }
-          onRefresh();
-        },
-        redo: async () => {
-          for (const c of created) {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${c.encodedPath}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $type: c.type, $value: c.value }),
-            });
-          }
-          onRefresh();
-        },
-      });
+    if (batchAborted) {
+      if (created.length > 0) {
+        setCreateAllError(`Created ${created.length} token${created.length > 1 ? 's' : ''} before error — use undo to revert`);
+      }
+      setBusy(false);
+      return;
     }
 
     resetTableCreate();
