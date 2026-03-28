@@ -40,3 +40,17 @@ Already up to date.
 
 --- Merging: Context-aware token surfacing ---
 Already up to date.
+[main e24e9b4] chore(backlog): done – Context-aware token surfacing
+ 8 files changed, 357 insertions(+), 13 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/SuggestedTokens.tsx
+
+## 2026-03-28 - Context-aware token surfacing
+- Implemented context-aware token suggestions in the Selection Inspector. When a Figma layer is selected, the plugin now surfaces 5-8 most relevant tokens based on type matching, value similarity, sibling usage, and existing bindings — shown in a collapsible "Suggested" section above the property groups.
+- Added `rankTokensForSelection()` scoring function that aggregates `scoreBindCandidate` scores across all eligible properties, with bonus scoring for already-bound tokens and a minimum threshold of 15 to filter irrelevant results.
+- Created `SuggestedTokens.tsx` component with color swatches, token paths, match reason labels, property labels, and hover-reveal Apply buttons.
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  75 items remaining
+===============================================================
+  Claimed: Token resolution chain debugger: click a bound layer → see full resolution chain (e.g. `color.bg.card` → alias `color.neutral.100` → theme:dark → `#1E1E1E`) in one glance
+  Worktree: /tmp/backlog-51273-xLcjT5

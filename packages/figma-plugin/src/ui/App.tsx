@@ -21,6 +21,7 @@ import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { Command, TokenEntry } from './components/CommandPalette';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { QuickApplyPicker } from './components/QuickApplyPicker';
 import { PreviewPanel } from './components/PreviewPanel';
 import { HeatmapPanel } from './components/HeatmapPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
@@ -341,6 +342,7 @@ export function App() {
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [showQuickApply, setShowQuickApply] = useState(false);
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
@@ -648,6 +650,10 @@ export function App() {
         e.preventDefault();
         navigateTo(TOP_TABS[tabIndex].id);
       }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'a') {
+        e.preventDefault();
+        setShowQuickApply(v => !v);
+      }
       if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         setShowKeyboardShortcuts(v => !v);
@@ -879,6 +885,14 @@ export function App() {
         handler: () => openOverflowPanel('settings'),
       },
       {
+        id: 'quick-apply',
+        label: 'Quick apply token to selection',
+        description: 'Contextual token picker — infers property, shows relevant tokens',
+        category: 'Selection',
+        shortcut: adaptShortcut('⌘⇧A'),
+        handler: () => { if (selectedNodes.length > 0) setShowQuickApply(true); },
+      },
+      {
         id: 'inspect',
         label: 'Go to Inspect',
         description: 'Inspect token bindings on selected layers',
@@ -986,7 +1000,7 @@ export function App() {
         })),
     ];
     return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback, selectedNodes]);
 
   // Flat token list for command palette token search mode
   const paletteTokens: TokenEntry[] = useMemo(() => {
@@ -2792,6 +2806,28 @@ export function App() {
             navigator.clipboard.writeText(cssVar).catch(() => {});
           }}
           onClose={() => setShowCommandPalette(false)}
+        />
+      )}
+
+      {/* Quick Apply Picker */}
+      {showQuickApply && selectedNodes.length > 0 && (
+        <QuickApplyPicker
+          selectedNodes={selectedNodes}
+          tokenMap={allTokensFlat}
+          onApply={(tokenPath, tokenType, targetProperty, resolvedValue) => {
+            parent.postMessage({
+              pluginMessage: {
+                type: 'apply-to-selection',
+                tokenPath,
+                tokenType,
+                targetProperty,
+                resolvedValue,
+              },
+            }, '*');
+            setShowQuickApply(false);
+            setSuccessToast(`Bound "${tokenPath}" to ${targetProperty}`);
+          }}
+          onClose={() => setShowQuickApply(false)}
         />
       )}
 

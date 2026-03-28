@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: Reduce token-apply friction: select layer → shortcut → contextual picker that infers property + shows short relevant list → pick → done in 2 interactions, not 5
   Worktree: /tmp/backlog-51036-WtvbSW
+
+  ✓ done: Reduce token-apply friction: select layer → shortcut → contextual picker that infers property + shows short relevant list → pick → done in 2 interactions, not 5
+    Added QuickApplyPicker overlay (⌘⇧A) with property inference, contextual scoring, fuzzy search, and keyboard nav — collapses 5-step apply flow to 2 interactions
+    44 turns · 516s · $3.19
+
+--- Merging: Reduce token-apply friction: select layer → shortcut → contextual picker that infers property + shows short relevant list → pick → done in 2 interactions, not 5 ---
+Already up to date.

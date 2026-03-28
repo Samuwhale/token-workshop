@@ -387,3 +387,20 @@
   - `CAPABILITY_FILTER` (mapping properties to capability keys) is a module-level const not exported — had to reference it in the same file rather than importing it in a separate module
   - `useMemo` deps for `caps` object: since it's created fresh each render, listing individual boolean fields (`caps.hasFills`, etc.) in the dep array avoids unnecessary re-computation
 ---
+
+## 2026-03-28 - Reduce token-apply friction: quick-apply contextual picker
+- Implemented a QuickApplyPicker overlay (⌘⇧A) that collapses the 5-step apply flow into 2 interactions: shortcut → pick token → done
+- The picker infers which properties are relevant from the selection's capabilities, auto-selects the first unbound property with a current value, and shows a scored/filtered list of compatible tokens
+- Reuses existing scoring infrastructure: `scoreBindCandidate`, `collectSiblingBindings`, `collectBoundPrefixes`, `isTokenScopeCompatible`, `getCompatibleTokenTypes`
+- Property tabs allow switching with Tab key; fuzzy search filters candidates; keyboard nav (↑↓ Enter Esc) for full keyboard-only flow
+- Shows "Suggested" / "All tokens" dividers, color swatches, value previews, current-binding badge, and "N more — type to refine" overflow indicator
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/QuickApplyPicker.tsx` (new, ~290 lines) — the core overlay component
+  - `packages/figma-plugin/src/ui/App.tsx` ~L25 (import), ~L344 (state), ~L649 (shortcut), ~L849 (command), ~L1003 (deps), ~L2812 (render)
+  - `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L40 (shortcut entry)
+- **Learnings for future iterations:**
+  - The existing `selectionInspectorUtils.ts` scoring/filtering infrastructure is well-factored and easy to reuse from new components — no extraction needed
+  - `PROPERTY_GROUPS` with `shouldShowGroup` + `getMergedCapabilities` is the canonical way to determine which properties are relevant for a selection
+  - The `getBindingForProperty` check is essential for showing "current" badges and inferring which property to focus first
+  - Tab key for property switching is a natural fit since the search input doesn't need Tab for anything else
+---
