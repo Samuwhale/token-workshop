@@ -96,8 +96,8 @@
 
 ### QoL
 
-- [~] Git commit allows submit with empty message — the commit form doesn't disable the button when the message field is blank
-- [~] No publish dry-run — no way to preview what a Git push or Figma variable publish will change before executing
+- [x] Git commit allows submit with empty message — the commit form doesn't disable the button when the message field is blank
+- [ ] No publish dry-run — no way to preview what a Git push or Figma variable publish will change before executing
 
 ### UX
 

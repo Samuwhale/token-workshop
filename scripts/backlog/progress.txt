@@ -21,3 +21,10 @@
 - **Learnings for future iterations:**
   - The git commit form is only in PublishPanel.tsx, no other commit forms exist
 ---
+
+## 2026-03-29 - Decompose useGeneratorDialog.ts and useGitSync.ts into focused sub-hooks
+- Already done. `useGeneratorDialog.ts` (309 lines) already delegates to `useGeneratorPreview` and `useGeneratorSave` sub-hooks. `useGitSync.ts` (137 lines) already delegates to `useGitStatus`, `useGitConflicts`, and `useGitDiff` sub-hooks.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Backlog items can become stale when prior sessions decompose hooks as part of other work — always check current state before planning
+---
