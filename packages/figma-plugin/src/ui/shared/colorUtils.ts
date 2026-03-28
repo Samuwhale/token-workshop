@@ -240,24 +240,3 @@ export function wcagContrast(hex1: string, hex2: string): number | null {
   const [lighter, darker] = l1 > l2 ? [l1, l2] : [l2, l1];
   return (lighter + 0.05) / (darker + 0.05);
 }
-
-
-export function countLeafNodes(group: Record<string, any>): { total: number; byType: Record<string, number> } {
-  let total = 0;
-  const byType: Record<string, number> = {};
-  for (const [key, value] of Object.entries(group)) {
-    if (key.startsWith('$')) continue;
-    if (value && typeof value === 'object' && '$value' in value) {
-      total++;
-      const t = value.$type || 'unknown';
-      byType[t] = (byType[t] || 0) + 1;
-    } else if (value && typeof value === 'object') {
-      const sub = countLeafNodes(value);
-      total += sub.total;
-      for (const [t, c] of Object.entries(sub.byType)) {
-        byType[t] = (byType[t] || 0) + c;
-      }
-    }
-  }
-  return { total, byType };
-}

@@ -27,3 +27,24 @@ export function stableStringify(value: unknown): string {
   const parts = keys.map(k => JSON.stringify(k) + ':' + stableStringify((value as Record<string, unknown>)[k]));
   return '{' + parts.join(',') + '}';
 }
+
+/** Count leaf token nodes in a nested DTCG token group, with breakdown by $type. */
+export function countLeafNodes(group: Record<string, any>): { total: number; byType: Record<string, number> } {
+  let total = 0;
+  const byType: Record<string, number> = {};
+  for (const [key, value] of Object.entries(group)) {
+    if (key.startsWith('$')) continue;
+    if (value && typeof value === 'object' && '$value' in value) {
+      total++;
+      const t = value.$type || 'unknown';
+      byType[t] = (byType[t] || 0) + 1;
+    } else if (value && typeof value === 'object') {
+      const sub = countLeafNodes(value);
+      total += sub.total;
+      for (const [t, c] of Object.entries(sub.byType)) {
+        byType[t] = (byType[t] || 0) + c;
+      }
+    }
+  }
+  return { total, byType };
+}

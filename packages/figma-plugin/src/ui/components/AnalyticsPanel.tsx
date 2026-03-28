@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { hexToLuminance, wcagContrast, hexToLstar, countLeafNodes, normalizeHex } from '../shared/colorUtils';
+import { hexToLuminance, wcagContrast, hexToLstar, normalizeHex } from '../shared/colorUtils';
+import { countLeafNodes } from '../shared/utils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
 
 interface ValidationIssue {

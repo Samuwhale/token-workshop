@@ -136,3 +136,17 @@ Already up to date.
 
 --- Merging: Duplicated flattenForVarDiff/flattenForStyleDiff in PublishPanel.tsx ---
 Already up to date.
+[main 030ded9] chore(backlog): done – Duplicated flattenForVarDiff/flattenForStyleDiff in PublishPanel.tsx
+ 6 files changed, 52 insertions(+), 51 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Duplicated flattenForVarDiff/flattenForStyleDiff in PublishPanel.tsx
+- Removed both `flattenForVarDiff` and `flattenForStyleDiff` local helpers (~40 lines) and replaced all three call sites with `flattenTokenGroup` from `@tokenmanager/core`
+- The var-diff call sites now iterate the returned `Map<string, DTCGToken>` to build the same `{path, value, type}` shape inline
+- The style-diff call site filters by `STYLE_TYPES` (converted from `readonly` array to `Set` for cleaner `.has()`) during iteration
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  83 items remaining
+===============================================================
+  Claimed: `ExportPanel` uses raw `localStorage` instead of centralized `lsGet`/`lsSet` helpers — bypasses the try/catch safety net and doesn't use `STORAGE_KEYS`
+  Worktree: /tmp/backlog-92630-Yftgsh
