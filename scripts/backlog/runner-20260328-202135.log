@@ -365,3 +365,16 @@ Already up to date.
 
 --- Merging: renameSet in token-store.ts leaks write guards on themes update failure ---
 Already up to date.
+[main a2fec91] chore(backlog): done – renameSet in token-store.ts leaks write guards on themes update failure
+ 6 files changed, 75 insertions(+), 42 deletions(-)
+
+## 2026-03-28 - renameSet in token-store.ts leaks write guards on themes update failure
+- Wrapped the body of `renameSet` after `_startWriteGuard` calls in a `try/finally` block that calls `_clearWriteGuard` for both file paths
+- This fixes three leak paths: (1) outer catch re-throw when themes mutation fails, (2) success path never cleared guards, (3) inner catch used raw `.delete()` instead of `_clearWriteGuard` (leaving 30s timeout timer running)
+- Files changed: `packages/server/src/services/token-store.ts` ~L578-630
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  25 items remaining
+===============================================================
+  Claimed: `VersionHistoryPanel.tsx` renders `detail.changes` without validating the response shape — the detail view (line ~255+) assumes `detail.changes` is a valid array after fetching; if the server returns malformed JSON or the endpoint changes, the component will crash instead of showing an error state
+  Worktree: /tmp/backlog-9231-I31P5T
