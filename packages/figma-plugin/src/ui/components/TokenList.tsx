@@ -1833,6 +1833,28 @@ export function TokenList({
     }
   }, [flatItems, itemOffsets]);
 
+  // Collapse all groups that are descendants of the given group path,
+  // keeping the ancestor chain expanded so the group header stays visible
+  const handleCollapseBelow = useCallback((groupPath: string) => {
+    setExpandedPaths(prev => {
+      const next = new Set(prev);
+      const prefix = groupPath + '.';
+      for (const p of prev) {
+        if (p === groupPath || p.startsWith(prefix)) {
+          next.delete(p);
+        }
+      }
+      return next;
+    });
+    // Jump to the (now-collapsed) group header
+    const idx = flatItems.findIndex(item => item.node.path === groupPath);
+    if (idx >= 0 && virtualListRef.current) {
+      const targetScrollTop = Math.max(0, itemOffsets[idx]);
+      virtualListRef.current.scrollTop = targetScrollTop;
+      setVirtualScrollTop(targetScrollTop);
+    }
+  }, [flatItems, itemOffsets]);
+
   const handleZoomIntoGroup = useCallback((groupPath: string) => {
     setZoomRootPath(groupPath);
     setVirtualScrollTop(0);
@@ -3120,19 +3142,38 @@ export function TokenList({
                 ))}
               </div>
             ) : breadcrumbSegments.length > 0 ? (
-              <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg)] border-b border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)]">
+              <div className="sticky top-0 z-10 flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] group/breadcrumb">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-40 mr-0.5">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
                 {breadcrumbSegments.map((seg, i) => (
                   <span key={seg.path} className="flex items-center gap-0.5">
                     {i > 0 && <span className="opacity-40 mx-0.5">›</span>}
-                    <button
-                      className="hover:text-[var(--color-figma-text)] hover:underline truncate max-w-[120px]"
-                      title={seg.path}
-                      onClick={() => handleJumpToGroup(seg.path)}
-                    >
-                      {seg.name}
-                    </button>
+                    {i < breadcrumbSegments.length - 1 ? (
+                      <button
+                        className="hover:text-[var(--color-figma-text)] hover:underline truncate max-w-[120px]"
+                        title={`Jump to ${seg.path}`}
+                        onClick={() => handleJumpToGroup(seg.path)}
+                      >
+                        {seg.name}
+                      </button>
+                    ) : (
+                      <span className="font-medium text-[var(--color-figma-text)] truncate max-w-[120px]" title={seg.path}>
+                        {seg.name}
+                      </span>
+                    )}
                   </span>
                 ))}
+                <button
+                  className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/breadcrumb:opacity-100 transition-opacity text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0"
+                  title="Collapse all groups below and jump to this group"
+                  onClick={() => handleCollapseBelow(breadcrumbSegments[breadcrumbSegments.length - 1].path)}
+                >
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M18 15l-6-6-6 6" />
+                  </svg>
+                  <span>Collapse</span>
+                </button>
               </div>
             ) : null}
             <div style={{ height: virtualTopPad }} aria-hidden="true" />

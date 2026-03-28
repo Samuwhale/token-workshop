@@ -595,3 +595,17 @@
   - The toggle button follows the same pattern as the "Modes" button: `aria-pressed`, accent bg when active, secondary text when inactive.
   - Three display changes are needed for a clean "resolved" view: (1) hide alias link badge, (2) skip alias-specific value branch so it falls through to plain text, (3) hide chain badge.
 ---
+
+## 2026-03-28 - Token list: sticky group breadcrumb as a real interactable header
+- Enhanced the existing sticky breadcrumb bar to be a proper interactable header:
+  - Added a home icon on the left for visual anchoring
+  - Last breadcrumb segment now rendered as bold non-link text (current group) while ancestors remain clickable links that jump to their group header
+  - Added "Collapse" button (with upward chevron) on the right side, appears on hover — collapses all groups under the current breadcrumb context group and scrolls to its header
+  - Changed background to `bg-secondary` to visually distinguish from content rows
+- Added `handleCollapseBelow` callback: removes the target group and all descendant groups (prefix match) from `expandedPaths`, then scrolls to the group header
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1816 (handleCollapseBelow), ~L3030 (breadcrumb JSX)
+- **Learnings for future iterations:**
+  - The breadcrumb already had clickable segments and `handleJumpToGroup` — the main gap was the collapse affordance and visual distinction between current group vs ancestors
+  - `group/breadcrumb` Tailwind variant works well for revealing hover-only actions in sticky bars without cluttering the compact UI
+  - Collapsing descendants uses prefix matching (`path.startsWith(groupPath + '.')`) on `expandedPaths` which is efficient since the Set iteration is bounded by expanded count, not total token count
+---

@@ -92,3 +92,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token list: sticky group breadcrumb as a real interactable header** — the breadcrumb that shows the current group context while scrolling is currently a passive indicator. Make it an interactable sticky row: clicking a segment jumps to that group header, and there's a "↑ Collapse all below" affordance. This gives positional awareness and quick navigation during deep scrolling.
   Worktree: /tmp/backlog-76772-hiXZXc
+
+  ✓ done: Token list: sticky group breadcrumb as a real interactable header
+    Enhanced breadcrumb with home icon, current-group highlight (last segment bold), ancestor jump links, and a hover-revealed "Collapse" button that collapses all descendant groups and scrolls to the group header.
+    15 turns · 150s · $0.83
+
+--- Merging: Token list: sticky group breadcrumb as a real interactable header ---
+Already up to date.

@@ -84,3 +84,21 @@ Already up to date.
   ✓ product pass: product-pass
     13 items written to inbox — 3 HIGH (ThemeManager no undo, plugin undo batching, style sync false success), plus missing editors for 10 token types, no virtual scroll in table view, in-memory-only operation log, generic composition editor, color modifiers gated on alias mode, ThemeManager race conditions, Promise.all partial failures, git diff silent errors, no inline editing, uncached theme coverage
 Already up to date.
+[main be2e40d] chore(backlog): product pass – product-pass
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 3 priority item(s) inserted at top of queue
+  → 10 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-28 - Token creation: sticky active-set label in create form
+- Added a "Creating in: [setName]" banner at the top of the token create form, styled as a pill with a folder icon, showing the active set name so users know where the new token will land.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3079
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  73 items remaining
+===============================================================
+  Claimed: [HIGH] ThemeManager dimension/option deletes have no undo — deleting a dimension or option is immediate and permanent with no undo toast or confirmation; users can accidentally destroy an entire theme axis and have no recovery path short of git revert
+  Worktree: /tmp/backlog-77155-glLpkV
