@@ -359,6 +359,7 @@ export function TokenList({
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
   const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid' | 'json' | 'graph'>('tree');
+  const [showResolvedValues, setShowResolvedValues] = useState(false);
   const [showScopesCol, setShowScopesCol] = useState(false);
 
   // Multi-mode column view — show resolved values per theme option side-by-side
@@ -1945,6 +1946,7 @@ export function TokenList({
     onDragLeaveToken: handleDragLeaveToken,
     onDropOnToken: handleDropReorder,
     onMultiModeInlineSave: multiModeData ? handleMultiModeInlineSave : undefined,
+    showResolvedValues,
   }), [
     setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
@@ -1960,7 +1962,7 @@ export function TokenList({
     handleDetachFromGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
     handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
-    multiModeData, handleMultiModeInlineSave,
+    multiModeData, handleMultiModeInlineSave, showResolvedValues,
   ]);
 
   return (
@@ -2146,6 +2148,25 @@ export function TokenList({
                       ))}
                     </select>
                   )}
+                </>
+              )}
+
+              {/* Resolve all toggle — show resolved values for alias tokens */}
+              {viewMode === 'tree' && (
+                <>
+                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
+                  <button
+                    onClick={() => setShowResolvedValues(v => !v)}
+                    title={showResolvedValues ? 'Show raw alias references' : 'Resolve all aliases — show final values'}
+                    aria-pressed={showResolvedValues}
+                    className={`px-1.5 py-1 rounded text-[10px] transition-colors flex items-center gap-0.5 ${showResolvedValues ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Resolved
+                  </button>
                 </>
               )}
 

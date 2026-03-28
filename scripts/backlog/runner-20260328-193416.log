@@ -57,3 +57,18 @@ Already up to date.
 
 --- Merging: Token list: name validation as-you-type in create form ---
 Already up to date.
+[main 012bfae] chore(backlog): done – Token list: name validation as-you-type in create form
+ 9 files changed, 109 insertions(+), 48 deletions(-)
+ delete mode 100644 packages/figma-plugin/vitest.config.ts
+ delete mode 100644 packages/server/vitest.config.ts
+
+## 2026-03-28 - Token list: name validation as-you-type in create form
+- Added inline path validation that runs on every keystroke in the create form. Three tiers of feedback:
+  - **Error** (red, blocks Create): invalid characters, whitespace, `$` prefix, slashes, empty segments (double dots). Uses existing `validateTokenPath()` from `tokenParsers.ts`.
+  - **Warning** (amber): token path already exists and would be overwritten.
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  67 items remaining
+===============================================================
+  Claimed: **Token list: provenance badge for imported and generated tokens** — generator-derived tokens already show a badge. Extend this to tokens that were imported from Figma variables, imported from JSON, or synced from git, so users understand where each token came from. A subtle icon in the row is enough — just enough to distinguish "mine" from "imported".
+  Worktree: /tmp/backlog-76772-6vjcoa

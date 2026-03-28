@@ -498,3 +498,14 @@
   - The `allTokensFlat` record uses `path in obj` for existence checks — simple and efficient for as-you-type validation
   - Validation runs via `useMemo` on `newTokenPath` so it's reactive but only recomputes when the path actually changes
 ---
+
+## 2026-03-28 - Token list: "Resolve all" toggle in tree view
+- Added a "Resolved" toggle button in the tree view toolbar that shows every token with its fully resolved value substituted, hiding alias reference badges and chain badges
+- When toggled on: alias tokens display their final resolved value as plain text (same as non-alias tokens), alias link badges are hidden, and chain hop badges are hidden
+- When toggled off: behavior returns to normal (alias badges, chain badges, alias-specific value display)
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L188 (added `showResolvedValues` to `TokenTreeContextType`), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L362,1947,2152 (state, context, toolbar button), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L132,1122,1230,1296 (read context, conditional rendering)
+- **Learnings for future iterations:**
+  - The tree view already resolves alias values per-node via `resolveTokenValue` into `displayValue` — no bulk pre-resolution needed. The toggle just changes which display path the JSX takes.
+  - The toggle button follows the same pattern as the "Modes" button: `aria-pressed`, accent bg when active, secondary text when inactive.
+  - Three display changes are needed for a clean "resolved" view: (1) hide alias link badge, (2) skip alias-specific value branch so it falls through to plain text, (3) hide chain badge.
+---

@@ -129,6 +129,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onDragOverGroup, onDropOnGroup,
     onDragOverToken, onDragLeaveToken, onDropOnToken,
     onMultiModeInlineSave,
+    showResolvedValues,
   } = ctx;
 
   const isExpanded = expandedPaths.has(node.path);
@@ -1119,7 +1120,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               </span>
             );
           })()}
-          {isAlias(node.$value) && (
+          {isAlias(node.$value) && !showResolvedValues && (
             <button
               onClick={handleAliasClick}
               className={`flex items-center gap-0.5 px-0.5 py-0.5 rounded text-[8px] transition-colors ${isBrokenAlias ? 'text-[var(--color-figma-error)] cursor-default' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]'}`}
@@ -1227,7 +1228,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             className="text-[11px] text-[var(--color-figma-text)] shrink-0 w-[96px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none"
           />
         )
-      ) : isAlias(node.$value) && !isBrokenAlias ? (
+      ) : isAlias(node.$value) && !isBrokenAlias && !showResolvedValues ? (
         <span
           className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
           title={`${(node.$value as string).slice(1, -1)} → ${formatValue(node.$type, displayValue)}`}
@@ -1293,7 +1294,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             {count && (
               <span className="w-2 h-2 rounded-full bg-[var(--color-figma-accent)] shrink-0" title={`${count} tokens share this value`} />
             )}
-            {showChainBadge && (
+            {showChainBadge && !showResolvedValues && (
               <button
                 className={`text-[8px] shrink-0 px-0.5 rounded transition-colors ${chainExpanded ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]'}`}
                 title={chainExpanded ? 'Collapse reference chain' : `Show reference chain (${aliasChain.length} hops)`}

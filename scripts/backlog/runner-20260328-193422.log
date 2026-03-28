@@ -68,3 +68,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token list: "Resolve all" toggle in tree view** — a one-click toggle that shows every token in the tree with its fully resolved value substituted, so you can see what all aliases ultimately evaluate to in the current theme. Currently this information is only available in the table view or by hovering/expanding chains in the tree. Useful for quickly auditing a set before publishing.
   Worktree: /tmp/backlog-77155-cmBbdr
+
+  ✓ done: Token list: "Resolve all" toggle in tree view
+    Added "Resolved" toggle button in tree toolbar. When active, alias tokens show their fully resolved values as plain text, hiding alias link badges and chain hop badges. Uses existing per-node resolution — no new computation needed.
+    38 turns · 287s · $1.69
+
+--- Merging: Token list: "Resolve all" toggle in tree view ---
+Already up to date.

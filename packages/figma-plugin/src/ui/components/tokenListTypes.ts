@@ -184,6 +184,8 @@ export interface TokenTreeContextType {
   onDragLeaveToken?: () => void;
   onDropOnToken?: (path: string, name: string, position: 'before' | 'after') => void;
   onMultiModeInlineSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
+  /** When true, tree view shows fully resolved values instead of alias references */
+  showResolvedValues?: boolean;
 }
 
 // ---------------------------------------------------------------------------
