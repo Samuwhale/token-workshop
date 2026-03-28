@@ -14,18 +14,31 @@ interface DimensionsStore {
 function createDimensionsStore(tokenDir: string): DimensionsStore {
   const filePath = path.join(tokenDir, '$themes.json');
   let cache: ThemeDimension[] | null = null;
+  let cachedMtimeMs: number | null = null;
+
+  async function fileMtimeMs(): Promise<number | null> {
+    try {
+      const stat = await fs.stat(filePath);
+      return stat.mtimeMs;
+    } catch {
+      return null;
+    }
+  }
 
   return {
     filePath,
 
     async load(): Promise<ThemeDimension[]> {
-      if (cache !== null) return cache;
+      const mtime = await fileMtimeMs();
+      if (cache !== null && mtime === cachedMtimeMs) return cache;
       try {
         const content = await fs.readFile(filePath, 'utf-8');
         const data = JSON.parse(content) as ThemesFile;
         cache = data.$themes || [];
+        cachedMtimeMs = mtime;
       } catch {
         cache = [];
+        cachedMtimeMs = mtime;
       }
       return cache;
     },
@@ -34,6 +47,7 @@ function createDimensionsStore(tokenDir: string): DimensionsStore {
       const data: ThemesFile = { $themes: dimensions };
       await fs.writeFile(filePath, JSON.stringify(data, null, 2));
       cache = dimensions;
+      cachedMtimeMs = await fileMtimeMs();
     },
   };
 }

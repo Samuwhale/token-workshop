@@ -311,3 +311,12 @@
 - **Learnings for future iterations:**
   - For fire-and-forget fetches in useEffect, store AbortController in a ref so both the effect cleanup and manual retry can abort. Check `signal.aborted` after async `.then()` to discard stale responses even if the fetch itself wasn't aborted mid-flight.
 ---
+
+## 2026-03-28 - Theme dimensions store cache is never invalidated on external file changes
+- Added mtime-based cache invalidation to `DimensionsStore` in themes.ts. On each `load()`, the file's mtime is checked via `fs.stat`; if it differs from the cached mtime, the file is re-read from disk. `save()` also updates the cached mtime after writing.
+- This fixes the bug where `renameSet` in token-store.ts writes to `$themes.json` directly, bypassing the store's `save()`, causing subsequent theme API reads to return stale cached data.
+- Files changed: `packages/server/src/routes/themes.ts` ~L14-51 (createDimensionsStore)
+- **Learnings for future iterations:**
+  - When a cache has no invalidation mechanism and multiple writers exist, mtime-based validation is the simplest fix — one `fs.stat` per read is negligible for a local dev tool
+  - The server package has pre-existing tsc errors (missing @types/node, etc.) — validate via plugin build or manual review
+---

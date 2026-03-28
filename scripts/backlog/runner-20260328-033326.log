@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: Theme dimensions store cache is never invalidated on external file changes — `renameSet` writes to `$themes.json` directly, bypassing the `DimensionsStore` cache; subsequent reads return stale data
   Worktree: /tmp/backlog-92630-y9O8A7
+
+  ✓ done: Theme dimensions store cache is never invalidated on external file changes
+    Added mtime-based cache invalidation to DimensionsStore — load() now checks fs.stat mtime before returning cached data, so external writes (e.g. from renameSet) are detected automatically.
+    14 turns · 119s · $0.55
+
+--- Merging: Theme dimensions store cache is never invalidated on external file changes ---
+Already up to date.
