@@ -977,11 +977,11 @@ export function App() {
     refreshTokens();
   };
 
-  const openOverflowPanel = (panel: OverflowPanel) => {
+  const openOverflowPanel = useCallback((panel: OverflowPanel) => {
     setMenuOpen(false);
     setOverflowPanel(panel);
     if (panel === 'analytics') setShowValidationReturn(false);
-  };
+  }, []);
 
   const commands: Command[] = useMemo(() => {
     const goToTokens = () => { setActiveTab('tokens'); setOverflowPanel(null); setEditingToken(null); };
@@ -1112,8 +1112,7 @@ export function App() {
       },
     ];
     return cmds;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSet, sets, setTokenCounts]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel]);
 
   // Flat token list for command palette token search mode
   const paletteTokens: TokenEntry[] = useMemo(() => {

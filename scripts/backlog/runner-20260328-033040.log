@@ -269,3 +269,10 @@ Already up to date.
 ===============================================================
   Claimed: Multiple `eslint-disable react-hooks/exhaustive-deps` comments suppress legitimate warnings — `ImportPanel.tsx`, `TokenList.tsx`, `App.tsx`, `PublishPanel.tsx`, `AnalyticsPanel.tsx` all have stale closure risks from omitted deps
   Worktree: /tmp/backlog-84992-XwZAyJ
+
+  ✓ done: Multiple eslint-disable react-hooks/exhaustive-deps comments suppress legitimate warnings
+    Removed all 7 suppressions across 5 files by stabilizing functions with useCallback, memoizing computed arrays with useMemo, using refs for non-trigger deps, and replacing loading-guard patterns with ref-based deduplication.
+    53 turns · 250s · $1.34
+
+--- Merging: Multiple eslint-disable react-hooks/exhaustive-deps comments suppress legitimate warnings ---
+Already up to date.

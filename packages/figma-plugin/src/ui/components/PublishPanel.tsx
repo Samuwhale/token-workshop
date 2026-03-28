@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { getErrorMessage } from '../shared/utils';
 import { PLATFORMS } from '../shared/platforms';
@@ -694,14 +694,14 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
   const readinessPasses = readinessChecks.filter(c => c.status === 'pass').length;
 
-  const allChanges = gitStatus?.status
+  const allChanges = useMemo(() => gitStatus?.status
     ? [
         ...gitStatus.status.modified.map(f => ({ file: f, status: 'M' })),
         ...gitStatus.status.created.map(f => ({ file: f, status: 'A' })),
         ...gitStatus.status.deleted.map(f => ({ file: f, status: 'D' })),
         ...gitStatus.status.not_added.map(f => ({ file: f, status: '?' })),
       ]
-    : [];
+    : [], [gitStatus]);
 
   // Keep selectedFiles in sync with allChanges: auto-check new files, prune gone ones
   useEffect(() => {
@@ -721,7 +721,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       }
       return next;
     });
-  }, [allChanges]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [allChanges]);
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
 

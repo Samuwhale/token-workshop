@@ -357,3 +357,18 @@
   - `as object` is a safe narrowing (not `as any`) when preceded by `typeof v === 'object'` — TypeScript accepts it for `in` operator checks.
   - For union types like `GeneratorConfig`, the `in` operator (`'steps' in gen.config`) narrows correctly without needing `as any`.
 ---
+
+## 2026-03-28 - Multiple `eslint-disable react-hooks/exhaustive-deps` comments suppress legitimate warnings
+- Removed all 7 `eslint-disable` suppressions across the 5 target files by properly declaring dependencies:
+  - **ImportPanel.tsx**: Wrapped `prefetchExistingPaths` in `useCallback([serverUrl])`, used `targetSetRef.current` in token-load effect to avoid adding `targetSet` as a trigger dep, added `tokens.length` to target-set effect.
+  - **TokenList.tsx**: Added missing `jsonDirty` and `allTokensFlat` deps to JSON-load effect; added all guard/fetch deps to token-sync effect.
+  - **App.tsx**: Wrapped `openOverflowPanel` in `useCallback([])` (only captures stable setters), added it to command palette `useMemo` deps.
+  - **PublishPanel.tsx**: Memoized `allChanges` with `useMemo([gitStatus])` so the effect dep array works correctly (previously created a new array ref every render).
+  - **AnalyticsPanel.tsx**: Replaced `validateLoading` guard with a `lastValidatedKey` ref to prevent re-validation on same key, eliminating the need to suppress the `validateLoading` dep.
+- Files changed: `ImportPanel.tsx` ~L2,97,116,139,146, `TokenList.tsx` ~L709,722, `App.tsx` ~L980,1115, `PublishPanel.tsx` ~L1,697,724, `AnalyticsPanel.tsx` ~L89,129
+- **Learnings for future iterations:**
+  - When a function is used inside a `useEffect` but defined inline, wrapping it in `useCallback` with its true dependencies is the standard fix — avoids adding transitive deps to the effect.
+  - For effects that should trigger on one dep but read another's current value without triggering on it, use a ref (e.g., `targetSetRef.current`) instead of suppressing the lint rule.
+  - Unmemoized computed values (like `allChanges` from `gitStatus`) as effect deps cause the effect to run every render because array reference changes — always `useMemo` arrays/objects used in dep arrays.
+  - The `lastValidatedKey` ref pattern is cleaner than omitting `loading` from deps: track "what key did I last act on" instead of "am I currently loading".
+---

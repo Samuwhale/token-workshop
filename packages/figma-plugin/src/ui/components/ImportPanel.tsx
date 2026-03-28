@@ -1,5 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
@@ -94,7 +94,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const existingPathsCacheRef = useRef<{ set: string; paths: Set<string> } | null>(null);
 
   // Pre-fetch existing token paths for the target set to show new vs. overwrite preview
-  const prefetchExistingPaths = (setName: string) => {
+  const prefetchExistingPaths = useCallback((setName: string) => {
     if (existingPathsCacheRef.current?.set === setName) {
       setExistingPaths(existingPathsCacheRef.current.paths);
       return;
@@ -113,7 +113,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       })
       .catch(() => setExistingPaths(null))
       .finally(() => setExistingPathsFetching(false));
-  };
+  }, [serverUrl]);
 
   // Fetch available sets
   const fetchSets = async () => {
@@ -138,9 +138,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   // Pre-fetch existing paths when tokens first load (styles / JSON)
   useEffect(() => {
     if (tokens.length > 0) {
-      prefetchExistingPaths(targetSet);
+      prefetchExistingPaths(targetSetRef.current);
     }
-  }, [tokens]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tokens, prefetchExistingPaths]);
 
   // Re-run preview when target set changes while tokens are loaded
   useEffect(() => {
@@ -150,7 +150,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       existingPathsCacheRef.current = null;
       prefetchExistingPaths(targetSet);
     }
-  }, [targetSet, serverUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [targetSet, tokens.length, prefetchExistingPaths]);
 
   // Listen for messages from sandbox
   useEffect(() => {

@@ -706,7 +706,7 @@ export function TokenList({
         setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
       })
       .catch(() => setJsonError('Failed to load JSON'));
-  }, [viewMode, setName, connected, serverUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [viewMode, setName, connected, serverUrl, jsonDirty, allTokensFlat]);
 
   // Sync from list view → JSON when tokens change externally (not dirty)
   useEffect(() => {
@@ -719,7 +719,7 @@ export function TokenList({
         setJsonBrokenRefs(validateJsonRefs(text, allTokensFlat));
       })
       .catch(() => {});
-  }, [tokens]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tokens, viewMode, jsonDirty, connected, serverUrl, setName, allTokensFlat]);
 
   const boundTokenPaths = useMemo(() => {
     const paths = new Set<string>();

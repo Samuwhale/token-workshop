@@ -86,6 +86,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   );
   const [showSuppressed, setShowSuppressed] = useState(false);
   const hasAutoValidated = useRef(false);
+  const lastValidatedKey = useRef(0);
 
   // Component coverage state
   const [coverageResult, setCoverageResult] = useState<{
@@ -127,10 +128,10 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   }, [serverUrl, connected]);
 
   useEffect(() => {
-    if (validateKey && validateKey > 0 && !validateLoading) runValidate();
-    // validateLoading intentionally omitted from deps: re-running when loading
-    // finishes would trigger a redundant validation on the same validateKey.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (validateKey > 0 && validateKey !== lastValidatedKey.current) {
+      lastValidatedKey.current = validateKey;
+      runValidate();
+    }
   }, [validateKey, runValidate]);
 
   // Auto-validate on first visit when connected and no results yet

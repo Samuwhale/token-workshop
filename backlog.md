@@ -128,7 +128,7 @@
 - [!] Cannot access 'Wr' before initialization — runtime error, likely a circular dependency or hoisting issue with a minified identifier; needs source-map / unminified stack trace to locate the declaration. Once fixed, audit the codebase for similar initialization-order issues (other circular deps, `let`/`const` accessed before declaration across module boundaries).
 - [x] `PluginMessage` loosely typed as `{ type: string; [key: string]: any }` — the shared types file defines specific message types but they aren't used in the controller switch statement; easy to typo property names
 - [~] `$value` typed as `any` in `TokenNode` interface (`useTokens.ts`) — type safety lost throughout entire token data flow
-- [~] 21 `as any` casts across UI components — particularly concerning in `SemanticMappingDialog.tsx` where API response bodies are cast to access `.error` without a proper typed response shape
+- [x] 21 `as any` casts across UI components — particularly concerning in `SemanticMappingDialog.tsx` where API response bodies are cast to access `.error` without a proper typed response shape
 - [x] `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names (`base`, `index`, `multiplier`, `prev`) — function signature accepts `Record<string, number>` implying arbitrary keys, but extra keys are silently ignored
 - [x] `weightToFontStyle` mapping in controller uses hardcoded English style names — fonts using "Book", "Roman", "Demi" etc. cause `loadFontAsync` to throw, silently skipping typography application
 - [~] Multiple `eslint-disable react-hooks/exhaustive-deps` comments suppress legitimate warnings — `ImportPanel.tsx`, `TokenList.tsx`, `App.tsx`, `PublishPanel.tsx`, `AnalyticsPanel.tsx` all have stale closure risks from omitted deps
@@ -136,7 +136,7 @@
 ### Accessibility
 
 - [~] Most icon-only buttons lack `aria-label` — only 123 aria-label/role occurrences across 21 files for a UI with hundreds of interactive elements
-- [ ] HeatmapPanel color-only status indicators — red/yellow/green indicators rely solely on color with no pattern/icon distinction for color vision deficiencies
+- [~] HeatmapPanel color-only status indicators — red/yellow/green indicators rely solely on color with no pattern/icon distinction for color vision deficiencies
 
 ### Maintainability
 
