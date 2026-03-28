@@ -310,3 +310,14 @@
   - Single-token inline saves (handleInlineSave, handleDescriptionSave) are fast enough to not warrant a loading indicator
   - The existing spinner pattern in this codebase uses `<svg className="animate-spin" ...><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>` from TokenDependents
 ---
+
+## 2026-03-29 - Export ZIP has a hardcoded tokens.zip filename and flat structure
+- Added configurable ZIP filename (text input, defaults to "tokens", persisted in localStorage) and "Nest files by platform folder" checkbox option to ExportPanel
+- When nesting is enabled, files are prefixed with their platform folder (e.g., `css/variables.css`, `ios/Tokens.swift`) matching Style Dictionary's buildPath conventions
+- ZIP options section appears after export results are generated, before the "Generated Files" list
+- Both settings persist across sessions via localStorage
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L120-130 (state), ~L147-153 (persistence), ~L316-338 (handleDownloadZip), ~L682-720 (ZIP Options UI); `packages/figma-plugin/src/ui/shared/storage.ts` ~L31-32 (new keys)
+- **Learnings for future iterations:**
+  - The `path` in export results is just the filename (e.g., `variables.css`), not including the platform buildPath prefix — the server's style-dict service strips it
+  - Platform folder names map: css→css, dart→dart, ios-swift→ios, android→android, json→json, scss→scss, less→less, typescript→ts
+---

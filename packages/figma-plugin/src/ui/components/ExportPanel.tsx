@@ -118,6 +118,14 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     return lsGet(STORAGE_KEYS.EXPORT_CSS_SELECTOR, ':root');
   });
 
+  // ZIP download options
+  const [zipFilename, setZipFilename] = useState<string>(() => {
+    return lsGet(STORAGE_KEYS.EXPORT_ZIP_FILENAME, 'tokens');
+  });
+  const [nestByPlatform, setNestByPlatform] = useState<boolean>(() => {
+    return lsGetJson<boolean>(STORAGE_KEYS.EXPORT_NEST_PLATFORM, false) === true;
+  });
+
   // Set filter state
   const [availableSets, setAvailableSets] = useState<string[]>([]);
   const [selectedSets, setSelectedSets] = useState<Set<string> | null>(null); // null = all sets
@@ -138,6 +146,14 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   useEffect(() => {
     lsSet(STORAGE_KEYS.EXPORT_CSS_SELECTOR, cssSelector);
   }, [cssSelector]);
+
+  // Persist ZIP options
+  useEffect(() => {
+    lsSet(STORAGE_KEYS.EXPORT_ZIP_FILENAME, zipFilename);
+  }, [zipFilename]);
+  useEffect(() => {
+    lsSetJson(STORAGE_KEYS.EXPORT_NEST_PLATFORM, nestByPlatform);
+  }, [nestByPlatform]);
 
   // Listen for messages from the plugin sandbox
   useEffect(() => {
@@ -298,12 +314,25 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     return JSON.stringify(output, null, 2);
   };
 
+  /** Map platform IDs to folder names used by Style Dictionary */
+  const PLATFORM_FOLDERS: Record<string, string> = {
+    css: 'css', dart: 'dart', 'ios-swift': 'ios', android: 'android',
+    json: 'json', scss: 'scss', less: 'less', typescript: 'ts',
+  };
+
   const handleDownloadZip = () => {
-    const blob = buildZipBlob(results);
+    const zipFiles = nestByPlatform
+      ? results.map(f => ({
+          path: `${PLATFORM_FOLDERS[f.platform] || f.platform}/${f.path}`,
+          content: f.content,
+        }))
+      : results;
+    const blob = buildZipBlob(zipFiles);
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'tokens.zip';
+    const safeName = zipFilename.trim().replace(/\.zip$/i, '') || 'tokens';
+    a.download = `${safeName}.zip`;
     a.click();
     URL.revokeObjectURL(url);
     parent.postMessage({ pluginMessage: { type: 'notify', message: `Downloaded ${results.length} file(s) as ZIP` } }, '*');
@@ -646,6 +675,50 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                       </label>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {results.length > 0 && (
+              <div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-2">
+                  ZIP Options
+                </div>
+                <div className="flex flex-col gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Filename</label>
+                    <div className="flex items-center flex-1 min-w-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden">
+                      <input
+                        type="text"
+                        value={zipFilename}
+                        onChange={(e) => setZipFilename(e.target.value)}
+                        placeholder="tokens"
+                        className="flex-1 min-w-0 px-2 py-1 bg-transparent text-[10px] text-[var(--color-figma-text)] font-mono outline-none"
+                      />
+                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] pr-2 shrink-0">.zip</span>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={nestByPlatform}
+                      onChange={() => setNestByPlatform(!nestByPlatform)}
+                      className="sr-only"
+                    />
+                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                      nestByPlatform
+                        ? 'bg-[var(--color-figma-accent)] border-[var(--color-figma-accent)]'
+                        : 'border-[var(--color-figma-border)] group-hover:border-[var(--color-figma-text-tertiary)]'
+                    }`}>
+                      {nestByPlatform && (
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-[var(--color-figma-text)]">Nest files by platform folder</span>
+                    <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">e.g. css/variables.css</span>
+                  </label>
                 </div>
               </div>
             )}
