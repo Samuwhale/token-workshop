@@ -1,6 +1,6 @@
 import { swatchBgColor } from '../shared/colorUtils';
 
-const COMPLEX_PREVIEW_TYPES = new Set(['typography', 'shadow', 'gradient', 'border']);
+const COMPLEX_PREVIEW_TYPES = new Set(['typography', 'shadow', 'gradient', 'border', 'cubicBezier', 'transition', 'composition']);
 export { COMPLEX_PREVIEW_TYPES };
 
 function dimensionToCss(val: any, fallback: string): string {
@@ -102,6 +102,97 @@ function GradientPreview({ value }: { value: any }) {
   );
 }
 
+function CubicBezierPreview({ value }: { value: number[] }) {
+  const [x1, y1, x2, y2] = value.map(Number);
+  const w = 200;
+  const h = 120;
+  const pad = 16;
+  const gw = w - pad * 2;
+  const gh = h - pad * 2;
+  const sx = pad;
+  const sy = pad + gh;
+  const ex = pad + gw;
+  const ey = pad;
+  const cx1 = pad + x1 * gw;
+  const cy1 = pad + (1 - y1) * gh;
+  const cx2 = pad + x2 * gw;
+  const cy2 = pad + (1 - y2) * gh;
+
+  return (
+    <div>
+      <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+        {/* Grid */}
+        <rect x={pad} y={pad} width={gw} height={gh} fill="none" stroke="var(--color-figma-border)" strokeWidth="1" strokeDasharray="4 4" />
+        {/* Diagonal reference */}
+        <line x1={sx} y1={sy} x2={ex} y2={ey} stroke="var(--color-figma-border)" strokeWidth="1" />
+        {/* Control point lines */}
+        <line x1={sx} y1={sy} x2={cx1} y2={cy1} stroke="var(--color-figma-text-tertiary)" strokeWidth="1" strokeDasharray="3 3" />
+        <line x1={ex} y1={ey} x2={cx2} y2={cy2} stroke="var(--color-figma-text-tertiary)" strokeWidth="1" strokeDasharray="3 3" />
+        {/* The bezier curve */}
+        <path
+          d={`M${sx},${sy} C${cx1},${cy1} ${cx2},${cy2} ${ex},${ey}`}
+          fill="none"
+          stroke="var(--color-figma-accent)"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+        {/* Control points */}
+        <circle cx={cx1} cy={cy1} r="3" fill="var(--color-figma-accent)" opacity="0.6" />
+        <circle cx={cx2} cy={cy2} r="3" fill="var(--color-figma-accent)" opacity="0.6" />
+        {/* Endpoints */}
+        <circle cx={sx} cy={sy} r="3" fill="var(--color-figma-text-secondary)" />
+        <circle cx={ex} cy={ey} r="3" fill="var(--color-figma-text-secondary)" />
+      </svg>
+      <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">
+        cubic-bezier({value.join(', ')})
+      </div>
+    </div>
+  );
+}
+
+function TransitionPreview({ value }: { value: Record<string, any> }) {
+  const dur = value.duration ? dimensionToCss(value.duration, '300ms') : '300ms';
+  const delay = value.delay ? dimensionToCss(value.delay, '0ms') : '0ms';
+  const easing = Array.isArray(value.timingFunction)
+    ? `cubic-bezier(${value.timingFunction.join(', ')})`
+    : typeof value.timingFunction === 'string' ? value.timingFunction : 'ease';
+  return (
+    <div className="text-[10px] text-[var(--color-figma-text-secondary)] space-y-1">
+      <div className="flex items-center gap-2">
+        <span className="text-[var(--color-figma-text-tertiary)]">Duration</span>
+        <span className="text-[var(--color-figma-text)]">{dur}</span>
+      </div>
+      {delay !== '0ms' && delay !== '0s' && (
+        <div className="flex items-center gap-2">
+          <span className="text-[var(--color-figma-text-tertiary)]">Delay</span>
+          <span className="text-[var(--color-figma-text)]">{delay}</span>
+        </div>
+      )}
+      <div className="flex items-center gap-2">
+        <span className="text-[var(--color-figma-text-tertiary)]">Easing</span>
+        <span className="text-[var(--color-figma-text)]">{easing}</span>
+      </div>
+      {Array.isArray(value.timingFunction) && value.timingFunction.length === 4 && (
+        <CubicBezierPreview value={value.timingFunction} />
+      )}
+    </div>
+  );
+}
+
+function CompositionPreview({ value }: { value: Record<string, any> }) {
+  const entries = Object.entries(value).filter(([k]) => !k.startsWith('$'));
+  return (
+    <div className="text-[10px] space-y-0.5">
+      {entries.map(([key, val]) => (
+        <div key={key} className="flex items-center gap-2">
+          <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]">{key}</span>
+          <span className="text-[var(--color-figma-text)] truncate">{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function BorderPreview({ value }: { value: Record<string, any> }) {
   const colorStr = typeof value.color === 'string' ? swatchBgColor(value.color) : 'var(--color-figma-text)';
   const widthStr = dimensionToCss(value.width, '1px');
@@ -147,6 +238,9 @@ export function ComplexTypePreviewCard({ type, value }: { type: string; value: a
   else if (type === 'shadow') content = <ShadowPreview value={value} />;
   else if (type === 'gradient') content = <GradientPreview value={value} />;
   else if (type === 'border') content = <BorderPreview value={value} />;
+  else if (type === 'cubicBezier' && Array.isArray(value) && value.length === 4) content = <CubicBezierPreview value={value} />;
+  else if (type === 'transition') content = <TransitionPreview value={value} />;
+  else if (type === 'composition') content = <CompositionPreview value={value} />;
 
   if (!content) return null;
 

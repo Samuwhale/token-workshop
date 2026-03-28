@@ -404,3 +404,29 @@
   - The `getBindingForProperty` check is essential for showing "current" badges and inferring which property to focus first
   - Tab key for property switching is a natural fit since the search input doesn't need Tab for anything else
 ---
+
+## 2026-03-28 - Visual token list rendering: type-specific previews
+- Rewrote `ValuePreview.tsx` with rich visual previews for every token type:
+  - **Color**: unchanged (already good) — swatch with P3 badge
+  - **Typography**: "Aa" now rendered in actual fontFamily, fontWeight, and scaled fontSize (proportional to real size, capped to fit swatch) instead of hardcoded 9px
+  - **Shadow**: elevated inner card with real box-shadow applied (more visible than old flat box)
+  - **Dimension**: horizontal accent-colored proportional bar (was corner-growing square chart)
+  - **Duration**: SVG clock-ring arc proportional to time value
+  - **Number (0-1)**: opacity fill on checkerboard (immediately shows opacity); larger numbers use horizontal bar
+  - **Gradient**: wider swatch (4:3 aspect) for better color spread visibility
+  - **Border**: actual border color + clamped width preview line
+  - **cubicBezier**: SVG bezier curve with endpoints (new)
+  - **strokeStyle**: dashed/dotted/solid line preview (new)
+  - **Boolean**: green check / gray X icons (new)
+  - **String**: quote marks icon (new)
+  - **Percentage**: circular progress ring (new)
+  - **Transition**: arrow icon (new)
+  - **Composition**: grid icon (new)
+- Updated `ComplexTypePreviewCard.tsx` hover cards: added cubicBezier (large SVG with control points), transition (property breakdown + embedded curve), composition (key-value list). Added these to `COMPLEX_PREVIEW_TYPES` set.
+- Files changed: `packages/figma-plugin/src/ui/components/ValuePreview.tsx` (full rewrite, ~310 lines), `packages/figma-plugin/src/ui/components/ComplexTypePreviewCard.tsx` ~L3 (type set), ~L105-190 (new preview components), ~L210 (render branches)
+- **Learnings for future iterations:**
+  - Typography swatch: scaling `fontSize * 0.65` capped to `size - 2` gives readable "Aa" that still differentiates between 12px and 48px tokens
+  - Duration vs dimension: SVG arc (clock metaphor) clearly distinguishes time from space tokens at a glance
+  - Opacity-like numbers (0-1): checkerboard + fill overlay is the standard pattern from color pickers, immediately recognizable
+  - cubicBezier curve SVG: use `pad` offset to keep endpoints off the swatch edge; diagonal reference line shows linear for comparison
+---

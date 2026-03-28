@@ -48,3 +48,10 @@ Already up to date.
 ===============================================================
   Claimed: Visual token list rendering: color tokens show inline swatch, dimension tokens show proportional bar, typography tokens show "Aa" in actual font/size/weight, shadows show shadow, gradients show gradient — make the list look like what the tokens are
   Worktree: /tmp/backlog-51603-YxDFL5
+
+  ✓ done: Visual token list rendering: type-specific previews
+    Rewrote ValuePreview with rich visual previews for all 15+ token types: typography shows Aa in actual font/weight/scaled-size, dimensions use accent-colored horizontal bars, durations use clock-ring arcs, numbers 0-1 show opacity fills on checkerboard, cubicBezier renders SVG curves, booleans show check/X icons, plus new hover cards for cubicBezier/transition/composition.
+    22 turns · 284s · $1.31
+
+--- Merging: Visual token list rendering: type-specific previews ---
+Already up to date.

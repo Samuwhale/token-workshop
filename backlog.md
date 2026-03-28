@@ -123,12 +123,12 @@
 - [x] **Token creation: multi-token "table create" mode** — a lightweight mode for creating several tokens in a group at once, like a spreadsheet: each row is a token with name / type / value columns, and pressing Tab moves to the next cell. This is faster than creating tokens one-by-one with "Create & New" for scenarios like setting up a spacing scale from scratch.
 
 - [x] Context-aware token surfacing: read current Figma selection and surface only the 5-8 most relevant tokens (type-matched, nearby-usage-ranked) instead of the full list — this is the single highest-impact discovery improvement
-- [~] Reduce token-apply friction: select layer → shortcut → contextual picker that infers property + shows short relevant list → pick → done in 2 interactions, not 5
+- [x] Reduce token-apply friction: select layer → shortcut → contextual picker that infers property + shows short relevant list → pick → done in 2 interactions, not 5
 - [x] Token impact summary on edit: show "affects N layers across M components", list affected component names, option to highlight affected layers on canvas, before/after value diff for aliases/dependents
 - [~] Consistency scanner: scan selection/page for values that are close-to-but-not-exactly a token (colors 2% off, spacing 1px away), surface as suggestions with one-click snap-to-token
 - [~] Visual token list rendering: color tokens show inline swatch, dimension tokens show proportional bar, typography tokens show "Aa" in actual font/size/weight, shadows show shadow, gradients show gradient — make the list look like what the tokens are
 - [~] Token resolution chain debugger: click a bound layer → see full resolution chain (e.g. `color.bg.card` → alias `color.neutral.100` → theme:dark → `#1E1E1E`) in one glance
-- [ ] Interactive scale curve editors: draggable bezier for color ramp lightness distribution, visual staircase for type scale with adjustable ratio — make generator output directly manipulable
+- [~] Interactive scale curve editors: draggable bezier for color ramp lightness distribution, visual staircase for type scale with adjustable ratio — make generator output directly manipulable
 - [ ] Smart naming suggestions: pattern-match existing token names and suggest paths for new tokens (e.g. if `color.brand.primary/secondary/tertiary` exist, suggest `color.brand.{?}` not a blank field)
 - [ ] Before/After snapshots: "Save this state" → experiment → "Compare with saved" → keep or revert — two buttons, zero git concepts, designed for trying things and showing stakeholders
 - [ ] Inline theme editing in token editor: when editing a token that participates in themes, show all theme values side-by-side in the editor instead of requiring navigation to a separate Themes panel
