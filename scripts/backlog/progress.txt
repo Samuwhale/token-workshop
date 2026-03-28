@@ -390,3 +390,18 @@
 - **Learnings for future iterations:**
   - Empty state pattern: centered flex column with icon box (10x10 rounded-xl), title (12px semibold), description (11px secondary, max-w-240px), and optional CTA (10px tertiary)
 ---
+
+## 2026-03-29 - Add dropdown/toggle editors for enumerable DTCG token types
+- Already implemented: All 7 editors exist in `ValueEditors.tsx` and are wired into `TokenEditor.tsx`
+  - FontWeightEditor (dropdown, 100-900 with labels) ~L1105
+  - StrokeStyleEditor (dropdown, solid/dashed/dotted/double/groove/ridge/outset/inset) ~L1122
+  - BooleanEditor (toggle switch) ~L1068
+  - FontStyleEditor (dropdown, normal/italic/oblique) ~L1760
+  - TextDecorationEditor (dropdown, none/underline/overline/line-through) ~L1780
+  - TextTransformEditor (dropdown, none/uppercase/lowercase/capitalize) ~L1800
+  - PercentageEditor (number input with % suffix) ~L1818
+- No changes needed — item is stale
+- Files inspected: `packages/figma-plugin/src/ui/components/ValueEditors.tsx`, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1121-1134
+- **Learnings for future iterations:**
+  - All enumerable DTCG type editors were added in a prior session — check ValueEditors.tsx before assuming raw text fallback
+---
