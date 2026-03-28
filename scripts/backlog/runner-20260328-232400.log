@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 
 --- Merging: Color modifiers only available in alias mode ---
 Already up to date.
+[main 72b41e7] chore(backlog): done – Color modifiers only available in alias mode
+ 5 files changed, 48 insertions(+), 2 deletions(-)
+
+## 2026-03-28 - Color modifiers only available in alias mode
+- Already implemented in commit d4a5da7
+- Gating condition at TokenEditor.tsx:1125 already supports both alias and direct mode
+- ColorModifiersEditor accepts `directColor` prop and uses it as base color when not in alias mode
+
+===============================================================
+  Iteration 2  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Waiting for work…

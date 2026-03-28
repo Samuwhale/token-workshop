@@ -408,3 +408,11 @@
 - **Learnings for future iterations:**
   - Always check git log for the specific file before implementing — the item may already be done
 ---
+
+## 2026-03-28 - ~170 raw fetch() calls across 37 UI files bypass shared apiFetch utility
+- Already done: all UI files already use `apiFetch` from `shared/apiFetch.ts` (230 occurrences across 43 files)
+- Only 3 raw `fetch()` calls remain: 1 in `apiFetch.ts` itself (the wrapper), 2 in `useServerConnection.ts` (intentional health-check pings that only need `res.ok`)
+- No changes needed
+- **Learnings for future iterations:**
+  - This item was stale — the migration was completed in prior sessions
+---
