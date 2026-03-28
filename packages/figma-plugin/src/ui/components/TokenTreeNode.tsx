@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef, useLayoutEffect, Fragment } from 'react';
 import { TokenTreeNodeProps } from './tokenListTypes';
+import type { MultiModeValue } from './tokenListTypes';
 import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
-import type { BindableProperty } from '../../shared/types';
+import type { BindableProperty, TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { countTokensInGroup, formatDisplayPath, nodeParentPath, formatValue, countLeaves } from './tokenListUtils';
@@ -10,6 +11,92 @@ import { INLINE_SIMPLE_TYPES } from './tokenListTypes';
 import { PropertyPicker } from './PropertyPicker';
 import { ValuePreview } from './ValuePreview';
 import { ColorPicker } from './ColorPicker';
+
+// ---------------------------------------------------------------------------
+// MultiModeCell — compact inline-editable value cell for a single theme option
+// ---------------------------------------------------------------------------
+function MultiModeCell({
+  tokenPath, tokenType, value, targetSet, optionName, onSave,
+}: {
+  tokenPath: string;
+  tokenType: string | undefined;
+  value: TokenMapEntry | undefined;
+  targetSet: string | null;
+  optionName: string;
+  onSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const escapedRef = useRef(false);
+
+  const canEdit = !!tokenType && INLINE_SIMPLE_TYPES.has(tokenType) && !!targetSet && !!onSave && !isAlias(value?.$value);
+
+  const handleSubmit = useCallback(() => {
+    if (!editing || !tokenType || !targetSet || !onSave) return;
+    const raw = editValue.trim();
+    if (!raw) { setEditing(false); return; }
+    const parsed = parseInlineValue(tokenType, raw);
+    if (parsed === null) return;
+    setEditing(false);
+    onSave(tokenPath, tokenType, parsed, targetSet);
+  }, [editing, editValue, tokenType, targetSet, tokenPath, onSave]);
+
+  const displayVal = value ? formatValue(value.$type, value.$value) : '—';
+  const isColor = tokenType === 'color' && value && typeof value.$value === 'string';
+
+  return (
+    <div
+      className="w-[80px] shrink-0 px-1 flex items-center justify-center border-l border-[var(--color-figma-border)] h-full"
+      title={`${optionName}: ${displayVal}${targetSet ? `\nSet: ${targetSet}` : ''}`}
+    >
+      {!value ? (
+        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">—</span>
+      ) : isColor ? (
+        <span
+          className={`w-5 h-5 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? 'cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]' : ''}`}
+          style={{ backgroundColor: value.$value as string }}
+          onClick={canEdit ? (e) => {
+            e.stopPropagation();
+            // For color, open a prompt-style edit (simplified — full color picker in cell would be too complex)
+            const result = prompt(`Edit color for "${optionName}":`, value.$value as string);
+            if (result && result !== value.$value) {
+              onSave!(tokenPath, 'color', result, targetSet!);
+            }
+          } : undefined}
+        />
+      ) : editing ? (
+        <input
+          type="text"
+          value={editValue}
+          onChange={e => setEditValue(e.target.value)}
+          onBlur={() => {
+            if (escapedRef.current) { escapedRef.current = false; return; }
+            handleSubmit();
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); }
+            if (e.key === 'Escape') { e.preventDefault(); escapedRef.current = true; setEditing(false); }
+            e.stopPropagation();
+          }}
+          onClick={e => e.stopPropagation()}
+          autoFocus
+          className="text-[9px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-0.5 outline-none"
+        />
+      ) : (
+        <span
+          className={`text-[9px] truncate max-w-full ${canEdit ? 'cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}
+          onClick={canEdit ? (e) => {
+            e.stopPropagation();
+            setEditValue(getEditableString(value.$type, value.$value));
+            setEditing(true);
+          } : undefined}
+        >
+          {displayVal}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export function TokenTreeNode(props: TokenTreeNodeProps) {
   const {
@@ -30,6 +117,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     chainExpanded: chainExpandedProp = false,
     onToggleChain, searchQuery, showFullPath, tokenUsageCounts,
     isPinned, onTogglePin,
+    multiModeValues, onMultiModeInlineSave,
   } = props;
 
   const isExpanded = expandedPaths.has(node.path);
@@ -984,8 +1072,25 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         )}
       </div>
 
-      {/* Value text */}
-      {canInlineEdit && node.$type === 'boolean' ? (
+      {/* Multi-mode value columns — per-theme-option resolved values */}
+      {multiModeValues && multiModeValues.length > 0 && !node.isGroup && (
+        <div className="flex items-center shrink-0 ml-auto">
+          {multiModeValues.map(mv => (
+            <MultiModeCell
+              key={mv.optionName}
+              tokenPath={node.path}
+              tokenType={node.$type}
+              value={mv.resolved}
+              targetSet={mv.targetSet}
+              optionName={mv.optionName}
+              onSave={onMultiModeInlineSave}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Value text (hidden when multi-mode columns are shown) */}
+      {!(multiModeValues && multiModeValues.length > 0) && (canInlineEdit && node.$type === 'boolean' ? (
         <button
           onClick={e => { e.stopPropagation(); onInlineSave?.(node.path, 'boolean', !node.$value); }}
           title="Click to toggle"
@@ -1077,7 +1182,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         <span className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate">
           {highlightMatch(formatValue(node.$type, displayValue), searchHighlight?.valueTerms ?? [])}
         </span>
-      )}
+      ))}
       {/* Status indicators — compact dots/badges instead of verbose labels */}
       {(() => {
         const count = duplicateCounts.get(JSON.stringify(node.$value));

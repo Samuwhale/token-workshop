@@ -362,3 +362,23 @@
   - The `read-variables` handler was the only one with proper error handling — all other async handlers in controller.ts were bare awaits. Future handlers should always include try/catch with error message posting.
   - Two separate UI consumers listen for style messages: `useStyleSync.ts` (SyncPanel diff flow) and `ImportPanel.tsx` (import flow) — both need error handling independently.
 ---
+
+## 2026-03-28 - Multi-mode column view for token list (side-by-side theme values)
+- Added optional multi-mode column view to the tree-view token list, showing resolved values per theme option side-by-side with inline editing that auto-routes changes to the correct override set.
+- **Architecture**: Extended `TokenListData` with `dimensions`, `unthemedAllTokensFlat`, and `pathToSet` fields. Added `MultiModeValue` type and `multiModeValues`/`onMultiModeInlineSave` props to `TokenTreeNodeProps`.
+- **Toggle UI**: "Modes" button in the toolbar (next to view mode controls), visible only when theme dimensions exist and tree view is active. Dimension picker dropdown appears when multiple dimensions are configured.
+- **Per-option resolution**: `useMemo` in TokenList computes resolved token maps for each option in the selected dimension using the same source→enabled layering as `useThemeSwitcher`.
+- **Set routing**: `handleMultiModeInlineSave` determines the correct target set per-option (first enabled set containing the token, or first enabled set for new overrides), with undo/redo support.
+- **MultiModeCell component**: Compact inline-editable value cell for each theme option, supporting color swatches, text editing, and read-only display. Added as a helper component in TokenTreeNode.tsx.
+- **Column headers**: Sticky header row with option names, visible in the scroll container.
+- State persisted via `localStorage('tm_multi_mode')`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` — new `MultiModeValue` type, extended `TokenListData` and `TokenTreeNodeProps`
+  - `packages/figma-plugin/src/ui/App.tsx` — threaded `dimensions`, `unthemedAllTokensFlat`, `pathToSet` into all 3 TokenList instances
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` — multi-mode state, toggle button, `multiModeData` useMemo, `getMultiModeValues` callback, `handleMultiModeInlineSave`, column header row, props threading to TokenTreeNode
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` — `MultiModeCell` component, conditional multi-mode value columns vs single value display
+- **Learnings for future iterations:**
+  - The `resolveForOption` logic from ThemeCompare.tsx and the theming logic in `useThemeSwitcher` both use the same source→enabled layering pattern. For multi-mode, it's important to also include non-themed sets as a base layer (tokens from sets not assigned to any dimension).
+  - When wrapping a ternary chain in JSX with an outer condition `{condition && (a ? ... : b ? ... : c)}`, the extra parentheses around the entire chain are required — otherwise `&&` binds tighter and the false branch leaks through.
+  - Set routing for inline edits: prefer enabled sets that already contain the token (existing override), fall back to first enabled set (new override), then source sets.
+---

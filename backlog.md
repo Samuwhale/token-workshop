@@ -60,7 +60,7 @@
 
 ### Bugs
 
-- [~] Missing error handling in controller for `apply-styles` and `read-styles` — these message handlers await without try/catch; errors are unhandled and the UI receives no feedback (contrast with `read-variables` which has proper error handling)
+- [x] Missing error handling in controller for `apply-styles` and `read-styles` — these message handlers await without try/catch; errors are unhandled and the UI receives no feedback (contrast with `read-variables` which has proper error handling)
 
 ### QoL
 
@@ -69,7 +69,7 @@
 
 ### UX
 
-- [ ] Inspect tab has no quick-bind flow — binding requires select layer → find property → click bind → search token → apply (4+ steps); add a fast path: select layer(s) in Figma → hover token in list → see preview on canvas → click to apply; also consider drag-from-list-to-property and click-token-to-auto-bind-matching-property
+- [~] Inspect tab has no quick-bind flow — binding requires select layer → find property → click bind → search token → apply (4+ steps); add a fast path: select layer(s) in Figma → hover token in list → see preview on canvas → click to apply; also consider drag-from-list-to-property and click-token-to-auto-bind-matching-property
 
 ---
 

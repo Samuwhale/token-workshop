@@ -312,3 +312,16 @@ Already up to date.
 
 --- Merging: Missing error handling in controller for `apply-styles` and `read-styles` ---
 Already up to date.
+[main 530c670] chore(backlog): done – Missing error handling in controller for `apply-styles` and `read-styles`
+ 7 files changed, 65 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - Missing error handling in controller for `apply-styles` and `read-styles`
+- Added try/catch around `apply-styles` and `read-styles` cases in `controller.ts`, posting `styles-apply-error` and `styles-read-error` messages back to the UI on failure (matching existing `variables-read-error` pattern).
+- Updated `useStyleSync.ts` message handler to listen for both error message types: `styles-read-error` sets error state and stops loading, `styles-apply-error` sets error state and stops syncing.
+- Updated `ImportPanel.tsx` to handle `styles-read-error` with correlationId matching (same pattern as `variables-read-error`), clearing timeout and showing error.
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  48 items remaining
+===============================================================
+  Claimed: Inspect tab has no quick-bind flow — binding requires select layer → find property → click bind → search token → apply (4+ steps); add a fast path: select layer(s) in Figma → hover token in list → see preview on canvas → click to apply; also consider drag-from-list-to-property and click-token-to-auto-bind-matching-property
+  Worktree: /tmp/backlog-62956-suZLsg

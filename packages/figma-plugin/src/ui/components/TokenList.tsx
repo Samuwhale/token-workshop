@@ -20,8 +20,9 @@ import {
 } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
-import type { TokenListProps, DeleteConfirm, PromoteRow } from './tokenListTypes';
+import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue } from './tokenListTypes';
 import { VIRTUAL_ITEM_HEIGHT, VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN } from './tokenListTypes';
+import { resolveAllAliases } from '../../shared/resolveAlias';
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions } from './tokenListHelpers';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenListModals } from './TokenListModals';
@@ -31,7 +32,7 @@ import { usePinnedTokens } from '../hooks/usePinnedTokens';
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
-  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, perSetFlat, collectionMap = {}, modeMap = {} },
+  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {} },
   actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError },
   defaultCreateOpen,
   highlightedToken,
@@ -569,6 +570,92 @@ export function TokenList({
   const [inspectMode, setInspectMode] = useState(false);
   const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid' | 'json' | 'graph'>('tree');
   const [showScopesCol, setShowScopesCol] = useState(false);
+
+  // Multi-mode column view — show resolved values per theme option side-by-side
+  const [multiModeEnabled, setMultiModeEnabled] = useState<boolean>(() => {
+    try { return localStorage.getItem('tm_multi_mode') === '1'; } catch { return false; }
+  });
+  const [multiModeDimId, setMultiModeDimId] = useState<string | null>(null);
+  const toggleMultiMode = useCallback(() => {
+    setMultiModeEnabled(prev => {
+      const next = !prev;
+      try { localStorage.setItem('tm_multi_mode', next ? '1' : '0'); } catch {}
+      return next;
+    });
+  }, []);
+
+  // Auto-select first dimension when multi-mode is enabled and no dimension is selected
+  useEffect(() => {
+    if (multiModeEnabled && dimensions.length > 0 && (!multiModeDimId || !dimensions.some(d => d.id === multiModeDimId))) {
+      setMultiModeDimId(dimensions[0].id);
+    }
+  }, [multiModeEnabled, dimensions, multiModeDimId]);
+
+  // Compute per-option resolved token maps for the selected dimension
+  const multiModeData = useMemo(() => {
+    if (!multiModeEnabled || !multiModeDimId || !unthemedAllTokensFlat || dimensions.length === 0) return null;
+    const dim = dimensions.find(d => d.id === multiModeDimId);
+    if (!dim || dim.options.length < 2) return null;
+
+    // Collect all themed set names (from all dimensions)
+    const themedSets = new Set<string>();
+    for (const d of dimensions) {
+      for (const opt of d.options) {
+        for (const sn of Object.keys(opt.sets)) themedSets.add(sn);
+      }
+    }
+
+    const results: Array<{ optionName: string; dimId: string; resolved: Record<string, TokenMapEntry> }> = [];
+    for (const option of dim.options) {
+      // Base layer: tokens from non-themed sets
+      const merged: Record<string, TokenMapEntry> = {};
+      for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
+        const set = pathToSet[path];
+        if (!set || !themedSets.has(set)) merged[path] = entry;
+      }
+      // Source sets
+      for (const [sn, status] of Object.entries(option.sets)) {
+        if (status !== 'source') continue;
+        for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
+          if (pathToSet[path] === sn) merged[path] = entry;
+        }
+      }
+      // Enabled sets (overrides)
+      for (const [sn, status] of Object.entries(option.sets)) {
+        if (status !== 'enabled') continue;
+        for (const [path, entry] of Object.entries(unthemedAllTokensFlat)) {
+          if (pathToSet[path] === sn) merged[path] = entry;
+        }
+      }
+      results.push({ optionName: option.name, dimId: dim.id, resolved: resolveAllAliases(merged) });
+    }
+    return { dim, results };
+  }, [multiModeEnabled, multiModeDimId, unthemedAllTokensFlat, pathToSet, dimensions]);
+
+  // Build multiModeValues for a given token path
+  const getMultiModeValues = useCallback((tokenPath: string): MultiModeValue[] | undefined => {
+    if (!multiModeData || !perSetFlat) return undefined;
+    const { dim, results } = multiModeData;
+    return results.map(({ optionName, dimId, resolved }) => {
+      const option = dim.options.find(o => o.name === optionName)!;
+      // Find the best target set for edits: first enabled set that already has the token, or first enabled set
+      let targetSet: string | null = null;
+      const enabledSets = Object.entries(option.sets).filter(([_, s]) => s === 'enabled').map(([sn]) => sn);
+      for (const sn of enabledSets) {
+        if (perSetFlat[sn]?.[tokenPath]) { targetSet = sn; break; }
+      }
+      if (!targetSet && enabledSets.length > 0) targetSet = enabledSets[0];
+      // Fall back to source sets if no enabled sets exist
+      if (!targetSet) {
+        const sourceSets = Object.entries(option.sets).filter(([_, s]) => s === 'source').map(([sn]) => sn);
+        for (const sn of sourceSets) {
+          if (perSetFlat[sn]?.[tokenPath]) { targetSet = sn; break; }
+        }
+        if (!targetSet && sourceSets.length > 0) targetSet = sourceSets[0];
+      }
+      return { optionName, dimId, resolved: resolved[tokenPath], targetSet };
+    });
+  }, [multiModeData, perSetFlat]);
 
   // JSON editor state
   const [jsonText, setJsonText] = useState('');
@@ -1273,6 +1360,43 @@ export function TokenList({
     onRefresh();
     recentlyTouched.recordTouch(path);
   }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, recentlyTouched]);
+
+  // Multi-mode inline save — routes edits to a specific override set
+  const handleMultiModeInlineSave = useCallback(async (path: string, type: string, newValue: any, targetSet: string) => {
+    if (!connected) return;
+    const oldEntry = perSetFlat?.[targetSet]?.[path];
+    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
+    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ $type: type, $value: newValue }),
+    });
+    if (onPushUndo) {
+      onPushUndo({
+        description: `Edit ${path} in ${targetSet}`,
+        restore: async () => {
+          if (oldEntry) {
+            await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ $type: oldEntry.$type, $value: oldEntry.$value }),
+            });
+          }
+          onRefresh();
+        },
+        redo: async () => {
+          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $type: type, $value: newValue }),
+          });
+          onRefresh();
+        },
+      });
+    }
+    onRefresh();
+    recentlyTouched.recordTouch(path);
+  }, [connected, serverUrl, perSetFlat, onRefresh, onPushUndo, recentlyTouched]);
 
   const handleCreate = async () => {
     const trimmedPath = newTokenPath.trim();
@@ -2077,6 +2201,36 @@ export function TokenList({
                 </>
               )}
 
+              {/* Multi-mode toggle — show per-theme columns */}
+              {dimensions.length > 0 && viewMode === 'tree' && (
+                <>
+                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
+                  <button
+                    onClick={toggleMultiMode}
+                    title={multiModeEnabled ? 'Hide mode columns' : 'Show values per theme mode side-by-side'}
+                    aria-pressed={multiModeEnabled}
+                    className={`px-1.5 py-0.5 rounded text-[9px] transition-colors flex items-center gap-0.5 ${multiModeEnabled ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="3" y="3" width="7" height="18" rx="1" />
+                      <rect x="14" y="3" width="7" height="18" rx="1" />
+                    </svg>
+                    Modes
+                  </button>
+                  {multiModeEnabled && dimensions.length > 1 && (
+                    <select
+                      value={multiModeDimId ?? ''}
+                      onChange={e => setMultiModeDimId(e.target.value)}
+                      className="text-[9px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] outline-none"
+                    >
+                      {dimensions.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </>
+              )}
+
               {/* Spacer */}
               <div className="flex-1" />
 
@@ -2423,6 +2577,19 @@ export function TokenList({
         className="flex-1 overflow-y-auto"
         onScroll={e => { const top = e.currentTarget.scrollTop; virtualScrollTopRef.current = top; setVirtualScrollTop(top); }}
       >
+        {/* Multi-mode column headers */}
+        {multiModeData && viewMode === 'tree' && (
+          <div className="sticky top-0 z-20 flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <div className="flex-1 min-w-0 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+              Token
+            </div>
+            {multiModeData.results.map(r => (
+              <div key={r.optionName} className="w-[80px] shrink-0 px-1 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)] text-center truncate border-l border-[var(--color-figma-border)]" title={r.optionName}>
+                {r.optionName}
+              </div>
+            ))}
+          </div>
+        )}
         {/* Pinned tokens section */}
         {pinnedDisplayedNodes.length > 0 && viewMode === 'tree' && (
           <div className="border-b border-[var(--color-figma-border)]">
@@ -2463,6 +2630,8 @@ export function TokenList({
                 onInlineSave={handleInlineSave}
                 tokenUsageCounts={tokenUsageCounts}
                 searchHighlight={searchHighlight}
+                multiModeValues={multiModeData ? getMultiModeValues(node.path) : undefined}
+                onMultiModeInlineSave={multiModeData ? handleMultiModeInlineSave : undefined}
               />
             ))}
           </div>
@@ -2862,6 +3031,8 @@ export function TokenList({
                 tokenUsageCounts={tokenUsageCounts}
                 isPinned={pinnedTokens.isPinned(node.path)}
                 onTogglePin={pinnedTokens.togglePin}
+                multiModeValues={multiModeData ? getMultiModeValues(node.path) : undefined}
+                onMultiModeInlineSave={multiModeData ? handleMultiModeInlineSave : undefined}
               />
               );
             })}

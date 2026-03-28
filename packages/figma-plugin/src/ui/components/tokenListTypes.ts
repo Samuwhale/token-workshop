@@ -4,6 +4,16 @@ import type { UndoSlot } from '../hooks/useUndo';
 import type { SortOrder } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
+import type { ThemeDimension } from '@tokenmanager/core';
+
+/** Per-option resolved value for a single token in multi-mode view */
+export interface MultiModeValue {
+  optionName: string;
+  dimId: string;
+  resolved: TokenMapEntry | undefined;
+  /** The set name to target when inline-editing this option's value */
+  targetSet: string | null;
+}
 
 // ---------------------------------------------------------------------------
 // Virtual scroll constants
@@ -36,6 +46,12 @@ export interface TokenListData {
   perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
   collectionMap?: Record<string, string>;
   modeMap?: Record<string, string>;
+  /** Theme dimensions for multi-mode column view */
+  dimensions?: ThemeDimension[];
+  /** Unthemed (raw) allTokensFlat — needed for per-option resolution */
+  unthemedAllTokensFlat?: Record<string, TokenMapEntry>;
+  /** Maps token paths to their source set name */
+  pathToSet?: Record<string, string>;
 }
 
 export interface TokenListActions {
@@ -166,4 +182,8 @@ export interface TokenTreeNodeProps {
   tokenUsageCounts?: Record<string, number>;
   isPinned?: boolean;
   onTogglePin?: (path: string) => void;
+  /** Per-option resolved values for multi-mode column view */
+  multiModeValues?: MultiModeValue[];
+  /** Inline save handler that routes to a specific override set */
+  onMultiModeInlineSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
 }

@@ -275,3 +275,10 @@ Already up to date.
 ===============================================================
   Claimed: Tokens and themes are edited in completely separate interfaces — unlike Figma's native variables where mode values are columns next to each other, TokenManager requires global theme switching to see one value at a time; add an optional multi-mode column view to the token list showing resolved values per theme option side-by-side, with inline editing that auto-routes changes to the correct override set
   Worktree: /tmp/backlog-63973-0BHm4l
+
+  ✓ done: Multi-mode column view for token list showing resolved values per theme option side-by-side
+    Added optional multi-mode column view to tree-view token list with toggle button, per-option resolution, sticky column headers, inline-editable MultiModeCell components, and set-aware save handler that auto-routes changes to the correct override set. 4 files changed: tokenListTypes.ts, App.tsx, TokenList.tsx, TokenTreeNode.tsx.
+    81 turns · 780s · $4.85
+
+--- Merging: Multi-mode column view for token list showing resolved values per theme option side-by-side ---
+Already up to date.
