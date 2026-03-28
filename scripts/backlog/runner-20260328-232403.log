@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 ===============================================================
   Claimed: Server routes rely on error message string matching for HTTP status codes — across `tokens.ts`, `themes.ts`, and `sync.ts`, error handlers use patterns like `if (msg.includes('not found')) reply.status(404)` and `if (msg.includes('already exists')) reply.status(409)` to determine HTTP status codes; this is fragile — any internal change to error message wording silently breaks status code mapping; should define typed error classes (e.g. `NotFoundError`, `ConflictError`) with `statusCode` properties and throw those from services, letting a shared error handler map them to HTTP responses (`packages/server/src/routes/tokens.ts`, `themes.ts`, `sync.ts`)
   Worktree: /tmp/backlog-16795-uCor07
+
+  ✓ done: Server routes rely on error message string matching for HTTP status codes
+    Created typed error classes (NotFoundError, ConflictError, BadRequestError) and handleRouteError(); updated 5 services (65 throws) and 6 route files, eliminating ~50 fragile msg.includes() conditionals
+    42 turns · 629s · $5.13
+
+--- Merging: Server routes rely on error message string matching for HTTP status codes ---
+Already up to date.

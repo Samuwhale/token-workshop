@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { Token, TokenGroup } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
+import { NotFoundError, ConflictError } from '../errors.js';
 
 /** A snapshot of a single token path — null means the token did not exist. */
 export interface SnapshotEntry {
@@ -101,8 +102,8 @@ export class OperationLog {
   async rollback(id: string, tokenStore: TokenStore): Promise<{ restoredPaths: string[] }> {
     await this.ensureLoaded();
     const entry = this.entries.find(e => e.id === id);
-    if (!entry) throw new Error(`Operation "${id}" not found`);
-    if (entry.rolledBack) throw new Error(`Operation "${id}" was already rolled back`);
+    if (!entry) throw new NotFoundError(`Operation "${id}" not found`);
+    if (entry.rolledBack) throw new ConflictError(`Operation "${id}" was already rolled back`);
 
     // Capture current state as "before" for the rollback operation itself
     const currentSnapshot: Record<string, SnapshotEntry> = {};

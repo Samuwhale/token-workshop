@@ -35,6 +35,7 @@ import {
 } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
 import { stableStringify } from './stable-stringify.js';
+import { NotFoundError, BadRequestError } from '../errors.js';
 
 interface GeneratorsFile {
   $generators: TokenGenerator[];
@@ -147,7 +148,7 @@ export class GeneratorService {
     updates: Partial<Omit<TokenGenerator, 'id' | 'createdAt'>>,
   ): Promise<TokenGenerator> {
     const existing = this.generators.get(id);
-    if (!existing) throw new Error(`Generator "${id}" not found`);
+    if (!existing) throw new NotFoundError(`Generator "${id}" not found`);
     const updated: TokenGenerator = {
       ...existing,
       ...updates,
@@ -279,7 +280,7 @@ export class GeneratorService {
     validateStepName(stepName);
 
     const existing = this.generators.get(id);
-    if (!existing) throw new Error(`Generator "${id}" not found`);
+    if (!existing) throw new NotFoundError(`Generator "${id}" not found`);
 
     const overrides = { ...(existing.overrides ?? {}) };
     if (override === null) {
@@ -302,7 +303,7 @@ export class GeneratorService {
   /** Run a saved generator and persist the derived tokens. */
   async run(id: string, tokenStore: TokenStore): Promise<GeneratedTokenResult[]> {
     const generator = this.generators.get(id);
-    if (!generator) throw new Error(`Generator "${id}" not found`);
+    if (!generator) throw new NotFoundError(`Generator "${id}" not found`);
     return this.withGeneratorLock(id, () => this.executeGenerator(generator, tokenStore));
   }
 
@@ -316,7 +317,7 @@ export class GeneratorService {
     tokenStore: TokenStore,
   ): Promise<{ path: string; setName: string; currentValue: unknown; newValue: unknown }[]> {
     const generator = this.generators.get(id);
-    if (!generator) throw new Error(`Generator "${id}" not found`);
+    if (!generator) throw new NotFoundError(`Generator "${id}" not found`);
     const preview = await this.computeResults(generator, tokenStore);
     const effectiveTargetSet = generator.targetSet;
     const modified: { path: string; setName: string; currentValue: unknown; newValue: unknown }[] = [];
@@ -633,14 +634,14 @@ export class GeneratorService {
     switch (type) {
       case 'colorRamp': {
         const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
-        if (!hex) throw new Error(`Source value for colorRamp must be a color string`);
+        if (!hex) throw new BadRequestError(`Source value for colorRamp must be a color string`);
         results = runColorRampGenerator(hex, config as ColorRampConfig, targetGroup);
         break;
       }
       case 'typeScale': {
         const dim = resolvedValue as { value: number; unit: string } | null;
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Source value for typeScale must be a dimension value`);
+          throw new BadRequestError(`Source value for typeScale must be a dimension value`);
         }
         results = runTypeScaleGenerator(dim, config as TypeScaleConfig, targetGroup);
         break;
@@ -648,7 +649,7 @@ export class GeneratorService {
       case 'spacingScale': {
         const dim = resolvedValue as { value: number; unit: string } | null;
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Source value for spacingScale must be a dimension value`);
+          throw new BadRequestError(`Source value for spacingScale must be a dimension value`);
         }
         results = runSpacingScaleGenerator(dim, config as SpacingScaleConfig, targetGroup);
         break;
@@ -660,7 +661,7 @@ export class GeneratorService {
       case 'borderRadiusScale': {
         const dim = resolvedValue as { value: number; unit: string } | null;
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Source value for borderRadiusScale must be a dimension value`);
+          throw new BadRequestError(`Source value for borderRadiusScale must be a dimension value`);
         }
         results = runBorderRadiusScaleGenerator(dim, config as BorderRadiusScaleConfig, targetGroup);
         break;
@@ -683,20 +684,20 @@ export class GeneratorService {
       }
       case 'accessibleColorPair': {
         const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
-        if (!hex) throw new Error(`Source value for accessibleColorPair must be a color string`);
+        if (!hex) throw new BadRequestError(`Source value for accessibleColorPair must be a color string`);
         results = runAccessibleColorPairGenerator(hex, config as AccessibleColorPairConfig, targetGroup);
         break;
       }
       case 'darkModeInversion': {
         const hex = typeof resolvedValue === 'string' ? resolvedValue : null;
-        if (!hex) throw new Error(`Source value for darkModeInversion must be a color string`);
+        if (!hex) throw new BadRequestError(`Source value for darkModeInversion must be a color string`);
         results = runDarkModeInversionGenerator(hex, config as DarkModeInversionConfig, targetGroup);
         break;
       }
       case 'responsiveScale': {
         const dim = resolvedValue as { value: number; unit: string } | null;
         if (!dim || typeof dim !== 'object' || typeof dim.value !== 'number') {
-          throw new Error(`Source value for responsiveScale must be a dimension value`);
+          throw new BadRequestError(`Source value for responsiveScale must be a dimension value`);
         }
         results = runResponsiveScaleGenerator(dim, config as ResponsiveScaleConfig, targetGroup);
         break;
@@ -706,7 +707,7 @@ export class GeneratorService {
         break;
       }
       default:
-        throw new Error(`Unknown generator type: ${type}`);
+        throw new BadRequestError(`Unknown generator type: ${type}`);
     }
 
     return applyOverrides(results, generator.overrides);
@@ -732,11 +733,11 @@ export class GeneratorService {
     let resolvedValue: unknown;
     if (needsSource) {
       if (!sourceToken) {
-        throw new Error(`Generator type "${type}" requires a source token`);
+        throw new BadRequestError(`Generator type "${type}" requires a source token`);
       }
       const resolved = await tokenStore.resolveToken(sourceToken);
       if (!resolved) {
-        throw new Error(`Source token "${sourceToken}" not found or could not be resolved`);
+        throw new NotFoundError(`Source token "${sourceToken}" not found or could not be resolved`);
       }
       resolvedValue = resolved.$value;
     }

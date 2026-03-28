@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { handleRouteError } from '../errors.js';
 
 export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
   // POST /api/snapshots — save current state
@@ -32,9 +33,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
       const diffs = await fastify.manualSnapshots.diff(request.params.id, fastify.tokenStore);
       return { diffs };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      return reply.status(500).send({ error: msg });
+      return handleRouteError(reply, err);
     }
   });
 
@@ -44,9 +43,7 @@ export const snapshotRoutes: FastifyPluginAsync = async (fastify) => {
       const result = await fastify.manualSnapshots.restore(request.params.id, fastify.tokenStore);
       return result;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      return reply.status(500).send({ error: msg });
+      return handleRouteError(reply, err);
     }
   });
 };

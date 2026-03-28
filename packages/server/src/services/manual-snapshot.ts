@@ -5,6 +5,7 @@ import { flattenTokenGroup } from '@tokenmanager/core';
 import type { Token } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
 import { stableStringify } from './stable-stringify.js';
+import { NotFoundError } from '../errors.js';
 
 /** Deterministic JSON string — sorts object keys so comparison is key-order independent. */
 function stableStringify(value: unknown): string {
@@ -148,7 +149,7 @@ export class ManualSnapshotStore {
   async diff(id: string, tokenStore: TokenStore): Promise<TokenDiff[]> {
     await this.ensureLoaded();
     const snapshot = this.snapshots.find(s => s.id === id);
-    if (!snapshot) throw new Error(`Snapshot "${id}" not found`);
+    if (!snapshot) throw new NotFoundError(`Snapshot "${id}" not found`);
 
     const currentSets = await tokenStore.getSets();
     const sets = new Set([...Object.keys(snapshot.data), ...currentSets]);
@@ -194,7 +195,7 @@ export class ManualSnapshotStore {
   async restore(id: string, tokenStore: TokenStore): Promise<{ restoredSets: string[] }> {
     await this.ensureLoaded();
     const snapshot = this.snapshots.find(s => s.id === id);
-    if (!snapshot) throw new Error(`Snapshot "${id}" not found`);
+    if (!snapshot) throw new NotFoundError(`Snapshot "${id}" not found`);
 
     const restoredSets: string[] = [];
 

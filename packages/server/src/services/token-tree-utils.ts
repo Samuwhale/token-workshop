@@ -3,6 +3,7 @@ import {
   type TokenGroup,
   isDTCGToken,
 } from '@tokenmanager/core';
+import { BadRequestError } from '../errors.js';
 
 const MAX_REGEX_LENGTH = 200;
 
@@ -99,23 +100,23 @@ export function collectGroupLeafTokens(tokens: TokenGroup, groupPath: string): A
  */
 export function validateTokenPath(tokenPath: string): void {
   if (!tokenPath) {
-    throw new Error('Token path must not be empty');
+    throw new BadRequestError('Token path must not be empty');
   }
   const segments = tokenPath.split('.');
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i];
     if (seg === '') {
-      throw new Error(
+      throw new BadRequestError(
         `Invalid token path "${tokenPath}": contains an empty segment (double dot or leading/trailing dot)`,
       );
     }
     if (seg.startsWith('$')) {
-      throw new Error(
+      throw new BadRequestError(
         `Invalid token path "${tokenPath}": segment "${seg}" starts with reserved "$" prefix`,
       );
     }
     if (seg.includes('/') || seg.includes('\\')) {
-      throw new Error(
+      throw new BadRequestError(
         `Invalid token path "${tokenPath}": segment "${seg}" contains a slash`,
       );
     }

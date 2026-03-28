@@ -14,6 +14,7 @@ import {
   TokenResolver,
   COMPOSITE_TOKEN_TYPES,
 } from '@tokenmanager/core';
+import { NotFoundError, ConflictError, BadRequestError } from '../errors.js';
 import {
   validateTokenPath,
   pathExistsAt,
@@ -340,7 +341,7 @@ export class TokenStore {
             }
             cycle.push(dep);
             cycle.reverse();
-            throw new Error(`Circular reference detected: ${cycle.join(' → ')}`);
+            throw new ConflictError(`Circular reference detected: ${cycle.join(' → ')}`);
           }
           if (depColor === WHITE) {
             parent.set(dep, node);
@@ -380,11 +381,11 @@ export class TokenStore {
 
   async reorderGroupChildren(setName: string, groupPath: string, orderedKeys: string[]): Promise<void> {
     const set = this.sets.get(setName);
-    if (!set) throw new Error(`Set "${setName}" not found`);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     let group: TokenGroup;
     if (groupPath) {
       const found = getObjectAtPath(set.tokens, groupPath);
-      if (!found) throw new Error(`Group "${groupPath}" not found in set "${setName}"`);
+      if (!found) throw new NotFoundError(`Group "${groupPath}" not found in set "${setName}"`);
       group = found;
     } else {
       group = set.tokens as TokenGroup;
@@ -392,10 +393,10 @@ export class TokenStore {
     const nonMetaKeys = Object.keys(group).filter(k => !k.startsWith('$'));
     const orderedSet = new Set(orderedKeys);
     for (const key of orderedKeys) {
-      if (!(key in group)) throw new Error(`Key "${key}" not found in group`);
+      if (!(key in group)) throw new NotFoundError(`Key "${key}" not found in group`);
     }
     for (const key of nonMetaKeys) {
-      if (!orderedSet.has(key)) throw new Error(`Key "${key}" is missing from orderedKeys`);
+      if (!orderedSet.has(key)) throw new BadRequestError(`Key "${key}" is missing from orderedKeys`);
     }
     const reordered: TokenGroup = {};
     for (const [k, v] of Object.entries(group)) {
@@ -435,7 +436,7 @@ export class TokenStore {
 
   async updateSetDescription(name: string, description: string): Promise<void> {
     const set = this.sets.get(name);
-    if (!set) throw new Error(`Set "${name}" not found`);
+    if (!set) throw new NotFoundError(`Set "${name}" not found`);
     if (description) {
       set.tokens.$description = description;
     } else {
@@ -455,7 +456,7 @@ export class TokenStore {
 
   async updateSetCollectionName(name: string, collectionName: string): Promise<void> {
     const set = this.sets.get(name);
-    if (!set) throw new Error(`Set "${name}" not found`);
+    if (!set) throw new NotFoundError(`Set "${name}" not found`);
     if (collectionName) {
       set.tokens.$figmaCollection = collectionName;
     } else {
@@ -475,7 +476,7 @@ export class TokenStore {
 
   async updateSetModeName(name: string, modeName: string): Promise<void> {
     const set = this.sets.get(name);
-    if (!set) throw new Error(`Set "${name}" not found`);
+    if (!set) throw new NotFoundError(`Set "${name}" not found`);
     if (modeName) {
       set.tokens.$figmaMode = modeName;
     } else {
@@ -491,7 +492,7 @@ export class TokenStore {
   /** Replace all tokens in a set with a new nested DTCG token group. */
   async replaceSetTokens(name: string, tokens: TokenGroup): Promise<void> {
     const set = this.sets.get(name);
-    if (!set) throw new Error(`Set "${name}" not found`);
+    if (!set) throw new NotFoundError(`Set "${name}" not found`);
     // Check for circular references in the new token set
     const changes: Array<{ path: string; value: unknown }> = [];
     for (const [tokenPath, token] of flattenTokenGroup(tokens)) {
@@ -564,11 +565,11 @@ export class TokenStore {
 
   async renameSet(oldName: string, newName: string): Promise<void> {
     if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(newName)) {
-      throw new Error('Set name must contain only alphanumeric characters, dashes, underscores, and / for folders');
+      throw new BadRequestError('Set name must contain only alphanumeric characters, dashes, underscores, and / for folders');
     }
     const set = this.sets.get(oldName);
-    if (!set) throw new Error(`Set "${oldName}" not found`);
-    if (this.sets.has(newName)) throw new Error(`Set "${newName}" already exists`);
+    if (!set) throw new NotFoundError(`Set "${oldName}" not found`);
+    if (this.sets.has(newName)) throw new ConflictError(`Set "${newName}" already exists`);
 
     const oldFilePath = path.join(this.dir, `${oldName}.tokens.json`);
     const newFilePath = path.join(this.dir, `${newName}.tokens.json`);
@@ -638,7 +639,7 @@ export class TokenStore {
 
   async createToken(setName: string, tokenPath: string, token: Token): Promise<void> {
     if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(setName)) {
-      throw new Error(`Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`);
+      throw new BadRequestError(`Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`);
     }
     validateTokenPath(tokenPath);
     // Auto-persist formula metadata so Style Dictionary export can output calc()
@@ -657,9 +658,9 @@ export class TokenStore {
 
   async updateToken(setName: string, tokenPath: string, token: Partial<Token>): Promise<void> {
     const set = this.sets.get(setName);
-    if (!set) throw new Error(`Set "${setName}" not found`);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     const existing = getTokenAtPath(set.tokens, tokenPath);
-    if (!existing) throw new Error(`Token "${tokenPath}" not found in set "${setName}"`);
+    if (!existing) throw new NotFoundError(`Token "${tokenPath}" not found in set "${setName}"`);
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     if ('$value' in token && token.$value !== undefined) {
       const enriched = this.enrichFormulaExtension({ $value: token.$value, $extensions: token.$extensions ?? existing.$extensions });
@@ -689,7 +690,7 @@ export class TokenStore {
     strategy: 'skip' | 'overwrite',
   ): Promise<{ imported: number; skipped: number }> {
     if (!/^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/.test(setName)) {
-      throw new Error(`Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`);
+      throw new BadRequestError(`Invalid set name "${setName}". Only alphanumeric characters, dashes, underscores, and / for folders are allowed.`);
     }
     let set = this.sets.get(setName);
     if (!set) {
@@ -782,7 +783,7 @@ export class TokenStore {
    */
   async restoreSnapshot(setName: string, items: Array<{ path: string; token: Token | null }>): Promise<void> {
     const set = this.sets.get(setName);
-    if (!set) throw new Error(`Set "${setName}" not found`);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     this.beginBatch();
     try {
       for (const { path: tokenPath, token } of items) {
@@ -1022,14 +1023,14 @@ export class TokenStore {
 
   async renameGroup(setName: string, oldGroupPath: string, newGroupPath: string, updateAliases = true): Promise<{ renamedCount: number; aliasesUpdated: number }> {
     const set = this.sets.get(setName);
-    if (!set) throw new Error(`Set "${setName}" not found`);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     const leafTokens = collectGroupLeafTokens(set.tokens, oldGroupPath);
     this.beginBatch();
     try {
       if (leafTokens.length === 0) {
         const groupObj = getObjectAtPath(set.tokens, oldGroupPath);
-        if (!groupObj) throw new Error(`Group "${oldGroupPath}" not found`);
-        if (pathExistsAt(set.tokens, newGroupPath)) throw new Error(`Path "${newGroupPath}" already exists`);
+        if (!groupObj) throw new NotFoundError(`Group "${oldGroupPath}" not found`);
+        if (pathExistsAt(set.tokens, newGroupPath)) throw new ConflictError(`Path "${newGroupPath}" already exists`);
         setGroupAtPath(set.tokens, newGroupPath, groupObj);
         deleteTokenAtPath(set.tokens, oldGroupPath);
         await this.saveSet(setName);
@@ -1039,7 +1040,7 @@ export class TokenStore {
       for (const { relativePath } of leafTokens) {
         const newPath = `${newGroupPath}.${relativePath}`;
         if (getTokenAtPath(set.tokens, newPath)) {
-          throw new Error(`Token at path "${newPath}" already exists`);
+          throw new ConflictError(`Token at path "${newPath}" already exists`);
         }
       }
       for (const { relativePath, token } of leafTokens) {
@@ -1066,10 +1067,10 @@ export class TokenStore {
   async renameToken(setName: string, oldPath: string, newPath: string, updateAliases = true): Promise<{ aliasesUpdated: number }> {
     validateTokenPath(newPath);
     const set = this.sets.get(setName);
-    if (!set) throw new Error(`Set "${setName}" not found`);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     const token = getTokenAtPath(set.tokens, oldPath);
-    if (!token) throw new Error(`Token "${oldPath}" not found in set "${setName}"`);
-    if (getTokenAtPath(set.tokens, newPath)) throw new Error(`Token "${newPath}" already exists`);
+    if (!token) throw new NotFoundError(`Token "${oldPath}" not found in set "${setName}"`);
+    if (getTokenAtPath(set.tokens, newPath)) throw new ConflictError(`Token "${newPath}" already exists`);
     setTokenAtPath(set.tokens, newPath, token);
     deleteTokenAtPath(set.tokens, oldPath);
     await this.saveSet(setName);
@@ -1088,18 +1089,18 @@ export class TokenStore {
   }
 
   async moveGroup(fromSet: string, groupPath: string, toSet: string): Promise<{ movedCount: number }> {
-    if (fromSet === toSet) throw new Error('Source and target sets are the same');
+    if (fromSet === toSet) throw new BadRequestError('Source and target sets are the same');
     const source = this.sets.get(fromSet);
-    if (!source) throw new Error(`Set "${fromSet}" not found`);
+    if (!source) throw new NotFoundError(`Set "${fromSet}" not found`);
     const target = this.sets.get(toSet);
-    if (!target) throw new Error(`Set "${toSet}" not found`);
+    if (!target) throw new NotFoundError(`Set "${toSet}" not found`);
     const leafTokens = collectGroupLeafTokens(source.tokens, groupPath);
     this.beginBatch();
     try {
       if (leafTokens.length === 0) {
         const groupObj = getObjectAtPath(source.tokens, groupPath);
-        if (!groupObj) throw new Error(`Group "${groupPath}" not found`);
-        if (pathExistsAt(target.tokens, groupPath)) throw new Error(`Path "${groupPath}" already exists in target set "${toSet}"`);
+        if (!groupObj) throw new NotFoundError(`Group "${groupPath}" not found`);
+        if (pathExistsAt(target.tokens, groupPath)) throw new ConflictError(`Path "${groupPath}" already exists in target set "${toSet}"`);
         setGroupAtPath(target.tokens, groupPath, groupObj);
         deleteTokenAtPath(source.tokens, groupPath);
         await this.saveSet(fromSet);
@@ -1113,7 +1114,7 @@ export class TokenStore {
         if (pathExistsAt(target.tokens, targetPath)) collisions.push(targetPath);
       }
       if (collisions.length > 0) {
-        throw new Error(`Cannot move group: ${collisions.length} token path(s) already exist in target set "${toSet}": ${collisions.slice(0, 5).join(', ')}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ''}`);
+        throw new ConflictError(`Cannot move group: ${collisions.length} token path(s) already exist in target set "${toSet}": ${collisions.slice(0, 5).join(', ')}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ''}`);
       }
       for (const { relativePath, token } of leafTokens) {
         setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, token);
@@ -1129,14 +1130,14 @@ export class TokenStore {
   }
 
   async moveToken(fromSet: string, tokenPath: string, toSet: string): Promise<void> {
-    if (fromSet === toSet) throw new Error('Source and target sets are the same');
+    if (fromSet === toSet) throw new BadRequestError('Source and target sets are the same');
     const source = this.sets.get(fromSet);
-    if (!source) throw new Error(`Set "${fromSet}" not found`);
+    if (!source) throw new NotFoundError(`Set "${fromSet}" not found`);
     const target = this.sets.get(toSet);
-    if (!target) throw new Error(`Set "${toSet}" not found`);
+    if (!target) throw new NotFoundError(`Set "${toSet}" not found`);
     const token = getTokenAtPath(source.tokens, tokenPath);
-    if (!token) throw new Error(`Token "${tokenPath}" not found in set "${fromSet}"`);
-    if (pathExistsAt(target.tokens, tokenPath)) throw new Error(`Path "${tokenPath}" already exists in target set "${toSet}"`);
+    if (!token) throw new NotFoundError(`Token "${tokenPath}" not found in set "${fromSet}"`);
+    if (pathExistsAt(target.tokens, tokenPath)) throw new ConflictError(`Path "${tokenPath}" already exists in target set "${toSet}"`);
     this.beginBatch();
     try {
       setTokenAtPath(target.tokens, tokenPath, token);
@@ -1151,11 +1152,11 @@ export class TokenStore {
 
   async duplicateGroup(setName: string, groupPath: string): Promise<{ newGroupPath: string; count: number }> {
     const set = this.sets.get(setName);
-    if (!set) throw new Error(`Set "${setName}" not found`);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     const leafTokens = collectGroupLeafTokens(set.tokens, groupPath);
     if (leafTokens.length === 0) {
       const groupObj = getObjectAtPath(set.tokens, groupPath);
-      if (!groupObj) throw new Error(`Group "${groupPath}" not found`);
+      if (!groupObj) throw new NotFoundError(`Group "${groupPath}" not found`);
       const lastDot0 = groupPath.lastIndexOf('.');
       const parentPath0 = lastDot0 >= 0 ? groupPath.slice(0, lastDot0) : '';
       const baseName0 = lastDot0 >= 0 ? groupPath.slice(lastDot0 + 1) : groupPath;
@@ -1194,21 +1195,21 @@ export class TokenStore {
     isRegex = false,
   ): Promise<{ renamed: number; skipped: string[]; aliasesUpdated: number }> {
     const set = this.sets.get(setName);
-    if (!set) throw new Error(`Set "${setName}" not found`);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
 
     const flatTokens = await this.getFlatTokensForSet(setName);
 
     let pattern: RegExp | null = null;
     if (isRegex) {
       if (!isSafeRegex(find)) {
-        throw new Error(
+        throw new BadRequestError(
           `Regex pattern rejected: pattern is too long or contains nested quantifiers that could cause excessive backtracking`,
         );
       }
       try {
         pattern = new RegExp(find, 'g');
       } catch {
-        throw new Error(`Invalid regex pattern: "${find}"`);
+        throw new BadRequestError(`Invalid regex pattern: "${find}"`);
       }
     }
 
@@ -1320,9 +1321,9 @@ export class TokenStore {
   async createGroup(setName: string, groupPath: string): Promise<void> {
     validateTokenPath(groupPath);
     const set = this.sets.get(setName);
-    if (!set) throw new Error(`Set "${setName}" not found`);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     if (pathExistsAt(set.tokens, groupPath)) {
-      throw new Error(`Path "${groupPath}" already exists`);
+      throw new ConflictError(`Path "${groupPath}" already exists`);
     }
     setGroupAtPath(set.tokens, groupPath, {});
     await this.saveSet(setName);
@@ -1336,13 +1337,13 @@ export class TokenStore {
     meta: { $type?: string | null; $description?: string | null },
   ): Promise<void> {
     const set = this.sets.get(setName);
-    if (!set) throw new Error(`Set "${setName}" not found`);
+    if (!set) throw new NotFoundError(`Set "${setName}" not found`);
     let group: TokenGroup;
     if (!groupPath) {
       group = set.tokens as TokenGroup;
     } else {
       const found = getObjectAtPath(set.tokens, groupPath);
-      if (!found) throw new Error(`Group "${groupPath}" not found in set "${setName}"`);
+      if (!found) throw new NotFoundError(`Group "${groupPath}" not found in set "${setName}"`);
       group = found;
     }
     if ('$type' in meta) {

@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { TOKEN_TYPE_VALUES, type Token, type TokenGroup } from '@tokenmanager/core';
-import { getErrorMessage } from '../utils';
+import { handleRouteError } from '../errors.js';
 import { snapshotPaths, snapshotSet, snapshotGroup } from '../services/operation-log.js';
 
 function validateTokenBody(body: unknown): body is Partial<Token> {
@@ -78,10 +78,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.generatorService.updateGroupPath(oldGroupPath, newGroupPath);
           return result;
         } catch (err) {
-          const msg = getErrorMessage(err);
-          if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
-          if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
-          return reply.status(500).send({ error: msg });
+          return handleRouteError(reply, err);
         }
       });
     },
@@ -101,9 +98,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           const result = await fastify.tokenStore.moveGroup(set, groupPath, targetSet);
           return result;
         } catch (err) {
-          const msg = getErrorMessage(err);
-          if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
-          return reply.status(500).send({ error: msg });
+          return handleRouteError(reply, err);
         }
       });
     },
@@ -123,9 +118,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           const result = await fastify.tokenStore.duplicateGroup(set, groupPath);
           return result;
         } catch (err) {
-          const msg = getErrorMessage(err);
-          if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
-          return reply.status(500).send({ error: msg });
+          return handleRouteError(reply, err);
         }
       });
     },
@@ -145,9 +138,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.tokenStore.reorderGroupChildren(set, groupPath, orderedKeys);
           return { reordered: true };
         } catch (err) {
-          const msg = getErrorMessage(err);
-          if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-          return reply.status(500).send({ error: msg });
+          return handleRouteError(reply, err);
         }
       });
     },
@@ -167,11 +158,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.tokenStore.createGroup(set, groupPath);
           return reply.status(201).send({ groupPath, set });
         } catch (err) {
-          const msg = getErrorMessage(err);
-          if (msg.includes('Invalid token path')) return reply.status(400).send({ error: msg });
-          if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-          if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
-          return reply.status(500).send({ error: msg });
+          return handleRouteError(reply, err);
         }
       });
     },
@@ -192,9 +179,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.tokenStore.updateGroup(set, groupPath, { $type, $description });
         return { updated: true, groupPath, set };
       } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        return reply.status(500).send({ error: 'Failed to update group metadata', detail: msg });
+        return handleRouteError(reply, err, 'Failed to update group metadata');
       }
     });
   });
@@ -225,12 +210,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.generatorService.updateBulkTokenPaths(find, replace, isRegex ?? false);
         return result;
       } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        if (msg.includes('Regex pattern rejected') || msg.includes('Invalid regex pattern')) {
-          return reply.status(400).send({ error: msg });
-        }
-        return reply.status(500).send({ error: msg });
+        return handleRouteError(reply, err);
       }
     });
   });
@@ -276,11 +256,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         });
         return result;
       } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('Invalid token path') || msg.includes('Invalid set name')) return reply.status(400).send({ error: msg });
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        if (msg.includes('Circular reference')) return reply.status(409).send({ error: msg });
-        return reply.status(500).send({ error: 'Failed to batch upsert tokens', detail: msg });
+        return handleRouteError(reply, err, 'Failed to batch upsert tokens');
       }
     });
   });
@@ -338,11 +314,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.generatorService.updateTokenPaths(new Map([[oldPath, newPath]]));
           return result;
         } catch (err) {
-          const msg = getErrorMessage(err);
-          if (msg.includes('Invalid token path')) return reply.status(400).send({ error: msg });
-          if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-          if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
-          return reply.status(500).send({ error: msg });
+          return handleRouteError(reply, err);
         }
       });
     },
@@ -362,10 +334,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.tokenStore.moveToken(set, tokenPath, targetSet);
           return { moved: true };
         } catch (err) {
-          const msg = getErrorMessage(err);
-          if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-          if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
-          return reply.status(500).send({ error: msg });
+          return handleRouteError(reply, err);
         }
       });
     },
@@ -405,10 +374,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           });
           return { set, replaced: true };
         } catch (err) {
-          const msg = getErrorMessage(err);
-          if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-          if (msg.includes('Circular reference')) return reply.status(409).send({ error: msg });
-          return reply.status(500).send({ error: 'Failed to replace token set', detail: msg });
+          return handleRouteError(reply, err, 'Failed to replace token set');
         }
       });
     },
@@ -475,14 +441,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           });
           return reply.status(201).send({ path: tokenPath, set, token: body });
         } catch (err) {
-          const message = getErrorMessage(err);
-          if (message.includes('Invalid token path') || message.includes('Invalid set name')) {
-            return reply.status(400).send({ error: message });
-          }
-          if (message.includes('Circular reference')) {
-            return reply.status(409).send({ error: message });
-          }
-          return reply.status(500).send({ error: 'Failed to create token', detail: message });
+          return handleRouteError(reply, err, 'Failed to create token');
         }
       });
     },
@@ -519,14 +478,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           const updated = await fastify.tokenStore.getToken(set, tokenPath);
           return { path: tokenPath, set, token: updated };
         } catch (err) {
-          const message = getErrorMessage(err);
-          if (message.includes('not found')) {
-            return reply.status(404).send({ error: message });
-          }
-          if (message.includes('Circular reference')) {
-            return reply.status(409).send({ error: message });
-          }
-          return reply.status(500).send({ error: 'Failed to update token', detail: message });
+          return handleRouteError(reply, err, 'Failed to update token');
         }
       });
     },

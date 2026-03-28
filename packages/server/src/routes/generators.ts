@@ -17,7 +17,7 @@ import type {
   ContrastCheckConfig,
   TokenType,
 } from '@tokenmanager/core';
-import { getErrorMessage } from '../utils';
+import { handleRouteError } from '../errors.js';
 import { snapshotGroup } from '../services/operation-log.js';
 
 const VALID_GENERATOR_TYPES: readonly string[] = [
@@ -318,8 +318,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         });
         return reply.status(201).send(generator);
       } catch (err) {
-        const msg = getErrorMessage(err);
-        return reply.status(500).send({ error: msg });
+        return handleRouteError(reply, err);
       }
     });
   });
@@ -354,8 +353,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       );
       return { count: results.length, tokens: results };
     } catch (err) {
-      const msg = getErrorMessage(err);
-      return reply.status(500).send({ error: msg });
+      return handleRouteError(reply, err);
     }
   });
 
@@ -438,9 +436,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         });
         return generator;
       } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        return reply.status(500).send({ error: msg });
+        return handleRouteError(reply, err);
       }
     });
   });
@@ -500,9 +496,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       );
       return { modified };
     } catch (err) {
-      const msg = getErrorMessage(err);
-      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      return reply.status(500).send({ error: msg });
+      return handleRouteError(reply, err);
     }
   });
 
@@ -529,9 +523,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         });
         return { count: results.length, tokens: results };
       } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        return reply.status(500).send({ error: msg });
+        return handleRouteError(reply, err);
       }
     });
   });
@@ -555,9 +547,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.generatorService.run(generator.id, fastify.tokenStore);
         return generator;
       } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        return reply.status(500).send({ error: msg });
+        return handleRouteError(reply, err);
       }
     });
   });
@@ -576,9 +566,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.generatorService.run(generator.id, fastify.tokenStore);
         return generator;
       } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        return reply.status(500).send({ error: msg });
+        return handleRouteError(reply, err);
       }
     });
   });

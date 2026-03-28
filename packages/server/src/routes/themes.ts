@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { ThemeDimension, ThemesFile, ThemeSetStatus } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
+import { handleRouteError } from '../errors.js';
 
 const VALID_THEME_SET_STATUSES = new Set<string>(['enabled', 'disabled', 'source']);
 
@@ -135,9 +136,8 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         return { dims: dimensions, result: dim };
       });
       return reply.status(201).send({ dimension });
-    } catch (err: any) {
-      if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
-      return reply.status(500).send({ error: 'Failed to create dimension', detail: String(err) });
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to create dimension');
     }
   });
 
@@ -158,9 +158,8 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         return { dims: dimensions, result: dimensions[idx] };
       });
       return { dimension };
-    } catch (err: any) {
-      if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
-      return reply.status(500).send({ error: 'Failed to rename dimension', detail: String(err) });
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to rename dimension');
     }
   });
 
@@ -176,9 +175,8 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         return { dims: filtered, result: undefined };
       });
       return { deleted: true, id };
-    } catch (err: any) {
-      if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
-      return reply.status(500).send({ error: 'Failed to delete dimension', detail: String(err) });
+    } catch (err) {
+      return handleRouteError(reply, err, 'Failed to delete dimension');
     }
   });
 
@@ -215,9 +213,8 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           return { dims: dimensions, result: { option: opt, status: optIdx >= 0 ? 200 : 201 } };
         });
         return reply.status(status).send({ option });
-      } catch (err: any) {
-        if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
-        return reply.status(500).send({ error: 'Failed to save option', detail: String(err) });
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to save option');
       }
     },
   );
@@ -250,9 +247,8 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           return { dims: dimensions, result: dim.options[optIdx] };
         });
         return { option };
-      } catch (err: any) {
-        if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
-        return reply.status(500).send({ error: 'Failed to rename option', detail: String(err) });
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to rename option');
       }
     },
   );
@@ -286,9 +282,8 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           return { dims: dimensions, result: dimensions[dimIdx] };
         });
         return { dimension };
-      } catch (err: any) {
-        if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
-        return reply.status(500).send({ error: 'Failed to reorder options', detail: String(err) });
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to reorder options');
       }
     },
   );
@@ -313,9 +308,8 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           return { dims: dimensions, result: undefined };
         });
         return { deleted: true, id, optionName };
-      } catch (err: any) {
-        if (err.statusCode) return reply.status(err.statusCode).send({ error: err.message });
-        return reply.status(500).send({ error: 'Failed to delete option', detail: String(err) });
+      } catch (err) {
+        return handleRouteError(reply, err, 'Failed to delete option');
       }
     },
   );
