@@ -1,6 +1,7 @@
 import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { applyToSelection } from './selectionHandling.js';
+import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
 
 // Scan component nodes for token coverage
 export async function scanComponentCoverage(correlationId?: string) {
@@ -88,29 +89,12 @@ export function selectNextSibling() {
 export async function scanCanvasHeatmap() {
   try {
     const CHECKABLE_FIGMA_PROPS = ['fills', 'strokes', 'effects', 'opacity', 'fontSize', 'fontName', 'letterSpacing', 'lineHeight', 'cornerRadius', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'itemSpacing'];
-    const VISUAL_TYPES = new Set(['FRAME', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE', 'RECTANGLE', 'ELLIPSE', 'POLYGON', 'STAR', 'VECTOR', 'LINE', 'TEXT']);
 
     // Collect visual nodes via batched traversal to avoid freezing on large pages.
     const BATCH_SIZE = 200;
     const nodes: SceneNode[] = [];
-    const stack: readonly SceneNode[] = [...figma.currentPage.children];
-    let walkCount = 0;
-    const walkStack = [...stack];
-    while (walkStack.length > 0) {
-      const current = walkStack.pop()!;
-      if (VISUAL_TYPES.has(current.type)) {
-        nodes.push(current);
-      }
-      if ('children' in current) {
-        const container = current as ChildrenMixin & SceneNode;
-        for (let c = container.children.length - 1; c >= 0; c--) {
-          walkStack.push(container.children[c]);
-        }
-      }
-      walkCount++;
-      if (walkCount % BATCH_SIZE === 0) {
-        await new Promise<void>(resolve => setTimeout(resolve, 0));
-      }
+    for await (const node of walkNodes(figma.currentPage.children, { filter: VISUAL_TYPES })) {
+      nodes.push(node);
     }
 
     type HeatmapStatus = 'green' | 'yellow' | 'red';
@@ -225,14 +209,9 @@ function findComponentAncestor(node: SceneNode): string | null {
 // Returns a list of { id, name, type, componentName, properties } for each node using this token.
 export async function scanTokenUsage(tokenPath: string) {
   try {
-    const BATCH_SIZE = 200;
     const layers: { id: string; name: string; type: string; componentName: string | null; properties: string[] }[] = [];
-    const stack = [...figma.currentPage.children];
-    let walkCount = 0;
 
-    while (stack.length > 0) {
-      const current = stack.pop()!;
-
+    for await (const current of walkNodes(figma.currentPage.children)) {
       // Check plugin data bindings for this token path
       const boundProps: string[] = [];
       for (const prop of ALL_BINDABLE_PROPERTIES) {
@@ -252,21 +231,9 @@ export async function scanTokenUsage(tokenPath: string) {
           id: current.id,
           name: current.name,
           type: current.type,
-          componentName: findComponentAncestor(current),
+          componentName: findComponentAncestor(current as SceneNode),
           properties: boundProps,
         });
-      }
-
-      if ('children' in current) {
-        const container = current as ChildrenMixin & SceneNode;
-        for (let c = container.children.length - 1; c >= 0; c--) {
-          stack.push(container.children[c]);
-        }
-      }
-
-      walkCount++;
-      if (walkCount % BATCH_SIZE === 0) {
-        await new Promise<void>(resolve => setTimeout(resolve, 0));
       }
     }
 

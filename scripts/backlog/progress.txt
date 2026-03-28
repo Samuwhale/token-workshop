@@ -337,3 +337,14 @@
 - **Learnings for future iterations:**
   - When snapshotting mutable state for rollback, check against the Figma Variable API docs for all writable properties — easy to miss `description` and `hiddenFromPublishing` since they aren't commonly mutated
 ---
+
+## 2026-03-28 - Plugin sandbox duplicate batched node traversal in heatmapScanning.ts and consistencyScanner.ts
+- Extracted shared `walkNodes` async generator and `VISUAL_TYPES` constant into new `packages/figma-plugin/src/plugin/walkNodes.ts`
+- Refactored `scanCanvasHeatmap()` (heatmapScanning.ts ~L88-104 → 3-line for-await loop)
+- Refactored `scanTokenUsage()` (heatmapScanning.ts ~L227-271 → for-await loop, no filter)
+- Refactored `scanConsistency()` (consistencyScanner.ts ~L50-87 → unified for-await for both selection/page scope)
+- Files changed: `packages/figma-plugin/src/plugin/walkNodes.ts` (new), `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L1-4,88-104,227-260, `packages/figma-plugin/src/plugin/consistencyScanner.ts` ~L1-4,50-87
+- **Learnings for future iterations:**
+  - The `walkNodes` generator accepts optional `filter` set — omit to walk all nodes (used by `scanTokenUsage`)
+  - Selection scope and page scope now use the same generator; selection just passes `figma.currentPage.selection` as roots
+---

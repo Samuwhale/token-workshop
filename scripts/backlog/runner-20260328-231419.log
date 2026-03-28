@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Plugin sandbox duplicate batched node traversal in heatmapScanning.ts and consistencyScanner.ts — both files implement nearly identical stack-based tree walks over `figma.currentPage.children` with `VISUAL_TYPES` filtering, `ChildrenMixin` casting, BATCH_SIZE=200 yield-to-main-thread pattern, and `walkCount` tracking; extract into a shared `walkVisualNodes(roots, opts)` async generator in a plugin utility file
   Worktree: /tmp/backlog-85711-iEEfcb
+
+  ✓ done: Plugin sandbox duplicate batched node traversal in heatmapScanning.ts and consistencyScanner.ts
+    Extracted walkNodes async generator + VISUAL_TYPES into shared walkNodes.ts; refactored 3 call sites in heatmapScanning.ts and 1 in consistencyScanner.ts to use it
+    14 turns · 136s · $0.63
+
+--- Merging: Plugin sandbox duplicate batched node traversal in heatmapScanning.ts and consistencyScanner.ts ---
+Already up to date.

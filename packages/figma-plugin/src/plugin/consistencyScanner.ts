@@ -2,6 +2,7 @@
 import { ALL_BINDABLE_PROPERTIES } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { rgbToHex, parseDimValue, parseHexRaw } from './colorUtils.js';
+import { walkNodes, VISUAL_TYPES } from './walkNodes.js';
 
 export interface ConsistencyMatch {
   nodeId: string;
@@ -48,42 +49,13 @@ export async function scanConsistency(
   scope: 'selection' | 'page',
 ) {
   try {
-    const VISUAL_TYPES = new Set([
-      'FRAME', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE',
-      'RECTANGLE', 'ELLIPSE', 'POLYGON', 'STAR', 'VECTOR', 'LINE', 'TEXT',
-    ]);
-
     // Collect nodes
+    const roots = scope === 'selection'
+      ? figma.currentPage.selection
+      : figma.currentPage.children;
     const nodes: SceneNode[] = [];
-    if (scope === 'selection') {
-      const stack: SceneNode[] = [...figma.currentPage.selection];
-      while (stack.length > 0) {
-        const node = stack.pop()!;
-        if (VISUAL_TYPES.has(node.type)) nodes.push(node);
-        if ('children' in node) {
-          for (const child of (node as ChildrenMixin).children) {
-            stack.push(child as SceneNode);
-          }
-        }
-      }
-    } else {
-      const BATCH_SIZE = 200;
-      const walkStack: SceneNode[] = [...figma.currentPage.children];
-      let walkCount = 0;
-      while (walkStack.length > 0) {
-        const current = walkStack.pop()!;
-        if (VISUAL_TYPES.has(current.type)) nodes.push(current);
-        if ('children' in current) {
-          const c = current as ChildrenMixin & SceneNode;
-          for (let i = c.children.length - 1; i >= 0; i--) {
-            walkStack.push(c.children[i] as SceneNode);
-          }
-        }
-        walkCount++;
-        if (walkCount % BATCH_SIZE === 0) {
-          await new Promise<void>(r => setTimeout(r, 0));
-        }
-      }
+    for await (const node of walkNodes(roots, { filter: VISUAL_TYPES })) {
+      nodes.push(node);
     }
 
     // Pre-bucket tokens by type
