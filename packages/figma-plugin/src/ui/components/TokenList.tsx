@@ -15,6 +15,7 @@ import {
   pruneDeletedPaths, filterByDuplicatePaths, filterTokenNodes,
   sortTokenNodes, collectGroupPathsByDepth, collectAllGroupPaths,
   flattenLeafNodes, findLeafByPath, collectGroupLeaves, getDefaultValue,
+  hasStructuredQualifiers, parseStructuredQuery, QUERY_QUALIFIERS,
 } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
@@ -475,6 +476,18 @@ export function TokenList({
   }, []);
 
   const [crossSetSearch, setCrossSetSearch] = useState(false);
+  const [showQualifierHints, setShowQualifierHints] = useState(false);
+  const [hintIndex, setHintIndex] = useState(0);
+  const qualifierHintsRef = useRef<HTMLDivElement>(null);
+
+  // Compute filtered qualifier hints based on what the user is currently typing
+  const qualifierHints = useMemo(() => {
+    // Find the word the cursor is at the end of
+    const lastWord = searchQuery.split(/\s+/).pop() || '';
+    if (!lastWord || lastWord.includes(':')) return [];
+    const lw = lastWord.toLowerCase();
+    return QUERY_QUALIFIERS.filter(q => q.qualifier.toLowerCase().startsWith(lw));
+  }, [searchQuery]);
 
   const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly;
 
@@ -587,7 +600,7 @@ export function TokenList({
   }, []);
 
   const displayedTokens = useMemo(() => {
-    let result = filtersActive ? filterTokenNodes(sortedTokens, searchQuery, typeFilter, refFilter) : sortedTokens;
+    let result = filtersActive ? filterTokenNodes(sortedTokens, searchQuery, typeFilter, refFilter, duplicateValuePaths) : sortedTokens;
     if (showDuplicates) result = filterByDuplicatePaths(result, duplicateValuePaths);
     if (showIssuesOnly && lintPaths.size > 0) result = filterByDuplicatePaths(result, lintPaths);
     if (inspectMode && selectedNodes.length > 0) result = filterByDuplicatePaths(result, boundTokenPaths);
@@ -600,15 +613,39 @@ export function TokenList({
   // Cross-set search: search across all sets when toggled on
   const crossSetResults = useMemo(() => {
     if (!crossSetSearch || !searchQuery.trim() || !perSetFlat) return null;
-    const q = searchQuery.toLowerCase().trim();
+    const parsed = parseStructuredQuery(searchQuery);
+    const q = parsed.text.toLowerCase();
     const results: Array<{ setName: string; path: string; entry: TokenMapEntry }> = [];
     for (const sn of sets) {
       const setMap = perSetFlat[sn];
       if (!setMap) continue;
       for (const [path, entry] of Object.entries(setMap)) {
-        if (path.toLowerCase().includes(q)) {
-          results.push({ setName: sn, path, entry });
+        const lp = path.toLowerCase();
+        const ln = path.split('.').pop()?.toLowerCase() || '';
+        // Free text
+        if (q && !lp.includes(q) && !ln.includes(q)) continue;
+        // type: qualifier
+        if (parsed.types.length > 0) {
+          const et = (entry.$type || '').toLowerCase();
+          if (!parsed.types.some(t => et === t || et.includes(t))) continue;
         }
+        // has: qualifiers
+        let skip = false;
+        for (const h of parsed.has) {
+          if ((h === 'alias' || h === 'ref') && !isAlias(entry.$value)) { skip = true; break; }
+          if (h === 'direct' && isAlias(entry.$value)) { skip = true; break; }
+        }
+        if (skip) continue;
+        // value: qualifier
+        if (parsed.values.length > 0) {
+          const sv = stableStringify(entry.$value).toLowerCase();
+          if (!parsed.values.some(v => sv.includes(v))) continue;
+        }
+        // path: qualifier
+        if (parsed.paths.length > 0 && !parsed.paths.some(p => lp.startsWith(p) || lp.includes(p))) continue;
+        // name: qualifier
+        if (parsed.names.length > 0 && !parsed.names.some(n => ln.includes(n))) continue;
+        results.push({ setName: sn, path, entry });
       }
     }
     return results;
@@ -1969,10 +2006,52 @@ export function TokenList({
                     ref={searchRef}
                     type="text"
                     value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search…"
-                    className="w-full pl-6 pr-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
+                    onChange={e => {
+                      setSearchQuery(e.target.value);
+                      setHintIndex(0);
+                    }}
+                    onFocus={() => setShowQualifierHints(true)}
+                    onBlur={() => { setTimeout(() => setShowQualifierHints(false), 150); }}
+                    onKeyDown={e => {
+                      if (!showQualifierHints || qualifierHints.length === 0) return;
+                      if (e.key === 'ArrowDown') { e.preventDefault(); setHintIndex(i => Math.min(i + 1, qualifierHints.length - 1)); }
+                      else if (e.key === 'ArrowUp') { e.preventDefault(); setHintIndex(i => Math.max(i - 1, 0)); }
+                      else if (e.key === 'Tab' || (e.key === 'Enter' && qualifierHints.length > 0)) {
+                        e.preventDefault();
+                        const hint = qualifierHints[hintIndex];
+                        if (hint) {
+                          const words = searchQuery.split(/\s+/);
+                          words[words.length - 1] = hint.qualifier;
+                          setSearchQuery(words.join(' '));
+                          setHintIndex(0);
+                        }
+                      }
+                    }}
+                    placeholder={hasStructuredQualifiers(searchQuery) ? 'Add more filters…' : 'Search… (try type: has: value:)'}
+                    className={`w-full pl-6 pr-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${hasStructuredQualifiers(searchQuery) ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)]'} focus:border-[var(--color-figma-accent)]`}
                   />
+                  {/* Qualifier autocomplete hints */}
+                  {showQualifierHints && qualifierHints.length > 0 && (
+                    <div ref={qualifierHintsRef} className="absolute left-0 top-full mt-0.5 w-full z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden">
+                      {qualifierHints.map((hint, i) => (
+                        <button
+                          key={hint.qualifier}
+                          onMouseDown={e => {
+                            e.preventDefault();
+                            const words = searchQuery.split(/\s+/);
+                            words[words.length - 1] = hint.qualifier;
+                            setSearchQuery(words.join(' '));
+                            setHintIndex(0);
+                            searchRef.current?.focus();
+                          }}
+                          className={`w-full text-left px-2 py-1 text-[10px] flex items-center gap-2 ${i === hintIndex ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                        >
+                          <span className="font-mono font-semibold text-[var(--color-figma-accent)]">{hint.qualifier}</span>
+                          <span className="truncate">{hint.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <select
                   value={typeFilter}

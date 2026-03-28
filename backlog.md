@@ -135,10 +135,10 @@
 - [x] TokenList double-click to edit is undiscoverable — the only visual affordance is a pencil icon on hover; new users don't know double-click opens the editor since there's no tooltip or onboarding hint
 - [~] TokenList search doesn't support structured queries — no `type:color`, `set:brand`, `has:alias`, or `modified:today` qualifiers; all filtering requires separate dropdown controls scattered across the toolbar
 - [~] TokenList has no "recently edited" or "recently created" view — after creating tokens across multiple groups, there's no way to see what you just touched without remembering paths; useful during long editing sessions
-- [~] TokenList hover action buttons (edit, copy, apply) cause subtle layout shift — buttons fade in on hover but take up space, pushing the value column slightly; distracting when scanning a long list
+- [x] TokenList hover action buttons (edit, copy, apply) cause subtle layout shift — buttons fade in on hover but take up space, pushing the value column slightly; distracting when scanning a long list
 - [x] BatchEditor move-to-set operation has no preview — unlike rename and scale which show before/after for 3 items, move shows no preview of destination paths or conflict detection before executing
-- [ ] BatchEditor has no progress indicator for large operations — processing 500+ tokens shows no progress bar or count; the UI appears frozen until the operation completes
-- [ ] BatchEditor type conversion doesn't validate value compatibility — changing tokens from `dimension` to `color` type proceeds without checking if values like `16px` are valid colors; produces invalid tokens silently
+- [~] BatchEditor has no progress indicator for large operations — processing 500+ tokens shows no progress bar or count; the UI appears frozen until the operation completes
+- [~] BatchEditor type conversion doesn't validate value compatibility — changing tokens from `dimension` to `color` type proceeds without checking if values like `16px` are valid colors; produces invalid tokens silently
 - [ ] PasteTokensModal doesn't validate token path segments — pasted paths with spaces, special characters, or reserved `$` prefixes pass through parsing without error and fail silently on the server
 - [ ] PasteTokensModal creates tokens one-at-a-time via individual POST requests — importing 200 tokens makes 200 sequential HTTP calls; no batch endpoint usage despite `/api/tokens/:set/batch` existing
 - [ ] PasteTokensModal has no progress bar during import — pasting 100+ tokens shows no indication of how many have been processed; the UI appears stuck until all requests complete

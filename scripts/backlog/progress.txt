@@ -409,3 +409,17 @@
   - `opacity-0`/`opacity-100` toggles cause layout shift when elements are inline flex children — use absolute positioning for hover overlays to eliminate shift
   - The `relative` class was already on token rows but needed to be added to group rows for absolute children to work
 ---
+
+## 2026-03-28 - TokenList search doesn't support structured queries
+- Added structured query parser supporting qualifiers: `type:`, `has:alias`, `has:direct`, `has:duplicate`, `has:description`, `has:extension`, `value:`, `desc:`, `path:`, `name:`
+- Parser extracts qualifiers from the search string and leaves remainder as free-text; all qualifiers are AND-ed together
+- Added autocomplete dropdown that shows matching qualifier hints as user types (with keyboard nav via Arrow/Tab/Enter)
+- Updated `filterTokenNodes` to accept `duplicateValuePaths` and use structured query when qualifiers present
+- Cross-set search also respects structured qualifiers (type, has, value, path, name)
+- Search input border highlights accent color when structured qualifiers are active; placeholder text updates
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L4-82,135-230; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L16,480-493,589,614-650,1964-2055
+- **Learnings for future iterations:**
+  - The `QUALIFIER_RE` regex with `/gi` flag uses `\b` word boundary and `\S+` for values — this means qualifier values cannot contain spaces; quoted values would need separate handling
+  - `stableStringify` is already imported in TokenList.tsx but needed a new import in tokenListUtils.ts for value matching
+  - The qualifier autocomplete uses `onBlur` with 150ms setTimeout to allow `onMouseDown` on hint items to fire before the dropdown closes
+---

@@ -468,3 +468,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenList search doesn't support structured queries — no `type:color`, `set:brand`, `has:alias`, or `modified:today` qualifiers; all filtering requires separate dropdown controls scattered across the toolbar
   Worktree: /tmp/backlog-10278-d6R3vj
+
+  ✓ done: TokenList search doesn't support structured queries
+    Added structured query parser with qualifiers (type:, has:alias/direct/duplicate/description/extension, value:, desc:, path:, name:) and autocomplete dropdown with keyboard navigation. Qualifiers are extracted from search text and AND-ed with existing dropdown filters.
+    41 turns · 302s · $1.52
+
+--- Merging: TokenList search doesn't support structured queries ---
+Already up to date.

@@ -581,3 +581,16 @@ Already up to date.
 
 --- Merging: TokenList hover action buttons cause subtle layout shift ---
 Already up to date.
+[main f3ff53b] chore(backlog): done – TokenList hover action buttons cause subtle layout shift
+ 7 files changed, 52 insertions(+), 28 deletions(-)
+
+## 2026-03-28 - TokenList hover action buttons cause subtle layout shift
+- Changed token row and group row hover action buttons from inline flex children (opacity-only toggle) to absolutely-positioned overlays (`absolute right-1 top-0 bottom-0`)
+- Both token leaf rows and group rows now use the same pattern: a single absolute container holds all action buttons, preventing them from affecting flex layout
+- The edit button retains its faint-always-visible style (`opacity-40 group-hover:opacity-100`), while other action buttons remain fully hidden until hover
+
+===============================================================
+  Iteration 29 / 90  (claude)  —  7 items remaining
+===============================================================
+  Claimed: BatchEditor type conversion doesn't validate value compatibility — changing tokens from `dimension` to `color` type proceeds without checking if values like `16px` are valid colors; produces invalid tokens silently
+  Worktree: /tmp/backlog-85816-BFBQR2

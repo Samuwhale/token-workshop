@@ -1,5 +1,77 @@
 import type { TokenNode } from '../hooks/useTokens';
 import { isAlias } from '../../shared/resolveAlias';
+import { stableStringify } from '../shared/utils';
+
+// ---------------------------------------------------------------------------
+// Structured query parsing
+// ---------------------------------------------------------------------------
+
+export interface ParsedQuery {
+  /** Free-text portion (after extracting qualifiers) */
+  text: string;
+  /** type:color, type:dimension, etc. */
+  types: string[];
+  /** has:alias, has:direct, has:duplicate, has:description */
+  has: string[];
+  /** value:<substring> — search within serialized token values */
+  values: string[];
+  /** desc:<substring> — search within $description */
+  descs: string[];
+  /** path:<prefix> — match path prefix */
+  paths: string[];
+  /** name:<substring> — search only the leaf name */
+  names: string[];
+}
+
+const QUALIFIER_RE = /\b(type|has|value|desc|path|name):(\S+)/gi;
+
+/** Recognized values for has: qualifier */
+const HAS_VALUES = new Set(['alias', 'ref', 'direct', 'duplicate', 'dup', 'description', 'desc', 'extension', 'ext']);
+
+export function parseStructuredQuery(raw: string): ParsedQuery {
+  const types: string[] = [];
+  const has: string[] = [];
+  const values: string[] = [];
+  const descs: string[] = [];
+  const paths: string[] = [];
+  const names: string[] = [];
+
+  const text = raw.replace(QUALIFIER_RE, (_, key: string, val: string) => {
+    const k = key.toLowerCase();
+    const v = val.toLowerCase();
+    switch (k) {
+      case 'type': types.push(v); break;
+      case 'has': if (HAS_VALUES.has(v)) has.push(v); break;
+      case 'value': values.push(v); break;
+      case 'desc': descs.push(v); break;
+      case 'path': paths.push(v); break;
+      case 'name': names.push(v); break;
+    }
+    return ''; // remove qualifier from text portion
+  }).trim();
+
+  return { text, types, has, values, descs, paths, names };
+}
+
+/** Returns true when the raw query contains at least one recognized qualifier. */
+export function hasStructuredQualifiers(raw: string): boolean {
+  QUALIFIER_RE.lastIndex = 0;
+  return QUALIFIER_RE.test(raw);
+}
+
+/** Available qualifier suggestions for the autocomplete hint. */
+export const QUERY_QUALIFIERS = [
+  { qualifier: 'type:', desc: 'Filter by token type', example: 'type:color' },
+  { qualifier: 'has:alias', desc: 'Only alias/reference tokens', example: '' },
+  { qualifier: 'has:direct', desc: 'Only direct-value tokens', example: '' },
+  { qualifier: 'has:duplicate', desc: 'Only tokens with duplicate values', example: '' },
+  { qualifier: 'has:description', desc: 'Only tokens with a description', example: '' },
+  { qualifier: 'has:extension', desc: 'Only tokens with $extensions', example: '' },
+  { qualifier: 'value:', desc: 'Search within token values', example: 'value:#ff0000' },
+  { qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary' },
+  { qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand' },
+  { qualifier: 'name:', desc: 'Search by leaf name only', example: 'name:500' },
+];
 
 // ---------------------------------------------------------------------------
 // Types
@@ -137,12 +209,22 @@ export function filterTokenNodes(
   searchQuery: string,
   typeFilter: string,
   refFilter: 'all' | 'aliases' | 'direct',
+  duplicateValuePaths?: Set<string>,
 ): TokenNode[] {
-  const q = searchQuery.toLowerCase();
+  const parsed = parseStructuredQuery(searchQuery);
+  const hasQualifiers = parsed.types.length > 0 || parsed.has.length > 0 || parsed.values.length > 0
+    || parsed.descs.length > 0 || parsed.paths.length > 0 || parsed.names.length > 0;
+
+  if (hasQualifiers) {
+    return filterTokenNodesStructured(nodes, parsed, typeFilter, refFilter, duplicateValuePaths);
+  }
+
+  // Fast path: plain text search (no qualifiers)
+  const q = parsed.text.toLowerCase();
   const result: TokenNode[] = [];
   for (const node of nodes) {
     if (node.isGroup) {
-      const filteredChildren = filterTokenNodes(node.children ?? [], searchQuery, typeFilter, refFilter);
+      const filteredChildren = filterTokenNodes(node.children ?? [], searchQuery, typeFilter, refFilter, duplicateValuePaths);
       if (filteredChildren.length > 0) {
         result.push({ ...node, children: filteredChildren });
       }
@@ -153,6 +235,78 @@ export function filterTokenNodes(
         || (refFilter === 'aliases' && isAlias(node.$value))
         || (refFilter === 'direct' && !isAlias(node.$value));
       if (matchesSearch && matchesType && matchesRef) result.push(node);
+    }
+  }
+  return result;
+}
+
+function filterTokenNodesStructured(
+  nodes: TokenNode[],
+  parsed: ParsedQuery,
+  typeFilter: string,
+  refFilter: 'all' | 'aliases' | 'direct',
+  duplicateValuePaths?: Set<string>,
+): TokenNode[] {
+  const q = parsed.text.toLowerCase();
+  const result: TokenNode[] = [];
+  for (const node of nodes) {
+    if (node.isGroup) {
+      const filtered = filterTokenNodesStructured(node.children ?? [], parsed, typeFilter, refFilter, duplicateValuePaths);
+      if (filtered.length > 0) result.push({ ...node, children: filtered });
+    } else {
+      // Free-text match (on path + name)
+      if (q && !node.path.toLowerCase().includes(q) && !node.name.toLowerCase().includes(q)) continue;
+
+      // type: qualifier (OR within multiple type: values)
+      if (parsed.types.length > 0) {
+        const nt = (node.$type || '').toLowerCase();
+        if (!parsed.types.some(t => nt === t || nt.includes(t))) continue;
+      }
+      // Also respect the dropdown type filter
+      if (typeFilter && node.$type !== typeFilter) continue;
+
+      // has: qualifiers (all must match)
+      let hasMatch = true;
+      for (const h of parsed.has) {
+        if ((h === 'alias' || h === 'ref') && !isAlias(node.$value)) { hasMatch = false; break; }
+        if (h === 'direct' && isAlias(node.$value)) { hasMatch = false; break; }
+        if ((h === 'duplicate' || h === 'dup') && (!duplicateValuePaths || !duplicateValuePaths.has(node.path))) { hasMatch = false; break; }
+        if ((h === 'description' || h === 'desc') && !node.$description) { hasMatch = false; break; }
+        if ((h === 'extension' || h === 'ext') && (!node.$extensions || Object.keys(node.$extensions).length === 0)) { hasMatch = false; break; }
+      }
+      if (!hasMatch) continue;
+
+      // Dropdown ref filter
+      if (refFilter !== 'all') {
+        if (refFilter === 'aliases' && !isAlias(node.$value)) continue;
+        if (refFilter === 'direct' && isAlias(node.$value)) continue;
+      }
+
+      // value: qualifier — match serialized $value
+      if (parsed.values.length > 0) {
+        const sv = stableStringify(node.$value).toLowerCase();
+        if (!parsed.values.some(v => sv.includes(v))) continue;
+      }
+
+      // desc: qualifier — match $description
+      if (parsed.descs.length > 0) {
+        const d = (node.$description || '').toLowerCase();
+        if (!parsed.descs.some(ds => d.includes(ds))) continue;
+      }
+
+      // path: qualifier — match path prefix
+      if (parsed.paths.length > 0) {
+        const lp = node.path.toLowerCase();
+        if (!parsed.paths.some(p => lp.startsWith(p) || lp.includes(p))) continue;
+      }
+
+      // name: qualifier — match leaf name only
+      if (parsed.names.length > 0) {
+        const ln = node.name.toLowerCase();
+        if (!parsed.names.some(n => ln.includes(n))) continue;
+      }
+
+      result.push(node);
     }
   }
   return result;

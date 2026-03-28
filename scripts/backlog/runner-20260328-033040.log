@@ -558,3 +558,9 @@ Already up to date.
 - Made the pencil/edit icon always faintly visible (opacity-40) on every token row as a visual hint, fully visible on hover
 - Added `title="Double-click to edit"` tooltip on the token name/info area
 - Updated edit button tooltip to "Edit (or double-click row)"
+
+===============================================================
+  Iteration 27 / 90  (claude)  —  8 items remaining
+===============================================================
+  Claimed: BatchEditor has no progress indicator for large operations — processing 500+ tokens shows no progress bar or count; the UI appears frozen until the operation completes
+  Worktree: /tmp/backlog-84992-ub2JrD
