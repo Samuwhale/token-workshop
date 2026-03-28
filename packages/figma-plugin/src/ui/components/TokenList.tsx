@@ -29,6 +29,9 @@ import { TokenListModals } from './TokenListModals';
 import { TokenTableView } from './TokenTableView';
 import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 import { usePinnedTokens } from '../hooks/usePinnedTokens';
+import { useTokenCreate } from '../hooks/useTokenCreate';
+import { useFindReplace } from '../hooks/useFindReplace';
+import { useDragDrop } from '../hooks/useDragDrop';
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
@@ -38,20 +41,7 @@ export function TokenList({
   highlightedToken,
   showIssuesOnly,
 }: TokenListProps) {
-  const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
-  const [newTokenPath, setNewTokenPath] = useState('');
-  const [newTokenType, setNewTokenTypeState] = useState(() => {
-    try { return localStorage.getItem('tm_last_token_type') || 'color'; } catch { return 'color'; }
-  });
-  const setNewTokenType = (t: string) => {
-    setNewTokenTypeState(t);
-    try { localStorage.setItem('tm_last_token_type', t); } catch {}
-  };
-  const [newTokenValue, setNewTokenValue] = useState('');
-  const [newTokenDescription, setNewTokenDescription] = useState('');
-  const [typeAutoInferred, setTypeAutoInferred] = useState(false);
-  const [createError, setCreateError] = useState('');
-  const [siblingPrefix, setSiblingPrefix] = useState<string | null>(null);
+  // Token create state is managed by useTokenCreate hook (called below after dependencies)
   const [applying, setApplying] = useState(false);
   const [applyResult, setApplyResult] = useState<{ type: 'variables' | 'styles'; count: number } | null>(null);
   const [varDiffPending, setVarDiffPending] = useState<{ added: number; modified: number; unchanged: number; flat: any[] } | null>(null);
@@ -65,21 +55,13 @@ export function TokenList({
   const lastSelectedPathRef = useRef<string | null>(null);
   const varReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
   const varReadCorrelIdRef = useRef<string | null>(null);
-  const [dragSource, setDragSource] = useState<{ paths: string[]; names: string[] } | null>(null);
-  const [dragOverGroup, setDragOverGroup] = useState<string | null>(null);
-  const [dragOverGroupIsInvalid, setDragOverGroupIsInvalid] = useState(false);
-  const [dragOverReorder, setDragOverReorder] = useState<{ path: string; position: 'before' | 'after' } | null>(null);
+  // Drag/drop state is managed by useDragDrop hook (called below after dependencies)
   const [showBatchEditor, setShowBatchEditor] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
   const [promoteRows, setPromoteRows] = useState<PromoteRow[] | null>(null);
   const [promoteBusy, setPromoteBusy] = useState(false);
   const [showScaffold, setShowScaffold] = useState(false);
-  const [showFindReplace, setShowFindReplace] = useState(false);
-  const [frFind, setFrFind] = useState('');
-  const [frReplace, setFrReplace] = useState('');
-  const [frIsRegex, setFrIsRegex] = useState(false);
-  const [frError, setFrError] = useState('');
-  const [frBusy, setFrBusy] = useState(false);
+  // Find/replace state is managed by useFindReplace hook (called below after dependencies)
 
   // New-group dialog: null = closed, string = parent path ('' = root level)
   const [newGroupDialogParent, setNewGroupDialogParent] = useState<string | null>(null);
@@ -120,7 +102,7 @@ export function TokenList({
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const createFormRef = useRef<HTMLDivElement>(null);
+  // createFormRef is managed by useTokenCreate hook
   const virtualListRef = useRef<HTMLDivElement>(null);
   const [virtualScrollTop, setVirtualScrollTop] = useState(0);
   // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
@@ -134,16 +116,6 @@ export function TokenList({
   const scrollAnchorPathRef = useRef<string | null>(null);
   const isFilterChangeRef = useRef(false);
 
-  // Scroll to and pulse the create form when it appears
-  useEffect(() => {
-    if (showCreateForm && createFormRef.current) {
-      createFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      createFormRef.current.classList.remove('create-form-pulse');
-      // Force reflow so re-adding the class restarts the animation
-      void createFormRef.current.offsetWidth;
-      createFormRef.current.classList.add('create-form-pulse');
-    }
-  }, [showCreateForm]);
 
   useEffect(() => {
     if (tokens.length === 0) return;
@@ -198,200 +170,8 @@ export function TokenList({
     setExpandedPaths(new Set());
   }, []);
 
-  const handleOpenCreateSibling = useCallback((groupPath: string, tokenType: string) => {
-    if (onCreateNew) {
-      onCreateNew(groupPath ? groupPath + '.' : '', tokenType || 'color');
-      return;
-    }
-    setSiblingPrefix(groupPath);
-    setNewTokenPath(groupPath ? groupPath + '.' : '');
-    setNewTokenType(tokenType || 'color');
-    setShowCreateForm(true);
-  }, [onCreateNew]);
 
-  // Container-level keyboard shortcut handler for the token list
-  const handleListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
-
-    // Escape: close create form, exit select mode, or blur search
-    if (e.key === 'Escape') {
-      if (showCreateForm) {
-        e.preventDefault();
-        setShowCreateForm(false);
-        setNewTokenPath('');
-        setSiblingPrefix(null);
-        setCreateError('');
-        return;
-      }
-      if (selectMode) {
-        e.preventDefault();
-        setSelectMode(false);
-        setSelectedPaths(new Set());
-        setShowBatchEditor(false);
-        return;
-      }
-      return;
-    }
-
-    // Cmd/Ctrl+C: copy selected tokens as DTCG JSON
-    if (e.key === 'c' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
-      if (selectMode && selectedPaths.size > 0) {
-        e.preventDefault();
-        const nodes = displayedLeafNodesRef.current.filter(n => selectedPaths.has(n.path));
-        copyTokensAsJsonRef.current(nodes);
-        return;
-      }
-      // Single focused token row — copy that token
-      if (!isTyping) {
-        const focusedPath = (document.activeElement as HTMLElement)?.dataset?.tokenPath;
-        if (focusedPath) {
-          const node = displayedLeafNodesRef.current.find(n => n.path === focusedPath);
-          if (node) {
-            e.preventDefault();
-            copyTokensAsJsonRef.current([node]);
-            return;
-          }
-        }
-      }
-    }
-
-    // Don't handle shortcuts when typing in a form field
-    if (isTyping) return;
-
-    // m: toggle multi-select mode
-    if (e.key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-      e.preventDefault();
-      if (selectMode) {
-        setSelectMode(false);
-        setSelectedPaths(new Set());
-        setShowBatchEditor(false);
-      } else {
-        setSelectMode(true);
-      }
-      return;
-    }
-
-    // n: open create form / drawer, pre-filling path from focused group or token's parent group
-    if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
-      e.preventDefault();
-      const activeEl = document.activeElement as HTMLElement;
-      const groupPath = activeEl?.dataset?.groupPath;
-      const tokenPath = activeEl?.dataset?.tokenPath;
-
-      let prefixPath = '';
-      if (groupPath) {
-        prefixPath = groupPath;
-      } else if (tokenPath) {
-        // Find the deepest group that is an ancestor of this token
-        const groups = Array.from(document.querySelectorAll<HTMLElement>('[data-group-path]'));
-        const parentGroup = groups
-          .filter(el => tokenPath.startsWith((el.dataset.groupPath ?? '') + '.'))
-          .sort((a, b) => (b.dataset.groupPath?.length ?? 0) - (a.dataset.groupPath?.length ?? 0))[0];
-        prefixPath = parentGroup?.dataset?.groupPath ?? '';
-      }
-
-      if (prefixPath) {
-        handleOpenCreateSibling(prefixPath, 'color');
-      } else if (onCreateNew) {
-        onCreateNew();
-      } else {
-        setShowCreateForm(true);
-      }
-      return;
-    }
-
-    // /: focus search input
-    if (e.key === '/') {
-      e.preventDefault();
-      searchRef.current?.focus();
-      return;
-    }
-
-    // ↑/↓: navigate between visible token and group rows
-    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-token-path],[data-group-path]'));
-      if (rows.length === 0) return;
-      const currentIndex = rows.findIndex(el => el === document.activeElement);
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        const prev = currentIndex > 0 ? rows[currentIndex - 1] : rows[rows.length - 1];
-        prev?.focus();
-        prev?.scrollIntoView({ block: 'nearest' });
-      } else {
-        e.preventDefault();
-        const next = currentIndex < rows.length - 1 ? rows[currentIndex + 1] : rows[0];
-        next?.focus();
-        next?.scrollIntoView({ block: 'nearest' });
-      }
-    }
-
-    // Cmd/Ctrl+→: expand all groups; Cmd/Ctrl+←: collapse all groups
-    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
-      e.preventDefault();
-      if (e.key === 'ArrowRight') {
-        handleExpandAll();
-      } else {
-        handleCollapseAll();
-      }
-      return;
-    }
-
-    // ←/→: expand/collapse groups (standard tree keyboard pattern)
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-      const activeEl = document.activeElement as HTMLElement;
-      const groupPath = activeEl?.dataset?.groupPath;
-      const tokenPath = activeEl?.dataset?.tokenPath;
-
-      if (groupPath) {
-        const isExpanded = expandedPaths.has(groupPath);
-        if (e.key === 'ArrowRight') {
-          e.preventDefault();
-          if (!isExpanded) {
-            // Expand the group
-            handleToggleExpand(groupPath);
-          } else {
-            // Already expanded — move focus to first child row
-            const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-token-path],[data-group-path]'));
-            const idx = rows.indexOf(activeEl);
-            if (idx >= 0 && idx < rows.length - 1) {
-              rows[idx + 1]?.focus();
-              rows[idx + 1]?.scrollIntoView({ block: 'nearest' });
-            }
-          }
-        } else {
-          e.preventDefault();
-          if (isExpanded) {
-            // Collapse the group
-            handleToggleExpand(groupPath);
-          } else {
-            // Already collapsed — move focus to parent group
-            const dotIdx = groupPath.lastIndexOf('.');
-            if (dotIdx > 0) {
-              const parentPath = groupPath.slice(0, dotIdx);
-              const parentEl = document.querySelector<HTMLElement>(`[data-group-path="${CSS.escape(parentPath)}"]`);
-              if (parentEl) {
-                parentEl.focus();
-                parentEl.scrollIntoView({ block: 'nearest' });
-              }
-            }
-          }
-        }
-      } else if (tokenPath && e.key === 'ArrowLeft') {
-        // On a token row, ArrowLeft moves focus to parent group
-        e.preventDefault();
-        const dotIdx = tokenPath.lastIndexOf('.');
-        if (dotIdx > 0) {
-          const parentPath = tokenPath.slice(0, dotIdx);
-          const parentEl = document.querySelector<HTMLElement>(`[data-group-path="${CSS.escape(parentPath)}"]`);
-          if (parentEl) {
-            parentEl.focus();
-            parentEl.scrollIntoView({ block: 'nearest' });
-          }
-        }
-      }
-    }
-  }, [showCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll]);
+  // handleListKeyDown is defined after custom hook calls (below) to avoid TDZ issues
 
   // Expand ancestor groups when navigating to a highlighted token
   useEffect(() => {
@@ -850,14 +630,238 @@ export function TokenList({
     return map;
   }, [tokens]);
 
-  // Smart name suggestions for inline create form
-  const nameSuggestions = useMemo(() => {
-    if (!showCreateForm) return [];
-    const groupPath = siblingPrefix ?? '';
-    const siblings = siblingOrderMap.get(groupPath) ?? [];
-    const layerName = selectedNodes.length === 1 ? selectedNodes[0].name : null;
-    return generateNameSuggestions(newTokenType, newTokenValue, groupPath, siblings, layerName);
-  }, [showCreateForm, siblingPrefix, siblingOrderMap, selectedNodes, newTokenType, newTokenValue]);
+  // --- Custom hooks for extracted state groups ---
+  const tokenCreate = useTokenCreate({
+    defaultCreateOpen,
+    connected,
+    serverUrl,
+    setName,
+    selectedNodes,
+    siblingOrderMap,
+    onCreateNew,
+    onRefresh,
+    onPushUndo,
+    onTokenCreated,
+    onRecordTouch: recentlyTouched.recordTouch,
+  });
+  const {
+    showCreateForm, setShowCreateForm, newTokenPath, setNewTokenPath,
+    newTokenType, setNewTokenType, newTokenValue, setNewTokenValue,
+    newTokenDescription, setNewTokenDescription, typeAutoInferred, setTypeAutoInferred,
+    createError, setCreateError, siblingPrefix, setSiblingPrefix,
+    createFormRef, nameSuggestions, resetCreateForm,
+    handleOpenCreateSibling, handleCreate, handleCreateAndNew,
+  } = tokenCreate;
+
+  const findReplace = useFindReplace({
+    connected,
+    serverUrl,
+    setName,
+    tokens,
+    onRefresh,
+    onPushUndo,
+  });
+  const {
+    showFindReplace, setShowFindReplace,
+    frFind, setFrFind, frReplace, setFrReplace,
+    frIsRegex, setFrIsRegex, frError, setFrError, frBusy,
+    frRegexError, frPreview, handleFindReplace,
+  } = findReplace;
+
+  const dragDrop = useDragDrop({
+    connected,
+    serverUrl,
+    setName,
+    siblingOrderMap,
+    onRefresh,
+    onPushUndo,
+    onError,
+    onRenamePath: (oldPath, newPath) => {
+      recentlyTouched.renamePath(oldPath, newPath);
+      pinnedTokens.renamePin(oldPath, newPath);
+    },
+  });
+  const {
+    dragSource, dragOverGroup, dragOverGroupIsInvalid, dragOverReorder,
+    handleDragStart, handleDragEnd, handleDragOverGroup,
+    handleDragOverToken, handleDragLeaveToken,
+    handleDropOnGroup, handleDropReorder,
+  } = dragDrop;
+
+  // Container-level keyboard shortcut handler for the token list
+  const handleListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+
+    // Escape: close create form, exit select mode, or blur search
+    if (e.key === 'Escape') {
+      if (showCreateForm) {
+        e.preventDefault();
+        resetCreateForm();
+        return;
+      }
+      if (selectMode) {
+        e.preventDefault();
+        setSelectMode(false);
+        setSelectedPaths(new Set());
+        setShowBatchEditor(false);
+        return;
+      }
+      return;
+    }
+
+    // Cmd/Ctrl+C: copy selected tokens as DTCG JSON
+    if (e.key === 'c' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+      if (selectMode && selectedPaths.size > 0) {
+        e.preventDefault();
+        const nodes = displayedLeafNodesRef.current.filter(n => selectedPaths.has(n.path));
+        copyTokensAsJsonRef.current(nodes);
+        return;
+      }
+      // Single focused token row — copy that token
+      if (!isTyping) {
+        const focusedPath = (document.activeElement as HTMLElement)?.dataset?.tokenPath;
+        if (focusedPath) {
+          const node = displayedLeafNodesRef.current.find(n => n.path === focusedPath);
+          if (node) {
+            e.preventDefault();
+            copyTokensAsJsonRef.current([node]);
+            return;
+          }
+        }
+      }
+    }
+
+    // Don't handle shortcuts when typing in a form field
+    if (isTyping) return;
+
+    // m: toggle multi-select mode
+    if (e.key === 'm' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      if (selectMode) {
+        setSelectMode(false);
+        setSelectedPaths(new Set());
+        setShowBatchEditor(false);
+      } else {
+        setSelectMode(true);
+      }
+      return;
+    }
+
+    // n: open create form / drawer, pre-filling path from focused group or token's parent group
+    if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      const activeEl = document.activeElement as HTMLElement;
+      const groupPath = activeEl?.dataset?.groupPath;
+      const tokenPath = activeEl?.dataset?.tokenPath;
+
+      let prefixPath = '';
+      if (groupPath) {
+        prefixPath = groupPath;
+      } else if (tokenPath) {
+        const groups = Array.from(document.querySelectorAll<HTMLElement>('[data-group-path]'));
+        const parentGroup = groups
+          .filter(el => tokenPath.startsWith((el.dataset.groupPath ?? '') + '.'))
+          .sort((a, b) => (b.dataset.groupPath?.length ?? 0) - (a.dataset.groupPath?.length ?? 0))[0];
+        prefixPath = parentGroup?.dataset?.groupPath ?? '';
+      }
+
+      if (prefixPath) {
+        handleOpenCreateSibling(prefixPath, 'color');
+      } else if (onCreateNew) {
+        onCreateNew();
+      } else {
+        setShowCreateForm(true);
+      }
+      return;
+    }
+
+    // /: focus search input
+    if (e.key === '/') {
+      e.preventDefault();
+      searchRef.current?.focus();
+      return;
+    }
+
+    // ↑/↓: navigate between visible token and group rows
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-token-path],[data-group-path]'));
+      if (rows.length === 0) return;
+      const currentIndex = rows.findIndex(el => el === document.activeElement);
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prev = currentIndex > 0 ? rows[currentIndex - 1] : rows[rows.length - 1];
+        prev?.focus();
+        prev?.scrollIntoView({ block: 'nearest' });
+      } else {
+        e.preventDefault();
+        const next = currentIndex < rows.length - 1 ? rows[currentIndex + 1] : rows[0];
+        next?.focus();
+        next?.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    // Cmd/Ctrl+→: expand all groups; Cmd/Ctrl+←: collapse all groups
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+      e.preventDefault();
+      if (e.key === 'ArrowRight') {
+        handleExpandAll();
+      } else {
+        handleCollapseAll();
+      }
+      return;
+    }
+
+    // ←/→: expand/collapse groups (standard tree keyboard pattern)
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const activeEl = document.activeElement as HTMLElement;
+      const groupPath = activeEl?.dataset?.groupPath;
+      const tokenPath = activeEl?.dataset?.tokenPath;
+
+      if (groupPath) {
+        const isExpanded = expandedPaths.has(groupPath);
+        if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          if (!isExpanded) {
+            handleToggleExpand(groupPath);
+          } else {
+            const rows = Array.from(document.querySelectorAll<HTMLElement>('[data-token-path],[data-group-path]'));
+            const idx = rows.indexOf(activeEl);
+            if (idx >= 0 && idx < rows.length - 1) {
+              rows[idx + 1]?.focus();
+              rows[idx + 1]?.scrollIntoView({ block: 'nearest' });
+            }
+          }
+        } else {
+          e.preventDefault();
+          if (isExpanded) {
+            handleToggleExpand(groupPath);
+          } else {
+            const dotIdx = groupPath.lastIndexOf('.');
+            if (dotIdx > 0) {
+              const parentPath = groupPath.slice(0, dotIdx);
+              const parentEl = document.querySelector<HTMLElement>(`[data-group-path="${CSS.escape(parentPath)}"]`);
+              if (parentEl) {
+                parentEl.focus();
+                parentEl.scrollIntoView({ block: 'nearest' });
+              }
+            }
+          }
+        }
+      } else if (tokenPath && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const dotIdx = tokenPath.lastIndexOf('.');
+        if (dotIdx > 0) {
+          const parentPath = tokenPath.slice(0, dotIdx);
+          const parentEl = document.querySelector<HTMLElement>(`[data-group-path="${CSS.escape(parentPath)}"]`);
+          if (parentEl) {
+            parentEl.focus();
+            parentEl.scrollIntoView({ block: 'nearest' });
+          }
+        }
+      }
+    }
+  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll]);
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
@@ -1068,72 +1072,6 @@ export function TokenList({
     pinnedTokens.renamePin(oldPath, newPath);
   }, [connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched, pinnedTokens, onError]);
 
-  const handleDropOnGroup = useCallback(async (targetGroupPath: string) => {
-    if (!dragSource || !connected) return;
-    const source = dragSource;
-    setDragSource(null);
-    setDragOverGroup(null);
-    const moves: Array<{ oldPath: string; newPath: string }> = [];
-    for (let i = 0; i < source.paths.length; i++) {
-      const oldPath = source.paths[i];
-      const name = source.names[i];
-      const newPath = targetGroupPath ? `${targetGroupPath}.${name}` : name;
-      if (newPath === oldPath) continue;
-      moves.push({ oldPath, newPath });
-      try {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ oldPath, newPath }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({ error: `Move failed (${res.status})` }));
-          onError?.(data.error || `Move failed (${res.status})`);
-          onRefresh();
-          return;
-        }
-      } catch {
-        onError?.('Move token failed: network error');
-        onRefresh();
-        return;
-      }
-    }
-    if (onPushUndo && moves.length > 0) {
-      const capturedSet = setName;
-      const capturedUrl = serverUrl;
-      const label = moves.length === 1
-        ? `Move "${moves[0].oldPath.split('.').pop() ?? moves[0].oldPath}"`
-        : `Move ${moves.length} tokens`;
-      onPushUndo({
-        description: label,
-        restore: async () => {
-          for (const { oldPath, newPath } of moves) {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
-            });
-          }
-          onRefresh();
-        },
-        redo: async () => {
-          for (const { oldPath, newPath } of moves) {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ oldPath, newPath }),
-            });
-          }
-          onRefresh();
-        },
-      });
-    }
-    for (const { oldPath, newPath } of moves) {
-      recentlyTouched.renamePath(oldPath, newPath);
-      pinnedTokens.renamePin(oldPath, newPath);
-    }
-    onRefresh();
-  }, [dragSource, connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched, pinnedTokens, onError]);
 
   const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
@@ -1308,71 +1246,6 @@ export function TokenList({
     onRefresh();
   }, [connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo]);
 
-  const handleDropReorder = useCallback(async (targetPath: string, targetName: string, position: 'before' | 'after') => {
-    if (!dragSource || !connected || !serverUrl || !setName) return;
-    setDragOverReorder(null);
-    const source = dragSource;
-    setDragSource(null);
-    setDragOverGroup(null);
-
-    // Only reorder within same group — all dragged tokens must share the target's parent
-    const targetParent = nodeParentPath(targetPath, targetName) ?? '';
-    const siblings = siblingOrderMap.get(targetParent);
-    if (!siblings) return;
-
-    // Verify all dragged tokens are siblings in the same group
-    for (let i = 0; i < source.paths.length; i++) {
-      const srcParent = nodeParentPath(source.paths[i], source.names[i]) ?? '';
-      if (srcParent !== targetParent) {
-        // Cross-group: fall back to existing move-to-group behaviour
-        return;
-      }
-    }
-    // Don't reorder onto self
-    if (source.paths.length === 1 && source.paths[0] === targetPath) return;
-
-    const draggedNames = new Set(source.names);
-    // Build new order: remove dragged items, then insert at target position
-    const withoutDragged = siblings.filter(n => !draggedNames.has(n));
-    const targetIdx = withoutDragged.indexOf(targetName);
-    if (targetIdx < 0) return;
-    const insertIdx = position === 'before' ? targetIdx : targetIdx + 1;
-    const newOrder = [...withoutDragged.slice(0, insertIdx), ...source.names, ...withoutDragged.slice(insertIdx)];
-
-    const prevOrder = [...siblings];
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),
-    });
-    if (onPushUndo) {
-      const capturedSet = setName;
-      const capturedUrl = serverUrl;
-      const label = source.names.length === 1
-        ? `Reorder "${source.names[0]}"`
-        : `Reorder ${source.names.length} tokens`;
-      onPushUndo({
-        description: label,
-        restore: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groupPath: targetParent, orderedKeys: prevOrder }),
-          });
-          onRefresh();
-        },
-        redo: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),
-          });
-          onRefresh();
-        },
-      });
-    }
-    onRefresh();
-  }, [dragSource, connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo]);
 
   const handleInlineSave = useCallback(async (path: string, type: string, newValue: any) => {
     if (!connected) return;
@@ -1475,128 +1348,6 @@ export function TokenList({
     recentlyTouched.recordTouch(path);
   }, [connected, serverUrl, perSetFlat, onRefresh, onPushUndo, recentlyTouched]);
 
-  const handleCreate = async () => {
-    const trimmedPath = newTokenPath.trim();
-    if (!trimmedPath) { setCreateError('Token path cannot be empty'); return; }
-    if (!connected) return;
-    setCreateError('');
-    const effectiveSet = setName || 'default';
-    const parsedValue = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
-    if (parsedValue === null) { setCreateError('Invalid value — boolean tokens must be "true" or "false"'); return; }
-    try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath.split('.').map(encodeURIComponent).join('/')}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          $type: newTokenType,
-          $value: parsedValue,
-          ...(newTokenDescription.trim() ? { $description: newTokenDescription.trim() } : {}),
-        }),
-      });
-      if (!res.ok) {
-        const data: ApiErrorBody = await res.json().catch(() => ({}));
-        setCreateError(data.error || `Failed to create token (${res.status})`);
-        return;
-      }
-      const createdPath = trimmedPath;
-      const createdType = newTokenType;
-      const createdValue = parsedValue;
-      const capturedSet = effectiveSet;
-      const capturedUrl = serverUrl;
-      const capturedEncodedPath = createdPath.split('.').map(encodeURIComponent).join('/');
-      setShowCreateForm(false);
-      setNewTokenPath('');
-      setNewTokenValue('');
-      setNewTokenDescription('');
-      setSiblingPrefix(null);
-      onRefresh();
-      onTokenCreated?.(createdPath);
-      recentlyTouched.recordTouch(createdPath);
-      if (onPushUndo) {
-        onPushUndo({
-          description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
-          restore: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, { method: 'DELETE' });
-            onRefresh();
-          },
-          redo: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $type: createdType, $value: createdValue }),
-            });
-            onRefresh();
-          },
-        });
-      }
-    } catch (err) {
-      setCreateError('Network error — could not create token');
-    }
-  };
-
-  const handleCreateAndNew = async () => {
-    const trimmedPath = newTokenPath.trim();
-    if (!trimmedPath) { setCreateError('Token path cannot be empty'); return; }
-    if (!connected) return;
-    setCreateError('');
-    const effectiveSet = setName || 'default';
-    const parsedValue2 = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
-    if (parsedValue2 === null) { setCreateError('Invalid value — boolean tokens must be "true" or "false"'); return; }
-    try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath.split('.').map(encodeURIComponent).join('/')}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          $type: newTokenType,
-          $value: parsedValue2,
-          ...(newTokenDescription.trim() ? { $description: newTokenDescription.trim() } : {}),
-        }),
-      });
-      if (!res.ok) {
-        const data: ApiErrorBody = await res.json().catch(() => ({}));
-        setCreateError(data.error || `Failed to create token (${res.status})`);
-        return;
-      }
-      const createdPath = trimmedPath;
-      const createdType = newTokenType;
-      const createdValue = parsedValue2;
-      const capturedSet = effectiveSet;
-      const capturedUrl = serverUrl;
-      const capturedEncodedPath = createdPath.split('.').map(encodeURIComponent).join('/');
-      // Compute parent prefix to pre-fill the next token in the same group
-      const prefix = createdPath.length > (createdPath.split('.').pop()?.length ?? 0) + 1
-        ? nodeParentPath(createdPath, createdPath.split('.').pop()!)
-        : null;
-      setSiblingPrefix(prefix ?? '');
-      setNewTokenPath(prefix ? prefix + '.' : '');
-      setNewTokenValue('');
-      setNewTokenDescription('');
-      setTypeAutoInferred(false);
-      setCreateError('');
-      onRefresh();
-      onTokenCreated?.(createdPath);
-      recentlyTouched.recordTouch(createdPath);
-      if (onPushUndo) {
-        onPushUndo({
-          description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
-          restore: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, { method: 'DELETE' });
-            onRefresh();
-          },
-          redo: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $type: createdType, $value: createdValue }),
-            });
-            onRefresh();
-          },
-        });
-      }
-    } catch (err) {
-      setCreateError('Network error — could not create token');
-    }
-  };
 
   const requestDeleteToken = useCallback((path: string) => {
     if (!connected) return;
@@ -1905,99 +1656,6 @@ export function TokenList({
     setTimeout(() => setApplyResult(null), 3000);
   };
 
-  const frRegexError = useMemo(() => {
-    if (!frIsRegex || !frFind) return null;
-    try { new RegExp(frFind); return null; }
-    catch (e) { return e instanceof Error ? e.message : 'Invalid regular expression'; }
-  }, [frFind, frIsRegex]);
-
-  const frPreview = useMemo(() => {
-    if (!frFind) return [];
-    if (frIsRegex && frRegexError) return [];
-    const currentSetPaths = flattenTokens(tokens).map(t => t.path as string);
-    const existingPathSet = new Set(currentSetPaths);
-    let pattern: RegExp | null = null;
-    if (frIsRegex) {
-      try { pattern = new RegExp(frFind, 'g'); } catch { return []; }
-    }
-    const renames: Array<{ oldPath: string; newPath: string; conflict: boolean }> = [];
-    const willBeFreed = new Set<string>();
-    for (const oldPath of currentSetPaths) {
-      const newPath = pattern ? oldPath.replace(pattern, frReplace) : oldPath.split(frFind).join(frReplace);
-      if (newPath !== oldPath) {
-        willBeFreed.add(oldPath);
-        renames.push({ oldPath, newPath, conflict: false });
-      }
-    }
-    // Mark conflicts
-    for (const r of renames) {
-      if (existingPathSet.has(r.newPath) && !willBeFreed.has(r.newPath)) {
-        r.conflict = true;
-      }
-    }
-    return renames;
-  }, [frFind, frReplace, frIsRegex, tokens]);
-
-  const handleFindReplace = async () => {
-    if (!frFind || frBusy) return;
-    setFrError('');
-    setFrBusy(true);
-    // Capture values before async call so undo closure has stable references
-    const capturedFind = frFind;
-    const capturedReplace = frReplace;
-    const capturedIsRegex = frIsRegex;
-    const renamedCount = frPreview.filter(r => !r.conflict).length;
-    try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
-      });
-      const data = await res.json() as { renamed?: number; skipped?: string[]; aliasesUpdated?: number; error?: string };
-      if (!res.ok) { setFrError(data.error ?? 'Rename failed'); return; }
-      if ((data.renamed ?? 0) === 0) {
-        const skippedCount = data.skipped?.length ?? 0;
-        setFrError(skippedCount > 0
-          ? `All ${skippedCount} match${skippedCount === 1 ? '' : 'es'} conflict with existing tokens and were skipped`
-          : 'No token paths matched the search pattern');
-        return;
-      }
-      // Push undo for plain-text renames with a non-empty replacement string.
-      // Regex and empty-replacement cases can't be automatically inverted safely.
-      if (onPushUndo && renamedCount > 0 && !capturedIsRegex && capturedReplace !== '') {
-        const capturedSet = setName;
-        const capturedUrl = serverUrl;
-        onPushUndo({
-          description: `Rename ${renamedCount} token${renamedCount !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
-          restore: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
-            });
-            onRefresh();
-          },
-          redo: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
-            });
-            onRefresh();
-          },
-        });
-      }
-      setShowFindReplace(false);
-      setFrFind('');
-      setFrReplace('');
-      setFrIsRegex(false);
-      onRefresh();
-    } catch (err) {
-      setFrError(getErrorMessage(err));
-    } finally {
-      setFrBusy(false);
-    }
-  };
 
   const handleOpenPromoteModal = () => {
     const flat = flattenTokens(tokens);
@@ -3090,15 +2748,15 @@ export function TokenList({
                 onJumpToGroup={handleJumpToGroup}
                 onInlineSave={handleInlineSave}
                 onRenameToken={handleRenameToken}
-                onDragStart={(paths, names) => setDragSource({ paths, names })}
-                onDragEnd={() => { setDragSource(null); setDragOverGroup(null); setDragOverGroupIsInvalid(false); setDragOverReorder(null); }}
-                onDragOverGroup={(path, invalid) => { setDragOverGroup(path); setDragOverGroupIsInvalid(invalid ?? false); setDragOverReorder(null); }}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragOverGroup={handleDragOverGroup}
                 onDropOnGroup={handleDropOnGroup}
                 dragOverGroup={dragOverGroup}
                 dragOverGroupIsInvalid={dragOverGroupIsInvalid}
                 dragSource={dragSource}
-                onDragOverToken={(path, _name, pos) => { setDragOverReorder({ path, position: pos }); setDragOverGroup(null); }}
-                onDragLeaveToken={() => setDragOverReorder(null)}
+                onDragOverToken={handleDragOverToken}
+                onDragLeaveToken={handleDragLeaveToken}
                 onDropOnToken={(path, name, pos) => handleDropReorder(path, name, pos)}
                 dragOverReorder={sortOrder === 'default' ? dragOverReorder : null}
                 selectedLeafNodes={selectedLeafNodes}

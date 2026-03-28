@@ -78,3 +78,25 @@ Already up to date.
 
 --- Merging: Minimum text size of 9px used for secondary content across both pages ---
 Already up to date.
+[main 7a2f689] chore(backlog): done – Minimum text size of 9px used for secondary content across both pages
+ 55 files changed, 524 insertions(+), 497 deletions(-)
+ create mode 100644 packages/figma-plugin/scripts/backlog/progress.txt
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No `aria-live` regions for dynamic status messages
+- Added `role="alert"` to all dynamically-rendered error messages (delete errors, validation errors, sync errors) and `role="status"` / `aria-live="polite"` to success/status feedback (copy feedback, apply result, import success, sync progress). Toasts (SuccessToast, UndoToast) already had `role="status" aria-live="polite"`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` — copy feedback (`aria-live="polite"` wrapper), delete error banner (`role="alert"`), apply result (`role="status" aria-live="polite"`)
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  16 items remaining
+===============================================================
+  Claimed: TokenList is 1600+ lines with 40+ useState hooks — high re-render surface and hard to reason about; extract related state into custom hooks (`useTokenCreate`, `useFindReplace`, `useDragDrop`)
+  Worktree: /tmp/backlog-34977-zzE618
+
+  ✓ done: Extract TokenList state into custom hooks (useTokenCreate, useFindReplace, useDragDrop)
+    Extracted 14 useState hooks and associated logic into 3 custom hooks (588 lines total), reducing TokenList.tsx from ~3342 to ~3000 lines and useState count from 46 to 32. Build passes.
+    83 turns · 730s · $6.06
+
+--- Merging: Extract TokenList state into custom hooks (useTokenCreate, useFindReplace, useDragDrop) ---
+Already up to date.

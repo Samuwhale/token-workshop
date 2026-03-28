@@ -515,3 +515,19 @@
   - For conditionally rendered elements, modern screen readers announce `role="alert"` elements even when inserted into the DOM (not just content changes). For ternary chains that toggle between multiple states, wrap the whole region in a persistent `aria-live="polite"` container.
   - SuccessToast and UndoToast already had proper ARIA attributes — always check existing components before adding.
 ---
+
+## 2026-03-28 - Extract TokenList state into custom hooks (useTokenCreate, useFindReplace, useDragDrop)
+- Extracted 14 useState hooks and their associated callbacks/effects/memos from TokenList.tsx into 3 custom hooks:
+  - `useTokenCreate` (236 lines): showCreateForm, newTokenPath, newTokenType, newTokenValue, newTokenDescription, typeAutoInferred, createError, siblingPrefix + createFormRef, nameSuggestions, handleCreate, handleCreateAndNew, handleOpenCreateSibling, resetCreateForm
+  - `useFindReplace` (151 lines): showFindReplace, frFind, frReplace, frIsRegex, frError, frBusy + frRegexError, frPreview, handleFindReplace. Extracted `flattenTokenPaths` as a local helper.
+  - `useDragDrop` (201 lines): dragSource, dragOverGroup, dragOverGroupIsInvalid, dragOverReorder + handleDragStart, handleDragEnd, handleDragOverGroup, handleDragOverToken, handleDragLeaveToken, handleDropOnGroup, handleDropReorder
+- TokenList.tsx reduced from ~3342 to ~3000 lines, useState count from 46 to 32
+- Moved `handleListKeyDown` below hook calls to avoid TDZ issues with destructured const bindings
+- Replaced inline drag event handlers in JSX with hook's callback functions
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx`, `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` (new), `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` (new), `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` (new)
+- **Learnings for future iterations:**
+  - Custom hooks that need memoized values (like `siblingOrderMap`) computed later in the component must be called after those computations — React hook ordering is fine as long as it's consistent across renders, but `const` destructurings from hooks have TDZ just like any other `const`
+  - `handleListKeyDown` referenced state from multiple extracted hooks — moving it below all hook calls and using `resetCreateForm` instead of individual setters kept it clean
+  - `flattenTokens` is used by multiple unrelated features (apply variables/styles, promote modal, find/replace preview) — it stayed in TokenList since only find/replace was extracted; future extractions should move it to tokenListHelpers
+  - The drag event handlers in JSX were inlining state setter calls that also cleared related state (e.g., `setDragOverReorder(null)` inside `handleDragOverGroup`). These cross-state interactions must be replicated in the hook's callbacks, not just the individual setters.
+---
