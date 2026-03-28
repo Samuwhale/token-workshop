@@ -611,3 +611,10 @@
   - The batch editor is feature-rich: description, type change, opacity, scale, find/replace rename, and move-to-set are all already implemented
   - Before implementing a batch editor feature, read BatchEditor.tsx first — it likely already exists
 ---
+
+## 2026-03-28 - `SET_NAME_RE` declared twice in App.tsx
+- Removed the local `const SET_NAME_RE = ...` redeclaration on line 60 that shadowed the import from `./shared/utils` on line 54. The import is the authoritative definition; the local copy was dead code.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L60
+- **Learnings for future iterations:**
+  - TypeScript does not error on same-scope `const` shadowing an imported name — it silently uses the local one and the import becomes dead code. ESLint `no-shadow` would catch this, but it wasn't enabled here.
+---

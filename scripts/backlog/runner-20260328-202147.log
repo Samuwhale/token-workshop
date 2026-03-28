@@ -100,3 +100,10 @@ Already up to date.
 ===============================================================
   Claimed: `SET_NAME_RE` declared twice in App.tsx — imported from `./shared/utils` on line 51 and then redeclared locally on line 57, shadowing the import and making it dead code
   Worktree: /tmp/backlog-10461-KsRiad
+
+  ✓ done: `SET_NAME_RE` declared twice in App.tsx
+    Removed local redeclaration on line 60; the import from ./shared/utils is the authoritative definition
+    7 turns · 33s · $0.14
+
+--- Merging: `SET_NAME_RE` declared twice in App.tsx ---
+Already up to date.

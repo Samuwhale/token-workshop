@@ -56,9 +56,6 @@ import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType } from './components/tokenListUtils';
 
-/** Valid set name: alphanumeric, hyphens, underscores, with `/` as folder separator. */
-const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
-
 /** Format a timestamp as a human-readable relative time string. */
 function timeAgo(iso: string): string {
   const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);

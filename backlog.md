@@ -140,10 +140,10 @@
 - [x] Set management discoverability: add visible affordance (menu icon, kebab, dropdown) on set tabs instead of relying solely on right-click for create/rename/duplicate/merge/split/reorder
 - [x] Search qualifier discoverability: add autocomplete, placeholder hints, or a filter dropdown for advanced qualifiers (`type:color`, `alias:{path}`, `>has:ref`) in the token search input
 - [~] "Did you mean this token?" nudge: when a designer pastes/eyedrops a raw value that's within a small delta of an existing token, suggest the token inline — make the systemized path easier than the unsystemized path
-- [~] Bulk type-change in batch editor: allow changing the type of multiple tokens at once (e.g. converting `string` tokens to `dimension` during a migration)
+- [x] Bulk type-change in batch editor: allow changing the type of multiple tokens at once (e.g. converting `string` tokens to `dimension` during a migration)
 - [x] `creatingSet` state stuck on error in App.tsx `handleCreateSet` — `setCreatingSet(false)` at line 789 only runs on success; if the fetch throws (network error), the catch block at line 794-797 never resets `creatingSet`, leaving the UI in a loading state
 - [~] `SET_NAME_RE` declared twice in App.tsx — imported from `./shared/utils` on line 51 and then redeclared locally on line 57, shadowing the import and making it dead code
-- [ ] `useSetMergeSplit` fetch calls missing `.ok` response checks — `handleCheckMergeConflicts` (line 73-78) and `openSplitDialog` parse response JSON without checking HTTP status, so 4xx/5xx errors are silently treated as valid data
+- [~] `useSetMergeSplit` fetch calls missing `.ok` response checks — `handleCheckMergeConflicts` (line 73-78) and `openSplitDialog` parse response JSON without checking HTTP status, so 4xx/5xx errors are silently treated as valid data
 - [ ] `useDragDrop` `handleDropReorder` has no error handling on the reorder fetch — line 150-154 of useDragDrop.ts fires a POST to reorder tokens but never checks the response or catches errors; a failed reorder silently proceeds to push undo state and refresh
 - [ ] Resolver `invalidate()` comment says "iterative BFS" but uses `queue.pop()` (DFS) — line 122-128 of packages/core/src/resolver.ts; the traversal order doesn't affect correctness for invalidation but the stale comment is misleading
 - [ ] Missing ASSET token type validation in core validator.ts — the `ASSET` type is defined in constants.ts but has no validation case in the validator's switch statement, so invalid ASSET token values pass validation silently

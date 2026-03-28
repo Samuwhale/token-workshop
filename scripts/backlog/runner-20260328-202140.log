@@ -80,3 +80,16 @@ Already up to date.
 
 --- Merging: Bulk type-change in batch editor ---
 Already up to date.
+[main 5d06ecc] chore(backlog): done – Bulk type-change in batch editor
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - Bulk type-change in batch editor
+- Already fully implemented in `BatchEditor.tsx`. The batch editor has a "Change type" dropdown with all 25 DTCG types, per-token validation against the new type, preview showing current→new types with incompatibility warnings, a confirmation dialog, and undo support. Server PATCH endpoint at `tokens.ts:442` accepts `$type` in body.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  65 items remaining
+===============================================================
+  Claimed: `useSetMergeSplit` fetch calls missing `.ok` response checks — `handleCheckMergeConflicts` (line 73-78) and `openSplitDialog` parse response JSON without checking HTTP status, so 4xx/5xx errors are silently treated as valid data
+  Worktree: /tmp/backlog-9651-0ZpCCR
