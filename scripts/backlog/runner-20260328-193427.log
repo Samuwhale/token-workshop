@@ -9,3 +9,9 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: **Token list: density toggle (compact vs comfortable)** — currently all rows are 28px. Power users managing thousands of tokens want maximum density; new users or those reviewing tokens want more breathing room with larger swatches. Add a density preference (compact/default/comfortable) that scales row height and preview sizes. Persist per user.
   Worktree: /tmp/backlog-77523-qx6CxP
+
+  ✓ done: Token list: density toggle (compact vs comfortable)
+    Added 3-level density toggle (compact 22px/default 28px/comfortable 36px) with scaled swatches, persisted via localStorage, cycle button in toolbar, and dynamic virtual scroll recalculation across tree and table views.
+    99 turns · 846s · $4.41
+
+--- Merging: Token list: density toggle (compact vs comfortable) ---

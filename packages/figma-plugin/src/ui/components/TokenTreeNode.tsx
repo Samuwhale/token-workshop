@@ -203,7 +203,8 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     const close = () => setContextMenuPos(null);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { close(); return; }
-      const key = e.key.toLowerCase();
+      // Normalize Backspace → delete so both keys trigger the delete action
+      const key = e.key === 'Backspace' ? 'delete' : e.key.toLowerCase();
       const menuEl = document.querySelector('[data-context-menu="token"]');
       if (!menuEl) return;
       const btn = menuEl.querySelector(`[data-accel="${key}"]`) as HTMLButtonElement | null;
@@ -1467,7 +1468,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             <span>Duplicate token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
           </button>
           <button
-            data-accel="r"
+            data-accel="a"
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
@@ -1476,10 +1477,11 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               onCreateSibling?.(nodeParentPath(node.path, node.name), node.$type || 'color');
             }}
           >
-            Alias to this token
+            <span>Alias to this token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">A</span>
           </button>
           <button
-            className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            data-accel="r"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             onMouseDown={e => e.preventDefault()}
             onClick={() => {
               setContextMenuPos(null);
@@ -1602,6 +1604,17 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             }}
           >
             <span>Copy as JSON</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">J</span>
+          </button>
+          <button
+            data-accel="delete"
+            className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors border-t border-[var(--color-figma-border)]"
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setContextMenuPos(null);
+              onDelete(node.path);
+            }}
+          >
+            <span>Delete token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">⌫</span>
           </button>
         </div>
       )}

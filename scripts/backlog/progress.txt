@@ -509,3 +509,18 @@
   - The toggle button follows the same pattern as the "Modes" button: `aria-pressed`, accent bg when active, secondary text when inactive.
   - Three display changes are needed for a clean "resolved" view: (1) hide alias link badge, (2) skip alias-specific value branch so it falls through to plain text, (3) hide chain badge.
 ---
+
+## 2026-03-28 - Token list: visible keyboard shortcut hints in context menus
+- Fixed token context menu to show correct keyboard shortcut hints and added missing Delete action
+- Bug fixed: "Alias to this token" had `data-accel="r"` (should be "a") while "Rename token" showed "R" hint but lacked `data-accel` — pressing R opened alias creation instead of rename
+- Fixed: moved `data-accel="r"` to "Rename token", gave "Alias to this token" `data-accel="a"` with "A" hint
+- Fixed layout on "Alias to this token": added `flex items-center justify-between` so hint renders right-aligned
+- Added "Delete token" entry at bottom of token context menu (styled red, with separator) with `data-accel="delete"` and `⌫` hint
+- Updated keyboard handler to normalize Backspace → "delete" so both Delete and Backspace keys trigger the delete action while the menu is open
+- Group context menu was already complete from a prior session (commit 5fcd835)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L200, ~L1468, ~L1480, ~L1592
+- **Learnings for future iterations:**
+  - `data-accel` values use `e.key.toLowerCase()` — non-letter keys like Delete/Backspace need explicit normalization in the key handler
+  - When both Delete and Backspace should trigger the same action, normalize in the handler rather than adding multiple `data-accel` attributes (only one attribute per element)
+  - The `⌫` character is the Unicode backspace symbol — good for representing the delete/backspace shortcut in compact UI hints
+---
