@@ -351,3 +351,10 @@ Already up to date.
 ===============================================================
   Claimed: CommandPalette structured search qualifiers — token search in the command palette (prefixed with `>`) only does substring matching; bring over the `type:color`, `alias:{path}`, and `has:ref` qualifiers from TokenList search so power users get the same filter expressiveness in the palette
   Worktree: /tmp/backlog-9651-IiQDpc
+
+  ✓ done: CommandPalette structured search qualifiers
+    Integrated parseStructuredQuery into CommandPalette token search — type:, has:ref, has:alias, has:direct, value:, path:, name: qualifiers now work alongside fuzzy matching. Added hint chips, match count, and extended TokenEntry with isAlias field.
+    52 turns · 356s · $1.99
+
+--- Merging: CommandPalette structured search qualifiers ---
+Already up to date.

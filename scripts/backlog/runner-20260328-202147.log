@@ -288,3 +288,16 @@ Already up to date.
 
 --- Merging: ResolverPanel contextual help and starter templates ---
 Already up to date.
+[main b6798fe] chore(backlog): done – ResolverPanel contextual help and starter templates
+ 6 files changed, 148 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - ResolverPanel contextual help and starter templates
+- Added "Light / Dark preset" template button to the empty state "Get started" section (dashed border to distinguish it as a template). Clicking it shows a name-input creation form with a "foundation + mode modifier" label. The template creates a resolver with foundation/light/dark sets (auto-detecting set names containing "light"/"dark"/"foundation"/"base"/"global" from existing sets) and a `mode` modifier with `light`/`dark` contexts wired to `#/sets/light` and `#/sets/dark` in the resolution order.
+- Added "Resolvers vs. Themes" explanation section at the bottom of the empty state, explaining when to use resolvers (multi-dimensional merging: brand × mode × density) vs. themes (simpler per-combination switching).
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L55 (state), ~L104 (handleCreateFromTemplate), ~L240 (template form), ~L268 (empty state conditions), ~L356 (template button), ~L372 (Resolvers vs. Themes note)
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  40 items remaining
+===============================================================
+  Claimed: TokenTableView has no virtual scrolling — unlike the tree view which uses virtualization, the table view renders all leaf tokens in the DOM at once; sets with 500+ tokens will cause visible lag and high memory usage
+  Worktree: /tmp/backlog-10461-TvQskG

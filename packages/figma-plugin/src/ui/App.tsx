@@ -51,7 +51,7 @@ import { useSetDuplicate } from './hooks/useSetDuplicate';
 import { useSetMergeSplit } from './hooks/useSetMergeSplit';
 import { useSetMetadata } from './hooks/useSetMetadata';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
-import { resolveAllAliases } from '../shared/resolveAlias';
+import { resolveAllAliases, isAlias } from '../shared/resolveAlias';
 import { stableStringify, adaptShortcut, getErrorMessage, SET_NAME_RE } from './shared/utils';
 import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
@@ -1017,6 +1017,7 @@ export function App() {
       type: entry.$type,
       value: typeof entry.$value === 'string' ? entry.$value : JSON.stringify(entry.$value),
       set: pathToSet[path],
+      isAlias: isAlias(entry.$value),
     }));
   }, [allTokensFlat, pathToSet]);
 

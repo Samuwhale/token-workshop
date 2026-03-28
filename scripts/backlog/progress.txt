@@ -464,3 +464,14 @@
   - `ResolverModifier.contexts` is a `Record<string, ResolverSource[]>` (object map) on the wire, while `ResolverMeta.modifiers[x].contexts` (UI type) is `string[]` (just the keys) — the server converts
   - Template buttons with `border-dashed` visually distinguish them from action buttons
 ---
+
+## 2026-03-28 - CommandPalette structured search qualifiers
+- Integrated `parseStructuredQuery` from `tokenListUtils.ts` into `CommandPalette.tsx` token search mode (prefixed with `>`). Qualifiers `type:`, `has:alias`/`has:ref`/`has:direct`/`has:description`, `value:`, `path:`, and `name:` now work in the palette, matching the same filter expressiveness as TokenList search. Qualifiers are applied first, then free-text fuzzy matching runs on the filtered set.
+- Added clickable qualifier hint chips shown when token mode is active with no query typed. Added match count summary when qualifiers are active. Updated placeholder text and footer hints to surface available qualifiers.
+- Extended `TokenEntry` interface with `isAlias` and `description` optional fields. Updated `App.tsx` `paletteTokens` builder to populate `isAlias` from `isAlias(entry.$value)`.
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L1-122 (imports, types, filter fn), ~L145-173 (parsing + filtering logic), ~L298 (placeholder), ~L313-327 (hint chips), ~L334-338 (match count), ~L477-483 (footer). `packages/figma-plugin/src/ui/App.tsx` ~L54 (isAlias import), ~L1015-1021 (paletteTokens builder).
+- **Learnings for future iterations:**
+  - `parseStructuredQuery` from tokenListUtils.ts is reusable for any token search surface — it returns a clean `ParsedQuery` struct that can drive both tree-based and flat-list filtering
+  - The palette works with flat `TokenEntry[]` not `TokenNode[]`, so a separate flat-list filter function was needed rather than reusing `filterTokenNodesStructured`
+  - `has:duplicate` and `has:extension` qualifiers are not supported in the palette because the flat `TokenEntry` doesn't carry that data — could be added later
+---

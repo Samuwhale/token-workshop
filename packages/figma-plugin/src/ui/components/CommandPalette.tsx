@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { STORAGE_KEYS, lsGetJson, lsSet } from '../shared/storage';
+import { parseStructuredQuery, QUERY_QUALIFIERS } from './tokenListUtils';
+import type { ParsedQuery } from './tokenListUtils';
 
 // ---------------------------------------------------------------------------
 // Fuzzy match — simple character-subsequence scoring
@@ -58,6 +60,8 @@ export interface TokenEntry {
   type: string;
   value?: string;
   set?: string;
+  isAlias?: boolean;
+  description?: string;
 }
 
 interface CommandPaletteProps {
@@ -76,6 +80,45 @@ interface CommandPaletteProps {
 
 function tokenCssVar(path: string) {
   return `--${path.replace(/\./g, '-')}`;
+}
+
+/** Extract leaf name from a dotted path. */
+function leafName(path: string): string {
+  const i = path.lastIndexOf('.');
+  return i < 0 ? path : path.slice(i + 1);
+}
+
+/** Apply parsed structured qualifiers to a flat token list. Returns matching tokens. */
+function filterTokensStructured(tokens: TokenEntry[], parsed: ParsedQuery): TokenEntry[] {
+  return tokens.filter(t => {
+    // type: qualifier (OR among values)
+    if (parsed.types.length > 0) {
+      const tt = (t.type || '').toLowerCase();
+      if (!parsed.types.some(p => tt === p || tt.includes(p))) return false;
+    }
+    // has: qualifiers (all must match)
+    for (const h of parsed.has) {
+      if ((h === 'alias' || h === 'ref') && !t.isAlias) return false;
+      if (h === 'direct' && t.isAlias) return false;
+      if ((h === 'description' || h === 'desc') && !t.description) return false;
+    }
+    // value: qualifier
+    if (parsed.values.length > 0) {
+      const sv = (t.value || '').toLowerCase();
+      if (!parsed.values.some(v => sv.includes(v))) return false;
+    }
+    // path: qualifier
+    if (parsed.paths.length > 0) {
+      const lp = t.path.toLowerCase();
+      if (!parsed.paths.some(p => lp.startsWith(p) || lp.includes(p))) return false;
+    }
+    // name: qualifier
+    if (parsed.names.length > 0) {
+      const ln = leafName(t.path).toLowerCase();
+      if (!parsed.names.some(n => ln.includes(n))) return false;
+    }
+    return true;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -99,19 +142,35 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
 
   const MAX_TOKEN_BROWSE = 100;
 
+  // Parse structured qualifiers from the token query
+  const parsedTokenQuery = useMemo(() => parseStructuredQuery(tokenQuery), [tokenQuery]);
+  const hasQualifiers = parsedTokenQuery.types.length > 0 || parsedTokenQuery.has.length > 0
+    || parsedTokenQuery.values.length > 0 || parsedTokenQuery.paths.length > 0
+    || parsedTokenQuery.names.length > 0 || parsedTokenQuery.descs.length > 0;
+
   const { filteredTokens, totalTokenMatches } = useMemo(() => {
     if (!isTokenMode || !tokens.length) return { filteredTokens: [], totalTokenMatches: 0 };
-    if (!tokenQuery) {
-      return { filteredTokens: tokens.slice(0, MAX_TOKEN_BROWSE), totalTokenMatches: tokens.length };
+
+    // Apply structural qualifiers first
+    const base = hasQualifiers ? filterTokensStructured(tokens, parsedTokenQuery) : tokens;
+
+    const freeText = parsedTokenQuery.text;
+    if (!freeText && !hasQualifiers) {
+      // No query at all — browse mode
+      return { filteredTokens: base.slice(0, MAX_TOKEN_BROWSE), totalTokenMatches: base.length };
     }
-    const matched = tokens
-      .map(t => ({ t, score: fuzzyScore(tokenQuery, t.path) }))
+    if (!freeText) {
+      // Qualifiers only, no free text — return all qualifier-matched tokens
+      return { filteredTokens: base, totalTokenMatches: base.length };
+    }
+    // Free text fuzzy matching on the qualifier-filtered set
+    const matched = base
+      .map(t => ({ t, score: fuzzyScore(freeText, t.path) }))
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
       .map(({ t }) => t);
-    // When a query is active, show all ranked results — no cap
     return { filteredTokens: matched, totalTokenMatches: matched.length };
-  }, [isTokenMode, tokenQuery, tokens]);
+  }, [isTokenMode, tokens, parsedTokenQuery, hasQualifiers]);
 
   // Normal command search
   const filteredCommands = useMemo(() => {
@@ -236,7 +295,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isTokenMode ? 'Search tokens by path…' : 'Search commands… (type > for tokens)'}
+            placeholder={isTokenMode ? 'Search tokens… (try type:color, has:ref, path:brand)' : 'Search commands… (type > for tokens)'}
             aria-label="Search commands"
             aria-autocomplete="list"
             className="flex-1 bg-transparent outline-none text-[12px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
@@ -251,11 +310,32 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
           </kbd>
         </div>
 
+        {/* Qualifier hint chips */}
+        {isTokenMode && !hasQualifiers && !parsedTokenQuery.text && (
+          <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] flex flex-wrap gap-1.5">
+            {QUERY_QUALIFIERS.filter(q => q.example || q.qualifier.includes(':')).slice(0, 6).map(q => (
+              <button
+                key={q.qualifier}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                onClick={() => setQuery('>' + q.qualifier + (q.qualifier.endsWith(':') ? '' : ' '))}
+                title={q.desc}
+              >
+                {q.qualifier}{q.example ? q.example.slice(q.qualifier.length) : ''}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Results */}
         <div ref={listRef} className="overflow-y-auto flex-1" role="listbox" aria-label="Commands">
           {/* Token search mode */}
           {isTokenMode && (
             <>
+              {hasQualifiers && filteredTokens.length > 0 && (
+                <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
+                  {totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched
+                </div>
+              )}
               {filteredTokens.length === 0 && (
                 <div className="px-3 py-6 text-center text-[11px] text-[var(--color-figma-text-secondary)]">
                   {tokenQuery ? `No tokens match "${tokenQuery}"` : 'Type a token path to search'}
@@ -398,7 +478,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
             <>
               <span>↑↓ navigate</span>
               <span>↵ go to token</span>
-              {onCopyTokenCssVar && <span>click CSS to copy var</span>}
+              <span className="opacity-60">type: has: value: path: name:</span>
               <span>ESC close</span>
             </>
           ) : (
