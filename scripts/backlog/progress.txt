@@ -510,3 +510,15 @@
   - Virtual scroll height for chain expansion should be dynamic: `stepCount * 18px` where stepCount = 1 + chain.length (self + hops)
   - The existing `showChainBadge` required 2+ hops — the debugger is useful even for single-hop aliases to see set/theme context
 ---
+
+## 2026-03-28 - Toast stacking system: queue multiple toasts vertically instead of overlapping
+- Replaced single-toast-at-a-time system with a proper stacking queue. Previously, success/error/undo toasts were mutually exclusive via conditional priority (`!toastVisible`, `!successToast`). Now multiple toasts render simultaneously in a vertical stack with `gap-1.5`, each with independent auto-dismiss timers and slide-up animation.
+- Created `useToastStack` hook that manages a `ToastItem[]` array with `pushSuccess`/`pushError`/`dismiss` — replaces the old `useState<string | null>` for success and error toasts.
+- Created `ToastStack` component that renders up to 5 visible toasts stacked from bottom, with the undo toast (still managed by `useUndo`) rendered at the base of the stack. Each toast gets an `animate-toast-in` CSS animation (150ms slide-up + fade-in).
+- In App.tsx, aliased `pushSuccess` as `setSuccessToast` and `pushError` as `setErrorToast` so all existing hook consumers (useSetDelete, useSetRename, useSetDuplicate, useSetMergeSplit, useSetMetadata, etc.) work without any changes.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useToastStack.ts` (new), `packages/figma-plugin/src/ui/components/ToastStack.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L13-14 (imports), ~L331 (state), ~L2904-2918 (rendering), `packages/figma-plugin/src/ui/styles.css` ~L110-115 (animation keyframes)
+- **Learnings for future iterations:**
+  - Aliasing destructured hook returns (`pushSuccess: setSuccessToast`) is an effective pattern for migrating toast systems without touching downstream hooks
+  - The `pointer-events-none` on the container + `pointer-events-auto` on individual toasts prevents the stack container from blocking clicks on content below non-toast areas
+  - Max 5 visible toasts (sliced from end of array) prevents runaway stacking from rapid operations
+---

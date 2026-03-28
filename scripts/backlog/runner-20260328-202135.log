@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Token resolution chain debugger ---
 Already up to date.
+[main 9925111] chore(backlog): done – Token resolution chain debugger
+ 11 files changed, 365 insertions(+), 96 deletions(-)
+
+## 2026-03-28 - Token resolution chain debugger
+- Implemented full resolution chain debugger showing per-hop alias/theme resolution metadata
+- Added `buildResolutionChain()` and `buildSetThemeMap()` to `resolveAlias.ts` — returns `ResolutionStep[]` with path, value, $type, setName, themeDimension, themeOption per hop
+- Enhanced inline chain expansion in `TokenTreeNode.tsx` — replaced flat chain strip with vertical step-by-step debugger showing: step connectors, clickable token paths, set name pills, theme dimension:option pills (e.g. "color-scheme:dark"), and final resolved value with swatch
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  69 items remaining
+===============================================================
+  Claimed: Hover tooltips on truncated token paths: show full path on hover for deep hierarchies that get line-clamped
+  Worktree: /tmp/backlog-9231-UdvP1m

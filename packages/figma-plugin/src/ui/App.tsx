@@ -10,8 +10,8 @@ import { PublishPanel } from './components/PublishPanel';
 import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
 import { SelectionInspector } from './components/SelectionInspector';
-import { UndoToast } from './components/UndoToast';
-import { SuccessToast } from './components/SuccessToast';
+import { ToastStack } from './components/ToastStack';
+import { useToastStack } from './hooks/useToastStack';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmptyState } from './components/EmptyState';
 import { PasteTokensModal } from './components/PasteTokensModal';
@@ -328,8 +328,7 @@ export function App() {
   const [clearing, setClearing] = useState(false);
   const [undoMaxHistory, setUndoMaxHistory] = useState(() => lsGetJson<number>(STORAGE_KEYS.UNDO_MAX_HISTORY, 20));
   const { toastVisible, slot: undoSlot, canUndo, pushUndo, executeUndo, executeRedo, dismissToast, canRedo, redoSlot, undoCount } = useUndo(undoMaxHistory);
-  const [successToast, setSuccessToast] = useState<string | null>(null);
-  const [errorToast, setErrorToast] = useState<string | null>(null);
+  const { toasts: toastStack, dismiss: dismissStackToast, pushSuccess: setSuccessToast, pushError: setErrorToast } = useToastStack();
   const onGeneratorError = useCallback(({ generatorId, message }: { generatorId?: string; message: string }) => {
     const label = generatorId ? `Generator "${generatorId}" failed` : 'Generator auto-run failed';
     setErrorToast(`${label}: ${message}`);
@@ -2906,29 +2905,22 @@ export function App() {
         />
       )}
 
-      {/* Undo/redo toast */}
-      {toastVisible && (
-        <UndoToast
-          description={undoSlot?.description ?? null}
-          onUndo={executeUndo}
-          onDismiss={dismissToast}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          redoDescription={redoSlot?.description}
-          onRedo={executeRedo}
-          undoCount={undoCount}
-        />
-      )}
-
-      {/* Success toast for set operations */}
-      {successToast && !toastVisible && (
-        <SuccessToast message={successToast} onDismiss={() => setSuccessToast(null)} />
-      )}
-
-      {/* Error toast for generator auto-run failures */}
-      {errorToast && !toastVisible && !successToast && (
-        <SuccessToast message={errorToast} onDismiss={() => setErrorToast(null)} variant="error" />
-      )}
+      {/* Toast stack — queues multiple toasts vertically */}
+      <ToastStack
+        toasts={toastStack}
+        onDismiss={dismissStackToast}
+        undoToast={{
+          visible: toastVisible,
+          description: undoSlot?.description ?? null,
+          onUndo: executeUndo,
+          onDismiss: dismissToast,
+          canUndo,
+          canRedo,
+          redoDescription: redoSlot?.description,
+          onRedo: executeRedo,
+          undoCount,
+        }}
+      />
 
       {/* Resize handle */}
       <div

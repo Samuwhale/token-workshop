@@ -31,3 +31,10 @@ Already up to date.
 ===============================================================
   Claimed: Toast stacking system: queue multiple toasts vertically instead of overlapping in the same bottom-left position
   Worktree: /tmp/backlog-9651-dNyPDk
+
+  ✓ done: Toast stacking system: queue multiple toasts vertically instead of overlapping in the same bottom-left position
+    Replaced mutually-exclusive single-toast rendering with a vertical stack (useToastStack hook + ToastStack component). Multiple success/error toasts now queue independently with auto-dismiss timers, undo toast renders at stack base, max 5 visible with slide-up animation.
+    34 turns · 250s · $1.23
+
+--- Merging: Toast stacking system: queue multiple toasts vertically instead of overlapping in the same bottom-left position ---
+Already up to date.
