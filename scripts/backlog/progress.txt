@@ -371,3 +371,10 @@
   - `consistencyScanner.ts`'s `colorDist` is RGB Euclidean (not CIELAB) — intentionally different algorithm for performance in the Figma sandbox. Don't consolidate with `colorDeltaE`.
   - The no-re-export constraint means consumers must import color math primitives directly from `@tokenmanager/core`, not through `colorUtils.ts`.
 ---
+
+## 2026-03-28 - Generator runForSourceToken silently skips generators that are already running
+- Already fixed: the `runningGenerators` Set with skip logic referenced in the backlog item no longer exists. It was replaced by a `withGeneratorLock` promise-chain mutex (generator-service.ts ~L441-454) that serializes concurrent calls per generator instead of skipping them. `runForSourceToken` at ~L358 uses this lock, so rapid token edits queue behind each other rather than being dropped.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+  - The concurrency guard overhaul (commit 6144721 "Generator auto-run from tokenStore.onChange has no concurrency guard") already addressed this skip-vs-queue issue as part of its broader fix
+---

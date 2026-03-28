@@ -465,3 +465,16 @@ Already up to date.
 
 --- Merging: Color math duplicated across 4 locations — consolidate into @tokenmanager/core ---
 Already up to date.
+[main b2aa047] chore(backlog): done – Color math duplicated across 4 locations — consolidate into @tokenmanager/core
+ 14 files changed, 123 insertions(+), 132 deletions(-)
+
+## 2026-03-28 - Color math duplicated across 4 locations — consolidate into @tokenmanager/core
+- Exported `srgbToLinear`, `srgbFromLinear`, `hexToRgb`, `rgbToHex`, `rgbToLab`, `normalizeHex`, `setHexAlpha` from `@tokenmanager/core` (`color-math.ts`)
+- Refactored `hexToLab`, `labToHex`, `wcagLuminance` in core to use the new shared primitives instead of inline math
+- Removed duplicate `toLinear`/`fromLinear` from `color-parse.ts` — now imports from `color-math.ts`
+
+===============================================================
+  Iteration 24 / 90  (claude)  —  16 items remaining
+===============================================================
+  Claimed: **Bug**: `Cannot access 'fetchConflicts' before initialization` — TDZ error, likely a circular dependency or hoisted reference before declaration
+  Worktree: /tmp/backlog-9231-mMCS2y
