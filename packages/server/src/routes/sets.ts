@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify';
 import type { TokenGroup } from '@tokenmanager/core';
 import { handleRouteError } from '../errors.js';
+import { snapshotSet } from '../services/operation-log.js';
 
 export const setRoutes: FastifyPluginAsync = async (fastify) => {
   const { withLock } = fastify.tokenLock;
@@ -49,14 +50,15 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         const set = await fastify.tokenStore.createSet(name, tokens as TokenGroup | undefined);
+        const afterSnap = await snapshotSet(fastify.tokenStore, name);
         await fastify.operationLog.record({
           type: 'set-create',
           description: `Create set "${name}"`,
           setName: name,
-          affectedPaths: [],
+          affectedPaths: Object.keys(afterSnap),
           beforeSnapshot: {},
-          afterSnapshot: {},
-          metadata: { kind: 'set-create', name, tokens: set.tokens },
+          afterSnapshot: afterSnap,
+          rollbackSteps: [{ action: 'delete-set', name }],
         });
         return reply.status(201).send({ name: set.name, tokens: set.tokens });
       } catch (err) {
@@ -126,12 +128,12 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
         await fastify.generatorService.updateSetName(name, newName);
         await fastify.operationLog.record({
           type: 'set-rename',
-          description: `Rename set "${name}" to "${newName}"`,
-          setName: name,
+          description: `Rename set "${name}" → "${newName}"`,
+          setName: newName,
           affectedPaths: [],
           beforeSnapshot: {},
           afterSnapshot: {},
-          metadata: { kind: 'set-rename', oldName: name, newName },
+          rollbackSteps: [{ action: 'rename-set', from: newName, to: name }],
         });
         return { renamed: true, oldName: name, newName };
       } catch (err) {
@@ -151,12 +153,12 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
       fastify.tokenStore.reorderSets(order);
       await fastify.operationLog.record({
         type: 'set-reorder',
-        description: 'Reorder sets',
+        description: 'Reorder token sets',
         setName: '',
         affectedPaths: [],
         beforeSnapshot: {},
         afterSnapshot: {},
-        metadata: { kind: 'set-reorder', previousOrder, newOrder: order },
+        rollbackSteps: [{ action: 'reorder-sets', order: previousOrder }],
       });
       return { reordered: true };
     });
@@ -194,32 +196,19 @@ export const setRoutes: FastifyPluginAsync = async (fastify) => {
           });
         }
 
-        // Capture full set data before deletion for undo
-        const setData = await fastify.tokenStore.getSet(name);
-        const descriptions = fastify.tokenStore.getSetDescriptions();
-        const collectionNames = fastify.tokenStore.getSetCollectionNames();
-        const modeNames = fastify.tokenStore.getSetModeNames();
-
+        const beforeSnap = await snapshotSet(fastify.tokenStore, name);
         const deleted = await fastify.tokenStore.deleteSet(name);
         if (!deleted) {
           return reply.status(404).send({ error: `Token set "${name}" not found` });
         }
-
         await fastify.operationLog.record({
           type: 'set-delete',
           description: `Delete set "${name}"`,
           setName: name,
-          affectedPaths: [],
-          beforeSnapshot: {},
+          affectedPaths: Object.keys(beforeSnap),
+          beforeSnapshot: beforeSnap,
           afterSnapshot: {},
-          metadata: {
-            kind: 'set-delete',
-            name,
-            tokens: setData!.tokens,
-            description: descriptions[name],
-            collectionName: collectionNames[name],
-            modeName: modeNames[name],
-          },
+          rollbackSteps: [{ action: 'create-set', name }],
         });
         return { deleted: true, name };
       } catch (err) {

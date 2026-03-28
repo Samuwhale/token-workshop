@@ -155,3 +155,21 @@
   - Deep inspect child nodes have `id` field that can be used to target specific nodes without changing Figma selection
   - The `group/row` hover pattern (using `group-hover/row:opacity-100`) works well for nested action buttons that shouldn't trigger on parent group hover
 ---
+
+## 2026-03-29 - Set/theme/resolver operations have no operation log entries and cannot be undone
+- Extended `OperationLog` with `RollbackStep` type and `rollbackSteps?` field on `OperationEntry` for structural (non-token) undo actions
+- Added `RollbackContext` interface so rollback can access tokenStore, resolverStore, and generatorService
+- Added `computeInverseSteps()` and `executeSteps()` to handle structural rollback before token restoration
+- Added themes file read/write helpers in OperationLog for theme dimension rollback
+- Updated `rollback()` to execute structural steps first, then restore token snapshots; inverse steps are recorded for redo
+- Added operation log recording to **sets.ts**: create, rename, delete (with full token snapshot), reorder
+- Added operation log recording to **themes.ts**: all 7 mutation endpoints (dimension create/rename/delete, option upsert/rename/reorder/delete) via `withThemeLock` wrapper
+- Added operation log recording to **resolvers.ts**: create, update, delete, from-themes conversion
+- Updated **operations.ts** route to pass full `RollbackContext` to rollback
+- Files changed: `packages/server/src/services/operation-log.ts` ~L17-40 (types), ~L100-200 (structural helpers + rollback); `packages/server/src/routes/sets.ts` ~L4,50-58,93-102,108-117,145-156; `packages/server/src/routes/themes.ts` ~L84-117 (withThemeLock), all mutation endpoints; `packages/server/src/routes/resolvers.ts` ~L30-38,84-96,97-109,63-70; `packages/server/src/routes/operations.ts` ~L17
+- **Learnings for future iterations:**
+  - The existing operation log is token-snapshot-centric; structural operations need a separate `rollbackSteps` array processed before token restoration
+  - For set deletion rollback, the set must be re-created (via rollback step) BEFORE token snapshot restoration, since `restoreSnapshot` requires the set to exist
+  - Theme dimensions store is local to `themeRoutes`; capturing before-state requires wrapping `store.withLock` in a helper that clones dims before mutation
+  - Inverse steps must be computed BEFORE executing rollback steps (to capture current state), not after
+---

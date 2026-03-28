@@ -103,6 +103,37 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     coverageCache = null;
   });
 
+  /**
+   * Wrapper around store.withLock that also records an operation log entry.
+   * The callback receives current dimensions and must return { dims, result, description }.
+   * `beforeDims` is captured automatically before the callback mutates.
+   */
+  async function withThemeLock<T>(
+    type: string,
+    fn: (dims: ThemeDimension[]) => Promise<{ dims: ThemeDimension[]; result: T; description: string }>,
+  ): Promise<T> {
+    let capturedBefore: ThemeDimension[] | null = null;
+    let capturedDescription = '';
+    const result = await store.withLock(async (dims) => {
+      capturedBefore = structuredClone(dims);
+      const out = await fn(dims);
+      capturedDescription = out.description;
+      return { dims: out.dims, result: out.result };
+    });
+    if (capturedBefore !== null) {
+      await fastify.operationLog.record({
+        type,
+        description: capturedDescription,
+        setName: '$themes',
+        affectedPaths: [],
+        beforeSnapshot: {},
+        afterSnapshot: {},
+        rollbackSteps: [{ action: 'write-themes', dimensions: capturedBefore }],
+      });
+    }
+    return result;
+  }
+
   // GET /api/themes — list dimensions
   fastify.get('/themes', async (_request, reply) => {
     try {
@@ -126,15 +157,13 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       return reply.status(400).send({ error: 'Dimension name is required' });
     }
     try {
-      let beforeDims: ThemeDimension[] = [];
-      const dimension = await store.withLock(async (dimensions) => {
-        beforeDims = structuredClone(dimensions);
+      const dimension = await withThemeLock('theme-dimension-create', async (dimensions) => {
         if (dimensions.some(d => d.id === id)) {
           throw Object.assign(new Error(`Dimension with id "${id}" already exists`), { statusCode: 409 });
         }
         const dim: ThemeDimension = { id, name: name.trim(), options: [] };
         dimensions.push(dim);
-        return { dims: dimensions, result: dim };
+        return { dims: dimensions, result: dim, description: `Create theme dimension "${name.trim()}"` };
       });
       const afterDims = await store.load();
       await fastify.operationLog.record({
@@ -160,15 +189,14 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       return reply.status(400).send({ error: 'Dimension name is required' });
     }
     try {
-      let beforeDims: ThemeDimension[] = [];
-      const dimension = await store.withLock(async (dimensions) => {
-        beforeDims = structuredClone(dimensions);
+      const dimension = await withThemeLock('theme-dimension-rename', async (dimensions) => {
         const idx = dimensions.findIndex(d => d.id === id);
         if (idx === -1) {
           throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
         }
+        const oldName = dimensions[idx].name;
         dimensions[idx] = { ...dimensions[idx], name: name.trim() };
-        return { dims: dimensions, result: dimensions[idx] };
+        return { dims: dimensions, result: dimensions[idx], description: `Rename dimension "${oldName}" → "${name.trim()}"` };
       });
       const afterDims = await store.load();
       await fastify.operationLog.record({
@@ -228,14 +256,13 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
   fastify.delete<{ Params: { id: string } }>('/themes/dimensions/:id', async (request, reply) => {
     const { id } = request.params;
     try {
-      let beforeDims: ThemeDimension[] = [];
-      await store.withLock(async (dimensions) => {
-        beforeDims = structuredClone(dimensions);
-        const filtered = dimensions.filter(d => d.id !== id);
-        if (filtered.length === dimensions.length) {
+      await withThemeLock('theme-dimension-delete', async (dimensions) => {
+        const dim = dimensions.find(d => d.id === id);
+        if (!dim) {
           throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
         }
-        return { dims: filtered, result: undefined };
+        const filtered = dimensions.filter(d => d.id !== id);
+        return { dims: filtered, result: undefined, description: `Delete theme dimension "${dim.name}"` };
       });
       const afterDims = await store.load();
       await fastify.operationLog.record({
@@ -270,9 +297,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       if (setsError) return reply.status(400).send({ error: setsError });
 
       try {
-        let beforeDims: ThemeDimension[] = [];
-        const { option, status } = await store.withLock(async (dimensions) => {
-          beforeDims = structuredClone(dimensions);
+        const { option, status } = await withThemeLock('theme-option-upsert', async (dimensions) => {
           const dimIdx = dimensions.findIndex(d => d.id === id);
           if (dimIdx === -1) {
             throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
@@ -280,12 +305,17 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           const dim = dimensions[dimIdx];
           const optIdx = dim.options.findIndex(o => o.name === trimmedName);
           const opt = { name: trimmedName, sets };
-          if (optIdx >= 0) {
+          const isUpdate = optIdx >= 0;
+          if (isUpdate) {
             dim.options[optIdx] = opt;
           } else {
             dim.options.push(opt);
           }
-          return { dims: dimensions, result: { option: opt, status: optIdx >= 0 ? 200 : 201 } };
+          return {
+            dims: dimensions,
+            result: { option: opt, status: isUpdate ? 200 : 201 },
+            description: `${isUpdate ? 'Update' : 'Add'} option "${trimmedName}" in dimension "${dim.name}"`,
+          };
         });
         const afterDims = await store.load();
         await fastify.operationLog.record({
@@ -315,9 +345,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
       }
       const newName = name.trim();
       try {
-        let beforeDims: ThemeDimension[] = [];
-        const option = await store.withLock(async (dimensions) => {
-          beforeDims = structuredClone(dimensions);
+        const option = await withThemeLock('theme-option-rename', async (dimensions) => {
           const dimIdx = dimensions.findIndex(d => d.id === id);
           if (dimIdx === -1) {
             throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
@@ -331,7 +359,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
             throw Object.assign(new Error(`Option "${newName}" already exists in this dimension`), { statusCode: 409 });
           }
           dim.options[optIdx] = { ...dim.options[optIdx], name: newName };
-          return { dims: dimensions, result: dim.options[optIdx] };
+          return { dims: dimensions, result: dim.options[optIdx], description: `Rename option "${optionName}" → "${newName}" in dimension "${dim.name}"` };
         });
         const afterDims = await store.load();
         await fastify.operationLog.record({
@@ -360,9 +388,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
         return reply.status(400).send({ error: 'options must be an array of option name strings' });
       }
       try {
-        let beforeDims: ThemeDimension[] = [];
-        const dimension = await store.withLock(async (dimensions) => {
-          beforeDims = structuredClone(dimensions);
+        const dimension = await withThemeLock('theme-option-reorder', async (dimensions) => {
           const dimIdx = dimensions.findIndex(d => d.id === id);
           if (dimIdx === -1) {
             throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
@@ -378,7 +404,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
             throw Object.assign(new Error('options must list every option name exactly once'), { statusCode: 400 });
           }
           dimensions[dimIdx] = { ...dim, options: options.map(n => byName.get(n)!) };
-          return { dims: dimensions, result: dimensions[dimIdx] };
+          return { dims: dimensions, result: dimensions[dimIdx], description: `Reorder options in dimension "${dim.name}"` };
         });
         const afterDims = await store.load();
         await fastify.operationLog.record({
@@ -403,9 +429,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     async (request, reply) => {
       const { id, optionName } = request.params;
       try {
-        let beforeDims: ThemeDimension[] = [];
-        await store.withLock(async (dimensions) => {
-          beforeDims = structuredClone(dimensions);
+        await withThemeLock('theme-option-delete', async (dimensions) => {
           const dimIdx = dimensions.findIndex(d => d.id === id);
           if (dimIdx === -1) {
             throw Object.assign(new Error(`Dimension "${id}" not found`), { statusCode: 404 });
@@ -416,7 +440,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
             throw Object.assign(new Error(`Option "${optionName}" not found in dimension "${id}"`), { statusCode: 404 });
           }
           dimensions[dimIdx] = { ...dim, options: filtered };
-          return { dims: dimensions, result: undefined };
+          return { dims: dimensions, result: undefined, description: `Delete option "${optionName}" from dimension "${dim.name}"` };
         });
         const afterDims = await store.load();
         await fastify.operationLog.record({

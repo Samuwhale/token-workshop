@@ -30,11 +30,11 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.operationLog.record({
         type: 'resolver-create',
         description: `Create resolver "${name}"`,
-        setName: '',
+        setName: name,
         affectedPaths: [],
         beforeSnapshot: {},
         afterSnapshot: {},
-        metadata: { kind: 'resolver-create', name, file },
+        rollbackSteps: [{ action: 'delete-resolver', name }],
       });
       return reply.code(201).send({ ok: true, name });
     } catch (err: unknown) {
@@ -72,11 +72,11 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
       await fastify.operationLog.record({
         type: 'resolver-create',
         description: `Create resolver "${resolverName}" from themes`,
-        setName: '',
+        setName: resolverName,
         affectedPaths: [],
         beforeSnapshot: {},
         afterSnapshot: {},
-        metadata: { kind: 'resolver-create', name: resolverName, file: resolverFile },
+        rollbackSteps: [{ action: 'delete-resolver', name: resolverName }],
       });
       return reply.code(201).send({ ok: true, name: resolverName, resolver: resolverFile });
     } catch (err: unknown) {
@@ -99,17 +99,18 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // -----------------------------------------------------------------------
   fastify.put<{ Params: { name: string }; Body: ResolverFile }>('/resolvers/:name', async (req, reply) => {
     try {
-      const before = structuredClone(fastify.resolverStore.get(req.params.name));
-      if (!before) return reply.code(404).send({ error: 'Resolver not found' });
+      const beforeFile = fastify.resolverStore.get(req.params.name);
       await fastify.resolverStore.update(req.params.name, req.body as ResolverFile);
       await fastify.operationLog.record({
         type: 'resolver-update',
         description: `Update resolver "${req.params.name}"`,
-        setName: '',
+        setName: req.params.name,
         affectedPaths: [],
         beforeSnapshot: {},
         afterSnapshot: {},
-        metadata: { kind: 'resolver-update', name: req.params.name, before, after: req.body as ResolverFile },
+        rollbackSteps: beforeFile
+          ? [{ action: 'write-resolver', name: req.params.name, file: structuredClone(beforeFile) }]
+          : [],
       });
       return { ok: true };
     } catch (err: unknown) {
@@ -122,18 +123,19 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   // Delete a resolver
   // -----------------------------------------------------------------------
   fastify.delete<{ Params: { name: string } }>('/resolvers/:name', async (req, reply) => {
-    const file = structuredClone(fastify.resolverStore.get(req.params.name));
-    if (!file) return reply.code(404).send({ error: 'Resolver not found' });
+    const beforeFile = fastify.resolverStore.get(req.params.name);
     const deleted = await fastify.resolverStore.delete(req.params.name);
     if (!deleted) return reply.code(404).send({ error: 'Resolver not found' });
     await fastify.operationLog.record({
       type: 'resolver-delete',
       description: `Delete resolver "${req.params.name}"`,
-      setName: '',
+      setName: req.params.name,
       affectedPaths: [],
       beforeSnapshot: {},
       afterSnapshot: {},
-      metadata: { kind: 'resolver-delete', name: req.params.name, file },
+      rollbackSteps: beforeFile
+        ? [{ action: 'write-resolver', name: req.params.name, file: structuredClone(beforeFile) }]
+        : [],
     });
     return { ok: true };
   });
