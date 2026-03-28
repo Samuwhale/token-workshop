@@ -108,8 +108,12 @@ export function substituteVars(
   formula: string,
   vars: Record<string, number>,
 ): string {
-  return formula.replace(/\b(base|index|multiplier|prev)\b/g, (match) => {
-    if (match in vars) return String(vars[match]);
-    return '0';
-  });
+  const keys = Object.keys(vars);
+  if (keys.length === 0) return formula;
+  // Escape any regex-special chars in key names; sort longest-first to avoid partial matches
+  const escaped = keys
+    .sort((a, b) => b.length - a.length)
+    .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const pattern = new RegExp(`\\b(${escaped.join('|')})\\b`, 'g');
+  return formula.replace(pattern, (match) => String(vars[match] ?? 0));
 }

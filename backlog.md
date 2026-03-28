@@ -120,7 +120,7 @@
 ### Performance
 
 - [x] `fetchAllTokensFlat` and `fetchAllTokensFlatWithSets` fetch sets sequentially — serial `for` loop makes one fetch per set; should use `Promise.all` for parallel fetches
-- [~] `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly — iterate all sets calling `getFlatTokensForSet` even though `tokenStore.flatTokens` already has the merged data
+- [x] `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly — iterate all sets calling `getFlatTokensForSet` even though `tokenStore.flatTokens` already has the merged data
 - [x] `useUndo` keyboard listener churns on every undo/redo — `executeUndo`/`executeRedo` recreated on every `past`/`future` change, causing the keyboard handler effect to tear down and re-register; use refs instead
 
 ### Correctness & Safety
@@ -129,7 +129,7 @@
 - [~] `PluginMessage` loosely typed as `{ type: string; [key: string]: any }` — the shared types file defines specific message types but they aren't used in the controller switch statement; easy to typo property names
 - [~] `$value` typed as `any` in `TokenNode` interface (`useTokens.ts`) — type safety lost throughout entire token data flow
 - [~] 21 `as any` casts across UI components — particularly concerning in `SemanticMappingDialog.tsx` where API response bodies are cast to access `.error` without a proper typed response shape
-- [ ] `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names (`base`, `index`, `multiplier`, `prev`) — function signature accepts `Record<string, number>` implying arbitrary keys, but extra keys are silently ignored
+- [~] `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names (`base`, `index`, `multiplier`, `prev`) — function signature accepts `Record<string, number>` implying arbitrary keys, but extra keys are silently ignored
 - [ ] `weightToFontStyle` mapping in controller uses hardcoded English style names — fonts using "Book", "Roman", "Demi" etc. cause `loadFontAsync` to throw, silently skipping typography application
 - [ ] Multiple `eslint-disable react-hooks/exhaustive-deps` comments suppress legitimate warnings — `ImportPanel.tsx`, `TokenList.tsx`, `App.tsx`, `PublishPanel.tsx`, `AnalyticsPanel.tsx` all have stale closure risks from omitted deps
 

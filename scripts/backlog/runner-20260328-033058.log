@@ -160,3 +160,23 @@ Already up to date.
 
 --- Merging: `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly ---
 Already up to date.
+[main c262c5f] chore(backlog): done – `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly
+ 7 files changed, 52 insertions(+), 17 deletions(-)
+
+## 2026-03-28 - `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly
+- Added `getAllFlatTokens()` public method to `TokenStore` that exposes the already-maintained `flatTokens` Map as a plain object. Updated `lintTokens` to use it (single iteration splits into per-set and all-tokens maps) instead of calling `getFlatTokensForSet` once per set. Updated `validateAllTokens` similarly — removed the loop over `getSets()` + `getFlatTokensForSet` and replaced with a single `getAllFlatTokens()` call.
+- Files changed: `packages/server/src/services/token-store.ts` ~L694, `packages/server/src/services/lint.ts` ~L128, ~L303
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  76 items remaining
+===============================================================
+  Claimed: `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names (`base`, `index`, `multiplier`, `prev`) — function signature accepts `Record<string, number>` implying arbitrary keys, but extra keys are silently ignored
+  Worktree: /tmp/backlog-85816-x2MKj1
+
+  ✓ done: `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names
+    Replaced hardcoded regex with dynamic pattern built from Object.keys(vars), sorted longest-first and regex-escaped. Now supports arbitrary variable names as the Record<string, number> signature implies.
+    9 turns · 40s · $0.23
+
+--- Merging: `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names ---
+Already up to date.

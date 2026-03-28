@@ -323,3 +323,10 @@
   - `TokenStore.flatTokens` is a private merged Map rebuilt on every change — exposing it via a public method avoids O(sets × tokens) redundant iteration in consumers.
   - The server package has pre-existing tsc errors from missing @types/node and fastify types; validate changes by grepping tsc output for the specific changed files.
 ---
+
+## 2026-03-28 - `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names
+- Replaced the hardcoded regex `/\b(base|index|multiplier|prev)\b/g` with a dynamically-built regex from `Object.keys(vars)`. Keys are sorted longest-first to prevent partial matches and regex-escaped for safety. Empty `vars` short-circuits to return the formula unchanged.
+- Files changed: `packages/core/src/eval-expr.ts` ~L107
+- **Learnings for future iterations:**
+  - When building a regex from user-supplied keys, sort longest-first and escape special chars to avoid partial-match and injection bugs.
+---
