@@ -58,6 +58,7 @@ export function AliasPicker({
             <path d="M1 4h2.5M4.5 4H7M5.5 2L7 4L5.5 6M2.5 2L1 4L2.5 6"/>
           </svg>
           Alias mode
+          <kbd className="ml-1 text-[9px] opacity-60 font-sans">⌘L</kbd>
         </button>
       </div>
       {aliasMode && (

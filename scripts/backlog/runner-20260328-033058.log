@@ -472,3 +472,9 @@ Already up to date.
 ===============================================================
   Claimed: Theme dimension/option routes accept whitespace-only names — `!name` check passes for `"   "`, then `name.trim()` produces empty string that gets saved to `$themes.json` (`themes.ts` ~L72, ~L92, ~L149, ~L172)
   Worktree: /tmp/backlog-85816-cJHwNU
+
+  ✓ done: Theme dimension/option routes accept whitespace-only names
+    Added !name.trim() to all 4 name-validation guards in themes.ts so whitespace-only names return 400 instead of saving empty strings.
+    12 turns · 61s · $0.33
+
+--- Merging: Theme dimension/option routes accept whitespace-only names ---

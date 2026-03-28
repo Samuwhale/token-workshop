@@ -436,3 +436,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor Cmd+L shortcut for alias mode is not discoverable — the keyboard shortcut exists but has no tooltip, hint text, or mention in the editor UI; users must already know about it or find it in the shortcuts modal
   Worktree: /tmp/backlog-84992-Y9reGO
+
+  ✓ done: TokenEditor Cmd+L shortcut for alias mode is not discoverable
+    Added visible ⌘L kbd badge on the Alias mode button and a Token Editor section in the Keyboard Shortcuts modal listing ⌘L, ⌘↵, ⌘⇧↵, and Esc shortcuts.
+    15 turns · 114s · $0.53
+
+--- Merging: TokenEditor Cmd+L shortcut for alias mode is not discoverable ---
+Already up to date.

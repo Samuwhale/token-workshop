@@ -51,6 +51,15 @@ const SECTIONS: ShortcutSection[] = [
     ],
   },
   {
+    header: 'Token Editor',
+    shortcuts: [
+      { keys: ['⌘L'], label: 'Toggle alias mode' },
+      { keys: ['⌘↵'], label: 'Save token' },
+      { keys: ['⌘⇧↵'], label: 'Save and create another' },
+      { keys: ['Esc'], label: 'Back / discard' },
+    ],
+  },
+  {
     header: 'Paste Modal',
     shortcuts: [
       { keys: ['⌘↵'], label: 'Confirm paste' },

@@ -435,3 +435,17 @@ Already up to date.
 
 --- Merging: Generator Math.pow results are not validated for Infinity/NaN ---
 Already up to date.
+[main ce94c2b] chore(backlog): done – Generator Math.pow results are not validated for Infinity/NaN
+ 6 files changed, 57 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Generator Math.pow results are not validated for Infinity/NaN
+- Added `sanitizeNumber` helper in `generator-engine.ts` that detects `NaN`, `Infinity`, and `-Infinity`, replacing them with a fallback value and attaching a warning string.
+- Applied sanitization in `runTypeScaleGenerator` after `Math.pow(ratio, relativeExponent)` — falls back to `sourceValue.value` with warning.
+- Applied sanitization in `runCustomScaleGenerator` after `evalExpr()` — falls back to `base` with warning (consistent with existing formula-error fallback).
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  29 items remaining
+===============================================================
+  Claimed: ColorPicker canvas ref uses non-null assertion without guard — `ref.current!.getBoundingClientRect()` in `getPos()` will crash if the canvas element unmounts during a pointer drag event (`ColorPicker.tsx` ~L115)
+  Worktree: /tmp/backlog-92630-xv7HYY

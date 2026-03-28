@@ -442,3 +442,12 @@
   - `GeneratedTokenResult` already has an optional `warning` field — use it for non-fatal computation issues rather than silently swallowing bad values.
   - `NaN.toFixed(n)` returns the string `"NaN"` and `parseFloat("NaN")` returns `NaN`, so without sanitization the bad value propagates all the way to the UI.
 ---
+
+## 2026-03-28 - TokenEditor Cmd+L shortcut for alias mode is not discoverable
+- Added visible `⌘L` kbd badge inline on the "Alias mode" toggle button in AliasPicker, so users see the shortcut without hovering for a tooltip.
+- Added a "Token Editor" section to the KeyboardShortcutsModal listing ⌘L (toggle alias mode), ⌘↵ (save), ⌘⇧↵ (save and create another), and Esc (back/discard).
+- Files changed: `packages/figma-plugin/src/ui/components/AliasPicker.tsx` ~L61, `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L53
+- **Learnings for future iterations:**
+  - The KeyboardShortcutsModal had no Token Editor section at all — any new editor shortcuts should be added there.
+  - The `adaptShortcut` utility in the modal handles cross-platform display of shortcuts automatically.
+---
