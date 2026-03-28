@@ -133,3 +133,10 @@ Already up to date.
 ===============================================================
   Claimed: No per-token usage/documentation view — no way to see where a specific token is used across the design file (which components, pages, layers) without running a full heatmap scan; add a "Used by" panel per token showing bound layers and dependent tokens in one place
   Worktree: /tmp/backlog-63973-unuX46
+
+  ✓ done: No per-token usage/documentation view
+    Added "Used by" panel in TokenEditor showing both dependent tokens and bound Figma layers; layers section scans lazily on expand, shows node type icons, names, bound properties, and clicking selects+zooms on canvas
+    32 turns · 285s · $1.53
+
+--- Merging: No per-token usage/documentation view ---
+Already up to date.

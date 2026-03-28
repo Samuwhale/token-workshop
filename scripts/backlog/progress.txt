@@ -409,3 +409,21 @@
   - Using `seen` set per-node prevents double-counting when the same token is bound to multiple properties on one node
   - Re-triggering scans after `applied-to-selection`, `sync-complete`, and `remap-complete` keeps counts fresh without polling
 ---
+- **Number**: horizontal fill bar that scales height (auto-detects 0–1 vs 0–100 range for opacity etc.)
+- **Border**: renders actual border-bottom line segment with token's color, width, and style inside the preview box
+- Color swatches, typography "Aa", shadow, gradient, font previews were already implemented
+- Files changed: `packages/figma-plugin/src/ui/components/ValuePreview.tsx` ~L109-174
+- **Learnings for future iterations:**
+  - ValuePreview returns an empty spacer div for unhandled types — new type previews just need a new `if` block before the fallback
+  - Dimension values can be object `{value, unit}`, string, or number — handle all three forms
+  - For proportional previews, different units need different reference maximums (px: 64, rem: 4, s: 2)
+---
+
+## 2026-03-28 - No drag-to-reorder tokens within the same group
+- Added drag-over/drop handlers on leaf token rows in TokenTreeNode to detect top/bottom half positioning. Added `handleDropReorder` in TokenList.tsx that computes new sibling order and calls the existing `/groups/reorder` API. Visual indicator is a blue accent line at the drop position. Supports multi-select drag reorder. Undo/redo integrated. Only active when sort order is 'default'.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L142 (new props), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L779 (drag handlers + indicator), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L67 (state), ~L1132 (handleDropReorder), ~L2725 (prop wiring)
+- **Learnings for future iterations:**
+  - The existing reorder infrastructure (siblingOrderMap, `/groups/reorder` API, handleMoveTokenInGroup) was already solid — drag-to-reorder only needed UI drop zones and a new handler.
+  - `flatItemsRef` has a narrow type (`{ node: { path: string } }`) — pass node name from the component rather than looking it up from the ref.
+  - Drag reorder indicator should only show when sortOrder is 'default' — other sort orders have no user-controllable position.
+---

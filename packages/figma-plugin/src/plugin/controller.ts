@@ -3,8 +3,8 @@
 import type { PluginMessage } from '../shared/types.js';
 import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables } from './variableSync.js';
 import { applyStyles, readFigmaStyles } from './styleSync.js';
-import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, scanTokenUsageMap } from './selectionHandling.js';
-import { scanComponentCoverage, selectNode, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes } from './heatmapScanning.js';
+import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken } from './selectionHandling.js';
+import { scanComponentCoverage, selectNode, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 
 figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
 
@@ -87,6 +87,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'batch-bind-heatmap-nodes':
       await batchBindHeatmapNodes(msg.nodeIds, msg.tokenPath, msg.tokenType, msg.targetProperty, msg.resolvedValue);
+      break;
+    case 'scan-token-usage':
+      await scanTokenUsage(msg.tokenPath);
       break;
     case 'eyedropper':
       sampleSelectionColor();

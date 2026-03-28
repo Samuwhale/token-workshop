@@ -844,6 +844,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           dependents={dependents}
           dependentsLoading={dependentsLoading}
           setName={setName}
+          tokenPath={tokenPath}
           tokenType={tokenType}
           value={value}
           isDirty={isDirty}

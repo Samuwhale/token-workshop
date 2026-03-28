@@ -107,3 +107,17 @@ Already up to date.
 
 --- Merging: No "token in use" indicator in the token list ---
 Already up to date.
+[main e5a0cc2] chore(backlog): done – No "token in use" indicator in the token list
+ 12 files changed, 123 insertions(+), 11 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No "token in use" indicator in the token list
+- Added full-stack "token in use" feature: plugin scans all page nodes for token bindings, builds a usage count map, and sends it to the UI where each token row shows a green dot (with count if >1) for bound tokens
+- Clicking the indicator highlights the bound layers on the canvas (reuses existing `highlight-layer-by-token` message)
+- Usage map auto-refreshes when tokens tab is shown, and after apply/sync/remap operations
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  85 items remaining
+===============================================================
+  Claimed: No token lifecycle states — all tokens are immediately live with no way to mark them as "draft", "published", or "deprecated"; for multi-team usage, add lifecycle badges and optionally hide deprecated tokens from bind pickers
+  Worktree: /tmp/backlog-62956-jpIcet

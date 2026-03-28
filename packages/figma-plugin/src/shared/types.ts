@@ -287,6 +287,11 @@ export interface SetActiveThemesMessage {
   themes: Record<string, string>;
 }
 
+export interface ScanTokenUsageMessage {
+  type: 'scan-token-usage';
+  tokenPath: string;
+}
+
 /** Discriminated union of all UI→Controller messages */
 export type PluginMessage =
   | ApplyVariablesMessage
@@ -313,4 +318,5 @@ export type PluginMessage =
   | BatchBindHeatmapNodesMessage
   | EyedropperMessage
   | GetActiveThemesMessage
-  | SetActiveThemesMessage;
+  | SetActiveThemesMessage
+  | ScanTokenUsageMessage;

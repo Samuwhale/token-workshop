@@ -1,4 +1,4 @@
-import { ALL_BINDABLE_PROPERTIES } from '../shared/types.js';
+import { ALL_BINDABLE_PROPERTIES, LEGACY_KEY_MAP } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
 import { applyToSelection } from './selectionHandling.js';
 
@@ -181,6 +181,65 @@ export async function selectHeatmapNodes(nodeIds: string[]) {
     }
   } catch {
     // ignore — node might not be accessible
+  }
+}
+
+// Scan all nodes on the current page to find layers bound to a specific token path.
+// Returns a list of { id, name, type, properties } for each node using this token.
+export async function scanTokenUsage(tokenPath: string) {
+  try {
+    const BATCH_SIZE = 200;
+    const layers: { id: string; name: string; type: string; properties: string[] }[] = [];
+    const stack = [...figma.currentPage.children];
+    let walkCount = 0;
+
+    while (stack.length > 0) {
+      const current = stack.pop()!;
+
+      // Check plugin data bindings for this token path
+      const boundProps: string[] = [];
+      for (const prop of ALL_BINDABLE_PROPERTIES) {
+        if (current.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop) === tokenPath) {
+          boundProps.push(prop);
+        }
+      }
+      for (const legacyKey of Object.keys(LEGACY_KEY_MAP)) {
+        if (current.getSharedPluginData(PLUGIN_DATA_NAMESPACE, legacyKey) === tokenPath) {
+          const mapped = (LEGACY_KEY_MAP as Record<string, string>)[legacyKey];
+          if (!boundProps.includes(mapped)) boundProps.push(mapped);
+        }
+      }
+
+      if (boundProps.length > 0) {
+        layers.push({
+          id: current.id,
+          name: current.name,
+          type: current.type,
+          properties: boundProps,
+        });
+      }
+
+      if ('children' in current) {
+        const container = current as ChildrenMixin & SceneNode;
+        for (let c = container.children.length - 1; c >= 0; c--) {
+          stack.push(container.children[c]);
+        }
+      }
+
+      walkCount++;
+      if (walkCount % BATCH_SIZE === 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
+      }
+    }
+
+    figma.ui.postMessage({
+      type: 'token-usage-result',
+      tokenPath,
+      layers: layers.slice(0, 200),
+      total: layers.length,
+    });
+  } catch (error) {
+    figma.ui.postMessage({ type: 'token-usage-result', tokenPath, layers: [], total: 0 });
   }
 }
 
