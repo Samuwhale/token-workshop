@@ -223,3 +223,10 @@ Already up to date.
 ===============================================================
   Claimed: Theme Compare lacks actionable output — you can see diffs between theme options but can't fix gaps directly from the compare view; add inline "create missing token" and "edit value" actions so users don't have to navigate away
   Worktree: /tmp/backlog-62956-OOazWw
+
+  ✓ done: Theme Compare lacks actionable output
+    Added Manage/Compare toggle to Themes sub-tab; wired orphaned ThemeCompare component with inline 'Create in A/B' and 'Edit A/B' hover actions on each diff row that navigate to token editor or create with pre-filled values
+    44 turns · 354s · $1.87
+
+--- Merging: Theme Compare lacks actionable output ---
+Already up to date.

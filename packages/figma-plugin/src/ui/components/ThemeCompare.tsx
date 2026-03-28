@@ -9,6 +9,10 @@ interface ThemeCompareProps {
   dimensions: ThemeDimension[];
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet: Record<string, string>;
+  /** Navigate to an existing token for editing (switches to tokens tab + highlights) */
+  onEditToken?: (set: string, path: string) => void;
+  /** Open the token editor in create mode with pre-filled values */
+  onCreateToken?: (path: string, set: string, type: string, value?: string) => void;
 }
 
 // Flat list of all options across all dimensions for the compare selectors
@@ -78,7 +82,7 @@ function ColorSwatch({ hex }: { hex: string }) {
   );
 }
 
-export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeCompareProps) {
+export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken, onCreateToken }: ThemeCompareProps) {
   const [optionKeyA, setOptionKeyA] = useState<string>('');
   const [optionKeyB, setOptionKeyB] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -98,6 +102,17 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
     return resolveForOption(opt, allTokensFlat, pathToSet);
   }, [optionKeyB, flatOptions, allTokensFlat, pathToSet]);
 
+  // Build a lookup: for each option, which set would be the best target for creating a token?
+  // Prefer the first 'enabled' set, falling back to 'source'.
+  const targetSetForOption = useCallback((optionKey: string): string | null => {
+    const opt = flatOptions.find(o => o.key === optionKey);
+    if (!opt) return null;
+    const enabled = Object.entries(opt.sets).filter(([, s]) => s === 'enabled').map(([n]) => n);
+    if (enabled.length > 0) return enabled[0];
+    const source = Object.entries(opt.sets).filter(([, s]) => s === 'source').map(([n]) => n);
+    return source[0] ?? null;
+  }, [flatOptions]);
+
   const diffs = useMemo(() => {
     if (!resolvedA || !resolvedB) return [];
     const allPaths = new Set([...Object.keys(resolvedA), ...Object.keys(resolvedB)]);
@@ -107,6 +122,8 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
       type: string;
       valueA: any;
       valueB: any;
+      setA: string | null;
+      setB: string | null;
     }> = [];
     for (const path of allPaths) {
       const entA = resolvedA[path];
@@ -120,11 +137,13 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
           type: entA?.$type ?? entB?.$type ?? 'unknown',
           valueA: valA,
           valueB: valB,
+          setA: pathToSet[path] ?? null,
+          setB: pathToSet[path] ?? null,
         });
       }
     }
     return result.sort((a, b) => a.path.localeCompare(b.path));
-  }, [resolvedA, resolvedB]);
+  }, [resolvedA, resolvedB, pathToSet]);
 
   const availableTypes = useMemo(() => {
     const types = new Set(diffs.map(d => d.type));
@@ -297,14 +316,18 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
               const isColor = diff.type === 'color';
               const hexA = isColor && typeof diff.valueA === 'string' ? diff.valueA : null;
               const hexB = isColor && typeof diff.valueB === 'string' ? diff.valueB : null;
-              const labelA = formatThemeValue(diff.valueA, diff.type);
-              const labelB = formatThemeValue(diff.valueB, diff.type);
+              const fmtA = formatThemeValue(diff.valueA, diff.type);
+              const fmtB = formatThemeValue(diff.valueB, diff.type);
               const leaf = diff.name;
               const parent = nodeParentPath(diff.path, diff.name);
+              const absentInA = diff.valueA === undefined;
+              const absentInB = diff.valueB === undefined;
+              const targetA = targetSetForOption(optionKeyA);
+              const targetB = targetSetForOption(optionKeyB);
               return (
                 <div
                   key={diff.path}
-                  className="px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  className="group px-3 py-2 border-b border-[var(--color-figma-border)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
                   <div className="flex items-baseline gap-1 mb-1.5">
                     {parent && (
@@ -320,8 +343,8 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
                     <div className="flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded bg-[var(--color-figma-bg-secondary)]">
                       <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
                       {hexA && <ColorSwatch hex={hexA} />}
-                      <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={labelA}>
-                        {diff.valueA === undefined ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : labelA}
+                      <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={fmtA}>
+                        {absentInA ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : fmtA}
                       </span>
                     </div>
                     {/* Arrow */}
@@ -332,11 +355,54 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
                     <div className="flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded bg-[var(--color-figma-bg-secondary)]">
                       <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
                       {hexB && <ColorSwatch hex={hexB} />}
-                      <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate" title={labelB}>
-                        {diff.valueB === undefined ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : labelB}
+                      <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate" title={fmtB}>
+                        {absentInB ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : fmtB}
                       </span>
                     </div>
                   </div>
+                  {/* Inline actions — visible on hover */}
+                  {(onEditToken || onCreateToken) && (
+                    <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {/* Actions for side A */}
+                      {absentInA && onCreateToken && targetA && (
+                        <button
+                          onClick={() => onCreateToken(diff.path, targetA, diff.type, diff.valueB !== undefined ? (typeof diff.valueB === 'string' ? diff.valueB : JSON.stringify(diff.valueB)) : undefined)}
+                          className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                          title={`Create token in ${targetA} (copy B's value)`}
+                        >
+                          + Create in A
+                        </button>
+                      )}
+                      {!absentInA && onEditToken && diff.setA && (
+                        <button
+                          onClick={() => onEditToken(diff.setA!, diff.path)}
+                          className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          title={`Edit token in ${diff.setA}`}
+                        >
+                          Edit A
+                        </button>
+                      )}
+                      {/* Actions for side B */}
+                      {absentInB && onCreateToken && targetB && (
+                        <button
+                          onClick={() => onCreateToken(diff.path, targetB, diff.type, diff.valueA !== undefined ? (typeof diff.valueA === 'string' ? diff.valueA : JSON.stringify(diff.valueA)) : undefined)}
+                          className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                          title={`Create token in ${targetB} (copy A's value)`}
+                        >
+                          + Create in B
+                        </button>
+                      )}
+                      {!absentInB && onEditToken && diff.setB && (
+                        <button
+                          onClick={() => onEditToken(diff.setB!, diff.path)}
+                          className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          title={`Edit token in ${diff.setB}`}
+                        >
+                          Edit B
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}

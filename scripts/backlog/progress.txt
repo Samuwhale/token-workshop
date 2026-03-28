@@ -484,3 +484,15 @@
 - **Learnings for future iterations:**
   - Figma's `valuesByMode[modeId]` can be `undefined` when a variable has no value set for a mode — always guard before type-specific conversions.
 ---
+
+## 2026-03-28 - Theme Compare lacks actionable output
+- Added Manage/Compare toggle to the Themes sub-tab (Define > Themes) so ThemeCompare is now accessible alongside ThemeManager
+- Added inline "Create in A/B" and "Edit A/B" action buttons to each diff row in ThemeCompare, visible on hover
+- "Create" pre-fills the token editor with the path, type, and opposing side's value; targets the first enabled (or source) set of the theme option
+- "Edit" navigates to the tokens tab and highlights the existing token for editing
+- ThemeCompare was previously imported but never rendered — now fully wired with `onEditToken` and `onCreateToken` callbacks
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` (added props, `targetSetForOption` helper, inline action buttons), `packages/figma-plugin/src/ui/App.tsx` ~L323 (themesView state), ~L2219 (Manage/Compare toggle + ThemeCompare rendering with callbacks)
+- **Learnings for future iterations:**
+  - ThemeCompare was an orphaned component — imported in App.tsx but never rendered, with `'theme-compare'` in the OverflowPanel type union but no corresponding render branch
+  - `targetSetForOption` picks the first 'enabled' set, falling back to 'source', as the best target for creating missing tokens in a theme option
+---

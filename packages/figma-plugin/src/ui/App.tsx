@@ -320,6 +320,7 @@ export function App() {
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
   const [showGuidedSetup, setShowGuidedSetup] = useState(false);
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
+  const [themesView, setThemesView] = useState<'manage' | 'compare'>('manage');
   const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
@@ -2221,9 +2222,45 @@ export function App() {
           )}
           {/* Themes sub-tab (Define > Themes) */}
           {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'themes' && (
-              <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
-              <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(set, path) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} />
-              </ErrorBoundary>
+            <div className="flex flex-col h-full overflow-hidden">
+              {/* Manage / Compare toggle */}
+              <div className="shrink-0 flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                {(['manage', 'compare'] as const).map(v => (
+                  <button
+                    key={v}
+                    onClick={() => setThemesView(v)}
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors capitalize ${
+                      themesView === v
+                        ? 'bg-[var(--color-figma-accent)] text-white'
+                        : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                {themesView === 'manage' ? (
+                  <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
+                    <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(set, path) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} />
+                  </ErrorBoundary>
+                ) : (
+                  <ErrorBoundary panelName="Theme Compare" onReset={() => setThemesView('manage')}>
+                    <ThemeCompare
+                      dimensions={dimensions}
+                      allTokensFlat={allTokensFlat}
+                      pathToSet={pathToSet}
+                      onEditToken={(set, path) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }}
+                      onCreateToken={(path, set, type, value) => {
+                        navigateTo('define', 'tokens');
+                        if (set !== activeSet) setActiveSet(set);
+                        setEditingToken({ path, set, isCreate: true, initialType: type, initialValue: value });
+                      }}
+                    />
+                  </ErrorBoundary>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Export sub-tab (Ship > Export) */}

@@ -269,3 +269,17 @@ Already up to date.
 
 --- Merging: `convertFromFigmaValue` crashes on undefined COLOR values ---
 Already up to date.
+[main a73389a] chore(backlog): done – `convertFromFigmaValue` crashes on undefined COLOR values
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - `convertFromFigmaValue` crashes on undefined COLOR values
+- Added null guard (`if (value == null) return null`) before `rgbToHex(value, value.a ?? 1)` in `convertFromFigmaValue` to handle cases where `valuesByMode[modeId]` is undefined.
+- Files changed: `packages/figma-plugin/src/plugin/variableUtils.ts` ~L58
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  61 items remaining
+===============================================================
+  Claimed: `convertToFigmaValue` returns NaN for non-numeric strings — for number/fontWeight/percentage types, `parseFloat(value)` on a non-numeric string returns NaN, which is passed to `variable.setValueForMode()` and throws in the Figma API
+  Worktree: /tmp/backlog-63411-67NvUd
