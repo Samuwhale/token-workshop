@@ -432,3 +432,10 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: `usePinnedTokens` hook is fully implemented but never wired to any UI — the pin infrastructure is complete but invisible to users; and lint violations exist in the data layer but are never surfaced inline in the token list rows
 ---
+
+## 2026-03-28 - Token group expand/collapse state lost on page reload
+- Switched expand/collapse persistence from `sessionStorage` to `localStorage` so state survives panel close and Figma restart
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L103,133,147
+- **Learnings for future iterations:**
+  - The expand state uses a per-set key (`token-expand:<setName>`), so the change is fully scoped — no migration needed
+---

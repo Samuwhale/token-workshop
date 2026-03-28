@@ -44,3 +44,13 @@ Already up to date.
 
   Backlog empty — running discovery pass to replenish…
   Discovery pass produced no new items. Waiting for work…
+  Discovery pass added 11 items — continuing.
+  Claimed: Token group expand/collapse state is lost on page reload — expand state is saved to `sessionStorage` in `TokenList.tsx` which is cleared when the panel is closed or Figma restarts; switch to `localStorage` so users don't have to re-expand the same groups every session
+  Worktree: /tmp/backlog-15773-pVfwrX
+
+  ✓ done: Token group expand/collapse state lost on page reload
+    Switched expand/collapse persistence from sessionStorage to localStorage in TokenList.tsx (3 occurrences). All validation gates pass.
+    9 turns · 50s · $0.28
+
+--- Merging: Token group expand/collapse state lost on page reload ---
+Already up to date.

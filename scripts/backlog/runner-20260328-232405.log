@@ -51,3 +51,6 @@ Already up to date.
 
   Backlog empty — running discovery pass to replenish…
   Discovery pass produced no new items. Waiting for work…
+  Discovery pass added 9 items — continuing.
+  Claimed: Lint violations not shown inline on token list rows — `useLint.ts` hook data is available in `TokenList.tsx` but violations are only surfaced in the AnalyticsPanel tab; add a small warning indicator on each token row that has an active lint violation so users can see issues without leaving the token list
+  Worktree: /tmp/backlog-17062-mVTN2j

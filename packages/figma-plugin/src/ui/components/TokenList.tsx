@@ -100,7 +100,7 @@ export function TokenList({
     return map;
   }, [generators]);
 
-  // Expand/collapse state — persisted in sessionStorage per set
+  // Expand/collapse state — persisted in localStorage per set
   const setNameRef = useRef(setName);
   setNameRef.current = setName;
   const initializedForSet = useRef<string | null>(null);
@@ -130,7 +130,7 @@ export function TokenList({
     initializedForSet.current = setName;
     setZoomRootPath(null);
     try {
-      const stored = sessionStorage.getItem(`token-expand:${setName}`);
+      const stored = localStorage.getItem(`token-expand:${setName}`);
       if (stored !== null) {
         setExpandedPaths(new Set(JSON.parse(stored) as string[]));
       } else {
@@ -144,7 +144,7 @@ export function TokenList({
   useEffect(() => {
     if (initializedForSet.current !== setNameRef.current) return;
     try {
-      sessionStorage.setItem(`token-expand:${setNameRef.current}`, JSON.stringify([...expandedPaths]));
+      localStorage.setItem(`token-expand:${setNameRef.current}`, JSON.stringify([...expandedPaths]));
     } catch {}
   }, [expandedPaths]);
 

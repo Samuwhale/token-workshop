@@ -67,3 +67,6 @@ Already up to date.
 
   Backlog empty — running discovery pass to replenish…
   Discovery pass produced no new items. Waiting for work…
+  Discovery pass added 12 items — continuing.
+  Claimed: usePinnedTokens hook exists but pinning UI is not wired in TokenList — `usePinnedTokens.ts` already has the infrastructure (pin/unpin/isPinned) but `TokenList.tsx` never calls it; add a pin button to token rows (visible on hover) and a "Pinned" section at the top of the list so power users can surface their most-used tokens
+  Worktree: /tmp/backlog-15394-RbdMlo

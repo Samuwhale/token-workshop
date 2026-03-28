@@ -51,3 +51,6 @@ Already up to date.
 
   Backlog empty — running discovery pass to replenish…
   Discovery pass produced no new items. Waiting for work…
+  Discovery pass added 10 items — continuing.
+  Claimed: No batch delete for selected tokens — select mode in `TokenList.tsx` allows multi-select but provides no batch delete action; users must delete tokens one at a time even when many are selected; add a "Delete selected (N)" button in the selection toolbar with a single confirmation dialog showing the count and any alias dependents
+  Worktree: /tmp/backlog-16467-4gpMr8
