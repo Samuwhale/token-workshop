@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: useGeneratorDialog.ts (463 lines, 20+ state vars, 21+ callbacks) and useGitSync.ts (317 lines, 17+ state vars) are oversized hooks mixing unrelated concerns — useGeneratorDialog handles config management, preview fetching with debounce/abort, existing token comparison, overwrite detection, semantic mapping, save logic, and undo; useGitSync handles status polling, conflict detection, merge resolution, diff computation, file selection, and token previews; each should be decomposed into 2-3 focused hooks to reduce re-render blast radius and make individual behaviors testable
   Worktree: /tmp/backlog-86289-LF8p7z
+
+  ✓ done: Decompose oversized useGeneratorDialog and useGitSync hooks
+    Split useGeneratorDialog (463→~230 lines) into useGeneratorPreview + useGeneratorSave + orchestrator; split useGitSync (317→~115 lines) into useGitStatus + useGitConflicts + useGitDiff + orchestrator. Return types preserved, no consumer changes needed. All 4 validation gates pass.
+    23 turns · 252s · $1.16
+
+--- Merging: Decompose oversized useGeneratorDialog and useGitSync hooks ---
+Already up to date.

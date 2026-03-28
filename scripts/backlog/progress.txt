@@ -371,3 +371,22 @@
   - The `extractResponse` callback in useFigmaMessage must be a stable reference (module-level const) to avoid effect re-registration on every render
   - The hook returns `send(sendType, payload)` rather than baking in the send type, allowing one hook instance to be used for multiple send types that share the same response type (though none of the current callers need this)
 ---
+
+## 2026-03-28 - Decompose oversized useGeneratorDialog and useGitSync hooks
+- Decomposed `useGeneratorDialog` (463 lines, 20+ state vars) into 3 focused hooks:
+  - `useGeneratorPreview` — debounced preview fetching, existing token loading, overwrite detection
+  - `useGeneratorSave` — validation, confirmation flow, save API calls, semantic mapping
+  - `useGeneratorDialog` — orchestrator with config state, dirty tracking, type/name handlers (~230 lines)
+- Decomposed `useGitSync` (317 lines, 17+ state vars) into 3 focused hooks:
+  - `useGitStatus` — status/branch fetching, allChanges computation, file selection sync
+  - `useGitConflicts` — conflict detection, choices, resolution, abort merge
+  - `useGitDiff` — diff computation, choices, apply diff, token preview
+  - `useGitSync` — orchestrator composing sub-hooks + pull-specific conflict/notification logic (~115 lines)
+- Return types preserved — no consumer changes needed (TokenGeneratorDialog.tsx, PublishPanel.tsx)
+- Files created: `useGeneratorPreview.ts`, `useGeneratorSave.ts`, `useGitStatus.ts`, `useGitConflicts.ts`, `useGitDiff.ts`
+- Files changed: `useGeneratorDialog.ts`, `useGitSync.ts`
+- **Learnings for future iterations:**
+  - When decomposing hooks, keep the orchestrator as the sole export that consumers import — preserves the return type contract and avoids multi-file consumer changes
+  - `doAction` in useGitSync needed a wrapper in the orchestrator because the raw action (status update) and the conflict-aware logic (notifications, fetchConflicts on pull failure) are separate concerns — sub-hook returns the promise result, orchestrator adds the notification/conflict layer
+  - Type exports (GitStatus, FileConflict, etc.) should stay in the orchestrator file since consumers already import from there
+---
