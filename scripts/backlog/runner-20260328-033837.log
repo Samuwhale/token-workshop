@@ -211,3 +211,16 @@ Already up to date.
 
 --- Merging: SSE connection (useServerEvents) never reconnects after server restart ---
 Already up to date.
+[main b23cc9c] chore(backlog): done – SSE connection (useServerEvents) never reconnects after server restart
+ 6 files changed, 104 insertions(+), 24 deletions(-)
+
+## 2026-03-28 - SSE connection (useServerEvents) never reconnects after server restart
+- Added manual reconnection with exponential backoff (1s–30s) when EventSource enters CLOSED state
+- Used a `callbackRef` pattern to avoid tearing down the connection when the `onGeneratorError` callback identity changes, removing it from the effect dependency array
+- On `onerror`, if `readyState === CLOSED` (browser gave up auto-reconnect), manually schedule a new `EventSource` after a backoff delay; reset delay on successful `onopen`
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  58 items remaining
+===============================================================
+  Claimed: PropertyPicker dropdown has no search or filter — binding tokens to layer properties requires scrolling a long unfiltered list; layers with many properties (e.g. auto-layout frames) are painful
+  Worktree: /tmp/backlog-10278-3IwzyT

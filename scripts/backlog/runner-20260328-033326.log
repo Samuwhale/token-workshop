@@ -280,3 +280,10 @@ Already up to date.
 ===============================================================
   Claimed: AliasAutocomplete shows token path but not the resolved value — when picking an alias, users can't see what color/dimension the alias points to without navigating away
   Worktree: /tmp/backlog-92630-p5OPjS
+
+  ✓ done: AliasAutocomplete shows token path but not the resolved value
+    Added resolved value preview (hex colors, dimensions, composite token fields) to AliasAutocomplete and RemapAutocompleteInput dropdown rows with truncation and tooltip
+    17 turns · 129s · $0.65
+
+--- Merging: AliasAutocomplete shows token path but not the resolved value ---
+Already up to date.

@@ -11,6 +11,24 @@ interface RemapAutocompleteInputProps {
 
 const MAX_SUGGESTIONS = 16;
 
+/** Format a token value as a short preview string. */
+function formatValuePreview(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    const parts: string[] = [];
+    for (const [k, v] of Object.entries(obj)) {
+      if (k.startsWith('$')) continue;
+      if (typeof v === 'string' || typeof v === 'number') parts.push(String(v));
+      if (parts.length >= 3) break;
+    }
+    return parts.join(' / ') || '';
+  }
+  return String(value);
+}
+
 export function RemapAutocompleteInput({
   value,
   onChange,
@@ -113,6 +131,11 @@ export function RemapAutocompleteInput({
                   </div>
                 )}
                 <span className="flex-1 text-[9px] font-mono text-[var(--color-figma-text)] truncate">{path}</span>
+                {formatValuePreview(entry.$value) && (
+                  <span className="text-[8px] text-[var(--color-figma-text-secondary)] truncate max-w-[100px] shrink-0" title={formatValuePreview(entry.$value)}>
+                    {formatValuePreview(entry.$value)}
+                  </span>
+                )}
                 <span className="text-[7px] text-[var(--color-figma-text-secondary)] shrink-0">{entry.$type}</span>
               </button>
             );

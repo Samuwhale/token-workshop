@@ -346,3 +346,13 @@
   - `EventSource` has built-in auto-reconnect, but only while `readyState` stays `CONNECTING`. Once it transitions to `CLOSED` (e.g. server fully down, network error), the browser stops retrying and you must create a new instance manually
   - Store mutable callback refs (`useRef`) to avoid putting callbacks in SSE effect deps — recreating EventSource on every render cycle is wasteful and causes missed events
 ---
+
+## 2026-03-28 - AliasAutocomplete shows token path but not the resolved value
+- Added `formatValuePreview()` helper and resolved-value column to both `AliasAutocomplete` and `RemapAutocompleteInput` dropdown rows
+- Colors show hex string, dimensions/numbers show their value, composite tokens show up to 3 primitive fields joined by " / "
+- Value text is truncated with `max-w-[120px]` (alias) / `max-w-[100px]` (remap) and has a `title` tooltip for the full value
+- Files changed: `packages/figma-plugin/src/ui/components/AliasAutocomplete.tsx` ~L18 (helper), ~L128 (render); `packages/figma-plugin/src/ui/components/RemapAutocompleteInput.tsx` ~L15 (helper), ~L134 (render)
+- **Learnings for future iterations:**
+  - `allTokensFlat` passed to AliasAutocomplete is already alias-resolved (via `resolveAllAliases` in App.tsx), so `$value` contains concrete values, not references
+  - `formatValuePreview` is duplicated in both files — acceptable since per patterns, no re-exports through shared utils to avoid TDZ issues in singlefile bundle
+---
