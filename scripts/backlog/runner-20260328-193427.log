@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Token list: density toggle (compact vs comfortable) ---
 Already up to date.
+[main 7ba3bb4] chore(backlog): done – Token list: density toggle (compact vs comfortable)
+ 11 files changed, 173 insertions(+), 51 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Token list: density toggle (compact vs comfortable)
+- Added density preference (compact/default/comfortable) that scales row heights and preview sizes across tree and table views
+- Compact: 22px rows, 16px swatches. Default: 28px rows, 24px swatches. Comfortable: 36px rows, 32px swatches
+- Density persisted per user via localStorage key `tm_density`
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  65 items remaining
+===============================================================
+  Claimed: **Token list: filter state indicator in toolbar** — when multiple filters are active simultaneously (type filter + search query + ref filter + pinned), the toolbar becomes a row of scattered pills. Add a compact "Filters (3) ×" indicator that shows the count of active filters and clears all on click, replacing the individual scattered pills. The individual pills can still appear in an expandable drawer below.
+  Worktree: /tmp/backlog-77523-KJGX65

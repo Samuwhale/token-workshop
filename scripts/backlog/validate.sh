@@ -43,7 +43,7 @@ ensure_pkg_node_modules() {
   done
 }
 cleanup_pkg_links() {
-  for link in "${CREATED_LINKS[@]}"; do
+  for link in "${CREATED_LINKS[@]:-}"; do
     rm -f "$link" 2>/dev/null
   done
 }

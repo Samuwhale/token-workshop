@@ -56,3 +56,9 @@ Already up to date.
 - Fixed token context menu to show correct keyboard shortcut hints and added missing Delete action
 - Bug fixed: "Alias to this token" had `data-accel="r"` (should be "a") while "Rename token" showed "R" hint but lacked `data-accel` — pressing R opened alias creation instead of rename
 - Fixed: moved `data-accel="r"` to "Rename token", gave "Alias to this token" `data-accel="a"` with "A" hint
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  66 items remaining
+===============================================================
+  Claimed: **Token list: "Promote duplicates" callout** — when the "show duplicates" filter is active, show a persistent banner offering "Promote N duplicate values to primitives and alias them" as a single action, instead of requiring the user to multi-select and find "Link to tokens" in the batch toolbar. The current flow for this is too buried.
+  Worktree: /tmp/backlog-77899-uRkMyl

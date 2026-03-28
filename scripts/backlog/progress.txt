@@ -543,3 +543,19 @@
   - Virtual scroll must include density-derived row height in its useMemo deps array, otherwise rows will be misaligned after density change
   - Table view cells use py-1.5 (not py-1 like tree rows) — needed separate cellPy mapping for table density
 ---
+
+## 2026-03-28 - Token list: provenance badge for imported and generated tokens
+- Added provenance tracking via `$extensions.tokenmanager.source` field set during import
+- ImportPanel `handleImportVariables` now stamps `source: 'figma-variables'` on each token
+- ImportPanel `executeImport` now stamps the active source (`figma-styles`, `json`, `css`, `tailwind`) on each token
+- TokenTreeNode renders a subtle provenance badge (label + code icon) for imported tokens, positioned after lifecycle badges
+- Badge styling uses tertiary text color with 8% opacity background — deliberately subtle so it doesn't compete with lifecycle or generator badges
+- Source labels: "Figma" (variables), "Styles" (Figma styles), "JSON", "CSS", "TW" (Tailwind)
+- Figma sources get a branching-nodes icon; code-based sources (JSON/CSS/TW) get the `</>` code icon
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L500,611; `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1075
+- **Learnings for future iterations:**
+  - Server `batchUpsertTokens` already passes `$extensions` through transparently — no server changes needed for client-side metadata
+  - The `source` state in ImportPanel already distinguishes all import types, making it trivial to tag tokens at import time
+  - Manually created tokens intentionally get no source tag — absence of badge means "created here"
+  - Generator-derived tokens already have their own distinct badge via `derivedTokenPaths`, so provenance badges are complementary, not overlapping
+---

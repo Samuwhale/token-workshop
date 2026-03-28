@@ -72,3 +72,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token list: provenance badge for imported and generated tokens** — generator-derived tokens already show a badge. Extend this to tokens that were imported from Figma variables, imported from JSON, or synced from git, so users understand where each token came from. A subtle icon in the row is enough — just enough to distinguish "mine" from "imported".
   Worktree: /tmp/backlog-76772-6vjcoa
+
+  ✓ done: Token list: provenance badge for imported and generated tokens
+    Added $extensions.tokenmanager.source stamping during import (figma-variables, figma-styles, json, css, tailwind) and a subtle provenance badge in TokenTreeNode showing the import origin with appropriate icon and label.
+    25 turns · 265s · $1.21
+
+--- Merging: Token list: provenance badge for imported and generated tokens ---
+Already up to date.

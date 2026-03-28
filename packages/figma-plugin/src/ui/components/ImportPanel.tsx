@@ -500,6 +500,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                   const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
                   if (t.$description) tok.$description = t.$description;
                   if (t.$scopes && t.$scopes.length > 0) tok.$scopes = t.$scopes;
+                  tok.$extensions = { ...((t as any).$extensions ?? {}), tokenmanager: { ...((t as any).$extensions?.tokenmanager ?? {}), source: 'figma-variables' } };
                   return tok;
                 }),
                 strategy: 'overwrite',
@@ -610,6 +611,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             tokens: tokensToImport.map(t => {
               const tok: Record<string, unknown> = { path: t.path, $type: t.$type, $value: t.$value };
               if (t._warning) tok.$description = t._warning;
+              if (source) tok.$extensions = { tokenmanager: { source: source === 'variables' ? 'figma-variables' : source === 'styles' ? 'figma-styles' : source } };
               return tok;
             }),
             strategy,

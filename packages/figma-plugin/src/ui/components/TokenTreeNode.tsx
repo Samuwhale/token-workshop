@@ -1077,6 +1077,29 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             );
             return null;
           })()}
+          {/* Provenance badge — imported/synced source */}
+          {(() => {
+            const src = (node.$extensions?.tokenmanager as any)?.source;
+            if (!src) return null;
+            const labels: Record<string, { label: string; title: string; icon: JSX.Element }> = {
+              'figma-variables': { label: 'Figma', title: 'Imported from Figma variables', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M12 9v3M9.5 14.5L12 12M14.5 14.5L12 12"/></svg> },
+              'figma-styles': { label: 'Styles', title: 'Imported from Figma styles', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M12 9v3M9.5 14.5L12 12M14.5 14.5L12 12"/></svg> },
+              json: { label: 'JSON', title: 'Imported from JSON file', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/></svg> },
+              css: { label: 'CSS', title: 'Imported from CSS custom properties', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/></svg> },
+              tailwind: { label: 'TW', title: 'Imported from Tailwind config', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/></svg> },
+            };
+            const info = labels[src];
+            if (!info) return null;
+            return (
+              <span
+                title={info.title}
+                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium shrink-0 bg-[var(--color-figma-text-secondary)]/8 text-[var(--color-figma-text-tertiary)] cursor-default"
+              >
+                {info.icon}
+                {info.label}
+              </span>
+            );
+          })()}
           {/* Extends (inheritance) indicator */}
           {(() => {
             const ext = (node.$extensions?.tokenmanager as any)?.extends;
