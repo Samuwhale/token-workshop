@@ -1,0 +1,11 @@
+NOTE: 3 [~] item(s) found — skipping reset (1 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 51
+  Completed total: 597 (next code pass in 1 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  51 items remaining
+===============================================================
+  Claimed: [HIGH] PublishPanel sync actions have no confirmation step — "Push to Figma" and "Pull to local" execute immediately without a confirmation dialog, despite being destructive operations that overwrite variables/styles; add a confirmation modal showing a summary of changes (N creates, N updates, N deletes) before proceeding
+  Worktree: /tmp/backlog-76772-WczbCm

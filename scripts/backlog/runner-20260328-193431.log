@@ -1,0 +1,11 @@
+NOTE: 6 [~] item(s) found — skipping reset (10 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+  Remaining items: 48
+  Completed total: 597 (next code pass in 1 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  48 items remaining
+===============================================================
+  Claimed: **Token list: back navigation when jumping to alias** — the "navigate to alias" action (clicking the arrow on an alias token) jumps you to the referenced token and expands its group, but there's no way to go back. Add a "← Back" button or history breadcrumb that appears after an alias navigation, so you can return to where you were.
+  Worktree: /tmp/backlog-77899-XUEvkl

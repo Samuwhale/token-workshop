@@ -1,0 +1,18 @@
+NOTE: 4 [~] item(s) found — skipping reset (4 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 50
+  Completed total: 597 (next code pass in 1 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  50 items remaining
+===============================================================
+  Claimed: [HIGH] Server has no request body size limit — Fastify's default `bodyLimit` is not configured, so `PUT /api/tokens/:set` and `POST /api/tokens/:set/batch` accept arbitrarily large payloads; set a reasonable `bodyLimit` (e.g. 5MB) on the Fastify instance to prevent memory exhaustion from malformed or malicious requests
+  Worktree: /tmp/backlog-77155-Gnu1hy
+
+  ✓ done: Server has no request body size limit
+    Added bodyLimit: 5MB to Fastify constructor in packages/server/src/index.ts to prevent memory exhaustion from oversized payloads
+    24 turns · 144s · $0.58
+
+--- Merging: Server has no request body size limit ---
+Already up to date.

@@ -32,7 +32,7 @@ export interface ServerConfig {
 }
 
 export async function startServer(config: ServerConfig) {
-  const fastify = Fastify({ logger: true });
+  const fastify = Fastify({ logger: true, bodyLimit: 5 * 1024 * 1024 /* 5 MB */ });
 
   await fastify.register(cors, {
     // 'null' origin is sent by the Figma plugin iframe (sandboxed iframe with no inherited origin)
