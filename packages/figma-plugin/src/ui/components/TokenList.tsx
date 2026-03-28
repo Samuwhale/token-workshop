@@ -660,6 +660,7 @@ export function TokenList({
     selectedNodes,
     siblingOrderMap,
     allGroupPaths,
+    allTokensFlat,
     onCreateNew,
     onRefresh,
     onPushUndo,
@@ -669,7 +670,7 @@ export function TokenList({
   const {
     showCreateForm, setShowCreateForm,
     newTokenGroup, setNewTokenGroup, newTokenName, setNewTokenName,
-    newTokenPath, newTokenType, setNewTokenType, newTokenValue, setNewTokenValue,
+    newTokenPath, pathValidation, newTokenType, setNewTokenType, newTokenValue, setNewTokenValue,
     newTokenDescription, setNewTokenDescription, typeAutoInferred, setTypeAutoInferred,
     createError, setCreateError,
     createFormRef, nameSuggestions, filteredGroups, groupDropdownOpen, setGroupDropdownOpen,
@@ -3063,7 +3064,7 @@ export function TokenList({
                 placeholder="Token name (e.g. 500, base, primary)"
                 value={newTokenName}
                 onChange={e => { setNewTokenName(e.target.value); setCreateError(''); }}
-                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${createError || pathValidation.error ? 'border-[var(--color-figma-error)]' : pathValidation.warning ? 'border-amber-400' : 'border-[var(--color-figma-border)]'}`}
                 onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
                 autoFocus
               />
@@ -3072,8 +3073,17 @@ export function TokenList({
                   Path: <span className="text-[var(--color-figma-text-secondary)]">{newTokenPath}</span>
                 </div>
               )}
+              {pathValidation.error && (
+                <p className="mt-0.5 text-[10px] text-[var(--color-figma-error)]" role="alert">{pathValidation.error}</p>
+              )}
+              {pathValidation.warning && (
+                <p className="mt-0.5 text-[10px] text-amber-600 dark:text-amber-400">&#9888; {pathValidation.warning}</p>
+              )}
+              {pathValidation.info && (
+                <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-tertiary)]">&#8505; {pathValidation.info}</p>
+              )}
             </div>
-            {createError && <p className="text-[10px] text-[var(--color-figma-error)]">{createError}</p>}
+            {createError && <p className="text-[10px] text-[var(--color-figma-error)]" role="alert">{createError}</p>}
             {nameSuggestions.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 <span className="text-[10px] text-[var(--color-figma-text-tertiary)] self-center mr-0.5">Suggest:</span>
@@ -3157,16 +3167,16 @@ export function TokenList({
             <div className="flex gap-1.5">
               <button
                 onClick={handleCreate}
-                disabled={!newTokenName.trim()}
-                title={!newTokenName.trim() ? 'Enter a token name first' : 'Create token (Enter)'}
+                disabled={!newTokenName.trim() || !!pathValidation.error}
+                title={!newTokenName.trim() ? 'Enter a token name first' : pathValidation.error ? pathValidation.error : 'Create token (Enter)'}
                 className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
                 Create
               </button>
               <button
                 onClick={handleCreateAndNew}
-                disabled={!newTokenName.trim()}
-                title={!newTokenName.trim() ? 'Enter a token name first' : 'Create and start a new token in the same group (Shift+Enter)'}
+                disabled={!newTokenName.trim() || !!pathValidation.error}
+                title={!newTokenName.trim() ? 'Enter a token name first' : pathValidation.error ? pathValidation.error : 'Create and start a new token in the same group (Shift+Enter)'}
                 className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)] hover:text-white disabled:opacity-40 whitespace-nowrap"
               >
                 & New

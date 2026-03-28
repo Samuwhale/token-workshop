@@ -481,3 +481,20 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: alias rename conflict detection is entirely missing — renaming a token silently breaks any alias that references its old path, with no warning and no auto-update option
 ---
+
+## 2026-03-28 - Token list: name validation as-you-type in create form
+- Added inline path validation that runs on every keystroke in the create form. Three tiers of feedback:
+  - **Error** (red, blocks Create): invalid characters, whitespace, `$` prefix, slashes, empty segments (double dots). Uses existing `validateTokenPath()` from `tokenParsers.ts`.
+  - **Warning** (amber): token path already exists and would be overwritten.
+  - **Info** (tertiary text): parent group will be auto-created.
+- Name input border color reflects validation state (red for errors, amber for warnings).
+- Create and "& New" buttons are disabled when there's a path validation error, with the error message shown in the button tooltip.
+- Added `PathValidation` interface and `pathValidation` useMemo to `useTokenCreate` hook, passing `allTokensFlat` for existence checks.
+- Files changed:
+  - `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` ~L7-12 (import + interface), ~L63-87 (pathValidation memo), ~L221 (return value)
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L663 (allTokensFlat param), ~L672 (destructure pathValidation), ~L3073-3088 (validation messages in JSX), ~L3170-3180 (disabled state on buttons)
+- **Learnings for future iterations:**
+  - `validateTokenPath` from `tokenParsers.ts` is reusable for any path validation — already handles all DTCG segment rules
+  - The `allTokensFlat` record uses `path in obj` for existence checks — simple and efficient for as-you-type validation
+  - Validation runs via `useMemo` on `newTokenPath` so it's reactive but only recomputes when the path actually changes
+---

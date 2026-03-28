@@ -25,3 +25,20 @@ Already up to date.
   ✓ product pass: product-pass
     12 items written to inbox
 Already up to date.
+[main d82beb1] chore(backlog): product pass – product-pass
+ 7 files changed, 74 insertions(+), 4 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 12 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-28 - product-pass
+- Areas explored: TokenList (rename flow, alias graph), SelectionInspector (binding feedback, multi-layer apply), PublishPanel (git/var/style sync previews, readiness checks), ThemeManager (coverage gaps, auto-fill), AnalyticsPanel (duplicate promoter), BatchEditor (regex preview), generator components (interactive preview gap), CommandPalette (qualifier support), ResolverPanel (onboarding), useDragDrop, useTokenCreate, useFindReplace
+- Found 12 items — written to backlog-inbox.md
+- Notable: alias rename conflict detection is entirely missing — renaming a token silently breaks any alias that references its old path, with no warning and no auto-update option
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  68 items remaining
+===============================================================
+  Claimed: **Token list: visible keyboard shortcut hints in context menus** — the right-click context menus for tokens and groups show actions but no keyboard shortcuts. Show shortcut hints next to each action (e.g., `⌫ Delete`, `R Rename`, `D Duplicate`). Helps discoverability and accelerates power-user workflows.
+  Worktree: /tmp/backlog-77899-HDtXCt

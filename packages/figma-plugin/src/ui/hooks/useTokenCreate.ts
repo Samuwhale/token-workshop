@@ -4,6 +4,13 @@ import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
 import { getDefaultValue, nodeParentPath } from '../components/tokenListUtils';
 import { fuzzyScore } from '../shared/fuzzyMatch';
+import { validateTokenPath } from '../shared/tokenParsers';
+
+export interface PathValidation {
+  error: string | null;
+  warning: string | null;
+  info: string | null;
+}
 
 export interface UseTokenCreateParams {
   defaultCreateOpen?: boolean;
@@ -13,6 +20,7 @@ export interface UseTokenCreateParams {
   selectedNodes: SelectionNodeInfo[];
   siblingOrderMap: Map<string, string[]>;
   allGroupPaths: string[];
+  allTokensFlat: Record<string, unknown>;
   onCreateNew?: (initialPath?: string, initialType?: string, initialValue?: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -28,6 +36,7 @@ export function useTokenCreate({
   selectedNodes,
   siblingOrderMap,
   allGroupPaths,
+  allTokensFlat,
   onCreateNew,
   onRefresh,
   onPushUndo,
@@ -58,6 +67,33 @@ export function useTokenCreate({
     if (!n) return '';
     return g ? `${g}.${n}` : n;
   }, [newTokenGroup, newTokenName]);
+
+  // Inline path validation — runs on every keystroke
+  const pathValidation: PathValidation = useMemo(() => {
+    const result: PathValidation = { error: null, warning: null, info: null };
+    const path = newTokenPath;
+    if (!path) return result;
+
+    // 1) Invalid characters / format
+    const pathError = validateTokenPath(path);
+    if (pathError) {
+      result.error = pathError;
+      return result;
+    }
+
+    // 2) Would overwrite existing token
+    if (path in allTokensFlat) {
+      result.warning = `Token "${path}" already exists — creating will overwrite it`;
+    }
+
+    // 3) Parent group will be auto-created
+    const group = newTokenGroup.trim();
+    if (group && !allGroupPaths.includes(group)) {
+      result.info = `Group "${group}" will be created automatically`;
+    }
+
+    return result;
+  }, [newTokenPath, newTokenGroup, allTokensFlat, allGroupPaths]);
 
   const [groupActiveIdx, setGroupActiveIdx] = useState(-1);
 
@@ -197,6 +233,7 @@ export function useTokenCreate({
     newTokenName,
     setNewTokenName,
     newTokenPath,
+    pathValidation,
     newTokenType,
     setNewTokenType,
     newTokenValue,

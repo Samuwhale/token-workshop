@@ -50,3 +50,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token list: name validation as-you-type in create form** — currently path validation only happens on submit. Add inline validation as the user types: flag invalid characters, warn if the path already exists (would overwrite), indicate if the parent group will be auto-created. This makes errors surfaced before the user clicks Create.
   Worktree: /tmp/backlog-76772-6JHAEJ
+
+  ✓ done: Token list: name validation as-you-type in create form
+    Added inline path validation with three tiers: errors (invalid chars, blocks Create), warnings (path exists/overwrite), info (group auto-created). Uses existing validateTokenPath + allTokensFlat existence check in a useMemo.
+    38 turns · 211s · $1.42
+
+--- Merging: Token list: name validation as-you-type in create form ---
+Already up to date.
