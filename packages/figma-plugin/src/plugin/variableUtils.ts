@@ -37,12 +37,19 @@ export function convertToFigmaValue(value: any, tokenType: string): VariableValu
       const color = parseColor(value);
       return color ? { r: color.rgb.r, g: color.rgb.g, b: color.rgb.b, a: color.a } : null;
     }
-    case 'dimension':
-      return typeof value === 'object' ? value.value : value;
+    case 'dimension': {
+      const raw = typeof value === 'object' ? value.value : value;
+      if (typeof raw === 'number') return raw;
+      const parsed = parseFloat(raw);
+      return isNaN(parsed) ? null : parsed;
+    }
     case 'number':
     case 'fontWeight':
-    case 'percentage':
-      return typeof value === 'number' ? value : parseFloat(value);
+    case 'percentage': {
+      if (typeof value === 'number') return value;
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? null : parsed;
+    }
     case 'boolean':
       return Boolean(value);
     case 'string':

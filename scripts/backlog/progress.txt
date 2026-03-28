@@ -496,3 +496,11 @@
   - ThemeCompare was an orphaned component — imported in App.tsx but never rendered, with `'theme-compare'` in the OverflowPanel type union but no corresponding render branch
   - `targetSetForOption` picks the first 'enabled' set, falling back to 'source', as the best target for creating missing tokens in a theme option
 ---
+
+## 2026-03-28 - `convertToFigmaValue` returns NaN for non-numeric strings
+- Added `isNaN` guards in `convertToFigmaValue` for `number`, `fontWeight`, `percentage`, and `dimension` cases. When `parseFloat` returns `NaN`, the function now returns `null` instead, which the caller already handles (skips `setValueForMode`).
+- Files changed: `packages/figma-plugin/src/plugin/variableUtils.ts` ~L40-L52
+- **Learnings for future iterations:**
+  - The `dimension` case also had the same latent bug — it passed through string values without parsing when `typeof value !== 'object'`.
+  - Callers of `convertToFigmaValue` already guard against `null` returns, so returning `null` for invalid input is the correct behavior.
+---

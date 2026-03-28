@@ -283,3 +283,10 @@ Already up to date.
 ===============================================================
   Claimed: `convertToFigmaValue` returns NaN for non-numeric strings — for number/fontWeight/percentage types, `parseFloat(value)` on a non-numeric string returns NaN, which is passed to `variable.setValueForMode()` and throws in the Figma API
   Worktree: /tmp/backlog-63411-67NvUd
+
+  ✓ done: `convertToFigmaValue` returns NaN for non-numeric strings
+    Added isNaN guards for number/fontWeight/percentage/dimension cases — returns null instead of NaN, which callers already handle
+    12 turns · 54s · $0.3
+
+--- Merging: `convertToFigmaValue` returns NaN for non-numeric strings ---
+Already up to date.

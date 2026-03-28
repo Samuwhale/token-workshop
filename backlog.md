@@ -41,7 +41,7 @@
 - [x] ThemeManager calls full `fetchDimensions()` after every mutation (create, rename, delete, reorder, toggle) — redundant after the optimistic update already applied; only re-fetch on error rollback or debounce the re-fetch
 - [x] ThemeManager empty state could be more scannable — single paragraph at 10px explaining dimensions; break into structured examples with clickable quick-start dimension names (e.g. "Color Mode", "Brand", "Density")
 - [x] "Off / Base / On" theme set states are confusing — the three-state toggle (disabled/source/enabled) is cryptic; rename to "Not included" / "Foundation" / "Override", add inline help tooltip, and show a visual stack diagram explaining the layering model
-- [~] Theme Compare lacks actionable output — you can see diffs between theme options but can't fix gaps directly from the compare view; add inline "create missing token" and "edit value" actions so users don't have to navigate away
+- [x] Theme Compare lacks actionable output — you can see diffs between theme options but can't fix gaps directly from the compare view; add inline "create missing token" and "edit value" actions so users don't have to navigate away
 
 ### UX
 
@@ -57,7 +57,7 @@
 
 - [x] `convertFromFigmaValue` crashes on undefined COLOR values — when a variable has no value set for a mode, `valuesByMode[modeId]` is `undefined`; calling `rgbToHex(undefined)` throws TypeError; needs a null guard before conversion
 - [~] `convertToFigmaValue` returns NaN for non-numeric strings — for number/fontWeight/percentage types, `parseFloat(value)` on a non-numeric string returns NaN, which is passed to `variable.setValueForMode()` and throws in the Figma API
-- [ ] Variable snapshots shallow-copy `valuesByMode` — COLOR variable values are objects (`{r,g,b,a}`); if Figma returns the same reference and it later mutates, the snapshot won't preserve the original; needs deep copy for rollback safety
+- [~] Variable snapshots shallow-copy `valuesByMode` — COLOR variable values are objects (`{r,g,b,a}`); if Figma returns the same reference and it later mutates, the snapshot won't preserve the original; needs deep copy for rollback safety
 - [ ] Git sync branch names not validated against flag injection — `checkout` and `createBranch` pass user-supplied names directly to simple-git; a name like `--orphan` could be interpreted as a flag
 
 ### QoL

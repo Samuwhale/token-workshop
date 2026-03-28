@@ -230,3 +230,16 @@ Already up to date.
 
 --- Merging: Theme Compare lacks actionable output ---
 Already up to date.
+[main 42a8c67] chore(backlog): done – Theme Compare lacks actionable output
+ 7 files changed, 151 insertions(+), 15 deletions(-)
+
+## 2026-03-28 - Theme Compare lacks actionable output
+- Added Manage/Compare toggle to the Themes sub-tab (Define > Themes) so ThemeCompare is now accessible alongside ThemeManager
+- Added inline "Create in A/B" and "Edit A/B" action buttons to each diff row in ThemeCompare, visible on hover
+- "Create" pre-fills the token editor with the path, type, and opposing side's value; targets the first enabled (or source) set of the theme option
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  60 items remaining
+===============================================================
+  Claimed: Variable snapshots shallow-copy `valuesByMode` — COLOR variable values are objects (`{r,g,b,a}`); if Figma returns the same reference and it later mutates, the snapshot won't preserve the original; needs deep copy for rollback safety
+  Worktree: /tmp/backlog-62956-5IVDQQ
