@@ -439,3 +439,10 @@
 - **Learnings for future iterations:**
   - The expand state uses a per-set key (`token-expand:<setName>`), so the change is fully scoped — no migration needed
 ---
+---
+
+## 2026-03-28 - product-pass
+- Areas explored: `packages/figma-plugin/src/ui/` (App.tsx, TokenList.tsx, ThemeManager.tsx, PublishPanel.tsx, ExportPanel.tsx, ImportPanel.tsx, AnalyticsPanel.tsx, GraphPanel.tsx, ResolverPanel.tsx, TokenEditor.tsx, BatchEditor.tsx, ColorPicker.tsx, ContrastChecker.tsx, ConfirmModal.tsx), `packages/figma-plugin/src/ui/hooks/` (usePinnedTokens.ts, useToastStack.ts, useLint.ts, useSetDelete.ts, useSetMergeSplit.ts, useGitSync.ts), `packages/server/src/routes/` (tokens.ts, themes.ts, sync.ts, sets.ts, generators.ts, operations.ts)
+- Found 12 items — written to backlog-inbox.md
+- Notable: `usePinnedTokens` hook is fully implemented but never wired to any UI — the pin infrastructure is complete but invisible to users; and lint violations exist in the data layer but are never surfaced inline in the token list rows
+---

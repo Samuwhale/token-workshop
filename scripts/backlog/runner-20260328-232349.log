@@ -54,3 +54,17 @@ Already up to date.
 
 --- Merging: Token group expand/collapse state lost on page reload ---
 Already up to date.
+[main b71faa2] chore(backlog): done – Token group expand/collapse state lost on page reload
+ 9 files changed, 52 insertions(+), 15 deletions(-)
+  (pass skipped — another runner is handling it)
+
+## 2026-03-28 - Token group expand/collapse state lost on page reload
+- Switched expand/collapse persistence from `sessionStorage` to `localStorage` so state survives panel close and Figma restart
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L103,133,147
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5  (claude)  —  8 items remaining
+===============================================================
+  Claimed: No suppress/ignore action on individual lint violations in AnalyticsPanel — `suppressedKeys` state already exists in `AnalyticsPanel.tsx` but there is no button to suppress a specific violation; add a per-row dismiss/suppress button so users can acknowledge known issues and reduce noise without disabling the whole rule
+  Worktree: /tmp/backlog-15773-5Yzpy7

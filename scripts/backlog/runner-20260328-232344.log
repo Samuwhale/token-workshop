@@ -70,3 +70,10 @@ Already up to date.
   Discovery pass added 12 items — continuing.
   Claimed: usePinnedTokens hook exists but pinning UI is not wired in TokenList — `usePinnedTokens.ts` already has the infrastructure (pin/unpin/isPinned) but `TokenList.tsx` never calls it; add a pin button to token rows (visible on hover) and a "Pinned" section at the top of the list so power users can surface their most-used tokens
   Worktree: /tmp/backlog-15394-RbdMlo
+
+  ✓ done: usePinnedTokens hook exists but pinning UI is not wired in TokenList
+    stale — already done. The hook is called, pin buttons render on hover and persistently, pinned section shows at top of list, context menu has pin/unpin, rename support is wired.
+    13 turns · 103s · $0.57
+
+--- Merging: usePinnedTokens hook exists but pinning UI is not wired in TokenList ---
+Already up to date.
