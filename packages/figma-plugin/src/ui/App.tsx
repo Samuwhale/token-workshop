@@ -790,7 +790,7 @@ export function App() {
       {
         id: 'paste-tokens',
         label: 'Paste tokens',
-        description: 'Create tokens from JSON or name:value lines',
+        description: 'Create tokens from JSON, CSS vars, CSV, or Tailwind config',
         category: 'Tokens',
         shortcut: adaptShortcut('⌘⇧V'),
         handler: () => setShowPasteModal(true),

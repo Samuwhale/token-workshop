@@ -149,3 +149,17 @@ Already up to date.
 
 --- Merging: No token pinning or favorites ---
 Already up to date.
+[main 519d09a] chore(backlog): done – No token pinning or favorites
+ 11 files changed, 244 insertions(+), 26 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/usePinnedTokens.ts
+
+## 2026-03-28 - No token pinning or favorites
+- Implemented token pinning/favorites feature: users can star/pin tokens, with a "Pinned" section at the top of the token list
+- Created `usePinnedTokens` hook with localStorage persistence per set, supporting toggle/remove/rename/clear
+- Added star/pin toggle button on token row hover actions (filled star when pinned, always visible; outline star on hover when not)
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  74 items remaining
+===============================================================
+  Claimed: ThemeManager bulk set-status context menu has no ARIA `role="menu"` or `role="menuitem"` — screen readers won't announce it as a menu; add proper roles and focus management matching the TokenList context menu pattern
+  Worktree: /tmp/backlog-62956-375MdG

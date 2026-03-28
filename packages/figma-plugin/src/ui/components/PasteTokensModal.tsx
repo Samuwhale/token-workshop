@@ -12,10 +12,12 @@ interface ParsedToken {
   $value: unknown;
 }
 
+type ParseFormat = 'dtcg' | 'lines' | 'css' | 'csv' | 'tailwind' | 'empty' | 'error';
+
 interface ParseResult {
   tokens: ParsedToken[];
   errors: string[];
-  format: 'dtcg' | 'lines' | 'empty' | 'error';
+  format: ParseFormat;
 }
 
 function inferType(value: string): { $type: string; $value: unknown } {
@@ -24,6 +26,9 @@ function inferType(value: string): { $type: string; $value: unknown } {
     return { $type: 'color', $value: trimmed }; // alias — type unknown at parse time
   }
   if (/^#([0-9a-fA-F]{3,8})$/.test(trimmed)) {
+    return { $type: 'color', $value: trimmed };
+  }
+  if (/^(rgb|hsl)a?\(/.test(trimmed)) {
     return { $type: 'color', $value: trimmed };
   }
   const dimMatch = trimmed.match(/^(-?\d+(\.\d+)?)(px|em|rem|%|vh|vw|pt)$/);
@@ -48,25 +53,233 @@ function flattenDTCG(obj: DTCGGroup): ParsedToken[] {
   return results;
 }
 
+// ---------------------------------------------------------------------------
+// CSS Custom Properties parser
+// ---------------------------------------------------------------------------
+
+/** Convert CSS custom property name to dot-separated token path: --color-primary → color.primary */
+function cssVarToPath(name: string): string {
+  return name
+    .replace(/^--/, '')
+    .replace(/-/g, '.');
+}
+
+function parseCSSCustomProperties(raw: string): ParseResult {
+  const lines = raw.trim().split('\n');
+  const tokens: ParsedToken[] = [];
+  const errors: string[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    if (!line || line.startsWith('//') || line.startsWith('/*') || line === '}' || line === '{' || /^[a-z.*:]+\s*\{/.test(line)) continue;
+    // Strip trailing semicolon and !important
+    line = line.replace(/\s*!important\s*/, '').replace(/;\s*$/, '');
+    const match = line.match(/^(--[\w-]+)\s*:\s*(.+)$/);
+    if (!match) {
+      errors.push(`Line ${i + 1}: expected "--name: value"`);
+      continue;
+    }
+    const path = cssVarToPath(match[1]);
+    let rawValue = match[2].trim();
+    // Convert var(--x) references to DTCG alias syntax
+    const varRef = rawValue.match(/^var\((--[\w-]+)\)$/);
+    if (varRef) {
+      rawValue = `{${cssVarToPath(varRef[1])}}`;
+    }
+    tokens.push({ path, ...inferType(rawValue) });
+  }
+
+  return { tokens, errors, format: errors.length > 0 && tokens.length === 0 ? 'error' : 'css' };
+}
+
+// ---------------------------------------------------------------------------
+// CSV / TSV parser
+// ---------------------------------------------------------------------------
+
+function detectCSVSeparator(firstDataLine: string): ',' | '\t' | null {
+  const tabs = (firstDataLine.match(/\t/g) || []).length;
+  const commas = (firstDataLine.match(/,/g) || []).length;
+  if (tabs >= 1) return '\t';
+  if (commas >= 1) return ',';
+  return null;
+}
+
+const CSV_HEADER_NAMES = /^(name|token|path|key)$/i;
+const CSV_TYPE_NAMES = /^(type|\$type|kind)$/i;
+const CSV_VALUE_NAMES = /^(value|\$value|val)$/i;
+
+function parseCSV(raw: string): ParseResult {
+  const lines = raw.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 1) return { tokens: [], errors: [], format: 'empty' };
+
+  const sep = detectCSVSeparator(lines[0]);
+  if (!sep) return { tokens: [], errors: ['Could not detect CSV/TSV separator'], format: 'error' };
+
+  const headerCells = lines[0].split(sep).map(c => c.trim());
+  const hasHeader = headerCells.some(c => CSV_HEADER_NAMES.test(c));
+
+  let nameCol = 0;
+  let typeCol = -1;
+  let valueCol = 1;
+
+  if (hasHeader) {
+    nameCol = headerCells.findIndex(c => CSV_HEADER_NAMES.test(c));
+    typeCol = headerCells.findIndex(c => CSV_TYPE_NAMES.test(c));
+    valueCol = headerCells.findIndex(c => CSV_VALUE_NAMES.test(c));
+    if (nameCol < 0 || valueCol < 0) {
+      return { tokens: [], errors: ['CSV header must include "name" and "value" columns'], format: 'error' };
+    }
+  }
+
+  const tokens: ParsedToken[] = [];
+  const errors: string[] = [];
+  const startRow = hasHeader ? 1 : 0;
+
+  for (let i = startRow; i < lines.length; i++) {
+    const cells = lines[i].split(sep).map(c => c.trim());
+    const name = cells[nameCol] || '';
+    const value = cells[valueCol] || '';
+    const explicitType = typeCol >= 0 ? (cells[typeCol] || '') : '';
+
+    if (!name) {
+      errors.push(`Row ${i + 1}: empty name`);
+      continue;
+    }
+    if (!value) {
+      errors.push(`Row ${i + 1}: empty value`);
+      continue;
+    }
+
+    if (explicitType) {
+      const inferred = inferType(value);
+      tokens.push({ path: name, $type: explicitType, $value: inferred.$value });
+    } else {
+      tokens.push({ path: name, ...inferType(value) });
+    }
+  }
+
+  return { tokens, errors, format: errors.length > 0 && tokens.length === 0 ? 'error' : 'csv' };
+}
+
+// ---------------------------------------------------------------------------
+// Tailwind / JS object parser
+// ---------------------------------------------------------------------------
+
+/** Best-effort conversion of a JS-style object literal to JSON */
+function jsObjectToJSON(raw: string): string {
+  let s = raw;
+  // Remove trailing commas before } or ]
+  s = s.replace(/,(\s*[}\]])/g, '$1');
+  // Quote unquoted keys: word chars (including hyphens) before colons
+  // but not already quoted and not inside strings
+  s = s.replace(/(?<=[{,]\s*)([a-zA-Z_$][\w-]*)\s*:/g, '"$1":');
+  // Convert single quotes to double quotes (simple — doesn't handle escaped quotes in strings)
+  s = s.replace(/'/g, '"');
+  return s;
+}
+
+function flattenJSObject(obj: Record<string, unknown>, prefix = ''): ParsedToken[] {
+  const results: ParsedToken[] = [];
+  for (const [key, val] of Object.entries(obj)) {
+    if (key.startsWith('$')) continue; // skip DTCG meta
+    const path = prefix ? `${prefix}.${key}` : key;
+    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
+      results.push(...flattenJSObject(val as Record<string, unknown>, path));
+    } else if (typeof val === 'string' || typeof val === 'number') {
+      const strVal = String(val);
+      results.push({ path, ...inferType(strVal) });
+    }
+  }
+  return results;
+}
+
+function parseTailwindConfig(raw: string): ParseResult {
+  try {
+    const json = jsObjectToJSON(raw);
+    const parsed = JSON.parse(json) as Record<string, unknown>;
+    // Check if it looks like DTCG (has $value somewhere) — if so, prefer DTCG parser
+    const hasDTCG = JSON.stringify(parsed).includes('"$value"');
+    if (hasDTCG) return { tokens: [], errors: [], format: 'empty' }; // signal to fall through
+    const tokens = flattenJSObject(parsed);
+    if (tokens.length === 0) {
+      return { tokens: [], errors: ['No tokens found in object'], format: 'error' };
+    }
+    return { tokens, errors: [], format: 'tailwind' };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { tokens: [], errors: [`Object parse error: ${msg}`], format: 'error' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Format detection
+// ---------------------------------------------------------------------------
+
+function looksLikeCSS(raw: string): boolean {
+  const lines = raw.split('\n').filter(l => {
+    const t = l.trim();
+    return t && !t.startsWith('//') && !t.startsWith('/*') && t !== '{' && t !== '}' && !/^[a-z.*:]+\s*\{/.test(t);
+  });
+  if (lines.length === 0) return false;
+  const cssLines = lines.filter(l => /^\s*--[\w-]+\s*:/.test(l));
+  return cssLines.length >= lines.length * 0.5;
+}
+
+function looksLikeCSV(raw: string): boolean {
+  const lines = raw.trim().split('\n').filter(l => l.trim());
+  if (lines.length < 2) return false;
+  const sep = detectCSVSeparator(lines[0]);
+  if (!sep) return false;
+  const cols0 = lines[0].split(sep).length;
+  if (cols0 < 2) return false;
+  // Check consistency: most lines should have the same column count
+  const consistent = lines.filter(l => l.split(sep).length === cols0).length;
+  return consistent >= lines.length * 0.7;
+}
+
+// ---------------------------------------------------------------------------
+// Main parser
+// ---------------------------------------------------------------------------
+
 function parseInput(raw: string): ParseResult {
   const trimmed = raw.trim();
   if (!trimmed) return { tokens: [], errors: [], format: 'empty' };
 
-  // Try JSON first
+  // CSS custom properties detection (before JSON — some CSS might be wrapped in :root {})
+  if (looksLikeCSS(trimmed)) {
+    return parseCSSCustomProperties(trimmed);
+  }
+
+  // CSV/TSV detection (before JSON and name:value — comma/tab structured)
+  if (looksLikeCSV(trimmed)) {
+    return parseCSV(trimmed);
+  }
+
+  // Try JSON / object literal
   if (trimmed.startsWith('{')) {
+    // Try DTCG JSON first
     try {
       const parsed = JSON.parse(trimmed) as Record<string, unknown>;
       const tokens = flattenDTCG(parsed);
-      if (tokens.length === 0) {
-        return { tokens: [], errors: ['No tokens found in JSON. Expected DTCG format with $value fields.'], format: 'error' };
+      if (tokens.length > 0) {
+        return { tokens, errors: [], format: 'dtcg' };
       }
-      return { tokens, errors: [], format: 'dtcg' };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      // Check if it looks like name:value lines were mixed into the JSON
-      const looksLikeMixed = /\n\s*[\w.]+\s*:/.test(trimmed);
-      const hint = looksLikeMixed ? ' (did you mix JSON and name:value lines? Use one format only)' : '';
-      return { tokens: [], errors: [`JSON parse error: ${msg}${hint}`], format: 'error' };
+      // No DTCG tokens — try as plain JS/Tailwind object
+      const twResult = parseTailwindConfig(trimmed);
+      if (twResult.tokens.length > 0) return twResult;
+      return { tokens: [], errors: ['No tokens found in JSON. Expected DTCG format with $value fields, or a plain key/value object.'], format: 'error' };
+    } catch {
+      // JSON parse failed — try Tailwind/JS object conversion
+      const twResult = parseTailwindConfig(trimmed);
+      if (twResult.tokens.length > 0) return twResult;
+      // Re-parse for error message
+      try { JSON.parse(trimmed); } catch (e2) {
+        const msg = e2 instanceof Error ? e2.message : String(e2);
+        const looksLikeMixed = /\n\s*[\w.]+\s*:/.test(trimmed);
+        const hint = looksLikeMixed ? ' (did you mix JSON and name:value lines? Use one format only)' : '';
+        return { tokens: [], errors: [`Parse error: ${msg}${hint}`], format: 'error' };
+      }
+      return { tokens: [], errors: ['Could not parse input'], format: 'error' };
     }
   }
 
@@ -134,6 +347,9 @@ function ColorSwatch({ value }: { value: unknown }) {
 const FORMAT_LABELS: Record<string, string> = {
   dtcg: 'JSON / DTCG',
   lines: 'name: value',
+  css: 'CSS custom properties',
+  csv: 'CSV / TSV',
+  tailwind: 'JS object',
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -309,21 +525,16 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
           </button>
         </div>
 
-        {/* Format hints — mutually exclusive */}
-        <div className="px-4 pt-3 pb-0 flex items-center gap-1.5">
+        {/* Format hint — shows detected format */}
+        <div className="px-4 pt-3 pb-0 flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Format:</span>
-          <span className={`text-[10px] font-mono rounded px-1.5 py-0.5 transition-colors ${
-            format === 'dtcg'
-              ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-semibold'
-              : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'
-          }`}>JSON / DTCG</span>
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] select-none">or</span>
-          <span className={`text-[10px] font-mono rounded px-1.5 py-0.5 transition-colors ${
-            format === 'lines'
-              ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-semibold'
-              : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'
-          }`}>name: value</span>
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] select-none">— not both</span>
+          {(['dtcg', 'lines', 'css', 'csv', 'tailwind'] as const).map(f => (
+            <span key={f} className={`text-[10px] font-mono rounded px-1.5 py-0.5 transition-colors ${
+              format === f
+                ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-semibold'
+                : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'
+            }`}>{FORMAT_LABELS[f]}</span>
+          ))}
         </div>
 
         <div className="p-3 flex flex-col gap-2">
@@ -333,7 +544,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
               ref={textareaRef}
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)] resize-none"
               rows={7}
-              placeholder={'colors.red: #ff0000\ncolors.blue: #0000ff\nspacing.sm: 8px\n\n— or DTCG JSON —\n{"colors":{"red":{"$value":"#ff0000","$type":"color"}}}'}
+              placeholder={'name: value   |  CSV / TSV   |  CSS vars\ncolors.red: #ff0000  name,type,value  --color-red: #f00\nspacing.sm: 8px      sm,dimension,8px  --spacing-sm: 8px\n\n— or DTCG JSON / Tailwind config objects —\n{ colors: { red: \'#ff0000\', blue: \'#0000ff\' } }'}
               value={input}
               onChange={e => { setInput(e.target.value); setSubmitError(''); }}
               autoFocus

@@ -160,3 +160,10 @@ Already up to date.
 ===============================================================
   Claimed: Batch token creation limited to JSON paste — PasteTokensModal only accepts DTCG JSON; add support for tabular input (CSV, TSV, or a spreadsheet-style grid) where each row is name/type/value, and for importing from CSS custom properties (`--color-primary: #ff0000`) and Tailwind config objects — lower the barrier for migrations from other systems
   Worktree: /tmp/backlog-63685-aPA3hU
+
+  ✓ done: Batch token creation limited to JSON paste — multi-format support
+    Added CSS custom properties, CSV/TSV, and Tailwind/JS object parsers to PasteTokensModal with auto-format detection and updated UI hints
+    25 turns · 246s · $1.13
+
+--- Merging: Batch token creation limited to JSON paste — multi-format support ---
+Already up to date.

@@ -595,3 +595,18 @@
   - `filterByDuplicatePaths` from tokenListUtils is reused for the "pinned only" filter, same pattern as recently-touched and issues-only filters
   - `buildTreeByType` was missing from tokenListUtils but referenced in App.tsx — pre-existing build breakage unrelated to this feature
 ---
+
+## 2026-03-28 - Batch token creation limited to JSON paste — multi-format support
+- Added CSS custom properties parser: `--color-primary: #ff0000` → `color.primary` with `var()` → DTCG alias conversion
+- Added CSV/TSV parser: auto-detects separator and optional header row (name/type/value columns)
+- Added Tailwind/JS object parser: converts unquoted keys, single quotes, trailing commas to JSON then flattens nested objects
+- Format detection: `looksLikeCSS()` checks for `--` prefix density, `looksLikeCSV()` checks column consistency, JS objects tried as fallback when JSON parse fails
+- Updated format hint badges to show all 5 formats with active highlighting
+- Updated command palette description and textarea placeholder with examples of all formats
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L1-230 (parsers), ~L280-300 (format UI), ~L380 (placeholder)
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L793 (command palette description)
+- **Learnings for future iterations:**
+  - JS→JSON conversion via regex is fragile but sufficient for simple Tailwind configs; nested string values with special chars may break
+  - CSS `var(--x)` references map cleanly to DTCG `{path}` alias syntax
+  - Format detection order matters: CSS and CSV checks must run before the `{`-starts-with JSON branch
+---
