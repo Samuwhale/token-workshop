@@ -515,3 +515,16 @@ Already up to date.
 
 --- Merging: No server-side token search endpoint ---
 Already up to date.
+[main 220dc8f] chore(backlog): done – No server-side token search endpoint
+ 8 files changed, 157 insertions(+), 43 deletions(-)
+
+## 2026-03-28 - No server-side token search endpoint
+- Added `GET /api/tokens/search` endpoint that searches the in-memory `flatTokens` index across all sets. Supports structured query params: `q` (free text), `type`, `has`, `value`, `path`, `name`, `limit`. Returns `{ results: [{ setName, path, name, $type, $value, $description }] }`.
+- Added `searchTokens()` method to `TokenStore` class that filters the already-indexed flat token map server-side, avoiding the need to transfer all tokens to the client.
+- Replaced client-side cross-set search `useMemo` (which required `perSetFlat` — all tokens from all sets loaded in memory) with a debounced 150ms fetch to the new endpoint. Results are streamed incrementally as the user types.
+
+===============================================================
+  Iteration 26 / 90  (claude)  —  0 items remaining
+===============================================================
+
+No remaining [ ] items in backlog.md. All done!

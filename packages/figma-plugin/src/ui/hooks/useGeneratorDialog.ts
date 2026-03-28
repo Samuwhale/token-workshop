@@ -31,6 +31,8 @@ interface UseGeneratorDialogParams {
   existingGenerator?: TokenGenerator;
   template?: GeneratorTemplate;
   onSaved: (info?: { targetGroup: string }) => void;
+  /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog internally */
+  onInterceptSemanticMapping?: (data: { tokens: GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: GeneratorType }) => void;
 }
 
 export interface OverwrittenEntry {
@@ -94,6 +96,7 @@ export function useGeneratorDialog({
   existingGenerator,
   template,
   onSaved,
+  onInterceptSemanticMapping,
 }: UseGeneratorDialogParams): UseGeneratorDialogReturn {
   const isEditing = Boolean(existingGenerator);
 
@@ -338,6 +341,12 @@ export function useGeneratorDialog({
           }
         }
         if (tokensForMapping.length > 0) {
+          if (onInterceptSemanticMapping) {
+            onInterceptSemanticMapping({ tokens: tokensForMapping, targetGroup: targetGroup.trim(), targetSet, generatorType: selectedType });
+            setSaving(false);
+            onSaved({ targetGroup: targetGroup.trim() });
+            return;
+          }
           setSavedTokens(tokensForMapping);
           setSavedTargetGroup(targetGroup.trim());
           setShowSemanticMapping(true);

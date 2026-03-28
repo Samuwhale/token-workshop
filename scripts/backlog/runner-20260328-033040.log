@@ -605,3 +605,10 @@ Already up to date.
 ===============================================================
   Claimed: No quickstart wizard that chains token generation → semantic mapping → theme setup — EmptyState offers these as separate actions; a guided flow ("Step 1: generate primitives, Step 2: create semantics, Step 3: set up themes") would reduce the learning curve for new users
   Worktree: /tmp/backlog-84992-YI64IR
+
+  ✓ done: No quickstart wizard that chains token generation → semantic mapping → theme setup
+    Created 3-step guided setup wizard (QuickStartWizard.tsx) accessible from EmptyState and command palette, chaining template-based primitive generation → semantic token mapping → theme dimension creation with skip support at every step
+    66 turns · 541s · $4.11
+
+--- Merging: No quickstart wizard that chains token generation → semantic mapping → theme setup ---
+Already up to date.

@@ -47,6 +47,8 @@ export interface TokenGeneratorDialogProps {
   onBack?: () => void;
   onClose: () => void;
   onSaved: (info?: { targetGroup: string }) => void;
+  /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog */
+  onInterceptSemanticMapping?: (data: { tokens: import('../hooks/useGenerators').GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: import('../hooks/useGenerators').GeneratorType }) => void;
 }
 
 export const TYPE_LABELS: Record<GeneratorType, string> = {
@@ -144,6 +146,7 @@ export function TokenGeneratorDialog({
   onBack,
   onClose,
   onSaved,
+  onInterceptSemanticMapping,
 }: TokenGeneratorDialogProps) {
   const {
     isEditing,
@@ -194,6 +197,7 @@ export function TokenGeneratorDialog({
     existingGenerator,
     template,
     onSaved,
+    onInterceptSemanticMapping,
   });
 
   const handleClose = () => {

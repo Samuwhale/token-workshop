@@ -14,6 +14,7 @@ import { ConfirmModal } from './components/ConfirmModal';
 import { EmptyState } from './components/EmptyState';
 import { PasteTokensModal } from './components/PasteTokensModal';
 import { QuickStartDialog } from './components/QuickStartDialog';
+import { QuickStartWizard } from './components/QuickStartWizard';
 import { ColorScaleGenerator } from './components/ColorScaleGenerator';
 import { CommandPalette } from './components/CommandPalette';
 import type { Command, TokenEntry } from './components/CommandPalette';
@@ -258,6 +259,7 @@ export function App() {
   const { isExpanded, toggleExpand } = useWindowExpand();
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [showScaffoldWizard, setShowScaffoldWizard] = useState(false);
+  const [showGuidedSetup, setShowGuidedSetup] = useState(false);
   const [showColorScaleGen, setShowColorScaleGen] = useState(false);
   const [pendingGraphTemplate, setPendingGraphTemplate] = useState<string | null>(null);
   const [pendingGraphFromGroup, setPendingGraphFromGroup] = useState<{ groupPath: string; tokenType: string | null } | null>(null);
@@ -785,6 +787,13 @@ export function App() {
         category: 'Sets',
         handler: () => { setActiveSet(s); goToTokens(); },
       })),
+      {
+        id: 'guided-setup',
+        label: 'Guided Setup',
+        description: 'Step-by-step wizard: generate primitives, map semantics, set up themes',
+        category: 'Help',
+        handler: () => setShowGuidedSetup(true),
+      },
       {
         id: 'keyboard-shortcuts',
         label: 'Keyboard shortcuts\u2026',
@@ -1915,6 +1924,7 @@ export function App() {
               onUsePreset={() => setShowScaffoldWizard(true)}
               onGenerateColorScale={() => setShowColorScaleGen(true)}
               onGoToGraph={() => { setActiveTab('graph'); setOverflowPanel(null); setShowScaffoldWizard(true); }}
+              onGuidedSetup={() => setShowGuidedSetup(true)}
             />
           )}
           {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && !showPreviewSplit && (
@@ -2502,6 +2512,18 @@ export function App() {
           allSets={sets}
           onClose={() => setShowScaffoldWizard(false)}
           onConfirm={(firstPath) => { setShowScaffoldWizard(false); refreshAll(); if (firstPath) setPendingHighlight(firstPath); }}
+        />
+      )}
+
+      {/* Guided Setup Wizard */}
+      {showGuidedSetup && (
+        <QuickStartWizard
+          serverUrl={serverUrl}
+          activeSet={activeSet}
+          allSets={sets}
+          connected={connected}
+          onClose={() => setShowGuidedSetup(false)}
+          onComplete={() => { setShowGuidedSetup(false); refreshAll(); }}
         />
       )}
 

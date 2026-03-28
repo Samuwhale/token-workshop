@@ -334,3 +334,16 @@
   - `TokenStore.flatTokens` is rebuilt on every set change and is always up-to-date — it's safe to search directly without re-indexing.
   - The `isReference` function from `@tokenmanager/core` is the server-side equivalent of `isAlias` from the client's `resolveAlias.ts`.
 ---
+
+## 2026-03-28 - No quickstart wizard that chains token generation → semantic mapping → theme setup
+- Created `QuickStartWizard.tsx` — a 3-step guided flow: (1) Generate Primitives via template picker, (2) Map Semantics via SemanticMappingDialog, (3) Set Up Theme dimension with light/dark options
+- Added `onInterceptSemanticMapping` callback to `useGeneratorDialog` and `TokenGeneratorDialog` so the wizard can capture generated token data and manage its own semantic mapping step instead of the generator dialog's built-in chaining
+- Added `onGuidedSetup` prop to `EmptyState.tsx` with a prominent dashed-border button labeled "Guided setup" with "3 steps" badge
+- Wired wizard state in `App.tsx` with `showGuidedSetup` state, rendering `QuickStartWizard` modal and adding "Guided Setup" command palette entry
+- Each wizard step is skippable; step 1 captures semantic data to feed step 2; step 3 creates a theme dimension via `POST /api/themes/dimensions` + options API
+- Files changed: `packages/figma-plugin/src/ui/components/QuickStartWizard.tsx` (new), `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L28,~L99,~L340, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L47,~L147,~L200, `packages/figma-plugin/src/ui/components/QuickStartDialog.tsx` ~L9,~L237,~L259, `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L11,~L68, `packages/figma-plugin/src/ui/App.tsx` ~L17,~L261,~L795,~L1920,~L2510
+- **Learnings for future iterations:**
+  - The `onInterceptSemanticMapping` pattern lets parent components take over the generator→semantic chaining without modifying the internal dialog flow — useful for any context that wants to customize post-generation behavior
+  - QuickStartDialog's `QUICK_START_TEMPLATES` was made exportable for reuse; same templates power both standalone dialog and wizard step 1
+  - Theme dimension creation API: POST dimension with `{id, name}`, then POST options with `{name, sets: {setName: state}}` — states are 'source', 'enabled', 'disabled'
+---

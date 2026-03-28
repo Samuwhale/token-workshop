@@ -9,9 +9,10 @@ interface EmptyStateProps {
   onGoToGraph?: () => void;
   onGenerateSemanticTokens?: () => void;
   onGenerateDarkTheme?: () => void;
+  onGuidedSetup?: () => void;
 }
 
-export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset, onGenerateColorScale, onGoToGraph, onGenerateSemanticTokens, onGenerateDarkTheme }: EmptyStateProps) {
+export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset, onGenerateColorScale, onGoToGraph, onGenerateSemanticTokens, onGenerateDarkTheme, onGuidedSetup }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center h-full px-5 py-8 text-center gap-6">
       {/* Icon + heading */}
@@ -64,6 +65,27 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onUsePreset,
             Define a color, spacing, or any design value
           </p>
         </button>
+
+        {/* Guided setup */}
+        {onGuidedSetup && (
+          <button
+            onClick={onGuidedSetup}
+            disabled={!connected}
+            title={connected ? undefined : 'Server offline — start the local server'}
+            className="flex flex-col items-start gap-0.5 px-3 py-2.5 rounded border-2 border-dashed border-[var(--color-figma-accent)]/40 text-left disabled:opacity-40 disabled:cursor-not-allowed hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/5 transition-colors"
+          >
+            <div className="flex items-center gap-2 w-full">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <span className="flex-1 text-[11px] font-medium text-[var(--color-figma-accent)]">Guided setup</span>
+              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] font-normal">3 steps</span>
+            </div>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
+              Generate primitives, map semantics, set up themes
+            </p>
+          </button>
+        )}
 
         {/* Secondary actions */}
         <div className="flex flex-col gap-1.5 pt-1">

@@ -6,7 +6,7 @@ import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 // Quick-start templates (mirrors GENERATOR_TEMPLATES from core)
 // ---------------------------------------------------------------------------
 
-const QUICK_START_TEMPLATES: GeneratorTemplate[] = [
+export const QUICK_START_TEMPLATES: GeneratorTemplate[] = [
   {
     id: 'color-ramp',
     label: 'Color ramp',
@@ -233,6 +233,8 @@ interface QuickStartDialogProps {
   allSets: string[];
   onClose: () => void;
   onConfirm: (firstPath?: string) => void;
+  /** When provided, fires with semantic mapping data instead of showing SemanticMappingDialog */
+  onInterceptSemanticMapping?: (data: { tokens: import('../hooks/useGenerators').GeneratedTokenResult[]; targetGroup: string; targetSet: string; generatorType: import('../hooks/useGenerators').GeneratorType }) => void;
 }
 
 export function QuickStartDialog({
@@ -241,6 +243,7 @@ export function QuickStartDialog({
   allSets,
   onClose,
   onConfirm,
+  onInterceptSemanticMapping,
 }: QuickStartDialogProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<GeneratorTemplate | null>(null);
 
@@ -254,6 +257,7 @@ export function QuickStartDialog({
         template={selectedTemplate}
         onBack={() => setSelectedTemplate(null)}
         onClose={onClose}
+        onInterceptSemanticMapping={onInterceptSemanticMapping}
         onSaved={(info) => {
           const firstStep = stepNames[0];
           const firstPath = info?.targetGroup && firstStep
