@@ -540,3 +540,11 @@
   - The plugin message pattern (postMessage → listen for response with ref-based resolver) is used throughout the codebase. Retry wrappers should be considered whenever this pattern is used with a timeout.
   - Escalating timeouts (10s → 20s → 30s) are better than fixed retries for Figma plugin communication since large files with many variables genuinely take longer.
 ---
+
+## 2026-03-28 - Token create form: inline value preview
+- Added a live ValuePreview swatch next to the value input in the inline token create form. The preview updates as the user types, using `parseInlineValue` to convert the raw string to the typed value format that `ValuePreview` expects. For colors it shows a swatch, for dimensions a scaled bar, for typography sample text, etc.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2812-2834 (preview + value input wrapper), ~L28 (ValuePreview import)
+- **Learnings for future iterations:**
+  - `ValuePreview` is a pure component that handles all DTCG token types — reuse it anywhere a token value needs visual representation
+  - `parseInlineValue` converts raw string input to typed values (dimension objects, booleans, numbers) matching what `ValuePreview` expects
+---

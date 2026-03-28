@@ -446,3 +446,18 @@ Already up to date.
 
 --- Merging: SyncPanel "Delete orphan variables" has no retry mechanism ---
 Already up to date.
+[main cfe879f] chore(backlog): done – SyncPanel "Delete orphan variables" has no retry mechanism
+ 5 files changed, 52 insertions(+), 13 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - SyncPanel "Delete orphan variables" has no retry mechanism
+- Added automatic retry with escalating timeouts (10s, 20s, 30s) for orphan variable deletion. Up to 3 attempts before showing a descriptive failure message. The user can still click the button again after all retries are exhausted — no need to re-run the full readiness check.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L183-207 (orphan onFix handler)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Backlog fully drained!

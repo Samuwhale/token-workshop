@@ -24,6 +24,7 @@ import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue } from '
 import { VIRTUAL_ITEM_HEIGHT, VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN } from './tokenListTypes';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions } from './tokenListHelpers';
+import { ValuePreview } from './ValuePreview';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenTreeProvider } from './TokenTreeContext';
 import type { TokenTreeContextType } from './tokenListTypes';
@@ -2808,24 +2809,29 @@ export function TokenList({
                 ))}
               </div>
             )}
-            <input
-              type="text"
-              placeholder="Value (optional, e.g. #FF0000, 16px)"
-              value={newTokenValue}
-              onChange={e => {
-                const val = e.target.value;
-                setNewTokenValue(val);
-                const inferred = inferTypeFromValue(val);
-                if (inferred) {
-                  setNewTokenType(inferred);
-                  setTypeAutoInferred(true);
-                } else if (typeAutoInferred && !val.trim()) {
-                  setTypeAutoInferred(false);
-                }
-              }}
-              className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
-              onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
-            />
+            <div className="flex items-center gap-1.5">
+              {newTokenValue.trim() && (
+                <ValuePreview type={newTokenType} value={parseInlineValue(newTokenType, newTokenValue.trim())} />
+              )}
+              <input
+                type="text"
+                placeholder="Value (optional, e.g. #FF0000, 16px)"
+                value={newTokenValue}
+                onChange={e => {
+                  const val = e.target.value;
+                  setNewTokenValue(val);
+                  const inferred = inferTypeFromValue(val);
+                  if (inferred) {
+                    setNewTokenType(inferred);
+                    setTypeAutoInferred(true);
+                  } else if (typeAutoInferred && !val.trim()) {
+                    setTypeAutoInferred(false);
+                  }
+                }}
+                className="flex-1 min-w-0 px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                onKeyDown={e => { if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); } }}
+              />
+            </div>
             <input
               type="text"
               placeholder="Description (optional)"

@@ -117,6 +117,16 @@ release_lock() {
   rm -rf "$1"
 }
 
+# Try to acquire a pass lock, cleaning up stale locks from dead processes first.
+try_pass_lock() {
+  local lock_pid
+  lock_pid=$(cat "$PASS_LOCKDIR/pid" 2>/dev/null || echo "")
+  if [ -n "$lock_pid" ] && ! kill -0 "$lock_pid" 2>/dev/null; then
+    rm -rf "$PASS_LOCKDIR"
+  fi
+  mkdir "$PASS_LOCKDIR" 2>/dev/null
+}
+
 # ─── Backlog mutation helpers ──────────────────────────────────────
 # All backlog.md writes go through these, under lock.
 
@@ -183,11 +193,14 @@ cleanup_on_exit() {
       || { rm -rf "$WORKTREE_DIR"; git -C "$PROJECT_ROOT" worktree prune 2>/dev/null; }
     WORKTREE_DIR=""
   fi
-  # Release pass lock if we hold it (stale lock has same pid-check as others)
-  local pass_pid=$(cat "$PASS_LOCKDIR/pid" 2>/dev/null || echo "")
-  if [ "$pass_pid" = "$$" ]; then
-    rm -rf "$PASS_LOCKDIR"
-  fi
+  # Release any locks we hold
+  local lockdir
+  for lockdir in "$PASS_LOCKDIR" "$BACKLOG_LOCKDIR" "$GIT_LOCKDIR"; do
+    local lock_pid=$(cat "$lockdir/pid" 2>/dev/null || echo "")
+    if [ "$lock_pid" = "$$" ]; then
+      rm -rf "$lockdir"
+    fi
+  done
 }
 trap cleanup_on_exit EXIT
 
@@ -219,8 +232,15 @@ if [ "$STALE" -gt 0 ]; then
   fi
 fi
 
-# Clean up orphaned worktrees from crashed runners
+# Clean up orphaned worktrees and stale locks from crashed runners
 git -C "$PROJECT_ROOT" worktree prune 2>/dev/null
+for _lockdir in "$BACKLOG_LOCKDIR" "$GIT_LOCKDIR" "$PASS_LOCKDIR"; do
+  _lock_pid=$(cat "$_lockdir/pid" 2>/dev/null || echo "")
+  if [ -n "$_lock_pid" ] && ! kill -0 "$_lock_pid" 2>/dev/null; then
+    echo "Cleaning stale lock: $_lockdir (dead PID $_lock_pid)"
+    rm -rf "$_lockdir"
+  fi
+done
 
 # ─── Git helpers ──────────────────────────────────────────────────
 # Serialises git operations across runners and retries push with
@@ -712,7 +732,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       echo "  Inbox drain recovered $REMAINING items — continuing."
     else
       # Force a discovery pass regardless of counter parity
-      if [[ "$TOOL" == "claude" ]] && mkdir "$PASS_LOCKDIR" 2>/dev/null; then
+      if [[ "$TOOL" == "claude" ]] && try_pass_lock; then
         echo $$ > "$PASS_LOCKDIR/pid"
         TOTAL_DONE=$(get_completed_count)
         PASS_TYPE=$( _pass_type_for_count "$TOTAL_DONE" )
@@ -721,6 +741,9 @@ for i in $(seq 1 $MAX_ITERATIONS); do
         drain_inbox
         REMAINING=$(remaining)
       fi
+      # Final drain — another runner may have filled the inbox since we last checked
+      drain_inbox
+      REMAINING=$(remaining)
       if [[ "$REMAINING" -eq 0 ]]; then
         echo "  Discovery pass produced no new items. Backlog fully drained!"
         exit 0
@@ -852,7 +875,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
       if [ $((TOTAL_DONE % 2)) -eq 0 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
         cleanup_if_needed
         # Non-blocking pass lock: if another runner is already running a pass, skip
-        if mkdir "$PASS_LOCKDIR" 2>/dev/null; then
+        if try_pass_lock; then
           echo $$ > "$PASS_LOCKDIR/pid"
           PASS_TYPE=$( _pass_type_for_count "$TOTAL_DONE" )
           run_special_pass "$PASS_TYPE"
