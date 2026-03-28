@@ -50,3 +50,10 @@ Already up to date.
 ===============================================================
   Claimed: Hardcoded Tailwind colors in TokenList (`text-orange-500`, `bg-orange-500`, `text-red-500`) and TokenTreeNode (`ring-red-500`) bypass the CSS variable system; replace with `var(--color-figma-warning)` / `var(--color-figma-error)` equivalents
   Worktree: /tmp/backlog-63411-NwKbYs
+
+  ✓ done: Hardcoded Tailwind colors in TokenList/TokenTreeNode bypass CSS variable system
+    Replaced 7 hardcoded Tailwind color classes (text-orange-500, bg-orange-500, text-red-500, ring-red-500) with var(--color-figma-warning) and var(--color-figma-error) equivalents in TokenList.tsx and TokenTreeNode.tsx. Build passes.
+    23 turns · 63s · $0.36
+
+--- Merging: Hardcoded Tailwind colors in TokenList/TokenTreeNode bypass CSS variable system ---
+Already up to date.

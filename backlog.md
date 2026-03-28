@@ -29,7 +29,7 @@
 
 ### Bugs
 
-- [~] `alert()` used for error feedback in token move operations — jarring, unthemed, blocks the UI thread; replace with inline error state or toast matching the existing error banner pattern
+- [x] `alert()` used for error feedback in token move operations — jarring, unthemed, blocks the UI thread; replace with inline error state or toast matching the existing error banner pattern
 - [~] Hardcoded Tailwind colors in TokenList (`text-orange-500`, `bg-orange-500`, `text-red-500`) and TokenTreeNode (`ring-red-500`) bypass the CSS variable system; replace with `var(--color-figma-warning)` / `var(--color-figma-error)` equivalents
 - [~] Flat token map silently shadows tokens when two sets define the same path — `rebuildFlatTokens` last-write-wins; `getAllFlatTokens`, `resolveToken`, `getDependents`, and search only see one version, so delete-safety checks miss cross-set references
 - [ ] `inferType` heuristic misclassifies composite tokens — a composition with a `blur` key becomes shadow, `width`+`color` becomes border; confusing when `$type` is omitted

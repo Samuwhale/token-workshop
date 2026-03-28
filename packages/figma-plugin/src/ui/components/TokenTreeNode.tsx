@@ -291,7 +291,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           aria-expanded={isExpanded}
           aria-label={`Toggle group ${node.name}`}
           data-group-path={node.path}
-          className={`relative flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-red-500 bg-red-500/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
+          className={`relative flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
           onDragOver={(e) => {
@@ -844,7 +844,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           {syncChanged && (
             <span
               title="Changed locally since last sync"
-              className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0 cursor-default"
+              className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] shrink-0 cursor-default"
             />
           )}
           {renamingToken ? (

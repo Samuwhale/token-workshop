@@ -413,3 +413,11 @@
   - `SuccessToast` already supports `variant="error"` with 8s auto-dismiss — reuse it via `setErrorToast` instead of adding new error UI.
   - `App.tsx` renders three `<TokenList>` instances (sidebar open, no sidebar, split view) — all must receive the same props.
 ---
+
+## 2026-03-28 - Hardcoded Tailwind colors in TokenList/TokenTreeNode bypass CSS variable system
+- Replaced all hardcoded Tailwind color classes (`text-orange-500`, `bg-orange-500`, `text-red-500`, `ring-red-500`) with CSS variable equivalents (`var(--color-figma-warning)` for orange, `var(--color-figma-error)` for red) in TokenList.tsx (5 replacements) and TokenTreeNode.tsx (2 replacements).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1923, ~L1925, ~L2147, ~L2273, ~L2276; `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L294, ~L847
+- **Learnings for future iterations:**
+  - CSS variables `--color-figma-warning` and `--color-figma-error` are defined in `styles.css` and already used extensively in App.tsx — always prefer these over Tailwind color utilities for warning/error semantics.
+  - Tailwind's `/10` alpha modifier works with `var()` values (e.g., `bg-[var(--color-figma-error)]/10`), so the pattern is a direct swap.
+---

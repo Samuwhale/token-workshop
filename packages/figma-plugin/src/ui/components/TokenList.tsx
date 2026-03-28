@@ -1920,9 +1920,9 @@ export function TokenList({
               {syncSnapshot && syncChangedCount > 0 && (
                 <span
                   title="Tokens edited locally since the last sync"
-                  className="flex items-center gap-1 text-[9px] text-orange-500 mr-0.5"
+                  className="flex items-center gap-1 text-[9px] text-[var(--color-figma-warning)] mr-0.5"
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] shrink-0" />
                   {syncChangedCount}
                 </span>
               )}
@@ -2144,7 +2144,7 @@ export function TokenList({
                   <button
                     onClick={onToggleIssuesOnly}
                     title="Clear issues filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap transition-colors bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                    className="shrink-0 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap transition-colors bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20"
                   >
                     Issues ✕
                   </button>
@@ -2270,10 +2270,10 @@ export function TokenList({
                 <p className="text-[10px] text-[var(--color-figma-error)] font-mono leading-tight">{jsonError}</p>
               )}
               {jsonBrokenRefs.length > 0 && !jsonError && (
-                <div className="text-[10px] text-orange-500 flex flex-wrap gap-1 items-center">
+                <div className="text-[10px] text-[var(--color-figma-warning)] flex flex-wrap gap-1 items-center">
                   <span className="font-medium shrink-0">Broken refs:</span>
                   {jsonBrokenRefs.map(r => (
-                    <span key={r} className="font-mono bg-orange-500/10 rounded px-1">{'{' + r + '}'}</span>
+                    <span key={r} className="font-mono bg-[var(--color-figma-warning)]/10 rounded px-1">{'{' + r + '}'}</span>
                   ))}
                 </div>
               )}

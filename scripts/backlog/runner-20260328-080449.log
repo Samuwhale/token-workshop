@@ -40,3 +40,10 @@ Already up to date.
 
 --- Merging: `alert()` used for error feedback in token move operations ---
 Already up to date.
+[main 0ec2cfb] chore(backlog): done – `alert()` used for error feedback in token move operations
+ 8 files changed, 40 insertions(+), 10 deletions(-)
+
+## 2026-03-28 - `alert()` used for error feedback in token move operations
+- Replaced `alert()` calls in `handleConfirmMoveToken` with `onError?.()` callback that triggers the existing error toast (`SuccessToast` with `variant="error"`).
+- Added `onError` to `TokenListActions` interface, destructured it in `TokenList`, and passed `setErrorToast` from all three `<TokenList>` call sites in `App.tsx`.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L57, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L32, ~L1011, ~L1015, ~L1020, `packages/figma-plugin/src/ui/App.tsx` ~L1938, ~L1970, ~L1983
