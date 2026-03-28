@@ -140,3 +140,16 @@ Already up to date.
 
 --- Merging: `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches ---
 Already up to date.
+[main 4646a8c] chore(backlog): done – `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches
+ 6 files changed, 54 insertions(+), 60 deletions(-)
+
+## 2026-03-28 - `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types
+- Added `accessibleColorPair`, `darkModeInversion`, `responsiveScale` to `TYPE_LABELS` in TokenGeneratorDialog.tsx, `GRAPH_TYPE_LABELS` in TokenGraph.tsx, `typeLabels` in generatorUtils.ts `autoName()`, `defaultConfigForType()`, `SOURCE_REQUIRED_TYPES`, and `ALL_TYPES`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L52, `packages/figma-plugin/src/ui/components/TokenGraph.tsx` ~L30, `packages/figma-plugin/src/ui/components/generators/generatorUtils.ts` ~L52/~L66/~L80/~L86
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  81 items remaining
+===============================================================
+  Claimed: `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly — iterate all sets calling `getFlatTokensForSet` even though `tokenStore.flatTokens` already has the merged data
+  Worktree: /tmp/backlog-85816-K7jdSB

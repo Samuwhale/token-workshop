@@ -150,3 +150,10 @@ Already up to date.
 ===============================================================
   Claimed: `ExportPanel` uses raw `localStorage` instead of centralized `lsGet`/`lsSet` helpers — bypasses the try/catch safety net and doesn't use `STORAGE_KEYS`
   Worktree: /tmp/backlog-92630-Yftgsh
+
+  ✓ done: ExportPanel uses raw localStorage instead of centralized lsGet/lsSet helpers
+    Replaced 4 raw localStorage calls with lsGet/lsSet/lsGetJson/lsSetJson helpers and added EXPORT_PLATFORMS + EXPORT_CSS_SELECTOR to STORAGE_KEYS. Build passes.
+    18 turns · 60s · $0.42
+
+--- Merging: ExportPanel uses raw localStorage instead of centralized lsGet/lsSet helpers ---
+Already up to date.

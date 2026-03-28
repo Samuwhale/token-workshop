@@ -22,6 +22,8 @@ export const STORAGE_KEYS = {
   ANALYTICS_SUPPRESSIONS: 'analytics_suppressions',
   IMPORT_TARGET_SET:     'importTargetSet',
   THEME_CARD_ORDER:      'themeCardOrder',
+  EXPORT_PLATFORMS:      'exportPanel.selectedPlatforms',
+  EXPORT_CSS_SELECTOR:   'exportPanel.cssSelector',
 } as const;
 
 /** Per-set dynamic key builders */

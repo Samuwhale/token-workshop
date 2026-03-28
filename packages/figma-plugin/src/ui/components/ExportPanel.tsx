@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
+import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../shared/apiFetch';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
@@ -103,14 +104,8 @@ function buildZipBlob(files: { path: string; content: string }[]): Blob {
 export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   const [mode, setMode] = useState<ExportMode>('platforms');
   const [selected, setSelected] = useState<Set<string>>(() => {
-    try {
-      const saved = localStorage.getItem('exportPanel.selectedPlatforms');
-      if (saved) {
-        const parsed = JSON.parse(saved) as string[];
-        if (Array.isArray(parsed) && parsed.length > 0) return new Set(parsed);
-      }
-    } catch { /* ignore */ }
-    return new Set(['css']);
+    const parsed = lsGetJson<string[]>(STORAGE_KEYS.EXPORT_PLATFORMS, []);
+    return Array.isArray(parsed) && parsed.length > 0 ? new Set(parsed) : new Set(['css']);
   });
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,9 +115,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
   // CSS selector option
   const [cssSelector, setCssSelector] = useState<string>(() => {
-    try {
-      return localStorage.getItem('exportPanel.cssSelector') || ':root';
-    } catch { return ':root'; }
+    return lsGet(STORAGE_KEYS.EXPORT_CSS_SELECTOR, ':root');
   });
 
   // Set filter state
@@ -138,12 +131,12 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
 
   // Persist selected platforms
   useEffect(() => {
-    localStorage.setItem('exportPanel.selectedPlatforms', JSON.stringify([...selected]));
+    lsSetJson(STORAGE_KEYS.EXPORT_PLATFORMS, [...selected]);
   }, [selected]);
 
   // Persist CSS selector
   useEffect(() => {
-    localStorage.setItem('exportPanel.cssSelector', cssSelector);
+    lsSet(STORAGE_KEYS.EXPORT_CSS_SELECTOR, cssSelector);
   }, [cssSelector]);
 
   // Listen for messages from the plugin sandbox

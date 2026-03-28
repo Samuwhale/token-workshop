@@ -285,3 +285,11 @@
 - **Learnings for future iterations:**
   - When generator types are added to the `GeneratorType` union, they must also be added to ALL_TYPES, SOURCE_REQUIRED_TYPES/STANDALONE_TYPES/FLEXIBLE_TYPES, TYPE_LABELS, GRAPH_TYPE_LABELS, autoName typeLabels, and defaultConfigForType — six places total
 ---
+
+## 2026-03-28 - ExportPanel uses raw localStorage instead of centralized lsGet/lsSet helpers
+- Replaced all 4 raw `localStorage.getItem`/`setItem` calls in ExportPanel.tsx with centralized `lsGet`, `lsSet`, `lsGetJson`, `lsSetJson` helpers from `shared/storage.ts`. Added `EXPORT_PLATFORMS` and `EXPORT_CSS_SELECTOR` keys to `STORAGE_KEYS`. Removed manual try/catch blocks that are now handled by the helpers.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L1, ~L106–146, `packages/figma-plugin/src/ui/shared/storage.ts` ~L25
+- **Learnings for future iterations:**
+  - `lsGetJson` with a fallback array + Array.isArray check is a clean replacement for manual JSON.parse-in-try-catch patterns.
+  - `lsGet(key, fallback)` overload returns string directly, no null check needed — good for simple string defaults like `:root`.
+---
