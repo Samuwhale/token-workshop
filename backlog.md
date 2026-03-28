@@ -136,7 +136,7 @@
 - [~] PublishPanel conflict resolution has no "Accept all" or bulk action — when syncing surfaces many conflicts, each row requires individual Push/Pull/Skip selection; add "Accept all as Push" / "Accept all as Pull" bulk actions similar to ImportPanel's "Accept all" / "Reject all" buttons
 - [x] `BatchEditor.tsx` renamePreview creates `new RegExp(findText)` inside `.filter()` on every element (~line 236) instead of reusing the already-memoized `parsedRegex` — wasteful for large token sets
 - [x] `useStyleSync.ts` pullRows `Promise.all` never checks `res.ok` on individual fetch responses (~line 152) — a 4xx/5xx from a single token PATCH silently succeeds, leaving the UI out of sync with the server
-- [~] `ThemeManager.tsx` set-fetch loop silently swallows all errors (~line 153) — if a set fails to load, coverage calculations are silently incomplete with no user feedback
+- [x] `ThemeManager.tsx` set-fetch loop silently swallows all errors (~line 153) — if a set fails to load, coverage calculations are silently incomplete with no user feedback
 - [x] `ThemeCompare.tsx` and `ExportPanel.tsx` clipboard writes are fire-and-forget — `navigator.clipboard.writeText()` is not awaited and has no `.catch()`, so the "Copied!" feedback shows even if clipboard access is denied
 - [~] `fontLoading.ts` font cache is never invalidated — `cachedFonts` is set once on first call and never cleared, so fonts installed during a plugin session are invisible to weight resolution
 - [~] `useFindReplace.ts` bulk-rename fetch has no abort signal or timeout (~line 86) — a slow server response hangs the UI indefinitely with no way to cancel

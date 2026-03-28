@@ -456,8 +456,25 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     <VarDiffRowItem key={row.path} row={row} dir={varSync.varDirs[row.path] ?? 'pull'} onChange={d => varSync.setVarDirs(prev => ({ ...prev, [row.path]: d }))} />
                   ))}
                   {conflicts.length > 0 && (
-                    <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
+                    <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
                       <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Values differ \u2014 choose which to keep ({conflicts.length})</span>
+                      {conflicts.length > 1 && (
+                        <span className="flex items-center gap-1">
+                          {(['push', 'pull', 'skip'] as const).map(action => (
+                            <button
+                              key={action}
+                              onClick={() => varSync.setVarDirs(prev => {
+                                const next = { ...prev };
+                                for (const r of conflicts) next[r.path] = action;
+                                return next;
+                              })}
+                              className="text-[9px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                            >
+                              {action === 'push' ? '\u2191 Push' : action === 'pull' ? '\u2193 Pull' : 'Skip'} all
+                            </button>
+                          ))}
+                        </span>
+                      )}
                     </div>
                   )}
                   {conflicts.map(row => (
@@ -573,8 +590,25 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     <VarDiffRowItem key={row.path} row={row} dir={styleSync.styleDirs[row.path] ?? 'pull'} onChange={d => styleSync.setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
                   ))}
                   {conflicts.length > 0 && (
-                    <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
+                    <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
                       <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Values differ \u2014 choose which to keep ({conflicts.length})</span>
+                      {conflicts.length > 1 && (
+                        <span className="flex items-center gap-1">
+                          {(['push', 'pull', 'skip'] as const).map(action => (
+                            <button
+                              key={action}
+                              onClick={() => styleSync.setStyleDirs(prev => {
+                                const next = { ...prev };
+                                for (const r of conflicts) next[r.path] = action;
+                                return next;
+                              })}
+                              className="text-[9px] px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]"
+                            >
+                              {action === 'push' ? '\u2191 Push' : action === 'pull' ? '\u2193 Pull' : 'Skip'} all
+                            </button>
+                          ))}
+                        </span>
+                      )}
                     </div>
                   )}
                   {conflicts.map(row => (
@@ -740,8 +774,30 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       {git.actionLoading === 'abort' ? 'Aborting\u2026' : 'Abort merge'}
                     </button>
                   </div>
-                  <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
-                    For each conflict region, choose which version to keep: <strong className="text-[var(--color-figma-text)]">Ours</strong> (local) or <strong className="text-[var(--color-figma-text)]">Theirs</strong> (remote).
+                  <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between gap-2">
+                    <span>For each conflict region, choose which version to keep: <strong className="text-[var(--color-figma-text)]">Ours</strong> (local) or <strong className="text-[var(--color-figma-text)]">Theirs</strong> (remote).</span>
+                    <span className="flex items-center gap-1 shrink-0">
+                      {(['ours', 'theirs'] as const).map(side => (
+                        <button
+                          key={side}
+                          onClick={() => git.setConflictChoices(() => {
+                            const next: Record<string, Record<number, 'ours' | 'theirs'>> = {};
+                            for (const c of git.mergeConflicts) {
+                              next[c.file] = {};
+                              for (const r of c.regions) next[c.file][r.index] = side;
+                            }
+                            return next;
+                          })}
+                          className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors ${
+                            side === 'ours'
+                              ? 'border-[var(--color-figma-success)]/40 text-[var(--color-figma-success)] hover:bg-[var(--color-figma-success)]/10'
+                              : 'border-[var(--color-figma-accent)]/40 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10'
+                          }`}
+                        >
+                          All {side}
+                        </button>
+                      ))}
+                    </span>
                   </div>
                   <div className="max-h-64 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
                     {git.mergeConflicts.map((conflict) => (

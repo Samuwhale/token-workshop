@@ -137,3 +137,10 @@ Already up to date.
 ===============================================================
   Claimed: PublishPanel conflict resolution has no "Accept all" or bulk action — when syncing surfaces many conflicts, each row requires individual Push/Pull/Skip selection; add "Accept all as Push" / "Accept all as Pull" bulk actions similar to ImportPanel's "Accept all" / "Reject all" buttons
   Worktree: /tmp/backlog-9231-UyabVu
+
+  ✓ done: PublishPanel conflict resolution bulk actions
+    Added per-category bulk buttons (Push/Pull/Skip all) to var and style conflict headers, and All ours/All theirs buttons to git merge conflict section
+    23 turns · 223s · $1.09
+
+--- Merging: PublishPanel conflict resolution bulk actions ---
+Already up to date.

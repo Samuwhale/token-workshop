@@ -576,3 +576,13 @@
   - The existing pattern of `try { ... } catch { /* ignore */ }` inside `Promise.all` map callbacks is a common source of silent data loss — always collect failures and surface them
   - Warning banners (non-blocking, dismissible) are better than errors for partial failures where the UI can still function with reduced data
 ---
+
+## 2026-03-28 - PublishPanel conflict resolution bulk actions
+- Added per-category "Push all / Pull all / Skip all" bulk buttons to the "Values differ" conflict headers in both variable sync and style sync sections (only shown when 2+ conflicts exist)
+- Added "All ours / All theirs" bulk buttons to the git merge conflict instruction bar for setting all regions at once
+- The top-level "Select all" bar already existed but applied to ALL rows (local-only + figma-only + conflicts); the new per-category buttons let users bulk-set only the conflict rows without disturbing sensible defaults for other categories
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L458-481 (var conflicts), ~L592-615 (style conflicts), ~L777-796 (git merge conflicts)
+- **Learnings for future iterations:**
+  - PublishPanel has three distinct conflict resolution modes: var sync (push/pull/skip), style sync (push/pull/skip), and git merge conflicts (ours/theirs) — each needs its own bulk action pattern
+  - The `\u2014` em-dash in source requires matching the exact escape sequence, not the rendered character
+---
