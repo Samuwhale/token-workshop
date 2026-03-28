@@ -64,7 +64,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const before = await snapshotGroup(fastify.tokenStore, set, oldGroupPath);
         const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath, updateAliases !== false);
         const after = await snapshotGroup(fastify.tokenStore, set, newGroupPath);
-        fastify.operationLog.record({
+        await fastify.operationLog.record({
           type: 'group-rename',
           description: `Rename group "${oldGroupPath}" → "${newGroupPath}" in ${set}`,
           setName: set,
@@ -199,7 +199,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       const before = await snapshotSet(fastify.tokenStore, set);
       const result = await fastify.tokenStore.bulkRename(set, find, replace, isRegex);
       const after = await snapshotSet(fastify.tokenStore, set);
-      fastify.operationLog.record({
+      await fastify.operationLog.record({
         type: 'bulk-rename',
         description: `Bulk rename "${find}" → "${replace}" in ${set}`,
         setName: set,
@@ -249,7 +249,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         strategy,
       );
       const after = await snapshotPaths(fastify.tokenStore, set, paths);
-      fastify.operationLog.record({
+      await fastify.operationLog.record({
         type: 'batch-upsert',
         description: `Batch upsert ${tokens.length} tokens in ${set}`,
         setName: set,
@@ -308,7 +308,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const before = await snapshotPaths(fastify.tokenStore, set, [oldPath]);
         const result = await fastify.tokenStore.renameToken(set, oldPath, newPath, updateAliases !== false);
         const after = await snapshotPaths(fastify.tokenStore, set, [newPath]);
-        fastify.operationLog.record({
+        await fastify.operationLog.record({
           type: 'token-rename',
           description: `Rename token "${oldPath}" → "${newPath}" in ${set}`,
           setName: set,
@@ -372,7 +372,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const before = await snapshotSet(fastify.tokenStore, set);
         await fastify.tokenStore.replaceSetTokens(set, body as TokenGroup);
         const after = await snapshotSet(fastify.tokenStore, set);
-        fastify.operationLog.record({
+        await fastify.operationLog.record({
           type: 'set-replace',
           description: `Replace all tokens in ${set}`,
           setName: set,
@@ -440,7 +440,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
         await fastify.tokenStore.createToken(set, tokenPath, body as Token);
         const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-        fastify.operationLog.record({
+        await fastify.operationLog.record({
           type: 'token-create',
           description: `Create token "${tokenPath}" in ${set}`,
           setName: set,
@@ -481,7 +481,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
         await fastify.tokenStore.updateToken(set, tokenPath, body);
         const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-        fastify.operationLog.record({
+        await fastify.operationLog.record({
           type: 'token-update',
           description: `Update token "${tokenPath}" in ${set}`,
           setName: set,
@@ -555,7 +555,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         const deleted = await fastify.tokenStore.deleteTokens(set, paths);
         const after = await snapshotPaths(fastify.tokenStore, set, paths);
         if (deleted.length > 0) {
-          fastify.operationLog.record({
+          await fastify.operationLog.record({
             type: 'bulk-delete',
             description: `Delete ${deleted.length} token(s) from ${set}`,
             setName: set,
@@ -623,7 +623,7 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
           return reply.status(404).send({ error: `Token "${tokenPath}" not found in set "${set}"` });
         }
         const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-        fastify.operationLog.record({
+        await fastify.operationLog.record({
           type: 'token-delete',
           description: `Delete "${tokenPath}" from ${set}`,
           setName: set,

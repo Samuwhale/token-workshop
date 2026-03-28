@@ -327,3 +327,16 @@ Already up to date.
 
 --- Merging: Composition token editor type-aware sub-editors ---
 Already up to date.
+[main 6a49a03] chore(backlog): done – Composition token editor type-aware sub-editors
+ 7 files changed, 343 insertions(+), 30 deletions(-)
+
+## 2026-03-28 - Composition token editor type-aware sub-editors
+- Replaced generic text inputs in CompositionEditor with type-aware sub-editors for each property: ColorSwatchButton + alias autocomplete for fill/stroke, SubPropInput with dimension filtering for sizing/spacing properties, range slider + number input for opacity, boolean toggle for visible, and reference-only pickers for typography/shadow
+- Added COMP_PROP_TYPE mapping (property → expected DTCG type) and COMP_PROP_LABELS for human-readable names
+- Added CompositionPropertyEditor helper that dispatches to the correct sub-editor based on property type
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  37 items remaining
+===============================================================
+  Claimed: Color modifiers (lighten, darken, mix, alpha) only available in alias mode — ColorModifiersEditor is gated on `aliasMode && reference.startsWith('{')`, so users can't apply parametric adjustments to direct color values; this forces an awkward workflow of first creating a base token, then aliasing it, just to use modifiers
+  Worktree: /tmp/backlog-10054-hLLByq

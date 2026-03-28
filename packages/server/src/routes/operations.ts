@@ -4,7 +4,7 @@ export const operationRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/operations — list recent operations
   fastify.get<{ Querystring: { limit?: string } }>('/operations', async (request) => {
     const limit = Math.min(Math.max(1, parseInt(request.query.limit ?? '5', 10) || 5), 50);
-    return { operations: fastify.operationLog.getRecent(limit) };
+    return { operations: await fastify.operationLog.getRecent(limit) };
   });
 
   // POST /api/operations/:id/rollback — rollback an operation

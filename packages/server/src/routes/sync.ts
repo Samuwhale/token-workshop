@@ -365,7 +365,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       const description = isSingle
         ? `Restore ${toRestore[0].path} from commit ${hash.slice(0, 7)}`
         : `Restore ${toRestore.length} tokens from commit ${hash.slice(0, 7)}`;
-      const opEntry = fastify.operationLog.record({
+      const opEntry = await fastify.operationLog.record({
         type: 'version-restore',
         description,
         setName: allSets.join(', '),

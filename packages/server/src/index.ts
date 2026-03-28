@@ -51,7 +51,7 @@ export async function startServer(config: ServerConfig) {
   const generatorService = new GeneratorService(config.tokenDir);
   await generatorService.initialize();
 
-  const operationLog = new OperationLog();
+  const operationLog = new OperationLog(config.tokenDir);
 
   const resolverStore = new ResolverStore(config.tokenDir);
   await resolverStore.initialize();

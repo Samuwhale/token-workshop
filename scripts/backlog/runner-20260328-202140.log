@@ -371,3 +371,10 @@ Already up to date.
 ===============================================================
   Claimed: Operation log (undo history) is in-memory only and lost on server restart — `OperationLog` stores entries in a plain array with `MAX_ENTRIES=50`; restarting the server wipes all undo history with no way to recover recent operations
   Worktree: /tmp/backlog-9651-bqxHQl
+
+  ✓ done: Operation log (undo history) is in-memory only and lost on server restart
+    Added disk persistence to OperationLog using the ManualSnapshotStore pattern — entries are now saved to {tokenDir}/.tokenmanager/operations.json and survive server restarts. All methods made async, all 15 call sites across 5 route files updated with await.
+    59 turns · 371s · $1.98
+
+--- Merging: Operation log (undo history) is in-memory only and lost on server restart ---
+Already up to date.

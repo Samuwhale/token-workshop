@@ -511,3 +511,13 @@
   - The SubPropInput component is highly reusable for any property that supports both direct values and token references
   - Composition properties map cleanly to DTCG types: fill/stroke→color, sizing/spacing→dimension, opacity→number, visible→boolean, typography/shadow→reference-only
 ---
+
+## 2026-03-28 - Operation log (undo history) persisted to disk
+- Added disk persistence to `OperationLog` service following the same `ManualSnapshotStore` pattern: lazy load from `{tokenDir}/.tokenmanager/operations.json` on first access, persist after every mutation
+- Constructor now takes `tokenDir` parameter; `ensureLoaded()` + `persist()` methods added
+- `record()`, `getRecent()`, `getById()` changed from sync to async; all call sites updated with `await`
+- Files changed: `packages/server/src/services/operation-log.ts` (core persistence), `packages/server/src/index.ts` ~L54 (pass tokenDir), `packages/server/src/routes/operations.ts` ~L7 (await getRecent), `packages/server/src/routes/tokens.ts` (9 await record calls), `packages/server/src/routes/generators.ts` (4 await record calls), `packages/server/src/routes/sync.ts` ~L368 (await record call)
+- **Learnings for future iterations:**
+  - The `ManualSnapshotStore` in `manual-snapshot.ts` is the canonical pattern for disk-persisted services in this codebase: constructor(tokenDir), ensureLoaded(), persist()
+  - When changing a sync method to async, grep all call sites — fire-and-forget `.record()` calls silently swallow the returned Promise without `await`, which means persistence may not complete before the response is sent
+---

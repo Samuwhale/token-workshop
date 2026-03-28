@@ -1,3 +1,5 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { Token, TokenGroup } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
@@ -36,9 +38,33 @@ const MAX_ENTRIES = 50;
 
 export class OperationLog {
   private entries: OperationEntry[] = [];
+  private filePath: string;
+  private loaded = false;
+
+  constructor(tokenDir: string) {
+    const tmDir = path.join(path.resolve(tokenDir), '.tokenmanager');
+    this.filePath = path.join(tmDir, 'operations.json');
+  }
+
+  private async ensureLoaded(): Promise<void> {
+    if (this.loaded) return;
+    try {
+      const raw = await fs.readFile(this.filePath, 'utf-8');
+      this.entries = JSON.parse(raw) as OperationEntry[];
+    } catch {
+      this.entries = [];
+    }
+    this.loaded = true;
+  }
+
+  private async persist(): Promise<void> {
+    await fs.mkdir(path.dirname(this.filePath), { recursive: true });
+    await fs.writeFile(this.filePath, JSON.stringify(this.entries, null, 2), 'utf-8');
+  }
 
   /** Record a new operation entry. */
-  record(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): OperationEntry {
+  async record(entry: Omit<OperationEntry, 'id' | 'timestamp' | 'rolledBack'>): Promise<OperationEntry> {
+    await this.ensureLoaded();
     const full: OperationEntry = {
       ...entry,
       id: randomUUID(),
@@ -49,11 +75,13 @@ export class OperationLog {
     if (this.entries.length > MAX_ENTRIES) {
       this.entries = this.entries.slice(this.entries.length - MAX_ENTRIES);
     }
+    await this.persist();
     return full;
   }
 
   /** Get the N most recent entries (newest first), as lightweight summaries. */
-  getRecent(limit = 5): OperationSummary[] {
+  async getRecent(limit = 5): Promise<OperationSummary[]> {
+    await this.ensureLoaded();
     const start = Math.max(0, this.entries.length - limit);
     return this.entries
       .slice(start)
@@ -64,12 +92,14 @@ export class OperationLog {
   }
 
   /** Get a full entry by ID. */
-  getById(id: string): OperationEntry | undefined {
+  async getById(id: string): Promise<OperationEntry | undefined> {
+    await this.ensureLoaded();
     return this.entries.find(e => e.id === id);
   }
 
   /** Roll back an operation by restoring its beforeSnapshot via the TokenStore. */
   async rollback(id: string, tokenStore: TokenStore): Promise<{ restoredPaths: string[] }> {
+    await this.ensureLoaded();
     const entry = this.entries.find(e => e.id === id);
     if (!entry) throw new Error(`Operation "${id}" not found`);
     if (entry.rolledBack) throw new Error(`Operation "${id}" was already rolled back`);
@@ -103,7 +133,7 @@ export class OperationLog {
     entry.rolledBack = true;
 
     // Record the rollback as its own operation
-    this.record({
+    await this.record({
       type: 'rollback',
       description: `Undo: ${entry.description}`,
       setName: entry.setName,
@@ -112,6 +142,7 @@ export class OperationLog {
       afterSnapshot: entry.beforeSnapshot,
     });
 
+    await this.persist();
     return { restoredPaths: Object.keys(entry.beforeSnapshot) };
   }
 }

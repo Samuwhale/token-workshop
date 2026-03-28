@@ -219,7 +219,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       // Run immediately so tokens exist right away
       await fastify.generatorService.run(generator.id, fastify.tokenStore);
       const after = await snapshotGroup(fastify.tokenStore, targetSet, targetGroup);
-      fastify.operationLog.record({
+      await fastify.operationLog.record({
         type: 'generator-create',
         description: `Create generator "${generator.name}" → ${targetGroup}`,
         setName: targetSet,
@@ -291,7 +291,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
       const afterSet = generator.targetSet || targetSet;
       const afterGroup = generator.targetGroup || targetGroup;
       const after = afterSet && afterGroup ? await snapshotGroup(fastify.tokenStore, afterSet, afterGroup) : {};
-      fastify.operationLog.record({
+      await fastify.operationLog.record({
         type: 'generator-update',
         description: `Update generator "${generator.name}"`,
         setName: afterSet,
@@ -338,7 +338,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         const after = gen.targetSet && gen.targetGroup
           ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
           : {};
-        fastify.operationLog.record({
+        await fastify.operationLog.record({
           type: 'generator-delete',
           description: `Delete generator "${gen.name}" and ${tokensDeleted} tokens`,
           setName: gen.targetSet,
@@ -378,7 +378,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.tokenStore,
       );
       const after = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
-      fastify.operationLog.record({
+      await fastify.operationLog.record({
         type: 'generator-run',
         description: `Run generator "${gen?.name ?? request.params.id}"`,
         setName: targetSet,
