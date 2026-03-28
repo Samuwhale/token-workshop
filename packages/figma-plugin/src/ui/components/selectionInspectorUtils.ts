@@ -424,37 +424,6 @@ export function getQuickBindTargets(
   });
 }
 
-/**
- * Find the next property that has no binding, scanning all property groups
- * in display order. If afterProp is given, start scanning from the property
- * after it (wrapping around). Returns null if all properties are bound.
- */
-export function getNextUnboundProperty(
-  afterProp: BindableProperty | null,
-  nodes: SelectionNodeInfo[],
-  caps: NodeCapabilities,
-): BindableProperty | null {
-  const allProps: BindableProperty[] = [];
-  for (const group of PROPERTY_GROUPS) {
-    if (!shouldShowGroup(group.condition, caps)) continue;
-    for (const prop of group.properties) {
-      allProps.push(prop);
-    }
-  }
-  if (allProps.length === 0) return null;
-  const startIdx = afterProp ? allProps.indexOf(afterProp) + 1 : 0;
-  for (let i = 0; i < allProps.length; i++) {
-    const prop = allProps[(startIdx + i) % allProps.length];
-    if (prop === afterProp) continue;
-    const binding = getBindingForProperty(nodes, prop);
-    if (!binding) {
-      const value = getCurrentValue(nodes, prop);
-      if (value !== undefined && value !== null) return prop;
-    }
-  }
-  return null;
-}
-
 /** Build an undo slot for removing a single binding */
 export function buildRemoveBindingUndo(
   binding: string,

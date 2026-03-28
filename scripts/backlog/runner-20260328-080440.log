@@ -514,3 +514,17 @@ Already up to date.
 
 --- Merging: `useGitSync` mutates ref inside `setState` updater ---
 Already up to date.
+[main 8e2c741] chore(backlog): done – `useGitSync` mutates ref inside `setState` updater
+ 9 files changed, 56 insertions(+), 14 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - useGitSync mutates ref inside setState updater
+- Moved `knownFilesRef.current` mutation out of the `setSelectedFiles` updater function and into the `useEffect` body. The updater now only reads from a pre-computed `newFiles` set, making it pure and safe for StrictMode replay.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L244-268
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 26 / 90  (claude)  —  21 items remaining
+===============================================================
+  Claimed: Interactive targets below 24px in both token and theme pages — ThemeManager reorder arrows (~12x10px), TokenTreeNode action buttons (~18x18px), view mode toggles (~20px tall); increase minimum padding to `p-1.5` for 24px+ targets
+  Worktree: /tmp/backlog-62956-e0ZIyf

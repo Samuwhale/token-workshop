@@ -430,3 +430,14 @@
   - React setState updater functions must be pure — no side effects (ref mutations, API calls, etc.). StrictMode double-invokes updaters to catch impurity. Move side effects to the effect body before calling setState.
   - Pre-existing build failure (duplicate export `getNextUnboundProperty`) prevents `npm run build` from completing; unrelated to this change.
 ---
+
+## 2026-03-28 - useSetMetadata silently swallows save errors
+- `handleSaveMetadata` now checks `res.ok` and catches network errors, calling `onError` callback with a descriptive message instead of silently swallowing. Modal stays open on failure so user can retry.
+- Added `onError` param to `UseSetMetadataParams`; App.tsx passes `setErrorToast` as the callback, surfacing errors via the existing error toast.
+- Also fixed pre-existing duplicate `getNextUnboundProperty` export in `selectionInspectorUtils.ts` that was blocking builds.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts` ~L1-56, `packages/figma-plugin/src/ui/App.tsx` ~L481, `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L432
+- **Learnings for future iterations:**
+  - `fetch` does not throw on HTTP errors (4xx/5xx) — only on network failures. Always check `res.ok` for proper error handling.
+  - The existing `errorToast`/`setErrorToast` + `SuccessToast variant="error"` pattern in App.tsx is the standard way to surface async errors to users.
+  - Keeping the modal open on error (early return before `setEditingMetadataSet(null)`) lets users retry without re-entering data.
+---

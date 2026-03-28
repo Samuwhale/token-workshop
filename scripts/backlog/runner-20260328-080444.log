@@ -429,3 +429,10 @@ Already up to date.
 ===============================================================
   Claimed: `useSetMetadata` silently swallows save errors — `handleSaveMetadata` catches all errors with `// best-effort; close modal regardless`; user gets no feedback that their changes failed
   Worktree: /tmp/backlog-63411-bTt5vZ
+
+  ✓ done: useSetMetadata silently swallows save errors
+    handleSaveMetadata now checks res.ok and catches network errors, surfaces them via onError callback (wired to errorToast in App.tsx). Modal stays open on failure for retry.
+    30 turns · 139s · $0.76
+
+--- Merging: useSetMetadata silently swallows save errors ---
+Already up to date.
