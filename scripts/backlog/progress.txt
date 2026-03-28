@@ -441,3 +441,12 @@
   - The existing `errorToast`/`setErrorToast` + `SuccessToast variant="error"` pattern in App.tsx is the standard way to surface async errors to users.
   - Keeping the modal open on error (early return before `setEditingMetadataSet(null)`) lets users retry without re-entering data.
 ---
+
+## 2026-03-28 - Icon-only buttons in TokenTreeNode missing aria-label
+- Added `aria-label` to 11 icon-only buttons that only had `title`: move up/down (group and token), add token to group, group actions, pin/unpin, edit, apply to selection, copy path, copy value
+- Also removed duplicate `getNextUnboundProperty` export in `selectionInspectorUtils.ts` that was causing a pre-existing build failure
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L495-L1375, `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L427-456
+- **Learnings for future iterations:**
+  - When buttons have dynamic `title` values, use a simplified static `aria-label` for screen readers (e.g., "Apply to selection" instead of the computed tooltip string)
+  - Pre-existing build errors may block validation — check with a clean stash first to isolate
+---

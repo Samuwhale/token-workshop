@@ -436,3 +436,16 @@ Already up to date.
 
 --- Merging: useSetMetadata silently swallows save errors ---
 Already up to date.
+[main daa41d1] chore(backlog): done – useSetMetadata silently swallows save errors
+ 8 files changed, 48 insertions(+), 39 deletions(-)
+
+## 2026-03-28 - useSetMetadata silently swallows save errors
+- `handleSaveMetadata` now checks `res.ok` and catches network errors, calling `onError` callback with a descriptive message instead of silently swallowing. Modal stays open on failure so user can retry.
+- Added `onError` param to `UseSetMetadataParams`; App.tsx passes `setErrorToast` as the callback, surfacing errors via the existing error toast.
+- Also fixed pre-existing duplicate `getNextUnboundProperty` export in `selectionInspectorUtils.ts` that was blocking builds.
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  20 items remaining
+===============================================================
+  Claimed: No `<label>` or `aria-label` on form inputs — dimension name, option name, set filter, and search inputs rely solely on placeholder text which disappears on focus; add `aria-label` to all inputs
+  Worktree: /tmp/backlog-63411-hVzQYT

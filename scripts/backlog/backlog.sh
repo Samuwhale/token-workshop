@@ -671,11 +671,11 @@ run_special_pass() {
 # JSON schema for structured agent output
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
-# 2-type pass rotation (every 3 items): product → code → product → …
+# 2-type pass rotation (every 2 items): product → code → product → …
 # Both are discovery-only — they stock the backlog, the main loop implements.
 _pass_type_for_count() {
   local count=$1
-  local slot=$(( (count / 3) % 2 ))
+  local slot=$(( (count / 2) % 2 ))
   case $slot in
     0) echo "product" ;;
     1) echo "code" ;;
@@ -683,7 +683,7 @@ _pass_type_for_count() {
 }
 
 CURRENT_COUNT=$(get_completed_count)
-NEXT_PASS_IN=$(( 3 - (CURRENT_COUNT % 3) ))
+NEXT_PASS_IN=$(( 2 - (CURRENT_COUNT % 2) ))
 NEXT_PASS_TYPE=$( _pass_type_for_count $(( CURRENT_COUNT + NEXT_PASS_IN )) )
 
 echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iterations: $MAX_ITERATIONS"
@@ -829,7 +829,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
       # Milestone maintenance passes (skip if stop was requested)
       TOTAL_DONE=$(increment_completed_count)
-      if [ $((TOTAL_DONE % 3)) -eq 0 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
+      if [ $((TOTAL_DONE % 2)) -eq 0 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
         cleanup_if_needed
         # Non-blocking pass lock: if another runner is already running a pass, skip
         if mkdir "$PASS_LOCKDIR" 2>/dev/null; then

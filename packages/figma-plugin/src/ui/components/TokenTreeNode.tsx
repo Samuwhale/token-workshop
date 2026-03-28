@@ -493,6 +493,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 <button
                   onClick={e => { e.stopPropagation(); onMoveUp(); }}
                   title="Move up"
+                  aria-label="Move up"
                   className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -504,6 +505,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 <button
                   onClick={e => { e.stopPropagation(); onMoveDown(); }}
                   title="Move down"
+                  aria-label="Move down"
                   className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -517,6 +519,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                   onCreateSibling?.(node.path, inferGroupTokenType(node.children));
                 }}
                 title="Add token to group"
+                aria-label="Add token to group"
                 className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
@@ -533,6 +536,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                   });
                 }}
                 title="Group actions"
+                aria-label="Group actions"
                 className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -1280,6 +1284,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             <button
               onClick={e => { e.stopPropagation(); onTogglePin(node.path); }}
               title={isPinned ? 'Unpin token' : 'Pin token'}
+              aria-label={isPinned ? 'Unpin token' : 'Pin token'}
               className={`p-1 rounded hover:bg-[var(--color-figma-bg-hover)] transition-opacity ${
                 isPinned
                   ? 'text-[var(--color-figma-accent)] opacity-100 pointer-events-auto'
@@ -1295,6 +1300,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           <button
             onClick={() => onEdit(node.path, node.name)}
             title="Edit (or double-click row)"
+            aria-label="Edit token"
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -1305,6 +1311,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             <button
               onClick={e => { e.stopPropagation(); onMoveUp(); }}
               title="Move up"
+              aria-label="Move up"
               className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1316,6 +1323,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             <button
               onClick={e => { e.stopPropagation(); onMoveDown(); }}
               title="Move down"
+              aria-label="Move down"
               className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1333,6 +1341,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               if (targets.length === 1) return `Quick bind to ${PROPERTY_LABELS[targets[0]]}`;
               return `Apply to ${targets.map(t => PROPERTY_LABELS[t]).join(', ')}`;
             })()}
+            aria-label={quickBound ? `Bound to ${quickBound}` : 'Apply to selection'}
             className={`p-1 rounded transition-opacity ${
               quickBound
                 ? 'text-[var(--color-figma-success)] opacity-100'
@@ -1352,6 +1361,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           <button
             onClick={e => { e.stopPropagation(); handleCopyPath(); }}
             title={copiedWhat === 'path' ? 'Copied!' : 'Copy token path'}
+            aria-label={copiedWhat === 'path' ? 'Copied' : 'Copy token path'}
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
           >
             {copiedWhat === 'path' ? (
@@ -1367,6 +1377,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           <button
             onClick={handleCopyValue}
             title={copiedWhat === 'value' ? 'Copied!' : 'Copy value'}
+            aria-label={copiedWhat === 'value' ? 'Copied' : 'Copy value'}
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
           >
             {copiedWhat === 'value' ? (

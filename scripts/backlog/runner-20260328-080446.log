@@ -461,3 +461,10 @@ Already up to date.
 ===============================================================
   Claimed: Icon-only buttons in TokenTreeNode missing `aria-label` — move up/down, create sibling, and other icon buttons have `title` but no `aria-label`; screen readers announce these as unlabeled buttons
   Worktree: /tmp/backlog-63685-q9AwOG
+
+  ✓ done: Icon-only buttons in TokenTreeNode missing aria-label
+    Added aria-label to 11 icon-only buttons in TokenTreeNode.tsx (move up/down, add token, group actions, pin, edit, apply, copy path, copy value). Also fixed pre-existing duplicate export in selectionInspectorUtils.ts.
+    26 turns · 116s · $0.69
+
+--- Merging: Icon-only buttons in TokenTreeNode missing aria-label ---
+Already up to date.
