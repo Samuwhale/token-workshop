@@ -330,3 +330,11 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: `searchLayers` is called in controller.ts but never imported — a ReferenceError crash on every layer search; also `useGitSync` has a TDZ violation where `fetchConflicts` is used before its `const` declaration
 ---
+
+## 2026-03-28 - controller.ts searchLayers missing import
+- Added `searchLayers` to the import list from `./selectionHandling.js` at line 7 of `controller.ts`. The function was exported from `selectionHandling.ts:829` and called at `controller.ts:121` but never imported, causing a ReferenceError crash whenever the UI sent a `search-layers` message.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L7
+- **Learnings for future iterations:**
+  - Validate script fails in worktrees due to broken pnpm workspace links (`@tokenmanager/core` not found, `fastify` not found). These are pre-existing environment issues, not caused by code changes. The server `node_modules` symlink is self-referential in the main tree.
+  - Plugin sandbox code (controller.ts, selectionHandling.ts) runs inside Figma and is not covered by vitest — the build gate is the real validation for these files, but the build is also currently broken (pre-existing `resolveTokenValue` redeclaration).
+---

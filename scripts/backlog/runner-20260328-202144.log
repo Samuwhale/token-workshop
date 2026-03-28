@@ -202,3 +202,28 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox: 2 HIGH (searchLayers missing import crash, useGitSync TDZ crash), 4 normal (controller try-catch coverage, color math 4x duplication, fetchAllTokensFlat silent failures, generator auto-run concurrency)
 Already up to date.
+[main 935fca3] chore(backlog): code pass – code-pass
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 2 priority item(s) inserted at top of queue
+  → 4 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-28 - code-pass
+- Areas explored: `packages/figma-plugin/src/plugin/controller.ts` (message handler error coverage, import completeness), `packages/figma-plugin/src/ui/hooks/useGitSync.ts` (TDZ), `packages/figma-plugin/src/ui/hooks/useTokens.ts` (fetchAllTokensFlat error handling), `packages/server/src/services/generator-service.ts` (concurrency), `packages/server/src/index.ts` (auto-run guards), `packages/core/src/color-math.ts` + `color-parse.ts` (duplication), `packages/server/src/services/lint.ts` (color math duplication), `packages/figma-plugin/src/ui/shared/colorUtils.ts` (color math duplication), `packages/figma-plugin/src/plugin/consistencyScanner.ts` (color math duplication), `packages/server/src/routes/sets.ts`, `packages/server/src/routes/generators.ts`
+- Found 6 items — written to backlog-inbox.md
+- Notable: `searchLayers` is called in controller.ts but never imported — a ReferenceError crash on every layer search; also `useGitSync` has a TDZ violation where `fetchConflicts` is used before its `const` declaration
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  46 items remaining
+===============================================================
+  Claimed: [HIGH] `controller.ts` `searchLayers` is called at line 121 but never imported — the function is exported from `selectionHandling.ts` but missing from the import list at line 7; this causes a ReferenceError crash whenever a user triggers layer search from the UI, silently killing the plugin message handler
+  Worktree: /tmp/backlog-10054-sETx2X
+
+  ✓ done: controller.ts searchLayers missing import
+    Added searchLayers to the import from selectionHandling.js at controller.ts:7. Validation script has pre-existing failures unrelated to this change (broken pnpm workspace links and build redeclaration error in worktree).
+    31 turns · 148s · $0.81
+
+--- Merging: controller.ts searchLayers missing import ---
+Already up to date.
