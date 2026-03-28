@@ -432,3 +432,10 @@ Already up to date.
 ===============================================================
   Claimed: `token-tree-utils.ts` uses `any` for all tree traversal parameters — every function (`walkAliasValues`, `walkLeafTokens`, `collectGroupLeafTokens`, `getObjectAtPath`, `setGroupAtPath`, etc.) uses `any` instead of `TokenGroup` or generic types, defeating TypeScript's ability to catch misuse across the server
   Worktree: /tmp/backlog-9651-8YtrrE
+
+  ✓ done: `token-tree-utils.ts` uses `any` for all tree traversal parameters
+    Replaced all `any` types with `TokenGroup`, `Token`, `TokenTreeNode`, and `Record<string, unknown>` across all 12 functions. Zero `any` remaining in the file. All validation gates pass.
+    35 turns · 290s · $1.49
+
+--- Merging: `token-tree-utils.ts` uses `any` for all tree traversal parameters ---
+Already up to date.

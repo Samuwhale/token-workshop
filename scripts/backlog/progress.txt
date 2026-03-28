@@ -356,3 +356,19 @@
   - When reading response body for error messages, use `.text().catch(() => '')` since the body may not be readable
   - Mark results as stale (`setResultsStale(true)`) on error so the UI reflects that previous results may no longer be valid
 ---
+
+## 2026-03-28 - token-tree-utils.ts uses `any` for all tree traversal parameters
+- Replaced all `any` parameter and return types with proper `TokenGroup`, `Token`, and `TokenTreeNode` types
+- `walkAliasValues`, `updateAliasRefs`, `updateBulkAliasRefs`: `group: any` → `group: TokenGroup`
+- `walkLeafTokens`: `obj: any` → `obj: TokenGroup`
+- Internal traversal cursors: `any` → `TokenTreeNode` (alias for `TokenGroup[string]`)
+- `getObjectAtPath`: return type `Record<string, any>` → `TokenGroup | undefined`
+- `setGroupAtPath`: `group: Record<string, any>` → `group: TokenGroup`
+- `deleteTokenAtPath` chain array: `Array<{ obj: any }>` → `Array<{ obj: TokenGroup }>`
+- Internal composite value walkers: `any` → `Record<string, unknown>`
+- Files changed: `packages/server/src/services/token-tree-utils.ts` ~L1-228
+- **Learnings for future iterations:**
+  - `TokenGroup` has an index signature `[key: string]: Token | TokenGroup | TokenType | string | undefined`, so indexing returns a union. Define a `TokenTreeNode` alias for this traversal cursor type.
+  - For path-traversal loops where we repeatedly index into child nodes, cast intermediate nodes to `TokenGroup` after verifying they're objects and not tokens (via `isDTCGToken`).
+  - `walkAliasValues` modifies `$value` on token objects; since `Token.$value` is a specific union type, use `(obj as Record<string, unknown>)[key] = replaced` to allow string assignment.
+---
