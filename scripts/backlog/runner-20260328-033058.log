@@ -153,3 +153,10 @@ Already up to date.
 ===============================================================
   Claimed: `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly — iterate all sets calling `getFlatTokensForSet` even though `tokenStore.flatTokens` already has the merged data
   Worktree: /tmp/backlog-85816-K7jdSB
+
+  ✓ done: `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly
+    Added `getAllFlatTokens()` to TokenStore exposing the cached merged map; updated both lint functions to use it instead of iterating all sets with `getFlatTokensForSet`.
+    21 turns · 103s · $0.57
+
+--- Merging: `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly ---
+Already up to date.

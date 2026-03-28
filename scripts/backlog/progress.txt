@@ -315,3 +315,11 @@
 - **Learnings for future iterations:**
   - Classic React pattern: when a `useCallback` closes over state that changes frequently and is used in a `useEffect` dependency array, replace the state read with a ref to break the dependency chain. The ref assignment (`ref.current = state`) goes in the render body, not in an effect.
 ---
+
+## 2026-03-28 - `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly
+- Added `getAllFlatTokens()` public method to `TokenStore` that exposes the already-maintained `flatTokens` Map as a plain object. Updated `lintTokens` to use it (single iteration splits into per-set and all-tokens maps) instead of calling `getFlatTokensForSet` once per set. Updated `validateAllTokens` similarly — removed the loop over `getSets()` + `getFlatTokensForSet` and replaced with a single `getAllFlatTokens()` call.
+- Files changed: `packages/server/src/services/token-store.ts` ~L694, `packages/server/src/services/lint.ts` ~L128, ~L303
+- **Learnings for future iterations:**
+  - `TokenStore.flatTokens` is a private merged Map rebuilt on every change — exposing it via a public method avoids O(sets × tokens) redundant iteration in consumers.
+  - The server package has pre-existing tsc errors from missing @types/node and fastify types; validate changes by grepping tsc output for the specific changed files.
+---

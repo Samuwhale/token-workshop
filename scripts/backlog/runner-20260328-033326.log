@@ -178,3 +178,17 @@ Already up to date.
 
 --- Merging: `useUndo` keyboard listener churns on every undo/redo ---
 Already up to date.
+[main 0572aed] chore(backlog): done – `useUndo` keyboard listener churns on every undo/redo
+ 6 files changed, 47 insertions(+), 14 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - `useUndo` keyboard listener churns on every undo/redo
+- Added `pastRef` and `futureRef` that mirror `past`/`future` state. `executeUndo` and `executeRedo` now read from refs instead of closing over state, making them stable (empty dependency arrays). The keyboard `useEffect` no longer depends on `past`/`future` and registers/deregisters only once.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L17, ~L28, ~L45, ~L65
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  77 items remaining
+===============================================================
+  Claimed: 21 `as any` casts across UI components — particularly concerning in `SemanticMappingDialog.tsx` where API response bodies are cast to access `.error` without a proper typed response shape
+  Worktree: /tmp/backlog-92630-MDgjpf

@@ -749,6 +749,15 @@ export class TokenStore {
     return result;
   }
 
+  /** Get all flat tokens across all sets, keyed by path. */
+  getAllFlatTokens(): Record<string, { token: Token; setName: string }> {
+    const result: Record<string, { token: Token; setName: string }> = {};
+    for (const [tokenPath, entry] of this.flatTokens) {
+      result[tokenPath] = entry;
+    }
+    return result;
+  }
+
   /** Get all tokens that reference the given token path, with their set names. */
   getDependents(tokenPath: string): Array<{ path: string; setName: string }> {
     if (!this.resolver) return [];

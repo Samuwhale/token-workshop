@@ -125,12 +125,16 @@ export async function lintTokens(
   tokenStore: TokenStore,
   lintConfig: LintConfig,
 ): Promise<LintViolation[]> {
-  const flatTokens = await tokenStore.getFlatTokensForSet(setName);
+  const allEntries = tokenStore.getAllFlatTokens();
+  // Tokens for the target set only
+  const flatTokens: Record<string, Token> = {};
+  // All tokens for cross-set alias resolution
   const allFlatTokens: Record<string, Token> = {};
-  // Build all tokens map for alias resolution
-  for (const s of await tokenStore.getSets()) {
-    const setTokens = await tokenStore.getFlatTokensForSet(s);
-    Object.assign(allFlatTokens, setTokens);
+  for (const [tokenPath, entry] of Object.entries(allEntries)) {
+    allFlatTokens[tokenPath] = entry.token;
+    if (entry.setName === setName) {
+      flatTokens[tokenPath] = entry.token;
+    }
   }
 
   const violations: LintViolation[] = [];
@@ -295,16 +299,9 @@ const TYPE_VALUE_CHECKS: Record<string, (v: unknown) => boolean> = {
 
 export async function validateAllTokens(tokenStore: TokenStore, config?: LintConfig): Promise<ValidationIssue[]> {
   const issues: ValidationIssue[] = [];
-  const sets = await tokenStore.getSets();
 
-  // Build full cross-set flat token map
-  const allTokensMap: Record<string, { token: Token; setName: string }> = {};
-  for (const setName of sets) {
-    const flatTokens = await tokenStore.getFlatTokensForSet(setName);
-    for (const [tokenPath, token] of Object.entries(flatTokens)) {
-      allTokensMap[tokenPath] = { token, setName };
-    }
-  }
+  // Use the already-merged flat token map instead of rebuilding per-set
+  const allTokensMap = tokenStore.getAllFlatTokens();
 
   for (const [tokenPath, { token, setName }] of Object.entries(allTokensMap)) {
     // Missing $type
