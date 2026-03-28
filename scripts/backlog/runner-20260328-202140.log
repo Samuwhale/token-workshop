@@ -73,3 +73,10 @@ Already up to date.
 ===============================================================
   Claimed: Bulk type-change in batch editor: allow changing the type of multiple tokens at once (e.g. converting `string` tokens to `dimension` during a migration)
   Worktree: /tmp/backlog-9651-1J4AsU
+
+  ✓ done: Bulk type-change in batch editor
+    stale — already done. BatchEditor.tsx already has a full "Change type" dropdown with all 25 DTCG types, per-token validation, incompatibility warnings, confirmation dialog, and undo support.
+    11 turns · 173s · $0.63
+
+--- Merging: Bulk type-change in batch editor ---
+Already up to date.

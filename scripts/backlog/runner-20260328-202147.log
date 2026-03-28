@@ -87,3 +87,16 @@ Already up to date.
 
 --- Merging: `creatingSet` state stuck on error in App.tsx `handleCreateSet` ---
 Already up to date.
+[main c6d7585] chore(backlog): done – `creatingSet` state stuck on error in App.tsx `handleCreateSet`
+ 5 files changed, 39 insertions(+), 5 deletions(-)
+
+## 2026-03-28 - `creatingSet` state stuck on error in App.tsx `handleCreateSet`
+- Fixed the catch block in `handleCreateSet` to reset `creatingSet`, `newSetName`, and `newSetError` when a network/disconnect error is detected (i.e., when `markDisconnected()` is called). For non-connection errors (e.g., server-side validation), the error message is still shown in the input form so the user can correct and retry.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L807-815
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  66 items remaining
+===============================================================
+  Claimed: `SET_NAME_RE` declared twice in App.tsx — imported from `./shared/utils` on line 51 and then redeclared locally on line 57, shadowing the import and making it dead code
+  Worktree: /tmp/backlog-10461-KsRiad

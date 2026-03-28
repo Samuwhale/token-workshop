@@ -603,3 +603,11 @@
   - The bug was subtle: on network error, `markDisconnected()` sets `connected=false` but `creatingSet` stayed `true`, leaving the input form open in a disconnected state where it couldn't succeed
   - The right UX split: connection errors → dismiss the form (can't do anything); server errors → keep form open with error message so user can retry
 ---
+
+## 2026-03-28 - Bulk type-change in batch editor
+- Already fully implemented in `BatchEditor.tsx`. The batch editor has a "Change type" dropdown with all 25 DTCG types, per-token validation against the new type, preview showing current→new types with incompatibility warnings, a confirmation dialog, and undo support. Server PATCH endpoint at `tokens.ts:442` accepts `$type` in body.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+  - The batch editor is feature-rich: description, type change, opacity, scale, find/replace rename, and move-to-set are all already implemented
+  - Before implementing a batch editor feature, read BatchEditor.tsx first — it likely already exists
+---
