@@ -413,3 +413,9 @@
   - `apiFetch` signature is `(url: string, options?: RequestInit): Promise<T>` — url must be the full URL including path. Always concatenate `${serverUrl}/api/...`.
   - `apiFetch` returns parsed JSON directly as `T`, not a `Response` — no `.json()` call needed on the result.
 ---
+- Deferred `URL.revokeObjectURL(url)` in both `exportCSV` and `exportJSON` with `setTimeout(() => ..., 1000)` so the browser has time to process the `a.click()` download before the blob URL is revoked
+- Files changed: `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L131,150
+- **Learnings for future iterations:**
+  - `a.click()` for blob-URL downloads is async in some browsers — always defer `revokeObjectURL` by ~1s
+  - Same pattern exists in AnalyticsPanel, PublishPanel, GraphPanel, ThemeCompare, ExportPanel
+---
