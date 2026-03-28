@@ -53,6 +53,11 @@ export class ResolverStore {
     this.dir = path.resolve(dir);
   }
 
+  /** The root directory where resolver files are stored. */
+  getDir(): string {
+    return this.dir;
+  }
+
   async initialize(): Promise<void> {
     await fs.mkdir(this.dir, { recursive: true });
     await this.loadAll();

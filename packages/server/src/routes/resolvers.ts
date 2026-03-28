@@ -41,7 +41,7 @@ export const resolverRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post<{ Body: { name?: string } }>('/resolvers/from-themes', async (req, reply) => {
     const resolverName = (req.body as { name?: string })?.name || 'theme-resolver';
     try {
-      const storeDir: string = (fastify.resolverStore as unknown as { dir: string }).dir;
+      const storeDir = fastify.resolverStore.getDir();
       const themesPath = path.join(storeDir, '$themes.json');
       let dimensions: ThemeDimension[] = [];
       try {

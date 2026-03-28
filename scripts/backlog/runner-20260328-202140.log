@@ -113,3 +113,10 @@ Already up to date.
 ===============================================================
   Claimed: Unsafe `as unknown as { dir: string }` cast in server resolvers.ts line 44 — bypasses type safety to access the private `dir` property of `ResolverStore`; a public getter or constructor param would be safer and survive refactors
   Worktree: /tmp/backlog-9651-s9Y5DZ
+
+  ✓ done: Unsafe `as unknown as { dir: string }` cast in server resolvers.ts
+    Added public `getDir()` method to ResolverStore, replaced unsafe cast in resolvers.ts with type-safe call. All validation gates pass.
+    10 turns · 45s · $0.28
+
+--- Merging: Unsafe `as unknown as { dir: string }` cast in server resolvers.ts ---
+Already up to date.

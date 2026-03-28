@@ -374,3 +374,10 @@
   - `handleDropOnGroup` already had the correct error-handling pattern — `handleDropReorder` was simply missing it, an oversight when the function was written
   - Always add the `onError` callback to the useCallback dep array when it's used inside the callback
 ---
+
+## 2026-03-28 - Unsafe `as unknown as { dir: string }` cast in server resolvers.ts
+- Added public `getDir()` method to `ResolverStore` class, replacing the unsafe `as unknown as { dir: string }` cast in `resolvers.ts` line 44
+- Files changed: `packages/server/src/services/resolver-store.ts` ~L55 (new getter), `packages/server/src/routes/resolvers.ts` ~L44 (use getter)
+- **Learnings for future iterations:**
+  - Multiple server services (`TokenStore`, `GeneratorService`, `GitSync`) also have `private dir` — same pattern could apply if accessed unsafely elsewhere
+---
