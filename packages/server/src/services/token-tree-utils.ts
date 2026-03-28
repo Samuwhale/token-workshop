@@ -1,0 +1,249 @@
+import {
+  type Token,
+  type TokenGroup,
+  isDTCGToken,
+} from '@tokenmanager/core';
+
+const MAX_REGEX_LENGTH = 200;
+
+// ----- Tree walkers -----
+
+/**
+ * Walk every $value in a token tree and apply `updateString` to string values
+ * (including string leaves inside composite/object $values).
+ * Returns the number of $value fields that were modified.
+ */
+export function walkAliasValues(
+  group: any,
+  updateString: (s: string) => string | null,
+): number {
+  let count = 0;
+  const updateComposite = (obj: any) => {
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (typeof v === 'string') {
+        const replaced = updateString(v);
+        if (replaced !== null) { obj[k] = replaced; count++; }
+      } else if (typeof v === 'object' && v !== null) {
+        updateComposite(v);
+      }
+    }
+  };
+  const walk = (obj: any) => {
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (key === '$value' && typeof val === 'string') {
+        const replaced = updateString(val);
+        if (replaced !== null) { obj[key] = replaced; count++; }
+      } else if (key === '$value' && typeof val === 'object' && val !== null) {
+        updateComposite(val);
+      } else if (typeof val === 'object' && val !== null) {
+        walk(val);
+      }
+    }
+  };
+  walk(group);
+  return count;
+}
+
+/**
+ * Walk all leaf tokens under a token group object, calling `visitor` for each.
+ * Skips `$`-prefixed keys (DTCG metadata).
+ */
+export function walkLeafTokens(
+  obj: any,
+  visitor: (relativePath: string, token: Token) => void,
+  prefix = '',
+): void {
+  for (const [key, val] of Object.entries(obj as object)) {
+    if (key.startsWith('$')) continue;
+    const relPath = prefix ? `${prefix}.${key}` : key;
+    if (isDTCGToken(val)) {
+      visitor(relPath, val as Token);
+    } else if (typeof val === 'object' && val !== null) {
+      walkLeafTokens(val, visitor, relPath);
+    }
+  }
+}
+
+/**
+ * Collect all leaf tokens under a group path, with relative paths from the group root.
+ */
+export function collectGroupLeafTokens(tokens: TokenGroup, groupPath: string): Array<{ relativePath: string; token: Token }> {
+  const parts = groupPath.split('.');
+  let current: any = tokens;
+  for (const part of parts) {
+    if (!current || typeof current !== 'object') return [];
+    current = current[part];
+  }
+  if (!current || typeof current !== 'object' || isDTCGToken(current)) return [];
+  const result: Array<{ relativePath: string; token: Token }> = [];
+  walkLeafTokens(current, (relativePath, token) => {
+    result.push({ relativePath, token });
+  });
+  return result;
+}
+
+// ----- Path helpers -----
+
+/**
+ * Validate a dot-separated token path.
+ * Rejects empty paths, empty segments (double dots), segments starting with
+ * the reserved DTCG `$` prefix, and segments containing `/` or `\`.
+ */
+export function validateTokenPath(tokenPath: string): void {
+  if (!tokenPath) {
+    throw new Error('Token path must not be empty');
+  }
+  const segments = tokenPath.split('.');
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    if (seg === '') {
+      throw new Error(
+        `Invalid token path "${tokenPath}": contains an empty segment (double dot or leading/trailing dot)`,
+      );
+    }
+    if (seg.startsWith('$')) {
+      throw new Error(
+        `Invalid token path "${tokenPath}": segment "${seg}" starts with reserved "$" prefix`,
+      );
+    }
+    if (seg.includes('/') || seg.includes('\\')) {
+      throw new Error(
+        `Invalid token path "${tokenPath}": segment "${seg}" contains a slash`,
+      );
+    }
+  }
+}
+
+export function pathExistsAt(tokens: TokenGroup, path: string): boolean {
+  const parts = path.split('.');
+  let current: any = tokens;
+  for (const part of parts) {
+    if (!current || typeof current !== 'object') return false;
+    current = current[part];
+  }
+  return current !== undefined;
+}
+
+export function getObjectAtPath(tokens: TokenGroup, path: string): Record<string, any> | undefined {
+  const parts = path.split('.');
+  let current: any = tokens;
+  for (const part of parts) {
+    if (!current || typeof current !== 'object') return undefined;
+    current = current[part];
+  }
+  return (current && typeof current === 'object' && !isDTCGToken(current)) ? current : undefined;
+}
+
+export function setGroupAtPath(tokens: TokenGroup, path: string, group: Record<string, any>): void {
+  const parts = path.split('.');
+  let current: any = tokens;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!current[parts[i]] || isDTCGToken(current[parts[i]])) {
+      current[parts[i]] = {};
+    }
+    current = current[parts[i]];
+  }
+  current[parts[parts.length - 1]] = group;
+}
+
+export function getTokenAtPath(group: TokenGroup, tokenPath: string): Token | undefined {
+  const parts = tokenPath.split('.');
+  let current: any = group;
+  for (const part of parts) {
+    if (!current || typeof current !== 'object') return undefined;
+    current = current[part];
+  }
+  return isDTCGToken(current) ? (current as Token) : undefined;
+}
+
+export function setTokenAtPath(group: TokenGroup, tokenPath: string, token: Token): void {
+  const parts = tokenPath.split('.');
+  let current: any = group;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!current[parts[i]] || typeof current[parts[i]] !== 'object' || isDTCGToken(current[parts[i]])) {
+      current[parts[i]] = {};
+    }
+    current = current[parts[i]];
+  }
+  current[parts[parts.length - 1]] = token;
+}
+
+export function deleteTokenAtPath(group: TokenGroup, tokenPath: string): boolean {
+  const parts = tokenPath.split('.');
+  // Track the chain of parent objects so we can prune empty groups after deletion.
+  const chain: Array<{ obj: any; key: string }> = [];
+  let current: any = group;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!current[parts[i]]) return false;
+    chain.push({ obj: current, key: parts[i] });
+    current = current[parts[i]];
+  }
+  const last = parts[parts.length - 1];
+  if (!(last in current)) return false;
+  delete current[last];
+  // Walk back up and remove any parent group that is now empty.
+  for (let i = chain.length - 1; i >= 0; i--) {
+    const { obj, key } = chain[i];
+    const child = obj[key];
+    if (typeof child === 'object' && child !== null && Object.keys(child).every(k => k.startsWith('$'))) {
+      delete obj[key];
+    } else {
+      break;
+    }
+  }
+  return true;
+}
+
+// ----- Alias ref updaters -----
+
+/** Update alias $value references from oldGroupPath to newGroupPath across a token tree */
+export function updateAliasRefs(group: any, oldGroupPath: string, newGroupPath: string): number {
+  const escapedOld = oldGroupPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const refRegex = new RegExp(`\\{(${escapedOld})(\\.[^}]*)?\\}`, 'g');
+  return walkAliasValues(group, (s) => {
+    if (!s.includes(`{${oldGroupPath}`)) return null;
+    let matched = false;
+    const result = s.replace(refRegex, (_match, _path, rest) => {
+      matched = true;
+      return rest ? `{${newGroupPath}${rest}}` : `{${newGroupPath}}`;
+    });
+    return matched ? result : null;
+  });
+}
+
+/** Update alias $value references using a full path map (oldPath -> newPath) */
+export function updateBulkAliasRefs(group: any, pathMap: Map<string, string>): number {
+  const refRegex = /\{([^}]+)\}/g;
+  return walkAliasValues(group, (s) => {
+    if (!s.includes('{')) return null;
+    let matched = false;
+    const result = s.replace(refRegex, (_match, refPath) => {
+      if (pathMap.has(refPath)) { matched = true; return `{${pathMap.get(refPath)}}`; }
+      return _match;
+    });
+    return matched ? result : null;
+  });
+}
+
+// ----- Regex safety -----
+
+/**
+ * Detect regex patterns vulnerable to catastrophic backtracking (ReDoS).
+ * Checks for nested quantifiers: a quantified group whose contents also
+ * contain a quantifier, e.g. `(a+)+`, `(x*|y+)*`, `(?:a{2,})+`.
+ */
+export function isSafeRegex(pattern: string): boolean {
+  if (pattern.length > MAX_REGEX_LENGTH) return false;
+  // Strip escaped characters and character classes to avoid false positives
+  const cleaned = pattern
+    .replace(/\\./g, 'a')
+    .replace(/\[[^\]]*\]/g, 'a');
+  // Quantifier immediately before ')' + quantifier immediately after ')'
+  // catches the classic nested-quantifier ReDoS family
+  if (/([+*?]|\{\d+,?\d*\})\s*\)\s*([+*?]|\{\d+,?\d*\})/.test(cleaned)) {
+    return false;
+  }
+  return true;
+}

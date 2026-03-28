@@ -288,3 +288,10 @@ Already up to date.
 ===============================================================
   Claimed: `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module
   Worktree: /tmp/backlog-85816-umNLRD
+
+  ✓ done: `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module
+    Created token-tree-utils.ts (249 lines) with 13 extracted pure functions; token-store.ts reduced from 1269 to 1046 lines (−223). Build passes.
+    42 turns · 252s · $1.72
+
+--- Merging: `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module ---
+Already up to date.

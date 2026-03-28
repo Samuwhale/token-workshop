@@ -191,3 +191,16 @@ Already up to date.
 
 --- Merging: `token-store.ts` uses `any` types pervasively for token group traversal ---
 Already up to date.
+[main 75ccfa9] chore(backlog): done – `token-store.ts` uses `any` types pervasively for token group traversal
+ 6 files changed, 75 insertions(+), 39 deletions(-)
+
+## 2026-03-28 - `token-store.ts` uses `any` types pervasively for token group traversal
+- Replaced all 22 `any` type annotations in `token-store.ts` with a local `TokenNode` type alias (`Record<string, unknown>`) and targeted `as TokenNode` casts after runtime type narrowing (`typeof x === 'object' && x !== null`).
+- For read-only traversal (path existence checks, token lookups), used `let current: unknown` with narrowing before property access.
+- For mutating traversal (set token, delete token, reorder), used `let current: TokenNode` since we need indexed writes.
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  61 items remaining
+===============================================================
+  Claimed: SSE connection (useServerEvents) never reconnects after server restart — if the local server is restarted, generator error events stop arriving until the user manually refreshes the plugin
+  Worktree: /tmp/backlog-10278-9K9BTN

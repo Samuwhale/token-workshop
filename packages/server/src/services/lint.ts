@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Token } from '@tokenmanager/core';
-import { TokenStore, isSafeRegex } from './token-store.js';
+import { TokenStore } from './token-store.js';
+import { isSafeRegex } from './token-tree-utils.js';
 
 // ---------------------------------------------------------------------------
 // Types

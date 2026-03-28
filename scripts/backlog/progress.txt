@@ -314,3 +314,15 @@
   - For traversal variables: use `unknown` when only reading (forces narrowing), `TokenNode` when writing (allows indexed assignment)
   - The server package lacks `@types/node` so `tsc --noEmit` shows many pre-existing errors; filter for your specific file to validate
 ---
+
+## 2026-03-28 - `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module
+- Created `packages/server/src/services/token-tree-utils.ts` (249 lines) with all pure functions: path helpers (`validateTokenPath`, `pathExistsAt`, `getObjectAtPath`, `setGroupAtPath`, `getTokenAtPath`, `setTokenAtPath`, `deleteTokenAtPath`), tree walkers (`walkAliasValues`, `walkLeafTokens`, `collectGroupLeafTokens`), alias ref updaters (`updateAliasRefs`, `updateBulkAliasRefs`), and `isSafeRegex`
+- Converted private class methods to free exported functions — they were already pure (only operated on passed-in `TokenGroup` data, no `this` state)
+- Updated `token-store.ts` (1269 → 1046 lines, −223) to import from the new module
+- Updated `lint.ts` to import `isSafeRegex` from `token-tree-utils.ts` instead of `token-store.ts`
+- Files changed: `packages/server/src/services/token-tree-utils.ts` (new), `packages/server/src/services/token-store.ts` ~L1-25, ~L680-740, ~L960-1072, `packages/server/src/services/lint.ts` ~L4
+- **Learnings for future iterations:**
+  - All path/tree helpers in `TokenStore` were already pure functions that took `TokenGroup` as their first argument — they used `this` only to call each other, making extraction trivial
+  - The server package has no `@types/node` in sandbox so `tsc --noEmit` shows hundreds of pre-existing errors; grep for your specific files to verify no new errors
+  - `isSafeRegex` was the only function exported from `token-store.ts` and consumed externally (by `lint.ts`) — re-export it from `token-store.ts` for backwards compatibility
+---

@@ -6,123 +6,24 @@ import {
   type TokenGroup,
   type TokenSet,
   type ResolvedToken,
-  isDTCGToken,
   isFormula,
   flattenTokenGroup,
   TokenResolver,
 } from '@tokenmanager/core';
+import {
+  validateTokenPath,
+  pathExistsAt,
+  getObjectAtPath,
+  setGroupAtPath,
+  getTokenAtPath,
+  setTokenAtPath,
+  deleteTokenAtPath,
+  collectGroupLeafTokens,
+  updateAliasRefs,
+  updateBulkAliasRefs,
+} from './token-tree-utils.js';
 
-const MAX_REGEX_LENGTH = 200;
-
-/** A loosely-typed node used when traversing token group trees. */
-type TokenNode = Record<string, unknown>;
-
-/**
- * Walk every $value in a token tree and apply `updateString` to string values
- * (including string leaves inside composite/object $values).
- * Returns the number of $value fields that were modified.
- */
-function walkAliasValues(
-  group: TokenNode,
-  updateString: (s: string) => string | null,
-): number {
-  let count = 0;
-  const updateComposite = (obj: TokenNode) => {
-    for (const k of Object.keys(obj)) {
-      const v = obj[k];
-      if (typeof v === 'string') {
-        const replaced = updateString(v);
-        if (replaced !== null) { obj[k] = replaced; count++; }
-      } else if (typeof v === 'object' && v !== null) {
-        updateComposite(v as TokenNode);
-      }
-    }
-  };
-  const walk = (obj: TokenNode) => {
-    for (const key of Object.keys(obj)) {
-      const val = obj[key];
-      if (key === '$value' && typeof val === 'string') {
-        const replaced = updateString(val);
-        if (replaced !== null) { obj[key] = replaced; count++; }
-      } else if (key === '$value' && typeof val === 'object' && val !== null) {
-        updateComposite(val as TokenNode);
-      } else if (typeof val === 'object' && val !== null) {
-        walk(val as TokenNode);
-      }
-    }
-  };
-  walk(group);
-  return count;
-}
-
-/**
- * Walk all leaf tokens under a token group object, calling `visitor` for each.
- * Skips `$`-prefixed keys (DTCG metadata).
- */
-function walkLeafTokens(
-  obj: TokenNode,
-  visitor: (relativePath: string, token: Token) => void,
-  prefix = '',
-): void {
-  for (const [key, val] of Object.entries(obj)) {
-    if (key.startsWith('$')) continue;
-    const relPath = prefix ? `${prefix}.${key}` : key;
-    if (isDTCGToken(val)) {
-      visitor(relPath, val as Token);
-    } else if (typeof val === 'object' && val !== null) {
-      walkLeafTokens(val as TokenNode, visitor, relPath);
-    }
-  }
-}
-
-/**
- * Validate a dot-separated token path.
- * Rejects empty paths, empty segments (double dots), segments starting with
- * the reserved DTCG `$` prefix, and segments containing `/` or `\`.
- */
-function validateTokenPath(tokenPath: string): void {
-  if (!tokenPath) {
-    throw new Error('Token path must not be empty');
-  }
-  const segments = tokenPath.split('.');
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i];
-    if (seg === '') {
-      throw new Error(
-        `Invalid token path "${tokenPath}": contains an empty segment (double dot or leading/trailing dot)`,
-      );
-    }
-    if (seg.startsWith('$')) {
-      throw new Error(
-        `Invalid token path "${tokenPath}": segment "${seg}" starts with reserved "$" prefix`,
-      );
-    }
-    if (seg.includes('/') || seg.includes('\\')) {
-      throw new Error(
-        `Invalid token path "${tokenPath}": segment "${seg}" contains a slash`,
-      );
-    }
-  }
-}
-
-/**
- * Detect regex patterns vulnerable to catastrophic backtracking (ReDoS).
- * Checks for nested quantifiers: a quantified group whose contents also
- * contain a quantifier, e.g. `(a+)+`, `(x*|y+)*`, `(?:a{2,})+`.
- */
-export function isSafeRegex(pattern: string): boolean {
-  if (pattern.length > MAX_REGEX_LENGTH) return false;
-  // Strip escaped characters and character classes to avoid false positives
-  const cleaned = pattern
-    .replace(/\\./g, 'a')
-    .replace(/\[[^\]]*\]/g, 'a');
-  // Quantifier immediately before ')' + quantifier immediately after ')'
-  // catches the classic nested-quantifier ReDoS family
-  if (/([+*?]|\{\d+,?\d*\})\s*\)\s*([+*?]|\{\d+,?\d*\})/.test(cleaned)) {
-    return false;
-  }
-  return true;
-}
+export { isSafeRegex } from './token-tree-utils.js';
 
 export class TokenStore {
   private dir: string;
@@ -320,7 +221,7 @@ export class TokenStore {
     if (!set) throw new Error(`Set "${setName}" not found`);
     let group: TokenNode;
     if (groupPath) {
-      const found = this.getObjectAtPath(set.tokens, groupPath);
+      const found = getObjectAtPath(set.tokens, groupPath);
       if (!found) throw new Error(`Group "${groupPath}" not found in set "${setName}"`);
       group = found;
     } else {
@@ -342,7 +243,7 @@ export class TokenStore {
       reordered[key] = group[key];
     }
     if (groupPath) {
-      this.setGroupAtPath(set.tokens, groupPath, reordered);
+      setGroupAtPath(set.tokens, groupPath, reordered);
     } else {
       set.tokens = reordered as TokenGroup;
     }
@@ -560,7 +461,7 @@ export class TokenStore {
   async getToken(setName: string, tokenPath: string): Promise<Token | undefined> {
     const set = this.sets.get(setName);
     if (!set) return undefined;
-    return this.getTokenAtPath(set.tokens, tokenPath);
+    return getTokenAtPath(set.tokens, tokenPath);
   }
 
   async createToken(setName: string, tokenPath: string, token: Token): Promise<void> {
@@ -574,7 +475,7 @@ export class TokenStore {
     if (!set) {
       set = await this._createSetNoRebuild(setName);
     }
-    this.setTokenAtPath(set.tokens, tokenPath, token);
+    setTokenAtPath(set.tokens, tokenPath, token);
     await this.saveSet(setName);
     this.rebuildFlatTokens();
     this.emit({ type: 'token-updated', setName, tokenPath });
@@ -583,7 +484,7 @@ export class TokenStore {
   async updateToken(setName: string, tokenPath: string, token: Partial<Token>): Promise<void> {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
-    const existing = this.getTokenAtPath(set.tokens, tokenPath);
+    const existing = getTokenAtPath(set.tokens, tokenPath);
     if (!existing) throw new Error(`Token "${tokenPath}" not found in set "${setName}"`);
     // Auto-persist formula metadata so Style Dictionary export can output calc()
     if ('$value' in token && token.$value !== undefined) {
@@ -625,7 +526,7 @@ export class TokenStore {
     try {
       for (const { path: tokenPath, token } of tokens) {
         const enriched = this.enrichFormulaExtension(token);
-        const existing = this.getTokenAtPath(set.tokens, tokenPath);
+        const existing = getTokenAtPath(set.tokens, tokenPath);
         if (existing) {
           if (strategy === 'overwrite') {
             if ('$value' in enriched) existing.$value = enriched.$value;
@@ -637,7 +538,7 @@ export class TokenStore {
             skipped++;
           }
         } else {
-          this.setTokenAtPath(set.tokens, tokenPath, enriched);
+          setTokenAtPath(set.tokens, tokenPath, enriched);
           imported++;
         }
       }
@@ -652,7 +553,7 @@ export class TokenStore {
   async deleteToken(setName: string, tokenPath: string): Promise<boolean> {
     const set = this.sets.get(setName);
     if (!set) return false;
-    const deleted = this.deleteTokenAtPath(set.tokens, tokenPath);
+    const deleted = deleteTokenAtPath(set.tokens, tokenPath);
     if (deleted) {
       await this.saveSet(setName);
       this.rebuildFlatTokens();
@@ -690,7 +591,7 @@ export class TokenStore {
       for (const { setName, path: tokenPath } of tokens) {
         const set = this.sets.get(setName);
         if (!set) continue;
-        if (this.deleteTokenAtPath(set.tokens, tokenPath)) {
+        if (deleteTokenAtPath(set.tokens, tokenPath)) {
           setsToSave.add(setName);
           deleted++;
         }
@@ -782,92 +683,37 @@ export class TokenStore {
 
   // ----- Group operations -----
 
-  /** Collect all leaf tokens under a group path, with relative paths from the group root */
-  private collectGroupLeafTokens(tokens: TokenGroup, groupPath: string): Array<{ relativePath: string; token: Token }> {
-    const parts = groupPath.split('.');
-    let current: unknown = tokens;
-    for (const part of parts) {
-      if (!current || typeof current !== 'object') return [];
-      current = (current as TokenNode)[part];
-    }
-    if (!current || typeof current !== 'object' || isDTCGToken(current)) return [];
-    const result: Array<{ relativePath: string; token: Token }> = [];
-    walkLeafTokens(current as TokenNode, (relativePath, token) => {
-      result.push({ relativePath, token });
-    });
-    return result;
-  }
-
-  /** Update alias $value references from oldGroupPath to newGroupPath across a token tree */
-  private updateAliasRefs(group: TokenNode, oldGroupPath: string, newGroupPath: string): number {
-    const escapedOld = oldGroupPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const refRegex = new RegExp(`\\{(${escapedOld})(\\.[^}]*)?\\}`, 'g');
-    return walkAliasValues(group, (s) => {
-      if (!s.includes(`{${oldGroupPath}`)) return null;
-      let matched = false;
-      const result = s.replace(refRegex, (_match, _path, rest) => {
-        matched = true;
-        return rest ? `{${newGroupPath}${rest}}` : `{${newGroupPath}}`;
-      });
-      return matched ? result : null;
-    });
-  }
-
-  /** Update alias $value references using a full path map (oldPath -> newPath) */
-  private updateBulkAliasRefs(group: TokenNode, pathMap: Map<string, string>): number {
-    const refRegex = /\{([^}]+)\}/g;
-    return walkAliasValues(group, (s) => {
-      if (!s.includes('{')) return null;
-      let matched = false;
-      const result = s.replace(refRegex, (_match, refPath) => {
-        if (pathMap.has(refPath)) { matched = true; return `{${pathMap.get(refPath)}}`; }
-        return _match;
-      });
-      return matched ? result : null;
-    });
-  }
-
-  private pathExistsAt(tokens: TokenGroup, path: string): boolean {
-    const parts = path.split('.');
-    let current: unknown = tokens;
-    for (const part of parts) {
-      if (!current || typeof current !== 'object') return false;
-      current = (current as TokenNode)[part];
-    }
-    return current !== undefined;
-  }
-
   async renameGroup(setName: string, oldGroupPath: string, newGroupPath: string): Promise<{ renamedCount: number; aliasesUpdated: number }> {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
-    const leafTokens = this.collectGroupLeafTokens(set.tokens, oldGroupPath);
+    const leafTokens = collectGroupLeafTokens(set.tokens, oldGroupPath);
     this.beginBatch();
     try {
       if (leafTokens.length === 0) {
-        const groupObj = this.getObjectAtPath(set.tokens, oldGroupPath);
+        const groupObj = getObjectAtPath(set.tokens, oldGroupPath);
         if (!groupObj) throw new Error(`Group "${oldGroupPath}" not found`);
-        if (this.pathExistsAt(set.tokens, newGroupPath)) throw new Error(`Path "${newGroupPath}" already exists`);
-        this.setGroupAtPath(set.tokens, newGroupPath, groupObj);
-        this.deleteTokenAtPath(set.tokens, oldGroupPath);
+        if (pathExistsAt(set.tokens, newGroupPath)) throw new Error(`Path "${newGroupPath}" already exists`);
+        setGroupAtPath(set.tokens, newGroupPath, groupObj);
+        deleteTokenAtPath(set.tokens, oldGroupPath);
         await this.saveSet(setName);
         this.rebuildFlatTokens();
         return { renamedCount: 0, aliasesUpdated: 0 };
       }
       for (const { relativePath } of leafTokens) {
         const newPath = `${newGroupPath}.${relativePath}`;
-        if (this.getTokenAtPath(set.tokens, newPath)) {
+        if (getTokenAtPath(set.tokens, newPath)) {
           throw new Error(`Token at path "${newPath}" already exists`);
         }
       }
       for (const { relativePath, token } of leafTokens) {
-        this.setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, token);
+        setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, token);
       }
-      this.deleteTokenAtPath(set.tokens, oldGroupPath);
+      deleteTokenAtPath(set.tokens, oldGroupPath);
       await this.saveSet(setName);
       let aliasesUpdated = 0;
       const setsToSave = new Set<string>();
       for (const [sName, s] of this.sets) {
-        const changed = this.updateAliasRefs(s.tokens, oldGroupPath, newGroupPath);
+        const changed = updateAliasRefs(s.tokens, oldGroupPath, newGroupPath);
         if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
       }
       for (const sName of setsToSave) await this.saveSet(sName);
@@ -882,17 +728,17 @@ export class TokenStore {
     validateTokenPath(newPath);
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
-    const token = this.getTokenAtPath(set.tokens, oldPath);
+    const token = getTokenAtPath(set.tokens, oldPath);
     if (!token) throw new Error(`Token "${oldPath}" not found in set "${setName}"`);
-    if (this.getTokenAtPath(set.tokens, newPath)) throw new Error(`Token "${newPath}" already exists`);
-    this.setTokenAtPath(set.tokens, newPath, token);
-    this.deleteTokenAtPath(set.tokens, oldPath);
+    if (getTokenAtPath(set.tokens, newPath)) throw new Error(`Token "${newPath}" already exists`);
+    setTokenAtPath(set.tokens, newPath, token);
+    deleteTokenAtPath(set.tokens, oldPath);
     await this.saveSet(setName);
     const pathMap = new Map([[oldPath, newPath]]);
     let aliasesUpdated = 0;
     const setsToSave = new Set<string>();
     for (const [sName, s] of this.sets) {
-      const changed = this.updateBulkAliasRefs(s.tokens, pathMap);
+      const changed = updateBulkAliasRefs(s.tokens, pathMap);
       if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
     }
     for (const sName of setsToSave) await this.saveSet(sName);
@@ -906,15 +752,15 @@ export class TokenStore {
     if (!source) throw new Error(`Set "${fromSet}" not found`);
     const target = this.sets.get(toSet);
     if (!target) throw new Error(`Set "${toSet}" not found`);
-    const leafTokens = this.collectGroupLeafTokens(source.tokens, groupPath);
+    const leafTokens = collectGroupLeafTokens(source.tokens, groupPath);
     this.beginBatch();
     try {
       if (leafTokens.length === 0) {
-        const groupObj = this.getObjectAtPath(source.tokens, groupPath);
+        const groupObj = getObjectAtPath(source.tokens, groupPath);
         if (!groupObj) throw new Error(`Group "${groupPath}" not found`);
-        if (this.pathExistsAt(target.tokens, groupPath)) throw new Error(`Path "${groupPath}" already exists in target set "${toSet}"`);
-        this.setGroupAtPath(target.tokens, groupPath, groupObj);
-        this.deleteTokenAtPath(source.tokens, groupPath);
+        if (pathExistsAt(target.tokens, groupPath)) throw new Error(`Path "${groupPath}" already exists in target set "${toSet}"`);
+        setGroupAtPath(target.tokens, groupPath, groupObj);
+        deleteTokenAtPath(source.tokens, groupPath);
         await this.saveSet(fromSet);
         await this.saveSet(toSet);
         this.rebuildFlatTokens();
@@ -923,15 +769,15 @@ export class TokenStore {
       const collisions: string[] = [];
       for (const { relativePath } of leafTokens) {
         const targetPath = `${groupPath}.${relativePath}`;
-        if (this.pathExistsAt(target.tokens, targetPath)) collisions.push(targetPath);
+        if (pathExistsAt(target.tokens, targetPath)) collisions.push(targetPath);
       }
       if (collisions.length > 0) {
         throw new Error(`Cannot move group: ${collisions.length} token path(s) already exist in target set "${toSet}": ${collisions.slice(0, 5).join(', ')}${collisions.length > 5 ? `, and ${collisions.length - 5} more` : ''}`);
       }
       for (const { relativePath, token } of leafTokens) {
-        this.setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, token);
+        setTokenAtPath(target.tokens, `${groupPath}.${relativePath}`, token);
       }
-      this.deleteTokenAtPath(source.tokens, groupPath);
+      deleteTokenAtPath(source.tokens, groupPath);
       await this.saveSet(fromSet);
       await this.saveSet(toSet);
       this.rebuildFlatTokens();
@@ -947,13 +793,13 @@ export class TokenStore {
     if (!source) throw new Error(`Set "${fromSet}" not found`);
     const target = this.sets.get(toSet);
     if (!target) throw new Error(`Set "${toSet}" not found`);
-    const token = this.getTokenAtPath(source.tokens, tokenPath);
+    const token = getTokenAtPath(source.tokens, tokenPath);
     if (!token) throw new Error(`Token "${tokenPath}" not found in set "${fromSet}"`);
-    if (this.pathExistsAt(target.tokens, tokenPath)) throw new Error(`Path "${tokenPath}" already exists in target set "${toSet}"`);
+    if (pathExistsAt(target.tokens, tokenPath)) throw new Error(`Path "${tokenPath}" already exists in target set "${toSet}"`);
     this.beginBatch();
     try {
-      this.setTokenAtPath(target.tokens, tokenPath, token);
-      this.deleteTokenAtPath(source.tokens, tokenPath);
+      setTokenAtPath(target.tokens, tokenPath, token);
+      deleteTokenAtPath(source.tokens, tokenPath);
       await this.saveSet(fromSet);
       await this.saveSet(toSet);
       this.rebuildFlatTokens();
@@ -965,9 +811,9 @@ export class TokenStore {
   async duplicateGroup(setName: string, groupPath: string): Promise<{ newGroupPath: string; count: number }> {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
-    const leafTokens = this.collectGroupLeafTokens(set.tokens, groupPath);
+    const leafTokens = collectGroupLeafTokens(set.tokens, groupPath);
     if (leafTokens.length === 0) {
-      const groupObj = this.getObjectAtPath(set.tokens, groupPath);
+      const groupObj = getObjectAtPath(set.tokens, groupPath);
       if (!groupObj) throw new Error(`Group "${groupPath}" not found`);
       const lastDot0 = groupPath.lastIndexOf('.');
       const parentPath0 = lastDot0 >= 0 ? groupPath.slice(0, lastDot0) : '';
@@ -975,10 +821,10 @@ export class TokenStore {
       const makeNewPath0 = (suffix: string) => parentPath0 ? `${parentPath0}.${suffix}` : suffix;
       let newEmptyPath = makeNewPath0(`${baseName0}-copy`);
       let attempt0 = 2;
-      while (this.pathExistsAt(set.tokens, newEmptyPath)) {
+      while (pathExistsAt(set.tokens, newEmptyPath)) {
         newEmptyPath = makeNewPath0(`${baseName0}-copy-${attempt0++}`);
       }
-      this.setGroupAtPath(set.tokens, newEmptyPath, JSON.parse(JSON.stringify(groupObj)));
+      setGroupAtPath(set.tokens, newEmptyPath, JSON.parse(JSON.stringify(groupObj)));
       await this.saveSet(setName);
       this.rebuildFlatTokens();
       return { newGroupPath: newEmptyPath, count: 0 };
@@ -989,11 +835,11 @@ export class TokenStore {
     const makeNewPath = (suffix: string) => parentPath ? `${parentPath}.${suffix}` : suffix;
     let newGroupPath = makeNewPath(`${baseName}-copy`);
     let attempt = 2;
-    while (this.pathExistsAt(set.tokens, newGroupPath)) {
+    while (pathExistsAt(set.tokens, newGroupPath)) {
       newGroupPath = makeNewPath(`${baseName}-copy-${attempt++}`);
     }
     for (const { relativePath, token } of leafTokens) {
-      this.setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, JSON.parse(JSON.stringify(token)));
+      setTokenAtPath(set.tokens, `${newGroupPath}.${relativePath}`, JSON.parse(JSON.stringify(token)));
     }
     await this.saveSet(setName);
     this.rebuildFlatTokens();
@@ -1041,7 +887,7 @@ export class TokenStore {
     const skipped: string[] = [];
     const filteredRenames: Array<{ oldPath: string; newPath: string; token: Token }> = [];
     for (const rename of renames) {
-      const existsInSet = this.getTokenAtPath(set.tokens, rename.newPath) !== undefined;
+      const existsInSet = getTokenAtPath(set.tokens, rename.newPath) !== undefined;
       const willBeFreed = oldPaths.has(rename.newPath);
       if (existsInSet && !willBeFreed) {
         skipped.push(rename.oldPath);
@@ -1054,10 +900,10 @@ export class TokenStore {
     try {
       // Apply: set new paths first, then remove old ones
       for (const { newPath, token } of filteredRenames) {
-        this.setTokenAtPath(set.tokens, newPath, token);
+        setTokenAtPath(set.tokens, newPath, token);
       }
       for (const { oldPath } of filteredRenames) {
-        this.deleteTokenAtPath(set.tokens, oldPath);
+        deleteTokenAtPath(set.tokens, oldPath);
       }
 
       await this.saveSet(setName);
@@ -1067,7 +913,7 @@ export class TokenStore {
       let aliasesUpdated = 0;
       const setsToSave = new Set<string>();
       for (const [sName, s] of this.sets) {
-        const changed = this.updateBulkAliasRefs(s.tokens, pathMap);
+        const changed = updateBulkAliasRefs(s.tokens, pathMap);
         if (changed > 0) {
           aliasesUpdated += changed;
           setsToSave.add(sName);
@@ -1080,8 +926,8 @@ export class TokenStore {
     } catch (err) {
       // Revert in-memory mutations: restore old tokens, remove new paths
       for (const { oldPath, newPath, token } of filteredRenames) {
-        this.setTokenAtPath(set.tokens, oldPath, token);
-        this.deleteTokenAtPath(set.tokens, newPath);
+        setTokenAtPath(set.tokens, oldPath, token);
+        deleteTokenAtPath(set.tokens, newPath);
       }
       throw err;
     } finally {
@@ -1110,18 +956,16 @@ export class TokenStore {
     return token as Token;
   }
 
-  // ----- Path helpers -----
-
   // ----- Group creation -----
 
   async createGroup(setName: string, groupPath: string): Promise<void> {
     validateTokenPath(groupPath);
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
-    if (this.pathExistsAt(set.tokens, groupPath)) {
+    if (pathExistsAt(set.tokens, groupPath)) {
       throw new Error(`Path "${groupPath}" already exists`);
     }
-    this.setGroupAtPath(set.tokens, groupPath, {});
+    setGroupAtPath(set.tokens, groupPath, {});
     await this.saveSet(setName);
     this.rebuildFlatTokens();
     this.emit({ type: 'token-updated', setName });
@@ -1138,7 +982,7 @@ export class TokenStore {
     if (!groupPath) {
       group = set.tokens as TokenNode;
     } else {
-      const found = this.getObjectAtPath(set.tokens, groupPath);
+      const found = getObjectAtPath(set.tokens, groupPath);
       if (!found) throw new Error(`Group "${groupPath}" not found in set "${setName}"`);
       group = found;
     }
@@ -1153,76 +997,6 @@ export class TokenStore {
     await this.saveSet(setName);
     this.rebuildFlatTokens();
     this.emit({ type: 'token-updated', setName, tokenPath: groupPath });
-  }
-
-  private getObjectAtPath(tokens: TokenGroup, path: string): TokenNode | undefined {
-    const parts = path.split('.');
-    let current: unknown = tokens;
-    for (const part of parts) {
-      if (!current || typeof current !== 'object') return undefined;
-      current = (current as TokenNode)[part];
-    }
-    return (current && typeof current === 'object' && !isDTCGToken(current)) ? (current as TokenNode) : undefined;
-  }
-
-  private setGroupAtPath(tokens: TokenGroup, path: string, group: TokenNode): void {
-    const parts = path.split('.');
-    let current: TokenNode = tokens as TokenNode;
-    for (let i = 0; i < parts.length - 1; i++) {
-      if (!current[parts[i]] || isDTCGToken(current[parts[i]])) {
-        current[parts[i]] = {};
-      }
-      current = current[parts[i]] as TokenNode;
-    }
-    current[parts[parts.length - 1]] = group;
-  }
-
-  private getTokenAtPath(group: TokenGroup, tokenPath: string): Token | undefined {
-    const parts = tokenPath.split('.');
-    let current: unknown = group;
-    for (const part of parts) {
-      if (!current || typeof current !== 'object') return undefined;
-      current = (current as TokenNode)[part];
-    }
-    return isDTCGToken(current) ? (current as Token) : undefined;
-  }
-
-  private setTokenAtPath(group: TokenGroup, tokenPath: string, token: Token): void {
-    const parts = tokenPath.split('.');
-    let current: TokenNode = group as TokenNode;
-    for (let i = 0; i < parts.length - 1; i++) {
-      if (!current[parts[i]] || typeof current[parts[i]] !== 'object' || isDTCGToken(current[parts[i]])) {
-        current[parts[i]] = {};
-      }
-      current = current[parts[i]] as TokenNode;
-    }
-    current[parts[parts.length - 1]] = token;
-  }
-
-  private deleteTokenAtPath(group: TokenGroup, tokenPath: string): boolean {
-    const parts = tokenPath.split('.');
-    // Track the chain of parent objects so we can prune empty groups after deletion.
-    const chain: Array<{ obj: TokenNode; key: string }> = [];
-    let current: TokenNode = group as TokenNode;
-    for (let i = 0; i < parts.length - 1; i++) {
-      if (!current[parts[i]]) return false;
-      chain.push({ obj: current, key: parts[i] });
-      current = current[parts[i]] as TokenNode;
-    }
-    const last = parts[parts.length - 1];
-    if (!(last in current)) return false;
-    delete current[last];
-    // Walk back up and remove any parent group that is now empty.
-    for (let i = chain.length - 1; i >= 0; i--) {
-      const { obj, key } = chain[i];
-      const child = obj[key];
-      if (typeof child === 'object' && child !== null && Object.keys(child as TokenNode).every(k => k.startsWith('$'))) {
-        delete obj[key];
-      } else {
-        break;
-      }
-    }
-    return true;
   }
 
   private async saveSet(name: string): Promise<void> {
