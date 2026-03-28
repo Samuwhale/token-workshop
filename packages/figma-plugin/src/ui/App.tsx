@@ -2859,6 +2859,9 @@ export function App() {
               setHighlightedToken(path);
             }
           }}
+          onCopyTokenPath={(path) => {
+            navigator.clipboard.writeText(path).catch(() => {});
+          }}
           onCopyTokenValue={(value) => {
             navigator.clipboard.writeText(value).catch(() => {});
           }}

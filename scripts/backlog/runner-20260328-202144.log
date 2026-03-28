@@ -132,3 +132,24 @@ Already up to date.
 
 --- Merging: QuickStart wizard has no skip option for individual steps ---
 Already up to date.
+[main b4df93d] chore(backlog): done – QuickStart wizard has no skip option for individual steps
+ 7 files changed, 75 insertions(+), 11 deletions(-)
+  (code pass skipped — another runner is handling it)
+
+## 2026-03-28 - QuickStart wizard skip & step navigation
+- Made StepperBar steps clickable — users can jump to any step directly by clicking its indicator
+- Clicking a future step auto-marks all earlier steps as completed (skip-forward behavior)
+- Added explicit "Skip" button to step 2 semantic mapping overlay (was hidden behind dialog's close)
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  53 items remaining
+===============================================================
+  Claimed: CommandPalette token search mode has no "copy path" action — the token results show "Val" (copy value) and "CSS" (copy CSS variable) buttons but no way to copy the dot-notation token path itself (e.g. `colors.brand.500`); add a "Path" copy button since paths are needed for alias references and documentation
+  Worktree: /tmp/backlog-10054-sKfRQ7
+
+  ✓ done: CommandPalette token search mode has no "copy path" action
+    Added "Path" copy button to CommandPalette token results (copies dot-notation path like colors.brand.500), placed before existing Val and CSS buttons
+    13 turns · 96s · $0.42
+
+--- Merging: CommandPalette token search mode has no "copy path" action ---
+Already up to date.

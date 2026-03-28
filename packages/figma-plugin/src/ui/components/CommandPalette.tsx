@@ -64,6 +64,7 @@ interface CommandPaletteProps {
   commands: Command[];
   tokens?: TokenEntry[];
   onGoToToken?: (path: string) => void;
+  onCopyTokenPath?: (path: string) => void;
   onCopyTokenCssVar?: (path: string) => void;
   onCopyTokenValue?: (value: string) => void;
   onClose: () => void;
@@ -81,7 +82,7 @@ function tokenCssVar(path: string) {
 // Component
 // ---------------------------------------------------------------------------
 
-export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyTokenCssVar, onCopyTokenValue, onClose }: CommandPaletteProps) {
+export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyTokenPath, onCopyTokenCssVar, onCopyTokenValue, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -279,6 +280,16 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                       </span>
                     )}
                   </button>
+                  {onCopyTokenPath && (
+                    <button
+                      tabIndex={-1}
+                      title={`Copy path: ${token.path}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${idx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      onClick={(e) => { e.stopPropagation(); onCopyTokenPath(token.path); onClose(); }}
+                    >
+                      Path
+                    </button>
+                  )}
                   {onCopyTokenValue && token.value != null && (
                     <button
                       tabIndex={-1}

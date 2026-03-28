@@ -469,3 +469,13 @@
   - The StepperBar was a pure display component with `div` wrappers — converting to `button` elements improves accessibility and enables click handling
   - Step 2 has two render paths: with `semanticData` (full SemanticMappingDialog overlay) and without (inline fallback). The overlay path lacked a visible skip since the skip was only on the SemanticMappingDialog's close handler
 ---
+
+## 2026-03-28 - CommandPalette token search mode has no "copy path" action
+- Added a "Path" copy button to CommandPalette token search results, alongside existing "Val" and "CSS" buttons
+- New `onCopyTokenPath` prop on `CommandPaletteProps` interface, wired in App.tsx to `navigator.clipboard.writeText(path)`
+- Button copies the dot-notation token path (e.g. `colors.brand.500`) for use in alias references and documentation
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L67,84,283-292; `packages/figma-plugin/src/ui/App.tsx` ~L2862-2864
+- **Learnings for future iterations:**
+  - CommandPalette copy buttons follow a simple pattern: conditional render on callback prop existence, stopPropagation + copy + onClose
+  - Button order is Path → Val → CSS (left to right)
+---
