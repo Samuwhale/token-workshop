@@ -242,3 +242,12 @@
   - The peer detection flow (`find-peers-for-property` → `peers-for-property-result`) is fully async via postMessage; storing the result as component state rather than firing a toast gives much better UX control
   - ResolverPanel.tsx had a pre-existing broken JSX (unclosed `<div>`) that prevented all builds — worth checking build before and after changes
 ---
+
+## 2026-03-29 - Renaming a token silently breaks all aliases referencing it
+- Already implemented: `handleRenameToken` (TokenList.tsx L1283) and `handleRenameGroup` (L1226) both fetch dependents from the server before proceeding. If references exist, `RenameConfirmModal` (TokenListModals.tsx L101) displays the full list of affected aliases with set names. Modal offers "Auto-update all aliases" (calls rename with `updateAliases=true`) and "Rename only (break references)" buttons. Server-side `updateAliasRefs`/`updateBulkAliasRefs` in `token-store.ts` rewrite `{old.path}` → `{new.path}` across all sets. The `crossSetDependents` reverse index (rebuilt on every `rebuildFlatTokens()`) tracks all alias references.
+- No changes needed — item is stale
+- Files inspected: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1226-1297, `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L101-164, `packages/server/src/services/token-store.ts` ~L987-1000 (getDependents/getGroupDependents), `packages/server/src/routes/tokens.ts` ~L264-290 (dependents endpoints)
+- **Learnings for future iterations:**
+  - The product-pass that created this item may not have checked the rename flow thoroughly — the infrastructure was already in place
+  - `crossSetDependents` is a Map<tokenPath, Array<{path, setName}>> rebuilt on every flat token rebuild, providing efficient reverse-lookup for alias references
+---
