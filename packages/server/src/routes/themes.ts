@@ -83,7 +83,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     if (!/^[a-z0-9-]+$/.test(id)) {
       return reply.status(400).send({ error: 'Dimension id must contain only lowercase letters, numbers, and hyphens' });
     }
-    if (!name || typeof name !== 'string') {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return reply.status(400).send({ error: 'Dimension name is required' });
     }
     try {
@@ -104,7 +104,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
   fastify.put<{ Params: { id: string }; Body: { name: string } }>('/themes/dimensions/:id', async (request, reply) => {
     const { id } = request.params;
     const { name } = request.body || {};
-    if (!name || typeof name !== 'string') {
+    if (!name || typeof name !== 'string' || !name.trim()) {
       return reply.status(400).send({ error: 'Dimension name is required' });
     }
     try {
@@ -143,7 +143,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     async (request, reply) => {
       const { id } = request.params;
       const { name, sets } = request.body || {};
-      if (!name || typeof name !== 'string') {
+      if (!name || typeof name !== 'string' || !name.trim()) {
         return reply.status(400).send({ error: 'Option name is required' });
       }
       if (!sets || typeof sets !== 'object') {
@@ -180,7 +180,7 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     async (request, reply) => {
       const { id, optionName } = request.params;
       const { name } = request.body || {};
-      if (!name || typeof name !== 'string') {
+      if (!name || typeof name !== 'string' || !name.trim()) {
         return reply.status(400).send({ error: 'New option name is required' });
       }
       const newName = name.trim();

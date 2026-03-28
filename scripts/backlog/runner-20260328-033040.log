@@ -443,3 +443,10 @@ Already up to date.
 
 --- Merging: TokenEditor Cmd+L shortcut for alias mode is not discoverable ---
 Already up to date.
+[main 28ad179] chore(backlog): done – TokenEditor Cmd+L shortcut for alias mode is not discoverable
+ 8 files changed, 49 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - TokenEditor Cmd+L shortcut for alias mode is not discoverable
+- Added visible `⌘L` kbd badge inline on the "Alias mode" toggle button in AliasPicker, so users see the shortcut without hovering for a tooltip.
+- Added a "Token Editor" section to the KeyboardShortcutsModal listing ⌘L (toggle alias mode), ⌘↵ (save), ⌘⇧↵ (save and create another), and Esc (back/discard).
+- Files changed: `packages/figma-plugin/src/ui/components/AliasPicker.tsx` ~L61, `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L53
