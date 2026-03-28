@@ -399,3 +399,12 @@
 - **Learnings for future iterations:**
   - Always check if the feature already exists before planning implementation
 ---
+
+## 2026-03-28 - Color modifiers only available in alias mode
+- Already implemented in commit d4a5da7
+- Gating condition at TokenEditor.tsx:1125 already supports both alias and direct mode
+- ColorModifiersEditor accepts `directColor` prop and uses it as base color when not in alias mode
+- Resolver at resolver.ts:321-327 applies modifiers to any color token regardless of alias status
+- **Learnings for future iterations:**
+  - Always check git log for the specific file before implementing — the item may already be done
+---

@@ -16,3 +16,33 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 
 --- Merging: Deep Inspect mode has no keyboard shortcut ---
 Already up to date.
+[main dbee532] chore(backlog): done – Deep Inspect mode has no keyboard shortcut
+ 13 files changed, 194 insertions(+), 21 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260328-232214.log
+ create mode 100644 scripts/backlog/runner-20260328-232240.log
+ create mode 100644 scripts/backlog/runner-20260328-232344.log
+ create mode 100644 scripts/backlog/runner-20260328-232349.log
+ create mode 100644 scripts/backlog/runner-20260328-232400.log
+ create mode 100644 scripts/backlog/runner-20260328-232403.log
+ create mode 100644 scripts/backlog/runner-20260328-232405.log
+ create mode 100644 scripts/backlog/runner-20260328-232409.log
+ create mode 100644 scripts/backlog/runner-20260328-232426.log
+
+## 2026-03-28 - Deep Inspect mode has no keyboard shortcut
+- Already implemented: Cmd/Ctrl+Shift+D keyboard shortcut exists at `SelectionInspector.tsx` ~L225-239
+- Button tooltip already references the shortcut at ~L606 via `adaptShortcut('⌘⇧D')`
+- No changes needed — item is stale
+
+===============================================================
+  Iteration 2  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Waiting for work…
+
+===============================================================
+  Iteration 3  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Waiting for work…

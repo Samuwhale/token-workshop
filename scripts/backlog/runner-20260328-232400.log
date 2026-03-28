@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 ===============================================================
   Claimed: Color modifiers (lighten, darken, mix, alpha) only available in alias mode — ColorModifiersEditor is gated on `aliasMode && reference.startsWith('{')`, so users can't apply parametric adjustments to direct color values; this forces an awkward workflow of first creating a base token, then aliasing it, just to use modifiers
   Worktree: /tmp/backlog-16467-WdlmDB
+
+  ✓ done: Color modifiers only available in alias mode
+    stale — already done in commit d4a5da7. Gating at TokenEditor.tsx:1125 already supports both alias and direct color modes.
+    8 turns · 94s · $0.41
+
+--- Merging: Color modifiers only available in alias mode ---
+Already up to date.
