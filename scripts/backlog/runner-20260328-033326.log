@@ -192,3 +192,10 @@ Already up to date.
 ===============================================================
   Claimed: 21 `as any` casts across UI components — particularly concerning in `SemanticMappingDialog.tsx` where API response bodies are cast to access `.error` without a proper typed response shape
   Worktree: /tmp/backlog-92630-MDgjpf
+
+  ✓ done: 21 `as any` casts across UI components
+    Removed all 21 `as any` casts: added ApiErrorBody type for API error responses, isDimensionLike type guard for dimension value access, DTCGGroup parameter types for flattenTokenGroup calls, and in-operator narrowing for union config access. Build passes.
+    70 turns · 381s · $2.13
+
+--- Merging: 21 `as any` casts across UI components ---
+Already up to date.

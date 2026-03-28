@@ -347,3 +347,13 @@
   - `figma.listAvailableFontsAsync()` returns all installed fonts with `{ fontName: { family, style } }` — filtering by family and using `fontStyleToWeight` on each style gives a robust weight-to-actual-style mapping.
   - The existing `fontStyleToWeight` function was already a good inverse mapping base; it just needed a few more alternate names (book, roman, demi, normal).
 ---
+
+## 2026-03-28 - 21 `as any` casts across UI components
+- Removed all 21 `as any` casts from UI components and 1 from shared/resolveAlias.ts. Three strategies: (1) Added `ApiErrorBody` interface in `shared/types.ts` and annotated `data` variables in SemanticMappingDialog, TokenList, TokenEditor; (2) Added `isDimensionLike` type guard in `generatorShared.tsx` and used it in GraphPanel, TypeScaleGenerator, SpacingScaleGenerator, SelectionInspector, and generatorShared itself; (3) Changed `flattenTokenGroup` arg types from `Record<string,any>` to `DTCGGroup` in PasteTokensModal and App.tsx; used `in` operator narrowing for TokenGraph.tsx config access; replaced `as any` with `as object` (safe after typeof check) in App.tsx split dialog; removed redundant `as any[]` cast in resolveAlias.ts.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L1, `packages/figma-plugin/src/ui/components/generators/generatorShared.tsx` ~L1, `packages/figma-plugin/src/ui/components/SemanticMappingDialog.tsx` ~L197, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1268, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L490, `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L643, `packages/figma-plugin/src/ui/components/generators/TypeScaleGenerator.tsx` ~L98, `packages/figma-plugin/src/ui/components/generators/SpacingScaleGenerator.tsx` ~L65, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L1040, `packages/figma-plugin/src/ui/components/TokenGraph.tsx` ~L44, `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L39, `packages/figma-plugin/src/ui/App.tsx` ~L755, ~L866, `packages/figma-plugin/src/shared/resolveAlias.ts` ~L119
+- **Learnings for future iterations:**
+  - `isDimensionLike` type guard exists in core's validator.ts but is not exported from the package index. Defined a local version in generatorShared.tsx for UI use.
+  - `flattenTokenGroup` expects `DTCGGroup` — `Record<string, unknown>` from `JSON.parse` is structurally compatible thanks to the DTCGGroup index signature.
+  - `as object` is a safe narrowing (not `as any`) when preceded by `typeof v === 'object'` — TypeScript accepts it for `in` operator checks.
+  - For union types like `GeneratorConfig`, the `in` operator (`'steps' in gen.config`) narrows correctly without needing `as any`.
+---

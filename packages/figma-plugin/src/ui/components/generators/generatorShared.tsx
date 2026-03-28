@@ -1,5 +1,16 @@
 import { useState } from 'react';
+import type { DimensionValue } from '@tokenmanager/core';
 import type { GeneratedTokenResult } from '../../hooks/useGenerators';
+
+// ---------------------------------------------------------------------------
+// Type guard for DTCG dimension values ({ value: number; unit: string })
+// ---------------------------------------------------------------------------
+
+export function isDimensionLike(v: unknown): v is DimensionValue {
+  if (typeof v !== 'object' || v === null) return false;
+  const obj = v as Record<string, unknown>;
+  return typeof obj.value === 'number' && typeof obj.unit === 'string';
+}
 
 // ---------------------------------------------------------------------------
 // Shared value formatter
@@ -7,8 +18,8 @@ import type { GeneratedTokenResult } from '../../hooks/useGenerators';
 
 export function formatValue(value: unknown): string {
   if (value === null || value === undefined) return '';
-  if (typeof value === 'object' && 'value' in (value as any) && 'unit' in (value as any)) {
-    return `${(value as any).value}${(value as any).unit}`;
+  if (isDimensionLike(value)) {
+    return `${value.value}${value.unit}`;
   }
   return String(value);
 }

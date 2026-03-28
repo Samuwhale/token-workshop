@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { SpacingScaleConfig, SpacingStep, GeneratedTokenResult } from '../../hooks/useGenerators';
-import { OverrideRow, formatValue } from './generatorShared';
+import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -63,14 +63,12 @@ export function SpacingPreview({ tokens, overrides, onOverrideChange, onOverride
   onOverrideClear: (stepName: string) => void;
 }) {
   const maxVal = Math.max(...tokens.map(t => {
-    const v = t.value as any;
-    return typeof v === 'object' ? v.value ?? 0 : parseFloat(String(v)) || 0;
+    return isDimensionLike(t.value) ? t.value.value : parseFloat(String(t.value)) || 0;
   }), 1);
   return (
     <div className="flex flex-col gap-1">
       {tokens.map((t) => {
-        const v = t.value as any;
-        const val = typeof v === 'object' ? v.value ?? 0 : parseFloat(String(v)) || 0;
+        const val = isDimensionLike(t.value) ? t.value.value : parseFloat(String(t.value)) || 0;
         const pct = Math.max(4, (val / maxVal) * 100);
         return (
           <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear}>

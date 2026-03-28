@@ -116,7 +116,7 @@ export function resolveAllAliases(
     // or array of objects with individually aliased properties).
     if (resolvedValue !== null && typeof resolvedValue === 'object') {
       if (Array.isArray(resolvedValue)) {
-        resolvedValue = (resolvedValue as any[]).map((item: any) =>
+        resolvedValue = resolvedValue.map((item: any) =>
           item !== null && typeof item === 'object' && !Array.isArray(item)
             ? resolveObjectSubprops(item, tokenMap)
             : item,

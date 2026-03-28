@@ -1,6 +1,7 @@
 import { getErrorMessage } from '../shared/utils';
 import { useState } from 'react';
 import type { GeneratedTokenResult } from '../hooks/useGenerators';
+import type { ApiErrorBody } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
 // Built-in semantic patterns
@@ -194,12 +195,12 @@ export function SemanticMappingDialog({
               body: JSON.stringify(body),
             });
             if (!patchRes.ok) {
-              const data = await patchRes.json().catch(() => ({}));
-              throw new Error((data as any).error || `Failed to update ${fullPath}`);
+              const data: ApiErrorBody = await patchRes.json().catch(() => ({}));
+              throw new Error(data.error || `Failed to update ${fullPath}`);
             }
           } else {
-            const data = await res.json().catch(() => ({}));
-            throw new Error((data as any).error || `Failed to create ${fullPath}`);
+            const data: ApiErrorBody = await res.json().catch(() => ({}));
+            throw new Error(data.error || `Failed to create ${fullPath}`);
           }
         }
         created++;

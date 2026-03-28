@@ -4,7 +4,7 @@ import { resolveRefValue, evalExpr, isFormula } from '@tokenmanager/core';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { ConfirmModal } from './ConfirmModal';
-import type { TokenMapEntry } from '../../shared/types';
+import type { ApiErrorBody, TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { applyColorModifiers } from '@tokenmanager/core';
 import type { ColorModifierOp } from '@tokenmanager/core';
@@ -487,8 +487,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         body: JSON.stringify(body),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error((data as any).error || (isCreateMode ? 'Failed to create token' : 'Failed to save token'));
+        const data: ApiErrorBody = await res.json().catch(() => ({}));
+        throw new Error(data.error || (isCreateMode ? 'Failed to create token' : 'Failed to save token'));
       }
       const label = isCreateMode ? 'created' : 'saved';
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${targetPath}" ${label}` } }, '*');

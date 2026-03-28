@@ -1,6 +1,7 @@
 import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
+import { isDimensionLike } from './generators/generatorShared';
 
 // ---------------------------------------------------------------------------
 // Graph template definitions
@@ -640,8 +641,8 @@ function ApplyForm({
                 {template.generatorType === 'typeScale' && (
                   <div className="flex flex-col gap-1">
                     {previewTokens.map(t => {
-                      const val = typeof t.value === 'object' && t.value !== null && 'value' in (t.value as any)
-                        ? `${(t.value as any).value}${(t.value as any).unit || ''}`
+                      const val = isDimensionLike(t.value)
+                        ? `${t.value.value}${t.value.unit || ''}`
                         : String(t.value);
                       return (
                         <div key={t.stepName} className="flex items-baseline gap-2">
@@ -655,15 +656,15 @@ function ApplyForm({
                 {template.generatorType === 'spacingScale' && (
                   <div className="flex flex-col gap-1">
                     {previewTokens.map(t => {
-                      const val = typeof t.value === 'object' && t.value !== null && 'value' in (t.value as any)
-                        ? (t.value as any).value
+                      const val = isDimensionLike(t.value)
+                        ? t.value.value
                         : (typeof t.value === 'number' ? t.value : parseFloat(String(t.value)));
-                      const label = typeof t.value === 'object' && t.value !== null && 'value' in (t.value as any)
-                        ? `${(t.value as any).value}${(t.value as any).unit || ''}`
+                      const label = isDimensionLike(t.value)
+                        ? `${t.value.value}${t.value.unit || ''}`
                         : String(t.value);
                       const maxVal = Math.max(...previewTokens.map(tk => {
-                        const v = typeof tk.value === 'object' && tk.value !== null && 'value' in (tk.value as any)
-                          ? (tk.value as any).value : (typeof tk.value === 'number' ? tk.value : parseFloat(String(tk.value)));
+                        const v = isDimensionLike(tk.value)
+                          ? tk.value.value : (typeof tk.value === 'number' ? tk.value : parseFloat(String(tk.value)));
                         return typeof v === 'number' && !isNaN(v) ? v : 0;
                       }));
                       const pct = maxVal > 0 && typeof val === 'number' && !isNaN(val) ? (val / maxVal) * 100 : 0;

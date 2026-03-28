@@ -8,6 +8,7 @@ import {
 } from '../../shared/types';
 import type { BindableProperty, SelectionNodeInfo, NodeCapabilities, SyncCompleteMessage, TokenMapEntry } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
+import { isDimensionLike } from './generators/generatorShared';
 import { nodeParentPath } from './tokenListUtils';
 import { RemapAutocompleteInput } from './RemapAutocompleteInput';
 import type { UndoSlot } from '../hooks/useUndo';
@@ -1037,8 +1038,7 @@ export function SelectionInspector({
                                   if (entry.$type === 'color') {
                                     if (typeof r.value === 'string' && r.value.startsWith('#')) resolvedColorSwatch = r.value;
                                   } else if ((entry.$type === 'dimension' || entry.$type === 'number') && r.value != null) {
-                                    const v = r.value as any;
-                                    resolvedValueDisplay = typeof v === 'object' && 'value' in v ? `${v.value}${v.unit}` : String(v);
+                                    resolvedValueDisplay = isDimensionLike(r.value) ? `${r.value.value}${r.value.unit}` : String(r.value);
                                   }
                                   const isSelected = idx === bindSelectedIndex;
                                   const isCurrent = isBound && path === binding;

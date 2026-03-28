@@ -1,5 +1,10 @@
 // Shared types used by both controller (plugin sandbox) and UI
 
+/** Shape returned by API endpoints on error (e.g. 4xx/5xx). */
+export interface ApiErrorBody {
+  error?: string;
+}
+
 export type BindableProperty =
   | 'fill'
   | 'stroke'

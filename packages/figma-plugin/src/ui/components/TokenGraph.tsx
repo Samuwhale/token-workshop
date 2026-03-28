@@ -42,8 +42,7 @@ const GRAPH_TYPE_LABELS: Record<string, string> = {
 };
 
 function getStepCount(gen: TokenGenerator): number {
-  const config = gen.config as any;
-  if (Array.isArray(config.steps)) return config.steps.length;
+  if ('steps' in gen.config && Array.isArray(gen.config.steps)) return gen.config.steps.length;
   return 0;
 }
 

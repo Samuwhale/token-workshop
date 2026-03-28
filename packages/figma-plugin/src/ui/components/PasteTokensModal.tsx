@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { flattenTokenGroup } from '@tokenmanager/core';
+import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
 import { adaptShortcut, getErrorMessage } from '../shared/utils';
 
 // ---------------------------------------------------------------------------
@@ -36,9 +36,9 @@ function inferType(value: string): { $type: string; $value: unknown } {
   return { $type: 'string', $value: trimmed };
 }
 
-function flattenDTCG(obj: Record<string, unknown>): ParsedToken[] {
+function flattenDTCG(obj: DTCGGroup): ParsedToken[] {
   const results: ParsedToken[] = [];
-  for (const [path, token] of flattenTokenGroup(obj as any)) {
+  for (const [path, token] of flattenTokenGroup(obj)) {
     results.push({
       path,
       $type: typeof token.$type === 'string' ? token.$type : 'string',

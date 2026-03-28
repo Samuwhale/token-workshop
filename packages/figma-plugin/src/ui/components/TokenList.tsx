@@ -3,7 +3,7 @@ import type { TokenNode } from '../hooks/useTokens';
 import { PropertyPicker } from './PropertyPicker';
 import { ConfirmModal } from './ConfirmModal';
 import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
-import type { BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
+import type { ApiErrorBody, BindableProperty, NodeCapabilities, SelectionNodeInfo, TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
 import { QuickStartDialog } from './QuickStartDialog';
@@ -1264,8 +1264,8 @@ export function TokenList({
         }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setCreateError((data as any).error || `Failed to create token (${res.status})`);
+        const data: ApiErrorBody = await res.json().catch(() => ({}));
+        setCreateError(data.error || `Failed to create token (${res.status})`);
         return;
       }
       const createdPath = trimmedPath;
@@ -1322,8 +1322,8 @@ export function TokenList({
         }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setCreateError((data as any).error || `Failed to create token (${res.status})`);
+        const data: ApiErrorBody = await res.json().catch(() => ({}));
+        setCreateError(data.error || `Failed to create token (${res.status})`);
         return;
       }
       const createdPath = trimmedPath;

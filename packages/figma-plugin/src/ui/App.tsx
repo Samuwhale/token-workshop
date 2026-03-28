@@ -40,7 +40,7 @@ import { resolveAllAliases } from '../shared/resolveAlias';
 import { stableStringify, adaptShortcut, getErrorMessage } from './shared/utils';
 import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
-import { flattenTokenGroup } from '@tokenmanager/core';
+import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
 
 /** Valid set name: alphanumeric, hyphens, underscores, with `/` as folder separator. */
 const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
@@ -750,9 +750,9 @@ export function App() {
   };
 
   // Flatten a nested token object to { [dotPath]: tokenEntry }
-  const flattenTokensObj = (obj: Record<string, any>): Record<string, any> => {
+  const flattenTokensObj = (obj: DTCGGroup): Record<string, any> => {
     const flat: Record<string, any> = {};
-    for (const [path, token] of flattenTokenGroup(obj as any)) {
+    for (const [path, token] of flattenTokenGroup(obj)) {
       flat[path] = token;
     }
     return flat;
@@ -863,7 +863,7 @@ export function App() {
       const data = await res.json();
       const tokenRoot = data.tokens || {};
       const preview = Object.entries(tokenRoot)
-        .filter(([k, v]) => !k.startsWith('$') && v && typeof v === 'object' && !('$value' in (v as any)))
+        .filter(([k, v]) => !k.startsWith('$') && v && typeof v === 'object' && !('$value' in (v as object)))
         .map(([key, val]) => {
           const flat = flattenTokensObj(val as Record<string, any>);
           const sanitized = key.replace(/[^a-zA-Z0-9_-]/g, '-');

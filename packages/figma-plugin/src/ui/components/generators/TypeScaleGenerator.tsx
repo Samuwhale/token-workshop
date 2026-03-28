@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { TypeScaleConfig, TypeScaleStep, GeneratedTokenResult } from '../../hooks/useGenerators';
-import { OverrideRow, formatValue } from './generatorShared';
+import { OverrideRow, formatValue, isDimensionLike } from './generatorShared';
 
 // ---------------------------------------------------------------------------
 // Default config
@@ -95,12 +95,8 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
     <div className="flex flex-col gap-1">
       {tokens.map((t) => {
         const valStr = formatValue(t.value);
-        const numVal = typeof t.value === 'object' && t.value !== null && 'value' in t.value
-          ? (t.value as any).value
-          : parseFloat(valStr) || 0;
-        const unit = typeof t.value === 'object' && t.value !== null && 'unit' in t.value
-          ? (t.value as any).unit
-          : '';
+        const numVal = isDimensionLike(t.value) ? t.value.value : parseFloat(valStr) || 0;
+        const unit = isDimensionLike(t.value) ? t.value.unit : '';
         const displayPx = Math.max(8, Math.min(32, numVal * (unit === 'rem' ? 16 : 1)));
         return (
           <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear}>
