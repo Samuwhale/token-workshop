@@ -335,3 +335,16 @@
   - The peer detection flow (`find-peers-for-property` → `peers-for-property-result`) is fully async via postMessage; storing the result as component state rather than firing a toast gives much better UX control
   - ResolverPanel.tsx had a pre-existing broken JSX (unclosed `<div>`) that prevented all builds — worth checking build before and after changes
 ---
+
+## 2026-03-29 - Node graph port wiring has no type validation
+- Added `isCompatiblePortType(from, to)` in `nodeGraphTypes.ts` — validates type compatibility with rules: exact match, `any` matches all, `dimension` ↔ `number` interop
+- Updated `finishWiring()` in `useNodeGraph.ts` to reject incompatible connections (type mismatch + same-direction ports)
+- Added `wiringSourcePortType` derived state to the hook for visual feedback
+- Updated `PortCircle` in `NodeRenderer.tsx` with three-state visual feedback during wiring: valid targets get enlarged filled ports with glow ring, invalid targets are dimmed with `not-allowed` cursor, neutral ports unchanged
+- Passed wiring context (`wiringSourceDirection`, `wiringSourcePortType`, `wiringSourceNodeId`) through `NodeGraphCanvas.tsx` → `NodeRenderer` → `PortCircle`
+- Files changed: `packages/figma-plugin/src/ui/components/nodeGraph/nodeGraphTypes.ts` ~L115-130, `packages/figma-plugin/src/ui/components/nodeGraph/useNodeGraph.ts` ~L187-245, `packages/figma-plugin/src/ui/components/nodeGraph/NodeRenderer.tsx` ~L88-170 & ~L220-240, `packages/figma-plugin/src/ui/components/nodeGraph/NodeGraphCanvas.tsx` ~L154-172 & ~L512-522
+- **Learnings for future iterations:**
+  - The wiring state only stores nodeId/portId/direction — port type must be derived by looking up the node/port from graph state
+  - Transform nodes have typed ports (e.g., lighten/darken use `color`, scale uses `number`) while generator/source/output nodes use `any` — type validation is most impactful for transform node connections
+  - SVG `r` attribute transition doesn't work via inline `style.transition` — the glow ring as a separate circle is a better visual cue than trying to animate radius
+---

@@ -111,6 +111,25 @@ export function nodeHeight(node: GraphNode): number {
 }
 
 // ---------------------------------------------------------------------------
+// Port type compatibility
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns true if an output of type `from` can connect to an input of type `to`.
+ * Rules:
+ *  - `any` matches everything
+ *  - exact match always works
+ *  - `dimension` and `number` are interchangeable (dimensions are numeric)
+ */
+export function isCompatiblePortType(from: PortType, to: PortType): boolean {
+  if (from === 'any' || to === 'any') return true;
+  if (from === to) return true;
+  // dimension ↔ number interop
+  if ((from === 'dimension' && to === 'number') || (from === 'number' && to === 'dimension')) return true;
+  return false;
+}
+
+// ---------------------------------------------------------------------------
 // Port position helpers
 // ---------------------------------------------------------------------------
 

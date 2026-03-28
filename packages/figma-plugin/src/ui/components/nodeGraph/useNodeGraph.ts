@@ -6,12 +6,14 @@ import type {
   GraphEdge,
   WiringState,
   TransformOp,
+  PortType,
 } from './nodeGraphTypes';
 import {
   generatorsToGraph,
   createTransformNode,
   portPosition,
   PORT_HIT_RADIUS,
+  isCompatiblePortType,
 } from './nodeGraphTypes';
 
 // ---------------------------------------------------------------------------
@@ -60,6 +62,8 @@ export interface UseNodeGraphResult {
   setSelectedEdgeId: (id: string | null) => void;
   // Wiring
   wiring: WiringState | null;
+  /** The PortType of the port that started the current wiring drag, or null */
+  wiringSourcePortType: PortType | null;
   startWiring: (nodeId: string, portId: string, direction: 'in' | 'out', x: number, y: number) => void;
   updateWiring: (x: number, y: number) => void;
   finishWiring: (targetNodeId: string, targetPortId: string) => void;
@@ -192,25 +196,57 @@ export function useNodeGraph(
         setWiring(null);
         return;
       }
+
+      // Look up target port to validate direction & type
+      const targetNode = graph.nodes.find(n => n.id === targetNodeId);
+      const targetPort = targetNode?.ports.find(p => p.id === targetPortId);
+      if (!targetNode || !targetPort) {
+        setWiring(null);
+        return;
+      }
+
+      // Can't wire same-direction ports (out→out or in→in)
+      if (targetPort.direction === wiring.fromDirection) {
+        setWiring(null);
+        return;
+      }
+
       // Determine from/to based on direction
       let fromNodeId: string, fromPortId: string, toNodeId: string, toPortId: string;
+      let outPortType: PortType, inPortType: PortType;
       if (wiring.fromDirection === 'out') {
         fromNodeId = wiring.fromNodeId;
         fromPortId = wiring.fromPortId;
         toNodeId = targetNodeId;
         toPortId = targetPortId;
+        // Get source port type
+        const srcNode = graph.nodes.find(n => n.id === wiring.fromNodeId);
+        const srcPort = srcNode?.ports.find(p => p.id === wiring.fromPortId);
+        outPortType = srcPort?.type ?? 'any';
+        inPortType = targetPort.type;
       } else {
         fromNodeId = targetNodeId;
         fromPortId = targetPortId;
         toNodeId = wiring.fromNodeId;
         toPortId = wiring.fromPortId;
+        outPortType = targetPort.type;
+        // Get source (in) port type
+        const srcNode = graph.nodes.find(n => n.id === wiring.fromNodeId);
+        const srcPort = srcNode?.ports.find(p => p.id === wiring.fromPortId);
+        inPortType = srcPort?.type ?? 'any';
+      }
+
+      // Type compatibility check
+      if (!isCompatiblePortType(outPortType, inPortType)) {
+        setWiring(null);
+        return;
       }
 
       const edgeId = `edge-${fromNodeId}-${fromPortId}-${toNodeId}-${toPortId}`;
       addEdge({ id: edgeId, fromNodeId, fromPortId, toNodeId, toPortId });
       setWiring(null);
     },
-    [wiring, addEdge],
+    [wiring, addEdge, graph.nodes],
   );
 
   const cancelWiring = useCallback(() => {
@@ -220,6 +256,14 @@ export function useNodeGraph(
   const persistPositions = useCallback(() => {
     savePositions(activeSet, graph.nodes);
   }, [activeSet, graph.nodes]);
+
+  // Derive the port type of the wiring source for visual feedback
+  const wiringSourcePortType: PortType | null = useMemo(() => {
+    if (!wiring) return null;
+    const node = graph.nodes.find(n => n.id === wiring.fromNodeId);
+    const port = node?.ports.find(p => p.id === wiring.fromPortId);
+    return port?.type ?? null;
+  }, [wiring, graph.nodes]);
 
   return {
     graph,
@@ -234,6 +278,7 @@ export function useNodeGraph(
     selectedEdgeId,
     setSelectedEdgeId,
     wiring,
+    wiringSourcePortType,
     startWiring,
     updateWiring,
     finishWiring,

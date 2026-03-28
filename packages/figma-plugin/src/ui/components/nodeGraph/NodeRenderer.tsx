@@ -1,5 +1,5 @@
-import type { GraphNode, Port, PortDirection } from './nodeGraphTypes';
-import { NODE_HEADER_H, PORT_ROW_H, PORT_RADIUS } from './nodeGraphTypes';
+import type { GraphNode, Port, PortDirection, PortType } from './nodeGraphTypes';
+import { NODE_HEADER_H, PORT_ROW_H, PORT_RADIUS, isCompatiblePortType } from './nodeGraphTypes';
 
 // ---------------------------------------------------------------------------
 // Color scheme per node kind
@@ -93,20 +93,65 @@ interface PortCircleProps {
   onPointerDown: (portId: string, direction: PortDirection, cx: number, cy: number) => void;
   onPointerUp: (portId: string, direction: PortDirection) => void;
   isWiring: boolean;
+  /** During wiring: the direction of the source port, so we know which ports are valid targets */
+  wiringSourceDirection: PortDirection | null;
+  /** During wiring: the type of the source port, for compatibility check */
+  wiringSourcePortType: PortType | null;
+  /** During wiring: the node ID that started wiring (to exclude self-connection) */
+  wiringSourceNodeId: string | null;
+  /** This port's node ID */
+  nodeId: string;
 }
 
-function PortCircle({ port, nodeX, nodeWidth, portIndex, onPointerDown, onPointerUp, isWiring }: PortCircleProps) {
+function PortCircle({
+  port, nodeX, nodeWidth, portIndex, onPointerDown, onPointerUp,
+  isWiring, wiringSourceDirection, wiringSourcePortType, wiringSourceNodeId, nodeId,
+}: PortCircleProps) {
   const cx = port.direction === 'in' ? 0 : nodeWidth;
   const cy = NODE_HEADER_H + portIndex * PORT_ROW_H + PORT_ROW_H / 2;
   const color = PORT_TYPE_COLORS[port.type] || PORT_TYPE_COLORS.any;
 
+  // Determine compatibility state during wiring
+  let compatState: 'none' | 'valid' | 'invalid' = 'none';
+  if (isWiring && wiringSourceDirection && wiringSourcePortType && wiringSourceNodeId) {
+    const isSameNode = wiringSourceNodeId === nodeId;
+    const isOppositeDirection = port.direction !== wiringSourceDirection;
+    if (isSameNode) {
+      compatState = 'invalid';
+    } else if (!isOppositeDirection) {
+      // Same direction — not a valid target
+      compatState = 'invalid';
+    } else {
+      // Check type compatibility — determine which is out and which is in
+      const outType = wiringSourceDirection === 'out' ? wiringSourcePortType : port.type;
+      const inType = wiringSourceDirection === 'out' ? port.type : wiringSourcePortType;
+      compatState = isCompatiblePortType(outType, inType) ? 'valid' : 'invalid';
+    }
+  }
+
+  // Visual styling based on compat state
+  let fillColor: string;
+  let strokeColor: string;
+  let portRadius = PORT_RADIUS;
+  let opacity = 1;
+  if (compatState === 'valid') {
+    fillColor = color;
+    strokeColor = color;
+    portRadius = PORT_RADIUS + 1.5;
+  } else if (compatState === 'invalid') {
+    fillColor = 'var(--color-figma-bg)';
+    strokeColor = color;
+    opacity = 0.25;
+  } else {
+    fillColor = isWiring ? color : 'var(--color-figma-bg)';
+    strokeColor = color;
+  }
+
   return (
     <g
-      style={{ cursor: 'crosshair' }}
+      style={{ cursor: compatState === 'invalid' ? 'not-allowed' : 'crosshair', opacity }}
       onPointerDown={(e) => {
         e.stopPropagation();
-        const rect = (e.target as SVGElement).closest('svg')!.getBoundingClientRect();
-        // We pass the absolute position of the port center for wiring
         onPointerDown(port.id, port.direction, nodeX + cx, cy);
       }}
       onPointerUp={(e) => {
@@ -116,14 +161,28 @@ function PortCircle({ port, nodeX, nodeWidth, portIndex, onPointerDown, onPointe
     >
       {/* Larger invisible hit target */}
       <circle cx={cx} cy={cy} r={12} fill="transparent" />
+      {/* Glow ring for valid targets */}
+      {compatState === 'valid' && (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={PORT_RADIUS + 4}
+          fill="none"
+          stroke={color}
+          strokeWidth={1}
+          opacity={0.4}
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
       {/* Visible port circle */}
       <circle
         cx={cx}
         cy={cy}
-        r={PORT_RADIUS}
-        fill={isWiring ? color : 'var(--color-figma-bg)'}
-        stroke={color}
+        r={portRadius}
+        fill={fillColor}
+        stroke={strokeColor}
         strokeWidth={1.5}
+        style={{ transition: 'r 0.1s, fill 0.1s, opacity 0.1s' }}
       />
       {/* Port label */}
       <text
@@ -132,7 +191,7 @@ function PortCircle({ port, nodeX, nodeWidth, portIndex, onPointerDown, onPointe
         textAnchor={port.direction === 'in' ? 'start' : 'end'}
         fontSize="9"
         fill="var(--color-figma-text-secondary)"
-        style={{ userSelect: 'none', pointerEvents: 'none' }}
+        style={{ userSelect: 'none', pointerEvents: 'none', opacity }}
       >
         {port.label}
       </text>
@@ -226,6 +285,9 @@ export interface NodeRendererProps {
   onParamChange: (nodeId: string, key: string, value: number | string) => void;
   onDelete: (id: string) => void;
   isWiring: boolean;
+  wiringSourceDirection: PortDirection | null;
+  wiringSourcePortType: PortType | null;
+  wiringSourceNodeId: string | null;
 }
 
 export function NodeRenderer({
@@ -237,6 +299,9 @@ export function NodeRenderer({
   onParamChange,
   onDelete,
   isWiring,
+  wiringSourceDirection,
+  wiringSourcePortType,
+  wiringSourceNodeId,
 }: NodeRendererProps) {
   const colors = KIND_COLORS[node.kind] || KIND_COLORS.source;
   const h = node.height || NODE_HEADER_H + node.ports.length * PORT_ROW_H + 8;
@@ -372,6 +437,10 @@ export function NodeRenderer({
             onPortPointerUp(node.id, portId, direction)
           }
           isWiring={isWiring}
+          wiringSourceDirection={wiringSourceDirection}
+          wiringSourcePortType={wiringSourcePortType}
+          wiringSourceNodeId={wiringSourceNodeId}
+          nodeId={node.id}
         />
       ))}
 

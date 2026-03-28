@@ -1,7 +1,7 @@
 import { useRef, useCallback, useState, useEffect } from 'react';
 import type { TokenGenerator } from '../../hooks/useGenerators';
 import type { TransformOp, PortDirection } from './nodeGraphTypes';
-import { portPosition, TRANSFORM_OPS, nodeHeight } from './nodeGraphTypes';
+import { portPosition, TRANSFORM_OPS, nodeHeight, isCompatiblePortType } from './nodeGraphTypes';
 import { useNodeGraph } from './useNodeGraph';
 import { NodeRenderer } from './NodeRenderer';
 import { edgePath } from '../../shared/graphUtils';
@@ -164,6 +164,7 @@ export function NodeGraphCanvas({
     selectedEdgeId,
     setSelectedEdgeId,
     wiring,
+    wiringSourcePortType,
     startWiring,
     updateWiring,
     finishWiring,
@@ -518,6 +519,9 @@ export function NodeGraphCanvas({
                 onParamChange={updateTransformParam}
                 onDelete={removeNode}
                 isWiring={!!wiring}
+                wiringSourceDirection={wiring?.fromDirection ?? null}
+                wiringSourcePortType={wiringSourcePortType}
+                wiringSourceNodeId={wiring?.fromNodeId ?? null}
               />
             </g>
           ))}
