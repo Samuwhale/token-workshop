@@ -230,7 +230,16 @@ export function useGeneratorDialog({
     const controller = new AbortController();
     fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: controller.signal })
       .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data) setExistingSetTokens(flattenTokenGroup(data.tokens || {})); })
+      .then(data => {
+        if (data) {
+          const map = flattenTokenGroup(data.tokens || {});
+          const obj: Record<string, { $value: unknown; $type: string }> = {};
+          for (const [path, token] of map) {
+            obj[path] = { $value: token.$value, $type: token.$type || 'unknown' };
+          }
+          setExistingSetTokens(obj);
+        }
+      })
       .catch(() => {});
     return () => controller.abort();
   }, [serverUrl, targetSet]);

@@ -302,3 +302,27 @@ Already up to date.
 
 --- Merging: Generator silently returns empty array on invalid hex ---
 Already up to date.
+[main 0b43550] chore(backlog): done – Generator silently returns empty array on invalid hex
+ 6 files changed, 109 insertions(+), 6 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+--- Inbox has new items — triaging into backlog.md ---
+--- Inbox drained ---
+
+## 2026-03-28 - Generator silently returns empty array on invalid hex
+- Changed `runColorRampGenerator`, `runAccessibleColorPairGenerator`, and `runDarkModeInversionGenerator` to throw descriptive errors instead of returning `[]` when hex parsing fails
+- The caller in `generator-service.ts` already validates that the source is a string, but not that it's a valid hex — so invalid hex strings like "not-a-color" passed the type check but silently produced zero tokens
+- Now callers get a clear `Error: Invalid hex color for <generatorType> generator: "<value>"` that distinguishes parse failure from legitimate zero-token output
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  46 items remaining
+===============================================================
+  Claimed: Generator overwrite detection is broken — `useGeneratorDialog` calls `flattenTokenGroup()` which returns a `Map`, but the result is used with bracket notation (`existingSetTokens[path]`) which always returns `undefined` on a Map; `overwrittenEntries` is always empty
+  Worktree: /tmp/backlog-63973-gnUtab
+
+  ✓ done: Generator overwrite detection is broken
+    Converted flattenTokenGroup() Map result to plain object before storing in state, so bracket-notation access works and overwrittenEntries is correctly populated.
+    8 turns · 38s · $0.27
+
+--- Merging: Generator overwrite detection is broken ---
+Already up to date.

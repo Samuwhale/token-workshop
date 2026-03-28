@@ -392,3 +392,10 @@
   - The server-side caller (`computeResultsWithValue`) already wraps generator calls and propagates errors, so throwing is the correct pattern here — no additional error handling needed upstream
   - `wcagLuminance` returns `null` on invalid hex just like `hexToLab` — same silent-failure pattern
 ---
+
+## 2026-03-28 - Generator overwrite detection is broken
+- Fixed `useGeneratorDialog` line 233: `flattenTokenGroup()` returns a `Map`, but the result was stored directly into state typed as `Record<string, ...>` and accessed with bracket notation (`existingSetTokens[path]`), which always returns `undefined` on a Map. Converted the Map to a plain object before setting state.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L233
+- **Learnings for future iterations:**
+  - `flattenTokenGroup` from `@tokenmanager/core` returns `Map<string, DTCGToken>`, not a plain object. Always convert to `Record` before using bracket access. Other call sites (useSetMergeSplit, PublishPanel, etc.) correctly iterate with `for...of`.
+---
