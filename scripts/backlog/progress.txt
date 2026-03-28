@@ -585,3 +585,13 @@
   - Workflow diagrams (3-step with chevron arrows between circles) are reusable across panels — consider extracting a shared WorkflowSteps component if more panels need them
   - The "what you'll see" pattern (color legend, feature grid) is effective for panels that produce visual output
 ---
+
+## 2026-03-28 - Search qualifier discoverability: autocomplete, placeholder hints, filter dropdown
+- Extended qualifier autocomplete with value completion: typing `type:` now shows all token types from the current set; typing `has:` shows all recognized has: values (alias, direct, duplicate, description, extension). Partial prefixes filter the list (e.g. `type:co` → `type:color`).
+- Added discovery mode: focusing an empty search field now shows all available qualifiers in the autocomplete dropdown with a "Search qualifiers" header, so new users can discover the qualifier syntax without pressing `?`.
+- Moved `qualifierHints` useMemo to after `availableTypes` declaration to fix a potential TDZ crash (per codebase patterns).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L349-395 (qualifierHints memo moved and extended), ~L2540-2565 (dropdown max-height + discovery header)
+- **Learnings for future iterations:**
+  - Value completion for prefix-style qualifiers (`type:`, `has:`) follows the pattern: strip the prefix, match remaining text against domain values, return `{ qualifier: 'type:color', desc: '...' }` objects — the existing hint insertion logic (`words[words.length-1] = hint.qualifier`) handles them identically to qualifier-name hints.
+  - Showing all options when the cursor is immediately after a `:` (empty suffix) is the expected UX for qualifier value dropdowns.
+---

@@ -60,3 +60,16 @@ Already up to date.
 
 --- Merging: Consistent empty states across sub-panels ---
 Already up to date.
+[main ac95448] chore(backlog): done – Consistent empty states across sub-panels
+ 10 files changed, 279 insertions(+), 50 deletions(-)
+
+## 2026-03-28 - Consistent empty states across sub-panels
+- Upgraded empty states in 5 panels (ThemeManager, ResolverPanel, HeatmapPanel, VersionHistoryPanel, GraphPanel) to match the quality of the main EmptyState component
+- All panels now follow a consistent pattern: styled icon container (w-10 h-10 rounded-xl with border), bold heading (12px font-semibold), guidance-oriented description (11px, max-w-240px), and contextual help sections (workflow diagrams, "how it works" steps, or feature previews)
+- ThemeManager: added "How themes work" 3-step workflow diagram (Add layers → Map sets → Switch) alongside existing quick-start suggestions
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  68 items remaining
+===============================================================
+  Claimed: Bulk type-change in batch editor: allow changing the type of multiple tokens at once (e.g. converting `string` tokens to `dimension` during a migration)
+  Worktree: /tmp/backlog-9651-1J4AsU

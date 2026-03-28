@@ -293,15 +293,6 @@ export function TokenList({
   const qualifierHintsRef = useRef<HTMLDivElement>(null);
   const qualifierHelpRef = useRef<HTMLDivElement>(null);
 
-  // Compute filtered qualifier hints based on what the user is currently typing
-  const qualifierHints = useMemo(() => {
-    // Find the word the cursor is at the end of
-    const lastWord = searchQuery.split(/\s+/).pop() || '';
-    if (!lastWord || lastWord.includes(':')) return [];
-    const lw = lastWord.toLowerCase();
-    return QUERY_QUALIFIERS.filter(q => q.qualifier.toLowerCase().startsWith(lw));
-  }, [searchQuery]);
-
   const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || showPinnedOnly;
 
   // Count of active non-search filters (for compact filter indicator)
@@ -366,6 +357,45 @@ export function TokenList({
     collect(tokens);
     return [...types].sort();
   }, [tokens]);
+
+  // Compute filtered qualifier hints based on what the user is currently typing.
+  // Must be declared AFTER availableTypes to avoid TDZ crash.
+  const qualifierHints = useMemo(() => {
+    const lastWord = searchQuery.split(/\s+/).pop() || '';
+
+    // Value completion after type: — show actual token types from the current set
+    if (lastWord.startsWith('type:')) {
+      const suffix = lastWord.slice(5).toLowerCase();
+      const matches = suffix
+        ? availableTypes.filter(t => t.toLowerCase().startsWith(suffix))
+        : availableTypes;
+      return matches.map(t => ({ qualifier: `type:${t}`, desc: `filter to ${t} tokens`, example: '' }));
+    }
+
+    // Value completion after has: — show recognized has: values
+    if (lastWord.startsWith('has:')) {
+      const suffix = lastWord.slice(4).toLowerCase();
+      const hasOptions = [
+        { v: 'alias', desc: 'Only reference tokens' },
+        { v: 'direct', desc: 'Only direct-value tokens' },
+        { v: 'duplicate', desc: 'Only tokens with duplicate values' },
+        { v: 'description', desc: 'Only tokens with a description' },
+        { v: 'extension', desc: 'Only tokens with extensions' },
+      ];
+      const matches = suffix ? hasOptions.filter(({ v }) => v.startsWith(suffix)) : hasOptions;
+      return matches.map(({ v, desc }) => ({ qualifier: `has:${v}`, desc, example: '' }));
+    }
+
+    // On focus with empty query — show all qualifiers as discovery hints
+    if (!lastWord) return QUERY_QUALIFIERS;
+
+    // Partial word after unknown qualifier — hide hints
+    if (lastWord.includes(':')) return [];
+
+    // Prefix match on qualifier names
+    const lw = lastWord.toLowerCase();
+    return QUERY_QUALIFIERS.filter(q => q.qualifier.toLowerCase().startsWith(lw));
+  }, [searchQuery, availableTypes]);
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
@@ -2509,7 +2539,12 @@ export function TokenList({
                   />
                   {/* Qualifier autocomplete hints */}
                   {showQualifierHints && qualifierHints.length > 0 && (
-                    <div ref={qualifierHintsRef} className="absolute left-0 top-full mt-0.5 w-full z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden">
+                    <div ref={qualifierHintsRef} className="absolute left-0 top-full mt-0.5 w-full z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden max-h-48 overflow-y-auto">
+                      {!searchQuery.trim() && (
+                        <div className="px-2 py-1 border-b border-[var(--color-figma-border)] text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">
+                          Search qualifiers
+                        </div>
+                      )}
                       {qualifierHints.map((hint, i) => (
                         <button
                           key={hint.qualifier}
@@ -2517,7 +2552,7 @@ export function TokenList({
                             e.preventDefault();
                             const words = searchQuery.split(/\s+/);
                             words[words.length - 1] = hint.qualifier;
-                            setSearchQuery(words.join(' '));
+                            setSearchQuery(words.join(' ').trim());
                             setHintIndex(0);
                             searchRef.current?.focus();
                           }}

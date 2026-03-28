@@ -60,3 +60,10 @@ Already up to date.
 ===============================================================
   Claimed: Search qualifier discoverability: add autocomplete, placeholder hints, or a filter dropdown for advanced qualifiers (`type:color`, `alias:{path}`, `>has:ref`) in the token search input
   Worktree: /tmp/backlog-10461-cyv5fC
+
+  ✓ done: Search qualifier discoverability: add autocomplete, placeholder hints, or a filter dropdown for advanced qualifiers (`type:color`, `alias:{path}`, `>has:ref`) in the token search input
+    Extended autocomplete with value completion for type: (shows real token types) and has: (shows recognized values); added discovery mode showing all qualifiers on empty-field focus
+    25 turns · 252s · $0.86
+
+--- Merging: Search qualifier discoverability: add autocomplete, placeholder hints, or a filter dropdown for advanced qualifiers (`type:color`, `alias:{path}`, `>has:ref`) in the token search input ---
+Already up to date.
