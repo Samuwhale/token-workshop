@@ -204,3 +204,10 @@ Already up to date.
 ===============================================================
   Claimed: SSE connection (useServerEvents) never reconnects after server restart — if the local server is restarted, generator error events stop arriving until the user manually refreshes the plugin
   Worktree: /tmp/backlog-10278-9K9BTN
+
+  ✓ done: SSE connection (useServerEvents) never reconnects after server restart
+    Added manual reconnection with exponential backoff (1s–30s) when EventSource enters CLOSED state; used callbackRef to stabilize effect deps
+    9 turns · 52s · $0.24
+
+--- Merging: SSE connection (useServerEvents) never reconnects after server restart ---
+Already up to date.

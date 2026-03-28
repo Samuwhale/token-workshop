@@ -297,3 +297,21 @@ Already up to date.
 
 --- Merging: TokenList.tsx is 4695 lines — largest file in the codebase; split into sub-components ---
 Already up to date.
+[main ab4fe5e] chore(backlog): done – TokenList.tsx is 4695 lines — largest file in the codebase; split into sub-components
+ 11 files changed, 2367 insertions(+), 2132 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/TokenListModals.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/TokenTreeNode.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/tokenListHelpers.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/tokenListTypes.ts
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - TokenList.tsx is 4695 lines — largest file in the codebase; split into sub-components (row renderers, drag-drop logic, inline editing, context menu, filter/sort controls)
+- Split TokenList.tsx (4695 lines) into 5 files: TokenList.tsx (2660 lines, orchestrator with state/handlers/layout), TokenTreeNode.tsx (1341 lines, tree row renderer with group/leaf rendering, inline editing, drag-drop, context menus), TokenListModals.tsx (658 lines, all 10 modal dialogs), tokenListTypes.ts (144 lines, shared interfaces/constants/types), tokenListHelpers.tsx (106 lines, pure utility functions). TokenList.tsx reduced by 43%.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` (modified — removed extracted code, added imports), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` (new), `packages/figma-plugin/src/ui/components/TokenListModals.tsx` (new), `packages/figma-plugin/src/ui/components/tokenListTypes.ts` (new), `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` (new)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  59 items remaining
+===============================================================
+  Claimed: No error boundary wrapping panels — a runtime error in any single panel (e.g. bad token data in GraphPanel) crashes the entire plugin instead of isolating the failure
+  Worktree: /tmp/backlog-84992-fS9kIB

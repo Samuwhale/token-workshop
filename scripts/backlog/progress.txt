@@ -336,3 +336,13 @@
   - The modals extraction required a flat props interface with ~60 props. A React context would reduce prop drilling but adds complexity — flat props are fine for a single parent-child relationship.
   - `description` in `getDeleteModalProps` return type is optional (`description?`), must match in the extracted component's props interface.
 ---
+
+## 2026-03-28 - SSE connection (useServerEvents) never reconnects after server restart
+- Added manual reconnection with exponential backoff (1s–30s) when EventSource enters CLOSED state
+- Used a `callbackRef` pattern to avoid tearing down the connection when the `onGeneratorError` callback identity changes, removing it from the effect dependency array
+- On `onerror`, if `readyState === CLOSED` (browser gave up auto-reconnect), manually schedule a new `EventSource` after a backoff delay; reset delay on successful `onopen`
+- Files changed: `packages/figma-plugin/src/ui/hooks/useServerEvents.ts` ~L1-85
+- **Learnings for future iterations:**
+  - `EventSource` has built-in auto-reconnect, but only while `readyState` stays `CONNECTING`. Once it transitions to `CLOSED` (e.g. server fully down, network error), the browser stops retrying and you must create a new instance manually
+  - Store mutable callback refs (`useRef`) to avoid putting callbacks in SSE effect deps — recreating EventSource on every render cycle is wasteful and causes missed events
+---
