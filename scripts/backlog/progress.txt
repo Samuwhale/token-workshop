@@ -540,3 +540,13 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: TokenStore has zero concurrency protection — only themes.ts uses the withLock pattern, all other mutating routes (tokens, sets, generators, resolvers, snapshots, sync, operations) can interleave read-modify-write operations
 ---
+
+## 2026-03-28 - useSetDelete.handleDeleteSet swallows server errors silently
+- Added `setErrorToast` param to `UseSetDeleteParams` and the hook destructuring
+- Imported `ApiError` from `apiFetch`; `catch` block now distinguishes: `ApiError` → error toast + close dialog; `TypeError`/`Failed to fetch` → `markDisconnected` + close dialog; `AbortError` → close dialog silently; other → error toast + close dialog
+- Passed `setErrorToast` in App.tsx where `useSetDelete` is called (~L504)
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetDelete.ts` ~L1-65, `packages/figma-plugin/src/ui/App.tsx` ~L504
+- **Learnings for future iterations:**
+  - Always import and check `ApiError` separately from `TypeError` — they cover distinct failure modes (server rejection vs network failure)
+  - When a server rejects an operation (e.g., 409 blocked by generator), close the dialog and show an error toast — keeping the dialog open offers no recovery path
+---

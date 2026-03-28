@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 
 interface UseSetDeleteParams {
   serverUrl: string;
@@ -11,6 +11,7 @@ interface UseSetDeleteParams {
   setActiveSet: (set: string) => void;
   refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
+  setErrorToast: (msg: string) => void;
   markDisconnected: () => void;
   setTabMenuOpen: (v: string | null) => void;
 }
@@ -18,7 +19,7 @@ interface UseSetDeleteParams {
 export function useSetDelete({
   serverUrl, connected, getDisconnectSignal,
   sets, setSets, activeSet, setActiveSet,
-  refreshTokens, setSuccessToast, markDisconnected, setTabMenuOpen,
+  refreshTokens, setSuccessToast, setErrorToast, markDisconnected, setTabMenuOpen,
 }: UseSetDeleteParams) {
   const [deletingSet, setDeletingSet] = useState<string | null>(null);
 
@@ -48,8 +49,18 @@ export function useSetDelete({
       refreshTokens();
       setSuccessToast(`Deleted set "${name}"`);
     } catch (err) {
-      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
-      setDeletingSet(null);
+      if (err instanceof ApiError) {
+        setErrorToast(`Delete failed: ${err.message}`);
+        setDeletingSet(null);
+      } else if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) {
+        markDisconnected();
+        setDeletingSet(null);
+      } else if (err instanceof Error && err.name === 'AbortError') {
+        setDeletingSet(null);
+      } else {
+        setErrorToast('Delete failed: unexpected error');
+        setDeletingSet(null);
+      }
     }
   };
 
