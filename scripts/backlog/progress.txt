@@ -323,3 +323,14 @@
   - The check uses the current `flatTokens` map (all sets merged) plus proposed overrides, so cross-set circular references are also caught.
   - DFS only starts from changed paths, not all tokens — keeps the check fast for single-token operations.
 ---
+
+## 2026-03-28 - No server-side token search endpoint
+- Added `GET /api/tokens/search` endpoint that searches the in-memory `flatTokens` index across all sets. Supports structured query params: `q` (free text), `type`, `has`, `value`, `path`, `name`, `limit`. Returns `{ results: [{ setName, path, name, $type, $value, $description }] }`.
+- Added `searchTokens()` method to `TokenStore` class that filters the already-indexed flat token map server-side, avoiding the need to transfer all tokens to the client.
+- Replaced client-side cross-set search `useMemo` (which required `perSetFlat` — all tokens from all sets loaded in memory) with a debounced 150ms fetch to the new endpoint. Results are streamed incrementally as the user types.
+- Files changed: `packages/server/src/services/token-store.ts` ~L689 (searchTokens method), `packages/server/src/routes/tokens.ts` ~L25 (search endpoint), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L613 (cross-set search effect)
+- **Learnings for future iterations:**
+  - The `/tokens/search` route must be registered BEFORE `/tokens/:set` — Fastify matches fixed routes before parameterized ones only if they appear first in registration order.
+  - `TokenStore.flatTokens` is rebuilt on every set change and is always up-to-date — it's safe to search directly without re-indexing.
+  - The `isReference` function from `@tokenmanager/core` is the server-side equivalent of `isAlias` from the client's `resolveAlias.ts`.
+---

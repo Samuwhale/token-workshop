@@ -508,3 +508,10 @@ Already up to date.
 ===============================================================
   Claimed: No server-side token search endpoint — the client must fetch all tokens across all sets and filter in-memory; with 1000+ tokens across 10+ sets, initial load is slow and search can't leverage indexes
   Worktree: /tmp/backlog-10278-M4bdhh
+
+  ✓ done: No server-side token search endpoint
+    Added GET /api/tokens/search endpoint with structured query support (q, type, has, value, path, name, limit) that searches the in-memory flatTokens index. Replaced client-side cross-set search useMemo with debounced 150ms server fetch, eliminating the need to load all tokens from all sets into client memory.
+    50 turns · 354s · $1.92
+
+--- Merging: No server-side token search endpoint ---
+Already up to date.

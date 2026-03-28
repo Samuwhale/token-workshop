@@ -626,46 +626,46 @@ export function TokenList({
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
 
-  // Cross-set search: search across all sets when toggled on
-  const crossSetResults = useMemo(() => {
-    if (!crossSetSearch || !searchQuery.trim() || !perSetFlat) return null;
-    const parsed = parseStructuredQuery(searchQuery);
-    const q = parsed.text.toLowerCase();
-    const results: Array<{ setName: string; path: string; entry: TokenMapEntry }> = [];
-    for (const sn of sets) {
-      const setMap = perSetFlat[sn];
-      if (!setMap) continue;
-      for (const [path, entry] of Object.entries(setMap)) {
-        const lp = path.toLowerCase();
-        const ln = path.split('.').pop()?.toLowerCase() || '';
-        // Free text
-        if (q && !lp.includes(q) && !ln.includes(q)) continue;
-        // type: qualifier
-        if (parsed.types.length > 0) {
-          const et = (entry.$type || '').toLowerCase();
-          if (!parsed.types.some(t => et === t || et.includes(t))) continue;
-        }
-        // has: qualifiers
-        let skip = false;
-        for (const h of parsed.has) {
-          if ((h === 'alias' || h === 'ref') && !isAlias(entry.$value)) { skip = true; break; }
-          if (h === 'direct' && isAlias(entry.$value)) { skip = true; break; }
-        }
-        if (skip) continue;
-        // value: qualifier
-        if (parsed.values.length > 0) {
-          const sv = stableStringify(entry.$value).toLowerCase();
-          if (!parsed.values.some(v => sv.includes(v))) continue;
-        }
-        // path: qualifier
-        if (parsed.paths.length > 0 && !parsed.paths.some(p => lp.startsWith(p) || lp.includes(p))) continue;
-        // name: qualifier
-        if (parsed.names.length > 0 && !parsed.names.some(n => ln.includes(n))) continue;
-        results.push({ setName: sn, path, entry });
-      }
+  // Cross-set search: debounced server-side search across all sets
+  const [crossSetResults, setCrossSetResults] = useState<Array<{ setName: string; path: string; entry: TokenMapEntry }> | null>(null);
+  const crossSetAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => {
+    if (!crossSetSearch || !searchQuery.trim()) {
+      setCrossSetResults(crossSetSearch ? [] : null);
+      return;
     }
-    return results;
-  }, [crossSetSearch, searchQuery, perSetFlat, sets]);
+    const parsed = parseStructuredQuery(searchQuery);
+    const params = new URLSearchParams();
+    if (parsed.text) params.set('q', parsed.text);
+    if (parsed.types.length) params.set('type', parsed.types.join(','));
+    if (parsed.has.length) params.set('has', parsed.has.join(','));
+    if (parsed.values.length) params.set('value', parsed.values.join(','));
+    if (parsed.paths.length) params.set('path', parsed.paths.join(','));
+    if (parsed.names.length) params.set('name', parsed.names.join(','));
+    params.set('limit', '200');
+
+    crossSetAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    crossSetAbortRef.current = ctrl;
+
+    const timer = setTimeout(() => {
+      fetch(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
+        .then(r => r.json())
+        .then((data: { results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> }) => {
+          setCrossSetResults(data.results.map(r => ({
+            setName: r.setName,
+            path: r.path,
+            entry: { $value: r.$value as any, $type: r.$type, $name: r.name },
+          })));
+        })
+        .catch(err => {
+          if (err instanceof Error && err.name === 'AbortError') return;
+          console.error('Cross-set search failed:', err);
+        });
+    }, 150);
+
+    return () => { clearTimeout(timer); ctrl.abort(); };
+  }, [crossSetSearch, searchQuery, serverUrl]);
 
   // Report filtered leaf count to parent so set tabs can show "X / Y"
   useEffect(() => {

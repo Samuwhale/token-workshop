@@ -8,8 +8,6 @@ import {
   type ResolvedToken,
   isFormula,
   isReference,
-  parseReference,
-  makeReferenceGlobalRegex,
   flattenTokenGroup,
   TokenResolver,
 } from '@tokenmanager/core';
@@ -818,6 +816,72 @@ export class TokenStore {
       result[tokenPath] = entry;
     }
     return result;
+  }
+
+  /** Search tokens across all sets using structured query parameters. */
+  searchTokens(opts: {
+    q?: string;
+    types?: string[];
+    has?: string[];
+    values?: string[];
+    paths?: string[];
+    names?: string[];
+    limit?: number;
+  }): Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> {
+    const { q, types, has, values, paths, names, limit = 200 } = opts;
+    const qLower = q?.toLowerCase();
+    const results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> = [];
+
+    for (const [tokenPath, entry] of this.flatTokens) {
+      if (results.length >= limit) break;
+      const lp = tokenPath.toLowerCase();
+      const leafName = tokenPath.includes('.') ? tokenPath.slice(tokenPath.lastIndexOf('.') + 1) : tokenPath;
+      const ln = leafName.toLowerCase();
+
+      // Free text: match against path or leaf name
+      if (qLower && !lp.includes(qLower) && !ln.includes(qLower)) continue;
+
+      // type: qualifier
+      if (types && types.length > 0) {
+        const et = (entry.token.$type || '').toLowerCase();
+        if (!types.some(t => et === t || et.includes(t))) continue;
+      }
+
+      // has: qualifiers
+      let skip = false;
+      if (has && has.length > 0) {
+        for (const h of has) {
+          if ((h === 'alias' || h === 'ref') && !isReference(entry.token.$value)) { skip = true; break; }
+          if (h === 'direct' && isReference(entry.token.$value)) { skip = true; break; }
+          if ((h === 'description' || h === 'desc') && !entry.token.$description) { skip = true; break; }
+          if ((h === 'extension' || h === 'ext') && (!entry.token.$extensions || Object.keys(entry.token.$extensions).length === 0)) { skip = true; break; }
+        }
+      }
+      if (skip) continue;
+
+      // value: qualifier
+      if (values && values.length > 0) {
+        const sv = JSON.stringify(entry.token.$value).toLowerCase();
+        if (!values.some(v => sv.includes(v))) continue;
+      }
+
+      // path: qualifier
+      if (paths && paths.length > 0 && !paths.some(p => lp.startsWith(p) || lp.includes(p))) continue;
+
+      // name: qualifier
+      if (names && names.length > 0 && !names.some(n => ln.includes(n))) continue;
+
+      results.push({
+        setName: entry.setName,
+        path: tokenPath,
+        name: leafName,
+        $type: entry.token.$type || 'unknown',
+        $value: entry.token.$value,
+        $description: entry.token.$description,
+      });
+    }
+
+    return results;
   }
 
   /** Get all tokens that reference the given token path, with their set names. */

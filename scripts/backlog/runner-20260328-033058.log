@@ -648,3 +648,17 @@ Already up to date.
 
 --- Merging: Circular alias references are not prevented at token creation time ---
 Already up to date.
+[main 4f4cced] chore(backlog): done – Circular alias references are not prevented at token creation time
+ 7 files changed, 175 insertions(+), 2 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Circular alias references are not prevented at token creation time
+- Added `checkCircularReferences()` method to `TokenStore` that performs DFS cycle detection before persisting token changes. It builds a dependency adjacency map from existing flatTokens with proposed overrides, then runs 3-color DFS from the changed paths to detect cycles.
+- Integrated the check into `createToken`, `updateToken`, `batchUpsertTokens`, and `replaceSetTokens` — all throw before saving if a cycle would be introduced.
+- Route handlers for POST/PATCH/PUT/batch now catch `Circular reference` errors and return HTTP 409 with the cycle path in the error message.
+
+===============================================================
+  Iteration 32 / 90  (claude)  —  0 items remaining
+===============================================================
+
+No remaining [ ] items in backlog.md. All done!
