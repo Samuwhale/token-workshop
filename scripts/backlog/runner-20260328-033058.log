@@ -621,3 +621,9 @@ Already up to date.
 
 --- Merging: PasteTokensModal has no progress bar during import ---
 Already up to date.
+[main 9e817a6] chore(backlog): done – PasteTokensModal has no progress bar during import
+ 6 files changed, 87 insertions(+), 17 deletions(-)
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 49)
