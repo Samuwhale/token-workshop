@@ -161,3 +161,16 @@ Already up to date.
 
 --- Merging: Set/file abstraction creates unnecessary cognitive load ---
 Already up to date.
+[main 557c371] chore(backlog): done – Set/file abstraction creates unnecessary cognitive load
+ 8 files changed, 205 insertions(+), 19 deletions(-)
+
+## 2026-03-28 - Set/file abstraction creates unnecessary cognitive load
+- Implemented "simple mode": when total tokens across all sets < 200, the set tab bar and sidebar are hidden and tokens are auto-organized by type (Colors, Typography, Spacing & Sizing, etc.)
+- Added `buildTreeByType()` utility that groups `allTokensFlat` into virtual `__type__<type>` group nodes with original path hierarchy preserved within each type group
+- Added `ADVANCED_MODE` localStorage key and `isSimpleMode` / `advancedModeOverride` state in App.tsx
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  83 items remaining
+===============================================================
+  Claimed: No inline editing in the token list — every edit requires opening the full TokenEditor panel; add dual-mode editing: single-click to preview, Enter/double-click for inline editing of simple values (color hex, dimension number, boolean toggle) directly in the tree row, Space or expand arrow to open the full editor for complex types (typography, shadow, composition)
+  Worktree: /tmp/backlog-63411-aUvWJ9

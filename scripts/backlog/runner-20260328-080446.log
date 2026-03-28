@@ -96,3 +96,10 @@ Already up to date.
 ===============================================================
   Claimed: No read-only token preview panel — selecting a token forces edit mode to inspect values, risking accidental changes; add a lightweight preview on single-click, reserve edit for double-click or explicit action
   Worktree: /tmp/backlog-63685-h2UXWP
+
+  ✓ done: No read-only token preview panel — selecting a token forces edit mode
+    Added TokenDetailPreview component with read-only token inspection; single-click opens preview panel, double-click opens full editor across tree/grid/table views
+    72 turns · 547s · $3.92
+
+--- Merging: No read-only token preview panel — selecting a token forces edit mode ---
+Already up to date.

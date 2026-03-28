@@ -28,8 +28,8 @@ import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
-  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {} },
-  actions: { onEdit, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError },
+  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, perSetFlat, collectionMap = {}, modeMap = {} },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
@@ -2590,8 +2590,9 @@ export function TokenList({
                         return (
                           <button
                             key={leaf.path}
-                            onClick={() => onEdit(leaf.path, leaf.name)}
-                            title={`${formatDisplayPath(leaf.path, leaf.name)}\n${colorStr}`}
+                            onClick={() => onPreview ? onPreview(leaf.path, leaf.name) : onEdit(leaf.path, leaf.name)}
+                            onDoubleClick={() => onEdit(leaf.path, leaf.name)}
+                            title={`${formatDisplayPath(leaf.path, leaf.name)}\n${colorStr}\nClick to preview · Double-click to edit`}
                             className="group flex flex-col items-center gap-0.5 rounded transition-colors hover:bg-[var(--color-figma-bg-hover)] p-0.5"
                           >
                             <div
@@ -2658,7 +2659,8 @@ export function TokenList({
                     <tr
                       key={leaf.path}
                       className="border-b border-[var(--color-figma-border)]/50 hover:bg-[var(--color-figma-bg-hover)] cursor-pointer"
-                      onClick={() => onEdit(leaf.path, leaf.name)}
+                      onClick={() => onPreview ? onPreview(leaf.path, leaf.name) : onEdit(leaf.path, leaf.name)}
+                      onDoubleClick={() => onEdit(leaf.path, leaf.name)}
                     >
                       <td className="px-2 py-1.5 font-mono text-[var(--color-figma-text)] truncate max-w-0" title={leaf.path}>{leaf.path}</td>
                       <td className="px-2 py-1.5">
@@ -2747,6 +2749,7 @@ export function TokenList({
                 depth={depth}
                 skipChildren
                 onEdit={onEdit}
+                onPreview={onPreview}
                 onDelete={requestDeleteToken}
                 onDeleteGroup={requestDeleteGroup}
                 setName={setName}

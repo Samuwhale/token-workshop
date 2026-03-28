@@ -40,6 +40,7 @@ export interface TokenListData {
 
 export interface TokenListActions {
   onEdit: (path: string, name?: string) => void;
+  onPreview?: (path: string, name?: string) => void;
   onCreateNew?: (initialPath?: string, initialType?: string, initialValue?: string) => void;
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
@@ -92,6 +93,7 @@ export interface TokenTreeNodeProps {
   node: TokenNode;
   depth: number;
   onEdit: (path: string, name?: string) => void;
+  onPreview?: (path: string, name?: string) => void;
   onDelete: (path: string) => void;
   onDeleteGroup: (path: string, name: string, tokenCount: number) => void;
   setName: string;

@@ -13,7 +13,7 @@ import { ColorPicker } from './ColorPicker';
 
 export function TokenTreeNode(props: TokenTreeNodeProps) {
   const {
-    node, depth, onEdit, onDelete, onDeleteGroup, setName,
+    node, depth, onEdit, onPreview, onDelete, onDeleteGroup, setName,
     selectionCapabilities, allTokensFlat, selectMode, isSelected,
     onToggleSelect, expandedPaths, onToggleExpand, duplicateCounts,
     highlightedToken, onNavigateToAlias, onCreateSibling, onCreateGroup,
@@ -651,6 +651,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             node={child}
             depth={depth + 1}
             onEdit={onEdit}
+            onPreview={onPreview}
             onDelete={onDelete}
             onDeleteGroup={onDeleteGroup}
             setName={setName}
@@ -854,10 +855,10 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         </button>
       )}
 
-      {/* Name and info — single-click applies (non-select mode), double-click edits */}
+      {/* Name and info — single-click previews (non-select mode), double-click edits */}
       {/* ctrl/cmd-click enters select mode; shift-click range-selects */}
       <div
-        title={!selectMode ? 'Double-click to edit' : undefined}
+        title={!selectMode ? 'Click to preview · Double-click to edit' : undefined}
         className={`flex-1 min-w-0${!selectMode ? ' cursor-pointer' : ''}`}
         onClick={(e) => {
           if (selectMode || e.ctrlKey || e.metaKey) {
@@ -866,7 +867,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             return;
           }
           e.stopPropagation();
-          handleApplyToSelection(e);
+          if (onPreview) { onPreview(node.path, node.name); } else { handleApplyToSelection(e); }
         }}
         onDoubleClick={!selectMode ? (e) => { e.stopPropagation(); onEdit(node.path, node.name); } : undefined}
         style={selectMode ? { cursor: 'pointer' } : undefined}
