@@ -30,8 +30,7 @@ import { ConsistencyPanel } from './components/ConsistencyPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
 import { TokenFlowPanel } from './components/TokenFlowPanel';
 import { ExportPanel } from './components/ExportPanel';
-import { VersionHistoryPanel } from './components/VersionHistoryPanel';
-import { SnapshotPanel } from './components/SnapshotPanel';
+import { HistoryPanel } from './components/HistoryPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useServerEvents } from './hooks/useServerEvents';
 import { useTokens, fetchAllTokensFlat } from './hooks/useTokens';
@@ -169,7 +168,7 @@ type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'flow';
 type ApplySubTab = 'inspect' | 'heatmap' | 'consistency';
-type ShipSubTab = 'publish' | 'export' | 'validation' | 'history' | 'snapshots';
+type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 
 type FolderTreeNode = {
@@ -224,7 +223,6 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'export', label: 'Export' },
     { id: 'validation', label: 'Validation' },
     { id: 'history', label: 'History' },
-    { id: 'snapshots', label: 'Snapshots' },
   ]},
 ];
 
@@ -2091,17 +2089,10 @@ export function App() {
               </ErrorBoundary>
           )}
 
-          {/* History sub-tab (Ship > History) */}
+          {/* History sub-tab (Ship > History) — git commits + snapshots */}
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'history' && (
               <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
-              <VersionHistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} />
-              </ErrorBoundary>
-          )}
-
-          {/* Snapshots sub-tab (Ship > Snapshots) */}
-          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'snapshots' && (
-              <ErrorBoundary panelName="Snapshots" onReset={() => navigateTo('ship', 'publish')}>
-              <SnapshotPanel serverUrl={serverUrl} connected={connected} />
+              <HistoryPanel serverUrl={serverUrl} connected={connected} onPushUndo={pushUndo} onRefreshTokens={refreshAll} />
               </ErrorBoundary>
           )}
 

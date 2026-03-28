@@ -251,3 +251,18 @@
   - The product-pass that created this item may not have checked the rename flow thoroughly — the infrastructure was already in place
   - `crossSetDependents` is a Map<tokenPath, Array<{path, setName}>> rebuilt on every flat token rebuild, providing efficient reverse-lookup for alias references
 ---
+
+## 2026-03-29 - Merge VersionHistoryPanel and SnapshotPanel into unified History panel
+- Created `HistoryPanel.tsx` merging both panels into one with a "Git Commits" / "Snapshots" internal tab bar
+- Shared helpers: `formatRelativeTime`, `statusColor`, `statusLabel`, `summarizeChanges`, `formatTokenValue`, `ColorSwatch`, `Section`, `ChangeSummaryBadges`, `StatusBadge`, `ChangeRow`
+- Snapshot diff view upgraded to use `ValueDiff` component (same as git commits) and grouped-by-set `Section` layout, replacing the old inline `DiffRow`
+- Converted snapshot `TokenDiff` (with `$value`/`$type` nesting) to unified `TokenChange` format via `snapshotDiffToChange`
+- Removed 'snapshots' sub-tab from Ship tab — now a single 'history' sub-tab hosts both sources
+- Fixed pre-existing JSX parse error in `ResolverPanel.tsx:215` (`)}` should have been `</div>`)
+- Deleted `VersionHistoryPanel.tsx` and `SnapshotPanel.tsx`
+- Files changed: `packages/figma-plugin/src/ui/components/HistoryPanel.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L32,169,223-225,2228-2239, `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L215
+- **Learnings for future iterations:**
+  - SnapshotPanel's `TokenDiff` wraps values in `{ $value, $type }` objects while git commit `TokenChange` has flat `before`/`after` — need a converter to share a single diff viewer
+  - ResolverPanel.tsx had a pre-existing build-breaking JSX error (`)}` instead of `</div>`) that blocked Gate 2 for all agents — fixed as collateral
+  - When merging panels into one with internal tabs, use `flex-1` instead of `h-full` for sub-source containers since they're no longer the root
+---
