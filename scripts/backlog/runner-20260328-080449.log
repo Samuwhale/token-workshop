@@ -242,3 +242,16 @@ Already up to date.
 
 --- Merging: ThemeManager calls full fetchDimensions() after every mutation ---
 Already up to date.
+[main fe4e93b] chore(backlog): done – ThemeManager calls full fetchDimensions() after every mutation
+ 6 files changed, 77 insertions(+), 12 deletions(-)
+
+## 2026-03-28 - ThemeManager calls full fetchDimensions() after every mutation
+- Added `debouncedFetchDimensions` (600ms debounce) to coalesce rapid mutations into a single re-fetch for coverage analysis
+- Replaced all 9 success-path `fetchDimensions()` calls with `debouncedFetchDimensions()` — immediate fetch only remains for initial load and error rollback (handleMoveOption)
+- Added optimistic local state updates to 5 handlers that previously relied solely on fetchDimensions: createDimension, renameDimension, renameOption, addOption, duplicateOption
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  65 items remaining
+===============================================================
+  Claimed: Theme switcher is buried and hard to discover — dimension buttons only appear if themes exist, and ThemeManager is behind overflow menu; show an empty-state prompt on the Tokens tab: "Set up themes to manage light/dark mode, brands, and more" linking directly to ThemeManager
+  Worktree: /tmp/backlog-63973-XMNHRY

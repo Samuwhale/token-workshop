@@ -202,3 +202,10 @@ Already up to date.
 ===============================================================
   Claimed: "Off / Base / On" theme set states are confusing — the three-state toggle (disabled/source/enabled) is cryptic; rename to "Not included" / "Foundation" / "Override", add inline help tooltip, and show a visual stack diagram explaining the layering model
   Worktree: /tmp/backlog-63685-GN3eM3
+
+  ✓ done: "Off / Base / On" theme set states are confusing
+    Renamed labels to "Not included" / "Foundation" / "Override", updated descriptions, updated inline legend bar, and added "How it works" help button with ASCII stack diagram tooltip explaining the layering model.
+    19 turns · 177s · $0.61
+
+--- Merging: "Off / Base / On" theme set states are confusing ---
+Already up to date.

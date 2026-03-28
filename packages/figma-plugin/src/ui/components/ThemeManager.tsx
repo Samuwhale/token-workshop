@@ -5,15 +5,15 @@ import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
 
 const STATE_LABELS: Record<string, string> = {
-  disabled: 'Off',
-  source: 'Base',
-  enabled: 'On',
+  disabled: 'Not included',
+  source: 'Foundation',
+  enabled: 'Override',
 };
 
 const STATE_DESCRIPTIONS: Record<string, string> = {
-  disabled: 'Not used in this option',
-  source: 'Foundation set — tokens can be overridden by "On" sets',
-  enabled: 'Active in this option — overrides the base set',
+  disabled: 'Tokens from this set are not used in this option',
+  source: 'Base layer — provides default tokens that can be overridden',
+  enabled: 'Top layer — these tokens take priority over Foundation sets',
 };
 
 interface ThemeManagerProps {
@@ -944,14 +944,26 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                           {sets.length > 0 && (
                             <>
                               <div className="flex items-center px-3 py-0.5 bg-[var(--color-figma-bg-secondary)] gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                                <span className="font-medium text-[var(--color-figma-text-secondary)]">Off</span>
-                                <span>= not used</span>
+                                <span className="font-medium text-[var(--color-figma-text-secondary)]">Not included</span>
+                                <span>= skipped</span>
                                 <span className="opacity-40">·</span>
-                                <span className="font-medium text-[var(--color-figma-accent)]">Base</span>
-                                <span>= foundation</span>
+                                <span className="font-medium text-[var(--color-figma-accent)]">Foundation</span>
+                                <span>= base layer</span>
                                 <span className="opacity-40">·</span>
-                                <span className="font-medium text-[var(--color-figma-success)]">On</span>
-                                <span>= overrides base</span>
+                                <span className="font-medium text-[var(--color-figma-success)]">Override</span>
+                                <span>= top layer</span>
+                                <span className="opacity-40">·</span>
+                                <button
+                                  className="inline-flex items-center gap-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors cursor-help"
+                                  title={"How layering works:\n\n┌─────────────────────────┐\n│  Override sets (top)    │ ← Highest priority\n│  Tokens here win.       │\n├─────────────────────────┤\n│  Foundation sets        │ ← Provides defaults\n│  Overridden if conflict │\n├─────────────────────────┤\n│  Not included           │\n│  (ignored entirely)     │\n└─────────────────────────┘\n\nWhen two sets define the same token,\nthe Override layer takes priority\nover the Foundation layer.\n\nDrag sets to reorder priority\nwithin the same layer."}
+                                >
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                  </svg>
+                                  <span>How it works</span>
+                                </button>
                               </div>
                               <div className="divide-y divide-[var(--color-figma-border)]">
                                 {filteredOptSets.length === 0 ? (

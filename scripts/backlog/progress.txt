@@ -448,3 +448,14 @@
   - `fetchDimensions` is expensive: it fetches `/api/themes` + all token set values for coverage analysis — avoid calling it synchronously after every mutation
   - The debounce pattern (useRef timer + useCallback wrapper) is reusable for any component with frequent server mutations that also needs periodic full-state reconciliation
 ---
+
+## 2026-03-28 - "Off / Base / On" theme set states are confusing
+- Renamed three-state toggle labels: "Off" → "Not included", "Base" → "Foundation", "On" → "Override"
+- Updated STATE_DESCRIPTIONS to be clearer about layering semantics (base layer vs top layer)
+- Updated inline legend bar (previously "Off = not used · Base = foundation · On = overrides base") to match new labels
+- Added "How it works" help button with question-mark icon next to legend; its title tooltip shows an ASCII stack diagram explaining the Override > Foundation > Not included layering model, including drag-to-reorder hint
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L7-17 (STATE_LABELS, STATE_DESCRIPTIONS), ~L891-913 (legend bar + help tooltip)
+- **Learnings for future iterations:**
+  - The inline legend bar at the top of the set matrix (bg-secondary row) duplicates STATE_LABELS text — both must be updated together
+  - Title attribute tooltips support `\n` newlines for multi-line content including ASCII diagrams — good for lightweight help without adding popover state
+---
