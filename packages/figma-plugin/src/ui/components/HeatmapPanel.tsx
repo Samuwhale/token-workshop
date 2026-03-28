@@ -306,17 +306,43 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
 
       {/* Empty / no result */}
       {!loading && !error && !result && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-30" aria-hidden="true">
-            <rect x="3" y="3" width="18" height="18" rx="2"/>
-            <path d="M3 9h18M9 21V9"/>
-          </svg>
-          <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-            Scan the current page to see which layers have token bindings.
-          </p>
+        <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 text-center gap-4">
+          {/* Icon */}
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <path d="M3 9h18M9 21V9"/>
+            </svg>
+          </div>
+
+          {/* Heading + description */}
+          <div className="flex flex-col gap-1">
+            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">Token binding heatmap</p>
+            <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
+              Scan your canvas to see which layers use design tokens and which ones are using hard-coded values.
+            </p>
+          </div>
+
+          {/* What you'll see */}
+          <div className="w-full max-w-[260px] flex flex-col gap-1.5">
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left">What you'll see</p>
+            {[
+              { color: 'bg-emerald-500', label: 'Fully bound', desc: 'All properties use tokens' },
+              { color: 'bg-amber-400', label: 'Partially bound', desc: 'Some hard-coded values' },
+              { color: 'bg-red-500', label: 'No bindings', desc: 'No tokens applied yet' },
+            ].map(({ color, label, desc }) => (
+              <div key={label} className="flex items-center gap-2 px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <div className={`w-2 h-2 rounded-full ${color} shrink-0`} />
+                <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{label}</span>
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] ml-auto">{desc}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
           <button
             onClick={onRescan}
-            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
+            className="px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] transition-colors"
           >
             Scan canvas
           </button>
@@ -325,8 +351,26 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
 
       {/* Node list */}
       {!loading && result && result.total === 0 && (
-        <div className="flex-1 flex items-center justify-center p-6">
-          <p className="text-[11px] text-[var(--color-figma-text-secondary)] text-center">No visual layers found on this page.</p>
+        <div className="flex-1 flex flex-col items-center justify-center px-5 py-8 text-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+            </svg>
+          </div>
+          <div className="flex flex-col gap-1">
+            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No visual layers found</p>
+            <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
+              This page doesn't have any layers that support token bindings. Try scanning a page with rectangles, text, or frames.
+            </p>
+          </div>
+          <button
+            onClick={onRescan}
+            className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            Scan again
+          </button>
         </div>
       )}
 

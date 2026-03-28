@@ -818,20 +818,64 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       <div className="flex-1 overflow-y-auto">
         {dimensions.length === 0 && !showCreateDim ? (
           /* Empty state */
-          <div className="flex flex-col items-center justify-center py-6 text-center px-4">
-            <div className="w-10 h-10 rounded-lg bg-[var(--color-figma-accent)]/10 flex items-center justify-center mb-3">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex flex-col items-center justify-center px-5 py-8 text-center gap-4">
+            {/* Icon */}
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
                 <rect x="3" y="3" width="18" height="6" rx="1.5" />
                 <rect x="3" y="12" width="18" height="6" rx="1.5" opacity="0.5" />
               </svg>
             </div>
-            <p className="text-[12px] font-medium text-[var(--color-figma-text)]">No theme layers yet</p>
-            <p className="text-[10px] mt-1 text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[220px]">
-              Layers stack from top to bottom. Each layer is a dimension (like Color Mode or Brand) with options that control which token sets are active.
-            </p>
 
-            <div className="mt-4 w-full max-w-[240px] flex flex-col gap-1.5">
-              <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Quick start</p>
+            {/* Heading + description */}
+            <div className="flex flex-col gap-1">
+              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No theme layers yet</p>
+              <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
+                Themes let you switch entire sets of tokens at once — light/dark mode, brand variants, or density levels — without duplicating values.
+              </p>
+            </div>
+
+            {/* How themes work */}
+            <div className="w-full max-w-[260px]">
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left mb-2">How themes work</p>
+              <div className="flex items-start gap-0 w-full">
+                <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                      <path d="M2 17l10 5 10-5" />
+                    </svg>
+                  </div>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Add layers</p>
+                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Dimensions</p>
+                </div>
+                <svg width="10" height="10" viewBox="0 0 8 8" fill="var(--color-figma-text-tertiary)" className="mt-2 shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
+                <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M3 9h18M9 21V9" />
+                    </svg>
+                  </div>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Map sets</p>
+                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Per option</p>
+                </div>
+                <svg width="10" height="10" viewBox="0 0 8 8" fill="var(--color-figma-text-tertiary)" className="mt-2 shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
+                <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                    </svg>
+                  </div>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Switch</p>
+                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Instantly</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick start */}
+            <div className="w-full max-w-[260px] flex flex-col gap-1.5">
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left">Quick start</p>
               {([
                 ['Color Mode', 'Light / Dark'],
                 ['Brand', 'Default / Premium'],
@@ -850,7 +894,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
             <button
               onClick={() => setShowCreateDim(true)}
-              className="mt-3 text-[10px] text-[var(--color-figma-accent)] hover:underline"
+              className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
               or create a custom layer
             </button>

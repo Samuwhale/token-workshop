@@ -56,3 +56,10 @@ Already up to date.
 
 --- Merging: Contextual help for advanced features ---
 Already up to date.
+[main 5a258d4] chore(backlog): done – Contextual help for advanced features
+ 10 files changed, 231 insertions(+), 6 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/PanelHelpHint.tsx
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================

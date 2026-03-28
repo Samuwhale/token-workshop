@@ -240,13 +240,61 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
   // Empty state
   if (!loading && commits.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 gap-2 text-center">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)]">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-        <p className="text-[11px] text-[var(--color-figma-text-secondary)]">No commits yet.</p>
-        <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">Commit token changes via the Publish tab to start tracking history.</p>
+      <div className="flex flex-col items-center justify-center h-full px-5 py-8 text-center gap-4">
+        {/* Icon */}
+        <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        </div>
+
+        {/* Heading + description */}
+        <div className="flex flex-col gap-1">
+          <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No commits yet</p>
+          <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
+            Track every change to your design tokens with a full version history. See what changed, when, and by whom.
+          </p>
+        </div>
+
+        {/* How it works */}
+        <div className="w-full max-w-[260px]">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left mb-2">How to start</p>
+          <div className="flex flex-col gap-1.5">
+            {[
+              { step: '1', label: 'Edit tokens', desc: 'Make changes in the Tokens tab' },
+              { step: '2', label: 'Publish', desc: 'Commit changes in the Publish tab' },
+              { step: '3', label: 'Review', desc: 'See diffs and history here' },
+            ].map(({ step, label, desc }) => (
+              <div key={step} className="flex items-center gap-2.5 px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+                <div className="w-5 h-5 rounded-full bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] flex items-center justify-center shrink-0">
+                  <span className="text-[9px] font-semibold text-[var(--color-figma-text-tertiary)]">{step}</span>
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">{label}</span>
+                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-tight">{desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* What you'll see */}
+        <div className="w-full max-w-[260px]">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left mb-1.5">Each commit shows</p>
+          <div className="flex gap-3 justify-center">
+            {[
+              { label: 'Added', color: 'text-emerald-600' },
+              { label: 'Changed', color: 'text-amber-600' },
+              { label: 'Removed', color: 'text-red-600' },
+            ].map(({ label, color }) => (
+              <span key={label} className={`text-[10px] font-medium ${color}`}>{label}</span>
+            ))}
+          </div>
+          <p className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-1">
+            With before/after value diffs for each token
+          </p>
+        </div>
       </div>
     );
   }

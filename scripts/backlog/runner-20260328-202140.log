@@ -53,3 +53,10 @@ Already up to date.
 ===============================================================
   Claimed: Consistent empty states across sub-panels: Themes, Resolvers, Generators, Heatmap, History all need guidance-oriented empty states (what is this, why use it, how to start) matching the quality of the main EmptyState
   Worktree: /tmp/backlog-9651-zrdsO2
+
+  ✓ done: Consistent empty states across sub-panels
+    Upgraded empty states in ThemeManager, ResolverPanel, HeatmapPanel, VersionHistoryPanel, and GraphPanel to match main EmptyState quality — all now have styled icon containers, guidance-oriented descriptions, workflow diagrams or feature previews, and actionable quick-starts
+    32 turns · 350s · $1.57
+
+--- Merging: Consistent empty states across sub-panels ---
+Already up to date.

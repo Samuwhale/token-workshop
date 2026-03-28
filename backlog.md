@@ -135,7 +135,7 @@
 - [x] Toast stacking system: queue multiple toasts vertically instead of overlapping in the same bottom-left position
 - [x] Hover tooltips on truncated token paths: show full path on hover for deep hierarchies that get line-clamped
 - [~] Consistent empty states across sub-panels: Themes, Resolvers, Generators, Heatmap, History all need guidance-oriented empty states (what is this, why use it, how to start) matching the quality of the main EmptyState
-- [~] Contextual help for advanced features: first-time hints or inline descriptions for Resolvers, Token Flow, Heatmap, Generators — no onboarding wizard, just "what is this?" affordances on each panel
+- [x] Contextual help for advanced features: first-time hints or inline descriptions for Resolvers, Token Flow, Heatmap, Generators — no onboarding wizard, just "what is this?" affordances on each panel
 - [x] [HIGH] Missing `await` on `tokenStore.getSet()` in resolver-store.ts:161 — `getSet` is async (returns `Promise<TokenSet | undefined>`) but called without `await` in `loadExternal`, so `set` is a Promise (always truthy), the `!set` guard never triggers, and `set.tokens` is `undefined`; resolver external-set loading silently produces undefined tokens for every resolution
 - [x] Set management discoverability: add visible affordance (menu icon, kebab, dropdown) on set tabs instead of relying solely on right-click for create/rename/duplicate/merge/split/reorder
 - [~] Search qualifier discoverability: add autocomplete, placeholder hints, or a filter dropdown for advanced qualifiers (`type:color`, `alias:{path}`, `>has:ref`) in the token search input

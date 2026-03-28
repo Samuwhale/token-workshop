@@ -570,3 +570,18 @@
   - Panels have very different header structures (some have stats bars, some have title+buttons, some have icons). A split icon/banner API (`usePanelHelp` + `PanelHelpIcon` + `PanelHelpBanner`) is more flexible than a monolithic component for fitting into varied layouts.
   - localStorage key prefix `tm-panel-hint-dismissed-` keeps hint state separate from other plugin storage.
 ---
+
+## 2026-03-28 - Consistent empty states across sub-panels
+- Upgraded empty states in 5 panels (ThemeManager, ResolverPanel, HeatmapPanel, VersionHistoryPanel, GraphPanel) to match the quality of the main EmptyState component
+- All panels now follow a consistent pattern: styled icon container (w-10 h-10 rounded-xl with border), bold heading (12px font-semibold), guidance-oriented description (11px, max-w-240px), and contextual help sections (workflow diagrams, "how it works" steps, or feature previews)
+- ThemeManager: added "How themes work" 3-step workflow diagram (Add layers → Map sets → Switch) alongside existing quick-start suggestions
+- ResolverPanel: replaced bare faded icon with proper container, added "How resolvers work" workflow (Dimensions → Resolve → Tokens), upgraded actions to card-style buttons with descriptions
+- HeatmapPanel: added guidance explaining what you'll see (green/yellow/red legend with descriptions), upgraded "no layers found" state with helpful suggestions
+- VersionHistoryPanel: added numbered "How to start" steps (Edit → Publish → Review) and "Each commit shows" preview of Added/Changed/Removed diffs
+- GraphPanel: minor consistency tweak — wrapped heading+description in flex gap-1 div, upgraded description to 11px to match other panels
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L169, `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L297, `packages/figma-plugin/src/ui/components/VersionHistoryPanel.tsx` ~L241, `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L819, `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L1137
+- **Learnings for future iterations:**
+  - The consistent empty state pattern is: icon container (w-10 h-10 rounded-xl bg-secondary border) → heading (12px font-semibold) → description (11px, max-w-240px) → contextual help section → action buttons. All in a `flex flex-col items-center justify-center px-5 py-8 text-center gap-4` wrapper
+  - Workflow diagrams (3-step with chevron arrows between circles) are reusable across panels — consider extracting a shared WorkflowSteps component if more panels need them
+  - The "what you'll see" pattern (color legend, feature grid) is effective for panels that produce visual output
+---

@@ -1146,10 +1146,12 @@ export function GraphPanel({
             </svg>
           </div>
 
-          <div className="text-[12px] font-semibold text-[var(--color-figma-text)] mb-2">No generators yet</div>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed mb-4 max-w-[200px]">
-            Generators turn a source token into a whole token group — color scales, spacing scales, type scales, contrast pairs, and semantic aliases.
-          </p>
+          <div className="flex flex-col gap-1 mb-4">
+            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No generators yet</p>
+            <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
+              Generators turn a source token into a whole token group — color scales, spacing scales, type scales, contrast pairs, and semantic aliases.
+            </p>
+          </div>
 
           {/* What generators produce */}
           <div className="w-full mb-5 grid grid-cols-2 gap-1.5">

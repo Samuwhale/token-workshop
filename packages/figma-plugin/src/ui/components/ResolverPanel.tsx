@@ -177,30 +177,92 @@ export function ResolverPanel({
       {/* Resolver list */}
       <div className="flex-1 overflow-y-auto">
         {resolvers.length === 0 && !creating && (
-          <div className="flex flex-col items-center justify-center h-full gap-2 px-4 text-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-tertiary)] opacity-40">
-              <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>
-            </svg>
-            <p className="text-[11px] text-[var(--color-figma-text-secondary)]">
-              No resolver configs yet.
-            </p>
-            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] max-w-[220px]">
-              Resolvers let you define how token sets merge based on contextual dimensions
-              (brand, mode, density) — replacing per-combination token files with a single config.
-            </p>
-            <div className="flex gap-1 mt-1">
+          <div className="flex flex-col items-center justify-center h-full px-5 py-8 text-center gap-4">
+            {/* Icon */}
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+                <path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/>
+              </svg>
+            </div>
+
+            {/* Heading + description */}
+            <div className="flex flex-col gap-1">
+              <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No resolver configs yet</p>
+              <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
+                Resolvers define how token sets merge based on contextual dimensions — replacing per-combination files with a single config.
+              </p>
+            </div>
+
+            {/* How it works */}
+            <div className="w-full max-w-[260px]">
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left mb-2">How resolvers work</p>
+              <div className="flex items-start gap-0 w-full">
+                <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M3 9h18M9 21V9" />
+                    </svg>
+                  </div>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Dimensions</p>
+                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Brand, Mode</p>
+                </div>
+                <svg width="10" height="10" viewBox="0 0 8 8" fill="var(--color-figma-text-tertiary)" className="mt-2 shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
+                <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M8 6L4 12l4 6M16 6l4 6-4 6" />
+                    </svg>
+                  </div>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Resolve</p>
+                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Merge sets</p>
+                </div>
+                <svg width="10" height="10" viewBox="0 0 8 8" fill="var(--color-figma-text-tertiary)" className="mt-2 shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
+                <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3" />
+                    </svg>
+                  </div>
+                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Tokens</p>
+                  <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Final output</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2 w-full max-w-[260px]">
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left">Get started</p>
               <button
                 onClick={handleMigrate}
                 disabled={migrating || !connected}
-                className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-50"
+                className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Convert from Themes
+                <div className="flex items-center gap-2">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M3 9h18M9 21V9" />
+                  </svg>
+                  <span className="text-[11px] font-medium">Convert from Themes</span>
+                </div>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
+                  Migrate your existing theme layers into a resolver config
+                </p>
               </button>
               <button
                 onClick={() => setCreating(true)}
-                className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90"
+                className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Create Resolver
+                <div className="flex items-center gap-2">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M6 1v10M1 6h10" />
+                  </svg>
+                  <span className="text-[11px] font-medium">Create from scratch</span>
+                </div>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
+                  Define dimensions and set mappings manually
+                </p>
               </button>
             </div>
           </div>
