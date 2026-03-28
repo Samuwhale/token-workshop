@@ -78,7 +78,7 @@
 
 ### Bugs
 
-- [~] `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types — accessing these keys returns `undefined`, showing broken labels
+- [x] `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types — accessing these keys returns `undefined`, showing broken labels
 
 ### UX
 
@@ -113,7 +113,7 @@
 
 - [~] Duplicated `flattenForVarDiff`/`flattenForStyleDiff` in `PublishPanel.tsx` — duplicates logic from `flattenTokenGroup` in core and `flattenWithNames` in `useTokens`
 - [~] Duplicated tree-walking patterns in `token-store.ts` — `updateAliasRefs`, `updateBulkAliasRefs`, `collectGroupLeafTokens` all implement nearly identical recursive walkers; extract a generic walker
-- [ ] `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches — all do the same thing (extract step names from config and build paths); collapse into a single generic function
+- [~] `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches — all do the same thing (extract step names from config and build paths); collapse into a single generic function
 - [ ] `countLeafNodes` is in `colorUtils.ts` despite being unrelated to colors — misplaced token tree utility function
 - [ ] `ExportPanel` uses raw `localStorage` instead of centralized `lsGet`/`lsSet` helpers — bypasses the try/catch safety net and doesn't use `STORAGE_KEYS`
 

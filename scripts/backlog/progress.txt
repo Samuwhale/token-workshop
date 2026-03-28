@@ -253,3 +253,11 @@
 - **Learnings for future iterations:**
   - When generator types are added to the `GeneratorType` union, they must also be added to ALL_TYPES, SOURCE_REQUIRED_TYPES/STANDALONE_TYPES/FLEXIBLE_TYPES, TYPE_LABELS, GRAPH_TYPE_LABELS, autoName typeLabels, and defaultConfigForType — six places total
 ---
+
+## 2026-03-28 - Lint `path-pattern` rule vulnerable to ReDoS
+- Added `isSafeRegex()` guard before `new RegExp(pattern)` in lint.ts path-pattern rule. Unsafe patterns now fall back to the default regex, matching the existing catch-block behavior for invalid patterns.
+- Exported `isSafeRegex` from `token-store.ts` so it can be reused by lint.ts.
+- Files changed: `packages/server/src/services/lint.ts` ~L4 (import), ~L178 (guard); `packages/server/src/services/token-store.ts` ~L52 (export)
+- **Learnings for future iterations:**
+  - When a ReDoS-safe regex utility already exists in the codebase, export it rather than duplicating — check token-store.ts for `isSafeRegex`.
+---

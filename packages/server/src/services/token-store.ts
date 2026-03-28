@@ -49,7 +49,7 @@ function validateTokenPath(tokenPath: string): void {
  * Checks for nested quantifiers: a quantified group whose contents also
  * contain a quantifier, e.g. `(a+)+`, `(x*|y+)*`, `(?:a{2,})+`.
  */
-function isSafeRegex(pattern: string): boolean {
+export function isSafeRegex(pattern: string): boolean {
   if (pattern.length > MAX_REGEX_LENGTH) return false;
   // Strip escaped characters and character classes to avoid false positives
   const cleaned = pattern

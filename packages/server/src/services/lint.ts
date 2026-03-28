@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { Token } from '@tokenmanager/core';
-import { TokenStore } from './token-store.js';
+import { TokenStore, isSafeRegex } from './token-store.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -177,6 +177,9 @@ export async function lintTokens(
     const severity = pathPattern.severity ?? 'warning';
     let regex: RegExp;
     try {
+      if (!isSafeRegex(pattern)) {
+        throw new Error('unsafe pattern');
+      }
       regex = new RegExp(pattern);
     } catch {
       regex = /^[a-z][a-z0-9]*([.-][a-z0-9]+)*$/;

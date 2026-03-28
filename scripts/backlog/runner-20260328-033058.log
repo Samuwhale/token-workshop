@@ -120,3 +120,16 @@ Already up to date.
 
 --- Merging: `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types ---
 Already up to date.
+[main 2133cf9] chore(backlog): done – `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types
+ 7 files changed, 43 insertions(+), 2 deletions(-)
+
+## 2026-03-28 - `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types
+- Added `accessibleColorPair`, `darkModeInversion`, `responsiveScale` to `TYPE_LABELS` in TokenGeneratorDialog.tsx, `GRAPH_TYPE_LABELS` in TokenGraph.tsx, `typeLabels` in generatorUtils.ts `autoName()`, `defaultConfigForType()`, `SOURCE_REQUIRED_TYPES`, and `ALL_TYPES`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L52, `packages/figma-plugin/src/ui/components/TokenGraph.tsx` ~L30, `packages/figma-plugin/src/ui/components/generators/generatorUtils.ts` ~L52/~L66/~L80/~L86
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  85 items remaining
+===============================================================
+  Claimed: `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches — all do the same thing (extract step names from config and build paths); collapse into a single generic function
+  Worktree: /tmp/backlog-85816-NUQenw

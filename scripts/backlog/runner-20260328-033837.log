@@ -51,3 +51,10 @@ Already up to date.
 ===============================================================
   Claimed: Lint `path-pattern` rule vulnerable to ReDoS — user-supplied regex patterns are compiled directly into `new RegExp()` without calling `isSafeRegex()` first (the guard only exists in the `bulkRename` path)
   Worktree: /tmp/backlog-10278-Znoevr
+
+  ✓ done: Lint path-pattern rule vulnerable to ReDoS
+    Added isSafeRegex() guard before new RegExp(pattern) in lint.ts path-pattern rule; exported isSafeRegex from token-store.ts for reuse. Unsafe patterns fall back to the default regex.
+    21 turns · 83s · $0.43
+
+--- Merging: Lint path-pattern rule vulnerable to ReDoS ---
+Already up to date.
