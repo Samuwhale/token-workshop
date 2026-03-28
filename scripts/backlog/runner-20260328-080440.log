@@ -243,3 +243,10 @@ Already up to date.
 ===============================================================
   Claimed: Variable snapshots shallow-copy `valuesByMode` — COLOR variable values are objects (`{r,g,b,a}`); if Figma returns the same reference and it later mutates, the snapshot won't preserve the original; needs deep copy for rollback safety
   Worktree: /tmp/backlog-62956-5IVDQQ
+
+  ✓ done: Variable snapshots shallow-copy valuesByMode
+    Replaced shallow spread with structuredClone in variableSync.ts L56 to deep-copy COLOR {r,g,b,a} objects for rollback safety
+    13 turns · 49s · $0.31
+
+--- Merging: Variable snapshots shallow-copy valuesByMode ---
+Already up to date.

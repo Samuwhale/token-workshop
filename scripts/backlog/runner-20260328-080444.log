@@ -290,3 +290,16 @@ Already up to date.
 
 --- Merging: `convertToFigmaValue` returns NaN for non-numeric strings ---
 Already up to date.
+[main 7cf94ef] chore(backlog): done – `convertToFigmaValue` returns NaN for non-numeric strings
+ 6 files changed, 42 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - `convertToFigmaValue` returns NaN for non-numeric strings
+- Added `isNaN` guards in `convertToFigmaValue` for `number`, `fontWeight`, `percentage`, and `dimension` cases. When `parseFloat` returns `NaN`, the function now returns `null` instead, which the caller already handles (skips `setValueForMode`).
+- Files changed: `packages/figma-plugin/src/plugin/variableUtils.ts` ~L40-L52
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  59 items remaining
+===============================================================
+  Claimed: Git sync branch names not validated against flag injection — `checkout` and `createBranch` pass user-supplied names directly to simple-git; a name like `--orphan` could be interpreted as a flag
+  Worktree: /tmp/backlog-63411-XqGxjB

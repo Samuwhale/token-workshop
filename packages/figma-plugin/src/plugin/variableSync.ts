@@ -53,7 +53,7 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
       if (existing) {
         // Snapshot current values before modifying so we can roll back on error
         if (!variableSnapshots.has(existing.id)) {
-          variableSnapshots.set(existing.id, { ...existing.valuesByMode });
+          variableSnapshots.set(existing.id, structuredClone(existing.valuesByMode));
         }
         variable = existing;
       } else {

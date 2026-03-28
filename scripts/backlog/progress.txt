@@ -504,3 +504,11 @@
   - The `dimension` case also had the same latent bug — it passed through string values without parsing when `typeof value !== 'object'`.
   - Callers of `convertToFigmaValue` already guard against `null` returns, so returning `null` for invalid input is the correct behavior.
 ---
+
+## 2026-03-28 - Variable snapshots shallow-copy valuesByMode
+- Replaced shallow spread (`{ ...existing.valuesByMode }`) with `structuredClone(existing.valuesByMode)` so COLOR variable values (`{r,g,b,a}` objects) are deep-copied in the rollback snapshot, preventing mutation of the snapshot if Figma reuses references.
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L56
+- **Learnings for future iterations:**
+  - `structuredClone` is available in the Figma plugin sandbox (V8-based) and is the simplest way to deep-copy plain data structures
+  - Any time a snapshot is taken for rollback purposes, consider whether values are primitives or objects — spread only copies one level
+---
