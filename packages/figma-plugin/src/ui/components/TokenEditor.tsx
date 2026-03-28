@@ -1079,7 +1079,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                 {tokenType === 'strokeStyle' && <StrokeStyleEditor value={value} onChange={setValue} />}
                 {tokenType === 'string' && <StringEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
                 {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
-                {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} baseValue={baseValue} />}
+                {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} baseValue={baseValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
               </>);
             })()}
             {tokenType === 'asset' && <AssetEditor value={value} onChange={setValue} />}

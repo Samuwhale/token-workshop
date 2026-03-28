@@ -308,3 +308,9 @@ Already up to date.
 
 --- Merging: TokenTableView has no virtual scrolling — unlike the tree view which uses virtualization, the table view renders all leaf tokens in the DOM at once; sets with 500+ tokens will cause visible lag and high memory usage ---
 Already up to date.
+[main cafb5e5] chore(backlog): done – TokenTableView has no virtual scrolling — unlike the tree view which uses virtualization, the table view renders all leaf tokens in the DOM at once; sets with 500+ tokens will cause visible lag and high memory usage
+ 6 files changed, 79 insertions(+), 6 deletions(-)
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================

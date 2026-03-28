@@ -497,3 +497,17 @@
   - Set `style={{ height: rowHeight }}` on each visible `<tr>` to enforce fixed row heights matching the calculations; without this, content variation would cause scroll position drift
   - Server tests in this worktree always fail due to `@tokenmanager/core` workspace link not resolving — pre-existing, confirmed by stash-and-rerun
 ---
+
+## 2026-03-28 - Composition token editor type-aware sub-editors
+- Replaced generic text inputs in CompositionEditor with type-aware sub-editors for each property: ColorSwatchButton + alias autocomplete for fill/stroke, SubPropInput with dimension filtering for sizing/spacing properties, range slider + number input for opacity, boolean toggle for visible, and reference-only pickers for typography/shadow
+- Added COMP_PROP_TYPE mapping (property → expected DTCG type) and COMP_PROP_LABELS for human-readable names
+- Added CompositionPropertyEditor helper that dispatches to the correct sub-editor based on property type
+- Added CompositionPreview component that renders a live visual preview box (fill color, stroke, dimensions, corner radius, opacity, padding guides, shadow) with fallback values for unresolved token references
+- Updated TokenEditor.tsx to pass allTokensFlat and pathToSet to CompositionEditor for alias autocomplete support
+- Smart defaults when adding properties: colors default to #000000, dimensions to 0, opacity to 1, booleans to true
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L1339-1630, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1082
+- **Learnings for future iterations:**
+  - CompositionEditor was the only composite editor that didn't receive allTokensFlat/pathToSet — an oversight from initial implementation
+  - The SubPropInput component is highly reusable for any property that supports both direct values and token references
+  - Composition properties map cleanly to DTCG types: fill/stroke→color, sizing/spacing→dimension, opacity→number, visible→boolean, typography/shadow→reference-only
+---
