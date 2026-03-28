@@ -356,3 +356,11 @@
   - `allTokensFlat` is already passed to TokenEditor and contains all tokens across sets — simple `in` check is sufficient for duplicate detection
   - `pathToSet` maps token paths to their owning set name — useful for cross-set duplicate messages
 ---
+
+## 2026-03-28 - TokenEditor has no "save and create another" action
+- Added `onSaveAndCreateAnother` prop to TokenEditor and a "Create & New" button (outlined style) that appears in create mode next to the primary "Create" button. After successful save, the callback resets the editor to a fresh create state with the parent path prefix pre-filled and the same token type. Also added Cmd+Shift+Enter keyboard shortcut for "save and create another" and Cmd+Enter for regular save.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L72,~L74,~L366,~L431,~L357,~L816; `packages/figma-plugin/src/ui/App.tsx` ~L276,~L1939,~L2136
+- **Learnings for future iterations:**
+  - The old `onClick={handleSave}` passed the click event as `forceOverwrite` (truthy), which would skip conflict detection in edit mode — wrapping in `() => handleSave()` is safer when default params matter
+  - For "create another" UX, resetting the parent component's `editingToken` state (with a new `path` prefix) causes React to remount the editor with fresh state, avoiding manual state reset
+---

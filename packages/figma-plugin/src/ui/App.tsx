@@ -276,6 +276,14 @@ export function App() {
     setEditingToken(null);
     refreshAll();
   }, [refreshAll, setHighlightedToken]);
+  const handleEditorSaveAndCreateAnother = useCallback((savedPath: string, savedType: string) => {
+    setHighlightedToken(savedPath);
+    refreshAll();
+    // Derive parent prefix from saved path for sibling creation
+    const segments = savedPath.split('.');
+    const parentPrefix = segments.length > 1 ? segments.slice(0, -1).join('.') + '.' : '';
+    setEditingToken({ path: parentPrefix, set: activeSet, isCreate: true, initialType: savedType });
+  }, [refreshAll, setHighlightedToken, activeSet]);
   const handleNavigateToSet = useCallback((targetSet: string, tokenPath: string) => {
     if (targetSet === activeSet) {
       setHighlightedToken(tokenPath);
@@ -1939,6 +1947,7 @@ export function App() {
                     initialValue={editingToken.initialValue}
                     onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
                     onSaved={handleEditorSave}
+                    onSaveAndCreateAnother={handleEditorSaveAndCreateAnother}
                     dimensions={dimensions}
                   />
                 </div>
@@ -2136,6 +2145,7 @@ export function App() {
                 initialType={editingToken.initialType}
                 onDirtyChange={(dirty) => { editorIsDirtyRef.current = dirty; }}
                 onSaved={handleEditorSave}
+                onSaveAndCreateAnother={handleEditorSaveAndCreateAnother}
                 dimensions={dimensions}
               />
             </div>

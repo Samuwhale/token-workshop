@@ -293,3 +293,16 @@ Already up to date.
 
 --- Merging: TokenEditor path field has no real-time duplicate detection ---
 Already up to date.
+[main d642094] chore(backlog): done – TokenEditor path field has no real-time duplicate detection
+ 6 files changed, 50 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - TokenEditor path field has no real-time duplicate detection
+- Added a `duplicatePath` useMemo that checks `editPath.trim()` against `allTokensFlat` keys in create mode. When a duplicate is detected: save is blocked (`canSave` returns false), `saveBlockReason` shows "A token with this path already exists", the input border turns red via `--color-figma-danger`, and an inline message below the input shows the conflict (including which set owns the existing token via `pathToSet`).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L235 (duplicatePath memo), ~L243 (canSave), ~L257 (saveBlockReason), ~L470 (input border class), ~L487 (inline warning message)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  40 items remaining
+===============================================================
+  Claimed: AnalyticsPanel "deduplicate" action is destructive with no confirmation — clicking deduplicate immediately rewrites all duplicate tokens to reference the canonical one with no preview, confirmation dialog, or undo
+  Worktree: /tmp/backlog-10278-2XWnVa

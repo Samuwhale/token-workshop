@@ -387,3 +387,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor has no "save and create another" action — after saving a new token the user is dropped back to the list and must re-navigate to create the next one, breaking flow when adding a batch of related tokens
   Worktree: /tmp/backlog-92630-VOKeUc
+
+  ✓ done: TokenEditor has no "save and create another" action
+    Added "Create & New" button and Cmd+Shift+Enter shortcut to TokenEditor. After saving, the editor resets to a fresh create state with parent path prefix and same token type pre-filled, enabling batch token creation without navigating back to the list.
+    37 turns · 241s · $1.25
+
+--- Merging: TokenEditor has no "save and create another" action ---
+Already up to date.

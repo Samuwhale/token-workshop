@@ -69,9 +69,11 @@ interface TokenEditorProps {
   onSaved?: (savedPath: string) => void;
   /** Theme dimensions used to show per-mode value overrides. */
   dimensions?: ThemeDimension[];
+  /** Called after a successful create when the user wants to immediately create another token. Receives the saved path so the parent can derive a sibling prefix. */
+  onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, dimensions = [] }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [] }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -366,12 +368,20 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         e.preventDefault();
         handleToggleAlias();
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey && isCreateMode && onSaveAndCreateAnother) {
+          handleSave(false, true);
+        } else {
+          handleSave();
+        }
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onBack, isDirty, showDiscardConfirm, showAutocomplete, handleToggleAlias]);
+  }, [onBack, isDirty, showDiscardConfirm, showAutocomplete, handleToggleAlias, isCreateMode, onSaveAndCreateAnother]);
 
-  const handleSave = async (forceOverwrite = false) => {
+  const handleSave = async (forceOverwrite = false, createAnother = false) => {
     if (isCreateMode && !editPath.trim()) {
       setError('Token path cannot be empty');
       return;
@@ -439,7 +449,11 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       const label = isCreateMode ? 'created' : 'saved';
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${targetPath}" ${label}` } }, '*');
       onSaved?.(targetPath);
-      onBack();
+      if (createAnother && isCreateMode && onSaveAndCreateAnother) {
+        onSaveAndCreateAnother(targetPath, tokenType);
+      } else {
+        onBack();
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -813,8 +827,18 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             Revert
           </button>
         )}
+        {isCreateMode && onSaveAndCreateAnother && (
+          <button
+            onClick={() => handleSave(false, true)}
+            disabled={saving || !canSave || !editPath.trim()}
+            title="Create this token and immediately start creating another"
+            className="px-3 py-2 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Creating…' : 'Create & New'}
+          </button>
+        )}
         <button
-          onClick={handleSave}
+          onClick={() => handleSave()}
           disabled={saving || !canSave || (!isCreateMode && !isDirty) || (isCreateMode && !editPath.trim())}
           title={saveBlockReason || undefined}
           className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
