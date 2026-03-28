@@ -142,6 +142,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const [extensionsJsonError, setExtensionsJsonError] = useState<string | null>(null);
   const [lifecycle, setLifecycle] = useState<'draft' | 'published' | 'deprecated'>('published');
   const initialServerSnapshotRef = useRef<string | null>(null);
+  const handleSaveRef = useRef<(forceOverwrite?: boolean, createAnother?: boolean) => void>(() => {});
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
 
   const encodedTokenPath = tokenPath.split('.').map(encodeURIComponent).join('/');
@@ -429,14 +430,14 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         e.preventDefault();
         if (e.shiftKey && isCreateMode && onSaveAndCreateAnother) {
-          handleSave(false, true);
+          handleSaveRef.current(false, true);
         } else {
-          handleSave();
+          handleSaveRef.current();
         }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        handleSave();
+        handleSaveRef.current();
       }
     };
     window.addEventListener('keydown', handler);
@@ -523,6 +524,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       setSaving(false);
     }
   };
+  handleSaveRef.current = handleSave;
 
   if (loading) {
     return (

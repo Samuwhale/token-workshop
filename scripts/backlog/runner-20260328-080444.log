@@ -363,3 +363,10 @@ Already up to date.
 ===============================================================
   Claimed: Stale `handleSave` closure in keyboard shortcut effect — the `useEffect` for Cmd+S references `handleSave` via closure but omits it from the dependency array; when the user presses Cmd+S, a stale version may submit outdated values for path, type, reference, scopes, modifiers, etc.
   Worktree: /tmp/backlog-63411-rLAQ59
+
+  ✓ done: Stale handleSave closure in keyboard shortcut effect
+    Added handleSaveRef to ensure Cmd+S/Cmd+Enter always calls the latest handleSave with current state values instead of a stale closure.
+    18 turns · 82s · $0.46
+
+--- Merging: Stale handleSave closure in keyboard shortcut effect ---
+Already up to date.

@@ -365,3 +365,17 @@ Already up to date.
 
 --- Merging: Unvalidated cast of color modifiers from $extensions ---
 Already up to date.
+[main 8570f9f] chore(backlog): done – Unvalidated cast of color modifiers from $extensions
+ 10 files changed, 145 insertions(+), 11 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Unvalidated cast of color modifiers from $extensions
+- Added `validateColorModifiers()` in `packages/core/src/color-modifier.ts` that validates each entry in the raw array, checking for correct `type`, numeric `amount`/`ratio`, and string `color` fields; silently drops malformed entries
+- Replaced unsafe `modifiers as ColorModifierOp[]` cast in resolver with validated version
+- Added validation on load in TokenEditor so malformed data from `$extensions` is cleaned on read
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  42 items remaining
+===============================================================
+  Claimed: Color picker is hex-only at first glance — no format toggle (Hex/RGB/HSL), no recent colors strip, no "from existing token" shortcut; add format selector, recent colors, and a quick-reference picker
+  Worktree: /tmp/backlog-63685-z9sAGw

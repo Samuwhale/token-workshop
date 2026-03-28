@@ -462,3 +462,10 @@
   - When validating discriminated unions from unknown data, check the discriminant (`type`) first, then validate the fields specific to that variant
   - The `mix` modifier has both `amount` and `ratio` fields; `ratio` is the one actually used in interpolation
 ---
+
+## 2026-03-28 - Stale handleSave closure in keyboard shortcut effect
+- Added `handleSaveRef` (a mutable ref) that always holds the latest `handleSave` function. The Cmd+S and Cmd+Enter keyboard shortcut effect now calls through `handleSaveRef.current` instead of capturing `handleSave` directly, eliminating the stale closure bug where outdated values for path, type, reference, scopes, modifiers, etc. would be submitted.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L144 (ref declaration), ~L431-439 (effect uses ref), ~L526 (ref assignment after handleSave)
+- **Learnings for future iterations:**
+  - When a `useEffect` handler needs to call a function that depends on many state variables, prefer a mutable ref (`fnRef.current = fn` after definition) over adding all transitive deps to the effect's dependency array. This avoids re-registering event listeners on every state change.
+---
