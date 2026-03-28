@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Generator auto-run from `tokenStore.onChange` (index.ts:70-79) has no concurrency guard — `runForSourceToken` is fire-and-forget with only `.catch()`, so rapid token edits can trigger multiple overlapping generator executions writing to the same target set simultaneously; `beginBatch`/`endBatch` in `executeGeneratorMultiBrand` (generator-service.ts:534) only serializes within a single run, not across concurrent runs; needs a per-generator mutex or queue
   Worktree: /tmp/backlog-22646-kvOzTy
+
+  ✓ done: Generator auto-run from tokenStore.onChange has no concurrency guard
+    Replaced skip-if-running guard (runningGenerators Set) with per-generator promise-chain mutex (generatorLocks Map) that serializes concurrent executions instead of silently dropping them. Both auto-run and manual run paths are now serialized per generator.
+    38 turns · 183s · $0.98
+
+--- Merging: Generator auto-run from tokenStore.onChange has no concurrency guard ---
+Already up to date.

@@ -47,8 +47,8 @@ export interface GeneratorRunError {
 export class GeneratorService {
   private dir: string;
   private generators: Map<string, TokenGenerator> = new Map();
-  /** IDs of generators currently executing — prevents re-entrancy per generator. */
-  private runningGenerators = new Set<string>();
+  /** Per-generator promise chain — serializes concurrent executions instead of skipping them. */
+  private generatorLocks = new Map<string, Promise<void>>();
   /** Last auto-run error per generator (in-memory only, not persisted). */
   private generatorErrors: Map<string, GeneratorRunError> = new Map();
 
@@ -270,7 +270,7 @@ export class GeneratorService {
   async run(id: string, tokenStore: TokenStore): Promise<GeneratedTokenResult[]> {
     const generator = this.generators.get(id);
     if (!generator) throw new Error(`Generator "${id}" not found`);
-    return this.executeGenerator(generator, tokenStore);
+    return this.withGeneratorLock(id, () => this.executeGenerator(generator, tokenStore));
   }
 
   /**
@@ -305,9 +305,9 @@ export class GeneratorService {
     return modified;
   }
 
-  /** Returns true if any generator is currently executing. */
+  /** Returns true if any generator is currently executing (has a pending lock chain). */
   isAnyRunning(): boolean {
-    return this.runningGenerators.size > 0;
+    return this.generatorLocks.size > 0;
   }
 
   /**
@@ -350,13 +350,14 @@ export class GeneratorService {
       }
     }
 
-    // Execute in topological order
+    // Execute in topological order, serialized per-generator via promise-chain locks
     for (const genId of order) {
       if (!affected.has(genId)) continue;
-      if (this.runningGenerators.has(genId)) continue;
       const gen = this.generators.get(genId);
       if (!gen) continue;
-      await this.executeGenerator(gen, tokenStore).catch(err => {
+      await this.withGeneratorLock(genId, () =>
+        this.executeGenerator(gen, tokenStore),
+      ).catch(err => {
         const message = err instanceof Error ? err.message : String(err);
         this.generatorErrors.set(genId, { message, at: new Date().toISOString() });
         console.warn(`[GeneratorService] Generator "${genId}" failed after token update:`, err);
@@ -432,24 +433,39 @@ export class GeneratorService {
     return result;
   }
 
+  /**
+   * Promise-chain mutex per generator. Concurrent calls for the same generator
+   * are serialized — the second waits for the first to finish instead of being
+   * silently skipped or running in parallel.
+   */
+  private withGeneratorLock<T>(generatorId: string, fn: () => Promise<T>): Promise<T> {
+    const prev = this.generatorLocks.get(generatorId) ?? Promise.resolve();
+    const next = prev.then(() => fn(), () => fn());
+    // Store the void chain (swallow errors so subsequent callers still run)
+    const voidChain = next.then(() => {}, () => {});
+    this.generatorLocks.set(generatorId, voidChain);
+    // Clean up when the chain settles and no new work was appended
+    voidChain.then(() => {
+      if (this.generatorLocks.get(generatorId) === voidChain) {
+        this.generatorLocks.delete(generatorId);
+      }
+    });
+    return next;
+  }
+
   private async executeGenerator(
     generator: TokenGenerator,
     tokenStore: TokenStore,
   ): Promise<GeneratedTokenResult[]> {
-    this.runningGenerators.add(generator.id);
-    try {
-      let results: GeneratedTokenResult[];
-      if (generator.inputTable && generator.inputTable.rows.length > 0) {
-        results = await this.executeGeneratorMultiBrand(generator, tokenStore);
-      } else {
-        results = await this.executeSingleBrand(generator, tokenStore, generator.targetSet);
-      }
-      // Clear any prior auto-run error on success
-      this.generatorErrors.delete(generator.id);
-      return results;
-    } finally {
-      this.runningGenerators.delete(generator.id);
+    let results: GeneratedTokenResult[];
+    if (generator.inputTable && generator.inputTable.rows.length > 0) {
+      results = await this.executeGeneratorMultiBrand(generator, tokenStore);
+    } else {
+      results = await this.executeSingleBrand(generator, tokenStore, generator.targetSet);
     }
+    // Clear any prior auto-run error on success
+    this.generatorErrors.delete(generator.id);
+    return results;
   }
 
   /** Original single-brand execution path. Writes to `effectiveTargetSet`. */

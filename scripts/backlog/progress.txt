@@ -315,3 +315,15 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: TokenStore has zero concurrency protection — only themes.ts uses the withLock pattern, all other mutating routes (tokens, sets, generators, resolvers, snapshots, sync, operations) can interleave read-modify-write operations
 ---
+
+## 2026-03-28 - Generator auto-run from tokenStore.onChange has no concurrency guard
+- Replaced `runningGenerators` Set (which silently skipped concurrent runs) with a per-generator promise-chain mutex (`generatorLocks` Map) that serializes concurrent executions
+- Added `withGeneratorLock()` method implementing the promise-chain pattern: each call chains behind the previous for that generator ID, auto-cleans when idle
+- Wrapped both auto-run path (`runForSourceToken`) and manual run path (`run()`) with the lock so they don't race each other
+- Removed the `if (this.runningGenerators.has(genId)) continue` skip guard — concurrent runs are now queued, not dropped
+- Files changed: `packages/server/src/services/generator-service.ts` ~L49-51, ~L270-273, ~L308-311, ~L354-364, ~L435-453
+- **Learnings for future iterations:**
+  - The promise-chain mutex pattern (already in patterns.md) is ideal for per-resource serialization without external deps
+  - When replacing a skip-guard with a queue, also wrap manual trigger paths (not just the auto-run) to prevent manual-vs-auto races
+  - The `isAnyRunning()` method was trivially adapted from Set size check to Map size check
+---
