@@ -54,3 +54,17 @@ Already up to date.
 
 --- Merging: useFigmaSync.ts error handlers restore stale closure values ---
 Already up to date.
+[main 19c730d] chore(backlog): done – useFigmaSync.ts error handlers restore stale closure values
+ 6 files changed, 41 insertions(+), 11 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - useFigmaSync.ts error handlers restore stale closure values
+- Fixed stale closure bug in `handleSyncGroup` and `handleSyncGroupStyles` error handlers
+- Both catch blocks were calling `setSyncGroupPending(syncGroupPending)` / `setSyncGroupStylesPending(syncGroupStylesPending)` which captured the state value at `useCallback` creation time. On error after the state was cleared to `null`, this would set it back to whatever stale value was in the closure — potentially `null` itself or an outdated value from a previous render
+- Fix: save the pending value to a local `const saved` before clearing to `null`, then restore `saved` on error. Also used `saved.groupPath` instead of destructured `groupPath` for consistency
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  57 items remaining
+===============================================================
+  Claimed: **Token list: "Resolve all" toggle in tree view** — a one-click toggle that shows every token in the tree with its fully resolved value substituted, so you can see what all aliases ultimately evaluate to in the current theme. Currently this information is only available in the table view or by hovering/expanding chains in the tree. Useful for quickly auditing a set before publishing.
+  Worktree: /tmp/backlog-77155-cmBbdr
