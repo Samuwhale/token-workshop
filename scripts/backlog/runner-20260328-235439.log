@@ -1,0 +1,16 @@
+NOTE: 2 [~] item(s) found — skipping reset (1 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
+
+--- Inbox has new items — triaging into backlog.md ---
+  → Priority item(s) appended (no existing [ ] items found)
+  → 3 normal item(s) appended to bottom
+--- Inbox drained ---
+  Remaining items: 4
+  Completed total: 758 (next code pass in 2 items, next product pass in 7 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1  (claude)  —  4 items remaining
+===============================================================
+  Claimed: [HIGH] Snapshot save/restore bypasses tokenLock — `POST /api/snapshots` and `POST /api/snapshots/:id/restore` in `packages/server/src/routes/snapshots.ts` call `manualSnapshots.save()` and `restore()` on the TokenStore without acquiring the token write lock (`tokenLock`); a concurrent token write from any other route can interleave with a restore, leaving the store in a mixed state; `sync.ts:353` has the same gap for `POST /api/sync/log/:hash/restore`; both should wrap the tokenStore interaction in `withLock`
+  Worktree: /tmp/backlog-92075-w4Vo7m

@@ -1,0 +1,18 @@
+NOTE: 3 [~] item(s) found — skipping reset (4 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
+  Remaining items: 3
+  Completed total: 758 (next code pass in 2 items, next product pass in 7 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1  (claude)  —  3 items remaining
+===============================================================
+  Claimed: manual-snapshot.ts shadows its own import of stableStringify and snapshot diff ignores $type/$description changes — `packages/server/src/services/manual-snapshot.ts` imports `stableStringify` from `./stable-stringify.js` (L7) but immediately redefines a local function with the same name (L10-18) that shadows the import, making the import dead code; separately, the `diff()` method at L181-184 only compares `$value` fields using `stableStringify`, so changes to `$type` or `$description` are silently ignored in snapshot diffs — a token whose type changes from `color` to `string` with the same value will show as unchanged, but restore will overwrite its type
+  Worktree: /tmp/backlog-92586-Yxx6oV
+
+  ✓ done: manual-snapshot.ts shadows its own import of stableStringify and snapshot diff ignores $type/$description changes
+    Removed shadowing local stableStringify function (now uses shared import) and fixed diff() to compare entire token object instead of only $value, so $type/$description/$extensions changes are now detected
+    20 turns · 93s · $0.58
+
+--- Merging: manual-snapshot.ts shadows its own import of stableStringify and snapshot diff ignores $type/$description changes ---
+Already up to date.

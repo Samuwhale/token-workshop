@@ -7,17 +7,6 @@ import type { TokenStore } from './token-store.js';
 import { stableStringify } from './stable-stringify.js';
 import { NotFoundError } from '../errors.js';
 
-/** Deterministic JSON string — sorts object keys so comparison is key-order independent. */
-function stableStringify(value: unknown): string {
-  if (value === null || value === undefined) return JSON.stringify(value);
-  if (typeof value !== 'object') return JSON.stringify(value);
-  if (Array.isArray(value)) {
-    return '[' + value.map(v => stableStringify(v)).join(',') + ']';
-  }
-  const keys = Object.keys(value as Record<string, unknown>).sort();
-  return '{' + keys.map(k => JSON.stringify(k) + ':' + stableStringify((value as Record<string, unknown>)[k])).join(',') + '}';
-}
-
 export interface ManualSnapshotToken {
   $value: unknown;
   $type?: string;
@@ -179,9 +168,7 @@ export class ManualSnapshotStore {
         } else if (before && !after) {
           diffs.push({ path: p, set: setName, status: 'removed', before });
         } else if (before && after) {
-          const bVal = stableStringify(before.$value);
-          const aVal = stableStringify(after.$value);
-          if (bVal !== aVal) {
+          if (stableStringify(before) !== stableStringify(after)) {
             diffs.push({ path: p, set: setName, status: 'modified', before, after });
           }
         }

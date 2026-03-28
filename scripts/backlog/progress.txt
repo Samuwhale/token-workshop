@@ -579,3 +579,11 @@
   - Coverage data is already computed for ALL options in a dimension, not just the selected one — so badges can be added to non-selected tabs cheaply
   - The `covKey` pattern (`${dim.id}:${optionName}`) is reused for expandedCoverage, expandedStale, and now showMissingOnly
 ---
+
+## 2026-03-28 - manual-snapshot.ts shadows its own import of stableStringify and snapshot diff ignores $type/$description changes
+- Removed local `stableStringify` function (L10-19) that shadowed the import from `./stable-stringify.js` — now uses the shared import
+- Fixed `diff()` method to compare the entire `ManualSnapshotToken` object (including `$type`, `$description`, `$extensions`) instead of only `$value`
+- Files changed: `packages/server/src/services/manual-snapshot.ts` ~L10-19 (removed), ~L171 (fixed comparison)
+- **Learnings for future iterations:**
+  - Pre-existing server test failure (bulk-rename status 409 vs expected 500) is unrelated and predates this change
+---

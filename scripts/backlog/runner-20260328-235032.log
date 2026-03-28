@@ -1,4 +1,4 @@
 NOTE: 2 [~] item(s) found — skipping reset (1 other runner(s) active)
-Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 
 --- Inbox has new items — triaging into backlog.md ---

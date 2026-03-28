@@ -1,0 +1,11 @@
+NOTE: 5 [~] item(s) found — skipping reset (10 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
+  Remaining items: 1
+  Completed total: 758 (next code pass in 2 items, next product pass in 7 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1  (claude)  —  1 items remaining
+===============================================================
+  Claimed: App.tsx is a 2990-line monolith with 53 useState hooks — `packages/figma-plugin/src/ui/App.tsx` still contains five distinct state domains that should be custom hooks: (1) set-tab management (drag, context menu, overflow, new-set form: `dragSetName`, `dragOverSetName`, `tabMenuOpen`, `tabMenuPos`, `creatingSet`, `newSetName`, `newSetError`, `setTabsOverflow`); (2) modal/overlay visibility flags (8+ separate booleans: `showPasteModal`, `showScaffoldWizard`, `showGuidedSetup`, `showColorScaleGen`, `showCommandPalette`, `showKeyboardShortcuts`, `showQuickApply`, `showClearConfirm`); (3) token data loading (`allTokensFlat`, `pathToSet`, `perSetFlat`, `filteredSetCount`, `syncSnapshot`); (4) recent operations log (`recentOperations`); extracting these into domain hooks would mirror the TokenList refactor already done and make App.tsx reviewable
+  Worktree: /tmp/backlog-93524-5Mdkkg

@@ -1,11 +1,11 @@
-NOTE: 9 [~] item(s) found — skipping reset (16 other runner(s) active)
-Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+NOTE: 6 [~] item(s) found — skipping reset (13 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
   Remaining items: 0
-  Completed total: 732 (next code pass in 8 items, next product pass in 3 items)
+  Completed total: 758 (next code pass in 2 items, next product pass in 7 items)
   Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
 
 ===============================================================
-  Iteration 1 / 90  (claude)  —  0 items remaining
+  Iteration 1  (claude)  —  0 items remaining
 ===============================================================
 
   Backlog empty — running discovery pass to replenish…

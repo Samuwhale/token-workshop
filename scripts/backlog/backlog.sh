@@ -466,7 +466,7 @@ drain_inbox() {
 
   # HIGH/P0/BUG: insert before the first [ ] item so the agent picks them next.
   if [ -n "$HIGH_ITEMS" ]; then
-    FIRST_TODO_LINE=$(grep -n -m1 '^\- \[ \]' "$BACKLOG_FILE" | cut -d: -f1)
+    FIRST_TODO_LINE=$(grep -n -m1 '^\- \[ \]' "$BACKLOG_FILE" | cut -d: -f1 || true)
     if [ -n "$FIRST_TODO_LINE" ]; then
       INSERT_AT=$((FIRST_TODO_LINE - 1))
       HEAD=$(head -n "$INSERT_AT" "$BACKLOG_FILE")
@@ -559,7 +559,7 @@ cleanup_if_needed() {
     local keep=30
     local skip=$((section_count - keep))
     local start_line
-    start_line=$(grep -n '^## ' "$PROGRESS_FILE" | awk -F: "NR==$((skip+1)){print \$1}")
+    start_line=$(grep -n '^## ' "$PROGRESS_FILE" | awk -F: "NR==$((skip+1)){print \$1}" || true)
     if [ -n "$start_line" ]; then
       local tmpfile2
       tmpfile2=$(mktemp "$PROGRESS_FILE.XXXXXX")
