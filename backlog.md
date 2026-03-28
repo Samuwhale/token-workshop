@@ -103,7 +103,7 @@
 ### Bugs
 
 - [x] Stale `handleSave` closure in keyboard shortcut effect — the `useEffect` for Cmd+S references `handleSave` via closure but omits it from the dependency array; when the user presses Cmd+S, a stale version may submit outdated values for path, type, reference, scopes, modifiers, etc.
-- [~] UndoToast `{shiftKey}` not interpolated — in the redo tooltip, `{shiftKey}` is inside a template literal without `${}`, rendering as the literal string `{shiftKey}Z` instead of the actual key symbol
+- [x] UndoToast `{shiftKey}` not interpolated — in the redo tooltip, `{shiftKey}` is inside a template literal without `${}`, rendering as the literal string `{shiftKey}Z` instead of the actual key symbol
 
 ### QoL
 
@@ -116,7 +116,7 @@
 ### Bugs
 
 - [~] Set rename is not atomic — comment says "atomic (same filesystem, so fs.rename is atomic)" but code uses `fs.writeFile` then `fs.unlink`; if the process crashes between steps, both files exist on disk and the next startup loads both
-- [ ] Theme load-modify-save races on concurrent requests — every mutation route does `load()` → modify → `save()` with no locking; two concurrent requests (e.g., two browser tabs adding options) can race and the second save overwrites the first's changes
+- [~] Theme load-modify-save races on concurrent requests — every mutation route does `load()` → modify → `save()` with no locking; two concurrent requests (e.g., two browser tabs adding options) can race and the second save overwrites the first's changes
 
 ### QoL
 

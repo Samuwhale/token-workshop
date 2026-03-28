@@ -386,3 +386,10 @@ Already up to date.
 ===============================================================
   Claimed: Set rename is not atomic — comment says "atomic (same filesystem, so fs.rename is atomic)" but code uses `fs.writeFile` then `fs.unlink`; if the process crashes between steps, both files exist on disk and the next startup loads both
   Worktree: /tmp/backlog-63411-sn96lf
+
+  ✓ done: Set rename is not atomic
+    Replaced non-atomic fs.writeFile+fs.unlink with single fs.rename call in token-store.ts renameSet method
+    17 turns · 77s · $0.42
+
+--- Merging: Set rename is not atomic ---
+Already up to date.

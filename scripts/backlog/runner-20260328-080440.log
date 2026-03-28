@@ -352,3 +352,16 @@ Already up to date.
 
 --- Merging: UndoToast `{shiftKey}` not interpolated ---
 Already up to date.
+[main b6cb6b0] chore(backlog): done – UndoToast `{shiftKey}` not interpolated
+ 7 files changed, 36 insertions(+), 77 deletions(-)
+
+## 2026-03-28 - UndoToast `{shiftKey}` not interpolated
+- Fixed missing `$` prefix in template literal interpolations on line 38 of UndoToast.tsx
+- `{shiftKey}` was inside backtick strings without `$`, rendering as literal text instead of the platform-specific shift key symbol (⇧ on Mac, Shift+ on other)
+- Files changed: `packages/figma-plugin/src/ui/components/UndoToast.tsx` ~L38
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  40 items remaining
+===============================================================
+  Claimed: Theme load-modify-save races on concurrent requests — every mutation route does `load()` → modify → `save()` with no locking; two concurrent requests (e.g., two browser tabs adding options) can race and the second save overwrites the first's changes
+  Worktree: /tmp/backlog-62956-V4VwIj

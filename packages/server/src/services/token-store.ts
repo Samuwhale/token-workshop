@@ -560,8 +560,9 @@ export class TokenStore {
 
     // Step 1: Rename the file atomically (same filesystem, so fs.rename is atomic)
     await fs.mkdir(path.dirname(newFilePath), { recursive: true });
+    this._startWriteGuard(oldFilePath);
     this._startWriteGuard(newFilePath);
-    await fs.writeFile(newFilePath, JSON.stringify(set.tokens, null, 2));
+    await fs.rename(oldFilePath, newFilePath);
 
     // Step 2: Update $themes.json — roll back file rename on failure
     const themesPath = path.join(this.dir, '$themes.json');
@@ -603,9 +604,7 @@ export class TokenStore {
     this.sets.set(newName, newSet);
     this.sets.delete(oldName);
 
-    // Delete old file
-    this._startWriteGuard(oldFilePath);
-    await fs.unlink(oldFilePath);
+    // Clean up empty parent dirs left behind by the rename
     await this.removeEmptyParentDirs(oldFilePath);
 
     this.rebuildFlatTokens();

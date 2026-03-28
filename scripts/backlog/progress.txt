@@ -478,3 +478,11 @@
   - JSX `{var}` and template literal `${var}` look similar but are different — easy to forget the `$` when writing template literals inside JSX attributes
   - Build has pre-existing `MISSING_EXPORT` error (`getNextUnboundProperty` in SelectionInspector.tsx) — not related to this fix
 ---
+
+## 2026-03-28 - Set rename is not atomic
+- Replaced non-atomic `fs.writeFile` + `fs.unlink` with a single `fs.rename` call for set file renames. The comment claimed atomicity but the implementation wrote the new file then deleted the old one — a crash between steps would leave both files on disk. Now uses `fs.rename` which is truly atomic on the same filesystem.
+- Files changed: `packages/server/src/services/token-store.ts` ~L561-565 (writeFile→rename), ~L607-608 (removed unlink of old file)
+- **Learnings for future iterations:**
+  - `fs.rename` is atomic on the same filesystem and handles both creation of the new path and removal of the old path in one syscall. Always prefer it over write+unlink for same-filesystem moves.
+  - Write guards (`_startWriteGuard`) must be set on both old and new paths before `fs.rename` so the file watcher ignores both the disappearance and appearance events.
+---
