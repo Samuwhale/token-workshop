@@ -13,3 +13,6 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 ================================================================
   ★ Maintenance Pass: product
 ================================================================
+  ✓ product pass: product-pass
+    11 items written to inbox: set ops missing from undo, no lint config UI, resolvers/themes consolidation, variable/style sync diff preview, deep inspect read-only bindings, no unified settings, theme dimension reorder, copy color in format, create from clipboard, apply-to-peers ephemeral toast
+Already up to date.

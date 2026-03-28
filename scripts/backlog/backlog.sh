@@ -664,7 +664,7 @@ run_special_pass() {
 
   # Rate-limit detection — warn and return so main loop can also detect on next item
   if echo "$pass_output $pass_err_text" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|billing|overloaded|capacity|too many requests|529|Claude\.ai/upgrade'; then
-    echo "  WARNING: Rate limit hit during $pass_type pass — skipping"
+    echo "  ⚠ Rate limit hit during $pass_type pass — skipping"
     # Clean up pass worktree
     WORKTREE_DIR="$pass_worktree"
     teardown_worktree
@@ -715,36 +715,60 @@ NEXT_CODE_PASS_IN=$(( 10 - (CURRENT_COUNT % 10) ))
 NEXT_PRODUCT_PASS_IN=$(( 10 - ((CURRENT_COUNT + 5) % 10) ))
 [ "$NEXT_PRODUCT_PASS_IN" -eq 0 ] && NEXT_PRODUCT_PASS_IN=10
 
-echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — runs until stopped"
+echo ""
+echo "╔═══════════════════════════════════════════════════════════════╗"
+echo "║  Backlog Runner                                             ║"
+echo "╚═══════════════════════════════════════════════════════════════╝"
+echo "  PID:    $$"
+echo "  Tool:   $TOOL"
+echo "  Model:  $MODEL"
+echo "  Log:    $RUNNER_LOG"
 
 # Drain inbox before first iteration so items are available immediately
 drain_inbox
 
-echo "  Remaining items: $(remaining)"
-echo "  Completed total: $CURRENT_COUNT (next code pass in $NEXT_CODE_PASS_IN items, next product pass in $NEXT_PRODUCT_PASS_IN items)"
-echo "  Stop signal:     Ctrl+C  (or: touch $STOP_FILE)"
+IN_PROGRESS=$(grep -cE '^\- \[~\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+FAILED=$(grep -cE '^\- \[!\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+echo ""
+echo "  Queue:    $(remaining) ready · ${IN_PROGRESS} in-progress · ${FAILED} failed"
+echo "  Done:     $CURRENT_COUNT total (next code pass in $NEXT_CODE_PASS_IN, product pass in $NEXT_PRODUCT_PASS_IN)"
+echo "  Stop:     Ctrl+C  (or: touch $STOP_FILE)"
+echo ""
 
 ITERATION=0
+ITERATION_START=""
 while true; do
   ITERATION=$((ITERATION + 1))
   REMAINING=$(remaining)
+  IN_PROGRESS=$(grep -cE '^\- \[~\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+  ELAPSED=""
+  if [ -n "$ITERATION_START" ]; then
+    local_elapsed=$(( $(date +%s) - ITERATION_START ))
+    if [ "$local_elapsed" -ge 60 ]; then
+      ELAPSED=" · last took $((local_elapsed / 60))m$((local_elapsed % 60))s"
+    else
+      ELAPSED=" · last took ${local_elapsed}s"
+    fi
+  fi
+  ITERATION_START=$(date +%s)
   echo ""
-  echo "==============================================================="
-  echo "  Iteration $ITERATION  ($TOOL)  —  $REMAINING items remaining"
-  echo "==============================================================="
+  echo "═══════════════════════════════════════════════════════════════"
+  echo "  #$ITERATION  ·  $REMAINING queued · ${IN_PROGRESS} in-progress${ELAPSED}"
+  echo "═══════════════════════════════════════════════════════════════"
 
   # Backlog empty — run a discovery pass to replenish before giving up
   if [[ "$REMAINING" -eq 0 ]]; then
     echo ""
-    echo "  Backlog empty — running discovery pass to replenish…"
+    echo "  Backlog empty — checking inbox for new items…"
     drain_inbox  # pick up any stragglers first
     REMAINING=$(remaining)
     if [[ "$REMAINING" -gt 0 ]]; then
-      echo "  Inbox drain recovered $REMAINING items — continuing."
+      echo "  Inbox had $REMAINING item(s) — continuing."
     else
       # Backlog complete — run both product and code passes to restock
       if [[ "$TOOL" == "claude" ]] && try_pass_lock; then
         echo $$ > "$PASS_LOCKDIR/pid"
+        echo "  No items found — running discovery passes to replenish backlog…"
         run_special_pass "product"
         drain_inbox
         REMAINING=$(remaining)
@@ -752,33 +776,37 @@ while true; do
         rm -rf "$PASS_LOCKDIR"
         drain_inbox
         REMAINING=$(remaining)
+      elif [[ "$TOOL" == "claude" ]]; then
+        PASS_OWNER=$(cat "$PASS_LOCKDIR/pid" 2>/dev/null || echo "?")
+        echo "  No items — another runner (PID $PASS_OWNER) is running a discovery pass. Waiting…"
+      else
+        echo "  No items — discovery passes require --tool claude. Waiting…"
       fi
       # Final drain — another runner may have filled the inbox since we last checked
       drain_inbox
       REMAINING=$(remaining)
       if [[ "$REMAINING" -eq 0 ]]; then
-        # Don't exit — another runner may produce items. Wait and retry.
-        echo "  Discovery pass produced no new items. Waiting for work…"
+        echo "  Still no items. Polling inbox every 30s… (Ctrl+C to stop)"
         sleep 30 || true
         drain_inbox
         REMAINING=$(remaining)
         if [[ "$REMAINING" -eq 0 ]]; then
-          # Still nothing — keep waiting in the main loop
           continue
         fi
       fi
-      echo "  Discovery pass added $REMAINING items — continuing."
+      echo "  $REMAINING new item(s) available — continuing."
     fi
   fi
 
   # ── Claim an item under lock ──
   CLAIMED_ITEM=""
   if ! claim_next_item; then
-    echo "  No items available to claim (all in-progress by other runners). Waiting…"
+    IN_PROGRESS=$(grep -cE '^\- \[~\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
+    echo "  All $IN_PROGRESS item(s) claimed by other runners — waiting 15s…"
     sleep 15 || true
     continue
   fi
-  echo "  Claimed: $CLAIMED_ITEM"
+  echo "  → $CLAIMED_ITEM"
 
   # ── Set up isolated worktree for the agent ──
   if ! setup_worktree; then
@@ -791,8 +819,7 @@ while true; do
   echo "  Worktree: $WORKTREE_DIR"
 
   # ── Run the agent ──
-  # The claimed item is injected into the agent's context so it knows
-  # exactly which item to work on without reading backlog.md.
+  echo "  Running agent… (started $(date '+%H:%M:%S'))"
   if [[ "$TOOL" == "amp" ]]; then
     PROMPT_FILE=$(mktemp)
     cat "$SCRIPT_DIR/CLAUDE.md" > "$PROMPT_FILE"
@@ -846,7 +873,7 @@ while true; do
       if echo "$COMBINED" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|billing|overloaded|capacity|too many requests|529|Claude\.ai/upgrade'; then
         rm -f "$AGENT_ERR"
         echo ""
-        echo "WARNING: Rate limit hit — unclaiming item and waiting 60s before retry."
+        echo "  ⚠ Rate limit hit — unclaiming item, retry at $(date -v+60S '+%H:%M:%S' 2>/dev/null || date -d '+60 seconds' '+%H:%M:%S' 2>/dev/null || echo '~60s')"
         update_item_status " " "$CLAIMED_ITEM"
         CLAIMED_ITEM=""
         teardown_worktree
@@ -867,7 +894,7 @@ while true; do
     # stop the runner rather than looping.
     if [ -z "$_S" ] && echo "$OUTPUT" | grep -qiE 'usage limit|rate.?limit|quota|out of credits|overloaded|capacity|too many requests|529'; then
       echo ""
-      echo "WARNING: Rate limit hit — unclaiming item and waiting 60s before retry."
+      echo "  ⚠ Rate limit hit — unclaiming item, retry at $(date -v+60S '+%H:%M:%S' 2>/dev/null || date -d '+60 seconds' '+%H:%M:%S' 2>/dev/null || echo '~60s')"
       update_item_status " " "$CLAIMED_ITEM"
       CLAIMED_ITEM=""
       teardown_worktree
@@ -891,11 +918,12 @@ while true; do
       CONSECUTIVE_FAILURES=0
       PUSH_ITEM="${ITEM_FROM_AGENT:-$CLAIMED_ITEM}"
       echo ""
-      echo "--- Merging: $PUSH_ITEM ---"
+      echo "  Merging to main: $PUSH_ITEM"
       if merge_worktree_to_main "chore(backlog): done – $PUSH_ITEM"; then
         update_item_status "x" "$CLAIMED_ITEM"
+        echo "  ✓ Merged and marked done"
       else
-        echo "WARNING: Cherry-pick conflict — marking item failed"
+        echo "  ✗ Cherry-pick conflict — marked failed"
         update_item_status "!" "$CLAIMED_ITEM"
       fi
       CLAIMED_ITEM=""  # prevent EXIT trap from unclaiming
@@ -912,11 +940,17 @@ while true; do
           # Non-blocking pass lock: if another runner is already running a pass, skip
           if try_pass_lock; then
             echo $$ > "$PASS_LOCKDIR/pid"
+            PASS_NAMES=""
+            [ "$RUN_PRODUCT" -eq 1 ] && PASS_NAMES="product"
+            [ "$RUN_CODE" -eq 1 ] && PASS_NAMES="${PASS_NAMES:+$PASS_NAMES + }code"
+            echo ""
+            echo "  Milestone: $TOTAL_DONE items done — running $PASS_NAMES discovery pass"
             [ "$RUN_PRODUCT" -eq 1 ] && run_special_pass "product"
             [ "$RUN_CODE" -eq 1 ] && run_special_pass "code"
             rm -rf "$PASS_LOCKDIR"
           else
-            echo "  (pass skipped — another runner is handling it)"
+            PASS_OWNER=$(cat "$PASS_LOCKDIR/pid" 2>/dev/null || echo "?")
+            echo "  Milestone: $TOTAL_DONE done — pass skipped (runner PID $PASS_OWNER already running one)"
           fi
         fi
       fi
@@ -924,12 +958,13 @@ while true; do
     failed)
       CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
       update_item_status "!" "$CLAIMED_ITEM"
+      echo "  [$CONSECUTIVE_FAILURES/$MAX_CONSECUTIVE_FAILURES consecutive failures]"
       CLAIMED_ITEM=""
       teardown_worktree
       ;;
     *)
       CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
-      echo "WARNING: Agent returned unexpected status '$STATUS' — unclaiming item"
+      echo "  ⚠ Agent returned unexpected status '$STATUS' — unclaiming item [$CONSECUTIVE_FAILURES/$MAX_CONSECUTIVE_FAILURES]"
       update_item_status " " "$CLAIMED_ITEM"
       CLAIMED_ITEM=""
       teardown_worktree
@@ -959,8 +994,9 @@ while true; do
   # Graceful stop — triggered by Ctrl+C (STOP_REQUESTED) or stop file
   if [ "$STOP_REQUESTED" -eq 1 ] || [ -f "$STOP_FILE" ]; then
     [ -f "$STOP_FILE" ] && rm -f "$STOP_FILE"
+    TOTAL_DONE=$(get_completed_count)
     echo ""
-    echo "Stop signal received. Exiting after iteration $ITERATION."
+    echo "  Stopped after $ITERATION iterations ($TOTAL_DONE total items completed)."
     exit 0
   fi
 
