@@ -90,10 +90,53 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           detail: 'Set a remote URL via POST /api/sync/remote before pulling.',
         });
       }
-      await fastify.gitSync.pull();
-      return { pulled: true };
+      const result = await fastify.gitSync.pull();
+      if (result.conflicts.length > 0) {
+        return { pulled: true, conflicts: result.conflicts };
+      }
+      return { pulled: true, conflicts: [] };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to pull', detail: String(err) });
+    }
+  });
+
+  // GET /api/sync/conflicts — list files with merge conflicts and their parsed regions
+  fastify.get('/sync/conflicts', async (_request, reply) => {
+    try {
+      const conflicts = await fastify.gitSync.getConflicts();
+      return { conflicts };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to get conflicts', detail: String(err) });
+    }
+  });
+
+  // POST /api/sync/conflicts/resolve — resolve conflicts for specific files
+  fastify.post<{
+    Body: { resolutions: Array<{ file: string; choices: Record<number, 'ours' | 'theirs'> }> };
+  }>('/sync/conflicts/resolve', async (request, reply) => {
+    try {
+      const { resolutions } = request.body ?? {};
+      if (!resolutions || !Array.isArray(resolutions)) {
+        return reply.status(400).send({ error: 'resolutions array is required' });
+      }
+      for (const { file, choices } of resolutions) {
+        await fastify.gitSync.resolveFileConflict(file, choices);
+      }
+      // Finalize merge if no conflicts remain
+      await fastify.gitSync.finalizeMerge();
+      return { resolved: true };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to resolve conflicts', detail: String(err) });
+    }
+  });
+
+  // POST /api/sync/conflicts/abort — abort the current merge
+  fastify.post('/sync/conflicts/abort', async (_request, reply) => {
+    try {
+      await fastify.gitSync.abortMerge();
+      return { aborted: true };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to abort merge', detail: String(err) });
     }
   });
 

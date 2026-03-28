@@ -323,3 +323,10 @@ Already up to date.
 ===============================================================
   Claimed: No in-plugin Git merge conflict resolution — `git pull` can create merge conflicts in `.tokens.json` files, but there's no conflict resolver UI; users must switch to a code editor to fix JSON conflicts
   Worktree: /tmp/backlog-63411-ACBZh5
+
+  ✓ done: No in-plugin Git merge conflict resolution
+    Added full merge conflict resolver: server parses conflict markers from .tokens.json files, UI shows side-by-side ours/theirs picker per conflict region with resolve-all and abort-merge actions. Conflicts auto-detected after pull and on mount.
+    26 turns · 445s · $1.63
+
+--- Merging: No in-plugin Git merge conflict resolution ---
+Already up to date.

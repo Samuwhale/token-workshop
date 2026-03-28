@@ -615,6 +615,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           badge={
             git.gitLoading ? null :
             !git.gitStatus?.isRepo ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] font-medium border border-[var(--color-figma-border)]">No repo</span> :
+            git.mergeConflicts.length > 0
+              ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] font-medium">{git.mergeConflicts.length} conflict{git.mergeConflicts.length !== 1 ? 's' : ''}</span> :
             git.allChanges.length > 0
               ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{git.allChanges.length} uncommitted</span>
               : <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Clean</span>
@@ -702,6 +704,106 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   </div>
                 )}
               </div>
+
+              {/* Merge conflict resolver */}
+              {git.mergeConflicts.length > 0 && (
+                <div className="rounded border-2 border-[var(--color-figma-warning)] overflow-hidden">
+                  <div className="px-3 py-2 bg-[var(--color-figma-warning)]/15 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-warning)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                      </svg>
+                      <span className="text-[11px] font-semibold text-[var(--color-figma-warning)]">
+                        Merge conflicts ({git.mergeConflicts.length} file{git.mergeConflicts.length !== 1 ? 's' : ''})
+                      </span>
+                    </div>
+                    <button
+                      onClick={git.abortMerge}
+                      disabled={git.actionLoading === 'abort'}
+                      className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
+                    >
+                      {git.actionLoading === 'abort' ? 'Aborting\u2026' : 'Abort merge'}
+                    </button>
+                  </div>
+                  <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
+                    For each conflict region, choose which version to keep: <strong className="text-[var(--color-figma-text)]">Ours</strong> (local) or <strong className="text-[var(--color-figma-text)]">Theirs</strong> (remote).
+                  </div>
+                  <div className="max-h-64 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+                    {git.mergeConflicts.map((conflict) => (
+                      <div key={conflict.file} className="flex flex-col">
+                        <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] flex items-center gap-1.5">
+                          <span className="text-[9px] font-mono font-bold text-[var(--color-figma-warning)]">!</span>
+                          <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={conflict.file}>{conflict.file}</span>
+                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-auto shrink-0">{conflict.regions.length} conflict{conflict.regions.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        {conflict.regions.map((region) => {
+                          const choice = git.conflictChoices[conflict.file]?.[region.index] ?? 'theirs';
+                          return (
+                            <div key={region.index} className="border-t border-[var(--color-figma-border)]">
+                              <div className="flex">
+                                {/* Ours */}
+                                <button
+                                  onClick={() => git.setConflictChoices(prev => ({
+                                    ...prev,
+                                    [conflict.file]: { ...prev[conflict.file], [region.index]: 'ours' },
+                                  }))}
+                                  className={`flex-1 text-left px-2 py-1 border-r border-[var(--color-figma-border)] transition-colors ${
+                                    choice === 'ours'
+                                      ? 'bg-[var(--color-figma-success)]/10'
+                                      : 'bg-[var(--color-figma-bg)] opacity-50 hover:opacity-75'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className={`text-[9px] font-semibold ${choice === 'ours' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-secondary)]'}`}>Ours (local)</span>
+                                    {choice === 'ours' && (
+                                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
+                                    )}
+                                  </div>
+                                  <pre className="text-[9px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all max-h-16 overflow-y-auto leading-tight">{region.ours || '(empty)'}</pre>
+                                </button>
+                                {/* Theirs */}
+                                <button
+                                  onClick={() => git.setConflictChoices(prev => ({
+                                    ...prev,
+                                    [conflict.file]: { ...prev[conflict.file], [region.index]: 'theirs' },
+                                  }))}
+                                  className={`flex-1 text-left px-2 py-1 transition-colors ${
+                                    choice === 'theirs'
+                                      ? 'bg-[var(--color-figma-accent)]/10'
+                                      : 'bg-[var(--color-figma-bg)] opacity-50 hover:opacity-75'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className={`text-[9px] font-semibold ${choice === 'theirs' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`}>Theirs (remote)</span>
+                                    {choice === 'theirs' && (
+                                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
+                                    )}
+                                  </div>
+                                  <pre className="text-[9px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all max-h-16 overflow-y-auto leading-tight">{region.theirs || '(empty)'}</pre>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+                    <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                      {git.mergeConflicts.reduce((sum, c) => sum + c.regions.length, 0)} region{git.mergeConflicts.reduce((sum, c) => sum + c.regions.length, 0) !== 1 ? 's' : ''} to resolve
+                    </span>
+                    <button
+                      onClick={git.resolveConflicts}
+                      disabled={git.resolvingConflicts}
+                      className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                    >
+                      {git.resolvingConflicts ? 'Resolving\u2026' : 'Resolve all conflicts'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Changed files */}
               {git.allChanges.length > 0 && (

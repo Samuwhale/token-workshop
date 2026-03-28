@@ -1,5 +1,99 @@
 import simpleGit, { SimpleGit } from 'simple-git';
 import path from 'node:path';
+import fs from 'node:fs/promises';
+
+/** A single conflict region within a file. */
+export interface ConflictRegion {
+  /** Zero-based index of the conflict within the file */
+  index: number;
+  ours: string;
+  theirs: string;
+}
+
+/** Parsed conflict data for a single file. */
+export interface FileConflict {
+  file: string;
+  regions: ConflictRegion[];
+}
+
+/**
+ * Parse git conflict markers from raw file content.
+ * Returns the conflict regions found. If no markers are found, returns [].
+ */
+export function parseConflictMarkers(content: string): ConflictRegion[] {
+  const regions: ConflictRegion[] = [];
+  const lines = content.split('\n');
+  let i = 0;
+  let regionIndex = 0;
+
+  while (i < lines.length) {
+    if (lines[i].startsWith('<<<<<<<')) {
+      const oursLines: string[] = [];
+      const theirsLines: string[] = [];
+      i++;
+      // Collect "ours" lines until =======
+      while (i < lines.length && !lines[i].startsWith('=======')) {
+        oursLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip =======
+      // Collect "theirs" lines until >>>>>>>
+      while (i < lines.length && !lines[i].startsWith('>>>>>>>')) {
+        theirsLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip >>>>>>>
+      regions.push({
+        index: regionIndex++,
+        ours: oursLines.join('\n'),
+        theirs: theirsLines.join('\n'),
+      });
+    } else {
+      i++;
+    }
+  }
+  return regions;
+}
+
+/**
+ * Rebuild a file by replacing conflict markers with the chosen side.
+ * choices maps region index to 'ours' or 'theirs'.
+ */
+export function resolveConflictContent(
+  content: string,
+  choices: Record<number, 'ours' | 'theirs'>,
+): string {
+  const lines = content.split('\n');
+  const result: string[] = [];
+  let i = 0;
+  let regionIndex = 0;
+
+  while (i < lines.length) {
+    if (lines[i].startsWith('<<<<<<<')) {
+      const oursLines: string[] = [];
+      const theirsLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('=======')) {
+        oursLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip =======
+      while (i < lines.length && !lines[i].startsWith('>>>>>>>')) {
+        theirsLines.push(lines[i]);
+        i++;
+      }
+      i++; // skip >>>>>>>
+      const choice = choices[regionIndex] ?? 'ours';
+      const chosen = choice === 'theirs' ? theirsLines : oursLines;
+      result.push(...chosen);
+      regionIndex++;
+    } else {
+      result.push(lines[i]);
+      i++;
+    }
+  }
+  return result.join('\n');
+}
 
 export class GitSync {
   private dir: string;
@@ -63,8 +157,78 @@ export class GitSync {
     await this.git.push();
   }
 
-  async pull(): Promise<void> {
-    await this.git.pull();
+  async pull(): Promise<{ conflicts: string[] }> {
+    try {
+      await this.git.pull();
+      return { conflicts: [] };
+    } catch (err) {
+      // Check if the pull resulted in merge conflicts
+      const conflicted = await this.getConflictedFiles();
+      if (conflicted.length > 0) {
+        return { conflicts: conflicted };
+      }
+      throw err;
+    }
+  }
+
+  /** List files with unresolved merge conflicts. */
+  async getConflictedFiles(): Promise<string[]> {
+    try {
+      const raw = await this.git.raw(['diff', '--name-only', '--diff-filter=U']);
+      return raw.trim().split('\n').filter(Boolean);
+    } catch {
+      return [];
+    }
+  }
+
+  /** Get parsed conflict data for all conflicted files. */
+  async getConflicts(): Promise<FileConflict[]> {
+    const files = await this.getConflictedFiles();
+    const results: FileConflict[] = [];
+    for (const file of files) {
+      const filePath = path.resolve(this.dir, file);
+      // Validate path is within token directory
+      if (!filePath.startsWith(this.dir + path.sep) && filePath !== this.dir) continue;
+      try {
+        const content = await fs.readFile(filePath, 'utf-8');
+        const regions = parseConflictMarkers(content);
+        if (regions.length > 0) {
+          results.push({ file, regions });
+        }
+      } catch {
+        // File may not exist (deleted in one side)
+      }
+    }
+    return results;
+  }
+
+  /** Resolve conflicts in a file by choosing ours/theirs per region, then stage it. */
+  async resolveFileConflict(file: string, choices: Record<number, 'ours' | 'theirs'>): Promise<void> {
+    this.validatePaths([file]);
+    const filePath = path.resolve(this.dir, file);
+    const content = await fs.readFile(filePath, 'utf-8');
+    const resolved = resolveConflictContent(content, choices);
+    await fs.writeFile(filePath, resolved, 'utf-8');
+    await this.git.add([file]);
+  }
+
+  /** Abort the current merge. */
+  async abortMerge(): Promise<void> {
+    await this.git.merge(['--abort']);
+  }
+
+  /** Finalize merge after all conflicts resolved — creates the merge commit. */
+  async finalizeMerge(): Promise<void> {
+    // Check if any conflicts remain
+    const remaining = await this.getConflictedFiles();
+    if (remaining.length > 0) {
+      throw new Error(`Cannot finalize merge: ${remaining.length} file(s) still have conflicts`);
+    }
+    try {
+      await this.git.commit('Merge remote changes (conflicts resolved)');
+    } catch (err) {
+      console.warn('[GitSync] Finalize merge commit failed:', err);
+    }
   }
 
   async getCurrentBranch(): Promise<string> {

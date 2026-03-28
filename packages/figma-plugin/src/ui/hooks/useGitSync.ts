@@ -5,6 +5,17 @@ function describeError(err: unknown, operation: string): string {
   return `${operation} failed: ${getErrorMessage(err, String(err))}`;
 }
 
+export interface ConflictRegion {
+  index: number;
+  ours: string;
+  theirs: string;
+}
+
+export interface FileConflict {
+  file: string;
+  regions: ConflictRegion[];
+}
+
 export interface GitStatus {
   isRepo: boolean;
   branch: string | null;
@@ -39,6 +50,9 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [, setTick] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [mergeConflicts, setMergeConflicts] = useState<FileConflict[]>([]);
+  const [conflictChoices, setConflictChoices] = useState<Record<string, Record<number, 'ours' | 'theirs'>>>({});
+  const [resolvingConflicts, setResolvingConflicts] = useState(false);
   const knownFilesRef = useRef<Set<string>>(new Set());
   const fetchAbortRef = useRef<AbortController | null>(null);
 
@@ -72,14 +86,82 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
 
   useEffect(() => {
     fetchStatus();
+    fetchConflicts();
     return () => { fetchAbortRef.current?.abort(); };
-  }, [fetchStatus]);
+  }, [fetchStatus, fetchConflicts]);
 
   useEffect(() => {
     if (!lastSynced) return;
     const id = setInterval(() => setTick(t => t + 1), 30_000);
     return () => clearInterval(id);
   }, [lastSynced]);
+
+  const fetchConflicts = useCallback(async () => {
+    try {
+      const res = await fetch(`${serverUrl}/api/sync/conflicts`);
+      if (res.ok) {
+        const data = await res.json();
+        const conflicts: FileConflict[] = data.conflicts || [];
+        setMergeConflicts(conflicts);
+        // Initialize choices: default all regions to 'theirs' (accept incoming)
+        const choices: Record<string, Record<number, 'ours' | 'theirs'>> = {};
+        for (const c of conflicts) {
+          choices[c.file] = {};
+          for (const r of c.regions) {
+            choices[c.file][r.index] = 'theirs';
+          }
+        }
+        setConflictChoices(choices);
+      }
+    } catch {
+      // Conflict fetch failure is non-fatal
+    }
+  }, [serverUrl]);
+
+  const resolveConflicts = useCallback(async () => {
+    setResolvingConflicts(true);
+    setGitError(null);
+    try {
+      const resolutions = mergeConflicts.map(c => ({
+        file: c.file,
+        choices: conflictChoices[c.file] || {},
+      }));
+      const res = await fetch(`${serverUrl}/api/sync/conflicts/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resolutions }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to resolve conflicts');
+      }
+      setMergeConflicts([]);
+      setConflictChoices({});
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Merge conflicts resolved' } }, '*');
+      fetchStatus();
+    } catch (err) {
+      setGitError(describeError(err, 'Resolve conflicts'));
+    } finally {
+      setResolvingConflicts(false);
+    }
+  }, [serverUrl, mergeConflicts, conflictChoices, fetchStatus]);
+
+  const abortMerge = useCallback(async () => {
+    setActionLoading('abort');
+    setGitError(null);
+    try {
+      const res = await fetch(`${serverUrl}/api/sync/conflicts/abort`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to abort merge');
+      setMergeConflicts([]);
+      setConflictChoices({});
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Merge aborted' } }, '*');
+      fetchStatus();
+    } catch (err) {
+      setGitError(describeError(err, 'Abort merge'));
+    } finally {
+      setActionLoading(null);
+    }
+  }, [serverUrl, fetchStatus]);
 
   const doAction = async (action: string, body?: any) => {
     setActionLoading(action);
@@ -94,10 +176,21 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || `${action} failed`);
       }
+      const result = await res.json().catch(() => ({}));
       if (action === 'push' || action === 'pull') setLastSynced(new Date());
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Git ${action} completed` } }, '*');
+      // Check for merge conflicts after pull
+      if (action === 'pull' && result.conflicts && result.conflicts.length > 0) {
+        await fetchConflicts();
+        parent.postMessage({ pluginMessage: { type: 'notify', message: `Pull completed with ${result.conflicts.length} conflict(s)` } }, '*');
+      } else {
+        parent.postMessage({ pluginMessage: { type: 'notify', message: `Git ${action} completed` } }, '*');
+      }
       fetchStatus();
     } catch (err) {
+      // If pull fails, still check for conflicts (merge in progress)
+      if (action === 'pull') {
+        await fetchConflicts();
+      }
       setGitError(describeError(err, `Git ${action}`));
     } finally {
       setActionLoading(null);
@@ -189,10 +282,17 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     lastSynced,
     selectedFiles,
     setSelectedFiles,
+    mergeConflicts,
+    conflictChoices,
+    setConflictChoices,
+    resolvingConflicts,
     fetchStatus,
     doAction,
     computeDiff,
     applyDiff,
+    fetchConflicts,
+    resolveConflicts,
+    abortMerge,
     allChanges,
   };
 }

@@ -582,3 +582,16 @@
   - `git show <hash>:<path>` retrieves file content at a specific commit — combine with parent (`hash~1`) for before/after diffs
   - The existing `ValueDiff` component handles all token types and is perfect for reuse in history diffs
 ---
+
+## 2026-03-28 - No in-plugin Git merge conflict resolution
+- Implemented full merge conflict detection and resolution UI for `.tokens.json` files:
+  - **Server (`git-sync.ts`)**: Added `parseConflictMarkers()` and `resolveConflictContent()` pure functions for parsing/resolving git conflict markers. Added `getConflictedFiles()`, `getConflicts()`, `resolveFileConflict()`, `abortMerge()`, `finalizeMerge()` methods. Updated `pull()` to return conflict list when merge conflicts occur.
+  - **Server routes (`sync.ts`)**: Added `GET /api/sync/conflicts` (list conflicts with parsed regions), `POST /api/sync/conflicts/resolve` (resolve and finalize merge), `POST /api/sync/conflicts/abort` (abort merge). Updated pull endpoint to return conflicts array.
+  - **UI hook (`useGitSync.ts`)**: Added `mergeConflicts`, `conflictChoices`, `resolvingConflicts` state. Added `fetchConflicts()`, `resolveConflicts()`, `abortMerge()` methods. Pull action auto-detects conflicts. Conflicts checked on mount (for in-progress merges).
+  - **UI (`PublishPanel.tsx`)**: Added conflict resolver panel with warning banner, per-file conflict list, side-by-side ours/theirs region picker, resolve all button, and abort merge button. Git badge shows conflict count in error color.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L1-90 (parser), ~L66-130 (methods); `packages/server/src/routes/sync.ts` ~L83-140; `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L4-14 (types), ~L42-46 (state), ~L84-150 (methods), ~L200-210 (return); `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L615-620 (badge), ~L707-790 (resolver UI)
+- **Learnings for future iterations:**
+  - `simple-git` `pull()` throws on merge conflicts rather than returning them — catch the error and check `git diff --name-only --diff-filter=U` to detect conflicted files
+  - Conflict markers follow `<<<<<<< / ======= / >>>>>>>` pattern; parsing at text level is reliable since JSON structure is broken anyway
+  - Default conflict choice to "theirs" (accept incoming) since pull implies intent to get remote changes
+---

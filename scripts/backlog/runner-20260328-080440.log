@@ -291,3 +291,11 @@ Already up to date.
 
 --- Merging: No visual version history or changelog ---
 Already up to date.
+[main 6ced42e] chore(backlog): done – No visual version history or changelog
+ 10 files changed, 583 insertions(+), 20 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/VersionHistoryPanel.tsx
+
+## 2026-03-28 - No visual version history or changelog
+- Added a full Version History panel under Ship > History sub-tab with timeline view (list of commits with relative dates, author, message) and detail view (token-level before/after diffs grouped by set, with add/modify/remove status badges and rich ValueDiff rendering for modified tokens).
+- Server: Added `getTokenFileDiffs` method to GitSync service and `GET /api/sync/log/:hash/tokens` route that parses `.tokens.json` files at commit and parent, flattens via `flattenTokenGroup`, and returns token-level add/modify/remove changes.
+- UI: Created `VersionHistoryPanel.tsx` component with timeline list view and expandable commit detail view using collapsible sections per set.

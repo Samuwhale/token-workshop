@@ -67,7 +67,7 @@
 ### UX
 
 - [~] No in-plugin Git merge conflict resolution — `git pull` can create merge conflicts in `.tokens.json` files, but there's no conflict resolver UI; users must switch to a code editor to fix JSON conflicts
-- [~] No visual version history or changelog — beyond raw `git log`, there's no timeline of token changes with before/after value diffs; useful for reviewing what changed between design reviews or releases
+- [x] No visual version history or changelog — beyond raw `git log`, there's no timeline of token changes with before/after value diffs; useful for reviewing what changed between design reviews or releases
 
 ---
 
