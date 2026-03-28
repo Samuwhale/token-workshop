@@ -377,3 +377,9 @@
 - **Learnings for future iterations:**
   - ThemeCompare was incrementally improved across multiple prior sessions (a11y, clipboard, font sizing) — backlog items that describe the original problem may not reflect current state
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: ExportPanel.tsx vs PublishPanel.tsx (duplicate file export), KeyboardShortcutsModal.tsx vs App.tsx keyboard handlers (5 unimplemented shortcuts), tab navigation shortcuts (Cmd+1/2/3 stale), QuickStartWizard.tsx (inaccessible after setup), PasteTokensModal.tsx (sequential API calls vs batch endpoint), PublishPanel.tsx (missing "all synced" state), MetadataEditor.tsx (raw Figma scope labels), TokenFlowPanel.tsx (truncated graphs), BatchEditor.tsx (no metadata operations), PreviewPanel.tsx (no token linking), ComparePanel.tsx (undiscoverable), ThemeManager.tsx + ResolverPanel.tsx + ThemeCompare.tsx (overlap analysis), ConsistencyPanel.tsx + AnalyticsPanel.tsx + HeatmapPanel.tsx (overlap analysis), SnapshotPanel.tsx + VersionHistoryPanel.tsx (merge opportunity), TokenEditor.tsx + TokenTreeNode.tsx (inline editing gaps), server routes (export formats, bulk import, token history)
+- Found 11 items — written to backlog-inbox.md
+- Notable: ExportPanel and PublishPanel's "File Export" section are completely duplicated features; 5 keyboard shortcuts are documented in the help modal but have no event handlers; QuickStart wizard disappears after first use with no re-entry point
+---
