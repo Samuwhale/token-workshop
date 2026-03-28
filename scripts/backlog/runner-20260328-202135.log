@@ -36,3 +36,16 @@ Already up to date.
 
 --- Merging: Hover tooltips on truncated token paths ---
 Already up to date.
+[main 0eea3c8] chore(backlog): done – Hover tooltips on truncated token paths
+ 7 files changed, 39 insertions(+), 9 deletions(-)
+
+## 2026-03-28 - Hover tooltips on truncated token paths
+- Added `title` attributes to all truncated text elements that were missing them: token name/path display (always shows full `formatDisplayPath`), extends badge inner span, generator name inner span, alias reference inner span, read-only value display, and search results path.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1086,1143,1174,1188,1306; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2862
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  67 items remaining
+===============================================================
+  Claimed: Contextual help for advanced features: first-time hints or inline descriptions for Resolvers, Token Flow, Heatmap, Generators — no onboarding wizard, just "what is this?" affordances on each panel
+  Worktree: /tmp/backlog-9231-5l1EEj

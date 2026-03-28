@@ -530,3 +530,9 @@
   - Several truncated spans already had title attributes on their parent element (button/span wrapper) but the inner truncated span itself also needs a `title` for reliable browser tooltip behavior
   - Elements that already had titles: `$description` div, breadcrumb segments, color swatch grid buttons, alias value spans (resolved values variant), inline-editable values
 ---
+
+## 2026-03-28 - code-pass
+- Areas explored: UI components (TokenTableView, AnalyticsPanel, ResolverPanel, PasteTokensModal, HeatmapPanel, ColorPicker, PreviewPanel, MetadataEditor, SemanticMappingDialog, useFigmaSync, useThemeSwitcher, useResolvers, useServerEvents, apiFetch), server services (resolver-store, lint, token-store async API), plugin sandbox (variableSync rollback, controller async handlers, styleSync)
+- Found 6 items — written to backlog-inbox.md
+- Notable: resolver-store.ts:161 calls async `tokenStore.getSet()` without `await` — the Promise is always truthy so the null check never triggers and `set.tokens` returns undefined, silently breaking all resolver external-set loading; TokenTableView description edit passes the old value instead of the edited text
+---

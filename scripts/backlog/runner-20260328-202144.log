@@ -22,3 +22,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    6 items written to inbox: [HIGH] missing await in resolver-store getSet, TokenTableView description edit broken, controller async handlers lack error handling, variableSync incomplete rollback, useFigmaSync style sync missing setName, duplicate color math in lint.ts
+Already up to date.
