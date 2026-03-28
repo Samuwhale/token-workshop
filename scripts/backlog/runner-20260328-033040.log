@@ -208,3 +208,9 @@ Already up to date.
 
 --- Merging: Duplicated `flattenTokenGroup` in `useGeneratorDialog.ts` ---
 Already up to date.
+[main 04f94da] chore(backlog): done – Duplicated `flattenTokenGroup` in `useGeneratorDialog.ts`
+ 5 files changed, 30 insertions(+), 3 deletions(-)
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 49)

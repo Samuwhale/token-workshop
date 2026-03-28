@@ -381,3 +381,26 @@ Completed items removed from backlog.md to keep it lean.
 - [x] No custom export path or selector template — all CSS exports use `:root` selector with no option for scoped output like `.light { --color: ... }` or custom folder structures
 - [x] HeatmapPanel has no export or reporting — users can't export binding coverage as CSV/JSON or share a "200/1000 layers bound (20%)" summary with stakeholders
 - [x] HeatmapPanel "select all red" action has no follow-up workflow — selecting unbound layers has no batch "bind all to token X" or "create tokens for these" next step
+
+## Archived 2026-03-28 (21 items)
+- [x] [HIGH] Token paths are not validated on create — the server accepts paths with double dots (`color..primary`), reserved `$` prefixes, or slashes, which can corrupt the token file and break resolution
+- [x] `findVariableInList` matches by `name` (dots) not Figma variable name (slashes) — `applyVariables` passes `token.path` (e.g. `colors.primary.500`) but Figma uses slashes (`colors/primary/500`), so the lookup always fails for nested tokens and creates duplicate variables instead of updating existing ones
+- [x] `parseColor` in controller.ts only handles hex strings — if a color token uses `rgb()`, `hsl()`, or a named CSS color (which core's validator accepts), `parseColor` returns `null` and the color is silently not applied
+- [x] `deleteTokenAtPath` won't prune groups that only have `$`-prefixed metadata keys (`$type`, `$description`) — orphaned metadata remains after the last child token is deleted
+- [x] `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block — if `saveSet` throws, batch depth is never decremented and all subsequent rebuilds are suppressed
+- [x] `replaceSetTokens` double-rebuild — explicitly calls `rebuildFlatTokens()` inside the batch, then `endBatch()` triggers another rebuild
+- [x] Theme dimensions store cache is never invalidated on external file changes — `renameSet` writes to `$themes.json` directly, bypassing the `DimensionsStore` cache; subsequent reads return stale data
+- [x] Race condition in `fetchThemes` (`useThemeSwitcher`) — fire-and-forget fetch with no abort/generation guard; rapid `tokens` changes cause overlapping fetches where the last to resolve wins regardless of order
+- [x] Side effects inside `setActiveThemesState` updater — `lsSetJson()` and `parent.postMessage()` inside the setState updater will fire multiple times in React concurrent mode
+- [x] Git sync `applyDiffChoices` pushes even when pull commit fails silently — the push proceeds after a caught pull error, potentially pushing stale state
+- [x] Git sync commit endpoint accepts arbitrary file paths — `files` array is passed directly to `git.add()` with no validation that paths resolve within the token directory; a malicious client could stage files like `../../etc/secrets`
+- [x] Race condition in file write guard — `_writingFiles` entries are cleared via `setTimeout(..., 500ms)`; if writes take longer than 500ms (slow disk, large files), the watcher reloads a partially-written file, corrupting in-memory state
+- [x] `renameSet` is not atomic — if old file deletion fails after new file creation and theme updates, the system has two files and inconsistent in-memory state with no cleanup for partial failure
+- [x] `setGroupScopesProgress` called but never declared — `handleApplyGroupScopes` in `useFigmaSync.ts` calls `setGroupScopesProgress(...)` three times but neither the state nor setter exist; throws `ReferenceError` at runtime when applying group scopes
+- [x] `scanCanvasHeatmap` can freeze Figma on large pages — `findAll` iterates every node synchronously and reads plugin data for all bindable properties with no batching or yielding, unlike `syncBindings` which batches
+- [x] Race condition in `fetchAllTokensFlatWithSets` — no AbortController or generation counter; rapid set switches cause overlapping fetches that can overwrite `allTokensFlat`/`pathToSet` with stale data, corrupting theme switcher and alias navigation
+- [x] `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale` — no `default` branch, returns `undefined` which renders as "undefined" in the UI
+- [x] `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path — if `onSaved` doesn't unmount the component, the save button stays disabled permanently
+- [x] `ColorPicker` initializes HSL state from props but never syncs — `useState(hexToHsl(value))` only runs the initializer once; if the parent changes the `value` prop, the picker's internal hue/sat/lit state won't update
+- [x] CSS selector injection in export — `cssSelector` from request body is passed directly to Style Dictionary with no sanitization
+- [x] Duplicated `flattenTokenGroup` in `useGeneratorDialog.ts` — re-implements the same function already available from `@tokenmanager/core`

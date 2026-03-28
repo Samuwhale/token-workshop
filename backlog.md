@@ -10,7 +10,6 @@
 ## App Shell & Navigation
 
 ### Bugs
-- [x] [HIGH] Token paths are not validated on create — the server accepts paths with double dots (`color..primary`), reserved `$` prefixes, or slashes, which can corrupt the token file and break resolution
 
 ### QoL
 
@@ -22,12 +21,6 @@
 
 ### Bugs
 
-- [x] `findVariableInList` matches by `name` (dots) not Figma variable name (slashes) — `applyVariables` passes `token.path` (e.g. `colors.primary.500`) but Figma uses slashes (`colors/primary/500`), so the lookup always fails for nested tokens and creates duplicate variables instead of updating existing ones
-- [x] `parseColor` in controller.ts only handles hex strings — if a color token uses `rgb()`, `hsl()`, or a named CSS color (which core's validator accepts), `parseColor` returns `null` and the color is silently not applied
-- [x] `deleteTokenAtPath` won't prune groups that only have `$`-prefixed metadata keys (`$type`, `$description`) — orphaned metadata remains after the last child token is deleted
-- [x] `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block — if `saveSet` throws, batch depth is never decremented and all subsequent rebuilds are suppressed
-- [x] `replaceSetTokens` double-rebuild — explicitly calls `rebuildFlatTokens()` inside the batch, then `endBatch()` triggers another rebuild
-
 ### QoL
 
 ### UX
@@ -38,10 +31,6 @@
 
 ### Bugs
 
-- [x] Theme dimensions store cache is never invalidated on external file changes — `renameSet` writes to `$themes.json` directly, bypassing the `DimensionsStore` cache; subsequent reads return stale data
-- [x] Race condition in `fetchThemes` (`useThemeSwitcher`) — fire-and-forget fetch with no abort/generation guard; rapid `tokens` changes cause overlapping fetches where the last to resolve wins regardless of order
-- [x] Side effects inside `setActiveThemesState` updater — `lsSetJson()` and `parent.postMessage()` inside the setState updater will fire multiple times in React concurrent mode
-
 ### QoL
 
 ### UX
@@ -51,11 +40,6 @@
 ## Sync
 
 ### Bugs
-
-- [x] Git sync `applyDiffChoices` pushes even when pull commit fails silently — the push proceeds after a caught pull error, potentially pushing stale state
-- [x] Git sync commit endpoint accepts arbitrary file paths — `files` array is passed directly to `git.add()` with no validation that paths resolve within the token directory; a malicious client could stage files like `../../etc/secrets`
-- [x] Race condition in file write guard — `_writingFiles` entries are cleared via `setTimeout(..., 500ms)`; if writes take longer than 500ms (slow disk, large files), the watcher reloads a partially-written file, corrupting in-memory state
-- [x] `renameSet` is not atomic — if old file deletion fails after new file creation and theme updates, the system has two files and inconsistent in-memory state with no cleanup for partial failure
 
 ### QoL
 
@@ -73,10 +57,6 @@
 ## Selection Inspector & Property Binding
 
 ### Bugs
-
-- [x] `setGroupScopesProgress` called but never declared — `handleApplyGroupScopes` in `useFigmaSync.ts` calls `setGroupScopesProgress(...)` three times but neither the state nor setter exist; throws `ReferenceError` at runtime when applying group scopes
-- [x] `scanCanvasHeatmap` can freeze Figma on large pages — `findAll` iterates every node synchronously and reads plugin data for all bindable properties with no batching or yielding, unlike `syncBindings` which batches
-- [x] Race condition in `fetchAllTokensFlatWithSets` — no AbortController or generation counter; rapid set switches cause overlapping fetches that can overwrite `allTokensFlat`/`pathToSet` with stale data, corrupting theme switcher and alias navigation
 
 ### QoL
 
@@ -98,9 +78,7 @@
 
 ### Bugs
 
-- [x] `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale` — no `default` branch, returns `undefined` which renders as "undefined" in the UI
 - [~] `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types — accessing these keys returns `undefined`, showing broken labels
-- [x] `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path — if `onSaved` doesn't unmount the component, the save button stays disabled permanently
 
 ### UX
 
@@ -110,8 +88,6 @@
 
 ### Bugs
 
-- [x] `ColorPicker` initializes HSL state from props but never syncs — `useState(hexToHsl(value))` only runs the initializer once; if the parent changes the `value` prop, the picker's internal hue/sat/lit state won't update
-
 ### QoL
 
 ---
@@ -120,7 +96,6 @@
 
 ### Bugs
 
-- [x] CSS selector injection in export — `cssSelector` from request body is passed directly to Style Dictionary with no sanitization
 - [~] Lint `path-pattern` rule vulnerable to ReDoS — user-supplied regex patterns are compiled directly into `new RegExp()` without calling `isSafeRegex()` first (the guard only exists in the `bulkRename` path)
 
 ### QoL
@@ -136,7 +111,6 @@
 
 ### Redundancy & Duplication
 
-- [~] Duplicated `flattenTokenGroup` in `useGeneratorDialog.ts` — re-implements the same function already available from `@tokenmanager/core`
 - [~] Duplicated `flattenForVarDiff`/`flattenForStyleDiff` in `PublishPanel.tsx` — duplicates logic from `flattenTokenGroup` in core and `flattenWithNames` in `useTokens`
 - [ ] Duplicated tree-walking patterns in `token-store.ts` — `updateAliasRefs`, `updateBulkAliasRefs`, `collectGroupLeafTokens` all implement nearly identical recursive walkers; extract a generic walker
 - [ ] `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches — all do the same thing (extract step names from config and build paths); collapse into a single generic function
