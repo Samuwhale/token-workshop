@@ -39,3 +39,9 @@ Already up to date.
 
 --- Merging: getErrorMessage used in App.tsx useSyncBindings but never imported ---
 Already up to date.
+[main 7ecfe38] chore(backlog): done – getErrorMessage used in App.tsx useSyncBindings but never imported
+ 6 files changed, 45 insertions(+), 15 deletions(-)
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 54)
