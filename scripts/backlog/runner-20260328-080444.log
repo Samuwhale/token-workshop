@@ -71,3 +71,10 @@ Already up to date.
 ===============================================================
   Claimed: Search qualifiers are undiscoverable — powerful query system (type:color, has:alias, value:#ff0000) has no autocomplete, cheat sheet, or inline hint; add a "?" icon showing available qualifiers or structured filter chips that generate the query (like GitHub issue filters)
   Worktree: /tmp/backlog-63411-YWWRGC
+
+  ✓ done: Search qualifiers are undiscoverable
+    Added a "?" help button next to the search input that opens a clickable cheat sheet popover listing all available qualifiers with descriptions and examples. Clicking a qualifier inserts it into the search.
+    21 turns · 153s · $0.77
+
+--- Merging: Search qualifiers are undiscoverable ---
+Already up to date.

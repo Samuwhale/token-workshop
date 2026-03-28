@@ -60,3 +60,16 @@ Already up to date.
 
 --- Merging: `inferType` heuristic misclassifies composite tokens ---
 Already up to date.
+[main 4d3fb91] chore(backlog): done – `inferType` heuristic misclassifies composite tokens
+ 6 files changed, 52 insertions(+), 16 deletions(-)
+
+## 2026-03-28 - `inferType` heuristic misclassifies composite tokens
+- Tightened the `inferType` heuristic in `packages/core/src/resolver.ts` to require more distinctive key combinations instead of single-key matches:
+  - **Shadow**: now requires `offsetX` or `offsetY` (previously any of `offsetX`/`offsetY`/`blur`/`spread` — so a composition with just `blur` was misclassified as shadow)
+  - **Typography**: now requires `fontFamily` or `fontSize` (previously any of 5 typography keys)
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  99 items remaining
+===============================================================
+  Claimed: No visual diff when editing token values — no "before → after" preview; show the current resolved value alongside the edit field, especially for complex types like typography and shadows
+  Worktree: /tmp/backlog-63973-B65qBj

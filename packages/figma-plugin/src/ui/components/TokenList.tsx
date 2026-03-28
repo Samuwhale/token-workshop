@@ -489,8 +489,10 @@ export function TokenList({
 
   const [crossSetSearch, setCrossSetSearch] = useState(false);
   const [showQualifierHints, setShowQualifierHints] = useState(false);
+  const [showQualifierHelp, setShowQualifierHelp] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
   const qualifierHintsRef = useRef<HTMLDivElement>(null);
+  const qualifierHelpRef = useRef<HTMLDivElement>(null);
 
   // Compute filtered qualifier hints based on what the user is currently typing
   const qualifierHints = useMemo(() => {
@@ -2096,6 +2098,52 @@ export function TokenList({
                           <span className="truncate">{hint.desc}</span>
                         </button>
                       ))}
+                    </div>
+                  )}
+                </div>
+                {/* Search qualifier help button */}
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setShowQualifierHelp(v => !v)}
+                    onBlur={() => { setTimeout(() => setShowQualifierHelp(false), 150); }}
+                    title="Search qualifiers cheat sheet"
+                    aria-label="Search qualifiers cheat sheet"
+                    className={`flex items-center justify-center w-5 h-5 rounded border text-[10px] font-bold cursor-pointer transition-colors ${showQualifierHelp ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg)] hover:text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-text-tertiary)]'}`}
+                  >
+                    ?
+                  </button>
+                  {showQualifierHelp && (
+                    <div ref={qualifierHelpRef} className="absolute right-0 top-full mt-1 w-56 z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden">
+                      <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)]">
+                        <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Search Qualifiers</span>
+                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] ml-1">click to insert</span>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {QUERY_QUALIFIERS.map(hint => (
+                          <button
+                            key={hint.qualifier}
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              const q = searchQuery ? searchQuery + ' ' + hint.qualifier : hint.qualifier;
+                              setSearchQuery(q);
+                              setShowQualifierHelp(false);
+                              searchRef.current?.focus();
+                            }}
+                            className="w-full text-left px-2 py-1 text-[10px] flex flex-col gap-0 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-semibold text-[var(--color-figma-accent)]">{hint.qualifier}</span>
+                              <span className="text-[var(--color-figma-text-secondary)] truncate">{hint.desc}</span>
+                            </div>
+                            {hint.example && (
+                              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] font-mono ml-0.5">e.g. {hint.example}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="px-2 py-1 border-t border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-tertiary)]">
+                        Combine qualifiers: <span className="font-mono">type:color has:alias</span>
+                      </div>
                     </div>
                   )}
                 </div>

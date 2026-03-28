@@ -432,3 +432,12 @@
 - **Learnings for future iterations:**
   - When inferring composite token types from object keys, prefer keys that are *unique* to that type (e.g., `offsetX` for shadow, `fontFamily` for typography) over keys shared across types (e.g., `blur`, `color`, `width`).
 ---
+
+## 2026-03-28 - Search qualifiers are undiscoverable
+- Added a "?" help button next to the search input that opens a popover cheat sheet listing all available search qualifiers (type:, has:, value:, desc:, path:, name:) with descriptions and examples. Clicking a qualifier inserts it into the search input. Popover includes a footer tip about combining qualifiers.
+- The existing autocomplete dropdown (appears while typing) was already in place; this adds a persistent discovery mechanism for users who don't know qualifiers exist.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L491 (state + ref), ~L2103 (help button + popover UI)
+- **Learnings for future iterations:**
+  - The search qualifier system already had autocomplete on typing — the gap was a zero-state discovery mechanism
+  - Using onBlur with setTimeout(150) for popover dismissal is the existing pattern in this file (used by qualifier hints dropdown)
+---
