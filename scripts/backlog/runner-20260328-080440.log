@@ -128,3 +128,17 @@ Already up to date.
 
 --- Merging: No token lifecycle states ---
 Already up to date.
+[main 12cb1c1] chore(backlog): done – No token lifecycle states
+ 14 files changed, 108 insertions(+), 11 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No token lifecycle states
+- Added token lifecycle states (draft/published/deprecated) across the full stack
+- Core: `TokenLifecycle` type in `packages/core/src/types.ts` ~L14, exported from index.ts
+- Data model: lifecycle stored in `$extensions.tokenmanager.lifecycle`; `published` is default (not written to file)
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  79 items remaining
+===============================================================
+  Claimed: No token pinning or favorites — frequently-used tokens (e.g. brand primary, base spacing) require searching or navigating every time; add a star/pin action on tokens with a "Pinned" section at the top of the token list or a quick-access palette (Cmd+P style) that prioritizes pinned tokens
+  Worktree: /tmp/backlog-62956-hvCkGU

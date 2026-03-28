@@ -23,6 +23,7 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { PreviewPanel } from './components/PreviewPanel';
 import { HeatmapPanel } from './components/HeatmapPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
+import { TokenFlowPanel } from './components/TokenFlowPanel';
 import { ExportPanel } from './components/ExportPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useServerEvents } from './hooks/useServerEvents';
@@ -143,7 +144,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
-type DefineSubTab = 'tokens' | 'themes' | 'generators';
+type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'flow';
 type ApplySubTab = 'inspect' | 'heatmap';
 type ShipSubTab = 'publish' | 'export' | 'validation';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
@@ -188,6 +189,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'tokens', label: 'Tokens' },
     { id: 'themes', label: 'Themes' },
     { id: 'generators', label: 'Generators' },
+    { id: 'flow', label: 'Token Flow' },
   ]},
   { id: 'apply', label: 'Apply', subTabs: [
     { id: 'inspect', label: 'Inspect' },
@@ -2144,6 +2146,25 @@ export function App() {
               pendingGroupPath={pendingGraphFromGroup?.groupPath ?? null}
               pendingGroupTokenType={pendingGraphFromGroup?.tokenType ?? null}
               onClearPendingGroup={() => setPendingGraphFromGroup(null)}
+            />
+            </ErrorBoundary>
+          )}
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'flow' && (
+            <ErrorBoundary panelName="Token Flow" onReset={() => navigateTo('define', 'tokens')}>
+            <TokenFlowPanel
+              allTokensFlat={themedAllTokensFlat}
+              pathToSet={pathToSet}
+              onNavigateToToken={(path) => {
+                const targetSet = pathToSet[path];
+                navigateTo('define', 'tokens');
+                setEditingToken(null);
+                if (targetSet && targetSet !== activeSet) {
+                  setActiveSet(targetSet);
+                  setPendingHighlight(path);
+                } else {
+                  setHighlightedToken(path);
+                }
+              }}
             />
             </ErrorBoundary>
           )}

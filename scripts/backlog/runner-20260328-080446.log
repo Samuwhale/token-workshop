@@ -118,3 +118,10 @@ Already up to date.
 ===============================================================
   Claimed: No interactive token dependency graph — the Graph tab shows generators but there's no way to visualize the alias/reference graph; add a "Token Flow" view (like Tokens Studio): select a token and see an interactive node graph showing what it references and what references it, with resolved values per theme option — clicking a node navigates to that token
   Worktree: /tmp/backlog-63685-TAycex
+
+  ✓ done: No interactive token dependency graph
+    Added Token Flow sub-tab under Define with interactive SVG node graph showing upstream references and downstream dependents for any token, with click-to-explore and navigate-to-token support
+    42 turns · 364s · $1.9
+
+--- Merging: No interactive token dependency graph ---
+Already up to date.

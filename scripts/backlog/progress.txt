@@ -509,3 +509,18 @@
   - Storing only non-default values (`draft`/`deprecated`) keeps token files clean — `published` is inferred by absence
   - Bind pickers (PropertyRow) should hard-filter deprecated tokens; alias autocomplete should show them dimmed since aliases may reference deprecated tokens during migration
 ---
+
+## 2026-03-28 - No interactive token dependency graph
+- Created `TokenFlowPanel.tsx` — a new "Token Flow" sub-tab under Define that shows an interactive SVG node graph of token alias/reference relationships
+- Search bar to select any token; visualizes 3-column layout: References (upstream) → Selected → Dependents (downstream)
+- Walks full alias chains in both directions (up to 20 upstream, 30 downstream) using `extractAliasPath` for direct refs and a reverse dependency map
+- Each node shows token name, type badge, resolved value, and color swatch for color tokens
+- Clicking a node re-centers the graph on that token; "Go to token" link navigates to the token in the token list (cross-set aware)
+- SVG bezier curves with arrow markers connect nodes; auto-scroll centers the graph on mount
+- Added `flow` as new `DefineSubTab` in App.tsx with full navigation wiring (`navigateTo`, `setPendingHighlight`, cross-set support)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` (new, ~370 lines), `packages/figma-plugin/src/ui/App.tsx` ~L26,L146,L191,L2152-L2168
+- **Learnings for future iterations:**
+  - `getDirectReferences` must handle both top-level alias strings AND sub-property aliases in composite tokens (typography, shadow, etc.)
+  - The reverse dependency map (`path → dependents`) can be built once with `useMemo` from `allTokensFlat` — no server round-trip needed
+  - SVG edges must use `pointer-events-none` to avoid intercepting clicks on underlying HTML node cards
+---
