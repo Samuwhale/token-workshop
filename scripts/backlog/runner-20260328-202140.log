@@ -183,3 +183,23 @@ Already up to date.
 
 --- Merging: Token binding in SelectionInspector has no undo ---
 Already up to date.
+[main b9151ee] chore(backlog): done – Token binding in SelectionInspector has no undo
+ 5 files changed, 37 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - Token binding in SelectionInspector has no undo
+- Already implemented: `handleBindToken` (SelectionInspector.tsx ~L359-380) already pushes an undo slot via `onPushUndo` with restore logic that either re-applies the previous binding or removes the binding entirely
+- `handleRemoveBinding` (~L283) uses `buildRemoveBindingUndo` from `selectionInspectorUtils.ts`
+- `handleClearAllBindings` (~L300-317) also pushes undo
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  50 items remaining
+===============================================================
+  Claimed: `BatchEditor.tsx` renamePreview creates `new RegExp(findText)` inside `.filter()` on every element (~line 236) instead of reusing the already-memoized `parsedRegex` — wasteful for large token sets
+  Worktree: /tmp/backlog-9651-ExDxnH
+
+  ✓ done: BatchEditor renamePreview regex waste
+    Replaced 3 instances of redundant `new RegExp(findText)` with the memoized `parsedRegex`, using `path.search()` instead of `.test()` to avoid global-flag lastIndex issues.
+    11 turns · 68s · $0.31
+
+--- Merging: BatchEditor renamePreview regex waste ---
+Already up to date.

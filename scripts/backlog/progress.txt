@@ -513,3 +513,14 @@
   - The undo infrastructure (useUndo hook + ToastStack rendering) is fully wired in App.tsx and works for any component that receives `pushUndo` as a prop
   - `handleTokenCreated` (create-and-bind flow) still lacks undo — potential future backlog item
 ---
+
+## 2026-03-28 - BatchEditor renamePreview regex waste
+- Replaced 3 instances of `new RegExp(findText)` with reuse of the already-memoized `parsedRegex`:
+  - Line 236: `renamePreview` filter — used `path.search(parsedRegex)` instead of `new RegExp(findText).test(path)`
+  - Line 428: `handleRename` filter — same change
+  - Line 440: `handleRename` replace — used `path.replace(parsedRegex, ...)` instead of `path.replace(new RegExp(findText, 'g'), ...)`
+- Used `String.prototype.search()` for match-testing instead of `RegExp.prototype.test()` to avoid `lastIndex` mutation issues with the global (`'g'`) flag on the memoized regex
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L236, ~L428, ~L440
+- **Learnings for future iterations:**
+  - When a memoized regex has the `g` flag, don't use `.test()` in a loop — `lastIndex` advances between calls, causing alternating true/false. Use `path.search(regex) >= 0` or reset `lastIndex` before each call.
+---

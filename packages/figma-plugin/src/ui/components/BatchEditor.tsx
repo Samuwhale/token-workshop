@@ -233,7 +233,7 @@ export function BatchEditor({
     if (!findText) return 0;
     if (useRegex) {
       if (regexError || !parsedRegex) return 0;
-      return selectedEntries.filter(({ path }) => new RegExp(findText).test(path)).length;
+      return selectedEntries.filter(({ path }) => path.search(parsedRegex) >= 0).length;
     }
     return selectedEntries.filter(({ path }) => path.includes(findText)).length;
   }, [findText, useRegex, parsedRegex, regexError, selectedEntries]);
@@ -425,7 +425,7 @@ export function BatchEditor({
   const handleRename = async () => {
     if (!connected || !canRename) return;
     const toRename = useRegex && parsedRegex
-      ? selectedEntries.filter(({ path }) => new RegExp(findText).test(path))
+      ? selectedEntries.filter(({ path }) => path.search(parsedRegex) >= 0)
       : selectedEntries.filter(({ path }) => path.includes(findText));
     setRenaming(true);
     setFeedback(null);
@@ -437,7 +437,7 @@ export function BatchEditor({
       let done = 0;
       for (const { path } of toRename) {
         const newPath = useRegex && parsedRegex
-          ? path.replace(new RegExp(findText, 'g'), replaceText)
+          ? path.replace(parsedRegex, replaceText)
           : path.split(findText).join(replaceText);
         if (newPath !== path) {
           try {
