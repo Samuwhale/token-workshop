@@ -392,3 +392,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager allows concurrent mutations without debounce or disable — `handleSetState` and `handleBulkSetState` can be triggered multiple times in rapid succession while previous requests are in-flight; optimistic UI updates interleave with server responses, potentially leaving the UI in an inconsistent state
   Worktree: /tmp/backlog-9651-pZWKLS
+
+  ✓ done: ThemeManager allows concurrent mutations without debounce or disable
+    Added client-side promise-chain mutex (mutationChainRef) to serialize handleSetState and handleBulkSetState, preventing interleaved optimistic updates and stale rollback snapshots from rapid successive clicks
+    39 turns · 231s · $1.21
+
+--- Merging: ThemeManager allows concurrent mutations without debounce or disable ---
+Already up to date.

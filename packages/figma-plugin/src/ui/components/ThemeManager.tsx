@@ -97,6 +97,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // Debounced fetchDimensions
   const debounceFetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Mutation queue: serializes handleSetState / handleBulkSetState so concurrent
+  // calls don't interleave optimistic updates or capture stale rollback snapshots.
+  const mutationChainRef = useRef<Promise<void>>(Promise.resolve());
+
   // --- New stacking UI state ---
   // Selected option tab per dimension
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
@@ -709,78 +713,86 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   // --- Set state toggle ---
 
-  const handleSetState = async (dimId: string, optionName: string, setName: string, targetState: string) => {
-    const dim = dimensions.find(d => d.id === dimId);
-    if (!dim) return;
-    const opt = dim.options.find(o => o.name === optionName);
-    if (!opt) return;
-    const updatedSets = { ...opt.sets, [setName]: targetState as 'enabled' | 'disabled' | 'source' };
-    const previousDimensions = dimensions;
-    const saveKey = `${dimId}/${optionName}/${setName}`;
-    setSavingKeys(prev => { const n = new Set(prev); n.add(saveKey); return n; });
-    setDimensions(prev => prev.map(d =>
-      d.id === dimId
-        ? { ...d, options: d.options.map(o => o.name === optionName ? { ...o, sets: updatedSets } : o) }
-        : d,
-    ));
-    try {
-      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: optionName, sets: updatedSets }),
-      });
-      if (!res.ok) {
+  const handleSetState = (dimId: string, optionName: string, setName: string, targetState: string) => {
+    const task = async () => {
+      const dim = dimensions.find(d => d.id === dimId);
+      if (!dim) return;
+      const opt = dim.options.find(o => o.name === optionName);
+      if (!opt) return;
+      const updatedSets = { ...opt.sets, [setName]: targetState as 'enabled' | 'disabled' | 'source' };
+      const previousDimensions = dimensions;
+      const saveKey = `${dimId}/${optionName}/${setName}`;
+      setSavingKeys(prev => { const n = new Set(prev); n.add(saveKey); return n; });
+      setDimensions(prev => prev.map(d =>
+        d.id === dimId
+          ? { ...d, options: d.options.map(o => o.name === optionName ? { ...o, sets: updatedSets } : o) }
+          : d,
+      ));
+      try {
+        const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: optionName, sets: updatedSets }),
+        });
+        if (!res.ok) {
+          setDimensions(previousDimensions);
+          const d = await res.json().catch(() => ({}));
+          setError(d.error || `Failed to save (${res.status})`);
+          return;
+        }
+        debouncedFetchDimensions();
+      } catch (err) {
         setDimensions(previousDimensions);
-        const d = await res.json().catch(() => ({}));
-        setError(d.error || `Failed to save (${res.status})`);
-        return;
+        setError(getErrorMessage(err, 'Failed to save'));
+      } finally {
+        setSavingKeys(prev => { const n = new Set(prev); n.delete(saveKey); return n; });
       }
-      debouncedFetchDimensions();
-    } catch (err) {
-      setDimensions(previousDimensions);
-      setError(getErrorMessage(err, 'Failed to save'));
-    } finally {
-      setSavingKeys(prev => { const n = new Set(prev); n.delete(saveKey); return n; });
-    }
+    };
+    const next = mutationChainRef.current.then(task);
+    mutationChainRef.current = next.catch(() => {});
   };
 
   // --- Bulk set-status across all options in a dimension ---
 
-  const handleBulkSetState = async (dimId: string, setName: string, targetState: 'enabled' | 'disabled' | 'source') => {
+  const handleBulkSetState = (dimId: string, setName: string, targetState: 'enabled' | 'disabled' | 'source') => {
     setBulkMenu(null);
-    const dim = dimensions.find(d => d.id === dimId);
-    if (!dim) return;
-    const previousDimensions = dimensions;
-    const bulkKeys = dim.options.map(o => `${dimId}/${o.name}/${setName}`);
-    setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.add(k)); return n; });
-    setDimensions(prev => prev.map(d =>
-      d.id === dimId
-        ? { ...d, options: d.options.map(o => ({ ...o, sets: { ...o.sets, [setName]: targetState } })) }
-        : d,
-    ));
-    try {
-      const results = await Promise.all(dim.options.map(opt => {
-        const updatedSets = { ...opt.sets, [setName]: targetState };
-        return fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: opt.name, sets: updatedSets }),
-        });
-      }));
-      const failed = results.find(r => !r.ok);
-      if (failed) {
+    const task = async () => {
+      const dim = dimensions.find(d => d.id === dimId);
+      if (!dim) return;
+      const previousDimensions = dimensions;
+      const bulkKeys = dim.options.map(o => `${dimId}/${o.name}/${setName}`);
+      setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.add(k)); return n; });
+      setDimensions(prev => prev.map(d =>
+        d.id === dimId
+          ? { ...d, options: d.options.map(o => ({ ...o, sets: { ...o.sets, [setName]: targetState } })) }
+          : d,
+      ));
+      try {
+        const results = await Promise.all(dim.options.map(opt => {
+          const updatedSets = { ...opt.sets, [setName]: targetState };
+          return fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: opt.name, sets: updatedSets }),
+          });
+        }));
+        const failed = results.find(r => !r.ok);
+        if (failed) {
+          setDimensions(previousDimensions);
+          const d = await failed.json().catch(() => ({}));
+          setError(d.error || `Failed to bulk-update (${failed.status})`);
+          return;
+        }
+        debouncedFetchDimensions();
+      } catch (err) {
         setDimensions(previousDimensions);
-        const d = await failed.json().catch(() => ({}));
-        setError(d.error || `Failed to bulk-update (${failed.status})`);
-        return;
+        setError(getErrorMessage(err, 'Failed to bulk-update'));
+      } finally {
+        setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.delete(k)); return n; });
       }
-      debouncedFetchDimensions();
-    } catch (err) {
-      setDimensions(previousDimensions);
-      setError(getErrorMessage(err, 'Failed to bulk-update'));
-    } finally {
-      setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.delete(k)); return n; });
-    }
+    };
+    const next = mutationChainRef.current.then(task);
+    mutationChainRef.current = next.catch(() => {});
   };
 
   // Close bulk menu on outside click or Escape

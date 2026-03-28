@@ -542,3 +542,11 @@
   - The server-side resolver (`resolver.ts:320-328`) was already ungated — it applies modifiers to any color token regardless of alias vs direct value. The restriction was purely UI-side.
   - ColorModifiersEditor's `resolveRefValue` call only makes sense for alias mode; for direct colors, the hex value is passed directly as `directColor` prop
 ---
+
+## 2026-03-28 - ThemeManager allows concurrent mutations without debounce or disable
+- Added a client-side promise-chain mutex (`mutationChainRef`) to serialize `handleSetState` and `handleBulkSetState` in ThemeManager. Each mutation now queues behind the previous one, preventing interleaved optimistic updates and stale rollback snapshots when buttons are clicked in rapid succession.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L99 (ref declaration), ~L714 (handleSetState wrapper), ~L751 (handleBulkSetState wrapper)
+- **Learnings for future iterations:**
+  - The server already has a file-level lock (`withLock`) and the UI already disables individual rows via `savingKeys` + `pointer-events-none`, but these don't prevent a second call from capturing stale `previousDimensions` for rollback
+  - The promise-chain mutex pattern (same as server's `withLock`) is the simplest serialization: `const next = chain.then(task); chain = next.catch(() => {})` — no external deps, composable with existing async/await code
+---
