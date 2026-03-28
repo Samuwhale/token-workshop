@@ -69,3 +69,10 @@ Already up to date.
 ===============================================================
   Claimed: `setGroupScopesProgress` called but never declared — `handleApplyGroupScopes` in `useFigmaSync.ts` calls `setGroupScopesProgress(...)` three times but neither the state nor setter exist; throws `ReferenceError` at runtime when applying group scopes
   Worktree: /tmp/backlog-92630-M6gUpL
+
+  ✓ done: `setGroupScopesProgress` called but never declared
+    Added missing useState for groupScopesProgress in useFigmaSync.ts and added it to the hook return + App.tsx destructure. Build passes.
+    13 turns · 58s · $0.34
+
+--- Merging: `setGroupScopesProgress` called but never declared ---
+Already up to date.

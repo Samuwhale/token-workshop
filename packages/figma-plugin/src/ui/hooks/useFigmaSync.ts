@@ -17,6 +17,7 @@ export function useFigmaSync(
   const [groupScopesSelected, setGroupScopesSelected] = useState<string[]>([]);
   const [groupScopesApplying, setGroupScopesApplying] = useState(false);
   const [groupScopesError, setGroupScopesError] = useState<string | null>(null);
+  const [groupScopesProgress, setGroupScopesProgress] = useState<{ done: number; total: number } | null>(null);
 
   const handleSyncGroup = useCallback(async () => {
     if (!syncGroupPending || !connected) return;
@@ -123,6 +124,7 @@ export function useFigmaSync(
     groupScopesApplying,
     groupScopesError,
     setGroupScopesError,
+    groupScopesProgress,
     handleSyncGroup,
     handleSyncGroupStyles,
     handleApplyGroupScopes,

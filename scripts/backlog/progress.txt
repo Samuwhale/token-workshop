@@ -352,3 +352,11 @@
   - `fs.rename` is atomic on the same filesystem — prefer it over write+delete for renames within `this.dir`
   - When rolling back, use `.catch(() => {})` on the rollback itself to avoid masking the original error
 ---
+
+## 2026-03-28 - `setGroupScopesProgress` called but never declared
+- Added missing `useState<{ done: number; total: number } | null>(null)` for `groupScopesProgress`/`setGroupScopesProgress` in `useFigmaSync.ts`
+- Added `groupScopesProgress` to the hook's return object and destructured it in `App.tsx` where it was already consumed in the button label
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L20 (state), ~L127 (return); `packages/figma-plugin/src/ui/App.tsx` ~L370 (destructure)
+- **Learnings for future iterations:**
+  - When a batched-progress feature is added, the state declaration can be missed if it was planned but not committed — always check that every setter called in a handler has a corresponding `useState`
+---

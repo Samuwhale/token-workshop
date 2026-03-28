@@ -146,3 +146,18 @@ Already up to date.
 
 --- Merging: renameSet is not atomic ---
 Already up to date.
+[main a9305dc] chore(backlog): done – renameSet is not atomic
+ 7 files changed, 69 insertions(+), 15 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260328-033837.log
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - renameSet is not atomic
+- Replaced write-new-then-delete-old with atomic `fs.rename`, added rollback of file rename if `$themes.json` write fails. Eliminates the window where two files exist and the risk of inconsistent state on partial failure.
+- Files changed: `packages/server/src/services/token-store.ts` ~L420
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  95 items remaining
+===============================================================
+  Claimed: Race condition in `fetchAllTokensFlatWithSets` — no AbortController or generation counter; rapid set switches cause overlapping fetches that can overwrite `allTokensFlat`/`pathToSet` with stale data, corrupting theme switcher and alias navigation
+  Worktree: /tmp/backlog-84992-HwJnRK

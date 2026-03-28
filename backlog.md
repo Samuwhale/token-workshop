@@ -55,7 +55,7 @@
 - [x] Git sync `applyDiffChoices` pushes even when pull commit fails silently — the push proceeds after a caught pull error, potentially pushing stale state
 - [x] Git sync commit endpoint accepts arbitrary file paths — `files` array is passed directly to `git.add()` with no validation that paths resolve within the token directory; a malicious client could stage files like `../../etc/secrets`
 - [~] Race condition in file write guard — `_writingFiles` entries are cleared via `setTimeout(..., 500ms)`; if writes take longer than 500ms (slow disk, large files), the watcher reloads a partially-written file, corrupting in-memory state
-- [~] `renameSet` is not atomic — if old file deletion fails after new file creation and theme updates, the system has two files and inconsistent in-memory state with no cleanup for partial failure
+- [x] `renameSet` is not atomic — if old file deletion fails after new file creation and theme updates, the system has two files and inconsistent in-memory state with no cleanup for partial failure
 
 ### QoL
 
@@ -76,7 +76,7 @@
 
 - [~] `setGroupScopesProgress` called but never declared — `handleApplyGroupScopes` in `useFigmaSync.ts` calls `setGroupScopesProgress(...)` three times but neither the state nor setter exist; throws `ReferenceError` at runtime when applying group scopes
 - [~] `scanCanvasHeatmap` can freeze Figma on large pages — `findAll` iterates every node synchronously and reads plugin data for all bindable properties with no batching or yielding, unlike `syncBindings` which batches
-- [ ] Race condition in `fetchAllTokensFlatWithSets` — no AbortController or generation counter; rapid set switches cause overlapping fetches that can overwrite `allTokensFlat`/`pathToSet` with stale data, corrupting theme switcher and alias navigation
+- [~] Race condition in `fetchAllTokensFlatWithSets` — no AbortController or generation counter; rapid set switches cause overlapping fetches that can overwrite `allTokensFlat`/`pathToSet` with stale data, corrupting theme switcher and alias navigation
 
 ### QoL
 
