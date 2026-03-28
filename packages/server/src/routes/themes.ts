@@ -82,6 +82,27 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
   const tokenDir = path.resolve(opts.tokenDir);
   const store = createDimensionsStore(tokenDir);
 
+  // Coverage cache — invalidated when themes file or token sets change
+  let coverageCache: {
+    themeMtimeMs: number | null;
+    result: Record<string, Record<string, { uncovered: Array<{ path: string; set: string }> }>>;
+  } | null = null;
+
+  const themesFilePath = store.filePath;
+  async function getThemeMtime(): Promise<number | null> {
+    try {
+      const stat = await fs.stat(themesFilePath);
+      return stat.mtimeMs;
+    } catch {
+      return null;
+    }
+  }
+
+  // Invalidate coverage cache when any token set changes
+  fastify.tokenStore.onChange(() => {
+    coverageCache = null;
+  });
+
   // GET /api/themes — list dimensions
   fastify.get('/themes', async (_request, reply) => {
     try {
@@ -299,9 +320,15 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     },
   );
 
-  // GET /api/themes/coverage — compute coverage gaps server-side
+  // GET /api/themes/coverage — compute coverage gaps server-side (cached)
   fastify.get('/themes/coverage', async (_request, reply) => {
     try {
+      // Check if cached result is still valid (theme file unchanged)
+      const currentMtime = await getThemeMtime();
+      if (coverageCache && coverageCache.themeMtimeMs === currentMtime) {
+        return { coverage: coverageCache.result };
+      }
+
       const dimensions = await store.load();
       const tokenStore = fastify.tokenStore;
 
@@ -364,6 +391,9 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
           coverage[dim.id][opt.name] = { uncovered };
         }
       }
+
+      // Cache the result
+      coverageCache = { themeMtimeMs: currentMtime, result: coverage };
       return { coverage };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to compute coverage', detail: String(err) });

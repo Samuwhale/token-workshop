@@ -314,3 +314,12 @@
   - Pre-existing server test failure (`Cannot find package '@tokenmanager/core'`) is a baseline failure in this worktree — not caused by changes here
   - When one generator already handles null validation, always check sibling generators for the same gap
 ---
+
+## 2026-03-28 - Theme coverage computation runs uncached O(dimensions × options × tokens × ref_depth) on every GET
+- Added caching layer to `GET /api/themes/coverage` endpoint. Cache stores the computed coverage result alongside the themes file mtime. Cache is invalidated in two ways: (1) theme file mutations detected via mtime change on next GET, (2) token set changes via `tokenStore.onChange()` listener that nulls the cache immediately. Subsequent GET requests with unchanged themes and tokens return the cached result instantly, skipping the full O(dimensions × options × tokens × ref_depth) recomputation.
+- Files changed: `packages/server/src/routes/themes.ts` ~L85-104, ~L326-330, ~L395-396
+- **Learnings for future iterations:**
+  - `DimensionsStore` already exposes `filePath` for the themes JSON — use `fs.stat().mtimeMs` for cheap staleness checks rather than deep-comparing loaded data
+  - `TokenStore.onChange()` returns an unsubscribe function — useful for cleanup if the plugin were ever unregistered, but for server-lifetime caches it's fine to just register and forget
+  - The validate script has pre-existing failures (server tests can't resolve `@tokenmanager/core`, eslint binary missing) in worktree environments — server-only changes can't be fully validated via the script
+---
