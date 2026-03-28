@@ -478,3 +478,10 @@ Already up to date.
 ===============================================================
   Claimed: **Bug**: `Cannot access 'fetchConflicts' before initialization` — TDZ error, likely a circular dependency or hoisted reference before declaration
   Worktree: /tmp/backlog-9231-mMCS2y
+
+  ✓ done: Cannot access 'fetchConflicts' before initialization — TDZ error
+    stale — already done. fetchConflicts was moved above the useEffect in commit 81f80b2.
+    8 turns · 38s · $0.25
+
+--- Merging: Cannot access 'fetchConflicts' before initialization — TDZ error ---
+Already up to date.

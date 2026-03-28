@@ -385,3 +385,10 @@
 - **Learnings for future iterations:**
   - Always check git log before implementing — prior sessions may have already fixed the issue
 ---
+
+## 2026-03-28 - Cannot access 'fetchConflicts' before initialization — TDZ error
+- Already fixed in a prior session (commit 81f80b2). `fetchConflicts` useCallback is now declared at line 92, above the useEffect at line 114 that references it.
+- Files changed: none (already done)
+- **Learnings for future iterations:**
+  - Check the archive/runner logs before implementing — items may have been fixed in a prior run but not yet marked done in the backlog
+---

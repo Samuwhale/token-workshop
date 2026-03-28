@@ -36,3 +36,17 @@ Already up to date.
 
 --- Merging: TokenTableView description edit is a no-op ---
 Already up to date.
+[main 7917bab] chore(backlog): done – TokenTableView description edit is a no-op
+ 4 files changed, 16 insertions(+), 2 deletions(-)
+  (code pass skipped — another runner is handling it)
+
+## 2026-03-28 - TokenTableView description edit is a no-op
+- Already fixed in commit 804a4c6. The current `commitEdit` at ~L151-157 correctly uses `editValue.trim()` for description edits and calls `onDescriptionSave?.(node.path, raw)`. The `handleDescriptionSave` callback in `TokenList.tsx` properly sends `{ $description: description }` via PATCH.
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  14 items remaining
+===============================================================
+  Claimed: styleSync.ts re-fetches entire Figma style list for every token — `applyPaintStyle`, `applyTextStyle`, `applyEffectStyle`, and `applyGradientPaintStyle` each call `figma.getLocalPaintStylesAsync()` / `getLocalTextStylesAsync()` / `getLocalEffectStylesAsync()` at the top of every invocation; for a 100-token batch this means 100 round-trips instead of 1 — fetch once in `applyStyles` and pass as a parameter (`styleSync.ts` ~L34–108)
+  Worktree: /tmp/backlog-23617-YvEgVM
