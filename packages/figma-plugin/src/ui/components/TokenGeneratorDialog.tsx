@@ -57,6 +57,9 @@ export const TYPE_LABELS: Record<GeneratorType, string> = {
   borderRadiusScale: 'Border Radius',
   zIndexScale: 'Z-Index',
   customScale: 'Custom',
+  accessibleColorPair: 'Accessible Pair',
+  darkModeInversion: 'Dark Mode',
+  responsiveScale: 'Responsive',
   contrastCheck: 'Contrast Check',
 };
 

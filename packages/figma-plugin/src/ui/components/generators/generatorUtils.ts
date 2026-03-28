@@ -57,6 +57,9 @@ export function autoName(sourceTokenPath: string | undefined, type: GeneratorTyp
     borderRadiusScale: 'Border Radius Scale',
     zIndexScale: 'Z-Index Scale',
     customScale: 'Custom Scale',
+    accessibleColorPair: 'Accessible Color Pair',
+    darkModeInversion: 'Dark Mode Inversion',
+    responsiveScale: 'Responsive Scale',
     contrastCheck: 'Contrast Check',
   };
   if (sourceTokenPath) return `${sourceTokenPath} ${typeLabels[type]}`;
@@ -72,12 +75,15 @@ export function defaultConfigForType(type: GeneratorType): GeneratorConfig {
     case 'borderRadiusScale': return { ...DEFAULT_BORDER_RADIUS_CONFIG, steps: DEFAULT_BORDER_RADIUS_CONFIG.steps.map(s => ({ ...s })) };
     case 'zIndexScale': return { steps: DEFAULT_Z_INDEX_CONFIG.steps.map(s => ({ ...s })) };
     case 'customScale': return { ...DEFAULT_CUSTOM_CONFIG, steps: DEFAULT_CUSTOM_CONFIG.steps.map(s => ({ ...s })) };
+    case 'accessibleColorPair': return { contrastLevel: 'AA' as const, backgroundStep: 'bg', foregroundStep: 'fg' };
+    case 'darkModeInversion': return { stepName: 'inverted', chromaBoost: 0 };
+    case 'responsiveScale': return { steps: [{ name: 'sm', multiplier: 0.875 }, { name: 'lg', multiplier: 1.25 }], unit: 'rem' as const };
     case 'contrastCheck': return { ...DEFAULT_CONTRAST_CHECK_CONFIG, steps: [] };
   }
 }
 
 // Types that require a source token
-export const SOURCE_REQUIRED_TYPES: GeneratorType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale'];
+export const SOURCE_REQUIRED_TYPES: GeneratorType[] = ['colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale', 'accessibleColorPair', 'darkModeInversion', 'responsiveScale'];
 // Types that work standalone (no source)
 export const STANDALONE_TYPES: GeneratorType[] = ['opacityScale', 'zIndexScale', 'contrastCheck'];
 // Types that work either way
@@ -85,5 +91,6 @@ export const FLEXIBLE_TYPES: GeneratorType[] = ['customScale'];
 
 export const ALL_TYPES: GeneratorType[] = [
   'colorRamp', 'typeScale', 'spacingScale', 'borderRadiusScale',
+  'accessibleColorPair', 'darkModeInversion', 'responsiveScale',
   'opacityScale', 'zIndexScale', 'customScale', 'contrastCheck',
 ];

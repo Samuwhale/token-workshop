@@ -214,3 +214,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 49)
+[main 1eddee3] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 195 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Duplicated `flattenTokenGroup` in `useGeneratorDialog.ts`
+- Stale — already done. `useGeneratorDialog.ts` imports `flattenTokenGroup` from `@tokenmanager/core` (line 4) and uses it at line 227. There is no local re-implementation of the function in the file. A prior session (runner-20260327-143053) added a local helper which was subsequently replaced with the core import.
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  86 items remaining
+===============================================================
+  Claimed: Duplicated tree-walking patterns in `token-store.ts` — `updateAliasRefs`, `updateBulkAliasRefs`, `collectGroupLeafTokens` all implement nearly identical recursive walkers; extract a generic walker
+  Worktree: /tmp/backlog-84992-V2gwPt

@@ -113,3 +113,10 @@ Already up to date.
 ===============================================================
   Claimed: `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types — accessing these keys returns `undefined`, showing broken labels
   Worktree: /tmp/backlog-85816-z1cibq
+
+  ✓ done: `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types
+    Added accessibleColorPair, darkModeInversion, responsiveScale labels to TYPE_LABELS, GRAPH_TYPE_LABELS, autoName typeLabels, defaultConfigForType, SOURCE_REQUIRED_TYPES, and ALL_TYPES across 3 files.
+    29 turns · 113s · $0.63
+
+--- Merging: `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types ---
+Already up to date.
