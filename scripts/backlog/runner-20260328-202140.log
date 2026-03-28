@@ -512,3 +512,16 @@ Already up to date.
 
 --- Merging: variableSync.ts rollback only restores values, not names or scopes ---
 Already up to date.
+[main 534a5fd] chore(backlog): done – variableSync.ts rollback only restores values, not names or scopes
+ 5 files changed, 49 insertions(+), 8 deletions(-)
+
+## 2026-03-28 - variableSync.ts rollback only restores values, not names or scopes
+- Expanded the snapshot captured before mutations to include `name`, `scopes`, and `pluginData` (tokenPath, tokenSet) in addition to `valuesByMode`
+- Updated the rollback logic to restore all four properties on failure, not just values
+- Introduced a `VariableSnapshot` interface inside `applyVariables` for type safety
+
+===============================================================
+  Iteration 25 / 90  (claude)  —  28 items remaining
+===============================================================
+  Claimed: Duplicate color-distance math in server lint.ts (lines 106-134) vs `@tokenmanager/core` — `hexToRgb`, `rgbToLab`, and `colorDeltaE` are reimplemented locally when `hexToLab` is already exported from core; consolidating prevents divergence and removes ~30 lines of redundant code
+  Worktree: /tmp/backlog-9651-N8xSBd

@@ -67,10 +67,10 @@ export function useFigmaSync(
       const rawMap = await fetchAllTokensFlat(serverUrl);
       const resolved = resolveAllAliases(rawMap);
       const prefix = saved.groupPath + '.';
-      const tokens: { path: string; $type: string; $value: any }[] = [];
+      const tokens: { path: string; $type: string; $value: any; setName?: string }[] = [];
       for (const [path, entry] of Object.entries(resolved)) {
         if (path === saved.groupPath || path.startsWith(prefix)) {
-          tokens.push({ path, $type: entry.$type, $value: entry.$value });
+          tokens.push({ path, $type: entry.$type, $value: entry.$value, setName: pathToSet[path] });
         }
       }
       const result: { count: number; total: number; failures: { path: string; error: string }[] } = await new Promise((resolve, reject) => {
@@ -94,7 +94,7 @@ export function useFigmaSync(
       console.error('Failed to create styles from group:', err);
       setSyncGroupStylesPending(saved);
     }
-  }, [syncGroupStylesPending, connected, serverUrl]);
+  }, [syncGroupStylesPending, connected, serverUrl, pathToSet]);
 
   const handleApplyGroupScopes = useCallback(async () => {
     if (!groupScopesPath || !connected) return;

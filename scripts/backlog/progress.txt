@@ -461,3 +461,11 @@
   - When snapshotting for rollback, enumerate every mutable property the function touches — not just the "primary" one
   - Figma `Variable.scopes` requires the cast `(v as Variable & { scopes: string[] })` since the plugin typings don't expose the setter directly
 ---
+
+## 2026-03-28 - useFigmaSync handleSyncGroupStyles omits setName from token payload
+- Added `setName: pathToSet[path]` to token entries in `handleSyncGroupStyles`, matching what `handleSyncGroup` already does
+- Added `pathToSet` to the `useCallback` dependency array for `handleSyncGroupStyles`
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L70-73, ~L97
+- **Learnings for future iterations:**
+  - When two parallel code paths build the same payload shape (here: tokens for variables vs styles), check they include the same fields
+---
