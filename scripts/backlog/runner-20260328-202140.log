@@ -452,3 +452,10 @@ Already up to date.
 ===============================================================
   Claimed: `HeatmapPanel.tsx` export functions revoke blob URL before download may complete — `exportCSV` and `exportJSON` (lines 124-148) call `URL.revokeObjectURL(url)` synchronously after `a.click()`, but some browsers process the click asynchronously; the download may receive a revoked URL; should revoke after a short delay or use the `download` event
   Worktree: /tmp/backlog-9651-6gb4jg
+
+  ✓ done: HeatmapPanel.tsx export functions revoke blob URL before download may complete
+    Deferred URL.revokeObjectURL by 1s via setTimeout in both exportCSV and exportJSON so browsers can complete the download before the blob URL is revoked.
+    8 turns · 38s · $0.23
+
+--- Merging: HeatmapPanel.tsx export functions revoke blob URL before download may complete ---
+Already up to date.

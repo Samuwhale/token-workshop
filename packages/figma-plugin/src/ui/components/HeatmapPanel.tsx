@@ -128,7 +128,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
     a.href = url;
     a.download = 'heatmap.csv';
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [result]);
 
   const exportJSON = useCallback(() => {
@@ -147,7 +147,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
     a.href = url;
     a.download = 'heatmap.json';
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [result]);
 
   const filteredNodes = result?.nodes.filter(n => filter === 'all' || n.status === filter) ?? [];

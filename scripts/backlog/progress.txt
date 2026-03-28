@@ -388,3 +388,11 @@
   - Pre-existing server test failure (`Cannot find package '@tokenmanager/core'`) is a baseline failure in this worktree — not caused by changes here
   - When one generator already handles null validation, always check sibling generators for the same gap
 ---
+
+## 2026-03-28 - HeatmapPanel.tsx export functions revoke blob URL before download may complete
+- Deferred `URL.revokeObjectURL(url)` in both `exportCSV` and `exportJSON` with `setTimeout(() => ..., 1000)` so the browser has time to process the `a.click()` download before the blob URL is revoked
+- Files changed: `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L131,150
+- **Learnings for future iterations:**
+  - `a.click()` for blob-URL downloads is async in some browsers — always defer `revokeObjectURL` by ~1s
+  - Same pattern exists in AnalyticsPanel, PublishPanel, GraphPanel, ThemeCompare, ExportPanel
+---
