@@ -81,3 +81,9 @@
   - ThemeManager's `themesView` (manage/compare) and the new `themeMode` (simple/advanced) are orthogonal — compare view works in both modes
   - The `navigateTo` fallback handles removed sub-tabs: if localStorage stores a sub-tab ID not in `TOP_TABS`, it falls back to `DEFAULT_SUB_TABS[topTab]`
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: App.tsx (3995 lines, tab/navigation structure, keyboard shortcuts, command palette), TokenList.tsx (view modes, select/batch, search/filter), TokenTreeNode.tsx (context menu, inline editing, multi-mode cells), TokenEditor.tsx, ValueEditors.tsx, ExportPanel.tsx (ZIP builder, platforms), GraphPanel.tsx + TokenFlowPanel.tsx + TokenGraph.tsx + nodeGraph/ (overlap analysis), VersionHistoryPanel.tsx + SnapshotPanel.tsx (duplication), CommandPalette.tsx, all 38 hooks, server routes (94 endpoints), services (8 core), settings/preferences in storage.ts
+- Found 12 items — written to backlog-inbox.md
+- Notable: TokenGraph.tsx is 512 lines of dead code still rendered in a viewMode branch; VersionHistoryPanel and SnapshotPanel have nearly identical helper functions and serve the same "revert to past state" goal; TokenList has 6 view modes (tree/table/canvas/grid/json/graph) which is excessive — canvas, grid, and graph overlap with other panels
+---
