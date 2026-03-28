@@ -319,6 +319,21 @@ export interface ScanTokenUsageMessage {
   tokenPath: string;
 }
 
+// --- Search layers ---
+
+export interface SearchLayersMessage {
+  type: 'search-layers';
+  query: string;
+}
+
+export interface LayerSearchResult {
+  id: string;
+  name: string;
+  type: string;
+  parentName?: string;
+  boundCount: number;
+}
+
 // --- Extract tokens from selection ---
 
 export interface ExtractTokensFromSelectionMessage {
@@ -369,4 +384,5 @@ export type PluginMessage =
   | GetActiveThemesMessage
   | SetActiveThemesMessage
   | ScanTokenUsageMessage
-  | ExtractTokensFromSelectionMessage;
+  | ExtractTokensFromSelectionMessage
+  | SearchLayersMessage;

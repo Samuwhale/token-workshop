@@ -338,3 +338,10 @@ Already up to date.
 ===============================================================
   Claimed: Inspect tab can't search or filter layers — no way to find layers by name, type, or component; users must click around the Figma canvas to locate layers they want to bind tokens to
   Worktree: /tmp/backlog-63685-1XsYd2
+
+  ✓ done: Inspect tab can't search or filter layers
+    Added layer search to Inspect tab — search bar in empty state + toggleable search icon in header. Searches layers by name, type, or component name with debounced plugin-side DFS, click to select and inspect.
+    35 turns · 234s · $1.38
+
+--- Merging: Inspect tab can't search or filter layers ---
+Already up to date.

@@ -88,8 +88,8 @@
 ### Bugs
 
 - [x] Generator silently returns empty array on invalid hex — `runColorRampGenerator`, `runAccessibleColorPairGenerator`, and `runDarkModeInversionGenerator` return `[]` when `hexToLab()` fails; caller cannot distinguish "generation failed" from "produced zero tokens"
-- [~] Generator overwrite detection is broken — `useGeneratorDialog` calls `flattenTokenGroup()` which returns a `Map`, but the result is used with bracket notation (`existingSetTokens[path]`) which always returns `undefined` on a Map; `overwrittenEntries` is always empty
-- [ ] `CustomScaleConfig.outputType` is typed `string` instead of `TokenType` — any arbitrary string can be passed, producing tokens with an invalid `$type`; propagates to `GeneratedTokenResult.type`
+- [x] Generator overwrite detection is broken — `useGeneratorDialog` calls `flattenTokenGroup()` which returns a `Map`, but the result is used with bracket notation (`existingSetTokens[path]`) which always returns `undefined` on a Map; `overwrittenEntries` is always empty
+- [~] `CustomScaleConfig.outputType` is typed `string` instead of `TokenType` — any arbitrary string can be passed, producing tokens with an invalid `$type`; propagates to `GeneratedTokenResult.type`
 - [ ] Unvalidated cast of color modifiers from `$extensions` — `modifiers as ColorModifierOp[]` casts without validation; malformed `$extensions.tokenmanager.colorModifier` data (missing `type` or `amount`) causes cryptic runtime errors
 
 ### UX

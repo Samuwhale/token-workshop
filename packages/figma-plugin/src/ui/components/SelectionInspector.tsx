@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   PROPERTY_GROUPS,
   PROPERTY_LABELS,
   ALL_BINDABLE_PROPERTIES,
 } from '../../shared/types';
-import type { BindableProperty, SelectionNodeInfo, SyncCompleteMessage, TokenMapEntry } from '../../shared/types';
+import type { BindableProperty, SelectionNodeInfo, SyncCompleteMessage, TokenMapEntry, LayerSearchResult } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import type { UndoSlot } from '../hooks/useUndo';
 import { adaptShortcut } from '../shared/utils';
@@ -22,6 +22,118 @@ import { PropertyRow } from './PropertyRow';
 import { DeepInspectSection } from './DeepInspectSection';
 import { RemapBindingsPanel } from './RemapBindingsPanel';
 import { ExtractTokensPanel } from './ExtractTokensPanel';
+
+/* ── Layer Search Panel ─────────────────────────────── */
+
+function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<LayerSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Listen for search results from the plugin
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const msg = event.data?.pluginMessage;
+      if (msg?.type === 'search-layers-result') {
+        setResults(msg.results);
+        setSearching(false);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  // Focus input on mount
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const handleQueryChange = useCallback((value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!value.trim()) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    debounceRef.current = setTimeout(() => {
+      parent.postMessage({ pluginMessage: { type: 'search-layers', query: value } }, '*');
+    }, 200);
+  }, []);
+
+  const NODE_TYPE_ICONS: Record<string, string> = {
+    FRAME: '▢', TEXT: 'T', RECTANGLE: '□', ELLIPSE: '○', COMPONENT: '◆',
+    INSTANCE: '◇', GROUP: '⊞', VECTOR: '✦', LINE: '─', STAR: '★',
+    POLYGON: '⬠', BOOLEAN_OPERATION: '⊕', SECTION: '§',
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="relative">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-secondary)] pointer-events-none" aria-hidden="true">
+          <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+        </svg>
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={e => handleQueryChange(e.target.value)}
+          placeholder="Search layers by name, type, or component…"
+          className="w-full pl-7 pr-2 py-1.5 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+        />
+        {query && (
+          <button
+            onClick={() => handleQueryChange('')}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+            aria-label="Clear search"
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {searching && results.length === 0 && (
+        <p className="text-[9px] text-[var(--color-figma-text-secondary)] px-1 py-2">Searching…</p>
+      )}
+
+      {!searching && query && results.length === 0 && (
+        <p className="text-[9px] text-[var(--color-figma-text-secondary)] px-1 py-2">No layers found matching "{query}"</p>
+      )}
+
+      {results.length > 0 && (
+        <div className="max-h-[200px] overflow-y-auto border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)]">
+          {results.map(layer => (
+            <button
+              key={layer.id}
+              onClick={() => onSelect(layer.id)}
+              className="w-full flex items-center gap-1.5 px-2 py-1 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors group border-b border-[var(--color-figma-border)]/30 last:border-b-0"
+            >
+              <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-3 text-center shrink-0" title={layer.type}>
+                {NODE_TYPE_ICONS[layer.type] || '·'}
+              </span>
+              <span className="text-[10px] text-[var(--color-figma-text)] truncate flex-1">{layer.name}</span>
+              {layer.parentName && (
+                <span className="text-[8px] text-[var(--color-figma-text-secondary)] truncate max-w-[80px]" title={`in ${layer.parentName}`}>
+                  in {layer.parentName}
+                </span>
+              )}
+              {layer.boundCount > 0 && (
+                <span className="text-[8px] bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1 py-0.5 rounded-full shrink-0">
+                  {layer.boundCount}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface SelectionInspectorProps {
   selectedNodes: SelectionNodeInfo[];
@@ -74,6 +186,7 @@ export function SelectionInspector({
 
   // Extract tokens from selection state
   const [showExtractPanel, setShowExtractPanel] = useState(false);
+  const [showLayerSearch, setShowLayerSearch] = useState(false);
 
   const prevNodeIdsRef = useRef<string>('');
 
@@ -290,21 +403,29 @@ export function SelectionInspector({
     ? `${rootNodes[0].name} (${rootNodes[0].type})`
     : `${rootNodes.length} layers selected`;
 
+  const handleSelectLayer = useCallback((nodeId: string) => {
+    parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*');
+    setShowLayerSearch(false);
+  }, []);
+
   const hasAnyTokens = Object.keys(tokenMap).length > 0;
 
-  // No selection — full empty state
+  // No selection — empty state with layer search
   if (!hasSelection) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] opacity-40" aria-hidden="true">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M3 9h18M9 21V9" />
-        </svg>
-        <div>
-          <p className="text-[11px] font-medium text-[var(--color-figma-text)]">No layer selected</p>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-            Select a layer on the canvas to inspect its token bindings.
-          </p>
+      <div className="flex-1 flex flex-col gap-3 px-4 pt-4">
+        <LayerSearchPanel onSelect={handleSelectLayer} />
+        <div className="flex flex-col items-center justify-center gap-3 px-2 pt-4 text-center">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] opacity-40" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M3 9h18M9 21V9" />
+          </svg>
+          <div>
+            <p className="text-[11px] font-medium text-[var(--color-figma-text)]">No layer selected</p>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
+              Search above or select a layer on the canvas to inspect its token bindings.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -324,6 +445,19 @@ export function SelectionInspector({
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header bar */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
+        <button
+          onClick={() => setShowLayerSearch(prev => !prev)}
+          title="Search layers on this page"
+          className={`p-0.5 rounded transition-colors shrink-0 ${
+            showLayerSearch
+              ? 'text-[var(--color-figma-accent)]'
+              : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'
+          }`}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" /><path d="M21 21l-4.35-4.35" />
+          </svg>
+        </button>
         <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate flex-1">
           {headerLabel}
         </span>
@@ -345,6 +479,13 @@ export function SelectionInspector({
           </span>
         )}
       </div>
+
+      {/* Layer search panel */}
+      {showLayerSearch && (
+        <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0">
+          <LayerSearchPanel onSelect={handleSelectLayer} />
+        </div>
+      )}
 
       {/* Sync controls */}
       <div className="flex items-center gap-1 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0">

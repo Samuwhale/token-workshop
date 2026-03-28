@@ -3,7 +3,7 @@
 import type { PluginMessage } from '../shared/types.js';
 import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables } from './variableSync.js';
 import { applyStyles, readFigmaStyles } from './styleSync.js';
-import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection } from './selectionHandling.js';
+import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, searchLayers } from './selectionHandling.js';
 import { scanComponentCoverage, selectNode, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 
 figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
@@ -108,6 +108,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'extract-tokens-from-selection':
       await extractTokensFromSelection();
+      break;
+    case 'search-layers':
+      searchLayers(msg.query);
       break;
     case 'eyedropper':
       sampleSelectionColor();

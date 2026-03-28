@@ -844,3 +844,51 @@ export async function syncBindings(tokenMap: Record<string, { $value: any; $type
     figma.notify(`Sync failed — ${rolledBack ? 'changes rolled back' : 'partial changes may persist'}`, { error: true });
   }
 }
+
+// Search layers on the current page by name, type, or component name
+export function searchLayers(query: string) {
+  const q = query.toLowerCase().trim();
+  if (!q) {
+    figma.ui.postMessage({ type: 'search-layers-result', results: [] });
+    return;
+  }
+
+  const results: Array<{ id: string; name: string; type: string; parentName?: string; boundCount: number }> = [];
+  const MAX_RESULTS = 50;
+
+  const stack: SceneNode[] = [...figma.currentPage.children];
+  while (stack.length > 0 && results.length < MAX_RESULTS) {
+    const node = stack.pop()!;
+
+    // Check match: name or type
+    const nameMatch = node.name.toLowerCase().includes(q);
+    const typeMatch = node.type.toLowerCase().includes(q);
+    // For component instances, also match the main component name
+    let componentMatch = false;
+    if (node.type === 'INSTANCE') {
+      const inst = node as InstanceNode;
+      if (inst.mainComponent?.name?.toLowerCase().includes(q)) {
+        componentMatch = true;
+      }
+    }
+
+    if (nameMatch || typeMatch || componentMatch) {
+      let boundCount = 0;
+      for (const prop of ALL_BINDABLE_PROPERTIES) {
+        if (node.getSharedPluginData(PLUGIN_DATA_NAMESPACE, prop)) boundCount++;
+      }
+      const parentName = node.parent && node.parent.type !== 'PAGE' ? node.parent.name : undefined;
+      results.push({ id: node.id, name: node.name, type: node.type, parentName, boundCount });
+    }
+
+    // Push children (depth-first)
+    if ('children' in node) {
+      const children = (node as ChildrenMixin & SceneNode).children;
+      for (let i = children.length - 1; i >= 0; i--) {
+        stack.push(children[i]);
+      }
+    }
+  }
+
+  figma.ui.postMessage({ type: 'search-layers-result', results });
+}

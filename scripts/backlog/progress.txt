@@ -399,3 +399,16 @@
 - **Learnings for future iterations:**
   - `flattenTokenGroup` from `@tokenmanager/core` returns `Map<string, DTCGToken>`, not a plain object. Always convert to `Record` before using bracket access. Other call sites (useSetMergeSplit, PublishPanel, etc.) correctly iterate with `for...of`.
 ---
+
+## 2026-03-28 - Inspect tab can't search or filter layers
+- Added layer search functionality to the Inspect tab so users can find layers by name, type, or component without clicking around the Figma canvas
+- Search bar appears prominently in the empty state (no selection) and toggleable via search icon in the header when a layer is selected
+- Plugin-side: depth-first search of `figma.currentPage` children matching name/type/component name, returns up to 50 results with bound token count
+- Clicking a search result selects the layer on canvas (using existing `selectNode`) and auto-updates the inspector via `selectionchange` event
+- Debounced 200ms to avoid excessive searches while typing
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L322-337,L385 (SearchLayersMessage, LayerSearchResult types), `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L849-892 (searchLayers function), `packages/figma-plugin/src/plugin/controller.ts` ~L97-99 (message handler), `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L27-130,L178,L198,L318-330,L345-350 (LayerSearchPanel component + integration)
+- **Learnings for future iterations:**
+  - `figma.currentPage.findAll()` with a predicate does a full tree scan — for search, a manual stack-based DFS with early termination (MAX_RESULTS) is more efficient
+  - For component instances, `inst.mainComponent?.name` provides the component definition name for matching
+  - The existing `select-node` message and `selectNode` function in heatmapScanning.ts handle selection + viewport scroll, so search results can reuse that
+---

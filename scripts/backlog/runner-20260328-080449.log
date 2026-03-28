@@ -326,3 +326,19 @@ Already up to date.
 
 --- Merging: Generator overwrite detection is broken ---
 Already up to date.
+[main d081ccb] chore(backlog): done – Generator overwrite detection is broken
+ 6 files changed, 45 insertions(+), 77 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+--- Inbox drained ---
+
+## 2026-03-28 - Generator overwrite detection is broken
+- Fixed `useGeneratorDialog` line 233: `flattenTokenGroup()` returns a `Map`, but the result was stored directly into state typed as `Record<string, ...>` and accessed with bracket notation (`existingSetTokens[path]`), which always returns `undefined` on a Map. Converted the Map to a plain object before setting state.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L233
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  45 items remaining
+===============================================================
+  Claimed: `CustomScaleConfig.outputType` is typed `string` instead of `TokenType` — any arbitrary string can be passed, producing tokens with an invalid `$type`; propagates to `GeneratedTokenResult.type`
+  Worktree: /tmp/backlog-63973-AeTKjo
