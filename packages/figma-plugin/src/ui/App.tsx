@@ -250,6 +250,7 @@ export function App() {
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); }, [refreshTokens, refreshGenerators]);
   const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll]);
   const editorIsDirtyRef = useRef(false);
+  const flatFetchGenRef = useRef(0);
   const handleEditorSave = useCallback((savedPath: string) => {
     setHighlightedToken(savedPath);
     setEditingToken(null);
@@ -405,11 +406,14 @@ export function App() {
 
   useEffect(() => {
     if (connected) {
+      const gen = ++flatFetchGenRef.current;
       fetchAllTokensFlatWithSets(serverUrl).then(({ flat, pathToSet: pts, perSetFlat: psf }) => {
+        if (gen !== flatFetchGenRef.current) return; // stale response
         setAllTokensFlat(resolveAllAliases(flat));
         setPathToSet(pts);
         setPerSetFlat(psf);
       }).catch(err => {
+        if (gen !== flatFetchGenRef.current) return; // stale response
         if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
         console.error('Failed to fetch tokens flat:', err);
       });

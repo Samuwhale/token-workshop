@@ -107,3 +107,9 @@ Already up to date.
 - Replaced fixed 500ms `setTimeout` cleanup of `_writingFiles` entries with event-driven cleanup: the watcher callbacks now clear the guard when they see (and suppress) a write-triggered event. A 30-second fallback timeout prevents memory leaks if the watcher never fires.
 - Changed `_writingFiles` from `Set<string>` to `Map<string, ReturnType<typeof setTimeout>>` to track per-file fallback timers.
 - Added `_startWriteGuard(filePath)` and `_clearWriteGuard(filePath)` helper methods.
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  93 items remaining
+===============================================================
+  Claimed: `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types — accessing these keys returns `undefined`, showing broken labels
+  Worktree: /tmp/backlog-85816-z1cibq

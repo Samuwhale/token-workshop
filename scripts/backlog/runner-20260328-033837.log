@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: scanCanvasHeatmap can freeze Figma on large pages ---
 Already up to date.
+[main c4103d2] chore(backlog): done – scanCanvasHeatmap can freeze Figma on large pages
+ 6 files changed, 55 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Race condition in file write guard
+- Replaced fixed 500ms `setTimeout` cleanup of `_writingFiles` entries with event-driven cleanup: the watcher callbacks now clear the guard when they see (and suppress) a write-triggered event. A 30-second fallback timeout prevents memory leaks if the watcher never fires.
+- Changed `_writingFiles` from `Set<string>` to `Map<string, ReturnType<typeof setTimeout>>` to track per-file fallback timers.
+- Added `_startWriteGuard(filePath)` and `_clearWriteGuard(filePath)` helper methods.
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  92 items remaining
+===============================================================
+  Claimed: `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path — if `onSaved` doesn't unmount the component, the save button stays disabled permanently
+  Worktree: /tmp/backlog-10278-ydySHW

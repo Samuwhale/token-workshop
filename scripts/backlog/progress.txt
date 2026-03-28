@@ -370,3 +370,10 @@
   - File watcher suppression should be event-driven (cleared when the watcher fires), not time-based — disk I/O latency is unpredictable
   - The server package has no `@types/node` in the sandbox so `tsc --noEmit` shows many pre-existing errors; grep for your specific file to check for new errors
 ---
+
+## 2026-03-28 - Race condition in `fetchAllTokensFlatWithSets`
+- Added generation counter (`flatFetchGenRef`) to discard stale responses from overlapping fetches. Each effect invocation increments the counter; `.then()` and `.catch()` callbacks bail out if the counter has advanced.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L253 (ref declaration), ~L408 (generation guard in useEffect)
+- **Learnings for future iterations:**
+  - Generation counters are simpler than AbortController for race-guarding fetches where you only care about the latest result — no need to plumb signals through every internal fetch call
+---

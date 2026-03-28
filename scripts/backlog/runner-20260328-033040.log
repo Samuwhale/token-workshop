@@ -161,3 +161,10 @@ Already up to date.
 ===============================================================
   Claimed: Race condition in `fetchAllTokensFlatWithSets` — no AbortController or generation counter; rapid set switches cause overlapping fetches that can overwrite `allTokensFlat`/`pathToSet` with stale data, corrupting theme switcher and alias navigation
   Worktree: /tmp/backlog-84992-HwJnRK
+
+  ✓ done: Race condition in fetchAllTokensFlatWithSets
+    Added generation counter ref to discard stale fetch responses; rapid dep changes no longer overwrite state with outdated data.
+    14 turns · 60s · $0.33
+
+--- Merging: Race condition in fetchAllTokensFlatWithSets ---
+Already up to date.
