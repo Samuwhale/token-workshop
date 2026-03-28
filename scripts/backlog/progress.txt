@@ -451,3 +451,16 @@
   - Absolute-positioned tooltips using `top-full` inside `overflow-y-auto` scroll containers get clipped — use `bottom-full` to render above the triggering element instead
   - Native `title` attributes are not clipped by overflow and are a reliable fallback for showing resolved values
 ---
+
+## 2026-03-28 - Tab structure doesn't match user mental model
+- Restructured navigation from flat 4-tab (Tokens/Inspect/Generators/Publish) to workflow-oriented 2-tier tabs: **Define** (Tokens, Themes, Generators), **Apply** (Inspect, Heatmap), **Ship** (Publish, Export, Validation).
+- Top tabs render as accent-colored pills; sub-tabs render as a second row of smaller pills with segmented-control styling. Sub-tab selection persists per top-tab in localStorage.
+- Moved overflow panels to proper sub-tabs: themes→Define/Themes, heatmap→Apply/Heatmap, analytics→Ship/Validation, export→Ship/Export. Import and Settings remain as overlay panels.
+- Updated all ~30 navigation call sites (command palette, keyboard shortcuts, context menus, TokenList action callbacks, import/inspect/publish cross-navigation) to use new `navigateTo(topTab, subTab)` helper.
+- Badge dots moved: layer-selected dot→Apply tab, git-changes dot→Ship tab.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L142-195 (types+constants), ~L228-258 (state+navigateTo), ~L845-1150 (tab bar+sub-tabs), ~L1640-2130 (panel routing), `packages/figma-plugin/src/ui/shared/storage.ts` ~L16-20 (new keys)
+- **Learnings for future iterations:**
+  - The two-tier tab pattern uses `TOP_TABS` array with nested `subTabs`, `DEFAULT_SUB_TABS` map, and per-top-tab localStorage keys (`SUB_TAB_STORAGE` map). `navigateTo(topTab, subTab?)` sets both levels atomically and clears overflow.
+  - When converting overflow panels to sub-tabs, remove both the overflow panel rendering block AND the overflow-specific "Back" header — sub-tabs don't need back buttons since they have persistent tab navigation.
+  - The old `activeTab`/`setActiveTab` state is kept but unused (for backward compatibility with any remaining references). The new `activeTopTab`/`activeSubTab` pair is the source of truth.
+---

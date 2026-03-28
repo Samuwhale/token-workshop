@@ -140,6 +140,11 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 }
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
+type TopTab = 'define' | 'apply' | 'ship';
+type DefineSubTab = 'tokens' | 'themes' | 'generators';
+type ApplySubTab = 'inspect' | 'heatmap';
+type ShipSubTab = 'publish' | 'export' | 'validation';
+type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 
 type FolderTreeNode = {
   name: string;   // display name (first path segment, e.g. 'brands')
@@ -175,6 +180,26 @@ const TABS: { id: Tab; label: string; shortcutNum: number }[] = [
   { id: 'graph', label: 'Generators', shortcutNum: 3 },
   { id: 'publish', label: 'Publish', shortcutNum: 4 },
 ];
+
+const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: string }[] }[] = [
+  { id: 'define', label: 'Define', subTabs: [
+    { id: 'tokens', label: 'Tokens' },
+    { id: 'themes', label: 'Themes' },
+    { id: 'generators', label: 'Generators' },
+  ]},
+  { id: 'apply', label: 'Apply', subTabs: [
+    { id: 'inspect', label: 'Inspect' },
+    { id: 'heatmap', label: 'Heatmap' },
+  ]},
+  { id: 'ship', label: 'Ship', subTabs: [
+    { id: 'publish', label: 'Publish' },
+    { id: 'export', label: 'Export' },
+    { id: 'validation', label: 'Validation' },
+  ]},
+];
+
+const DEFAULT_SUB_TABS: Record<TopTab, SubTab> = { define: 'tokens', apply: 'inspect', ship: 'publish' };
+const SUB_TAB_STORAGE: Record<TopTab, string> = { define: STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE, apply: STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY, ship: STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP };
 
 type OverflowPanel = 'import' | 'export' | 'settings' | 'heatmap' | 'analytics' | 'themes' | 'theme-compare' | null;
 
@@ -226,6 +251,35 @@ export function App() {
     setActiveTabState(tab);
   };
   const [overflowPanel, setOverflowPanel] = useState<OverflowPanel>(null);
+
+  // Two-tier navigation state
+  const [activeTopTab, setActiveTopTabState] = useState<TopTab>(() => {
+    const stored = lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB);
+    return (stored && TOP_TABS.some(t => t.id === stored) ? stored : 'define') as TopTab;
+  });
+  const [activeSubTab, setActiveSubTabState] = useState<SubTab>(() => {
+    const topTab = (lsGet(STORAGE_KEYS.ACTIVE_TOP_TAB) || 'define') as TopTab;
+    const storageKey = SUB_TAB_STORAGE[topTab] || SUB_TAB_STORAGE.define;
+    const stored = lsGet(storageKey);
+    const topDef = TOP_TABS.find(t => t.id === topTab);
+    return (stored && topDef?.subTabs.some(s => s.id === stored) ? stored : DEFAULT_SUB_TABS[topTab]) as SubTab;
+  });
+  const navigateTo = useCallback((topTab: TopTab, subTab?: SubTab) => {
+    const topDef = TOP_TABS.find(t => t.id === topTab)!;
+    const resolvedSub = subTab && topDef.subTabs.some(s => s.id === subTab)
+      ? subTab
+      : (lsGet(SUB_TAB_STORAGE[topTab]) as SubTab | null) ?? DEFAULT_SUB_TABS[topTab];
+    lsSet(STORAGE_KEYS.ACTIVE_TOP_TAB, topTab);
+    lsSet(SUB_TAB_STORAGE[topTab], resolvedSub);
+    setActiveTopTabState(topTab);
+    setActiveSubTabState(resolvedSub);
+    setOverflowPanel(null);
+  }, []);
+  const setSubTab = useCallback((subTab: SubTab) => {
+    lsSet(SUB_TAB_STORAGE[activeTopTab], subTab);
+    setActiveSubTabState(subTab);
+    setOverflowPanel(null);
+  }, [activeTopTab]);
   const { showPreviewSplit, setShowPreviewSplit, splitRatio, splitValueNow, splitContainerRef, handleSplitDragStart, handleSplitKeyDown } = usePreviewSplit();
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingToken, setEditingToken] = useState<{ path: string; name?: string; set: string; isCreate?: boolean; initialType?: string; initialValue?: string } | null>(null);
@@ -328,7 +382,7 @@ export function App() {
   const useSidePanel = windowWidth > 480
     && !!editingToken
     && overflowPanel === null
-    && activeTab === 'tokens'
+    && activeTopTab === 'define' && activeSubTab === 'tokens'
     && (tokens.length > 0 || createFromEmpty);
   const isNarrow = windowWidth <= 360;
 
@@ -481,13 +535,13 @@ export function App() {
       }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 't') {
         e.preventDefault();
-        setActiveTab('inspect');
+        navigateTo('apply', 'inspect');
         setTriggerCreateToken(n => n + 1);
       }
-      const tabIndex = ['1', '2', '3', '4', '5', '6'].indexOf(e.key);
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && tabIndex !== -1 && tabIndex < TABS.length) {
+      const tabIndex = ['1', '2', '3'].indexOf(e.key);
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && tabIndex !== -1 && tabIndex < TOP_TABS.length) {
         e.preventDefault();
-        setActiveTab(TABS[tabIndex].id);
+        navigateTo(TOP_TABS[tabIndex].id);
       }
       if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
@@ -652,7 +706,7 @@ export function App() {
       // best-effort
     }
     // Clear all plugin localStorage keys
-    for (const key of [STORAGE_KEYS.ACTIVE_TAB, STORAGE_KEYS.ACTIVE_SET, STORAGE_KEYS.ANALYTICS_CANONICAL, STORAGE_KEYS.THEME_CARD_ORDER, STORAGE_KEYS.IMPORT_TARGET_SET]) {
+    for (const key of [STORAGE_KEYS.ACTIVE_TAB, STORAGE_KEYS.ACTIVE_SET, STORAGE_KEYS.ANALYTICS_CANONICAL, STORAGE_KEYS.THEME_CARD_ORDER, STORAGE_KEYS.IMPORT_TARGET_SET, STORAGE_KEYS.ACTIVE_TOP_TAB, STORAGE_KEYS.ACTIVE_SUB_TAB_DEFINE, STORAGE_KEYS.ACTIVE_SUB_TAB_APPLY, STORAGE_KEYS.ACTIVE_SUB_TAB_SHIP]) {
       lsRemove(key);
     }
     // Clear per-set sort/filter keys
@@ -662,17 +716,18 @@ export function App() {
     setClearConfirmText('');
     setOverflowPanel(null);
     setActiveTabState('tokens');
+    setActiveTopTabState('define');
+    setActiveSubTabState('tokens');
     refreshTokens();
   };
 
   const openOverflowPanel = useCallback((panel: OverflowPanel) => {
     setMenuOpen(false);
     setOverflowPanel(panel);
-    if (panel === 'analytics') setShowValidationReturn(false);
   }, []);
 
   const commands: Command[] = useMemo(() => {
-    const goToTokens = () => { setActiveTab('tokens'); setOverflowPanel(null); setEditingToken(null); };
+    const goToTokens = () => { navigateTo('define', 'tokens'); setEditingToken(null); };
     const cmds: Command[] = [
       {
         id: 'new-token',
@@ -709,7 +764,7 @@ export function App() {
         label: 'Export Tokens',
         description: 'Export tokens as CSS, JSON, or other formats',
         category: 'Data',
-        handler: () => openOverflowPanel('export'),
+        handler: () => navigateTo('ship', 'export'),
       },
       {
         id: 'settings',
@@ -723,37 +778,42 @@ export function App() {
         label: 'Go to Inspect',
         description: 'Inspect token bindings on selected layers',
         category: 'Navigation',
-        shortcut: adaptShortcut('⌘2'),
-        handler: () => setActiveTab('inspect'),
+        handler: () => navigateTo('apply', 'inspect'),
       },
       {
         id: 'themes',
         label: 'Open Themes',
         description: 'Manage design themes and set assignments',
         category: 'Navigation',
-        handler: () => openOverflowPanel('themes'),
+        handler: () => navigateTo('define', 'themes'),
+      },
+      {
+        id: 'heatmap',
+        label: 'Canvas Heatmap',
+        description: 'Token adoption overlay on the canvas',
+        category: 'Navigation',
+        handler: () => { navigateTo('apply', 'heatmap'); triggerHeatmapScan(); },
       },
       {
         id: 'publish',
         label: 'Go to Publish',
         description: 'Sync tokens to Figma and export',
         category: 'Navigation',
-        shortcut: adaptShortcut('⌘4'),
-        handler: () => { setActiveTab('publish'); setOverflowPanel(null); },
+        handler: () => navigateTo('ship', 'publish'),
       },
       {
         id: 'analytics',
         label: 'Filter Validation Issues',
         description: 'Show only tokens with lint violations',
         category: 'Tokens',
-        handler: () => { setShowIssuesOnly(v => !v); setActiveTab('tokens'); setOverflowPanel(null); },
+        handler: () => { setShowIssuesOnly(v => !v); navigateTo('define', 'tokens'); },
       },
       {
         id: 'validate',
         label: 'Validate All Tokens',
         description: 'Run cross-set validation for broken references, circular refs, and more',
         category: 'Tokens',
-        handler: () => { openOverflowPanel('analytics'); setValidateKey(k => k + 1); },
+        handler: () => { navigateTo('ship', 'validation'); setValidateKey(k => k + 1); },
       },
       {
         id: 'generate-color-scale',
@@ -767,14 +827,14 @@ export function App() {
         label: 'New graph',
         description: 'Start a generator graph — generate color ramps, spacing scales, type scales, and more',
         category: 'Generate',
-        handler: () => { setActiveTab('graph'); setOverflowPanel(null); },
+        handler: () => navigateTo('define', 'generators'),
       },
       {
         id: 'open-graph',
         label: 'Open graph',
         description: 'View generator pipeline for the current set',
         category: 'Generate',
-        handler: () => { setActiveTab('graph'); setOverflowPanel(null); },
+        handler: () => navigateTo('define', 'generators'),
       },
       ...GRAPH_TEMPLATES.map(t => ({
         id: `graph-template-${t.id}`,
@@ -782,8 +842,7 @@ export function App() {
         description: `Graph template — ${t.description}`,
         category: 'Generate',
         handler: () => {
-          setActiveTab('graph');
-          setOverflowPanel(null);
+          navigateTo('define', 'generators');
           setPendingGraphTemplate(t.id);
         },
       })),
@@ -811,7 +870,7 @@ export function App() {
       },
     ];
     return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan]);
 
   // Flat token list for command palette token search mode
   const paletteTokens: TokenEntry[] = useMemo(() => {
@@ -850,26 +909,26 @@ export function App() {
         </div>
       )}
 
-      {/* Tab bar */}
-      <div className="flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]" role="tablist">
-        {TABS.map(tab => (
+      {/* Tab bar — two-tier: top tabs (Define/Apply/Ship) + sub-tabs */}
+      <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+      <div className="flex items-center" role="tablist" aria-label="Workflow tabs">
+        {TOP_TABS.map(tab => (
           <button
             key={tab.id}
             role="tab"
-            aria-selected={activeTab === tab.id && overflowPanel === null}
-            onClick={() => { setActiveTab(tab.id); setOverflowPanel(null); }}
-            title={`${tab.label} (${adaptShortcut('⌘')}${tab.shortcutNum})`}
+            aria-selected={activeTopTab === tab.id && overflowPanel === null}
+            onClick={() => navigateTo(tab.id)}
             className={`relative px-3 py-2 text-[11px] font-medium transition-colors rounded-sm mx-0.5 my-1 ${
-              activeTab === tab.id && overflowPanel === null
+              activeTopTab === tab.id && overflowPanel === null
                 ? 'bg-[var(--color-figma-accent)] text-white'
                 : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
             }`}
           >
             {tab.label}
-            {tab.id === 'inspect' && selectedNodes.length > 0 && !(activeTab === 'inspect' && overflowPanel === null) && (
+            {tab.id === 'apply' && selectedNodes.length > 0 && !(activeTopTab === 'apply' && overflowPanel === null) && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-figma-accent)] border border-[var(--color-figma-bg)]" aria-label="Layer selected" />
             )}
-            {tab.id === 'publish' && gitHasChanges && !(activeTab === 'publish' && overflowPanel === null) && (
+            {tab.id === 'ship' && gitHasChanges && !(activeTopTab === 'ship' && overflowPanel === null) && (
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 border border-[var(--color-figma-bg)]" aria-label="Uncommitted changes" />
             )}
           </button>
@@ -877,7 +936,7 @@ export function App() {
 
         {/* Issues filter toggle */}
         <button
-          onClick={() => { setShowIssuesOnly(v => !v); if (overflowPanel === 'analytics') setOverflowPanel(null); if (activeTab !== 'tokens') setActiveTab('tokens'); }}
+          onClick={() => { setShowIssuesOnly(v => !v); if (activeTopTab !== 'define' || activeSubTab !== 'tokens') navigateTo('define', 'tokens'); }}
           className={`relative flex items-center justify-center w-7 h-7 ml-auto mr-0.5 my-1 rounded transition-colors ${
             showIssuesOnly
               ? 'bg-[var(--color-figma-accent)] text-white'
@@ -955,21 +1014,21 @@ export function App() {
         {/* Heatmap toggle */}
         <button
           onClick={() => {
-            if (overflowPanel === 'heatmap') {
-              setOverflowPanel(null);
+            if (activeTopTab === 'apply' && activeSubTab === 'heatmap') {
+              navigateTo('apply', 'inspect');
             } else {
-              setOverflowPanel('heatmap');
+              navigateTo('apply', 'heatmap');
               triggerHeatmapScan();
             }
           }}
           className={`flex items-center justify-center w-7 h-7 mr-0.5 my-1 rounded transition-colors ${
-            overflowPanel === 'heatmap'
+            activeTopTab === 'apply' && activeSubTab === 'heatmap'
               ? 'bg-[var(--color-figma-accent)] text-white'
               : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'
           }`}
           title="Canvas heatmap: token adoption overlay"
           aria-label="Toggle canvas heatmap"
-          aria-pressed={overflowPanel === 'heatmap'}
+          aria-pressed={activeTopTab === 'apply' && activeSubTab === 'heatmap'}
         >
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="3" width="7" height="7" rx="1"/>
@@ -1034,17 +1093,17 @@ export function App() {
               </button>
               <button
                 role="menuitem"
-                onClick={() => openOverflowPanel('export')}
+                onClick={() => { setMenuOpen(false); navigateTo('ship', 'export'); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Export
               </button>
               <button
                 role="menuitem"
-                onClick={() => { openOverflowPanel('analytics'); setMenuOpen(false); }}
+                onClick={() => { setMenuOpen(false); navigateTo('ship', 'validation'); setValidateKey(k => k + 1); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Analytics
+                Validation
               </button>
               <div className="border-t border-[var(--color-figma-border)]" />
               <button
@@ -1059,9 +1118,37 @@ export function App() {
           )}
         </div>
       </div>
+      {/* Sub-tab row */}
+      {overflowPanel === null && (() => {
+        const topDef = TOP_TABS.find(t => t.id === activeTopTab);
+        if (!topDef || topDef.subTabs.length <= 1) return null;
+        return (
+          <div className="flex items-center gap-0.5 px-2 py-1 bg-[var(--color-figma-bg-secondary)]" role="tablist" aria-label="Sub-tabs">
+            {topDef.subTabs.map(sub => (
+              <button
+                key={sub.id}
+                role="tab"
+                aria-selected={activeSubTab === sub.id}
+                onClick={() => {
+                  setSubTab(sub.id);
+                  if (sub.id === 'heatmap') triggerHeatmapScan();
+                }}
+                className={`px-2.5 py-1 text-[10px] font-medium rounded-sm transition-colors ${
+                  activeSubTab === sub.id
+                    ? 'bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] shadow-sm'
+                    : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+      </div>
 
       {/* Set selector (for tokens tab) — hidden when sidebar mode is active */}
-      {activeTab === 'tokens' && overflowPanel === null && sets.length > 0 && !useSidebar && (
+      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && sets.length > 0 && !useSidebar && (
         <>
         <div className="relative">
         <div ref={setTabsScrollRef} className="flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
@@ -1153,7 +1240,7 @@ export function App() {
               <button
                 role="menuitem"
                 onMouseDown={e => e.preventDefault()}
-                onClick={() => { setActiveSet(tabMenuOpen); setActiveTab('graph'); setOverflowPanel(null); setTabMenuOpen(null); }}
+                onClick={() => { setActiveSet(tabMenuOpen); navigateTo('define', 'generators'); setTabMenuOpen(null); }}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Generate tokens…
@@ -1299,7 +1386,7 @@ export function App() {
       <div className="flex-1 flex overflow-hidden">
 
         {/* Set sidebar — shown when sets have folder structure (/) or count ≥ 7 */}
-        {activeTab === 'tokens' && overflowPanel === null && useSidebar && (
+        {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && useSidebar && (
           <aside className="w-[128px] shrink-0 border-r border-[var(--color-figma-border)] flex flex-col bg-[var(--color-figma-bg-secondary)] overflow-hidden">
             <div className="flex-1 overflow-y-auto py-0.5" style={{ scrollbarWidth: 'none' }}>
               {sidebarTree.roots.map(item => {
@@ -1407,7 +1494,7 @@ export function App() {
                 className="fixed rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-lg z-50 py-1 min-w-[168px]"
                 style={{ top: tabMenuPos.y, left: tabMenuPos.x }}
               >
-                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { setActiveSet(tabMenuOpen); setActiveTab('graph'); setOverflowPanel(null); setTabMenuOpen(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Generate tokens…</button>
+                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { setActiveSet(tabMenuOpen); navigateTo('define', 'generators'); setTabMenuOpen(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Generate tokens…</button>
                 <div className="border-t border-[var(--color-figma-border)] my-1" />
                 <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => openSetMetadata(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Edit set info</button>
                 <div className="border-t border-[var(--color-figma-border)] my-1" />
@@ -1451,7 +1538,7 @@ export function App() {
         {/* Main content column */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Theme/Mode switcher — always visible on tokens tab */}
-          {activeTab === 'tokens' && overflowPanel === null && (
+          {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && (
             isNarrow && dimensions.length > 0 && !dimBarExpanded ? (
               <button
                 onClick={() => setDimBarExpanded(true)}
@@ -1590,7 +1677,7 @@ export function App() {
                     );
                   })}
                   <button
-                    onClick={() => setOverflowPanel('themes')}
+                    onClick={() => navigateTo('define', 'themes')}
                     className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors px-1"
                     title="Manage theme dimensions"
                     aria-label="Manage theme dimensions"
@@ -1604,7 +1691,7 @@ export function App() {
                 </>
               ) : (
                 <button
-                  onClick={() => setOverflowPanel('themes')}
+                  onClick={() => navigateTo('define', 'themes')}
                   className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)] border border-dashed border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-text-secondary)] transition-colors"
                 >
                   + Add theme
@@ -1626,7 +1713,7 @@ export function App() {
             )
           )}
           {/* Theme preview indicator — shown while hovering over an option that differs from active */}
-          {activeTab === 'tokens' && (() => {
+          {activeTopTab === 'define' && activeSubTab === 'tokens' && (() => {
             const previewEntries = dimensions
               .filter(d => previewThemes[d.id] && previewThemes[d.id] !== activeThemes[d.id])
               .map(d => `${d.name}: ${previewThemes[d.id]}`);
@@ -1666,33 +1753,9 @@ export function App() {
                 connected={connected}
                 onImported={refreshTokens}
                 onImportComplete={(importedSet) => {
-                  setOverflowPanel(null);
-                  setActiveTab('tokens');
+                  navigateTo('define', 'tokens');
                   setActiveSet(importedSet);
                 }}
-              />
-              </ErrorBoundary>
-            </>
-          )}
-          {overflowPanel === 'export' && (
-            <>
-              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <button
-                  onClick={() => setOverflowPanel(null)}
-                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                  aria-label="Back"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6.5 2L3.5 5l3 3"/>
-                  </svg>
-                  Back
-                </button>
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Export</span>
-              </div>
-              <ErrorBoundary panelName="Export" onReset={() => setOverflowPanel(null)}>
-              <ExportPanel
-                serverUrl={serverUrl}
-                connected={connected}
               />
               </ErrorBoundary>
             </>
@@ -1871,47 +1934,13 @@ export function App() {
           )}
 
           {/* Heatmap panel */}
-          {overflowPanel === 'heatmap' && (
-            <>
-              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <button
-                  onClick={() => setOverflowPanel(null)}
-                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                  aria-label="Back"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6.5 2L3.5 5l3 3"/>
-                  </svg>
-                  Back
-                </button>
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Canvas Heatmap</span>
-              </div>
-              <ErrorBoundary panelName="Heatmap" onReset={() => setOverflowPanel(null)}>
-              <HeatmapPanel
-                result={heatmapResult}
-                loading={heatmapLoading}
-                error={heatmapError}
-                onRescan={triggerHeatmapScan}
-                onCancel={cancelHeatmapScan}
-                onSelectNodes={(ids) => parent.postMessage({ pluginMessage: { type: 'select-heatmap-nodes', nodeIds: ids } }, '*')}
-                availableTokens={allTokensFlat}
-                onBatchBind={(nodeIds, tokenPath, property) => {
-                  const entry = allTokensFlat[tokenPath];
-                  if (!entry) return;
-                  parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
-                }}
-              />
-              </ErrorBoundary>
-            </>
-          )}
-
           {/* Main tab panels */}
-          {showValidationReturn && overflowPanel === null && activeTab === 'tokens' && (
+          {showValidationReturn && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (
             <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-accent)]/10 border-b border-[var(--color-figma-accent)]/20 shrink-0">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14l-4-4 4-4"/><path d="M5 10h11a4 4 0 010 8h-1"/></svg>
               <span className="text-[10px] text-[var(--color-figma-text-secondary)] flex-1">Fix the token, then return to re-validate.</span>
               <button
-                onClick={() => { setOverflowPanel('analytics'); setShowValidationReturn(false); }}
+                onClick={() => { navigateTo('ship', 'validation'); setShowValidationReturn(false); }}
                 className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
               >
                 Back to Validation
@@ -1925,7 +1954,7 @@ export function App() {
               </button>
             </div>
           )}
-          {overflowPanel === null && activeTab === 'tokens' && tokens.length === 0 && !createFromEmpty && !editingToken && (
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && tokens.length === 0 && !createFromEmpty && !editingToken && (
             <EmptyState
               connected={connected}
               onCreateToken={() => setEditingToken({ path: '', set: activeSet, isCreate: true })}
@@ -1933,18 +1962,18 @@ export function App() {
               onImportFigma={() => openOverflowPanel('import')}
               onUsePreset={() => setShowScaffoldWizard(true)}
               onGenerateColorScale={() => setShowColorScaleGen(true)}
-              onGoToGraph={() => { setActiveTab('graph'); setOverflowPanel(null); setShowScaffoldWizard(true); }}
+              onGoToGraph={() => { navigateTo('define', 'generators'); setShowScaffoldWizard(true); }}
               onGuidedSetup={() => setShowGuidedSetup(true)}
             />
           )}
-          {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && !showPreviewSplit && (
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && !showPreviewSplit && (
             useSidePanel ? (
               <div className="flex h-full overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <TokenList
                     ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                     data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames }}
-                    actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onError: setErrorToast }}
+                    actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
                     defaultCreateOpen={createFromEmpty}
                     highlightedToken={editingToken?.path ?? highlightedToken}
                     showIssuesOnly={showIssuesOnly}
@@ -1976,20 +2005,20 @@ export function App() {
               <TokenList
                 ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                 data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames }}
-                actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onError: setErrorToast }}
+                actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
                 defaultCreateOpen={createFromEmpty}
                 highlightedToken={highlightedToken}
                 showIssuesOnly={showIssuesOnly}
               />
             )
           )}
-          {overflowPanel === null && activeTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && showPreviewSplit && (
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && showPreviewSplit && (
             <div ref={splitContainerRef} className="flex flex-col h-full overflow-hidden">
               <div style={{ height: `${splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
                 <TokenList
                   ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
                   data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames }}
-                  actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); setActiveTab('graph'); setOverflowPanel(null); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet, onError: setErrorToast }}
+                  actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
                   defaultCreateOpen={createFromEmpty}
                   highlightedToken={highlightedToken}
                   showIssuesOnly={showIssuesOnly}
@@ -2008,14 +2037,14 @@ export function App() {
                 onKeyDown={handleSplitKeyDown}
               />
               <div className="flex-1 min-h-0 overflow-hidden">
-                <ErrorBoundary panelName="Preview" onReset={() => setActiveTab('tokens')}>
-                <PreviewPanel allTokensFlat={allTokensFlat} onGoToTokens={() => setActiveTab('tokens')} />
+                <ErrorBoundary panelName="Preview" onReset={() => navigateTo('define', 'tokens')}>
+                <PreviewPanel allTokensFlat={allTokensFlat} onGoToTokens={() => navigateTo('define', 'tokens')} />
                 </ErrorBoundary>
               </div>
             </div>
           )}
-          {overflowPanel === null && activeTab === 'graph' && (
-            <ErrorBoundary panelName="Graph" onReset={() => setActiveTab('tokens')}>
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'generators' && (
+            <ErrorBoundary panelName="Graph" onReset={() => navigateTo('define', 'tokens')}>
             <GraphPanel
               serverUrl={serverUrl}
               activeSet={activeSet}
@@ -2030,8 +2059,8 @@ export function App() {
             />
             </ErrorBoundary>
           )}
-          {overflowPanel === null && activeTab === 'inspect' && (
-            <ErrorBoundary panelName="Inspector" onReset={() => setActiveTab('tokens')}>
+          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'inspect' && (
+            <ErrorBoundary panelName="Inspector" onReset={() => navigateTo('define', 'tokens')}>
             <SelectionInspector
               selectedNodes={selectedNodes}
               tokenMap={allTokensFlat}
@@ -2046,92 +2075,72 @@ export function App() {
               onTokenCreated={refreshTokens}
               onNavigateToToken={(path) => {
                 setHighlightedToken(path);
-                setActiveTab('tokens');
+                navigateTo('define', 'tokens');
               }}
               onPushUndo={pushUndo}
-              onGoToTokens={() => setActiveTab('tokens')}
+              onGoToTokens={() => navigateTo('define', 'tokens')}
               triggerCreateToken={triggerCreateToken}
             />
             </ErrorBoundary>
           )}
-          {overflowPanel === null && activeTab === 'publish' && (
-            <ErrorBoundary panelName="Publish" onReset={() => setActiveTab('tokens')}>
+          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'publish' && (
+            <ErrorBoundary panelName="Publish" onReset={() => navigateTo('define', 'tokens')}>
             <PublishPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} collectionMap={setCollectionNames} modeMap={setModeNames} />
             </ErrorBoundary>
           )}
 
-          {/* Overflow panels for analytics, themes */}
-          {overflowPanel === 'analytics' && (
-            <>
-              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <button
-                  onClick={() => setOverflowPanel(null)}
-                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                  aria-label="Back"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6.5 2L3.5 5l3 3"/>
-                  </svg>
-                  Back
-                </button>
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Analytics</span>
-              </div>
-              <ErrorBoundary panelName="Analytics" onReset={() => setOverflowPanel(null)}>
+          {/* Validation sub-tab (Ship > Validation) */}
+          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'validation' && (
+              <ErrorBoundary panelName="Validation" onReset={() => navigateTo('ship', 'publish')}>
               <AnalyticsPanel
                 serverUrl={serverUrl}
                 connected={connected}
                 validateKey={validateKey}
                 onNavigateToToken={(path, set) => {
                   setActiveSet(set);
-                  setOverflowPanel(null);
-                  setActiveTab('tokens');
+                  navigateTo('define', 'tokens');
                   setPendingHighlight(path);
                   setShowValidationReturn(true);
                 }}
                 onValidationComplete={setAnalyticsIssueCount}
               />
               </ErrorBoundary>
-            </>
           )}
-          {overflowPanel === 'themes' && (
-            <>
-              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <button
-                  onClick={() => setOverflowPanel(null)}
-                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                  aria-label="Back"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6.5 2L3.5 5l3 3"/>
-                  </svg>
-                  Back
-                </button>
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Themes</span>
-              </div>
-              <ErrorBoundary panelName="Themes" onReset={() => setOverflowPanel(null)}>
-              <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(set, path) => { setOverflowPanel(null); setActiveTab('tokens'); handleNavigateToSet(set, path); }} />
+          {/* Themes sub-tab (Define > Themes) */}
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'themes' && (
+              <ErrorBoundary panelName="Themes" onReset={() => navigateTo('define', 'tokens')}>
+              <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(set, path) => { navigateTo('define', 'tokens'); handleNavigateToSet(set, path); }} />
               </ErrorBoundary>
-            </>
           )}
-          {overflowPanel === 'theme-compare' && (
-            <>
-              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <button
-                  onClick={() => setOverflowPanel(null)}
-                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                  aria-label="Back"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6.5 2L3.5 5l3 3"/>
-                  </svg>
-                  Back
-                </button>
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Compare Themes</span>
-              </div>
-              <ErrorBoundary panelName="Compare Themes" onReset={() => setOverflowPanel(null)}>
-              <ThemeCompare dimensions={dimensions} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />
+
+          {/* Export sub-tab (Ship > Export) */}
+          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'export' && (
+              <ErrorBoundary panelName="Export" onReset={() => navigateTo('ship', 'publish')}>
+              <ExportPanel
+                serverUrl={serverUrl}
+                connected={connected}
+              />
               </ErrorBoundary>
-            </>
+          )}
+
+          {/* Heatmap sub-tab (Apply > Heatmap) */}
+          {overflowPanel === null && activeTopTab === 'apply' && activeSubTab === 'heatmap' && (
+              <ErrorBoundary panelName="Heatmap" onReset={() => navigateTo('apply', 'inspect')}>
+              <HeatmapPanel
+                result={heatmapResult}
+                loading={heatmapLoading}
+                error={heatmapError}
+                onRescan={triggerHeatmapScan}
+                onCancel={cancelHeatmapScan}
+                onSelectNodes={(ids) => parent.postMessage({ pluginMessage: { type: 'select-heatmap-nodes', nodeIds: ids } }, '*')}
+                availableTokens={allTokensFlat}
+                onBatchBind={(nodeIds, tokenPath, property) => {
+                  const entry = allTokensFlat[tokenPath];
+                  if (!entry) return;
+                  parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
+                }}
+              />
+              </ErrorBoundary>
           )}
           </div>
         </div>
@@ -2139,7 +2148,7 @@ export function App() {
       </ErrorBoundary>
 
       {/* Token editor drawer (narrow windows only; wide windows use side panel) */}
-      {editingToken && overflowPanel === null && activeTab === 'tokens' && !useSidePanel && (
+      {editingToken && overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && !useSidePanel && (
         <div className="fixed inset-0 z-40 flex flex-col justify-end overflow-hidden">
           <div
             className="absolute inset-0 bg-black/30 drawer-fade-in"
@@ -2488,8 +2497,7 @@ export function App() {
           tokens={paletteTokens}
           onGoToToken={(path) => {
             const targetSet = pathToSet[path];
-            setActiveTab('tokens');
-            setOverflowPanel(null);
+            navigateTo('define', 'tokens');
             setEditingToken(null);
             if (targetSet && targetSet !== activeSet) {
               setActiveSet(targetSet);

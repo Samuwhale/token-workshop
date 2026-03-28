@@ -98,3 +98,17 @@ Already up to date.
 
 --- Merging: No hover preview on alias tokens ---
 Already up to date.
+[main 42dde25] chore(backlog): done – No hover preview on alias tokens
+ 5 files changed, 35 insertions(+), 5 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No hover preview on alias tokens
+- Fixed two issues preventing alias hover previews from working:
+  1. Alias badge tooltip now shows resolved value (`color.primary → #ff0000\nClick to navigate`) instead of just "Navigate to {color.primary}"
+  2. Alias resolution chain tooltip repositioned from `top-full` (below row, clipped by scroll container's `overflow-y-auto`) to `bottom-full` (above row, visible)
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  97 items remaining
+===============================================================
+  Claimed: No token count badge on set tabs — you have to open a set to discover how many tokens it contains; show a count in the tab label
+  Worktree: /tmp/backlog-63411-mTTuUj
