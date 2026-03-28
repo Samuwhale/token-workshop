@@ -119,3 +119,10 @@ Already up to date.
 ===============================================================
   Claimed: Git sync `applyDiffChoices` pushes even when pull commit fails silently — the push proceeds after a caught pull error, potentially pushing stale state
   Worktree: /tmp/backlog-84992-TbXd8C
+
+  ✓ done: Git sync applyDiffChoices pushes even when pull commit fails silently
+    Replaced .catch() with try/catch + pushCommitSucceeded flag so git.push() only runs after a successful commit
+    13 turns · 61s · $0.34
+
+--- Merging: Git sync applyDiffChoices pushes even when pull commit fails silently ---
+Already up to date.

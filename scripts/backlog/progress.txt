@@ -328,3 +328,10 @@
   - React concurrent mode may call setState updater functions multiple times — side effects (localStorage, postMessage) must never go inside them
   - Use a ref to snapshot current state for async callbacks that need prev-state access without a functional updater
 ---
+
+## 2026-03-28 - Git sync `applyDiffChoices` pushes even when pull commit fails silently
+- Fixed `applyDiffChoices` in git-sync.ts: the push commit's `.catch()` swallowed errors and let `git.push()` proceed regardless. Replaced `.catch()` with try/catch and a `pushCommitSucceeded` flag — `git.push()` now only runs if the commit succeeded. Also converted pull commit from `.catch()` to try/catch for consistency.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L127–L152
+- **Learnings for future iterations:**
+  - `.catch(() => {})` on a promise chain silently swallows errors and lets subsequent `.then()`/`await` lines execute — prefer try/catch when downstream logic depends on success.
+---

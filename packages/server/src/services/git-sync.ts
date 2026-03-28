@@ -131,14 +131,26 @@ export class GitSync {
         await this.git.raw(['checkout', `origin/${branch}`, '--', file]).catch((err) => { console.warn(`[GitSync] Failed to checkout file "${file}":`, err); });
       }
       await this.git.add(toPull);
-      await this.git.commit(`chore: pull ${toPull.length} file(s) from remote`).catch((err) => { console.warn('[GitSync] Pull commit failed (may have no changes):', err); });
+      try {
+        await this.git.commit(`chore: pull ${toPull.length} file(s) from remote`);
+      } catch (err) {
+        console.warn('[GitSync] Pull commit failed (may have no changes):', err);
+      }
     }
     // 'push' direction: stage only the selected files, commit, then push
     const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
     if (toPush.length > 0) {
       await this.git.add(toPush);
-      await this.git.commit(`chore: push ${toPush.length} file(s) to remote`).catch((err) => { console.warn('[GitSync] Push commit failed (may have no changes):', err); });
-      await this.git.push();
+      let pushCommitSucceeded = false;
+      try {
+        await this.git.commit(`chore: push ${toPush.length} file(s) to remote`);
+        pushCommitSucceeded = true;
+      } catch (err) {
+        console.warn('[GitSync] Push commit failed (may have no changes):', err);
+      }
+      if (pushCommitSucceeded) {
+        await this.git.push();
+      }
     }
   }
 }

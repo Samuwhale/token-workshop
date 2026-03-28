@@ -79,3 +79,17 @@ Already up to date.
 
 --- Merging: Side effects inside `setActiveThemesState` updater ---
 Already up to date.
+[main 0964efc] chore(backlog): done – Side effects inside `setActiveThemesState` updater
+ 6 files changed, 40 insertions(+), 14 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Side effects inside `setActiveThemesState` updater
+- Moved `lsSetJson()` and `parent.postMessage()` out of the `setActiveThemesState(prev => { ... })` updater in `fetchThemes`. Added `activeThemesRef` to read current state outside the updater, then calls `setActiveThemes(next)` which handles side effects outside React's updater function.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L20 (ref), ~L62 (cleaned updater)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  99 items remaining
+===============================================================
+  Claimed: Race condition in file write guard — `_writingFiles` entries are cleared via `setTimeout(..., 500ms)`; if writes take longer than 500ms (slow disk, large files), the watcher reloads a partially-written file, corrupting in-memory state
+  Worktree: /tmp/backlog-85816-7OVzSO
