@@ -587,3 +587,13 @@
 - **Learnings for future iterations:**
   - Pre-existing server test failure (bulk-rename status 409 vs expected 500) is unrelated and predates this change
 ---
+
+## 2026-03-28 - Snapshot save/restore bypasses tokenLock
+- Wrapped `POST /api/snapshots` (save) and `POST /api/snapshots/:id/restore` in `withLock` from `fastify.tokenLock`
+- Wrapped the mutating section of `POST /api/sync/log/:hash/restore` (snapshot-before, restoreSnapshot, snapshot-after, operation log) in `withLock`
+- Files changed: `packages/server/src/routes/snapshots.ts` ~L5,11,47, `packages/server/src/routes/sync.ts` ~L8,337
+- **Learnings for future iterations:**
+  - The `tokenLock` pattern is straightforward: `const { withLock } = fastify.tokenLock;` at route registration, then `return withLock(async () => { ... })` around any tokenStore mutations
+  - For sync restore, the git diff computation (read-only from git) can stay outside the lock; only the tokenStore read-modify-write cycle needs protection
+  - Pre-existing server test failure: `api.test.ts` expects 500 for circular alias rename but gets 409 — unrelated to concurrency changes
+---

@@ -215,7 +215,7 @@ remaining() {
 
 STALE=$(grep -cE '^\- \[~\]' "$BACKLOG_FILE" 2>/dev/null || echo 0)
 if [ "$STALE" -gt 0 ]; then
-  OTHER_RUNNERS=$(pgrep -f "backlog\.sh" 2>/dev/null | grep -v $$ | wc -l | tr -d ' ')
+  OTHER_RUNNERS=$(pgrep -f "backlog\.sh" 2>/dev/null | grep -v $$ | wc -l | tr -d ' ' || true)
   if [ "$OTHER_RUNNERS" -eq 0 ]; then
     echo "WARNING: $STALE stale [~] item(s) from a crashed session — resetting to [ ]"
     acquire_lock "$BACKLOG_LOCKDIR"
@@ -283,7 +283,12 @@ WORKTREE_BASE_SHA=""  # SHA the worktree was created at (for new-commit detectio
 setup_worktree() {
   WORKTREE_BASE_SHA=$(git -C "$PROJECT_ROOT" rev-parse HEAD 2>/dev/null || echo "")
   WORKTREE_DIR=$(mktemp -d "/tmp/backlog-$$-XXXXXX")
-  git -C "$PROJECT_ROOT" worktree add --detach "$WORKTREE_DIR" HEAD --quiet 2>/dev/null
+  if ! git -C "$PROJECT_ROOT" worktree add --detach "$WORKTREE_DIR" HEAD --quiet 2>/dev/null; then
+    echo "ERROR: Failed to create worktree at $WORKTREE_DIR"
+    rm -rf "$WORKTREE_DIR"
+    WORKTREE_DIR=""
+    return 1
+  fi
   ln -s "$PROJECT_ROOT/node_modules" "$WORKTREE_DIR/node_modules"
   PROGRESS_BASELINE=$(wc -l < "$WORKTREE_DIR/scripts/backlog/progress.txt" 2>/dev/null || echo 0)
   PATTERNS_BASELINE=$(wc -l < "$WORKTREE_DIR/scripts/backlog/patterns.md" 2>/dev/null || echo 0)
@@ -540,7 +545,7 @@ cleanup_if_needed() {
   date_str=$(date +%Y-%m-%d)
 
   # Append completed items to archive file
-  { printf '\n## Archived %s (%s items)\n' "$date_str" "$done_count"; grep -E '^\- \[x\]' "$BACKLOG_FILE"; } >> "$ARCHIVE_FILE"
+  { printf '\n## Archived %s (%s items)\n' "$date_str" "$done_count"; grep -E '^\- \[x\]' "$BACKLOG_FILE" || true; } >> "$ARCHIVE_FILE"
 
   # Remove [x] items from backlog.md, squeeze consecutive blank lines
   local tmpfile
@@ -604,7 +609,14 @@ run_special_pass() {
   local saved_progress_baseline="$PROGRESS_BASELINE"
   local saved_patterns_baseline="$PATTERNS_BASELINE"
   local saved_base_sha="$WORKTREE_BASE_SHA"
-  setup_worktree
+  if ! setup_worktree; then
+    echo "  Failed to set up worktree for $pass_type pass — skipping"
+    WORKTREE_DIR="$saved_worktree"
+    PROGRESS_BASELINE="$saved_progress_baseline"
+    PATTERNS_BASELINE="$saved_patterns_baseline"
+    WORKTREE_BASE_SHA="$saved_base_sha"
+    return 0
+  fi
   local pass_worktree="$WORKTREE_DIR"
   local pass_progress_baseline="$PROGRESS_BASELINE"
   local pass_patterns_baseline="$PATTERNS_BASELINE"
@@ -769,7 +781,13 @@ while true; do
   echo "  Claimed: $CLAIMED_ITEM"
 
   # ── Set up isolated worktree for the agent ──
-  setup_worktree
+  if ! setup_worktree; then
+    echo "  Failed to set up worktree — unclaiming item"
+    update_item_status " " "$CLAIMED_ITEM"
+    CLAIMED_ITEM=""
+    sleep 5 || true
+    continue
+  fi
   echo "  Worktree: $WORKTREE_DIR"
 
   # ── Run the agent ──

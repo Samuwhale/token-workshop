@@ -5,6 +5,7 @@ import { snapshotPaths } from '../services/operation-log.js';
 import { stableStringify } from '../services/stable-stringify.js';
 
 export const syncRoutes: FastifyPluginAsync = async (fastify) => {
+  const { withLock } = fastify.tokenLock;
   // GET /api/sync/status — git status + isRepo + current branch
   fastify.get('/sync/status', async (_request, reply) => {
     try {
@@ -332,54 +333,57 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'No tokens to restore' });
       }
 
-      // Snapshot current state for undo (operation-log)
-      const allPaths = toRestore.map(r => r.path);
-      const allSets = [...new Set(toRestore.map(r => r.set))];
-      const beforeSnapshot: Record<string, { token: Token | null; setName: string }> = {};
-      for (const setName of allSets) {
-        const pathsInSet = toRestore.filter(r => r.set === setName).map(r => r.path);
-        const snap = await snapshotPaths(fastify.tokenStore, setName, pathsInSet);
-        Object.assign(beforeSnapshot, snap);
-      }
+      // Acquire token lock for the entire snapshot-restore-snapshot cycle
+      return await withLock(async () => {
+        // Snapshot current state for undo (operation-log)
+        const allPaths = toRestore.map(r => r.path);
+        const allSets = [...new Set(toRestore.map(r => r.set))];
+        const beforeSnapshot: Record<string, { token: Token | null; setName: string }> = {};
+        for (const setName of allSets) {
+          const pathsInSet = toRestore.filter(r => r.set === setName).map(r => r.path);
+          const snap = await snapshotPaths(fastify.tokenStore, setName, pathsInSet);
+          Object.assign(beforeSnapshot, snap);
+        }
 
-      // Group by set and restore
-      const bySet = new Map<string, Array<{ path: string; token: Token | null }>>();
-      for (const { path: p, set: s, token } of toRestore) {
-        let list = bySet.get(s);
-        if (!list) { list = []; bySet.set(s, list); }
-        list.push({ path: p, token });
-      }
-      for (const [setName, items] of bySet) {
-        await fastify.tokenStore.restoreSnapshot(setName, items);
-      }
+        // Group by set and restore
+        const bySet = new Map<string, Array<{ path: string; token: Token | null }>>();
+        for (const { path: p, set: s, token } of toRestore) {
+          let list = bySet.get(s);
+          if (!list) { list = []; bySet.set(s, list); }
+          list.push({ path: p, token });
+        }
+        for (const [setName, items] of bySet) {
+          await fastify.tokenStore.restoreSnapshot(setName, items);
+        }
 
-      // Snapshot after state
-      const afterSnapshot: Record<string, { token: Token | null; setName: string }> = {};
-      for (const setName of allSets) {
-        const pathsInSet = toRestore.filter(r => r.set === setName).map(r => r.path);
-        const snap = await snapshotPaths(fastify.tokenStore, setName, pathsInSet);
-        Object.assign(afterSnapshot, snap);
-      }
+        // Snapshot after state
+        const afterSnapshot: Record<string, { token: Token | null; setName: string }> = {};
+        for (const setName of allSets) {
+          const pathsInSet = toRestore.filter(r => r.set === setName).map(r => r.path);
+          const snap = await snapshotPaths(fastify.tokenStore, setName, pathsInSet);
+          Object.assign(afterSnapshot, snap);
+        }
 
-      // Record in operation log
-      const isSingle = toRestore.length === 1;
-      const description = isSingle
-        ? `Restore ${toRestore[0].path} from commit ${hash.slice(0, 7)}`
-        : `Restore ${toRestore.length} tokens from commit ${hash.slice(0, 7)}`;
-      const opEntry = await fastify.operationLog.record({
-        type: 'version-restore',
-        description,
-        setName: allSets.join(', '),
-        affectedPaths: allPaths,
-        beforeSnapshot,
-        afterSnapshot,
+        // Record in operation log
+        const isSingle = toRestore.length === 1;
+        const description = isSingle
+          ? `Restore ${toRestore[0].path} from commit ${hash.slice(0, 7)}`
+          : `Restore ${toRestore.length} tokens from commit ${hash.slice(0, 7)}`;
+        const opEntry = await fastify.operationLog.record({
+          type: 'version-restore',
+          description,
+          setName: allSets.join(', '),
+          affectedPaths: allPaths,
+          beforeSnapshot,
+          afterSnapshot,
+        });
+
+        return {
+          restored: toRestore.length,
+          operationId: opEntry.id,
+          paths: allPaths,
+        };
       });
-
-      return {
-        restored: toRestore.length,
-        operationId: opEntry.id,
-        paths: allPaths,
-      };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to restore tokens', detail: String(err) });
     }
