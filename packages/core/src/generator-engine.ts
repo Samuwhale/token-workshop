@@ -16,6 +16,7 @@ import type {
   ContrastCheckConfig,
   GeneratedTokenResult,
 } from './generator-types.js';
+import { validateStepName } from './generator-types.js';
 import { hexToLab, labToHex, wcagLuminance } from './color-math.js';
 import { evalExpr, substituteVars } from './eval-expr.js';
 
@@ -35,6 +36,11 @@ export function runColorRampGenerator(
   config: ColorRampConfig,
   targetGroup: string,
 ): GeneratedTokenResult[] {
+  // Validate step names before generating
+  for (const step of config.steps) {
+    validateStepName(String(step));
+  }
+
   const lab = hexToLab(sourceHex);
   if (!lab) return [];
   const [, bA, bB] = lab;
@@ -80,6 +86,11 @@ export function runTypeScaleGenerator(
 ): GeneratedTokenResult[] {
   const { steps, ratio, unit, baseStep, roundTo } = config;
 
+  // Validate step names before generating
+  for (const step of steps) {
+    validateStepName(step.name);
+  }
+
   const baseStepDef = steps.find(s => s.name === baseStep);
   const baseExponent = baseStepDef?.exponent ?? 0;
 
@@ -113,6 +124,11 @@ export function runSpacingScaleGenerator(
 ): GeneratedTokenResult[] {
   const { steps, unit } = config;
 
+  // Validate step names before generating
+  for (const step of steps) {
+    validateStepName(step.name);
+  }
+
   return steps.map(step => {
     const raw = sourceValue.value * step.multiplier;
     const rounded = parseFloat(raw.toFixed(4));
@@ -138,6 +154,11 @@ export function runOpacityScaleGenerator(
   config: OpacityScaleConfig,
   targetGroup: string,
 ): GeneratedTokenResult[] {
+  // Validate step names before generating
+  for (const step of config.steps) {
+    validateStepName(step.name);
+  }
+
   return config.steps.map(step => ({
     stepName: step.name,
     path: `${targetGroup}.${step.name}`,
@@ -162,6 +183,11 @@ export function runBorderRadiusScaleGenerator(
   targetGroup: string,
 ): GeneratedTokenResult[] {
   const { steps, unit } = config;
+
+  // Validate step names before generating
+  for (const step of steps) {
+    validateStepName(step.name);
+  }
 
   return steps.map(step => {
     const rawValue =
@@ -191,6 +217,11 @@ export function runZIndexScaleGenerator(
   config: ZIndexScaleConfig,
   targetGroup: string,
 ): GeneratedTokenResult[] {
+  // Validate step names before generating
+  for (const step of config.steps) {
+    validateStepName(step.name);
+  }
+
   return config.steps.map(step => ({
     stepName: step.name,
     path: `${targetGroup}.${step.name}`,
@@ -219,6 +250,11 @@ export function runCustomScaleGenerator(
 ): GeneratedTokenResult[] {
   const { steps, formula, roundTo, outputType, unit } = config;
   const base = sourceValue ?? 0;
+
+  // Validate step names before generating
+  for (const step of steps) {
+    validateStepName(step.name);
+  }
 
   // Sort steps by index so `prev` is always available
   const sorted = [...steps].sort((a, b) => a.index - b.index);
@@ -281,6 +317,10 @@ export function runAccessibleColorPairGenerator(
   config: AccessibleColorPairConfig,
   targetGroup: string,
 ): GeneratedTokenResult[] {
+  // Validate step names before generating
+  validateStepName(config.backgroundStep);
+  validateStepName(config.foregroundStep);
+
   const bgLum = wcagLuminance(sourceHex);
   if (bgLum === null) return [];
 
@@ -327,6 +367,9 @@ export function runDarkModeInversionGenerator(
   config: DarkModeInversionConfig,
   targetGroup: string,
 ): GeneratedTokenResult[] {
+  // Validate step name before generating
+  validateStepName(config.stepName);
+
   const lab = hexToLab(sourceHex);
   if (!lab) return [];
   const [L, a, b] = lab;
@@ -359,6 +402,11 @@ export function runResponsiveScaleGenerator(
   config: ResponsiveScaleConfig,
   targetGroup: string,
 ): GeneratedTokenResult[] {
+  // Validate step names before generating
+  for (const step of config.steps) {
+    validateStepName(step.name);
+  }
+
   return config.steps.map(step => {
     const raw = sourceValue.value * step.multiplier;
     const rounded = parseFloat(raw.toFixed(4));
@@ -387,6 +435,12 @@ export function runContrastCheckGenerator(
   targetGroup: string,
 ): GeneratedTokenResult[] {
   const { backgroundHex, steps, levels } = config;
+
+  // Validate step names before generating
+  for (const step of steps) {
+    validateStepName(step.name);
+  }
+
   const bgLum = wcagLuminance(backgroundHex);
   // Use the strictest configured level as the failure threshold.
   // levels includes 'AAA' → 7.0:1; levels includes only 'AA' → 4.5:1; default → 4.5:1

@@ -31,6 +31,7 @@ import {
   runResponsiveScaleGenerator,
   runContrastCheckGenerator,
   applyOverrides,
+  validateStepName,
 } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
 
@@ -242,6 +243,8 @@ export class GeneratorService {
     stepName: string,
     override: { value: unknown; locked: boolean } | null,
   ): Promise<TokenGenerator> {
+    validateStepName(stepName);
+
     const existing = this.generators.get(id);
     if (!existing) throw new Error(`Generator "${id}" not found`);
 

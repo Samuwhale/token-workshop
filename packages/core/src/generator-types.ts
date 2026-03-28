@@ -309,6 +309,43 @@ export interface InputTable {
 }
 
 // ---------------------------------------------------------------------------
+// Step name validation
+// ---------------------------------------------------------------------------
+
+/**
+ * Validate that a step name forms a valid DTCG token path segment.
+ * Step names are combined as `${targetGroup}.${stepName}` to form token paths,
+ * so they must not contain dots (path separators), slashes, the reserved `$`
+ * prefix, or be empty.
+ *
+ * Throws an Error with a descriptive message on failure.
+ */
+export function validateStepName(stepName: string): void {
+  if (!stepName && stepName !== '0') {
+    throw new Error('Step name must not be empty');
+  }
+  const s = String(stepName);
+  if (s === '') {
+    throw new Error('Step name must not be empty');
+  }
+  if (s.startsWith('$')) {
+    throw new Error(
+      `Invalid step name "${s}": starts with reserved "$" prefix`,
+    );
+  }
+  if (s.includes('.')) {
+    throw new Error(
+      `Invalid step name "${s}": contains a dot, which would create nested path segments`,
+    );
+  }
+  if (s.includes('/') || s.includes('\\')) {
+    throw new Error(
+      `Invalid step name "${s}": contains a slash`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Generated token output
 // ---------------------------------------------------------------------------
 

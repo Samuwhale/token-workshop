@@ -273,3 +273,16 @@ Already up to date.
 
 --- Merging: handleNavigateToAlias silently does nothing when alias target is not in pathToSet ---
 Already up to date.
+[main 98cc99c] chore(backlog): done – handleNavigateToAlias silently does nothing when alias target is not in pathToSet
+ 6 files changed, 38 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - handleNavigateToAlias silently does nothing when alias target is not in pathToSet
+- Added `onAliasNotFound` callback parameter to `useTokenNavigation` hook; when alias target path is missing from `pathToSet`, the callback fires instead of silently doing nothing
+- App.tsx passes a callback that shows an error toast: "Alias target not found: {path}"
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenNavigation.ts` ~L5 (param), ~L38 (else branch); `packages/figma-plugin/src/ui/App.tsx` ~L239 (callback + hook call)
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  43 items remaining
+===============================================================
+  Claimed: TokenEditor path field has no real-time duplicate detection — creating a token with a path that already exists only fails on save with a cryptic conflict error; the field should warn inline as the user types
+  Worktree: /tmp/backlog-10278-l1e6hC

@@ -327,3 +327,14 @@
 - **Learnings for future iterations:**
   - The codebase already has `setErrorToast` with a `SuccessToast` error variant for transient error messages — use it for lightweight user feedback
 ---
+
+## 2026-03-28 - Generator config steps accept arbitrary names without validating they form valid token path segments
+- Added `validateStepName()` to `@tokenmanager/core` generator-types.ts that rejects empty names, `$` prefix, dots (path separators), and slashes
+- Called validation in all 11 generator engine functions before path construction
+- Called validation in `GeneratorService.setStepOverride()` before storing overrides
+- Exported `validateStepName` from core index.ts for use by server and UI
+- Files changed: `packages/core/src/generator-types.ts` ~L315 (new function), `packages/core/src/generator-engine.ts` ~L38,~L87,~L120,~L148,~L172,~L202,~L230,~L290,~L340,~L373,~L400 (validation calls), `packages/core/src/index.ts` ~L104 (export), `packages/server/src/services/generator-service.ts` ~L34,~L243 (import + validation)
+- **Learnings for future iterations:**
+  - Step names in DTCG must not contain dots since they become path segments joined with dots — this is distinct from the server's `validateTokenPath` which validates full paths
+  - ColorRamp steps are numbers, so `String(step)` is needed before validation; other generators use `.name` string fields
+---

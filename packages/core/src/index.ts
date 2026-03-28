@@ -101,6 +101,7 @@ export type {
   InputTableRow,
   InputTable,
 } from './generator-types.js';
+export { validateStepName } from './generator-types.js';
 export {
   DEFAULT_COLOR_RAMP_CONFIG,
   DEFAULT_TYPE_SCALE_CONFIG,

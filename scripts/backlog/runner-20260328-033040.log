@@ -375,3 +375,10 @@ Already up to date.
 ===============================================================
   Claimed: Generator config steps accept arbitrary names without validating they form valid token path segments — `generator-types.ts` step name fields are plain strings with no check for spaces, slashes, or special characters that would produce invalid DTCG token paths
   Worktree: /tmp/backlog-84992-VTcUW5
+
+  ✓ done: Generator config steps accept arbitrary names without validating they form valid token path segments
+    Added validateStepName() to core that rejects empty, $-prefixed, dot-containing, and slash-containing step names. Called in all 11 generator engine functions and in setStepOverride service method.
+    33 turns · 232s · $1.51
+
+--- Merging: Generator config steps accept arbitrary names without validating they form valid token path segments ---
+Already up to date.
