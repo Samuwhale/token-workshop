@@ -76,3 +76,10 @@ Already up to date.
 ===============================================================
   Claimed: No visual token previews in the token list — rows show text-only value representations; add inline previews per type: color swatches, proportional bars for spacing, "Aa" samples for typography, shadow previews, border line segments — this is table-stakes (both Tokens Studio and Figma native do this)
   Worktree: /tmp/backlog-63685-y4IY4C
+
+  ✓ done: No visual token previews in the token list
+    Added inline previews for dimension (proportional square), duration (proportional square), number (fill bar), and border (line segment with color/style/width) in ValuePreview.tsx. Color, typography, shadow, gradient, font previews were already implemented.
+    17 turns · 177s · $0.96
+
+--- Merging: No visual token previews in the token list ---
+Already up to date.

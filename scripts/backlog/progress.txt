@@ -368,3 +368,16 @@
   - The old `highlightMatch` accepted a raw query string — structured queries like `name:foo` never matched because qualifiers were included in the match text. Always parse qualifiers out before highlighting.
   - `String.split(regex_with_capture_group)` interleaves matches at odd indices — convenient for building highlight fragments without manual index tracking.
 ---
+
+## 2026-03-28 - No visual token previews in the token list
+- Added inline visual previews for dimension, duration, number, and border token types in `ValuePreview.tsx`
+- **Dimension/duration**: proportional square that scales both width and height relative to value (0–64px/4rem/2s range), anchored bottom-left
+- **Number**: horizontal fill bar that scales height (auto-detects 0–1 vs 0–100 range for opacity etc.)
+- **Border**: renders actual border-bottom line segment with token's color, width, and style inside the preview box
+- Color swatches, typography "Aa", shadow, gradient, font previews were already implemented
+- Files changed: `packages/figma-plugin/src/ui/components/ValuePreview.tsx` ~L109-174
+- **Learnings for future iterations:**
+  - ValuePreview returns an empty spacer div for unhandled types — new type previews just need a new `if` block before the fallback
+  - Dimension values can be object `{value, unit}`, string, or number — handle all three forms
+  - For proportional previews, different units need different reference maximums (px: 64, rem: 4, s: 2)
+---

@@ -106,6 +106,73 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
     }
   }
 
+  if (type === 'dimension' || type === 'duration') {
+    let numericVal = 0;
+    let unit = 'px';
+    if (typeof value === 'object' && value !== null && 'value' in value) {
+      numericVal = Number(value.value) || 0;
+      unit = value.unit || 'px';
+    } else if (typeof value === 'string') {
+      numericVal = parseFloat(value) || 0;
+    } else if (typeof value === 'number') {
+      numericVal = value;
+    }
+    // Scale: map 0–64 to 0–100% width (clamp at 100%)
+    const maxRef = unit === 'rem' || unit === 'em' ? 4 : unit === 's' ? 2 : 64;
+    const pct = Math.min(Math.max(numericVal / maxRef, 0.08), 1);
+    const label = typeof value === 'object' && value !== null ? `${value.value}${value.unit}` : String(value);
+    return (
+      <div
+        className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-end overflow-hidden bg-[var(--color-figma-bg)]"
+        title={label}
+      >
+        <div
+          className="bg-[var(--color-figma-text-tertiary)] rounded-sm"
+          style={{ width: `${Math.round(pct * 100)}%`, height: `${Math.round(pct * 100)}%`, minWidth: 2, minHeight: 2 }}
+        />
+      </div>
+    );
+  }
+
+  if (type === 'number') {
+    const numericVal = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
+    // For numbers, commonly 0–1 (opacity) or 0–100; auto-detect range
+    const isSmall = Math.abs(numericVal) <= 1;
+    const maxRef = isSmall ? 1 : 100;
+    const pct = Math.min(Math.max(Math.abs(numericVal) / maxRef, 0.08), 1);
+    return (
+      <div
+        className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-end overflow-hidden bg-[var(--color-figma-bg)]"
+        title={String(numericVal)}
+      >
+        <div
+          className="bg-[var(--color-figma-text-tertiary)] rounded-sm"
+          style={{ width: '100%', height: `${Math.round(pct * 100)}%`, minHeight: 2 }}
+        />
+      </div>
+    );
+  }
+
+  if (type === 'border' && typeof value === 'object' && value !== null) {
+    const { color: borderColor, width: borderWidth, style: borderStyle } = value as Record<string, any>;
+    const colorStr = typeof borderColor === 'string' ? borderColor : 'var(--color-figma-text)';
+    const widthStr = typeof borderWidth === 'object' && borderWidth !== null
+      ? `${borderWidth.value}${borderWidth.unit}`
+      : typeof borderWidth === 'string' ? borderWidth : '1px';
+    const styleStr = typeof borderStyle === 'string' ? borderStyle : 'solid';
+    const label = `${widthStr} ${styleStr} ${colorStr}`;
+    return (
+      <div
+        className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)]"
+        title={label}
+      >
+        <div
+          style={{ width: '80%', borderBottom: `${widthStr} ${styleStr} ${colorStr}` }}
+        />
+      </div>
+    );
+  }
+
   if (type === 'asset' && typeof value === 'string' && value.length > 0) {
     return (
       <div className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 overflow-hidden bg-[var(--color-figma-bg-secondary)]">

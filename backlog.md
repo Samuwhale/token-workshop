@@ -23,7 +23,7 @@
 
 ### QoL
 
-- [~] Search doesn't highlight matched substrings — filtering narrows the list but doesn't visually mark which part of the path or value matched, making it unclear why a result appeared
+- [x] Search doesn't highlight matched substrings — filtering narrows the list but doesn't visually mark which part of the path or value matched, making it unclear why a result appeared
 - [x] No breadcrumb trail for deep token trees — once expanded 4+ levels, users lose spatial context; show a sticky breadcrumb (e.g. `colors › brand › primary`) when scrolled deep into a group
 - [~] No drag-to-reorder tokens within the same group — tokens can be dragged between groups but sort order within a group is not user-controllable
 - [x] No bulk delete in multi-select mode — multi-select supports batch edit but not batch delete; removing a deprecated set of tokens requires deleting one at a time
@@ -32,7 +32,7 @@
 
 - [~] No visual token previews in the token list — rows show text-only value representations; add inline previews per type: color swatches, proportional bars for spacing, "Aa" samples for typography, shadow previews, border line segments — this is table-stakes (both Tokens Studio and Figma native do this)
 - [~] No "token in use" indicator in the token list — no visual signal for which tokens are bound to Figma layers; add a subtle usage dot or count on token rows so users can distinguish active tokens from orphans without visiting Analytics
-- [ ] Set/file abstraction creates unnecessary cognitive load — users must understand sets (JSON files), folders, and theme activation before making design decisions; for simple use cases (< 200 tokens), auto-organize by type and hide the file abstraction, exposing sets as an advanced organizational tool
+- [~] Set/file abstraction creates unnecessary cognitive load — users must understand sets (JSON files), folders, and theme activation before making design decisions; for simple use cases (< 200 tokens), auto-organize by type and hide the file abstraction, exposing sets as an advanced organizational tool
 - [ ] No read-only token preview panel — selecting a token forces edit mode to inspect values, risking accidental changes; add a lightweight preview on single-click, reserve edit for double-click or explicit action
 - [ ] No per-token usage/documentation view — no way to see where a specific token is used across the design file (which components, pages, layers) without running a full heatmap scan; add a "Used by" panel per token showing bound layers and dependent tokens in one place
 - [ ] No token lifecycle states — all tokens are immediately live with no way to mark them as "draft", "published", or "deprecated"; for multi-team usage, add lifecycle badges and optionally hide deprecated tokens from bind pickers

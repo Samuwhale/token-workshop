@@ -140,3 +140,17 @@ Already up to date.
 
 --- Merging: Search doesn't highlight matched substrings ---
 Already up to date.
+[main 85f95b7] chore(backlog): done – Search doesn't highlight matched substrings
+ 9 files changed, 83 insertions(+), 23 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Search doesn't highlight matched substrings
+- Rewrote `highlightMatch()` to accept an array of terms and highlight all occurrences using a single regex (longest-first to avoid partial overlaps).
+- Added `searchHighlight` memo in `TokenList.tsx` that parses the raw search query via `parseStructuredQuery` and extracts `nameTerms` (free text + `name:` + `path:` qualifiers) and `valueTerms` (free text + `value:` qualifiers).
+- Changed `TokenTreeNodeProps.searchQuery` to `searchHighlight: { nameTerms: string[]; valueTerms: string[] }` — group names, token names, and value displays all highlight matched substrings.
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  88 items remaining
+===============================================================
+  Claimed: Set/file abstraction creates unnecessary cognitive load — users must understand sets (JSON files), folders, and theme activation before making design decisions; for simple use cases (< 200 tokens), auto-organize by type and hide the file abstraction, exposing sets as an advanced organizational tool
+  Worktree: /tmp/backlog-63411-wv5hFJ
