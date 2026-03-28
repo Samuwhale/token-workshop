@@ -29,6 +29,7 @@ import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
 import { TokenFlowPanel } from './components/TokenFlowPanel';
 import { ExportPanel } from './components/ExportPanel';
 import { VersionHistoryPanel } from './components/VersionHistoryPanel';
+import { SnapshotPanel } from './components/SnapshotPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useServerEvents } from './hooks/useServerEvents';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
@@ -162,7 +163,7 @@ type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'resolvers' | 'generators' | 'flow';
 type ApplySubTab = 'inspect' | 'heatmap' | 'consistency';
-type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
+type ShipSubTab = 'publish' | 'export' | 'validation' | 'history' | 'snapshots';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 
 type FolderTreeNode = {
@@ -218,6 +219,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'export', label: 'Export' },
     { id: 'validation', label: 'Validation' },
     { id: 'history', label: 'History' },
+    { id: 'snapshots', label: 'Snapshots' },
   ]},
 ];
 
@@ -2387,6 +2389,13 @@ export function App() {
           {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'history' && (
               <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
               <VersionHistoryPanel serverUrl={serverUrl} connected={connected} />
+              </ErrorBoundary>
+          )}
+
+          {/* Snapshots sub-tab (Ship > Snapshots) */}
+          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'snapshots' && (
+              <ErrorBoundary panelName="Snapshots" onReset={() => navigateTo('ship', 'publish')}>
+              <SnapshotPanel serverUrl={serverUrl} connected={connected} />
               </ErrorBoundary>
           )}
 

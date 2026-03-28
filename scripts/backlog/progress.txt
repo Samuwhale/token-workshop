@@ -445,3 +445,16 @@
   - Pre-bucketing tokens by type (colorTokens/dimTokens/numTokens arrays) before the node loop avoids O(nodes × tokens) full-map iterations per property
   - Color "exact match" threshold of 0.5 RGB units handles floating-point hex round-trip noise without hiding true near-matches
 ---
+
+## 2026-03-28 - Before/After snapshots
+- Implemented manual snapshot feature: save current token state, compare with saved, revert
+- Server: `packages/server/src/services/manual-snapshot.ts` — `ManualSnapshotStore` class; persists snapshots to `{tokenDir}/.tokenmanager/snapshots.json`; methods: `save`, `list`, `get`, `delete`, `diff`, `restore`
+- Server: `packages/server/src/routes/snapshots.ts` — REST routes: POST /api/snapshots, GET /api/snapshots, DELETE /api/snapshots/:id, GET /api/snapshots/:id/diff, POST /api/snapshots/:id/restore
+- Server: `packages/server/src/index.ts` — registered `ManualSnapshotStore` + `snapshotRoutes`, added type augmentation
+- UI: `packages/figma-plugin/src/ui/components/SnapshotPanel.tsx` (new) — two-view panel: list view with "Save this state" button + snapshot list; compare view with diff grouped by status + "Keep changes" / "Revert to saved" buttons
+- UI: `packages/figma-plugin/src/ui/App.tsx` — added `'snapshots'` to `ShipSubTab` type, added sub-tab to Ship section, added `SnapshotPanel` render block (Ship > Snapshots)
+- **Learnings for future iterations:**
+  - `tokenStore.getSet()` and `tokenStore.getSets()` are both async — always await them
+  - `flattenTokenGroup` from `@tokenmanager/core` is the right way to get flat token lists from a `TokenGroup`; do not re-export it through shared utils (TDZ risk)
+  - When persisting to disk in a service, use lazy load pattern (`ensureLoaded` flag) to defer file reads until first access rather than loading in constructor
+---

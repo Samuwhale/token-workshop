@@ -54,3 +54,16 @@ Already up to date.
 ===============================================================
   Claimed: Token resolution chain debugger: click a bound layer → see full resolution chain (e.g. `color.bg.card` → alias `color.neutral.100` → theme:dark → `#1E1E1E`) in one glance
   Worktree: /tmp/backlog-51273-xLcjT5
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    47 turns · 489s · $2.58
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - Consistency scanner
+- Implemented full consistency scanner: scans selection or full page for values close-to-but-not-exactly a design token, surfaces as suggestions with one-click snap-to-token
+- **Scanner logic** (`packages/figma-plugin/src/plugin/consistencyScanner.ts`, new): walks nodes, skips already-bound properties, compares fill/stroke colors (RGB Euclidean distance 0.5–10 = "near match"), dimensions (|diff| ≤ 1px), opacity (|diff| ≤ 2%). Groups results by `tokenPath::property` key, sorted by instance count
+- **Types** (`packages/figma-plugin/src/shared/types.ts`): added `ScanConsistencyMessage` and added it to `PluginMessage` union
+
+Stop signal received. Exiting after iteration 3.

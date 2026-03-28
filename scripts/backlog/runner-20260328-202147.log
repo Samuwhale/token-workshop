@@ -1,0 +1,18 @@
+NOTE: 6 [~] item(s) found — skipping reset (10 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+  Remaining items: 72
+  Completed total: 622 (next code pass in 8 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  72 items remaining
+===============================================================
+  Claimed: Before/After snapshots: "Save this state" → experiment → "Compare with saved" → keep or revert — two buttons, zero git concepts, designed for trying things and showing stakeholders
+  Worktree: /tmp/backlog-10461-g3yTtT
+
+  ✓ done: Before/After snapshots: "Save this state" → experiment → "Compare with saved" → keep or revert — two buttons, zero git concepts, designed for trying things and showing stakeholders
+    Added Ship > Snapshots tab: ManualSnapshotStore persists snapshots to disk, REST routes for save/list/diff/restore, SnapshotPanel with "Save this state" + compare view showing added/modified/removed tokens with "Keep changes" / "Revert to saved" actions
+    46 turns · 409s · $1.49
+
+--- Merging: Before/After snapshots: "Save this state" → experiment → "Compare with saved" → keep or revert — two buttons, zero git concepts, designed for trying things and showing stakeholders ---
+Already up to date.

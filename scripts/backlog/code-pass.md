@@ -8,27 +8,28 @@ Codebase patterns are injected into your system prompt. Recent progress log is a
 
 ## Goal
 
-Find **5–15 concrete, actionable items** across the codebase and write them to `backlog-inbox.md`. Look for things that are wrong, wasteful, or risky in the code. Explore as many areas as you need.
+Find **3–8 concrete, actionable items** across the codebase and write them to `backlog-inbox.md`. Look for things that are wrong, wasteful, or risky in the code. Explore as many areas as you need.
 
-Good targets:
+**Prefer fewer, larger items over many small ones.** Each item should represent a meaningful chunk of work — not a one-line fix. If you spot several related small issues (e.g. 4 similar error-handling gaps in the same module), combine them into a single item that addresses the pattern. Only write a small standalone item if it's truly isolated and high-priority (e.g. a crash or data-loss bug).
 
-- **Bugs** — logic errors, wrong conditions, inverted booleans, off-by-ones, race conditions, state that can get stuck
-- **Error handling gaps** — caught errors that swallow failures silently, leaving the UI stuck or misleading
-- **Edge cases** — inputs that crash or silently produce wrong output (empty arrays, null values, empty strings)
-- **Dead code** — unused functions, components, types, variables, or imports
-- **Duplicate logic** — two implementations doing the same thing that should be consolidated
+Good targets (in order of preference):
+
+- **Structural overhauls** — tangled architecture, monolithic components, or patterns that make the codebase fragile. These are the highest-value items because they prevent entire classes of bugs.
+- **Bugs** — logic errors, wrong conditions, race conditions, state that can get stuck
+- **Duplicate logic** — two or more implementations doing the same thing that should be consolidated
+- **Error handling patterns** — groups of related error-handling gaps (not individual one-liners)
 - **API contract violations** — code that sends or expects a shape the server no longer provides
-- **Type unsafety** — `as any` casts or unchecked accesses that blow up at runtime
-- **Code smells** — magic numbers, overly complex conditions, meaningless variable names, unnecessary indirection
-- **Stale comments** — comments that no longer match the code
+- **Type unsafety** — clusters of `as any` casts or unchecked accesses in the same area
+- **Dead code** — unused functions, components, types (only when there's a meaningful amount to remove)
 
-Items can range from quick fixes to full architectural overhauls — this project has no shipped users and no backwards-compatibility constraints, so structural rethinks are welcome:
-- Quick: `- [ ] Remove unused \`formatTokenValue\` from utils.ts`
-- Medium: `- [ ] TokenList silently swallows fetch errors — should show error state`
+Avoid writing items for: individual stale comments, single magic numbers, one-line dead imports, or other trivial fixes. These are not worth a backlog slot.
+
+This project has no shipped users and no backwards-compatibility constraints, so structural rethinks are welcome:
+- Medium: `- [ ] TokenList silently swallows fetch errors across 6 endpoints — should show error state and retry`
 - Larger: `- [HIGH] Race condition in sync flow — server response can overwrite in-flight edits`
 - Overhaul: `- [ ] Extract TokenList's 40+ useState hooks into domain-specific custom hooks (useTokenCreate, useFindReplace, useDragDrop) — the monolithic state makes every change risky and re-renders expensive`
 
-Overhaul items are encouraged when the root cause of multiple issues is structural. If you see 5 bugs that all stem from the same tangled architecture, write one overhaul item instead of 5 band-aid items.
+**Strongly prefer overhaul items** when the root cause of multiple issues is structural. If you see 5 bugs that all stem from the same tangled architecture, write one overhaul item instead of 5 band-aid items. One well-scoped overhaul is worth more than five small fixes.
 
 ---
 
@@ -61,7 +62,7 @@ Overhaul items are encouraged when the root cause of multiple issues is structur
 - Write only to `backlog-inbox.md` and `scripts/backlog/progress.txt`.
 - Each item must be a complete, standalone sentence — the agent that picks it up won't have your context.
 - Do not duplicate items already in `backlog.md` (check for similar wording before writing).
-- Aim for 5–15 items. Only write issues that are real — confirmed by reading the code, not hypothetical.
+- Aim for 3–8 items. Prefer fewer, larger items. Only write issues that are real — confirmed by reading the code, not hypothetical.
 
 ---
 

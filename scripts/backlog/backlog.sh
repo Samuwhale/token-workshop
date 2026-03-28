@@ -60,7 +60,7 @@ MAX_CONSECUTIVE_FAILURES=5
 
 # Runner log — persists operational output alongside progress.txt
 RUNNER_LOG="$SCRIPT_DIR/runner-$(date +%Y%m%d-%H%M%S).log"
-exec > >(tee -a "$RUNNER_LOG") 2>&1
+exec > >(trap '' INT; tee -a "$RUNNER_LOG") 2>&1
 
 if [ ! -f "$BACKLOG_FILE" ]; then
   echo "Error: backlog.md not found at $PROJECT_ROOT"
@@ -640,6 +640,11 @@ run_special_pass() {
     < "$prompt_file" > "$agent_tmp" 2>"$agent_err") &
   local pass_pid=$!
   wait $pass_pid || true
+  # If Ctrl+C interrupted wait but pass agent is still running, re-wait
+  if [ "$STOP_REQUESTED" -eq 1 ] && kill -0 $pass_pid 2>/dev/null; then
+    echo "  → Waiting for $pass_type pass to finish…"
+    wait $pass_pid 2>/dev/null || true
+  fi
 
   rm -f "$context_file"
   local pass_output
@@ -692,12 +697,12 @@ run_special_pass() {
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
 # Pass schedule:
-#   code pass  — every 8 completed items, or when the backlog is empty
+#   code pass  — every 15 completed items, or when the backlog is empty
 #   product pass — only when the backlog is empty (restocks the queue)
 
 CURRENT_COUNT=$(get_completed_count)
-NEXT_CODE_PASS_IN=$(( 8 - (CURRENT_COUNT % 8) ))
-[ "$NEXT_CODE_PASS_IN" -eq 0 ] && NEXT_CODE_PASS_IN=8
+NEXT_CODE_PASS_IN=$(( 15 - (CURRENT_COUNT % 15) ))
+[ "$NEXT_CODE_PASS_IN" -eq 0 ] && NEXT_CODE_PASS_IN=15
 
 echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iterations: $MAX_ITERATIONS"
 
@@ -794,6 +799,11 @@ for i in $(seq 1 $MAX_ITERATIONS); do
     AGENT_PID=$!
     AGENT_EXIT=0
     wait $AGENT_PID || AGENT_EXIT=$?
+    # If Ctrl+C interrupted wait but agent is still running, re-wait for it to finish
+    if [ "$STOP_REQUESTED" -eq 1 ] && kill -0 $AGENT_PID 2>/dev/null; then
+      echo "  → Waiting for agent to finish current work…"
+      wait $AGENT_PID 2>/dev/null || AGENT_EXIT=$?
+    fi
 
     rm -f "$CONTEXT_FILE"
     OUTPUT=$(cat "$AGENT_TMP")

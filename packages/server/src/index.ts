@@ -24,6 +24,8 @@ import { generatorRoutes } from './routes/generators.js';
 import { operationRoutes } from './routes/operations.js';
 import { resolverRoutes } from './routes/resolvers.js';
 import { ResolverStore } from './services/resolver-store.js';
+import { ManualSnapshotStore } from './services/manual-snapshot.js';
+import { snapshotRoutes } from './routes/snapshots.js';
 
 export interface ServerConfig {
   tokenDir: string;
@@ -54,12 +56,15 @@ export async function startServer(config: ServerConfig) {
   const resolverStore = new ResolverStore(config.tokenDir);
   await resolverStore.initialize();
 
+  const manualSnapshots = new ManualSnapshotStore(config.tokenDir);
+
   // Decorate fastify with services
   fastify.decorate('tokenStore', tokenStore);
   fastify.decorate('gitSync', gitSync);
   fastify.decorate('generatorService', generatorService);
   fastify.decorate('operationLog', operationLog);
   fastify.decorate('resolverStore', resolverStore);
+  fastify.decorate('manualSnapshots', manualSnapshots);
 
   // Auto-run generators when a source token is updated
   tokenStore.onChange((event) => {
@@ -92,6 +97,7 @@ export async function startServer(config: ServerConfig) {
   await fastify.register(generatorRoutes, { prefix: '/api' });
   await fastify.register(operationRoutes, { prefix: '/api' });
   await fastify.register(resolverRoutes, { prefix: '/api' });
+  await fastify.register(snapshotRoutes, { prefix: '/api' });
   await fastify.register(docsRoutes);
 
   try {
@@ -114,5 +120,6 @@ declare module 'fastify' {
     generatorService: GeneratorService;
     operationLog: OperationLog;
     resolverStore: ResolverStore;
+    manualSnapshots: ManualSnapshotStore;
   }
 }

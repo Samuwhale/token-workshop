@@ -57,3 +57,31 @@ Already up to date.
 
 --- Merging: Consistency scanner: scan selection/page for values that are close-to-but-not-exactly a token (colors 2% off, spacing 1px away), surface as suggestions with one-click snap-to-token ---
 Already up to date.
+[main 5e7847e] chore(backlog): done – Consistency scanner: scan selection/page for values that are close-to-but-not-exactly a token (colors 2% off, spacing 1px away), surface as suggestions with one-click snap-to-token
+ 10 files changed, 674 insertions(+), 5 deletions(-)
+ create mode 100644 packages/figma-plugin/src/plugin/consistencyScanner.ts
+ create mode 100644 packages/figma-plugin/src/ui/components/ConsistencyPanel.tsx
+
+## 2026-03-28 - Consistency scanner
+- Implemented full consistency scanner: scans selection or full page for values close-to-but-not-exactly a design token, surfaces as suggestions with one-click snap-to-token
+- **Scanner logic** (`packages/figma-plugin/src/plugin/consistencyScanner.ts`, new): walks nodes, skips already-bound properties, compares fill/stroke colors (RGB Euclidean distance 0.5–10 = "near match"), dimensions (|diff| ≤ 1px), opacity (|diff| ≤ 2%). Groups results by `tokenPath::property` key, sorted by instance count
+- **Types** (`packages/figma-plugin/src/shared/types.ts`): added `ScanConsistencyMessage` and added it to `PluginMessage` union
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  72 items remaining
+===============================================================
+  Claimed: Before/After snapshots: "Save this state" → experiment → "Compare with saved" → keep or revert — two buttons, zero git concepts, designed for trying things and showing stakeholders
+  Worktree: /tmp/backlog-52272-ZnsaVU
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    2 turns · 7s · $0
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - Consistency scanner
+- Implemented full consistency scanner: scans selection or full page for values close-to-but-not-exactly a design token, surfaces as suggestions with one-click snap-to-token
+- **Scanner logic** (`packages/figma-plugin/src/plugin/consistencyScanner.ts`, new): walks nodes, skips already-bound properties, compares fill/stroke colors (RGB Euclidean distance 0.5–10 = "near match"), dimensions (|diff| ≤ 1px), opacity (|diff| ≤ 2%). Groups results by `tokenPath::property` key, sorted by instance count
+- **Types** (`packages/figma-plugin/src/shared/types.ts`): added `ScanConsistencyMessage` and added it to `PluginMessage` union
+
+Stop signal received. Exiting after iteration 4.

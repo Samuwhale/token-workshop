@@ -1,0 +1,25 @@
+NOTE: 6 [~] item(s) found — skipping reset (10 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+  Remaining items: 72
+  Completed total: 622 (next code pass in 8 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  72 items remaining
+===============================================================
+  Claimed: Before/After snapshots: "Save this state" → experiment → "Compare with saved" → keep or revert — two buttons, zero git concepts, designed for trying things and showing stakeholders
+  Worktree: /tmp/backlog-4285-di1SEY
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  · unknown
+    12 turns · 135s · $0.47
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - Consistency scanner
+- Implemented full consistency scanner: scans selection or full page for values close-to-but-not-exactly a design token, surfaces as suggestions with one-click snap-to-token
+- **Scanner logic** (`packages/figma-plugin/src/plugin/consistencyScanner.ts`, new): walks nodes, skips already-bound properties, compares fill/stroke colors (RGB Euclidean distance 0.5–10 = "near match"), dimensions (|diff| ≤ 1px), opacity (|diff| ≤ 2%). Groups results by `tokenPath::property` key, sorted by instance count
+- **Types** (`packages/figma-plugin/src/shared/types.ts`): added `ScanConsistencyMessage` and added it to `PluginMessage` union
+
+Stop signal received. Exiting after iteration 1.

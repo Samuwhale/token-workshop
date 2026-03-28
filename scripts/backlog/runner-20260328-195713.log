@@ -50,3 +50,16 @@ Already up to date.
 ===============================================================
   Claimed: Interactive scale curve editors: draggable bezier for color ramp lightness distribution, visual staircase for type scale with adjustable ratio — make generator output directly manipulable
   Worktree: /tmp/backlog-51036-0j3O1Q
+
+  → Stop requested — will exit after current item completes.
+
+  · unknown
+    28 turns · 386s · $2.11
+WARNING: Agent returned unexpected status '' — unclaiming item
+
+## 2026-03-28 - Consistency scanner
+- Implemented full consistency scanner: scans selection or full page for values close-to-but-not-exactly a design token, surfaces as suggestions with one-click snap-to-token
+- **Scanner logic** (`packages/figma-plugin/src/plugin/consistencyScanner.ts`, new): walks nodes, skips already-bound properties, compares fill/stroke colors (RGB Euclidean distance 0.5–10 = "near match"), dimensions (|diff| ≤ 1px), opacity (|diff| ≤ 2%). Groups results by `tokenPath::property` key, sorted by instance count
+- **Types** (`packages/figma-plugin/src/shared/types.ts`): added `ScanConsistencyMessage` and added it to `PluginMessage` union
+
+Stop signal received. Exiting after iteration 3.
