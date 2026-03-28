@@ -185,3 +185,9 @@
   - The `graph` viewMode in TokenList was unreachable — no UI element ever set it; GraphPanel uses its own internal viewMode
   - ResolverPanel.tsx had a pre-existing JSX syntax error (`)}` instead of `</div>`) that broke the build — collateral fix
 ---
+
+## 2026-03-29 - product-pass
+- Areas explored: ImportPanel.tsx (conflict resolution, preview, validation), TokenGeneratorDialog.tsx + useGeneratorPreview.ts + useGeneratorSave.ts (multi-brand preview, window.confirm), ThemeManager.tsx (compare view limitations), AliasAutocomplete.tsx + TokenEditor.tsx (alias creation/resolution/broken detection), ValueEditors.tsx (token type editor coverage — 14/24 types fallback to text), AnalyticsPanel.tsx (missing empty state), plugin controller.ts (sandbox gap analysis), accessibility audit (ARIA attributes, keyboard nav, focus traps), error handling patterns (14+ silent catch blocks), server routes (API consistency, search performance, SSE reconnect), BatchEditor.tsx (multi-select discoverability, batch undo)
+- Found 12 items — written to backlog-inbox.md
+- Notable: Renaming a token silently breaks all aliases referencing it with no "find references" or auto-update; multi-brand generator preview is completely disabled leaving users blind before save; 14 of 24 token types fall back to raw text input despite having well-defined enumerable values
+---
