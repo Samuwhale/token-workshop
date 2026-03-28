@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: No onboarding or first-run experience — empty state shows "No tokens yet" with no guidance; add a first-run flow: "Import from Figma Variables" as primary CTA, "Start from template" using generator presets (Material, Tailwind), "Paste existing tokens" for migrations, and a brief walkthrough of the token → theme → publish workflow
   Worktree: /tmp/backlog-63973-XSgY8W
+
+  ✓ done: No onboarding or first-run experience
+    Redesigned EmptyState into a first-run onboarding flow: "Import from Figma Variables" primary CTA, "Guided setup", "Start from template" (Material/Tailwind), "Paste existing tokens" for migrations, and a Tokens → Themes → Publish workflow walkthrough at bottom.
+    11 turns · 219s · $0.89
+
+--- Merging: No onboarding or first-run experience ---
+Already up to date.

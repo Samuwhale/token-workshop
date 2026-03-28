@@ -354,3 +354,16 @@
 - **Learnings for future iterations:**
   - Error toast already had an explicit 8s override in App.tsx — the fix was to bake this into the component default so all future error toasts automatically get the longer timeout without callers needing to remember.
 ---
+
+## 2026-03-28 - No onboarding or first-run experience
+- Redesigned EmptyState component from plain "No tokens yet" into a full first-run onboarding flow
+- Added "Import from Figma Variables" as primary CTA (accent-colored button at top), wired to openOverflowPanel('import')
+- Reorganized actions: Import Figma > Guided setup > Start from template (renamed, mentions Material/Tailwind) > Paste existing tokens (renamed for migration context) > Generate color scale > Create manually (demoted to secondary)
+- Added workflow walkthrough section at bottom: Tokens → Themes → Publish with icons and descriptions
+- Changed heading from "No tokens yet" to "Welcome to TokenManager" with better onboarding copy
+- Added onImportFigma prop to EmptyState, widened max-w from 220px to 260px, added overflow-y-auto
+- Files changed: `packages/figma-plugin/src/ui/components/EmptyState.tsx` ~L1-230, `packages/figma-plugin/src/ui/App.tsx` ~L1924
+- **Learnings for future iterations:**
+  - The EmptyState already had most action handlers wired up; the main gap was "Import from Figma" which maps to openOverflowPanel('import')
+  - The "Use a preset" button (onUsePreset) was redundant with "Start from template" (onGoToGraph) — consolidated into the template option
+---

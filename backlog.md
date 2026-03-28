@@ -14,14 +14,14 @@
 ### QoL
 
 - [x] "Last used token type" stored in sessionStorage resets when plugin window closes — move to localStorage or Figma clientStorage so it persists across sessions
-- [~] Toast auto-dismiss too fast for errors — 3s auto-dismiss doesn't give enough time to read sync/import failure details; increase to 5–8s for error toasts, or make them persist until manually dismissed
+- [x] Toast auto-dismiss too fast for errors — 3s auto-dismiss doesn't give enough time to read sync/import failure details; increase to 5–8s for error toasts, or make them persist until manually dismissed
 - [~] Keyboard shortcut discoverability is poor — shortcuts only visible via a dedicated modal (`?`); add inline hint text on buttons and menu items (e.g. "Save ⌘↵") so users learn shortcuts in context
 
 ### UX
 
 - [~] No onboarding or first-run experience — empty state shows "No tokens yet" with no guidance; add a first-run flow: "Import from Figma Variables" as primary CTA, "Start from template" using generator presets (Material, Tailwind), "Paste existing tokens" for migrations, and a brief walkthrough of the token → theme → publish workflow
 - [~] Tab structure doesn't match user mental model — current Tokens/Inspect/Graph/Publish tabs split related concerns; restructure around workflow: Define (tokens + themes + generators), Apply (inspect + heatmap + binding), Ship (publish + export + git + validation readiness checklist), with Settings/Themes as secondary panels
-- [ ] Developer-facing copy leaks into designer UI — terms like "DTCG", "alias", "$extensions", "$value", "source/enabled" are implementation details; audit all user-facing labels (e.g. "Alias" → "Reference", "Source" → "Base layer", "Enabled" → "Override") and keep DTCG terms only in export/developer views
+- [~] Developer-facing copy leaks into designer UI — terms like "DTCG", "alias", "$extensions", "$value", "source/enabled" are implementation details; audit all user-facing labels (e.g. "Alias" → "Reference", "Source" → "Base layer", "Enabled" → "Override") and keep DTCG terms only in export/developer views
 
 ---
 

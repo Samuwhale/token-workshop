@@ -1,0 +1,1 @@
+- [ ] Graph tab crashes — `graphScrollRef is not defined`; reference error causes the graph view to fail on render

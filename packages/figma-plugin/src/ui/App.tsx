@@ -1921,6 +1921,7 @@ export function App() {
               connected={connected}
               onCreateToken={() => setEditingToken({ path: '', set: activeSet, isCreate: true })}
               onPasteJSON={() => setShowPasteModal(true)}
+              onImportFigma={() => openOverflowPanel('import')}
               onUsePreset={() => setShowScaffoldWizard(true)}
               onGenerateColorScale={() => setShowColorScaleGen(true)}
               onGoToGraph={() => { setActiveTab('graph'); setOverflowPanel(null); setShowScaffoldWizard(true); }}

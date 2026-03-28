@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Toast auto-dismiss too fast for errors ---
 Already up to date.
+[main 2eede15] chore(backlog): done – Toast auto-dismiss too fast for errors
+ 7 files changed, 42 insertions(+), 8 deletions(-)
+
+## 2026-03-28 - Toast auto-dismiss too fast for errors
+- Changed `SuccessToast` component to default error variant timeout to 8000ms (up from 3000ms shared default). The component now derives the timeout from the variant when no explicit `timeout` prop is passed: 8s for errors, 3s for success. Removed redundant `timeout={8000}` from App.tsx error toast call site.
+- Files changed: `packages/figma-plugin/src/ui/components/SuccessToast.tsx` ~L11, `packages/figma-plugin/src/ui/App.tsx` ~L2573
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  104 items remaining
+===============================================================
+  Claimed: Developer-facing copy leaks into designer UI — terms like "DTCG", "alias", "$extensions", "$value", "source/enabled" are implementation details; audit all user-facing labels (e.g. "Alias" → "Reference", "Source" → "Base layer", "Enabled" → "Override") and keep DTCG terms only in export/developer views
+  Worktree: /tmp/backlog-63411-LFZJOv
