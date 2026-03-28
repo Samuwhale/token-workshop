@@ -2169,6 +2169,8 @@ export function App() {
                     onSaved={handleEditorSave}
                     onSaveAndCreateAnother={handleEditorSaveAndCreateAnother}
                     dimensions={dimensions}
+                    perSetFlat={perSetFlat}
+                    onRefresh={refreshAll}
                   />
                   ) : previewingToken ? (
                   <TokenDetailPreview
@@ -2463,6 +2465,8 @@ export function App() {
                 onSaved={handleEditorSave}
                 onSaveAndCreateAnother={handleEditorSaveAndCreateAnother}
                 dimensions={dimensions}
+                perSetFlat={perSetFlat}
+                onRefresh={refreshAll}
               />
             </div>
           </div>

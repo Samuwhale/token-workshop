@@ -543,3 +543,12 @@
 - **Learnings for future iterations:**
   - `getSet` returns `Promise<TokenSet | undefined>` — any call site in an async context must `await` it
 ---
+
+## 2026-03-28 - Inline theme editing in token editor
+- Added a "Theme values" collapsible section to `TokenEditor.tsx` that appears when editing a token with theme dimensions configured. For each dimension × option, shows the current raw value from the appropriate theme set (perSetFlat), with inline text editing for simple types (color, string, number, dimension, duration, boolean, fontFamily, fontWeight). Complex/composite types show read-only "overridden/inherited" status. Alias values show read-only token reference path. Each editable row has a "Save" button that PATCHes the target set directly and calls `onRefresh` to stay in the editor. Added `perSetFlat` and `onRefresh` props to `TokenEditorProps` and passed them from both TokenEditor usage sites in App.tsx.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L142 (ThemeValuesSection component), ~L330 (new props), ~L1165 (render call); `packages/figma-plugin/src/ui/App.tsx` ~L2173, ~L2464 (prop passing)
+- **Learnings for future iterations:**
+  - ThemeValuesSection reads raw values from perSetFlat per set — NOT resolved alias values. This is correct for editing (you want to know what's in the file, not the computed value).
+  - The "best target set" selection order: first enabled set that already contains the token, then first enabled set, then first source set.
+  - `onRefresh` (not `onSaved`) is the right callback for in-editor saves since `onSaved` also calls `onBack()`.
+---

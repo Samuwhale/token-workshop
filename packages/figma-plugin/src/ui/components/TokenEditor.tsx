@@ -139,6 +139,199 @@ const NAMESPACE_SUGGESTIONS: Record<string, { prefixes: string[]; example: strin
   strokeStyle: { prefixes: ['strokeStyle.'], example: 'strokeStyle.dashed' },
 };
 
+/** Inline display and editing of per-theme-set token values */
+function ThemeValuesSection({
+  tokenPath,
+  tokenType,
+  dimensions,
+  perSetFlat,
+  serverUrl,
+  onRefresh,
+}: {
+  tokenPath: string;
+  tokenType: string;
+  dimensions: ThemeDimension[];
+  perSetFlat: Record<string, Record<string, TokenMapEntry>>;
+  serverUrl: string;
+  onRefresh?: () => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [edits, setEdits] = useState<Record<string, string>>({});
+
+  // Build per-option entries grouped by dimension
+  const entries = useMemo(() => {
+    return dimensions.flatMap(dim =>
+      dim.options.map(option => {
+        const enabledSets = Object.entries(option.sets).filter(([, s]) => s === 'enabled').map(([sn]) => sn);
+        const sourceSets = Object.entries(option.sets).filter(([, s]) => s === 'source').map(([sn]) => sn);
+        let targetSet: string | null = null;
+        let rawEntry: TokenMapEntry | null = null;
+        for (const sn of enabledSets) {
+          if (perSetFlat[sn]?.[tokenPath]) { targetSet = sn; rawEntry = perSetFlat[sn][tokenPath]; break; }
+        }
+        if (!rawEntry) {
+          for (const sn of sourceSets) {
+            if (perSetFlat[sn]?.[tokenPath]) { targetSet = targetSet ?? sn; rawEntry = perSetFlat[sn][tokenPath]; break; }
+          }
+        }
+        if (!targetSet && enabledSets.length > 0) targetSet = enabledSets[0];
+        if (!targetSet && sourceSets.length > 0) targetSet = sourceSets[0];
+        return { dimId: dim.id, dimName: dim.name, optionName: option.name, targetSet, rawEntry };
+      })
+    );
+  }, [dimensions, perSetFlat, tokenPath]);
+
+  if (entries.length === 0) return null;
+
+  const isComplexType = COMPOSITE_TOKEN_TYPES.has(tokenType) || tokenType === 'gradient';
+  const setCount = entries.filter(e => e.rawEntry !== null).length;
+
+  const rawToString = (v: any): string => {
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object') {
+      if ('value' in v && 'unit' in v) return `${v.value}${v.unit}`;
+      return JSON.stringify(v);
+    }
+    return String(v);
+  };
+
+  const handleSave = async (optionName: string, targetSet: string, currentRaw: any) => {
+    const editedStr = edits[optionName];
+    if (editedStr === undefined) return;
+    let finalValue: any = editedStr;
+    if (tokenType === 'number' || tokenType === 'duration') {
+      const n = parseFloat(editedStr);
+      if (!isNaN(n)) finalValue = n;
+    } else if (tokenType === 'boolean') {
+      finalValue = editedStr === 'true' || editedStr === '1';
+    }
+    setSavingKey(optionName);
+    try {
+      const encodedPath = tokenPath.split('.').map(encodeURIComponent).join('/');
+      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ $type: tokenType, $value: finalValue }),
+      });
+      setEdits(prev => { const next = { ...prev }; delete next[optionName]; return next; });
+      onRefresh?.();
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  return (
+    <div className="border-t border-[var(--color-figma-border)]">
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+      >
+        <span className="flex items-center gap-1.5">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+          </svg>
+          Theme values
+          {setCount > 0 && (
+            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] text-[8px] font-medium">
+              {setCount} set
+            </span>
+          )}
+        </span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${expanded ? 'rotate-180' : ''}`}>
+          <path d="M2 3.5l3 3 3-3"/>
+        </svg>
+      </button>
+      {expanded && (
+        <div className="border-t border-[var(--color-figma-border)]">
+          {dimensions.map(dim => {
+            const dimEntries = entries.filter(e => e.dimId === dim.id);
+            if (dimEntries.length === 0) return null;
+            return (
+              <div key={dim.id}>
+                {dimensions.length > 1 && (
+                  <div className="px-3 pt-2 pb-0.5 text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">
+                    {dim.name}
+                  </div>
+                )}
+                <div className="px-3 py-2 flex flex-col gap-1.5">
+                  {dimEntries.map(({ optionName, targetSet, rawEntry }) => {
+                    const rawValue = rawEntry?.$value;
+                    const isAliasVal = typeof rawValue === 'string' && rawValue.startsWith('{') && rawValue.endsWith('}');
+                    const editedValue = edits[optionName];
+                    const displayValue = editedValue !== undefined ? editedValue : rawToString(rawValue);
+                    const isDirtyRow = editedValue !== undefined;
+
+                    return (
+                      <div key={optionName} className="flex items-center gap-1.5 min-w-0">
+                        <span
+                          className="text-[10px] text-[var(--color-figma-text)] w-14 shrink-0 truncate"
+                          title={optionName}
+                        >
+                          {optionName}
+                        </span>
+
+                        {isComplexType ? (
+                          <span className="flex-1 text-[9px] text-[var(--color-figma-text-secondary)] italic truncate">
+                            {rawEntry ? 'overridden' : 'inherited'}
+                          </span>
+                        ) : isAliasVal ? (
+                          <span className="flex-1 text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={String(rawValue)}>
+                            {String(rawValue)}
+                          </span>
+                        ) : (
+                          <>
+                            {tokenType === 'color' && rawValue && typeof rawValue === 'string' && (
+                              <div
+                                className="w-3.5 h-3.5 rounded-sm border border-white/40 ring-1 ring-[var(--color-figma-border)] shrink-0"
+                                style={{ backgroundColor: rawValue.slice(0, 7) }}
+                                aria-hidden="true"
+                              />
+                            )}
+                            <input
+                              type="text"
+                              value={displayValue}
+                              placeholder={rawEntry ? '' : 'inherited'}
+                              onChange={e => setEdits(prev => ({ ...prev, [optionName]: e.target.value }))}
+                              className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
+                            />
+                            {isDirtyRow && targetSet && (
+                              <button
+                                type="button"
+                                disabled={savingKey === optionName}
+                                onClick={() => handleSave(optionName, targetSet, rawValue)}
+                                title={`Save to ${targetSet}`}
+                                className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/25 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 transition-colors"
+                              >
+                                {savingKey === optionName ? '…' : 'Save'}
+                              </button>
+                            )}
+                          </>
+                        )}
+
+                        {targetSet && (
+                          <span
+                            className="text-[8px] text-[var(--color-figma-text-secondary)]/50 truncate max-w-[52px] shrink-0"
+                            title={targetSet}
+                          >
+                            {targetSet}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface TokenEditorProps {
   tokenPath: string;
   tokenName?: string;
@@ -162,11 +355,15 @@ interface TokenEditorProps {
   onSaved?: (savedPath: string) => void;
   /** Theme dimensions used to show per-mode value overrides. */
   dimensions?: ThemeDimension[];
+  /** Per-set flat token maps, used to show inline theme values. */
+  perSetFlat?: Record<string, Record<string, TokenMapEntry>>;
+  /** Called after a theme-value save (stays in editor) to trigger a data refresh. */
+  onRefresh?: () => void;
   /** Called after a successful create when the user wants to immediately create another token. Receives the saved path so the parent can derive a sibling prefix. */
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [] }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -955,6 +1152,18 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             ))}
           </div>
         </div>
+
+        {/* Inline theme values — per-set overrides for each theme option */}
+        {!isCreateMode && dimensions.length > 0 && perSetFlat && Object.keys(perSetFlat).length > 0 && (
+          <ThemeValuesSection
+            tokenPath={tokenPath}
+            tokenType={tokenType}
+            dimensions={dimensions}
+            perSetFlat={perSetFlat}
+            serverUrl={serverUrl}
+            onRefresh={onRefresh}
+          />
+        )}
 
         {/* Description, Scopes, Mode Values, Extensions */}
         <MetadataEditor

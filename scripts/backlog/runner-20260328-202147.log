@@ -40,3 +40,10 @@ Already up to date.
 ===============================================================
   Claimed: Inline theme editing in token editor: when editing a token that participates in themes, show all theme values side-by-side in the editor instead of requiring navigation to a separate Themes panel
   Worktree: /tmp/backlog-10461-bG4Bvy
+
+  ✓ done: Inline theme editing in token editor: when editing a token that participates in themes, show all theme values side-by-side in the editor instead of requiring navigation to a separate Themes panel
+    Added ThemeValuesSection component to TokenEditor showing per-option raw values from perSetFlat with inline editing and Save-in-place for simple types; complex types show read-only status
+    41 turns · 522s · $2
+
+--- Merging: Inline theme editing in token editor: when editing a token that participates in themes, show all theme values side-by-side in the editor instead of requiring navigation to a separate Themes panel ---
+Already up to date.

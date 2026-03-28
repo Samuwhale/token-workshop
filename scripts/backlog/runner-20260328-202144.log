@@ -50,3 +50,16 @@ Already up to date.
 
 --- Merging: Missing `await` on `tokenStore.getSet()` in resolver-store.ts:161 ---
 Already up to date.
+[main 64c2ff5] chore(backlog): done – Missing `await` on `tokenStore.getSet()` in resolver-store.ts:161
+ 5 files changed, 39 insertions(+), 8 deletions(-)
+
+## 2026-03-28 - Missing `await` on `tokenStore.getSet()` in resolver-store.ts:161
+- Added `await` to the `tokenStore.getSet(setName)` call inside `loadExternal` in `resolver-store.ts`. The function was already `async` but the call was missing `await`, causing the Promise (always truthy) to skip the `!set` guard and pass `undefined` tokens downstream.
+- Files changed: `packages/server/src/services/resolver-store.ts` ~L161
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  71 items remaining
+===============================================================
+  Claimed: Set management discoverability: add visible affordance (menu icon, kebab, dropdown) on set tabs instead of relying solely on right-click for create/rename/duplicate/merge/split/reorder
+  Worktree: /tmp/backlog-10054-pJV4Ea
