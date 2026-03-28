@@ -618,3 +618,11 @@
 - **Learnings for future iterations:**
   - TypeScript does not error on same-scope `const` shadowing an imported name — it silently uses the local one and the import becomes dead code. ESLint `no-shadow` would catch this, but it wasn't enabled here.
 ---
+
+## 2026-03-28 - `useDragDrop` `handleDropReorder` has no error handling on the reorder fetch
+- Added try/catch and `res.ok` check to the reorder fetch in `handleDropReorder`, mirroring the existing pattern from `handleDropOnGroup`. On non-ok responses, calls `onError` with the server error message (or a fallback), refreshes the token list, and returns early without pushing undo state. On network errors, calls `onError` with a network error message. Added `onError` to the `useCallback` dependency array.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L150-166
+- **Learnings for future iterations:**
+  - `handleDropOnGroup` already had the correct error-handling pattern — `handleDropReorder` was simply missing it, an oversight when the function was written
+  - Always add the `onError` callback to the useCallback dep array when it's used inside the callback
+---

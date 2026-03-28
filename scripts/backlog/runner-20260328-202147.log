@@ -107,3 +107,23 @@ Already up to date.
 
 --- Merging: `SET_NAME_RE` declared twice in App.tsx ---
 Already up to date.
+[main c6323bb] chore(backlog): done – `SET_NAME_RE` declared twice in App.tsx
+ 6 files changed, 30 insertions(+), 6 deletions(-)
+
+## 2026-03-28 - `SET_NAME_RE` declared twice in App.tsx
+- Removed the local `const SET_NAME_RE = ...` redeclaration on line 60 that shadowed the import from `./shared/utils` on line 54. The import is the authoritative definition; the local copy was dead code.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L60
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  64 items remaining
+===============================================================
+  Claimed: `useDragDrop` `handleDropReorder` has no error handling on the reorder fetch — line 150-154 of useDragDrop.ts fires a POST to reorder tokens but never checks the response or catches errors; a failed reorder silently proceeds to push undo state and refresh
+  Worktree: /tmp/backlog-10461-PC37uk
+
+  ✓ done: `useDragDrop` `handleDropReorder` has no error handling on the reorder fetch
+    Added try/catch and res.ok check to handleDropReorder, mirroring the existing pattern from handleDropOnGroup; failed reorders now surface an error and bail out before pushing undo state
+    9 turns · 56s · $0.19
+
+--- Merging: `useDragDrop` `handleDropReorder` has no error handling on the reorder fetch ---
+Already up to date.

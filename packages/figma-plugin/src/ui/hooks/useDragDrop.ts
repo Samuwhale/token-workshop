@@ -147,11 +147,23 @@ export function useDragDrop({
     const newOrder = [...withoutDragged.slice(0, insertIdx), ...source.names, ...withoutDragged.slice(insertIdx)];
 
     const prevOrder = [...siblings];
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),
-    });
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: `Reorder failed (${res.status})` }));
+        onError?.(data.error || `Reorder failed (${res.status})`);
+        onRefresh();
+        return;
+      }
+    } catch {
+      onError?.('Reorder tokens failed: network error');
+      onRefresh();
+      return;
+    }
     if (onPushUndo) {
       const capturedSet = setName;
       const capturedUrl = serverUrl;
@@ -179,7 +191,7 @@ export function useDragDrop({
       });
     }
     onRefresh();
-  }, [dragSource, connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo]);
+  }, [dragSource, connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo, onError]);
 
   return {
     dragSource,
