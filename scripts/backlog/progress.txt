@@ -360,3 +360,13 @@
 - **Learnings for future iterations:**
   - When a batched-progress feature is added, the state declaration can be missed if it was planned but not committed — always check that every setter called in a handler has a corresponding `useState`
 ---
+
+## 2026-03-28 - Race condition in file write guard
+- Replaced fixed 500ms `setTimeout` cleanup of `_writingFiles` entries with event-driven cleanup: the watcher callbacks now clear the guard when they see (and suppress) a write-triggered event. A 30-second fallback timeout prevents memory leaks if the watcher never fires.
+- Changed `_writingFiles` from `Set<string>` to `Map<string, ReturnType<typeof setTimeout>>` to track per-file fallback timers.
+- Added `_startWriteGuard(filePath)` and `_clearWriteGuard(filePath)` helper methods.
+- Files changed: `packages/server/src/services/token-store.ts` ~L77 (type change), ~L149-163 (new helpers), ~L172/181/190 (watcher callbacks), ~L382/398/424/447/478/1218 (write sites)
+- **Learnings for future iterations:**
+  - File watcher suppression should be event-driven (cleared when the watcher fires), not time-based — disk I/O latency is unpredictable
+  - The server package has no `@types/node` in the sandbox so `tsc --noEmit` shows many pre-existing errors; grep for your specific file to check for new errors
+---

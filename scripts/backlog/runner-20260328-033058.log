@@ -93,3 +93,10 @@ Already up to date.
 ===============================================================
   Claimed: Race condition in file write guard — `_writingFiles` entries are cleared via `setTimeout(..., 500ms)`; if writes take longer than 500ms (slow disk, large files), the watcher reloads a partially-written file, corrupting in-memory state
   Worktree: /tmp/backlog-85816-7OVzSO
+
+  ✓ done: Race condition in file write guard
+    Replaced fixed 500ms setTimeout cleanup with event-driven guard clearing in watcher callbacks, plus 30s fallback timeout for leak prevention
+    30 turns · 142s · $0.74
+
+--- Merging: Race condition in file write guard ---
+Already up to date.

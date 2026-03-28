@@ -74,7 +74,7 @@ export class TokenStore {
   private _pendingWatcherEvents: ChangeEvent[] = [];
   private _batchDepth = 0;
   private _pendingRebuild = false;
-  private _writingFiles: Set<string> = new Set();
+  private _writingFiles: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   constructor(dir: string) {
     this.dir = path.resolve(dir);
@@ -146,6 +146,22 @@ export class TokenStore {
     }, 50);
   }
 
+  /** Mark a file as being written so the watcher ignores the next event for it. */
+  private _startWriteGuard(filePath: string): void {
+    const existing = this._writingFiles.get(filePath);
+    if (existing) clearTimeout(existing);
+    // Fallback timeout only for memory-leak prevention — the watcher callback clears the guard first
+    const timer = setTimeout(() => this._writingFiles.delete(filePath), 30_000);
+    this._writingFiles.set(filePath, timer);
+  }
+
+  /** Clear the write guard (called from watcher callbacks after suppressing one event). */
+  private _clearWriteGuard(filePath: string): void {
+    const timer = this._writingFiles.get(filePath);
+    if (timer) clearTimeout(timer);
+    this._writingFiles.delete(filePath);
+  }
+
   private startWatching(): void {
     this.watcher = watch(path.join(this.dir, '**/*.tokens.json'), {
       ignoreInitial: true,
@@ -153,7 +169,7 @@ export class TokenStore {
     });
 
     this.watcher.on('change', async (filePath) => {
-      if (this._writingFiles.has(filePath as string)) return;
+      if (this._writingFiles.has(filePath as string)) { this._clearWriteGuard(filePath as string); return; }
       const relativePath = path.relative(this.dir, filePath as string);
       await this.loadSet(relativePath).catch(err =>
         console.warn(`[TokenStore] Error reloading "${relativePath}":`, err),
@@ -162,7 +178,7 @@ export class TokenStore {
     });
 
     this.watcher.on('add', async (filePath) => {
-      if (this._writingFiles.has(filePath as string)) return;
+      if (this._writingFiles.has(filePath as string)) { this._clearWriteGuard(filePath as string); return; }
       const relativePath = path.relative(this.dir, filePath as string);
       await this.loadSet(relativePath).catch(err =>
         console.warn(`[TokenStore] Error loading new file "${relativePath}":`, err),
@@ -171,7 +187,7 @@ export class TokenStore {
     });
 
     this.watcher.on('unlink', (filePath) => {
-      if (this._writingFiles.has(filePath as string)) return;
+      if (this._writingFiles.has(filePath as string)) { this._clearWriteGuard(filePath as string); return; }
       const relativePath = path.relative(this.dir, filePath as string);
       const name = relativePath.replace('.tokens.json', '');
       this.sets.delete(name);
@@ -363,9 +379,8 @@ export class TokenStore {
     const filename = `${name}.tokens.json`;
     const filePath = path.join(this.dir, filename);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
-    this._writingFiles.add(filePath);
+    this._startWriteGuard(filePath);
     await fs.writeFile(filePath, JSON.stringify(tokens, null, 2));
-    setTimeout(() => this._writingFiles.delete(filePath), 500);
     const set: TokenSet = { name, tokens, filePath };
     this.sets.set(name, set);
     return set;
@@ -381,9 +396,8 @@ export class TokenStore {
     const set = this.sets.get(name);
     if (!set) return false;
     const filePath = path.join(this.dir, `${name}.tokens.json`);
-    this._writingFiles.add(filePath);
+    this._startWriteGuard(filePath);
     await fs.unlink(filePath);
-    setTimeout(() => this._writingFiles.delete(filePath), 500);
     await this.removeEmptyParentDirs(filePath);
     this.sets.delete(name);
     this.rebuildFlatTokens();
@@ -407,9 +421,8 @@ export class TokenStore {
     const names = Array.from(this.sets.keys());
     for (const name of names) {
       const filePath = path.join(this.dir, `${name}.tokens.json`);
-      this._writingFiles.add(filePath);
+      this._startWriteGuard(filePath);
       await fs.unlink(filePath).catch(() => {});
-      setTimeout(() => this._writingFiles.delete(filePath), 500);
     }
     this.sets.clear();
     this.rebuildFlatTokens();
@@ -430,9 +443,8 @@ export class TokenStore {
 
     // Step 1: Rename the file atomically (same filesystem, so fs.rename is atomic)
     await fs.mkdir(path.dirname(newFilePath), { recursive: true });
-    this._writingFiles.add(oldFilePath);
-    this._writingFiles.add(newFilePath);
-    await fs.rename(oldFilePath, newFilePath);
+    this._startWriteGuard(newFilePath);
+    await fs.writeFile(newFilePath, JSON.stringify(set.tokens, null, 2));
 
     // Step 2: Update $themes.json — roll back file rename on failure
     const themesPath = path.join(this.dir, '$themes.json');
@@ -474,11 +486,9 @@ export class TokenStore {
     this.sets.set(newName, newSet);
     this.sets.delete(oldName);
 
-    // Clean up watcher suppression and empty parent dirs
-    setTimeout(() => {
-      this._writingFiles.delete(oldFilePath);
-      this._writingFiles.delete(newFilePath);
-    }, 500);
+    // Delete old file
+    this._startWriteGuard(oldFilePath);
+    await fs.unlink(oldFilePath);
     await this.removeEmptyParentDirs(oldFilePath);
 
     this.rebuildFlatTokens();
@@ -1216,9 +1226,8 @@ export class TokenStore {
     if (!set) return;
     const filePath = path.join(this.dir, `${name}.tokens.json`);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
-    this._writingFiles.add(filePath);
+    this._startWriteGuard(filePath);
     await fs.writeFile(filePath, JSON.stringify(set.tokens, null, 2));
-    setTimeout(() => this._writingFiles.delete(filePath), 500);
   }
 
   // ----- SSE support -----

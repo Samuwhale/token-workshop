@@ -76,3 +76,16 @@ Already up to date.
 
 --- Merging: `setGroupScopesProgress` called but never declared ---
 Already up to date.
+[main a9a9b56] chore(backlog): done – `setGroupScopesProgress` called but never declared
+ 7 files changed, 36 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - `setGroupScopesProgress` called but never declared
+- Added missing `useState<{ done: number; total: number } | null>(null)` for `groupScopesProgress`/`setGroupScopesProgress` in `useFigmaSync.ts`
+- Added `groupScopesProgress` to the hook's return object and destructured it in `App.tsx` where it was already consumed in the button label
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L20 (state), ~L127 (return); `packages/figma-plugin/src/ui/App.tsx` ~L370 (destructure)
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  94 items remaining
+===============================================================
+  Claimed: `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale` — no `default` branch, returns `undefined` which renders as "undefined" in the UI
+  Worktree: /tmp/backlog-92630-so3uqe

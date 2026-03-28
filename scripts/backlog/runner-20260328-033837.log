@@ -9,3 +9,9 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: `scanCanvasHeatmap` can freeze Figma on large pages — `findAll` iterates every node synchronously and reads plugin data for all bindable properties with no batching or yielding, unlike `syncBindings` which batches
   Worktree: /tmp/backlog-10278-LNXq2U
+
+  ✓ done: scanCanvasHeatmap can freeze Figma on large pages
+    Replaced synchronous findAll with batched DFS tree walk (batch size 200) that yields between batches via setTimeout(0) during both node collection and processing phases, matching syncBindings pattern. Added progress messages.
+    14 turns · 83s · $0.41
+
+--- Merging: scanCanvasHeatmap can freeze Figma on large pages ---
