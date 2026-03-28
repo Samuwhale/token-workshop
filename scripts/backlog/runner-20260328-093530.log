@@ -426,3 +426,23 @@ Already up to date.
 
 --- Merging: TokenList delete has no user-facing error feedback ---
 Already up to date.
+[main 19c36ab] chore(backlog): done – TokenList delete has no user-facing error feedback
+ 4 files changed, 31 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - Graph tab crashes — `graphScrollRef is not defined`
+- Already fixed in a prior session. The `graphScrollRef` reference was removed from `GraphPanel.tsx` as part of the node-graph canvas feature work (see progress entry for "No visual node-graph editor"). No occurrences of `graphScrollRef` remain in the source. Build passes.
+- Files changed: none (already resolved)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  1 items remaining
+===============================================================
+  Claimed: SyncPanel "Delete orphan variables" has no retry mechanism — if plugin doesn't respond within timeout, user must manually re-run the full readiness check
+  Worktree: /tmp/backlog-34977-wEqHvz
+
+  ✓ done: SyncPanel "Delete orphan variables" has no retry mechanism
+    Added automatic retry (up to 3 attempts with escalating timeouts: 10s/20s/30s) for orphan deletion. On final failure, shows descriptive error message; user can click the button again without re-running full readiness checks.
+    14 turns · 127s · $0.67
+
+--- Merging: SyncPanel "Delete orphan variables" has no retry mechanism ---
+Already up to date.

@@ -182,17 +182,28 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           fixLabel: orphans.length > 0 ? `Delete ${orphans.length} orphan${orphans.length !== 1 ? 's' : ''}` : undefined,
           onFix: orphans.length > 0 ? async () => {
             setOrphansDeleting(true);
-            try {
-              await new Promise<number>((resolve, reject) => {
-                const timeout = setTimeout(() => { orphansResolveRef.current = null; reject(new Error('Timeout')); }, 10000);
-                orphansResolveRef.current = (count) => { clearTimeout(timeout); resolve(count); };
-                parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths], collectionMap } }, '*');
-              });
+            setReadinessError(null);
+            const MAX_RETRIES = 2;
+            const TIMEOUTS = [10000, 20000, 30000]; // escalating timeouts per attempt
+            let succeeded = false;
+            for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+              try {
+                await new Promise<number>((resolve, reject) => {
+                  const timeout = setTimeout(() => { orphansResolveRef.current = null; reject(new Error('Timeout')); }, TIMEOUTS[attempt]);
+                  orphansResolveRef.current = (count) => { clearTimeout(timeout); resolve(count); };
+                  parent.postMessage({ pluginMessage: { type: 'delete-orphan-variables', knownPaths: [...localPaths], collectionMap } }, '*');
+                });
+                succeeded = true;
+                break;
+              } catch {
+                // Retry with longer timeout on next attempt
+              }
+            }
+            setOrphansDeleting(false);
+            if (succeeded) {
               runReadinessChecks();
-            } catch (e) {
-              setReadinessError(String(e));
-            } finally {
-              setOrphansDeleting(false);
+            } else {
+              setReadinessError('Orphan deletion timed out after multiple attempts — the plugin did not respond. Click the button to try again.');
             }
           } : undefined,
         },

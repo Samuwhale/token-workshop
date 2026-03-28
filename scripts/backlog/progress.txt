@@ -532,3 +532,11 @@
 - **Learnings for future iterations:**
   - Check progress.txt for prior fixes before starting work — items may have been resolved as collateral fixes in other items.
 ---
+
+## 2026-03-28 - SyncPanel "Delete orphan variables" has no retry mechanism
+- Added automatic retry with escalating timeouts (10s, 20s, 30s) for orphan variable deletion. Up to 3 attempts before showing a descriptive failure message. The user can still click the button again after all retries are exhausted — no need to re-run the full readiness check.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L183-207 (orphan onFix handler)
+- **Learnings for future iterations:**
+  - The plugin message pattern (postMessage → listen for response with ref-based resolver) is used throughout the codebase. Retry wrappers should be considered whenever this pattern is used with a timeout.
+  - Escalating timeouts (10s → 20s → 30s) are better than fixed retries for Figma plugin communication since large files with many variables genuinely take longer.
+---
