@@ -179,12 +179,15 @@ export function runOpacityScaleGenerator(
     validateStepName(step.name);
   }
 
-  return config.steps.map(step => ({
-    stepName: step.name,
-    path: `${targetGroup}.${step.name}`,
-    type: 'number',
-    value: parseFloat((step.value / 100).toFixed(4)),
-  }));
+  return config.steps.map(step => {
+    const clamped = Math.min(1, Math.max(0, step.value / 100));
+    return {
+      stepName: step.name,
+      path: `${targetGroup}.${step.name}`,
+      type: 'number',
+      value: parseFloat(clamped.toFixed(4)),
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------

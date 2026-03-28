@@ -472,3 +472,10 @@
 - **Learnings for future iterations:**
   - Check git log for prior fixes before implementing — backlog items may reference bugs that were already resolved in earlier sessions.
 ---
+
+## 2026-03-28 - Opacity scale generator does not validate value range
+- Clamped opacity step values to [0, 1] range using `Math.min(1, Math.max(0, step.value / 100))` before rounding. Values like 150 now produce 1.0 instead of 1.5.
+- Files changed: `packages/core/src/generator-engine.ts` ~L182
+- **Learnings for future iterations:**
+  - Generator output values should always be validated against the target type's valid range (opacity: 0–1, percentage: 0–100, etc.).
+---

@@ -374,3 +374,16 @@ Already up to date.
 
 --- Merging: applyDiffChoices continues to git push after commit failure ---
 Already up to date.
+[main e60a838] chore(backlog): done – applyDiffChoices continues to git push after commit failure
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - `applyDiffChoices` continues to `git push` after commit failure
+- Already fixed in commit 7e79614. The current code uses a `pushCommitSucceeded` boolean flag to guard `git.push()`, only pushing when the commit succeeds.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  25 items remaining
+===============================================================
+  Claimed: `inferType` returns CUSTOM for partial composite values — a shadow token missing `offsetX` or a border missing `width` silently infers as `CUSTOM` type instead of reporting a validation error, hiding malformed token data (`resolver.ts` ~L405)
+  Worktree: /tmp/backlog-10278-aeGjSO

@@ -492,3 +492,10 @@ Already up to date.
 ===============================================================
   Claimed: Opacity scale generator does not validate value range — step values above 100 produce opacity values >1.0 (e.g. 150 → 1.5) which are outside the valid CSS/Figma [0,1] range (`generator-engine.ts`)
   Worktree: /tmp/backlog-85816-bNE3xf
+
+  ✓ done: Opacity scale generator does not validate value range
+    Clamped opacity output to [0,1] via Math.min/Math.max in runOpacityScaleGenerator — step values above 100 or below 0 now produce valid opacity fractions.
+    10 turns · 46s · $0.26
+
+--- Merging: Opacity scale generator does not validate value range ---
+Already up to date.
