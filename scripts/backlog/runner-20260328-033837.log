@@ -334,3 +334,16 @@ Already up to date.
 
 --- Merging: ThemeManager options cannot be reordered within a dimension ---
 Already up to date.
+[main 1b3635a] chore(backlog): done – ThemeManager options cannot be reordered within a dimension
+ 7 files changed, 124 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - ThemeManager options cannot be reordered within a dimension
+- Added `PUT /api/themes/dimensions/:id/options-order` server endpoint that accepts `{ options: string[] }` — validates all names exist and list is complete, then reorders the persisted options array.
+- Added move up/down arrow buttons in the ThemeManager option header row (visible on hover, only shown when dimension has >1 option, disabled at boundaries).
+- Optimistic UI update with server rollback on failure.
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  33 items remaining
+===============================================================
+  Claimed: `substituteVars` silently replaces unknown variable names with zero — a typo like `"base * multipler"` (missing 'i') becomes `"base * 0"` producing all-zero generated tokens with no error feedback (`eval-expr.ts` ~L111)
+  Worktree: /tmp/backlog-10278-DBnZY7

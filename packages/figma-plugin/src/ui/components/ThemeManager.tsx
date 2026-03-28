@@ -83,6 +83,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   // Per-dimension set search/filter (applies to all options within a dimension)
   const [dimSetFilters, setDimSetFilters] = useState<Record<string, string>>({});
 
+  // Bulk set-status context menu
+  const [bulkMenu, setBulkMenu] = useState<{ x: number; y: number; dimId: string; setName: string } | null>(null);
+
   // Newly created dimension for auto-scroll
   const [newlyCreatedDim, setNewlyCreatedDim] = useState<string | null>(null);
   const newDimCardRef = useRef<HTMLDivElement | null>(null);
@@ -474,6 +477,53 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
   };
 
+  // --- Bulk set-status across all options in a dimension ---
+
+  const handleBulkSetState = async (dimId: string, setName: string, targetState: 'enabled' | 'disabled' | 'source') => {
+    setBulkMenu(null);
+    const dim = dimensions.find(d => d.id === dimId);
+    if (!dim) return;
+    const previousDimensions = dimensions;
+    // Optimistic: update all options at once
+    setDimensions(prev => prev.map(d =>
+      d.id === dimId
+        ? { ...d, options: d.options.map(o => ({ ...o, sets: { ...o.sets, [setName]: targetState } })) }
+        : d,
+    ));
+    try {
+      // Send each option update to the server
+      const results = await Promise.all(dim.options.map(opt => {
+        const updatedSets = { ...opt.sets, [setName]: targetState };
+        return fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: opt.name, sets: updatedSets }),
+        });
+      }));
+      const failed = results.find(r => !r.ok);
+      if (failed) {
+        setDimensions(previousDimensions);
+        const d = await failed.json().catch(() => ({}));
+        setError(d.error || `Failed to bulk-update (${failed.status})`);
+        return;
+      }
+      fetchDimensions();
+    } catch (err) {
+      setDimensions(previousDimensions);
+      setError(getErrorMessage(err, 'Failed to bulk-update'));
+    }
+  };
+
+  // Close bulk menu on outside click or Escape
+  useEffect(() => {
+    if (!bulkMenu) return;
+    const close = () => setBulkMenu(null);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
+  }, [bulkMenu]);
+
   // --- Drag-to-reorder set rows within an option ---
 
   const handleDragStart = (e: React.DragEvent, dimId: string, optionName: string, setName: string) => {
@@ -835,6 +885,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                       onDragOver={e => handleDragOver(e, dim.id, opt.name, setName)}
                                       onDrop={e => handleDrop(e, dim.id, opt.name, setName)}
                                       onDragEnd={handleDragEnd}
+                                      onContextMenu={e => {
+                                        e.preventDefault();
+                                        const x = Math.min(e.clientX, window.innerWidth - 180);
+                                        const y = Math.min(e.clientY, window.innerHeight - 120);
+                                        setBulkMenu({ x, y, dimId: dim.id, setName });
+                                      }}
                                       className={`group/setrow flex items-center justify-between px-3 py-1 transition-colors ${
                                         isDropTarget
                                           ? 'bg-[var(--color-figma-accent)]/10 border-l-2 border-l-[var(--color-figma-accent)]'
@@ -1031,6 +1087,35 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           </button>
         )}
       </div>
+
+      {/* Bulk set-status context menu */}
+      {bulkMenu && (
+        <div
+          className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[180px]"
+          style={{ top: bulkMenu.y, left: bulkMenu.x }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider">
+            Set &ldquo;{bulkMenu.setName}&rdquo; in all options
+          </div>
+          {(['disabled', 'source', 'enabled'] as const).map(s => (
+            <button
+              key={s}
+              onClick={() => handleBulkSetState(bulkMenu.dimId, bulkMenu.setName, s)}
+              className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] flex items-center gap-2"
+            >
+              <span className={`inline-block w-2 h-2 rounded-full ${
+                s === 'source'
+                  ? 'bg-[var(--color-figma-accent)]'
+                  : s === 'enabled'
+                  ? 'bg-[var(--color-figma-success)]'
+                  : 'bg-[var(--color-figma-text-tertiary)]'
+              }`} />
+              {STATE_LABELS[s]} — {STATE_DESCRIPTIONS[s]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Delete confirm modal */}
       {deleteConfirm && (

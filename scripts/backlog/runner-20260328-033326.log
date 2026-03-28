@@ -407,3 +407,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager has no bulk set-status assignment — toggling a set from "disabled" to "enabled" across all options in a dimension requires clicking each option individually; no "apply to all" action
   Worktree: /tmp/backlog-92630-XOIc9X
+
+  ✓ done: ThemeManager has no bulk set-status assignment
+    Added right-click context menu on set rows offering 'Set Off/Base/On in all options' for a dimension, with optimistic UI updates and parallel API calls.
+    27 turns · 204s · $0.93
+
+--- Merging: ThemeManager has no bulk set-status assignment ---
+Already up to date.

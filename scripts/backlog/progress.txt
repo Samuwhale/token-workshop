@@ -410,3 +410,11 @@
   - The existing option action buttons (rename, duplicate, delete) appear on hover via `opacity-0 group-hover/opt:opacity-100` — new buttons follow the same pattern.
   - Fastify route registration order matters for parameterized routes but `options-order` is a fixed path so it doesn't conflict with `:optionName`.
 ---
+
+## 2026-03-28 - ThemeManager has no bulk set-status assignment
+- Added right-click context menu on set rows in ThemeManager that offers "Set [Off/Base/On] in all options" for a given set within a dimension. Implemented `handleBulkSetState` which optimistically updates all options at once and sends parallel API requests. Context menu is positioned with viewport clamping and closes on outside click or Escape.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L87 (state), ~L452 (handler + close effect), ~L831 (onContextMenu on set row), ~L1036 (context menu UI)
+- **Learnings for future iterations:**
+  - The existing `handleSetState` sends one POST per option — bulk operations use `Promise.all` over all options. If any fails, the entire bulk update is rolled back.
+  - Context menu positioning pattern: clamp to `window.innerWidth - menuWidth` and `window.innerHeight - menuHeight` to prevent off-screen rendering.
+---
