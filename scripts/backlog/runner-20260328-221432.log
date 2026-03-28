@@ -56,3 +56,16 @@ Already up to date.
 
 --- Merging: Server-side JSON files loaded without runtime validation ---
 Already up to date.
+[main 1d48a5b] chore(backlog): done – Server-side JSON files loaded without runtime validation
+ 8 files changed, 75 insertions(+), 86 deletions(-)
+
+## 2026-03-28 - Server-side JSON files loaded without runtime validation
+- Added runtime validation to `resolver-store.ts` `loadFile`: uses the already-imported `validateResolverFile` from `@tokenmanager/core` to validate parsed JSON before accepting it; invalid files are logged and skipped instead of silently entering the system
+- Added runtime validation to `generator-service.ts` `loadGenerators`: validates the top-level `{ $generators: [...] }` shape and each generator entry's required fields (id, type, name, targetSet, targetGroup, config) before loading; invalid entries are logged and skipped
+- Note: `generator-routes.ts` already had proper validation via `validateGeneratorConfig()` — no `as unknown as GeneratorConfig` casts remain (that part of the backlog item was stale)
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  11 items remaining
+===============================================================
+  Claimed: Fragile network-error detection breaks disconnect banner on Firefox — `useSetDelete`, `useSetRename`, and several other hooks detect disconnects via `err instanceof TypeError || err.message.includes('Failed to fetch')`; `'Failed to fetch'` is Chrome-only — Firefox emits `'NetworkError when attempting to fetch resource'` — `useTokens.ts:98` already has the correct multi-string check but the hooks don't follow it, so `markDisconnected` never fires on Firefox (`useSetDelete.ts` ~L51, `useSetRename.ts` ~L68)
+  Worktree: /tmp/backlog-22646-Z93F9E

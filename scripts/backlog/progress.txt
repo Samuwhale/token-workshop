@@ -409,3 +409,12 @@
   - Check if validation functions already exist and are imported before writing new ones — `validateResolverFile` was imported but unused in `loadFile`
   - Backlog items may reference code patterns that have already been fixed in a prior session — always verify the current state before implementing
 ---
+
+## 2026-03-28 - useUndo.ts failed undo permanently loses the undo slot
+- Moved `setPast`/`setFuture` stack updates from before `await slot.restore()`/`slot.redo()` to after successful execution in both `executeUndo` and `executeRedo`. On failure, the slot remains in its original stack so the user can retry.
+- Used `prev.filter(s => s !== slot)` instead of `prev.slice(0, -1)` to safely remove the exact slot even if state has shifted during the async operation.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L33-48 (executeUndo), ~L51-65 (executeRedo)
+- **Learnings for future iterations:**
+  - Optimistic stack removal before an async operation is a data-loss anti-pattern — always move destructive state updates to after the async succeeds
+  - The same pattern applied symmetrically to executeRedo, which had the identical bug
+---

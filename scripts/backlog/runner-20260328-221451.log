@@ -70,3 +70,10 @@ Already up to date.
 ===============================================================
   Claimed: useUndo.ts failed undo permanently loses the undo slot — `setPast(next)` removes the slot from the stack before `slot.restore()` is awaited; if the restore fails (network error, server 500), the slot is gone and the user can never retry — move the stack update to after a successful restore (`useUndo.ts` ~L39–48)
   Worktree: /tmp/backlog-23617-YgD0ks
+
+  ✓ done: useUndo.ts failed undo permanently loses the undo slot
+    Moved stack updates to after successful restore/redo so failed operations leave the slot retryable. Fixed symmetrically in both executeUndo and executeRedo.
+    9 turns · 53s · $0.28
+
+--- Merging: useUndo.ts failed undo permanently loses the undo slot ---
+Already up to date.

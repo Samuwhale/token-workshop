@@ -35,14 +35,14 @@ export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY) {
     const p = pastRef.current;
     if (p.length === 0) return;
     const slot = p[p.length - 1];
-    const next = p.slice(0, -1);
     executingRef.current = true;
-    setPast(next);
-    if (slot.redo) {
-      setFuture(f => [...f, slot]);
-    }
     try {
       await slot.restore();
+      // Only remove from stack after successful restore
+      setPast(prev => prev.filter(s => s !== slot));
+      if (slot.redo) {
+        setFuture(f => [...f, slot]);
+      }
     } finally {
       executingRef.current = false;
     }
@@ -54,12 +54,12 @@ export function useUndo(maxHistory: number = DEFAULT_MAX_HISTORY) {
     if (f.length === 0) return;
     const slot = f[f.length - 1];
     if (!slot.redo) return;
-    const next = f.slice(0, -1);
     executingRef.current = true;
-    setFuture(next);
-    setPast(p => [...p, slot]);
     try {
       await slot.redo!();
+      // Only move between stacks after successful redo
+      setFuture(prev => prev.filter(s => s !== slot));
+      setPast(p => [...p, slot]);
     } finally {
       executingRef.current = false;
     }
