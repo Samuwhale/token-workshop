@@ -65,6 +65,14 @@ export function wcagLuminance(hex: string): number | null {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+/** CIE76 ΔE between two hex colors (Euclidean distance in CIELAB). */
+export function colorDeltaE(hexA: string, hexB: string): number | null {
+  const labA = hexToLab(hexA);
+  const labB = hexToLab(hexB);
+  if (!labA || !labB) return null;
+  return Math.sqrt((labA[0] - labB[0]) ** 2 + (labA[1] - labB[1]) ** 2 + (labA[2] - labB[2]) ** 2);
+}
+
 /** Rebuild hex string from 6-char base + alpha (0-255). Returns null if hex is invalid. */
 export function setHexAlpha(hex: string, alpha: number): string | null {
   const clean = expandHex(hex.replace('#', '')).slice(0, 6);

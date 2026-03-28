@@ -490,3 +490,16 @@
   - When a component has both a list view and a detail view, use separate error states so detail fetch failures don't clobber the list
   - Always validate `Array.isArray()` before iterating server response arrays, even with TypeScript `as` casts
 ---
+
+## 2026-03-28 - Duplicate color-distance math in server lint.ts vs @tokenmanager/core
+- Added `colorDeltaE` function to `@tokenmanager/core` color-math.ts (uses existing `hexToLab`)
+- Exported `colorDeltaE` from core's index.ts
+- Removed ~30 lines of duplicate `hexToRgb`, `rgbToLab`, `colorDeltaE` from server lint.ts
+- Imported `colorDeltaE` from `@tokenmanager/core` in lint.ts instead
+- Also fixed 2 pre-existing lint errors in unrelated files (prefer-const, no-useless-escape)
+- Files changed: `packages/core/src/color-math.ts` ~L68-74, `packages/core/src/index.ts` ~L77, `packages/server/src/services/lint.ts` ~L3,102-134
+- **Learnings for future iterations:**
+  - When consolidating duplicate math into core, add the function to core rather than just importing existing lower-level helpers — gives a cleaner API
+  - Worktree node_modules can have broken symlinks; `npx pnpm install` fixes them
+  - Core dist must be rebuilt after editing core src before server tests will pass
+---

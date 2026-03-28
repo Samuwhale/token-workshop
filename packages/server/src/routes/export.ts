@@ -16,7 +16,7 @@ function isValidCssSelector(selector: string): boolean {
   // Braces, semicolons, angle brackets, comments, @-rules, backticks, quotes
   if (/[{};<>`@\\]|\/\*|\*\//.test(selector)) return false;
   // Must look like a selector (starts with a word char, dot, hash, colon, or bracket)
-  if (!/^[a-zA-Z.#:\[*]/.test(selector)) return false;
+  if (!/^[a-zA-Z.#:[*]/.test(selector)) return false;
   return true;
 }
 

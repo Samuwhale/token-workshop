@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { Token } from '@tokenmanager/core';
+import { colorDeltaE, type Token } from '@tokenmanager/core';
 import { TokenStore } from './token-store.js';
 import { isSafeRegex } from './token-tree-utils.js';
 
@@ -99,39 +99,6 @@ export class LintConfigStore {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Color distance helpers (CIE76 ΔE in CIELAB)
-// ---------------------------------------------------------------------------
-
-function hexToRgb(hex: string): [number, number, number] | null {
-  const h = hex.replace('#', '');
-  if (h.length !== 6 && h.length !== 8 && h.length !== 3) return null;
-  const full = h.length === 3 ? h[0] + h[0] + h[1] + h[1] + h[2] + h[2] : h.slice(0, 6);
-  return [
-    parseInt(full.slice(0, 2), 16) / 255,
-    parseInt(full.slice(2, 4), 16) / 255,
-    parseInt(full.slice(4, 6), 16) / 255,
-  ];
-}
-
-function rgbToLab(r: number, g: number, b: number): [number, number, number] {
-  const toLinear = (c: number) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  const R = toLinear(r), G = toLinear(g), B = toLinear(b);
-  const X = (0.4124564 * R + 0.3575761 * G + 0.1804375 * B) / 0.95047;
-  const Y = (0.2126729 * R + 0.7151522 * G + 0.0721750 * B) / 1.0;
-  const Z = (0.0193339 * R + 0.1191920 * G + 0.9503041 * B) / 1.08883;
-  const f = (t: number) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
-  return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
-}
-
-function colorDeltaE(hexA: string, hexB: string): number | null {
-  const a = hexToRgb(hexA);
-  const b = hexToRgb(hexB);
-  if (!a || !b) return null;
-  const labA = rgbToLab(...a);
-  const labB = rgbToLab(...b);
-  return Math.sqrt((labA[0] - labB[0]) ** 2 + (labA[1] - labB[1]) ** 2 + (labA[2] - labB[2]) ** 2);
-}
 
 /** Find the closest alias color token to the given raw hex value. */
 function findNearestColorAlias(

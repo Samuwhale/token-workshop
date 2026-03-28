@@ -385,3 +385,16 @@ Already up to date.
 
 --- Merging: VersionHistoryPanel.tsx renders detail.changes without validating response shape ---
 Already up to date.
+[main 1bf8b25] chore(backlog): done – VersionHistoryPanel.tsx renders detail.changes without validating response shape
+ 5 files changed, 45 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - VersionHistoryPanel.tsx renders detail.changes without validating response shape
+- Added response shape validation in `fetchDetail`: checks `data.changes` is an array before using it, throws descriptive error otherwise
+- Introduced `detailError` state separate from the shared `error` so the detail view shows its own error + retry button instead of crashing
+- Safely constructs `CommitDetail` with fallback defaults for `hash` and `fileCount` fields
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  26 items remaining
+===============================================================
+  Claimed: `ThemeValuesSection.handleSave` in `TokenEditor.tsx` has no `.ok` check and no catch block — the inline theme-value PATCH request (~L210) awaits `fetch()` but never checks `res.ok` and has no `catch`; HTTP errors (4xx/5xx, network failures) are silently swallowed and the edit state is cleared as if the save succeeded, with no feedback to the user
+  Worktree: /tmp/backlog-9231-P3cgHH

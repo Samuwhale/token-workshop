@@ -249,7 +249,7 @@ export function extractTailwindTheme(raw: string): string | null {
   }
 
   // No theme key — try to strip module.exports / export default and parse the whole thing
-  let cleaned = raw
+  const cleaned = raw
     .replace(/^(?:export\s+default|module\.exports\s*=)\s*/m, '')
     .replace(/^defineConfig\s*\(\s*/m, '')
     .replace(/\)\s*;?\s*$/, '')

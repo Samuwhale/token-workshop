@@ -525,3 +525,10 @@ Already up to date.
 ===============================================================
   Claimed: Duplicate color-distance math in server lint.ts (lines 106-134) vs `@tokenmanager/core` — `hexToRgb`, `rgbToLab`, and `colorDeltaE` are reimplemented locally when `hexToLab` is already exported from core; consolidating prevents divergence and removes ~30 lines of redundant code
   Worktree: /tmp/backlog-9651-N8xSBd
+
+  ✓ done: Duplicate color-distance math in server lint.ts vs @tokenmanager/core
+    Added colorDeltaE to @tokenmanager/core and replaced ~30 lines of duplicate hexToRgb/rgbToLab/colorDeltaE in server lint.ts with a single import
+    56 turns · 265s · $1.33
+
+--- Merging: Duplicate color-distance math in server lint.ts vs @tokenmanager/core ---
+Already up to date.
