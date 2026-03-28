@@ -826,6 +826,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       {/* Name and info — single-click applies (non-select mode), double-click edits */}
       {/* ctrl/cmd-click enters select mode; shift-click range-selects */}
       <div
+        title={!selectMode ? 'Double-click to edit' : undefined}
         className={`flex-1 min-w-0${!selectMode ? ' cursor-pointer' : ''}`}
         onClick={(e) => {
           if (selectMode || e.ctrlKey || e.metaKey) {
@@ -1052,6 +1053,18 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         ) : null;
       })()}
 
+      {/* Edit button — always faintly visible as a hint that rows are editable */}
+      {!selectMode && (
+        <button
+          onClick={() => onEdit(node.path, node.name)}
+          title="Edit (or double-click row)"
+          className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity shrink-0"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+      )}
       {/* Hover actions — compact, only on hover */}
       {!selectMode && (
         <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
@@ -1084,15 +1097,6 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M12 5l7 7-7 7M5 12h14" />
-            </svg>
-          </button>
-          <button
-            onClick={() => onEdit(node.path, node.name)}
-            title="Edit"
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
             </svg>
           </button>
           <button

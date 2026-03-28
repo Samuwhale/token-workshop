@@ -561,3 +561,10 @@ Already up to date.
 
 --- Merging: Inline create form has no path to full TokenEditor ---
 Already up to date.
+[main 53600a8] chore(backlog): done – Inline create form has no path to full TokenEditor
+ 7 files changed, 58 insertions(+), 5 deletions(-)
+
+## 2026-03-28 - Inline create form has no path to full TokenEditor
+- Added an expand/full-editor button (expand icon) to the inline create form's button row that opens the full TokenEditor via `onCreateNew`, passing the current path, type, and value
+- Fixed "Create from search" button to also route through `onCreateNew` when available instead of always forcing the inline form
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2544 (button row), ~L2392 (create from search)

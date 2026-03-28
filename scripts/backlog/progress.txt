@@ -388,3 +388,14 @@
   - The inline create form is a fallback when `onCreateNew` isn't provided, and also reachable via "Create from search" which bypasses the `onCreateNew` check
   - When adding escalation paths between simple→advanced UIs, carry forward all entered data (path, type, value) to avoid user frustration
 ---
+
+## 2026-03-28 - TokenList double-click to edit is undiscoverable
+- Made the pencil/edit icon always faintly visible (opacity-40) on every token row as a visual hint, fully visible on hover
+- Added `title="Double-click to edit"` tooltip on the token name/info area
+- Updated edit button tooltip to "Edit (or double-click row)"
+- Added "Double-click → Edit token" entry to Keyboard Shortcuts modal under Token List section
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L828,L1055-L1068,L1102-L1110; `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L46
+- **Learnings for future iterations:**
+  - The "faint-always-visible button" pattern (opacity-40 group-hover:opacity-100) is ideal for making primary actions discoverable without cluttering rows
+  - Pulling a button out of the hover-only container and giving it its own opacity classes is cleaner than trying to override container-level opacity
+---

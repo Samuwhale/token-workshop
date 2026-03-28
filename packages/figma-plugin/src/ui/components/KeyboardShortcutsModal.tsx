@@ -43,6 +43,7 @@ const SECTIONS: ShortcutSection[] = [
   {
     header: 'Token List',
     shortcuts: [
+      { keys: ['Double-click'], label: 'Edit token' },
       { keys: ['M'], label: 'Toggle multi-select mode' },
       { keys: ['Esc'], label: 'Exit multi-select / close form' },
       { keys: ['⌘C'], label: 'Copy selected tokens as JSON' },
