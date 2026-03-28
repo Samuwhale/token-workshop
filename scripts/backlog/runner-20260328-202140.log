@@ -223,3 +223,16 @@ Already up to date.
 
 --- Merging: useStyleSync pullRows Promise.all never checks res.ok ---
 Already up to date.
+[main f6a1d34] chore(backlog): done – useStyleSync pullRows Promise.all never checks res.ok
+ 6 files changed, 65 insertions(+), 13 deletions(-)
+
+## 2026-03-28 - useStyleSync pullRows Promise.all never checks res.ok
+- Added `res.ok` check on each individual PATCH response in the `pullRows` `Promise.all` block (~line 175)
+- Failed responses now collect into `pullFailures` array with path and error details
+- Network errors per-request are also caught individually instead of aborting the entire batch
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  47 items remaining
+===============================================================
+  Claimed: `ThemeCompare.tsx` and `ExportPanel.tsx` clipboard writes are fire-and-forget — `navigator.clipboard.writeText()` is not awaited and has no `.catch()`, so the "Copied!" feedback shows even if clipboard access is denied
+  Worktree: /tmp/backlog-9651-sVmnCT
