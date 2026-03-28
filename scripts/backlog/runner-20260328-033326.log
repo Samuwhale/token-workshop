@@ -477,3 +477,16 @@ Already up to date.
 
 --- Merging: setHexAlpha does not validate hex input ---
 Already up to date.
+[main c00d2fa] chore(backlog): done – setHexAlpha does not validate hex input
+ 6 files changed, 37 insertions(+), 5 deletions(-)
+
+## 2026-03-28 - `setHexAlpha` does not validate hex input
+- Added hex validation to `setHexAlpha`: expands shorthand via `expandHex`, slices to 6 chars, then validates with `/^[0-9a-fA-F]{6}$/` — returns `null` on invalid input (matching `hexToLab`/`wcagLuminance` pattern). Updated the caller in `color-modifier.ts` to throw a descriptive error on `null`.
+- Files changed: `packages/core/src/color-math.ts` ~L69, `packages/core/src/color-modifier.ts` ~L37
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 24 / 90  (claude)  —  22 items remaining
+===============================================================
+  Claimed: TokenEditor alias resolution chain hops are not clickable — the chain shows `A → B → C → #FF0000` but clicking an intermediate hop doesn't navigate to that token; users must manually search for it
+  Worktree: /tmp/backlog-92630-CvFll3

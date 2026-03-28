@@ -427,10 +427,25 @@ export class TokenResolver {
 
     if (typeof value === 'object' && value !== null) {
       const v = value as Record<string, unknown>;
-      if ('fontFamily' in v && 'fontSize' in v) return TOKEN_TYPES.TYPOGRAPHY;
-      if ('offsetX' in v && 'blur' in v) return TOKEN_TYPES.SHADOW;
-      if ('color' in v && 'width' in v && 'style' in v) return TOKEN_TYPES.BORDER;
-      if ('duration' in v && 'timingFunction' in v) return TOKEN_TYPES.TRANSITION;
+      const keys = Object.keys(v);
+
+      // Shadow: any of its characteristic keys (offsetX, offsetY, blur, spread)
+      const shadowKeys = ['offsetX', 'offsetY', 'blur', 'spread'];
+      if (keys.some((k) => shadowKeys.includes(k))) return TOKEN_TYPES.SHADOW;
+
+      // Typography: any of its characteristic keys
+      const typographyKeys = ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
+      if (keys.some((k) => typographyKeys.includes(k))) return TOKEN_TYPES.TYPOGRAPHY;
+
+      // Border: needs at least one border-specific key (width or style alongside color)
+      // 'color' alone is ambiguous, but 'style' with strokeStyle values or 'width' with color hints border
+      if (('width' in v || 'style' in v) && 'color' in v) return TOKEN_TYPES.BORDER;
+      if ('style' in v && 'width' in v) return TOKEN_TYPES.BORDER;
+
+      // Transition: any of its characteristic keys
+      const transitionKeys = ['duration', 'delay', 'timingFunction'];
+      if (keys.some((k) => transitionKeys.includes(k))) return TOKEN_TYPES.TRANSITION;
+
       if ('value' in v && 'unit' in v) {
         const unit = (v as { unit: string }).unit;
         if (unit === 'ms' || unit === 's') return TOKEN_TYPES.DURATION;

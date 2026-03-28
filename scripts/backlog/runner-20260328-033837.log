@@ -387,3 +387,10 @@ Already up to date.
 ===============================================================
   Claimed: `inferType` returns CUSTOM for partial composite values — a shadow token missing `offsetX` or a border missing `width` silently infers as `CUSTOM` type instead of reporting a validation error, hiding malformed token data (`resolver.ts` ~L405)
   Worktree: /tmp/backlog-10278-aeGjSO
+
+  ✓ done: `inferType` returns CUSTOM for partial composite values
+    Changed inferType to use looser key matching — any characteristic key of a composite type (shadow, typography, border, transition) now triggers correct type inference, so the validator catches missing fields instead of silently classifying as CUSTOM.
+    23 turns · 122s · $0.56
+
+--- Merging: `inferType` returns CUSTOM for partial composite values ---
+Already up to date.

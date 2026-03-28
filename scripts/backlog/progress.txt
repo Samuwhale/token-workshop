@@ -267,3 +267,10 @@
   - Functions in `color-math.ts` use a consistent `return null` pattern for invalid hex input — new validations should follow this convention.
   - Callers in `color-modifier.ts` throw with descriptive messages including the modifier name and the offending value.
 ---
+
+## 2026-03-28 - `inferType` returns CUSTOM for partial composite values
+- Changed `inferType` in `resolver.ts` to use looser key matching for composite types (shadow, typography, border, transition). Previously required ALL characteristic keys to be present (e.g., shadow needed both `offsetX` AND `blur`); now matches on ANY characteristic key. This ensures partial composite values get the correct type so the validator can report specific missing-field errors instead of silently classifying them as CUSTOM.
+- Files changed: `packages/core/src/resolver.ts` ~L428
+- **Learnings for future iterations:**
+  - Type inference and validation are a two-stage pipeline: inference must be lenient (match on partial keys) so that validation can be strict (report missing fields). If inference is too strict, malformed data escapes validation entirely.
+---
