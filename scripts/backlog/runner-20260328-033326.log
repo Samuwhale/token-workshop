@@ -116,3 +116,16 @@ Already up to date.
 
 --- Merging: CSS selector injection in export ---
 Already up to date.
+[main 478a6db] chore(backlog): done – CSS selector injection in export
+ 6 files changed, 54 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - CSS selector injection in export — `cssSelector` from request body is passed directly to Style Dictionary with no sanitization
+- Added `isValidCssSelector()` validation function in the export route that rejects braces, semicolons, angle brackets, comments, @-rules, backticks, quotes, and backslashes. Also enforces a 200-char max length and requires the selector to start with a valid selector character.
+- Returns 400 with a descriptive error message when validation fails, before the value reaches Style Dictionary.
+- Files changed: `packages/server/src/routes/export.ts` ~L8 (validation function), ~L97 (validation check before use)
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  87 items remaining
+===============================================================
+  Claimed: Duplicated `flattenForVarDiff`/`flattenForStyleDiff` in `PublishPanel.tsx` — duplicates logic from `flattenTokenGroup` in core and `flattenWithNames` in `useTokens`
+  Worktree: /tmp/backlog-92630-e5SS52

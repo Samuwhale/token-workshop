@@ -407,3 +407,10 @@
   - Style Dictionary's `selector` option is interpolated directly into CSS output — any string that can break out of the selector context (braces, semicolons) is an injection vector
   - Pre-existing tsc errors in the server package are module resolution issues (missing type declarations), not code errors — don't be alarmed by them
 ---
+
+## 2026-03-28 - Duplicated `flattenTokenGroup` in `useGeneratorDialog.ts`
+- Stale — already done. `useGeneratorDialog.ts` imports `flattenTokenGroup` from `@tokenmanager/core` (line 4) and uses it at line 227. There is no local re-implementation of the function in the file. A prior session (runner-20260327-143053) added a local helper which was subsequently replaced with the core import.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Check runner logs when a backlog item seems already resolved — prior sessions may have fixed the duplication as a side-effect of related work
+---
