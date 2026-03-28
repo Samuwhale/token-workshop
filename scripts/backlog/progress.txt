@@ -636,3 +636,15 @@
 - **Learnings for future iterations:**
   - When a useCallback takes data as a parameter, its dependency array should only include closed-over values (like `labelA`, `labelB`), not the data that will be passed at call time
 ---
+
+## 2026-03-28 - useGeneratorDialog.ts silently swallows fetch errors for existing set tokens
+- Added `existingTokensError` state; replaced `.catch(() => {})` with a catch that sets the error (ignoring AbortError)
+- The fetch now throws on non-ok responses (e.g. 404) and the error message is surfaced to the user
+- The "Review & Create/Update" button is disabled while `existingTokensError` is set, blocking saves that would silently skip conflict detection
+- Error is cleared on each new `targetSet` change so retries work correctly
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L159-L260; `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L171-L619
+- **Learnings for future iterations:**
+  - When a fetch loads data that gates conflict detection, swallowed errors are not just UX omissions — they're correctness bugs (false "no conflicts" state)
+  - Always clear the error state at the top of the effect before starting the new fetch so stale errors don't persist across targetSet changes
+  - The confirmation dialog doesn't need guarding separately because blocking the first-step button makes it unreachable
+---

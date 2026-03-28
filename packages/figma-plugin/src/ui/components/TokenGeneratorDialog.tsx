@@ -169,6 +169,7 @@ export function TokenGeneratorDialog({
     previewLoading,
     previewError,
     overwrittenEntries,
+    existingTokensError,
     saving,
     saveError,
     showSemanticMapping,
@@ -595,6 +596,7 @@ export function TokenGeneratorDialog({
           </div>
 
           {saveError && <div className="text-[10px] text-[var(--color-figma-error)]">{saveError}</div>}
+          {existingTokensError && <div className="text-[10px] text-[var(--color-figma-error)]">{existingTokensError}</div>}
         </div>
 
         {/* Footer */}
@@ -614,7 +616,7 @@ export function TokenGeneratorDialog({
           })()}
           <div className="flex gap-2">
           <button onClick={handleClose} className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
-          <button onClick={handleSave} disabled={saving || !targetGroup.trim() || !name.trim() || (!isMultiBrand && typeNeedsSource && !hasSource)}
+          <button onClick={handleSave} disabled={saving || !!existingTokensError || !targetGroup.trim() || !name.trim() || (!isMultiBrand && typeNeedsSource && !hasSource)}
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50">
             {isEditing
               ? 'Review & Update'

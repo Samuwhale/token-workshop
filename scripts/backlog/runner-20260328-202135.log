@@ -204,3 +204,16 @@ Already up to date.
 
 --- Merging: buildTsv unnecessary filteredDiffs dependency ---
 Already up to date.
+[main a3ac0f1] chore(backlog): done – buildTsv unnecessary filteredDiffs dependency
+ 5 files changed, 31 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - buildTsv unnecessary filteredDiffs dependency
+- Removed `filteredDiffs` from `buildTsv` useCallback dependency array in ThemeCompare.tsx — the function receives data via its `rows` parameter and never references `filteredDiffs` directly
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L175
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  43 items remaining
+===============================================================
+  Claimed: Rename conflict detection: warn when renaming a token that is referenced by aliases — show a list of dependent tokens and offer "Auto-update all aliases" so users don't silently break their token graph when refactoring paths
+  Worktree: /tmp/backlog-9231-dIyweL

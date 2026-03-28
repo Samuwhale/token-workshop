@@ -65,6 +65,7 @@ interface UseGeneratorDialogReturn {
   previewLoading: boolean;
   previewError: string;
   overwrittenEntries: OverwrittenEntry[];
+  existingTokensError: string;
   saving: boolean;
   saveError: string;
   showSemanticMapping: boolean;
@@ -157,6 +158,7 @@ export function useGeneratorDialog({
   const [previewError, setPreviewError] = useState('');
 
   const [existingSetTokens, setExistingSetTokens] = useState<Record<string, { $value: unknown; $type: string }>>({});
+  const [existingTokensError, setExistingTokensError] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
@@ -232,19 +234,24 @@ export function useGeneratorDialog({
   useEffect(() => {
     if (!targetSet) return;
     const controller = new AbortController();
+    setExistingTokensError('');
     fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: controller.signal })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (data) {
-          const map = flattenTokenGroup(data.tokens || {});
-          const obj: Record<string, { $value: unknown; $type: string }> = {};
-          for (const [path, token] of map) {
-            obj[path] = { $value: token.$value, $type: token.$type || 'unknown' };
-          }
-          setExistingSetTokens(obj);
-        }
+      .then(res => {
+        if (!res.ok) throw new Error(`Failed to load existing tokens (${res.status})`);
+        return res.json();
       })
-      .catch(() => {});
+      .then(data => {
+        const map = flattenTokenGroup(data.tokens || {});
+        const obj: Record<string, { $value: unknown; $type: string }> = {};
+        for (const [path, token] of map) {
+          obj[path] = { $value: token.$value, $type: token.$type || 'unknown' };
+        }
+        setExistingSetTokens(obj);
+      })
+      .catch(err => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setExistingTokensError(getErrorMessage(err, 'Could not load existing tokens — save is blocked to prevent overwriting unknown values'));
+      });
     return () => controller.abort();
   }, [serverUrl, targetSet]);
 
@@ -438,6 +445,7 @@ export function useGeneratorDialog({
     previewLoading,
     previewError,
     overwrittenEntries,
+    existingTokensError,
     saving,
     saveError,
     showSemanticMapping,
