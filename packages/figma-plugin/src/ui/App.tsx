@@ -55,6 +55,8 @@ import { useModalVisibility } from './hooks/useModalVisibility';
 import { useTokenDataLoading } from './hooks/useTokenDataLoading';
 import { useSetTabs } from './hooks/useSetTabs';
 import { useRecentOperations } from './hooks/useRecentOperations';
+import { useLintConfig } from './hooks/useLintConfig';
+import { LintConfigPanel } from './components/LintConfigPanel';
 import type { SyncCompleteMessage } from '../shared/types';
 import { resolveAllAliases, isAlias } from '../shared/resolveAlias';
 import { adaptShortcut } from './shared/utils';
@@ -342,6 +344,7 @@ export function App() {
   const [triggerCreateToken, setTriggerCreateToken] = useState(0);
   const [lintKey, setLintKey] = useState(0);
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
+  const lintConfig = useLintConfig(serverUrl, connected);
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); }, [refreshTokens, refreshGenerators]);
 
@@ -1857,6 +1860,16 @@ export function App() {
                   </p>
                 </div>
               </div>
+              {/* Lint Rules */}
+              {connected && lintConfig.config && (
+                <LintConfigPanel
+                  config={lintConfig.config}
+                  saving={lintConfig.saving}
+                  onUpdateRule={lintConfig.updateRule}
+                  onReset={lintConfig.resetToDefaults}
+                  onLintRefresh={() => setLintKey(k => k + 1)}
+                />
+              )}
               <div className="rounded border border-[var(--color-figma-error)] overflow-hidden opacity-80">
                 <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-error)] font-medium uppercase tracking-wide">
                   Danger Zone

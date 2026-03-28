@@ -87,3 +87,14 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: TokenGraph.tsx is 512 lines of dead code still rendered in a viewMode branch; VersionHistoryPanel and SnapshotPanel have nearly identical helper functions and serve the same "revert to past state" goal; TokenList has 6 view modes (tree/table/canvas/grid/json/graph) which is excessive — canvas, grid, and graph overlap with other panels
 ---
+
+## 2026-03-29 - No lint rules configuration UI
+- Added lint configuration UI in the Settings panel (between Undo History and Danger Zone sections). Users can now enable/disable each of the 5 lint rules, change severity (error/warning/info), and configure rule-specific options (maxDepth for max-alias-depth, pattern regex for path-pattern). Includes a "Reset defaults" button. Changes auto-trigger a lint refresh.
+- Created `useLintConfig` hook to fetch/update lint config via `GET/PUT /api/lint/config` and `GET /api/lint/config/default` endpoints.
+- Created `LintConfigPanel` component with toggle switches, severity dropdowns, expandable descriptions, and option inputs per rule.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useLintConfig.ts` (new), `packages/figma-plugin/src/ui/components/LintConfigPanel.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L58-59 (imports), ~L346 (hook call), ~L1863-1872 (panel insertion)
+- **Learnings for future iterations:**
+  - Server package node_modules in worktrees can get corrupted by circular symlinks if the validate script's `ensure_pkg_node_modules` runs when the main tree lacks the dir — fix by running `pnpm install` on the main tree then re-symlinking
+  - The lint config API already supports all CRUD operations including a `/default` endpoint — no server changes needed
+  - Settings panel sections follow a consistent card pattern: `rounded border` wrapper, `bg-secondary` header with uppercase label, `p-3` content area
+---
