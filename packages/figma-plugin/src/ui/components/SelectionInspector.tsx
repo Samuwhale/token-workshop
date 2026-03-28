@@ -14,6 +14,7 @@ import {
   getCurrentValue,
   getMergedCapabilities,
   getTokenTypeForProperty,
+  getNextUnboundProperty,
   buildRemoveBindingUndo,
   SUGGESTED_NAMES,
   suggestTokenPath,
@@ -212,19 +213,17 @@ export function SelectionInspector({
     const nodes = selectedNodes.filter(n => (n.depth ?? 0) === 0);
     if (nodes.length === 0 || !connected || !activeSet) return;
     const mergedCaps = getMergedCapabilities(nodes);
+    const firstUnbound = getNextUnboundProperty(null, nodes, mergedCaps);
+    // Fallback to first visible property with a value if all are bound
     let firstEligible: BindableProperty | null = null;
-    let firstUnbound: BindableProperty | null = null;
-    outer: for (const group of PROPERTY_GROUPS) {
-      if (!shouldShowGroup(group.condition, mergedCaps)) continue;
-      for (const prop of group.properties) {
-        const value = getCurrentValue(nodes, prop);
-        if (value === undefined || value === null) continue;
-        if (firstEligible === null) firstEligible = prop;
-        const binding = getBindingForProperty(nodes, prop);
-        if (!binding) {
-          firstUnbound = prop;
-          break outer;
+    if (!firstUnbound) {
+      for (const group of PROPERTY_GROUPS) {
+        if (!shouldShowGroup(group.condition, mergedCaps)) continue;
+        for (const prop of group.properties) {
+          const value = getCurrentValue(nodes, prop);
+          if (value !== undefined && value !== null) { firstEligible = prop; break; }
         }
+        if (firstEligible) break;
       }
     }
     const target = firstUnbound ?? firstEligible;
@@ -379,6 +378,21 @@ export function SelectionInspector({
     cancelBind();
     setLastBoundProp(prop);
     setTimeout(() => setLastBoundProp(prev => prev === prop ? null : prev), 1500);
+
+    // Auto-advance: open bind panel on next unbound property
+    // We need to treat the just-bound property as bound for the advance check,
+    // so pass afterProp to skip past it and find the next unbound one.
+    const nextUnbound = getNextUnboundProperty(prop, rootNodes, caps);
+    if (nextUnbound) {
+      // Small delay so the "Bound" flash is visible before the next panel opens
+      setTimeout(() => {
+        setBindingFromProp(prev => {
+          // Only advance if user hasn't manually opened a different panel
+          if (prev === null) return nextUnbound;
+          return prev;
+        });
+      }, 300);
+    }
   };
 
   const handleTokenCreated = (tokenPath: string, prop: BindableProperty, tokenType: string, tokenValue: any) => {
@@ -395,6 +409,17 @@ export function SelectionInspector({
     setNewTokenName('');
     setCreatedTokenPath(tokenPath);
     onTokenCreated();
+
+    // Auto-advance: open bind panel on next unbound property
+    const nextUnbound = getNextUnboundProperty(prop, rootNodes, caps);
+    if (nextUnbound) {
+      setTimeout(() => {
+        setBindingFromProp(prev => {
+          if (prev === null) return nextUnbound;
+          return prev;
+        });
+      }, 300);
+    }
   };
 
   const headerLabel = !hasSelection
@@ -410,7 +435,10 @@ export function SelectionInspector({
 
   const hasAnyTokens = Object.keys(tokenMap).length > 0;
 
-  // No selection — empty state with layer search
+  // Check if all visible properties with values are bound (no more unbound to advance to)
+  const allPropertiesBound = hasSelection && totalBindings > 0 && getNextUnboundProperty(null, rootNodes, caps) === null;
+
+  // No selection — full empty state
   if (!hasSelection) {
     return (
       <div className="flex-1 flex flex-col gap-3 px-4 pt-4">
@@ -686,6 +714,22 @@ export function SelectionInspector({
           />
         )}
       </div>
+
+      {/* All bound — advance to next layer */}
+      {allPropertiesBound && rootNodes.length === 1 && (
+        <div className="border-t border-[var(--color-figma-border)] px-3 py-2 flex items-center gap-2 bg-[var(--color-figma-success,#18a058)]/5 shrink-0">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-success,#18a058)]" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+          <span className="text-[10px] text-[var(--color-figma-text)] font-medium flex-1">All properties bound</span>
+          <button
+            onClick={() => parent.postMessage({ pluginMessage: { type: 'select-next-sibling' } }, '*')}
+            className="text-[9px] px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors font-medium"
+          >
+            Next layer →
+          </button>
+        </div>
+      )}
 
       {/* Create success banner */}
       {createdTokenPath && (

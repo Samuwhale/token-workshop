@@ -3,8 +3,8 @@
 import type { PluginMessage } from '../shared/types.js';
 import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables } from './variableSync.js';
 import { applyStyles, readFigmaStyles } from './styleSync.js';
-import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, searchLayers } from './selectionHandling.js';
-import { scanComponentCoverage, selectNode, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
+import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection } from './selectionHandling.js';
+import { scanComponentCoverage, selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 
 figma.showUI(__html__, { width: 400, height: 600, themeColors: true });
 
@@ -93,6 +93,9 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       break;
     case 'select-node':
       await selectNode(msg.nodeId);
+      break;
+    case 'select-next-sibling':
+      selectNextSibling();
       break;
     case 'scan-canvas-heatmap':
       await scanCanvasHeatmap();

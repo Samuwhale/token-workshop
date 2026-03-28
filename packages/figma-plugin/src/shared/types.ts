@@ -279,6 +279,10 @@ export interface SelectNodeMessage {
   nodeId: string;
 }
 
+export interface SelectNextSiblingMessage {
+  type: 'select-next-sibling';
+}
+
 export interface ScanTokenUsageMessage {
   type: 'scan-token-usage';
 }
@@ -385,4 +389,4 @@ export type PluginMessage =
   | SetActiveThemesMessage
   | ScanTokenUsageMessage
   | ExtractTokensFromSelectionMessage
-  | SearchLayersMessage;
+  | SelectNextSiblingMessage;

@@ -1,5 +1,5 @@
 import type { BindableProperty, SelectionNodeInfo, NodeCapabilities, TokenMapEntry } from '../../shared/types';
-import { TOKEN_PROPERTY_MAP, PROPERTY_LABELS, SCOPE_TO_PROPERTIES } from '../../shared/types';
+import { TOKEN_PROPERTY_MAP, PROPERTY_LABELS, SCOPE_TO_PROPERTIES, PROPERTY_GROUPS } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import { isDimensionLike } from './generators/generatorShared';
 import type { UndoSlot } from '../hooks/useUndo';
@@ -327,6 +327,34 @@ export function collectBoundPrefixes(
     }
   }
   return prefixes;
+}
+
+/**
+ * Find the next visible, unbound property after `afterProp`.
+ * Walks PROPERTY_GROUPS in display order, skipping until past `afterProp`,
+ * then returns the first unbound property with a non-null current value.
+ * Returns null if all remaining properties are bound.
+ */
+export function getNextUnboundProperty(
+  afterProp: BindableProperty | null,
+  rootNodes: SelectionNodeInfo[],
+  caps: NodeCapabilities,
+): BindableProperty | null {
+  let pastAfterProp = afterProp === null;
+  for (const group of PROPERTY_GROUPS) {
+    if (!shouldShowGroup(group.condition, caps)) continue;
+    for (const prop of group.properties) {
+      if (!pastAfterProp) {
+        if (prop === afterProp) pastAfterProp = true;
+        continue;
+      }
+      const value = getCurrentValue(rootNodes, prop);
+      if (value === undefined || value === null) continue;
+      const binding = getBindingForProperty(rootNodes, prop);
+      if (!binding) return prop;
+    }
+  }
+  return null;
 }
 
 /** Build an undo slot for removing a single binding */

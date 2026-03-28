@@ -423,3 +423,16 @@
   - The plugin has duplicate type definitions in `useGenerators.ts` mirroring `@tokenmanager/core` types — both must be updated for type changes
   - The plugin-local types use inline string literal unions instead of importing `TokenType` from core (per the "no re-exports from core" pattern)
 ---
+
+## 2026-03-28 - No "apply and advance" flow in Inspect
+- Implemented auto-advance after binding: when a token is bound to a property (via bind or create-and-bind), the bind panel automatically opens on the next unbound property after a 300ms delay, enabling sequential binding without manual navigation.
+- Added "All properties bound — Next layer →" footer bar that appears when all visible properties are bound on a single-selection layer. Clicking "Next layer" sends `select-next-sibling` message to select the next sibling SceneNode in Figma.
+- Added `getNextUnboundProperty()` helper to `selectionInspectorUtils.ts` that walks PROPERTY_GROUPS to find the next visible, unbound property with a value.
+- Added `selectNextSibling()` to plugin controller that navigates to the next sibling in the layer tree.
+- Refactored `triggerCreateToken` (Cmd+T) effect to reuse the new helper.
+- Files changed: `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L332, `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` ~L267, ~L293, ~L300, ~L578, `packages/figma-plugin/src/shared/types.ts` ~L282, ~L374, `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L62, `packages/figma-plugin/src/plugin/controller.ts` ~L82
+- **Learnings for future iterations:**
+  - The selection-change cleanup effect in SelectionInspector checks node IDs, so binding a token on the same node doesn't trigger state reset — auto-advance is safe.
+  - `setBindingFromProp` in the setTimeout callback must check current state to avoid overriding a user-initiated panel open.
+  - Figma's `parent.children` array gives sibling access; `indexOf` finds the current node's position for next-sibling navigation.
+---

@@ -343,3 +343,10 @@ Already up to date.
 ===============================================================
   Claimed: No "apply and advance" flow in Inspect — after binding a token to a property, there's no shortcut to jump to the next unbound property or next layer; binding 20 properties across layers is 20 separate manual workflows
   Worktree: /tmp/backlog-63411-iCbWaU
+
+  ✓ done: No "apply and advance" flow in Inspect
+    Added auto-advance to next unbound property after binding (300ms delay), plus "All properties bound — Next layer →" footer with select-next-sibling support across 5 files.
+    40 turns · 420s · $2.32
+
+--- Merging: No "apply and advance" flow in Inspect ---
+Already up to date.

@@ -59,6 +59,30 @@ export async function selectNode(nodeId: string) {
   }
 }
 
+export function selectNextSibling() {
+  const sel = figma.currentPage.selection;
+  if (sel.length !== 1) {
+    figma.ui.postMessage({ type: 'select-next-sibling-result', found: false });
+    return;
+  }
+  const node = sel[0];
+  const parent = node.parent;
+  if (!parent || !('children' in parent)) {
+    figma.ui.postMessage({ type: 'select-next-sibling-result', found: false });
+    return;
+  }
+  const siblings = parent.children;
+  const idx = siblings.indexOf(node);
+  if (idx < 0 || idx >= siblings.length - 1) {
+    figma.ui.postMessage({ type: 'select-next-sibling-result', found: false });
+    return;
+  }
+  const next = siblings[idx + 1];
+  figma.currentPage.selection = [next];
+  figma.viewport.scrollAndZoomIntoView([next]);
+  figma.ui.postMessage({ type: 'select-next-sibling-result', found: true });
+}
+
 // Scan all visual nodes on the current page for token/variable binding coverage
 export async function scanCanvasHeatmap() {
   try {
