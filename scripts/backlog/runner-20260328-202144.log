@@ -105,3 +105,10 @@ Already up to date.
 ===============================================================
   Claimed: ExportPanel has no SCSS, LESS, or TypeScript export formats — only CSS, Dart, iOS Swift, Android, and JSON are supported; add SCSS variables (`$token-name`), LESS variables (`@token-name`), and TypeScript const exports (`export const tokenName = ...`) to cover common frontend toolchain needs
   Worktree: /tmp/backlog-10054-1aRbU4
+
+  ✓ done: Add SCSS, LESS, and TypeScript export formats to ExportPanel
+    Added SCSS ($token-name), LESS (@token-name), and TypeScript (export const tokenName) export formats using built-in Style Dictionary formatters across platforms.ts, style-dict.ts, and export.ts
+    40 turns · 239s · $1.36
+
+--- Merging: Add SCSS, LESS, and TypeScript export formats to ExportPanel ---
+Already up to date.

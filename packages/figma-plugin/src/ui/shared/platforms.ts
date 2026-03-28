@@ -11,4 +11,7 @@ export const PLATFORMS: Platform[] = [
   { id: 'ios-swift', label: 'iOS Swift', description: 'UIKit / SwiftUI extensions', example: 'static let colorBrand = UIColor(...)' },
   { id: 'android', label: 'Android', description: 'XML resources / Compose', example: '<color name="color_brand">#0066FF</color>' },
   { id: 'json', label: 'JSON', description: 'W3C DTCG format', example: '"color-brand": { "$type": "color", "$value": "#0066ff" }' },
+  { id: 'scss', label: 'SCSS', description: 'SCSS variables', example: '$color-brand: #0066ff;' },
+  { id: 'less', label: 'LESS', description: 'LESS variables', example: '@color-brand: #0066ff;' },
+  { id: 'typescript', label: 'TypeScript', description: 'ES6 const exports', example: 'export const colorBrand = "#0066ff";' },
 ];

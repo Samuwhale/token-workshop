@@ -140,3 +140,16 @@ Already up to date.
 
 --- Merging: VersionHistoryPanel has no revert/restore actions ---
 Already up to date.
+[main 38cf9f9] chore(backlog): done – VersionHistoryPanel has no revert/restore actions
+ 8 files changed, 273 insertions(+), 11 deletions(-)
+
+## 2026-03-28 - VersionHistoryPanel has no revert/restore actions
+- Added `POST /api/sync/log/:hash/restore` server endpoint that restores tokens to their before-commit state, with optional per-token filtering via `body.tokens[]`
+- Endpoint snapshots current state, restores via `tokenStore.restoreSnapshot()`, and records in `operationLog` for undo support
+- Added "Restore all" button in commit detail header (visible when there are token changes)
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  56 items remaining
+===============================================================
+  Claimed: Asset token editor has no file upload or preview — the AssetEditor is a bare URL input with no way to upload an image, preview the current URL, or validate that the URL resolves; add an image preview below the input and a drag-and-drop upload area that stores the asset (or encodes as data URI)
+  Worktree: /tmp/backlog-9651-dxPSSS

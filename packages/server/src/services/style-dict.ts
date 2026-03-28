@@ -5,7 +5,7 @@ import os from 'node:os';
 import type { TokenGroup } from '@tokenmanager/core';
 import { makeReferenceGlobalRegex, resolveRefValue } from '@tokenmanager/core';
 
-export type ExportPlatform = 'css' | 'dart' | 'ios-swift' | 'android' | 'json';
+export type ExportPlatform = 'css' | 'dart' | 'ios-swift' | 'android' | 'json' | 'scss' | 'less' | 'typescript';
 
 export interface ExportResult {
   platform: ExportPlatform;
@@ -42,6 +42,21 @@ const PLATFORM_CONFIGS: Record<ExportPlatform, any> = {
     transformGroup: 'js',
     buildPath: 'json/',
     files: [{ destination: 'tokens.json', format: 'json/flat' }],
+  },
+  scss: {
+    transformGroup: 'css',
+    buildPath: 'scss/',
+    files: [{ destination: '_variables.scss', format: 'scss/variables' }],
+  },
+  less: {
+    transformGroup: 'css',
+    buildPath: 'less/',
+    files: [{ destination: 'variables.less', format: 'less/variables' }],
+  },
+  typescript: {
+    transformGroup: 'js',
+    buildPath: 'ts/',
+    files: [{ destination: 'tokens.ts', format: 'javascript/es6' }],
   },
 };
 
@@ -229,8 +244,8 @@ export async function exportTokens(
     const buildPath = path.join(tmpDir, config.buildPath);
     await fs.mkdir(buildPath, { recursive: true });
 
-    // Use the CSS-optimized file (formula → calc()) for the CSS platform
-    const sourceFile = platform === 'css' ? cssTokenFile : tokenFile;
+    // Use the CSS-optimized file (formula → calc()) for CSS-family platforms
+    const sourceFile = (platform === 'css' || platform === 'scss' || platform === 'less') ? cssTokenFile : tokenFile;
 
     // Build effective platform config, applying CSS selector override if provided
     let effectiveConfig = config;

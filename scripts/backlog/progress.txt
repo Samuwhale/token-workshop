@@ -430,3 +430,18 @@
   - `restoreSnapshot` accepts `token: null` to delete a token, so "restoring" an added token (which didn't exist before) naturally deletes it
   - The operation-log `record()` returns the entry with its `id`, which can be passed back to the client for immediate undo wiring — no need for a separate lookup
 ---
+
+## 2026-03-28 - Add SCSS, LESS, and TypeScript export formats to ExportPanel
+- Added three new export platforms: SCSS (`$token-name: value;`), LESS (`@token-name: value;`), and TypeScript (`export const tokenName = value;`)
+- SCSS and LESS use the `css` transform group (kebab-case names) with built-in Style Dictionary formats `scss/variables` and `less/variables`
+- TypeScript uses the `js` transform group (camelCase names) with `javascript/es6` format outputting to `.ts`
+- SCSS and LESS also get formula→calc() injection like CSS
+- Files changed:
+  - `packages/figma-plugin/src/ui/shared/platforms.ts` ~L14-16 — added 3 platform entries
+  - `packages/server/src/services/style-dict.ts` ~L8,46-58,234 — updated ExportPlatform type, added PLATFORM_CONFIGS, CSS-family source file selection
+  - `packages/server/src/routes/export.ts` ~L5 — updated VALID_PLATFORMS whitelist
+- **Learnings for future iterations:**
+  - Style Dictionary v4 has built-in `scss/variables` and `less/variables` formats — no custom formatters needed
+  - `javascript/es6` format outputs `export const name = value;` which is valid TypeScript — just use `.ts` extension
+  - SCSS/LESS support `calc()` so they should use the CSS-optimized token file (formula injection) like the CSS platform
+---

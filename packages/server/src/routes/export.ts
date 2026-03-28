@@ -2,7 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import { exportTokens, type ExportPlatform, type CssExportOptions } from '../services/style-dict.js';
 import type { TokenGroup } from '@tokenmanager/core';
 
-const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json'];
+const VALID_PLATFORMS: ExportPlatform[] = ['css', 'dart', 'ios-swift', 'android', 'json', 'scss', 'less', 'typescript'];
 
 /**
  * Validate a CSS selector string to prevent injection.
