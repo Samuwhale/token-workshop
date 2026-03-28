@@ -796,8 +796,8 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           <div className="relative shrink-0">
             <button
               onClick={e => { e.stopPropagation(); setPendingColor(typeof node.$value === 'string' ? node.$value : '#000000'); setColorPickerOpen(true); }}
-              title="Click to edit color"
-              className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
+              title={`${displayValue} — click to edit`}
+              className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
               style={{ backgroundColor: displayValue }}
             />
             {colorPickerOpen && (

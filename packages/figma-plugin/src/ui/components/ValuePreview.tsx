@@ -2,7 +2,7 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
   // Unresolved alias — show warning icon
   if (typeof value === 'string' && value.startsWith('{')) {
     return (
-      <div className="w-5 h-5 shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)]" title={`Unresolved reference: ${value}`}>
+      <div className="w-6 h-6 shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)]" title={`Unresolved reference: ${value}`}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
           <line x1="12" y1="9" x2="12" y2="13" />
@@ -15,8 +15,9 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
   if (type === 'color' && typeof value === 'string') {
     return (
       <div
-        className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0"
+        className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0"
         style={{ backgroundColor: value }}
+        title={value}
       />
     );
   }
@@ -53,7 +54,7 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
     if (shadowParts.length > 0) {
       return (
         <div
-          className="w-5 h-5 rounded shrink-0 bg-[var(--color-figma-bg)]"
+          className="w-6 h-6 rounded shrink-0 bg-[var(--color-figma-bg)]"
           style={{ boxShadow: shadowParts.join(', ') }}
         />
       );
@@ -107,11 +108,11 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
 
   if (type === 'asset' && typeof value === 'string' && value.length > 0) {
     return (
-      <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0 overflow-hidden bg-[var(--color-figma-bg-secondary)]">
+      <div className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 overflow-hidden bg-[var(--color-figma-bg-secondary)]">
         <img src={value} alt="" className="w-full h-full object-cover" aria-hidden="true" />
       </div>
     );
   }
 
-  return <div className="w-5 h-5 shrink-0" />;
+  return <div className="w-6 h-6 shrink-0" />;
 }

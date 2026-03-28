@@ -482,3 +482,12 @@
   - Token counts were already fetched and displayed — the issue was purely a styling/visibility concern, not missing data.
   - `tabular-nums` ensures badge width doesn't shift as counts change.
 ---
+
+## 2026-03-28 - Color swatches too small in token list
+- Increased color preview swatches from `w-5 h-5` (20px) to `w-6 h-6` (24px) across TokenTreeNode and ValuePreview components for better shade distinction.
+- Added hex value tooltip on hover: editable swatch shows `#hex — click to edit`, read-only swatch shows `#hex`.
+- Also bumped all other ValuePreview type previews (unresolved alias, shadow, asset, spacer) from w-5 to w-6 for visual consistency.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L800, `packages/figma-plugin/src/ui/components/ValuePreview.tsx` ~L5,17,56,110,116
+- **Learnings for future iterations:**
+  - ValuePreview spacer div at the bottom must match the swatch size to keep row alignment consistent for non-color tokens.
+---
