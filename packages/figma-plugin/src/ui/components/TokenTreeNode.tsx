@@ -13,6 +13,7 @@ import { ValuePreview } from './ValuePreview';
 import { ColorPicker } from './ColorPicker';
 import { getQuickBindTargets } from './selectionInspectorUtils';
 import { useTokenTree } from './TokenTreeContext';
+import { ComplexTypePreviewCard, COMPLEX_PREVIEW_TYPES } from './ComplexTypePreviewCard';
 
 // ---------------------------------------------------------------------------
 // MultiModeCell — compact inline-editable value cell for a single theme option
@@ -133,6 +134,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
   const [hovered, setHovered] = useState(false);
+  const [hoverPreviewVisible, setHoverPreviewVisible] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [pickerAnchor, setPickerAnchor] = useState<{ top: number; left: number } | undefined>();
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -217,6 +219,16 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       nodeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [isHighlighted, skipChildren]);
+
+  // Delayed hover preview for complex token types (typography, shadow, gradient, border)
+  useEffect(() => {
+    if (!hovered || node.isGroup || !node.$type || !COMPLEX_PREVIEW_TYPES.has(node.$type)) {
+      setHoverPreviewVisible(false);
+      return;
+    }
+    const timer = setTimeout(() => setHoverPreviewVisible(true), 300);
+    return () => clearTimeout(timer);
+  }, [hovered, node.isGroup, node.$type]);
 
   const resolveResult = isAlias(node.$value)
     ? resolveTokenValue(node.$value, node.$type || 'unknown', allTokensFlat)
@@ -1568,6 +1580,11 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             <span>Copy as JSON</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">J</span>
           </button>
         </div>
+      )}
+
+      {/* Complex type hover preview card */}
+      {hoverPreviewVisible && node.$type && !isBrokenAlias && (
+        <ComplexTypePreviewCard type={node.$type} value={displayValue} />
       )}
 
       {/* Alias resolution chain tooltip — visible on row hover */}

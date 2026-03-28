@@ -628,3 +628,15 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: ImportPanel.clearConflictState has infinite recursion (calls itself on line 107); controller.ts has duplicate 'scan-token-usage' case AND calls scanTokenUsageMap which is never imported (runtime ReferenceError)
 ---
+
+## 2026-03-28 - Token row: hover preview card for complex types
+- Created `ComplexTypePreviewCard.tsx` with four visual preview renderers: typography (styled "The quick brown fox" sample), shadow (box with applied boxShadow), gradient (full-width swatch), and border (box with applied border + color info)
+- Integrated into `TokenTreeNode.tsx` with a 300ms hover delay to prevent flicker during scrolling
+- Preview card floats above the row using `absolute bottom-full z-30 pointer-events-none` positioning, matching the existing alias chain tooltip pattern
+- Handles DTCG dimension objects, CSS string gradients, array shadows, and innerShadow inset prefix
+- Files changed: `packages/figma-plugin/src/ui/components/ComplexTypePreviewCard.tsx` (new), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L16 (import), ~L136 (hoverPreviewVisible state), ~L224-231 (delay effect), ~L1585-1588 (render)
+- **Learnings for future iterations:**
+  - The alias chain tooltip already uses `absolute left-4 right-4 bottom-full z-20` pattern — preview cards should use z-30 to layer above it
+  - `pointer-events-none` on the card prevents hover flicker since the card itself doesn't need interaction
+  - A 300ms delay on hover state prevents preview popups during casual list scrolling
+---
