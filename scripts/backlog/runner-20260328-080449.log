@@ -417,3 +417,9 @@ Already up to date.
 
 --- Merging: Missing export validateStepName in generator-service.ts ---
 Already up to date.
+[main da0cd36] chore(backlog): done – Missing export validateStepName in generator-service.ts
+ 4 files changed, 31 insertions(+), 3 deletions(-)
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 50)
