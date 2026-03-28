@@ -284,3 +284,16 @@ Already up to date.
 
 --- Merging: Batch editor live regex match preview ---
 Already up to date.
+[main 6d772d6] chore(backlog): done – Batch editor live regex match preview
+ 6 files changed, 79 insertions(+), 28 deletions(-)
+
+## 2026-03-28 - Batch editor live regex match preview
+- The `renameChanges` useMemo only handled literal string matching — regex mode showed no preview. Updated it to use `parsedRegex` when `useRegex` is true, with proper `lastIndex` reset for the global flag. Moved `renameChanges` after `regexError`/`parsedRegex` declarations to avoid TDZ. Added inline regex error display, a header showing match count (with unchanged count), and increased `PREVIEW_MAX` from 3→8 so over-broad patterns are easier to spot. Made preview rows single-line `from → to` for compactness.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L60,201-250,790-810
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  41 items remaining
+===============================================================
+  Claimed: 10 token types have no value editor — cubicBezier, transition, fontStyle, lineHeight, letterSpacing, percentage, link, textDecoration, textTransform, and custom all fall through silently in `TokenEditor.tsx`; users who create these token types see an empty editor with no way to set values through the UI
+  Worktree: /tmp/backlog-9231-ptmrmU

@@ -52,6 +52,9 @@ export function ResolverPanel({
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
+  const [creatingFromTemplate, setCreatingFromTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateError, setTemplateError] = useState<string | null>(null);
 
   const handleMigrate = useCallback(async () => {
     setMigrating(true);
@@ -97,6 +100,65 @@ export function ResolverPanel({
       setCreateError(err instanceof Error ? err.message : String(err));
     }
   }, [newName, sets, serverUrl, fetchResolvers]);
+
+  const handleCreateFromTemplate = useCallback(async () => {
+    if (!templateName.trim()) return;
+    setTemplateError(null);
+    try {
+      const lightSet = sets.find(s => s.toLowerCase().includes('light'));
+      const darkSet = sets.find(s => s.toLowerCase().includes('dark'));
+      const foundationSet = sets.find(s =>
+        s.toLowerCase().includes('foundation') || s.toLowerCase().includes('base') || s.toLowerCase().includes('global')
+      ) ?? sets[0];
+      const body = {
+        name: templateName.trim(),
+        version: '2025.10' as const,
+        description: 'Light / dark mode resolver',
+        sets: {
+          foundation: {
+            description: 'Base tokens shared across all modes',
+            sources: foundationSet ? [{ $ref: `${foundationSet}.tokens.json` }] : [],
+          },
+          light: {
+            description: 'Light mode overrides',
+            sources: lightSet ? [{ $ref: `${lightSet}.tokens.json` }] : [],
+          },
+          dark: {
+            description: 'Dark mode overrides',
+            sources: darkSet ? [{ $ref: `${darkSet}.tokens.json` }] : [],
+          },
+        },
+        modifiers: {
+          mode: {
+            description: 'Color scheme',
+            contexts: {
+              light: [{ $ref: '#/sets/light' }],
+              dark: [{ $ref: '#/sets/dark' }],
+            },
+            default: 'light',
+          },
+        },
+        resolutionOrder: [
+          { $ref: '#/sets/foundation' },
+          { $ref: '#/modifiers/mode' },
+        ],
+      };
+      const resp = await fetch(`${serverUrl}/api/resolvers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error((data as { error?: string }).error || `Server returned ${resp.status}`);
+      }
+      setTemplateName('');
+      setCreatingFromTemplate(false);
+      fetchResolvers();
+    } catch (err) {
+      setTemplateError(err instanceof Error ? err.message : String(err));
+    }
+  }, [templateName, sets, serverUrl, fetchResolvers]);
 
   const handleDelete = useCallback(async (name: string) => {
     try {
@@ -174,9 +236,36 @@ export function ResolverPanel({
         </div>
       )}
 
+      {/* Template creation form */}
+      {creatingFromTemplate && (
+        <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5 flex items-center gap-1.5">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            </svg>
+            <span className="font-medium text-[var(--color-figma-text)]">Light / Dark preset</span>
+            <span className="ml-auto text-[var(--color-figma-text-tertiary)]">foundation + mode modifier</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <input
+              type="text"
+              value={templateName}
+              onChange={e => setTemplateName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleCreateFromTemplate(); if (e.key === 'Escape') { setCreatingFromTemplate(false); setTemplateError(null); } }}
+              placeholder="Resolver name…"
+              autoFocus
+              className="flex-1 px-1.5 py-0.5 rounded text-[11px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+            />
+            <button onClick={handleCreateFromTemplate} className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white">Create</button>
+            <button onClick={() => { setCreatingFromTemplate(false); setTemplateError(null); }} className="px-2 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)]">Cancel</button>
+          </div>
+          {templateError && <div className="mt-1 text-[10px] text-red-500">{templateError}</div>}
+        </div>
+      )}
+
       {/* Resolver list */}
       <div className="flex-1 overflow-y-auto">
-        {resolvers.length === 0 && !creating && (
+        {resolvers.length === 0 && !creating && !creatingFromTemplate && (
           <div className="flex flex-col items-center justify-center h-full px-5 py-8 text-center gap-4">
             {/* Icon */}
             <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
@@ -264,6 +353,31 @@ export function ResolverPanel({
                   Define dimensions and set mappings manually
                 </p>
               </button>
+              <button
+                onClick={() => { setCreatingFromTemplate(true); setTemplateError(null); }}
+                className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] border-dashed text-left text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                  </svg>
+                  <span className="text-[11px] font-medium">Light / Dark preset</span>
+                </div>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
+                  Pre-built resolver with a <code className="font-mono">mode</code> modifier (light / dark)
+                </p>
+              </button>
+            </div>
+
+            {/* Resolvers vs Themes note */}
+            <div className="w-full max-w-[260px] pt-1 border-t border-[var(--color-figma-border)]">
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium mb-1.5">Resolvers vs. Themes</p>
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed text-left">
+                Use <span className="text-[var(--color-figma-text-secondary)] font-medium">resolvers</span> when token sets combine along multiple independent dimensions (e.g. brand × mode × density). A single resolver replaces an exponential number of per-combination files.
+              </p>
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed text-left mt-1">
+                Use <span className="text-[var(--color-figma-text-secondary)] font-medium">themes</span> for simpler scenarios where each variation is already captured in its own set and you just need to switch between them.
+              </p>
             </div>
           </div>
         )}

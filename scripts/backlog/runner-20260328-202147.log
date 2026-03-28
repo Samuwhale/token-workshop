@@ -281,3 +281,10 @@ Already up to date.
 ===============================================================
   Claimed: ResolverPanel contextual help and starter templates — the empty state explains what resolvers are but offers no "Learn more" link, no example, and no "Create from template" action; add a light/dark-mode preset template and a short inline explanation of when to use resolvers vs. themes
   Worktree: /tmp/backlog-10461-7OdEKM
+
+  ✓ done: ResolverPanel contextual help and starter templates
+    Added Light/Dark preset template button + creation flow, and Resolvers vs. Themes inline explanation to the empty state
+    32 turns · 295s · $1.03
+
+--- Merging: ResolverPanel contextual help and starter templates ---
+Already up to date.

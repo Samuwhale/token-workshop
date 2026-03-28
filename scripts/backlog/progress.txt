@@ -454,3 +454,13 @@
   - `useMemo` callbacks execute immediately during the hook call — referencing a later `useMemo` variable causes TDZ crash. Always declare dependency memos first.
   - `String.prototype.search()` does not mutate `lastIndex` on a regex, but `replace()` with `g` flag does — reset `lastIndex = 0` before `replace()` in map callbacks.
 ---
+
+## 2026-03-28 - ResolverPanel contextual help and starter templates
+- Added "Light / Dark preset" template button to the empty state "Get started" section (dashed border to distinguish it as a template). Clicking it shows a name-input creation form with a "foundation + mode modifier" label. The template creates a resolver with foundation/light/dark sets (auto-detecting set names containing "light"/"dark"/"foundation"/"base"/"global" from existing sets) and a `mode` modifier with `light`/`dark` contexts wired to `#/sets/light` and `#/sets/dark` in the resolution order.
+- Added "Resolvers vs. Themes" explanation section at the bottom of the empty state, explaining when to use resolvers (multi-dimensional merging: brand × mode × density) vs. themes (simpler per-combination switching).
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L55 (state), ~L104 (handleCreateFromTemplate), ~L240 (template form), ~L268 (empty state conditions), ~L356 (template button), ~L372 (Resolvers vs. Themes note)
+- **Learnings for future iterations:**
+  - The resolver `resolutionOrder` uses `$ref` JSON Pointers: `#/sets/name` for sets and `#/modifiers/name` for modifiers (not `{ modifier: 'name' }`)
+  - `ResolverModifier.contexts` is a `Record<string, ResolverSource[]>` (object map) on the wire, while `ResolverMeta.modifiers[x].contexts` (UI type) is `string[]` (just the keys) — the server converts
+  - Template buttons with `border-dashed` visually distinguish them from action buttons
+---
