@@ -97,3 +97,16 @@ Already up to date.
 
 --- Merging: HTTP error responses silently treated as success in multiple mutation paths ---
 Already up to date.
+[main 52af525] chore(backlog): done – HTTP error responses silently treated as success in multiple mutation paths
+ 6 files changed, 43 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - HTTP error responses silently treated as success in multiple mutation paths
+- Of the three locations cited, only `handleApplyGroupScopes` in `useFigmaSync.ts` was actually affected: the `Promise.all` batch of PATCH calls discarded response objects without `.ok` checks, so 4xx/5xx responses were silently treated as success. Added `res.ok` guard with descriptive error message per path.
+- `TokenEditor.tsx` `ThemeValuesSection.handleSave` already had a `res.ok` guard (line 221) — stale reference.
+- `useSetDelete.ts` uses `apiFetch` which already throws `ApiError` on non-ok — stale reference.
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  3 items remaining
+===============================================================
+  Claimed: Server-side token value comparisons use `JSON.stringify` (non-deterministic key order) instead of `stableStringify` — affects snapshot diff (manual-snapshot.ts:164-165), sync diff (sync.ts:224-225, 323, 499-500), and generator conflict detection (generator-service.ts:292); composite token values (typography, shadow, border objects) with identical content but different key order will be reported as false-positive diffs or missed as false negatives
+  Worktree: /tmp/backlog-23617-6cXkMB

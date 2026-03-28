@@ -468,3 +468,13 @@
   - `apiFetch` already provides `.ok` guards via `ApiError` — check if the caller uses `apiFetch` vs raw `fetch` before adding manual checks
   - Backlog items can reference code that was already fixed in a prior session; verify each location individually
 ---
+
+## 2026-03-28 - ThemeManager.tsx mutation chain silently swallows task errors
+- Fixed `mutationChainRef.current = next.catch(() => {})` in both `handleSetState` (~L752) and `handleBulkSetState` (~L795) — replaced silent `.catch(() => {})` with `.catch((err) => { console.error(...); setError(...) })` so errors that escape the task's internal try/catch are logged and surfaced to the user while still keeping the chain resolved for subsequent tasks
+- Added `AbortController` to `fetchDimensions` — each call aborts any in-flight fetch before starting a new one, preventing race conditions from rapid `serverUrl` changes or component remounts. Abort signal passed to both the `/api/themes` fetch and per-set `/api/tokens/:set` fetches. Aborted fetches skip `setError`/`setLoading` to avoid stale state updates. Cleanup effect aborts on unmount.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L98 (fetchAbortRef), ~L124-130 (abort + signal), ~L170 (signal on token fetch), ~L281-284 (abort guard in catch/finally), ~L292 (unmount cleanup), ~L754-756 (handleSetState chain catch), ~L798-800 (handleBulkSetState chain catch)
+- **Learnings for future iterations:**
+  - `.catch(() => {})` on promise chains is a silent-failure anti-pattern even when the task has its own try/catch — if `setError` throws or an edge case escapes the catch, the error vanishes completely
+  - When replacing silent `.catch`, still resolve the chain (don't re-throw) so subsequent queued tasks aren't blocked
+  - `AbortController` on `useCallback` fetches: store controller in a ref, abort previous on re-entry, check `signal.aborted` before state updates in catch/finally to avoid "setState on unmounted component" patterns
+---

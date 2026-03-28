@@ -96,6 +96,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   // Debounced fetchDimensions
   const debounceFetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // AbortController for in-flight fetchDimensions — cancelled on re-fetch or unmount
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   // Mutation queue: serializes handleSetState / handleBulkSetState so concurrent
   // calls don't interleave optimistic updates or capture stale rollback snapshots.
@@ -121,8 +123,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   const fetchDimensions = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
+    // Cancel any in-flight fetch to avoid racing setState calls
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
     try {
-      const res = await fetch(`${serverUrl}/api/themes`);
+      const res = await fetch(`${serverUrl}/api/themes`, { signal: controller.signal });
       const data = await res.json();
       const allDimensions: ThemeDimension[] = data.dimensions || [];
       setDimensions(allDimensions);
@@ -164,7 +170,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       const failedSets: string[] = [];
       await Promise.all(sets.map(async (s) => {
         try {
-          const r = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(s)}`);
+          const r = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(s)}`, { signal: controller.signal });
           if (r.ok) {
             const d = await r.json();
             const map: Record<string, any> = {};
@@ -271,9 +277,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       }
       setExpandedCoverage(keysWithGaps);
     } catch (err) {
+      if (controller.signal.aborted) return; // superseded by a newer fetch
       setError(getErrorMessage(err));
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [serverUrl, connected, sets]);
 
@@ -285,7 +292,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }, 600);
   }, [fetchDimensions]);
 
-  useEffect(() => () => { if (debounceFetchTimer.current) clearTimeout(debounceFetchTimer.current); }, []);
+  useEffect(() => () => {
+    if (debounceFetchTimer.current) clearTimeout(debounceFetchTimer.current);
+    fetchAbortRef.current?.abort();
+  }, []);
 
   useEffect(() => { fetchDimensions(); }, [fetchDimensions]);
 
@@ -749,7 +759,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       }
     };
     const next = mutationChainRef.current.then(task);
-    mutationChainRef.current = next.catch(() => {});
+    mutationChainRef.current = next.catch((err) => {
+      console.error('[ThemeManager] mutation chain error (handleSetState):', err);
+      setError(getErrorMessage(err, 'Unexpected mutation error'));
+    });
   };
 
   // --- Bulk set-status across all options in a dimension ---
@@ -792,7 +805,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       }
     };
     const next = mutationChainRef.current.then(task);
-    mutationChainRef.current = next.catch(() => {});
+    mutationChainRef.current = next.catch((err) => {
+      console.error('[ThemeManager] mutation chain error (handleBulkSetState):', err);
+      setError(getErrorMessage(err, 'Unexpected bulk mutation error'));
+    });
   };
 
   // Close bulk menu on outside click or Escape
