@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Toast auto-dismiss too fast for errors — 3s auto-dismiss doesn't give enough time to read sync/import failure details; increase to 5–8s for error toasts, or make them persist until manually dismissed
   Worktree: /tmp/backlog-63411-mhA7Ai
+
+  ✓ done: Toast auto-dismiss too fast for errors
+    SuccessToast now defaults error variant to 8s auto-dismiss (was 3s shared default). Callers no longer need explicit timeout for errors.
+    15 turns · 64s · $0.36
+
+--- Merging: Toast auto-dismiss too fast for errors ---
+Already up to date.

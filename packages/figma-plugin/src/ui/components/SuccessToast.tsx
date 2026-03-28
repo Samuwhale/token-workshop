@@ -8,12 +8,13 @@ interface SuccessToastProps {
   timeout?: number;
 }
 
-export function SuccessToast({ message, onDismiss, variant = 'success', timeout = 3000 }: SuccessToastProps) {
+export function SuccessToast({ message, onDismiss, variant = 'success', timeout }: SuccessToastProps) {
+  const effectiveTimeout = timeout ?? (variant === 'error' ? 8000 : 3000);
   useEffect(() => {
-    if (timeout === 0) return;
-    const timer = setTimeout(onDismiss, timeout);
+    if (effectiveTimeout === 0) return;
+    const timer = setTimeout(onDismiss, effectiveTimeout);
     return () => clearTimeout(timer);
-  }, [message, onDismiss, timeout]);
+  }, [message, onDismiss, effectiveTimeout]);
 
   const iconEl = variant === 'error' ? (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-red-400">

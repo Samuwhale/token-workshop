@@ -347,3 +347,10 @@
   - QuickStartDialog's `QUICK_START_TEMPLATES` was made exportable for reuse; same templates power both standalone dialog and wizard step 1
   - Theme dimension creation API: POST dimension with `{id, name}`, then POST options with `{name, sets: {setName: state}}` — states are 'source', 'enabled', 'disabled'
 ---
+
+## 2026-03-28 - Toast auto-dismiss too fast for errors
+- Changed `SuccessToast` component to default error variant timeout to 8000ms (up from 3000ms shared default). The component now derives the timeout from the variant when no explicit `timeout` prop is passed: 8s for errors, 3s for success. Removed redundant `timeout={8000}` from App.tsx error toast call site.
+- Files changed: `packages/figma-plugin/src/ui/components/SuccessToast.tsx` ~L11, `packages/figma-plugin/src/ui/App.tsx` ~L2573
+- **Learnings for future iterations:**
+  - Error toast already had an explicit 8s override in App.tsx — the fix was to bake this into the component default so all future error toasts automatically get the longer timeout without callers needing to remember.
+---

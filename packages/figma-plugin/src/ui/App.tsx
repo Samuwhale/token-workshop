@@ -2570,7 +2570,7 @@ export function App() {
 
       {/* Error toast for generator auto-run failures */}
       {errorToast && !toastVisible && !successToast && (
-        <SuccessToast message={errorToast} onDismiss={() => setErrorToast(null)} variant="error" timeout={8000} />
+        <SuccessToast message={errorToast} onDismiss={() => setErrorToast(null)} variant="error" />
       )}
 
       {/* Resize handle */}

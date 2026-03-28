@@ -21,3 +21,22 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: "Last used token type" stored in sessionStorage resets when plugin window closes — move to localStorage or Figma clientStorage so it persists across sessions ---
 Already up to date.
+[main a2d4eac] chore(backlog): done – "Last used token type" stored in sessionStorage resets when plugin window closes — move to localStorage or Figma clientStorage so it persists across sessions
+ 10 files changed, 225 insertions(+), 4 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260328-074717.log
+ create mode 100644 scripts/backlog/runner-20260328-080440.log
+ create mode 100644 scripts/backlog/runner-20260328-080444.log
+ create mode 100644 scripts/backlog/runner-20260328-080446.log
+ create mode 100644 scripts/backlog/runner-20260328-080449.log
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No quickstart wizard that chains token generation → semantic mapping → theme setup
+- Created `QuickStartWizard.tsx` — a 3-step guided flow: (1) Generate Primitives via template picker, (2) Map Semantics via SemanticMappingDialog, (3) Set Up Theme dimension with light/dark options
+- Added `onInterceptSemanticMapping` callback to `useGeneratorDialog` and `TokenGeneratorDialog` so the wizard can capture generated token data and manage its own semantic mapping step instead of the generator dialog's built-in chaining
+- Added `onGuidedSetup` prop to `EmptyState.tsx` with a prominent dashed-border button labeled "Guided setup" with "3 steps" badge
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  105 items remaining
+===============================================================
+  Claimed: Tab structure doesn't match user mental model — current Tokens/Inspect/Graph/Publish tabs split related concerns; restructure around workflow: Define (tokens + themes + generators), Apply (inspect + heatmap + binding), Ship (publish + export + git + validation readiness checklist), with Settings/Themes as secondary panels
+  Worktree: /tmp/backlog-62956-ebvaZk
