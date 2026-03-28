@@ -322,6 +322,17 @@ export function TokenList({
     setExpandedPaths(new Set());
   }, []);
 
+  const handleOpenCreateSibling = useCallback((groupPath: string, tokenType: string) => {
+    if (onCreateNew) {
+      onCreateNew(groupPath ? groupPath + '.' : '', tokenType || 'color');
+      return;
+    }
+    setSiblingPrefix(groupPath);
+    setNewTokenPath(groupPath ? groupPath + '.' : '');
+    setNewTokenType(tokenType || 'color');
+    setShowCreateForm(true);
+  }, [onCreateNew]);
+
   // Container-level keyboard shortcut handler for the token list
   const handleListKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -860,17 +871,6 @@ export function TokenList({
         hasEffects: selectedNodes.some(n => n.capabilities.hasEffects),
       }
     : null;
-
-  const handleOpenCreateSibling = useCallback((groupPath: string, tokenType: string) => {
-    if (onCreateNew) {
-      onCreateNew(groupPath ? groupPath + '.' : '', tokenType || 'color');
-      return;
-    }
-    setSiblingPrefix(groupPath);
-    setNewTokenPath(groupPath ? groupPath + '.' : '');
-    setNewTokenType(tokenType || 'color');
-    setShowCreateForm(true);
-  }, [onCreateNew]);
 
   // Extract to alias state
   const [extractToken, setExtractToken] = useState<{ path: string; $type?: string; $value: any } | null>(null);

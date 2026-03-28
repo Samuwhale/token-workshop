@@ -10,9 +10,9 @@
 ## App Shell & Navigation
 
 ### Bugs
-- [~] [HIGH] Heatmap scan has no timeout or cancellation — if the plugin controller drops the connection mid-scan, `heatmapLoading` stays true forever with a stuck spinner and no recovery path
+- [x] [HIGH] Heatmap scan has no timeout or cancellation — if the plugin controller drops the connection mid-scan, `heatmapLoading` stays true forever with a stuck spinner and no recovery path
 - [~] [HIGH] Token paths are not validated on create — the server accepts paths with double dots (`color..primary`), reserved `$` prefixes, or slashes, which can corrupt the token file and break resolution
-- [ ] `getErrorMessage` used in `App.tsx` `useSyncBindings` but never imported — will throw `ReferenceError` at runtime when a sync network error occurs
+- [~] `getErrorMessage` used in `App.tsx` `useSyncBindings` but never imported — will throw `ReferenceError` at runtime when a sync network error occurs
 
 ### QoL
 

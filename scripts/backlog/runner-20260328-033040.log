@@ -16,3 +16,26 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Heatmap scan has no timeout or cancellation ---
 Already up to date.
+[main 2dd444f] chore(backlog): done – Heatmap scan has no timeout or cancellation
+ 9 files changed, 203 insertions(+), 75 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260328-033028.log
+ create mode 100644 scripts/backlog/runner-20260328-033040.log
+ create mode 100644 scripts/backlog/runner-20260328-033058.log
+
+## 2026-03-28 - Heatmap scan has no timeout or cancellation
+- Added 30s timeout to heatmap scan — if no response arrives, loading resets and an error message is shown
+- Added cancel button visible during scan so users can abort manually
+- Error state shows "Retry scan" button for recovery
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  110 items remaining
+===============================================================
+  Claimed: `getErrorMessage` used in `App.tsx` `useSyncBindings` but never imported — will throw `ReferenceError` at runtime when a sync network error occurs
+  Worktree: /tmp/backlog-84992-6DVU9V
+
+  ✓ done: getErrorMessage used in App.tsx useSyncBindings but never imported
+    Added missing getErrorMessage import to App.tsx line 40; build passes
+    9 turns · 41s · $0.26
+
+--- Merging: getErrorMessage used in App.tsx useSyncBindings but never imported ---
+Already up to date.

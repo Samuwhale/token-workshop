@@ -451,3 +451,10 @@
   - `useRef` for timeout IDs avoids stale closure issues in callbacks
   - Always clear timeouts both on success (result received) and on unmount to prevent memory leaks
 ---
+
+## 2026-03-28 - getErrorMessage used in App.tsx useSyncBindings but never imported
+- Added `getErrorMessage` to the existing import from `./shared/utils` in App.tsx line 40
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L40
+- **Learnings for future iterations:**
+  - When a previous backlog item extracts a helper and replaces call sites across many files, verify all call sites also have the import added
+---

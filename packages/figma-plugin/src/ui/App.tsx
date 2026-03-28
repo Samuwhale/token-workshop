@@ -37,7 +37,7 @@ import { useThemeSwitcher } from './hooks/useThemeSwitcher';
 import { useFigmaSync } from './hooks/useFigmaSync';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
-import { stableStringify, adaptShortcut } from './shared/utils';
+import { stableStringify, adaptShortcut, getErrorMessage } from './shared/utils';
 import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { flattenTokenGroup } from '@tokenmanager/core';
