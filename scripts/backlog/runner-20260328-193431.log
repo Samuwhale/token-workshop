@@ -90,3 +90,17 @@ Already up to date.
 
 --- Merging: Token creation: sticky active-set label in create form ---
 Already up to date.
+[main 1587ebf] chore(backlog): done – Token creation: sticky active-set label in create form
+ 6 files changed, 39 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Token creation: sticky active-set label in create form
+- Added a "Creating in: [setName]" banner at the top of the token create form, styled as a pill with a folder icon, showing the active set name so users know where the new token will land.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3079
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  61 items remaining
+===============================================================
+  Claimed: **Token creation: multi-token "table create" mode** — a lightweight mode for creating several tokens in a group at once, like a spreadsheet: each row is a token with name / type / value columns, and pressing Tab moves to the next cell. This is faster than creating tokens one-by-one with "Create & New" for scenarios like setting up a spacing scale from scratch.
+  Worktree: /tmp/backlog-77899-6MDiuq

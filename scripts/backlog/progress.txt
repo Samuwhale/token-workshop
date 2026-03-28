@@ -589,3 +589,9 @@
   - `setName` is available directly in TokenList scope (from props via `ctx: { setName, ... }`), no prop drilling needed.
   - Simple contextual banners inside forms are an effective low-effort way to surface ambient state (active set, active theme, etc.) without restructuring the UI.
 ---
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L188 (added `showResolvedValues` to `TokenTreeContextType`), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L362,1947,2152 (state, context, toolbar button), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L132,1122,1230,1296 (read context, conditional rendering)
+- **Learnings for future iterations:**
+  - The tree view already resolves alias values per-node via `resolveTokenValue` into `displayValue` — no bulk pre-resolution needed. The toggle just changes which display path the JSX takes.
+  - The toggle button follows the same pattern as the "Modes" button: `aria-pressed`, accent bg when active, secondary text when inactive.
+  - Three display changes are needed for a clean "resolved" view: (1) hide alias link badge, (2) skip alias-specific value branch so it falls through to plain text, (3) hide chain badge.
+---
