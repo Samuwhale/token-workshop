@@ -69,3 +69,17 @@ Already up to date.
 
 --- Merging: Token list: "Promote duplicates" callout ---
 Already up to date.
+[main b15e6df] chore(backlog): done – Token list: "Promote duplicates" callout
+ 6 files changed, 59 insertions(+), 5 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Token list: "Promote duplicates" callout
+- Added a persistent banner below the filter pills that appears when the "show duplicates" filter is active. The banner shows the count of non-alias tokens with duplicate values and offers a "Promote all to aliases" button that opens the existing promote modal pre-populated with all duplicate tokens.
+- Refactored `handleOpenPromoteModal` to accept an optional `pathsOverride?: Set<string>` parameter (falls back to `selectedPaths` when omitted), so both the banner and the existing batch toolbar "Link to tokens" action share the same logic.
+- Added `promotableDuplicateCount` useMemo that computes non-alias token count from `duplicateValuePaths` for accurate banner copy.
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  63 items remaining
+===============================================================
+  Claimed: **Token creation: sticky active-set label in create form** — the active set name is shown in the main tab area but is easy to lose context of when the create form is open. Show the active set name prominently inside the create form (e.g., "Creating in: primitives") so users know where the token will land before clicking Create.
+  Worktree: /tmp/backlog-77899-eFxw07

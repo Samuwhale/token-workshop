@@ -303,6 +303,10 @@ export function TokenList({
 
   const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || showPinnedOnly;
 
+  // Count of active non-search filters (for compact filter indicator)
+  const activeFilterCount = (typeFilter !== '' ? 1 : 0) + (refFilter !== 'all' ? 1 : 0) + (showDuplicates ? 1 : 0) + (showIssuesOnly ? 1 : 0) + (showRecentlyTouched ? 1 : 0) + (showPinnedOnly ? 1 : 0);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+
   // Compute paths with lint violations for issues-only filter
   const lintPaths = useMemo(() => {
     const paths = new Set<string>();
@@ -2370,7 +2374,7 @@ export function TokenList({
             </div>
 
             {/* Row 2: Search + active filters (only in non-json/graph views) */}
-            {viewMode !== 'json' && viewMode !== 'graph' && (
+            {viewMode !== 'json' && viewMode !== 'graph' && (<>
               <div className="flex items-center gap-1 px-2 pb-1">
                 <div className="flex-1 min-w-0 relative">
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none" aria-hidden="true">
@@ -2496,66 +2500,152 @@ export function TokenList({
                     All sets
                   </button>
                 )}
-                {/* Active filter pills */}
-                {refFilter !== 'all' && (
-                  <button
-                    onClick={() => setRefFilter('all')}
-                    title="Clear reference filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    {refFilter === 'aliases' ? 'Refs' : 'Direct'} ✕
-                  </button>
-                )}
-                {showDuplicates && (
-                  <button
-                    onClick={() => setShowDuplicates(false)}
-                    title="Clear duplicate filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    Dups ✕
-                  </button>
-                )}
-                {showIssuesOnly && (
-                  <button
-                    onClick={onToggleIssuesOnly}
-                    title="Clear issues filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20"
-                  >
-                    Issues ✕
-                  </button>
-                )}
-                {showRecentlyTouched && (
-                  <button
-                    onClick={() => setShowRecentlyTouched(false)}
-                    title="Clear recently touched filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    Recent ✕
-                  </button>
-                )}
-                {showPinnedOnly && (
-                  <button
-                    onClick={() => setShowPinnedOnly(false)}
-                    title="Clear pinned filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
-                  >
-                    Pinned ✕
-                  </button>
-                )}
-                {filtersActive && (
-                  <button
-                    onClick={clearFilters}
-                    title="Clear all filters"
-                    aria-label="Clear all filters"
-                    className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] shrink-0"
-                  >
-                    <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
-                      <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                  </button>
+                {/* Compact filter indicator — when ≥2 non-search filters active, collapse pills into a single badge */}
+                {activeFilterCount >= 2 ? (
+                  <>
+                    <button
+                      onClick={() => setFilterDrawerOpen(v => !v)}
+                      title={filterDrawerOpen ? 'Hide active filters' : 'Show active filters'}
+                      aria-label={`${activeFilterCount} filters active, click to ${filterDrawerOpen ? 'hide' : 'show'} details`}
+                      aria-expanded={filterDrawerOpen}
+                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 flex items-center gap-1"
+                    >
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                        <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+                      </svg>
+                      Filters ({activeFilterCount})
+                    </button>
+                    <button
+                      onClick={() => { clearFilters(); setFilterDrawerOpen(false); }}
+                      title="Clear all filters"
+                      aria-label="Clear all filters"
+                      className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] shrink-0"
+                    >
+                      <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
+                        <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                      </svg>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Single filter pills shown inline when ≤1 active */}
+                    {refFilter !== 'all' && (
+                      <button
+                        onClick={() => setRefFilter('all')}
+                        title="Clear reference filter"
+                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                      >
+                        {refFilter === 'aliases' ? 'Refs' : 'Direct'} ✕
+                      </button>
+                    )}
+                    {showDuplicates && (
+                      <button
+                        onClick={() => setShowDuplicates(false)}
+                        title="Clear duplicate filter"
+                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                      >
+                        Dups ✕
+                      </button>
+                    )}
+                    {showIssuesOnly && (
+                      <button
+                        onClick={onToggleIssuesOnly}
+                        title="Clear issues filter"
+                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20"
+                      >
+                        Issues ✕
+                      </button>
+                    )}
+                    {showRecentlyTouched && (
+                      <button
+                        onClick={() => setShowRecentlyTouched(false)}
+                        title="Clear recently touched filter"
+                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                      >
+                        Recent ✕
+                      </button>
+                    )}
+                    {showPinnedOnly && (
+                      <button
+                        onClick={() => setShowPinnedOnly(false)}
+                        title="Clear pinned filter"
+                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                      >
+                        Pinned ✕
+                      </button>
+                    )}
+                    {typeFilter !== '' && (
+                      <button
+                        onClick={() => setTypeFilter('')}
+                        title="Clear type filter"
+                        className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                      >
+                        {typeFilter} ✕
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
-            )}
+              {/* Expandable filter drawer — shows individual pills when compact indicator is clicked */}
+              {activeFilterCount >= 2 && filterDrawerOpen && (
+                <div className="flex items-center gap-1 px-2 pb-1 flex-wrap">
+                  {typeFilter !== '' && (
+                    <button
+                      onClick={() => setTypeFilter('')}
+                      title="Clear type filter"
+                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                    >
+                      Type: {typeFilter} ✕
+                    </button>
+                  )}
+                  {refFilter !== 'all' && (
+                    <button
+                      onClick={() => setRefFilter('all')}
+                      title="Clear reference filter"
+                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                    >
+                      {refFilter === 'aliases' ? 'Refs' : 'Direct'} ✕
+                    </button>
+                  )}
+                  {showDuplicates && (
+                    <button
+                      onClick={() => setShowDuplicates(false)}
+                      title="Clear duplicate filter"
+                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                    >
+                      Dups ✕
+                    </button>
+                  )}
+                  {showIssuesOnly && (
+                    <button
+                      onClick={onToggleIssuesOnly}
+                      title="Clear issues filter"
+                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20"
+                    >
+                      Issues ✕
+                    </button>
+                  )}
+                  {showRecentlyTouched && (
+                    <button
+                      onClick={() => setShowRecentlyTouched(false)}
+                      title="Clear recently touched filter"
+                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                    >
+                      Recent ✕
+                    </button>
+                  )}
+                  {showPinnedOnly && (
+                    <button
+                      onClick={() => setShowPinnedOnly(false)}
+                      title="Clear pinned filter"
+                      className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                    >
+                      Pinned ✕
+                    </button>
+                  )}
+                </div>
+              )}
+            </>)}
           </div>
         )}
       </div>

@@ -569,3 +569,15 @@
   - Passing an optional paths override to an existing handler is cleaner than duplicating the promote-row-building logic in a new handler.
   - The banner count should exclude aliases (`!isAlias(t.$value)`) since the promote action silently skips them — showing a count that matches what actually gets promoted avoids confusion.
 ---
+
+## 2026-03-28 - Token list: filter state indicator in toolbar
+- When ≥2 non-search filters are active (type, ref, duplicates, issues, recent, pinned), individual pills collapse into a compact "Filters (N) ×" badge with a filter icon and clear-all button
+- Clicking the badge toggles an expandable drawer below the search row showing individual filter pills that can be cleared one-by-one
+- When only 0-1 non-search filters are active, the single pill is shown inline as before (no need for the compact indicator)
+- Added `activeFilterCount` computation and `filterDrawerOpen` state
+- Wrapped the search row conditional in a fragment to allow the drawer as a sibling element
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L304 (activeFilterCount + filterDrawerOpen state), ~L2496 (compact indicator replacing scattered pills), ~L2582 (expandable filter drawer)
+- **Learnings for future iterations:**
+  - When adding sibling elements inside a JSX conditional `{condition && (<div>...</div>)}`, wrap in a fragment: `{condition && (<><div/><div/></>)}`
+  - Type filter wasn't previously shown as a pill (only as the select dropdown highlight) — added it as a pill in both the single-filter inline path and the drawer for consistency
+---

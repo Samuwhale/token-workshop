@@ -30,3 +30,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token list: filter state indicator in toolbar** — when multiple filters are active simultaneously (type filter + search query + ref filter + pinned), the toolbar becomes a row of scattered pills. Add a compact "Filters (3) ×" indicator that shows the count of active filters and clears all on click, replacing the individual scattered pills. The individual pills can still appear in an expandable drawer below.
   Worktree: /tmp/backlog-77523-KJGX65
+
+  ✓ done: Token list: filter state indicator in toolbar
+    Added compact "Filters (N)" badge with filter icon that replaces scattered pills when ≥2 non-search filters are active; clicking toggles an expandable drawer with individual clear-able pills; ×  button clears all filters at once.
+    26 turns · 238s · $1.12
+
+--- Merging: Token list: filter state indicator in toolbar ---
+Already up to date.
