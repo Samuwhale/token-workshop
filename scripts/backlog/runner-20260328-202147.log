@@ -162,3 +162,20 @@ Already up to date.
   ✓ code pass: code-pass
     5 items written to backlog-inbox.md
 Already up to date.
+[main 6d8d9df] chore(backlog): code pass – code-pass
+ 6 files changed, 30 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 5 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-28 - code-pass
+- Areas explored: `packages/figma-plugin/src/ui/hooks/useTableCreate.ts`, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` (ThemeValuesSection), `packages/figma-plugin/src/ui/hooks/useSetDelete.ts`, `packages/figma-plugin/src/ui/hooks/useFindReplace.ts`, `packages/figma-plugin/src/plugin/consistencyScanner.ts`, `packages/server/src/routes/themes.ts`, `packages/server/src/services/operation-log.ts`, `packages/server/src/services/token-store.ts` (reorderGroupChildren, batchUpsertTokens), `packages/figma-plugin/src/ui/hooks/useTokenNavigation.ts`, `packages/figma-plugin/src/ui/hooks/usePinnedTokens.ts`, `packages/figma-plugin/src/ui/hooks/useRecentlyTouched.ts`, `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts`, `packages/figma-plugin/src/ui/hooks/useUndo.ts`
+- Found 5 items — written to backlog-inbox.md
+- Notable: `useTableCreate.handleCreateAll` silently orphans partially-created tokens on mid-batch failure (no undo slot pushed for the tokens that already succeeded); and the recently-added `ThemeValuesSection.handleSave` in TokenEditor has no `.ok` check at all — HTTP errors are silently treated as successes
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  51 items remaining
+===============================================================
+  Claimed: `fontLoading.ts` font cache is never invalidated — `cachedFonts` is set once on first call and never cleared, so fonts installed during a plugin session are invisible to weight resolution
+  Worktree: /tmp/backlog-10461-gDMmuZ

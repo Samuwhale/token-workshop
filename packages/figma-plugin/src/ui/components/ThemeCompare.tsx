@@ -174,12 +174,15 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
     return [header, ...lines].join('\n');
   }, [filteredDiffs, labelA, labelB]);
 
-  const handleCopy = useCallback(() => {
+  const handleCopy = useCallback(async () => {
     const text = buildTsv(filteredDiffs);
-    navigator.clipboard.writeText(text).then(() => {
+    try {
+      await navigator.clipboard.writeText(text);
       setCopyFeedback(true);
       setTimeout(() => setCopyFeedback(false), 1500);
-    });
+    } catch {
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
+    }
   }, [buildTsv, filteredDiffs]);
 
   const handleExportCsv = useCallback(() => {

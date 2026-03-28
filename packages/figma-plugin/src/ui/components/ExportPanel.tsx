@@ -320,25 +320,37 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
     URL.revokeObjectURL(url);
   };
 
-  const handleCopyFile = (file: { path: string; content: string }) => {
-    navigator.clipboard.writeText(file.content);
-    setCopiedFile(file.path);
-    setTimeout(() => setCopiedFile(null), 1500);
-    parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied to clipboard' } }, '*');
+  const handleCopyFile = async (file: { path: string; content: string }) => {
+    try {
+      await navigator.clipboard.writeText(file.content);
+      setCopiedFile(file.path);
+      setTimeout(() => setCopiedFile(null), 1500);
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied to clipboard' } }, '*');
+    } catch {
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
+    }
   };
 
-  const handleCopyAll = () => {
+  const handleCopyAll = async () => {
     const json = buildDTCGJson();
-    navigator.clipboard.writeText(json);
-    setCopiedAll(true);
-    setTimeout(() => setCopiedAll(false), 1500);
-    parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied all variables as DTCG JSON' } }, '*');
+    try {
+      await navigator.clipboard.writeText(json);
+      setCopiedAll(true);
+      setTimeout(() => setCopiedAll(false), 1500);
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Copied all variables as DTCG JSON' } }, '*');
+    } catch {
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
+    }
   };
 
-  const handleCopyAllPlatformResults = () => {
+  const handleCopyAllPlatformResults = async () => {
     const allContent = results.map(f => `/* ${f.platform}: ${f.path} */\n${f.content}`).join('\n\n');
-    navigator.clipboard.writeText(allContent);
-    parent.postMessage({ pluginMessage: { type: 'notify', message: `Copied ${results.length} file(s) to clipboard` } }, '*');
+    try {
+      await navigator.clipboard.writeText(allContent);
+      parent.postMessage({ pluginMessage: { type: 'notify', message: `Copied ${results.length} file(s) to clipboard` } }, '*');
+    } catch {
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Clipboard access denied' } }, '*');
+    }
   };
 
   const handleSaveToServer = async () => {

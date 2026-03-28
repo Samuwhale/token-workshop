@@ -554,3 +554,14 @@
 - Found 5 items — written to backlog-inbox.md
 - Notable: `useTableCreate.handleCreateAll` silently orphans partially-created tokens on mid-batch failure (no undo slot pushed for the tokens that already succeeded); and the recently-added `ThemeValuesSection.handleSave` in TokenEditor has no `.ok` check at all — HTTP errors are silently treated as successes
 ---
+
+## 2026-03-28 - ThemeCompare.tsx and ExportPanel.tsx clipboard writes are fire-and-forget
+- Made all `navigator.clipboard.writeText()` calls properly awaited with try/catch
+- ThemeCompare `handleCopy`: added `.catch()` — previously used `.then()` only, so clipboard denial silently failed without error feedback
+- ExportPanel `handleCopyFile`, `handleCopyAll`, `handleCopyAllPlatformResults`: converted from sync fire-and-forget to async/await with try/catch — "Copied!" feedback and notify messages now only fire on success
+- On clipboard denial, all handlers now send a `'Clipboard access denied'` notify message via postMessage
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L177-187, `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L323-342
+- **Learnings for future iterations:**
+  - `navigator.clipboard.writeText()` can throw when clipboard permissions are denied (e.g., iframe sandbox, no user gesture) — always await and catch
+  - Figma plugin UI notify pattern: `parent.postMessage({ pluginMessage: { type: 'notify', message: '...' } }, '*')` for user-visible feedback
+---
