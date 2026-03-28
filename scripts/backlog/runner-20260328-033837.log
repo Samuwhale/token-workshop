@@ -306,3 +306,10 @@ Already up to date.
 ===============================================================
   Claimed: AnalyticsPanel "deduplicate" action is destructive with no confirmation — clicking deduplicate immediately rewrites all duplicate tokens to reference the canonical one with no preview, confirmation dialog, or undo
   Worktree: /tmp/backlog-10278-2XWnVa
+
+  ✓ done: AnalyticsPanel "deduplicate" action is destructive with no confirmation
+    stale — already done. Confirmation dialog with preview of affected tokens, Confirm/Cancel buttons, and the deduplicate action gated behind confirmation are all already implemented.
+    10 turns · 41s · $0.27
+
+--- Merging: AnalyticsPanel "deduplicate" action is destructive with no confirmation ---
+Already up to date.

@@ -364,3 +364,10 @@
   - The old `onClick={handleSave}` passed the click event as `forceOverwrite` (truthy), which would skip conflict detection in edit mode — wrapping in `() => handleSave()` is safer when default params matter
   - For "create another" UX, resetting the parent component's `editingToken` state (with a new `path` prefix) causes React to remount the editor with fresh state, avoiding manual state reset
 ---
+
+## 2026-03-28 - AnalyticsPanel "deduplicate" action is destructive with no confirmation
+- Already implemented: the deduplicate button (L925) sets `confirmDedup` state which shows a preview dialog (L894-921) listing all tokens that will be converted to aliases. The user must click "Confirm" (L909) to proceed or "Cancel" (L915) to abort. The destructive `handleDeduplicate` is only called after confirmation.
+- Files changed: none — already done
+- **Learnings for future iterations:**
+  - Always check the actual code before assuming a backlog item is unresolved — the `confirmDedup` state and confirmation UI were already in place.
+---

@@ -122,12 +122,12 @@
 - [x] handleNavigateToAlias silently does nothing when alias target is not in pathToSet — `useTokenNavigation.ts` ~L35 checks `if (pathToSet[aliasPath])` but provides no user feedback when the alias target token doesn't exist or lives in an unloaded set
 - [x] Generator config steps accept arbitrary names without validating they form valid token path segments — `generator-types.ts` step name fields are plain strings with no check for spaces, slashes, or special characters that would produce invalid DTCG token paths
 - [x] ImportPanel has no rollback after import — if a user imports tokens and realizes they're wrong, there's no undo; they must manually delete each imported token one by one
-- [~] TokenEditor has no "save and create another" action — after saving a new token the user is dropped back to the list and must re-navigate to create the next one, breaking flow when adding a batch of related tokens
+- [x] TokenEditor has no "save and create another" action — after saving a new token the user is dropped back to the list and must re-navigate to create the next one, breaking flow when adding a batch of related tokens
 - [x] TokenEditor path field has no real-time duplicate detection — creating a token with a path that already exists only fails on save with a cryptic conflict error; the field should warn inline as the user types
 - [~] PreviewPanel has no copy-to-clipboard for token values or CSS variables — users see a rendered preview of their tokens but can't copy the CSS variable name or resolved value without switching panels
 - [~] PreviewPanel silently caps color swatches at 16 tokens — sets with more than 16 colors only show the first 16 with no indication that tokens were omitted or any way to paginate
 - [~] AnalyticsPanel "deduplicate" action is destructive with no confirmation — clicking deduplicate immediately rewrites all duplicate tokens to reference the canonical one with no preview, confirmation dialog, or undo
-- [ ] ThemeManager has no bulk set-status assignment — toggling a set from "disabled" to "enabled" across all options in a dimension requires clicking each option individually; no "apply to all" action
+- [~] ThemeManager has no bulk set-status assignment — toggling a set from "disabled" to "enabled" across all options in a dimension requires clicking each option individually; no "apply to all" action
 - [ ] ThemeManager options cannot be reordered within a dimension — options are displayed in creation order with no drag-to-reorder or move up/down; users must delete and recreate to change order
 - [ ] PublishPanel git diff view has no search or filter — when a push/pull involves 50+ changed files, users must scroll through the entire list with no way to filter by path or file type
 - [ ] BatchEditor silently skips alias tokens when scaling — applying a scale factor to dimension tokens quietly ignores any token whose value is an alias reference, with no report of which tokens were skipped or why

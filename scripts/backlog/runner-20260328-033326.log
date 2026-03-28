@@ -394,3 +394,16 @@ Already up to date.
 
 --- Merging: TokenEditor has no "save and create another" action ---
 Already up to date.
+[main eebee23] chore(backlog): done – TokenEditor has no "save and create another" action
+ 7 files changed, 70 insertions(+), 8 deletions(-)
+
+## 2026-03-28 - TokenEditor has no "save and create another" action
+- Added `onSaveAndCreateAnother` prop to TokenEditor and a "Create & New" button (outlined style) that appears in create mode next to the primary "Create" button. After successful save, the callback resets the editor to a fresh create state with the parent path prefix pre-filled and the same token type. Also added Cmd+Shift+Enter keyboard shortcut for "save and create another" and Cmd+Enter for regular save.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L72,~L74,~L366,~L431,~L357,~L816; `packages/figma-plugin/src/ui/App.tsx` ~L276,~L1939,~L2136
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  39 items remaining
+===============================================================
+  Claimed: ThemeManager has no bulk set-status assignment — toggling a set from "disabled" to "enabled" across all options in a dimension requires clicking each option individually; no "apply to all" action
+  Worktree: /tmp/backlog-92630-XOIc9X
