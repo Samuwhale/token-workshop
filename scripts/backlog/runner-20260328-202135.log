@@ -527,3 +527,16 @@ Already up to date.
 
 --- Merging: useSetMergeSplit.ts merge creates undo slot even on partial failure ---
 Already up to date.
+[main b15a93d] chore(backlog): done – useSetMergeSplit.ts merge creates undo slot even on partial failure
+ 6 files changed, 47 insertions(+), 26 deletions(-)
+
+## 2026-03-28 - useSetMergeSplit.ts merge creates undo slot even on partial failure
+- Fixed `handleConfirmMerge` to only push an undo slot when all writes succeed. On partial failure, the undo slot is skipped with an explicit message ("Undo is not available for partial merges") since restoring the pre-merge snapshot would discard tokens from successful writes.
+- Also added error checking on the undo restore PUT request so failures propagate to `useUndo`.
+- Fixed `handleConfirmSplit` undo to throw when split-set deletions fail, so `useUndo.executeUndo` keeps the slot on the stack and the user sees the failure instead of a silent "undo succeeded". Moved the deletion failure check after the original set recreation (if applicable) so the most critical operation still completes.
+
+===============================================================
+  Iteration 27 / 90  (claude)  —  1 items remaining
+===============================================================
+  Claimed: useSetMergeSplit.ts merge/split undo callbacks use raw `fetch` with no error handling — `handleConfirmMerge` undo (line 168) silently fires a PUT with no `.ok` check, and `handleConfirmSplit` undo (lines 248-261) uses `Promise.allSettled` but only `console.warn`s failures without surfacing them to the user; a failed undo leaves the user believing tokens were restored when they weren't
+  Worktree: /tmp/backlog-9231-ryq2CY

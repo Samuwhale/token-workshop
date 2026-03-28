@@ -878,15 +878,21 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 
       # Milestone maintenance passes (skip if stop was requested)
       TOTAL_DONE=$(increment_completed_count)
-      if [ $((TOTAL_DONE % 8)) -eq 0 ] && [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
-        cleanup_if_needed
-        # Non-blocking pass lock: if another runner is already running a pass, skip
-        if try_pass_lock; then
-          echo $$ > "$PASS_LOCKDIR/pid"
-          run_special_pass "code"
-          rm -rf "$PASS_LOCKDIR"
-        else
-          echo "  (code pass skipped — another runner is handling it)"
+      if [ "$STOP_REQUESTED" -eq 0 ] && [ ! -f "$STOP_FILE" ]; then
+        RUN_CODE=0; RUN_PRODUCT=0
+        [ $((TOTAL_DONE % 10)) -eq 0 ] && RUN_CODE=1
+        [ $(((TOTAL_DONE + 5) % 10)) -eq 0 ] && RUN_PRODUCT=1
+        if [ $((RUN_CODE + RUN_PRODUCT)) -gt 0 ]; then
+          cleanup_if_needed
+          # Non-blocking pass lock: if another runner is already running a pass, skip
+          if try_pass_lock; then
+            echo $$ > "$PASS_LOCKDIR/pid"
+            [ "$RUN_PRODUCT" -eq 1 ] && run_special_pass "product"
+            [ "$RUN_CODE" -eq 1 ] && run_special_pass "code"
+            rm -rf "$PASS_LOCKDIR"
+          else
+            echo "  (pass skipped — another runner is handling it)"
+          fi
         fi
       fi
       ;;

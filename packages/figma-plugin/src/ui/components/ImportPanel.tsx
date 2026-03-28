@@ -317,6 +317,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setError(`Could not parse JSON file: ${detail}`);
       }
     };
+    reader.onerror = () => {
+      setError('Failed to read file. The file may be corrupt or inaccessible.');
+    };
     reader.readAsText(file);
   };
 
@@ -345,6 +348,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
         setError(`Could not parse CSS file: ${getErrorMessage(err)}`);
       }
     };
+    reader.onerror = () => {
+      setError('Failed to read file. The file may be corrupt or inaccessible.');
+    };
     reader.readAsText(file);
   };
 
@@ -372,6 +378,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       } catch (err) {
         setError(`Could not parse Tailwind config: ${getErrorMessage(err)}`);
       }
+    };
+    reader.onerror = () => {
+      setError('Failed to read file. The file may be corrupt or inaccessible.');
     };
     reader.readAsText(file);
   };

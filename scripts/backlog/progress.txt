@@ -488,3 +488,10 @@
   - Undo slots should not be pushed when the operation partially failed — the restore callback typically assumes full success and would discard partial results
   - Undo restore callbacks should throw on failure so `useUndo` can keep the slot and surface the error, rather than silently swallowing with console.warn
 ---
+
+## 2026-03-28 - ImportPanel.tsx missing FileReader.onerror handler causes indefinite hang
+- Added `reader.onerror` handlers to all three file import functions: `processJsonFile` (~L319), `processCSSFile` (~L350), and `processTailwindFile` (~L378). Each handler calls `setError()` with a descriptive message so the user sees feedback instead of an indefinite loading state.
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L319, ~L350, ~L378
+- **Learnings for future iterations:**
+  - Always pair `FileReader.onload` with `FileReader.onerror` — without it, failed reads silently hang with no state change
+---

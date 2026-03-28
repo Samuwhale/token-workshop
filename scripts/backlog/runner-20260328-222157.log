@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: `ImportPanel.tsx` missing `FileReader.onerror` handler causes indefinite hang — `processJsonFile` (line 290) and `processCSSFile` (line 323) both attach `reader.onload` but never set `reader.onerror`; if the file read fails (corrupt file, permission issue, user cancels), `onload` never fires and the import panel stays in its loading state indefinitely with no error message; should set `reader.onerror = () => { setLoading(false); setError('Failed to read file'); }`
   Worktree: /tmp/backlog-49121-rNP7H6
+
+  ✓ done: ImportPanel.tsx missing FileReader.onerror handler causes indefinite hang
+    Added reader.onerror handlers to processJsonFile, processCSSFile, and processTailwindFile — all three now call setError() on read failure instead of silently hanging.
+    14 turns · 124s · $0.42
+
+--- Merging: ImportPanel.tsx missing FileReader.onerror handler causes indefinite hang ---
+Already up to date.
