@@ -116,7 +116,15 @@ export function substituteVars(
       .sort((a, b) => b.length - a.length)
       .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     const pattern = new RegExp(`\\b(${escaped.join('|')})\\b`, 'g');
-    result = result.replace(pattern, (match) => String(vars[match] ?? 0));
+    result = result.replace(pattern, (match) => {
+      const val = vars[match];
+      if (val === undefined || val === null) {
+        throw new Error(
+          `Variable "${match}" has no value (got ${val}). Ensure all variables are defined before evaluating the formula.`,
+        );
+      }
+      return String(val);
+    });
   }
 
   // Detect any remaining word-like tokens that look like unresolved variable names

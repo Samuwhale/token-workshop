@@ -345,3 +345,16 @@ Already up to date.
 
 --- Merging: UNIT_CONVERSIONS percentage conversions are identity functions in ValueEditors.tsx ---
 Already up to date.
+[main d1e7d93] chore(backlog): done – UNIT_CONVERSIONS percentage conversions are identity functions in ValueEditors.tsx
+ 7 files changed, 32 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - UNIT_CONVERSIONS percentage conversions are identity functions in ValueEditors.tsx
+- Replaced identity `v => v` percentage conversions with `null` in `UNIT_CONVERSIONS` to indicate no conversion is possible (% ↔ px/rem/em requires a reference value we don't have). Updated `handleUnitChange` in `DimensionEditor` to detect `null` conversions, keep the numeric value as-is, and show a warning message explaining that the conversion requires a reference value. Added `conversionWarning` state and a styled warning banner below the input.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L249-254 (UNIT_CONVERSIONS), ~L256-282 (DimensionEditor handler + state), ~L338-342 (warning UI)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  29 items remaining
+===============================================================
+  Claimed: `renameSet` in `token-store.ts` leaks write guards on themes update failure — if the outer catch at line 609 re-throws (themes read succeeded but mutation/other step failed), write guards started at lines 578-579 are never cleaned up; they'll suppress watcher events for up to 30 seconds, hiding any concurrent file changes to the renamed paths
+  Worktree: /tmp/backlog-9231-4pWqNr

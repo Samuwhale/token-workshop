@@ -339,3 +339,12 @@
   - `UNIT_CONVERSIONS` type changed to `((v: number) => number) | null` — null means "no conversion available", undefined means "unknown unit pair" (falls back to identity). This distinction allows proper handling of each case.
   - The `git stash` command in worktrees may not preserve all changes if they're in untracked/worktree-specific paths. Avoid stash for verifying pre-existing failures; use a separate check instead.
 ---
+
+## 2026-03-28 - `eval-expr.ts` substitutes 0 for variables with undefined values
+- Changed `substituteVars` line 119 from `vars[match] ?? 0` to an explicit check that throws an error when a variable's value is `undefined` or `null`. Previously, if a generator formula referenced a variable whose runtime value was `undefined`, the formula silently evaluated with 0 instead of surfacing the problem.
+- Added comprehensive test suite for `evalExpr` and `substituteVars` covering arithmetic, power expressions, parentheses, division by zero, variable substitution, unknown variable detection, and the new undefined/null variable rejection.
+- Files changed: `packages/core/src/eval-expr.ts` ~L119-127, `packages/core/src/__tests__/eval-expr.test.ts` (new)
+- **Learnings for future iterations:**
+  - `Record<string, number>` doesn't prevent `undefined` values at runtime — always validate at the boundary
+  - The `?? 0` fallback pattern is dangerous for formula evaluation — it silently masks missing data
+---
