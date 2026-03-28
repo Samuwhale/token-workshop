@@ -324,3 +324,9 @@
   - Server package `node_modules` in worktrees may have an incomplete directory (containing only `.vite/`) that prevents the validate script's symlink logic from triggering — `[ ! -d ]` check passes but deps are missing. May need to check for a specific dep rather than the directory itself.
   - `simple-git` must be mocked (`vi.mock('simple-git', () => ({ default: () => ({}) }))`) for unit tests of pure functions in files that also import it at top level
 ---
+
+## 2026-03-28 - code-pass
+- Areas explored: `packages/figma-plugin/src/plugin/controller.ts` (message handler error coverage, import completeness), `packages/figma-plugin/src/ui/hooks/useGitSync.ts` (TDZ), `packages/figma-plugin/src/ui/hooks/useTokens.ts` (fetchAllTokensFlat error handling), `packages/server/src/services/generator-service.ts` (concurrency), `packages/server/src/index.ts` (auto-run guards), `packages/core/src/color-math.ts` + `color-parse.ts` (duplication), `packages/server/src/services/lint.ts` (color math duplication), `packages/figma-plugin/src/ui/shared/colorUtils.ts` (color math duplication), `packages/figma-plugin/src/plugin/consistencyScanner.ts` (color math duplication), `packages/server/src/routes/sets.ts`, `packages/server/src/routes/generators.ts`
+- Found 6 items — written to backlog-inbox.md
+- Notable: `searchLayers` is called in controller.ts but never imported — a ReferenceError crash on every layer search; also `useGitSync` has a TDZ violation where `fetchConflicts` is used before its `const` declaration
+---

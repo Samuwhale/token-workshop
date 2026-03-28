@@ -1,0 +1,12 @@
+
+- [ ] [HIGH] `controller.ts` `searchLayers` is called at line 121 but never imported — the function is exported from `selectionHandling.ts` but missing from the import list at line 7; this causes a ReferenceError crash whenever a user triggers layer search from the UI, silently killing the plugin message handler
+
+- [ ] [HIGH] `useGitSync.ts` TDZ crash — `fetchConflicts` (declared at line 95) is referenced in the `useEffect` dependency array at line 87 and called at line 85, both before its `const` declaration; this is a Temporal Dead Zone violation that crashes the component on mount, breaking the entire Git sync panel
+
+- [ ] `controller.ts` has ~20 async message handlers without try-catch (lines 19, 54, 57, 60, 64, 67, 70, 73, 76, 79, 88, 91, 94, 97, 102, 106, 109, 112, 115, 124, 133, 140) — only 3 handlers (`apply-styles`, `read-variables`, `read-styles`) have error handling; when any unprotected handler throws, the UI hangs indefinitely waiting for a response that never arrives; wrap all async cases in try-catch with a generic error postMessage back to UI
+
+- [ ] Color math duplicated across 4 locations — `hexToRgb`/`rgbToLab`/`colorDeltaE`/`toLinear`/`fromLinear` are independently reimplemented in `@tokenmanager/core` (`color-math.ts` + `color-parse.ts` both define `toLinear`/`fromLinear`), `server/lint.ts` (lines 106-134), `ui/shared/colorUtils.ts` (lines 27-134, 295-300), and `plugin/consistencyScanner.ts` (lines 35-55); consolidate into `@tokenmanager/core` exports and use a single shared implementation — the server and scanner can import from core directly, and `colorUtils.ts` should delegate to core instead of reimplementing
+
+- [ ] `fetchAllTokensFlat` and `fetchAllTokensFlatWithSets` in `useTokens.ts` silently drop individual set-fetch failures — `Promise.all` map returns `null` on error (lines 137, 167) with no notification to the caller; unlike `refreshTokens` which calls `onNetworkError`, these functions silently return incomplete data used by variable sync, style sync, and the main App refresh; callers have no way to know that some sets failed to load
+
+- [ ] Generator auto-run from `tokenStore.onChange` (index.ts:70-79) has no concurrency guard — `runForSourceToken` is fire-and-forget with only `.catch()`, so rapid token edits can trigger multiple overlapping generator executions writing to the same target set simultaneously; `beginBatch`/`endBatch` in `executeGeneratorMultiBrand` (generator-service.ts:534) only serializes within a single run, not across concurrent runs; needs a per-generator mutex or queue

@@ -283,3 +283,18 @@ Already up to date.
 
 --- Merging: git-sync.ts conflict parser skips >>>>>>> marker with unchecked i++ ---
 Already up to date.
+[main ec6966c] chore(backlog): done – git-sync.ts conflict parser skips >>>>>>> marker with unchecked i++
+ 7 files changed, 198 insertions(+), 1 deletion(-)
+ create mode 120000 packages/server/node_modules
+ create mode 100644 packages/server/src/__tests__/git-sync.test.ts
+
+## 2026-03-28 - git-sync.ts conflict parser skips >>>>>>> marker with unchecked i++
+- Added bounds checks after while loops in `parseConflictMarkers` and `resolveConflictContent` — if `=======` or `>>>>>>>` markers are missing/malformed, the parser now breaks out cleanly instead of silently advancing past the array end and producing incomplete conflict data
+- `parseConflictMarkers`: malformed regions are skipped (not added to results)
+- `resolveConflictContent`: on malformed regions, emits the collected lines as-is and stops (prevents data loss)
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  41 items remaining
+===============================================================
+  Claimed: Git sync diff preview before push — add a "Preview changes" button that fetches the pending diff and shows before/after values per changed token without committing, so users can catch accidental deletions before they propagate to the repo
+  Worktree: /tmp/backlog-9651-lYgHrS
