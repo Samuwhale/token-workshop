@@ -65,7 +65,7 @@ export function TokenDependents({ dependents, dependentsLoading, setName, tokenP
     };
 
     window.addEventListener('message', handleMessage);
-    parent.postMessage({ pluginMessage: { type: 'scan-token-usage', tokenPath } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'scan-single-token-usage', tokenPath } }, '*');
 
     return () => window.removeEventListener('message', handleMessage);
   }, [showDependents, layersScanned, tokenPath]);

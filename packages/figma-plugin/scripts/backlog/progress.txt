@@ -12,3 +12,12 @@
 - **Learnings for future iterations:**
   - Some backlog items overlap with previously completed items under different titles — always check git log for the relevant component before implementing
 ---
+
+## 2026-03-28 - Duplicate `case 'scan-token-usage'` in controller.ts
+- Split the two `case 'scan-token-usage'` handlers into distinct message types: `'scan-token-usage'` (full map scan via `scanTokenUsageMap()`) and `'scan-single-token-usage'` (single-token scan via `scanTokenUsage(tokenPath)`). The second handler was dead code because JavaScript switch falls through to the first matching case.
+- Also fixed: imported `scanTokenUsageMap` from `selectionHandling.ts` (was called but not imported), and renamed the duplicate `ScanTokenUsageMessage` interface to `ScanSingleTokenUsageMessage` with the new type discriminant.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L321-324 (renamed interface + union member), `packages/figma-plugin/src/plugin/controller.ts` ~L6 (added import) ~L109 (new case label), `packages/figma-plugin/src/ui/components/TokenDependents.tsx` ~L68 (updated postMessage type)
+- **Learnings for future iterations:**
+  - When two switch cases share the same string discriminant, only the first one executes — JS doesn't warn about duplicate cases. TypeScript also doesn't flag this because the duplicate interface names merge in the union.
+  - Fixing a duplicate case often requires fixing the type system (duplicate interfaces) and the sender (UI postMessage calls) simultaneously.
+---

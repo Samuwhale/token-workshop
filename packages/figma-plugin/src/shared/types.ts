@@ -318,8 +318,8 @@ export interface SetActiveThemesMessage {
   themes: Record<string, string>;
 }
 
-export interface ScanTokenUsageMessage {
-  type: 'scan-token-usage';
+export interface ScanSingleTokenUsageMessage {
+  type: 'scan-single-token-usage';
   tokenPath: string;
 }
 
@@ -387,6 +387,6 @@ export type PluginMessage =
   | EyedropperMessage
   | GetActiveThemesMessage
   | SetActiveThemesMessage
-  | ScanTokenUsageMessage
+  | ScanSingleTokenUsageMessage
   | ExtractTokensFromSelectionMessage
   | SelectNextSiblingMessage;
