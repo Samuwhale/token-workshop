@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, type Ref } from 'react';
+import { useState, useRef, useMemo, useEffect, type Ref } from 'react';
 import { evalExpr, isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
@@ -8,6 +8,7 @@ import { FontFamilyPicker } from './FontFamilyPicker';
 import { formatHexAs, parseColorInput, swatchBgColor, isWideGamutColor, type ColorFormat } from '../shared/colorUtils';
 import { GamutIndicator } from './GamutIndicator';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
+import { useSettingsListener } from './SettingsPanel';
 
 export const inputClass = 'w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]';
 export const labelClass = 'text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5';
@@ -116,6 +117,14 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
     if (saved === 'rgb' || saved === 'hsl' || saved === 'oklch' || saved === 'p3') return saved;
     return 'hex';
   });
+  // Sync format when changed from Settings panel
+  const formatRev = useSettingsListener(STORAGE_KEYS.COLOR_FORMAT);
+  useEffect(() => {
+    if (formatRev === 0) return;
+    const saved = lsGet(STORAGE_KEYS.COLOR_FORMAT);
+    if (saved === 'rgb' || saved === 'hsl' || saved === 'oklch' || saved === 'p3') setFormat(saved);
+    else setFormat('hex');
+  }, [formatRev]);
   const [editingText, setEditingText] = useState<string | null>(null);
   const wideGamut = isWideGamutColor(colorStr);
 

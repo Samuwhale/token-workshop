@@ -23,6 +23,7 @@ import {
   serializeColor,
 } from '@tokenmanager/core';
 import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
+import { useSettingsListener } from './SettingsPanel';
 import type { TokenMapEntry } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
@@ -262,6 +263,12 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   // Inline contrast checker state
   const [contrastBg, setContrastBg] = useState<string>(() => lsGet(STORAGE_KEYS.CONTRAST_BG, ''));
   const contrastBgInputRef = useRef<HTMLInputElement>(null);
+  // Sync contrast bg when changed from Settings panel
+  const contrastBgRev = useSettingsListener(STORAGE_KEYS.CONTRAST_BG);
+  useEffect(() => {
+    if (contrastBgRev === 0) return;
+    setContrastBg(lsGet(STORAGE_KEYS.CONTRAST_BG, ''));
+  }, [contrastBgRev]);
 
   const areaRef = useRef<HTMLCanvasElement>(null);
   const hueRef = useRef<HTMLCanvasElement>(null);

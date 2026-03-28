@@ -10,6 +10,7 @@ import { colorDeltaE } from '@tokenmanager/core';
 import { stableStringify, getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
+import { useSettingsListener } from './SettingsPanel';
 import type { SortOrder } from './tokenListUtils';
 import {
   formatDisplayPath, nodeParentPath, flattenVisible,
@@ -424,6 +425,13 @@ export function TokenList({
     setDensityState(d);
     lsSet(STORAGE_KEYS.DENSITY, d);
   }, []);
+  // Sync density when changed from Settings panel
+  const densityRev = useSettingsListener(STORAGE_KEYS.DENSITY);
+  useEffect(() => {
+    if (densityRev === 0) return;
+    const stored = lsGet(STORAGE_KEYS.DENSITY);
+    setDensityState((stored === 'compact' || stored === 'comfortable') ? stored : 'default');
+  }, [densityRev]);
   const rowHeight = DENSITY_ROW_HEIGHT[density];
   const [showScopesCol, setShowScopesCol] = useState(false);
 

@@ -23,6 +23,7 @@ import { CommandPalette } from './components/CommandPalette';
 import type { Command, TokenEntry } from './components/CommandPalette';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { QuickApplyPicker } from './components/QuickApplyPicker';
+import { SettingsPanel } from './components/SettingsPanel';
 import { PreviewPanel } from './components/PreviewPanel';
 import { HeatmapPanel } from './components/HeatmapPanel';
 import { ConsistencyPanel } from './components/ConsistencyPanel';
@@ -552,6 +553,10 @@ export function App() {
       e.preventDefault();
       setShowKeyboardShortcuts(v => !v);
     }
+    if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+      e.preventDefault();
+      openOverflowPanel('settings');
+    }
   };
   useEffect(() => {
     const handler = (e: KeyboardEvent) => keyboardShortcutRef.current(e);
@@ -632,7 +637,7 @@ export function App() {
       {
         id: 'settings',
         label: 'Open Settings',
-        description: 'Manage server URL and connection',
+        description: 'UI preferences, server, lint rules, and export defaults',
         category: 'Settings',
         handler: () => openOverflowPanel('settings'),
       },
@@ -1025,7 +1030,7 @@ export function App() {
                 onClick={() => openOverflowPanel('settings')}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors flex items-center gap-2"
               >
-                <span className="flex-1">Server Settings</span>
+                <span className="flex-1">Settings</span>
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${connected ? 'bg-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} aria-hidden="true" />
               </button>
             </div>
@@ -1741,187 +1746,27 @@ export function App() {
             </>
           )}
           {overflowPanel === 'settings' && (
-            <>
-              <div className="flex items-center gap-1 px-2 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-                <button
-                  onClick={() => setOverflowPanel(null)}
-                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                  aria-label="Back"
-                >
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M6.5 2L3.5 5l3 3"/>
-                  </svg>
-                  Back
-                </button>
-                <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Settings</span>
-              </div>
-            <div className="flex flex-col gap-3 p-3">
-              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Server</span>
-                  <span className={`flex items-center gap-1 text-[10px] font-medium ${connected ? 'text-[var(--color-figma-success)]' : checking ? 'text-[var(--color-figma-text-secondary)]' : 'text-[var(--color-figma-error)]'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full inline-block ${connected ? 'bg-[var(--color-figma-success)]' : checking ? 'bg-[var(--color-figma-text-secondary)] animate-pulse' : 'bg-[var(--color-figma-error)]'}`} />
-                    {connected ? 'Connected' : checking ? 'Checking…' : 'Disconnected'}
-                  </span>
-                </div>
-                <div className="p-3 flex flex-col gap-2">
-                  <div>
-                    <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Local server URL</label>
-                    <input
-                      type="text"
-                      value={serverUrlInput}
-                      onChange={e => { setServerUrlInput(e.target.value); setConnectResult(null); }}
-                      onFocus={e => e.target.select()}
-                      onKeyDown={async e => {
-                        if (e.key === 'Enter') {
-                          const url = serverUrlInput.trim() || 'http://localhost:9400';
-                          const ok = await updateServerUrlAndConnect(url);
-                          setConnectResult(ok ? 'ok' : 'fail');
-                        }
-                      }}
-                      placeholder="http://localhost:9400"
-                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
-                    />
-                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1 leading-relaxed">
-                      Press <kbd className="font-mono bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-0.5">Enter</kbd> to connect, or click Save &amp; Connect below.
-                    </p>
-                    <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">
-                      Run <span className="font-mono">npm start</span> in the TokenManager directory first.
-                    </p>
-                  </div>
-                  {connectResult === 'ok' && (
-                    <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-success)]">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-                      Connected successfully
-                    </div>
-                  )}
-                  {connectResult === 'fail' && (
-                    <div className="text-[10px] text-[var(--color-figma-error)]">
-                      <div className="flex items-center gap-1.5 font-medium mb-0.5">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                        Cannot reach server
-                      </div>
-                      <p className="text-[var(--color-figma-text-secondary)] leading-relaxed">
-                        Check the URL above, then make sure the server is running (<span className="font-mono">npm start</span>).
-                      </p>
-                    </div>
-                  )}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={async () => {
-                        const defaultUrl = 'http://localhost:9400';
-                        setServerUrlInput(defaultUrl);
-                        setConnectResult(null);
-                        const ok = await updateServerUrlAndConnect(defaultUrl);
-                        setConnectResult(ok ? 'ok' : 'fail');
-                      }}
-                      disabled={checking}
-                      title="Reset server URL to http://localhost:9400"
-                      className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] hover:border-[var(--color-figma-text-secondary)] disabled:opacity-50 transition-colors whitespace-nowrap"
-                    >
-                      Reset to default
-                    </button>
-                    <button
-                      onClick={async () => {
-                        const url = serverUrlInput.trim() || 'http://localhost:9400';
-                        const ok = await updateServerUrlAndConnect(url);
-                        setConnectResult(ok ? 'ok' : 'fail');
-                      }}
-                      disabled={checking}
-                      className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 transition-opacity"
-                    >
-                      {checking ? 'Connecting…' : 'Save & Connect'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
-                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
-                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Undo History</span>
-                </div>
-                <div className="p-3 flex flex-col gap-2">
-                  <label className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Max undo steps</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={200}
-                      value={undoMaxHistory}
-                      onChange={e => {
-                        const v = Math.max(1, Math.min(200, Math.round(Number(e.target.value) || 20)));
-                        setUndoMaxHistory(v);
-                        lsSetJson(STORAGE_KEYS.UNDO_MAX_HISTORY, v);
-                      }}
-                      className="w-16 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] text-right outline-none focus:border-[var(--color-figma-accent)]"
-                    />
-                  </label>
-                  <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
-                    Number of undo actions to keep in history (1–200). Default is 20.
-                  </p>
-                </div>
-              </div>
-              {/* Lint Rules */}
-              {connected && lintConfig.config && (
-                <LintConfigPanel
-                  config={lintConfig.config}
-                  saving={lintConfig.saving}
-                  onUpdateRule={lintConfig.updateRule}
-                  onReset={lintConfig.resetToDefaults}
-                  onLintRefresh={() => setLintKey(k => k + 1)}
-                />
-              )}
-              <div className="rounded border border-[var(--color-figma-error)] overflow-hidden opacity-80">
-                <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-error)] font-medium uppercase tracking-wide">
-                  Danger Zone
-                </div>
-                <div className="p-3 flex flex-col gap-2">
-                  {!showClearConfirm ? (
-                    <>
-                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                        Permanently deletes all tokens, themes, and sets. This cannot be undone.
-                      </p>
-                      <button
-                        onClick={() => { setShowClearConfirm(true); setClearConfirmText(''); }}
-                        className="w-full px-3 py-1.5 rounded border border-[var(--color-figma-error)] text-[var(--color-figma-error)] text-[11px] font-medium hover:bg-[var(--color-figma-error)] hover:text-white transition-colors"
-                      >
-                        Clear all data…
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                        Type <span className="font-mono font-bold text-[var(--color-figma-error)]">DELETE</span> to confirm.
-                      </p>
-                      <input
-                        type="text"
-                        value={clearConfirmText}
-                        onChange={e => setClearConfirmText(e.target.value)}
-                        placeholder="DELETE"
-                        autoFocus
-                        aria-label="Type DELETE to confirm"
-                        className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-error)] text-[var(--color-figma-text)] text-[11px] outline-none font-mono"
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => { setShowClearConfirm(false); setClearConfirmText(''); }}
-                          className="flex-1 px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] font-medium hover:text-[var(--color-figma-text)] transition-colors"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleClearAll}
-                          disabled={clearConfirmText !== 'DELETE' || clearing}
-                          className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-error)] text-white text-[11px] font-medium disabled:opacity-40 hover:opacity-90 transition-opacity"
-                        >
-                          {clearing ? 'Clearing…' : 'Clear all data'}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-            </>
+            <SettingsPanel
+              serverUrl={serverUrl}
+              connected={connected}
+              checking={checking}
+              serverUrlInput={serverUrlInput}
+              setServerUrlInput={setServerUrlInput}
+              connectResult={connectResult}
+              setConnectResult={setConnectResult}
+              updateServerUrlAndConnect={updateServerUrlAndConnect}
+              advancedModeOverride={advancedModeOverride}
+              setAdvancedModeOverride={setAdvancedModeOverride}
+              undoMaxHistory={undoMaxHistory}
+              setUndoMaxHistory={setUndoMaxHistory}
+              showClearConfirm={showClearConfirm}
+              setShowClearConfirm={setShowClearConfirm}
+              clearConfirmText={clearConfirmText}
+              setClearConfirmText={setClearConfirmText}
+              onClearAll={handleClearAll}
+              clearing={clearing}
+              onClose={() => setOverflowPanel(null)}
+            />
           )}
 
           {/* Heatmap panel */}

@@ -11,6 +11,7 @@ const SECTIONS: ShortcutSection[] = [
     shortcuts: [
       { keys: ['⌘K'], label: 'Open command palette' },
       { keys: ['⌘⇧V'], label: 'Paste tokens' },
+      { keys: ['⌘,'], label: 'Open settings' },
       { keys: ['⌘Z'], label: 'Undo' },
       { keys: ['⌘⇧Z', '⌘Y'], label: 'Redo' },
     ],

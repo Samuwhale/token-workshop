@@ -203,3 +203,16 @@
   - TokenGraph.tsx was removed in commit dc61b52, reducing the three-file dedup to two files
   - BezierCurveEditor.tsx also has a cubic bezier path but for a completely different purpose (interactive control-point editor), so it was correctly excluded
 ---
+- Files changed: `packages/figma-plugin/src/ui/components/SettingsPanel.tsx` (new, ~400 lines), `packages/figma-plugin/src/ui/App.tsx` ~L26,632,549,1025,1741, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L14,420, `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L1,11,114, `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L26,263, `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L14
+- **Learnings for future iterations:**
+  - Custom events (`CustomEvent` + `useSettingsListener`) are an effective lightweight pattern for cross-component settings sync without prop-drilling or context refactoring
+  - The lint config API (`GET/PUT /api/lint/config`, `GET /api/lint/config/default`) is well-structured and easy to consume from UI — just mirror the `LintConfig` type locally
+  - `STORAGE_KEYS.HIDE_DEPRECATED` existed but had zero consumers — the toggle is now in settings but filtering logic is a follow-up
+  - Export defaults (platforms, CSS selector) were already persisted to localStorage from ExportPanel — the settings panel writes to the same keys so ExportPanel picks them up on next mount
+---
+
+## 2026-03-29 - product-pass
+- Areas explored: App.tsx (3995 lines, tab/navigation structure, keyboard shortcuts, command palette), TokenList.tsx (view modes, select/batch, search/filter), TokenTreeNode.tsx (context menu, inline editing, multi-mode cells), TokenEditor.tsx, ValueEditors.tsx, ExportPanel.tsx (ZIP builder, platforms), GraphPanel.tsx + TokenFlowPanel.tsx + TokenGraph.tsx + nodeGraph/ (overlap analysis), VersionHistoryPanel.tsx + SnapshotPanel.tsx (duplication), CommandPalette.tsx, all 38 hooks, server routes (94 endpoints), services (8 core), settings/preferences in storage.ts
+- Found 12 items — written to backlog-inbox.md
+- Notable: TokenGraph.tsx is 512 lines of dead code still rendered in a viewMode branch; VersionHistoryPanel and SnapshotPanel have nearly identical helper functions and serve the same "revert to past state" goal; TokenList has 6 view modes (tree/table/canvas/grid/json/graph) which is excessive — canvas, grid, and graph overlap with other panels
+---
