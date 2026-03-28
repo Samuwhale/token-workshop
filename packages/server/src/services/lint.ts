@@ -261,16 +261,23 @@ export async function lintTokens(
   if (pathPattern?.enabled) {
     const pattern = (pathPattern.options?.pattern as string | undefined) ?? '^[a-z][a-z0-9]*([.-][a-z0-9]+)*$';
     const severity = pathPattern.severity ?? 'warning';
-    let regex: RegExp;
+    let regex: RegExp | null = null;
     try {
       if (!isSafeRegex(pattern)) {
-        throw new Error('unsafe pattern');
+        throw new Error('Pattern is potentially unsafe (catastrophic backtracking)');
       }
       regex = new RegExp(pattern);
-    } catch {
-      regex = /^[a-z][a-z0-9]*([.-][a-z0-9]+)*$/;
+    } catch (err) {
+      violations.push({
+        rule: 'path-pattern',
+        path: '',
+        severity: 'error',
+        message: `Invalid path-pattern regex "${pattern}": ${(err as Error).message}`,
+      });
     }
-    for (const tokenPath of Object.keys(flatTokens)) {
+    if (!regex) {
+      // Skip path-pattern checks — the regex is invalid
+    } else for (const tokenPath of Object.keys(flatTokens)) {
       // Test each segment
       const segments = tokenPath.split('.');
       for (const seg of segments) {

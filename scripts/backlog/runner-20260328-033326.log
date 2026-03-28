@@ -340,3 +340,10 @@ Already up to date.
 ===============================================================
   Claimed: Lint service silently replaces invalid user regex with hardcoded default — when a user's custom `path-pattern` regex is invalid, `lint.ts` ~L180 catches the `RegExp` constructor error and falls back to the default pattern without reporting the issue to the caller or UI
   Worktree: /tmp/backlog-92630-FMdbh9
+
+  ✓ done: Lint service silently replaces invalid user regex with hardcoded default
+    Invalid path-pattern regex now emits an error-severity violation with the parse error message instead of silently falling back to the default pattern. Path-pattern checks are skipped when the regex is invalid.
+    13 turns · 104s · $0.31
+
+--- Merging: Lint service silently replaces invalid user regex with hardcoded default ---
+Already up to date.

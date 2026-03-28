@@ -80,3 +80,10 @@
   - `figma.currentPage.findAll` is synchronous and blocks the plugin thread — for any scan over the full page, use a manual stack-based DFS with periodic `await setTimeout(0)` yields
   - Yielding during both collection and processing phases is important — a large page can have tens of thousands of nodes
 ---
+
+## 2026-03-28 - Lint service silently replaces invalid user regex with hardcoded default
+- Changed `catch` block in path-pattern rule to push an `error`-severity violation with the regex error message instead of silently falling back to the default pattern. When the regex is invalid, path-pattern checks are skipped entirely (no fallback).
+- Files changed: `packages/server/src/services/lint.ts` ~L183-199
+- **Learnings for future iterations:**
+  - Silent fallbacks in validation/lint services hide configuration errors from users — always surface them as violations or diagnostics
+---
