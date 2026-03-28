@@ -781,10 +781,10 @@ export async function syncBindings(tokenMap: Record<string, { $value: any; $type
         total: nodes.length,
       });
 
-      // Yield between batches
-      if (i + BATCH_SIZE < nodes.length) {
-        await new Promise<void>(resolve => setTimeout(resolve, 0));
-      }
+      // Note: do NOT yield with setTimeout between batches here — it breaks Figma's
+      // automatic undo grouping, causing each batch to become a separate undo step.
+      // The await calls to applyTokenValue (which uses Figma async APIs like
+      // loadFontAsync) already yield to the runtime without breaking the undo group.
     }
 
     const missingArr = [...missingTokens];

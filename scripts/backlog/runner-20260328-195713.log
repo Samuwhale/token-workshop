@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: [HIGH] Plugin sandbox operations don't use `figma.group()` for undo batching — each variable creation, binding update, or property change in batch operations (apply-variables, sync-bindings, batch-bind-heatmap-nodes) creates a separate Figma undo step, so applying 50 tokens produces 50 undo entries instead of one atomic operation
   Worktree: /tmp/backlog-51036-6eKFfy
+
+  ✓ done: Plugin sandbox operations don't use figma.group() for undo batching
+    Removed setTimeout yield between batches in syncBindings() which was breaking Figma's automatic undo grouping. Other batch ops already atomic — no setTimeout used.
+    32 turns · 281s · $1.19
+
+--- Merging: Plugin sandbox operations don't use figma.group() for undo batching ---
+Already up to date.

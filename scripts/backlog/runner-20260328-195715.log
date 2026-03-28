@@ -16,3 +16,20 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Style sync reports full success on partial failure ---
 Already up to date.
+[main e2e1e44] chore(backlog): done – Style sync reports full success on partial failure
+ 16 files changed, 220 insertions(+), 11 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260328-195713.log
+ create mode 100644 scripts/backlog/runner-20260328-195715.log
+ create mode 100644 scripts/backlog/runner-20260328-195719.log
+ create mode 100644 scripts/backlog/runner-20260328-195730.log
+
+## 2026-03-28 - Style sync reports full success on partial failure
+- Fixed `applyStyles()` in `styleSync.ts` to track per-token success/failure counts and include `{ count, total, failures[] }` in the `styles-applied` message instead of always reporting `tokens.length`
+- Updated `useStyleSync.ts` to await the `styles-applied` response via a promise/ref pattern, showing partial failure errors with failed token paths in the style error UI
+- Updated `useFigmaSync.ts` (`handleSyncGroupStyles`) to also await the response and surface errors via a new `syncGroupStylesError` state, bridged to `errorToast` in `App.tsx`
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  69 items remaining
+===============================================================
+  Claimed: Context-aware token surfacing: read current Figma selection and surface only the 5-8 most relevant tokens (type-matched, nearby-usage-ranked) instead of the full list — this is the single highest-impact discovery improvement
+  Worktree: /tmp/backlog-51273-29jgNL

@@ -653,3 +653,17 @@
   - When two hooks both listen for the same message type, use ref-based resolve patterns (null when inactive) to avoid cross-talk — only the hook that initiated the request will have a non-null ref
   - The `applyStyleDiff` function was setting `styleSyncing(false)` in its finally block before the async response arrived — converting to an awaited promise fixed the race
 ---
+
+## 2026-03-28 - Plugin sandbox operations don't use figma.group() for undo batching
+- Removed `setTimeout(resolve, 0)` yield between batches in `syncBindings()` — this was breaking Figma's automatic undo grouping, causing each 50-node batch to become a separate undo step
+- Added explanatory comment documenting why `setTimeout` must not be used between mutation batches
+- Other batch operations (`applyVariables`, `applyStyles`, `applyToSelection`, `batchBindHeatmapNodes`) already operate within a single undo group since they don't use `setTimeout` — only Figma async API awaits which preserve undo context
+- The `setTimeout` yields in `heatmapScanning.ts` (`scanCanvasHeatmap`, `scanTokenUsage`) are in read-only scanning functions, so they don't affect undo grouping
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L784
+- **Learnings for future iterations:**
+  - Figma Plugin API groups all mutations within a single message handler as one undo step by default
+  - `setTimeout(resolve, 0)` breaks this automatic grouping — each setTimeout continuation becomes a new undo step
+  - `await` on Figma async APIs (`loadFontAsync`, `getNodeByIdAsync`, etc.) does NOT break undo grouping — they yield to the runtime but stay in the same undo context
+  - `figma.commitUndo()` SPLITS operations into separate undo steps — it does NOT group them. There is no explicit "group as undo" API; the default behavior is already one undo step per handler
+  - The backlog item referenced `figma.group()` but that's for visual node grouping, not undo batching
+---
