@@ -445,3 +445,16 @@ Already up to date.
 
 --- Merging: consistencyScanner.ts re-duplicates hexToRgb color conversion already in plugin/colorUtils.ts ---
 Already up to date.
+[main 0b812d8] chore(backlog): done – consistencyScanner.ts re-duplicates hexToRgb color conversion already in plugin/colorUtils.ts
+ 5 files changed, 27 insertions(+), 17 deletions(-)
+
+## 2026-03-28 - consistencyScanner.ts re-duplicates hexToRgb color conversion already in plugin/colorUtils.ts
+- Removed duplicate `hexToRgb255` function from `consistencyScanner.ts` and replaced with `parseHexRaw` imported from `colorUtils.ts`
+- Updated `colorDist` to use `parseHexRaw` (which returns 0-1 RGB values) with *255 scaling to preserve the same Euclidean distance calculation
+- Files changed: `packages/figma-plugin/src/plugin/consistencyScanner.ts` ~L4,35-44
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  25 items remaining
+===============================================================
+  Claimed: Color math duplicated across 4 locations — `hexToRgb`/`rgbToLab`/`colorDeltaE`/`toLinear`/`fromLinear` are independently reimplemented in `@tokenmanager/core` (`color-math.ts` + `color-parse.ts` both define `toLinear`/`fromLinear`), `server/lint.ts` (lines 106-134), `ui/shared/colorUtils.ts` (lines 27-134, 295-300), and `plugin/consistencyScanner.ts` (lines 35-55); consolidate into `@tokenmanager/core` exports and use a single shared implementation — the server and scanner can import from core directly, and `colorUtils.ts` should delegate to core instead of reimplementing
+  Worktree: /tmp/backlog-9231-f5JPM2

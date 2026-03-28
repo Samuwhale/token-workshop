@@ -559,3 +559,9 @@
   - `parseHexRaw` in `colorUtils.ts` returns Figma-convention 0-1 RGB values, not 0-255, so callers doing distance math need to scale by 255
   - The server lint test (`POST /api/tokens/lint`) is a pre-existing failure unrelated to plugin changes
 ---
+## 2026-03-28 - controller.ts async handlers missing try-catch
+- Stale — all async handlers already have try-catch with reportError(). A describeError() helper (L16) and reportError() helper (L21) are defined, and every async case uses them. Only synchronous handlers (notify, resize, select-next-sibling, search-layers, find-peers-for-property, eyedropper) lack try-catch, which is correct.
+- Files changed: none
+- **Learnings for future iterations:**
+  - When a backlog item cites specific line numbers, the code may have already been fixed between item creation and execution — check current file state first.
+---
