@@ -330,3 +330,16 @@ Already up to date.
 
 --- Merging: No in-plugin Git merge conflict resolution ---
 Already up to date.
+[main e93aafa] chore(backlog): done – No in-plugin Git merge conflict resolution
+ 9 files changed, 445 insertions(+), 8 deletions(-)
+
+## 2026-03-28 - No in-plugin Git merge conflict resolution
+- Implemented full merge conflict detection and resolution UI for `.tokens.json` files:
+  - **Server (`git-sync.ts`)**: Added `parseConflictMarkers()` and `resolveConflictContent()` pure functions for parsing/resolving git conflict markers. Added `getConflictedFiles()`, `getConflicts()`, `resolveFileConflict()`, `abortMerge()`, `finalizeMerge()` methods. Updated `pull()` to return conflict list when merge conflicts occur.
+  - **Server routes (`sync.ts`)**: Added `GET /api/sync/conflicts` (list conflicts with parsed regions), `POST /api/sync/conflicts/resolve` (resolve and finalize merge), `POST /api/sync/conflicts/abort` (abort merge). Updated pull endpoint to return conflicts array.
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  50 items remaining
+===============================================================
+  Claimed: No "apply and advance" flow in Inspect — after binding a token to a property, there's no shortcut to jump to the next unbound property or next layer; binding 20 properties across layers is 20 separate manual workflows
+  Worktree: /tmp/backlog-63411-iCbWaU

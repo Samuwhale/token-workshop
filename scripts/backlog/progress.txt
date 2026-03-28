@@ -595,3 +595,13 @@
   - Conflict markers follow `<<<<<<< / ======= / >>>>>>>` pattern; parsing at text level is reliable since JSON structure is broken anyway
   - Default conflict choice to "theirs" (accept incoming) since pull implies intent to get remote changes
 ---
+
+## 2026-03-28 - `lineHeight` handled inconsistently
+- Added handling for `{unit: '%', value: N}` lineHeight format in both `styleSync.ts` and `selectionHandling.ts`. Previously only numeric (multiplier) and `{unit: 'px'}` were handled; percentage dimension objects were silently ignored.
+- Both locations now map `unit: '%'` → Figma `unit: 'PERCENT'` directly (no multiplication needed since the value is already a percentage).
+- The unitless-as-multiplier interpretation (`1.5` → `150%`) is correct per DTCG spec and was left as-is with a clarifying comment.
+- Files changed: `packages/figma-plugin/src/plugin/styleSync.ts` ~L84, `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L112
+- **Learnings for future iterations:**
+  - DTCG lineHeight has three valid forms: plain number (multiplier), `{value, unit: 'px'}`, and `{value, unit: '%'}`. All three must be handled when mapping to Figma's PERCENT/PIXELS system.
+  - The extraction side (Figma → DTCG) converts PERCENT to a unitless multiplier (`value / 100`), which is consistent with the multiplier convention.
+---

@@ -106,9 +106,12 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
           if (val.fontSize) textNode.fontSize = typeof val.fontSize === 'object' ? val.fontSize.value : val.fontSize;
           if (val.lineHeight != null) {
             if (typeof val.lineHeight === 'number') {
+              // DTCG spec: unitless lineHeight is a multiplier (1.5 = 150%)
               textNode.lineHeight = { unit: 'PERCENT', value: val.lineHeight * 100 };
             } else if (val.lineHeight?.unit === 'px') {
               textNode.lineHeight = { unit: 'PIXELS', value: val.lineHeight.value };
+            } else if (val.lineHeight?.unit === '%') {
+              textNode.lineHeight = { unit: 'PERCENT', value: val.lineHeight.value };
             }
           }
           if (val.letterSpacing != null) {

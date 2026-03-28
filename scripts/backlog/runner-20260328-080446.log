@@ -311,3 +311,10 @@ Already up to date.
 ===============================================================
   Claimed: `lineHeight` handled inconsistently — numeric values are treated as multipliers and converted to percent (`val * 100`), but `{unit: '%', value: 150}` is silently ignored; also, unitless-as-percent interpretation may be wrong for systems where unitless means pixels
   Worktree: /tmp/backlog-63685-l0xaTz
+
+  ✓ done: `lineHeight` handled inconsistently
+    Added handling for `{unit: '%', value: N}` lineHeight in styleSync.ts and selectionHandling.ts — previously silently ignored. Added clarifying comments for unitless-as-multiplier behavior.
+    16 turns · 90s · $0.38
+
+--- Merging: `lineHeight` handled inconsistently ---
+Already up to date.

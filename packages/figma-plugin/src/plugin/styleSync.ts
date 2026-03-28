@@ -80,9 +80,12 @@ async function applyTextStyle(token: any) {
   if (val.fontSize) style.fontSize = typeof val.fontSize === 'object' ? val.fontSize.value : val.fontSize;
   if (val.lineHeight) {
     if (typeof val.lineHeight === 'number') {
+      // DTCG spec: unitless lineHeight is a multiplier (1.5 = 150%)
       style.lineHeight = { unit: 'PERCENT', value: val.lineHeight * 100 };
     } else if (val.lineHeight.unit === 'px') {
       style.lineHeight = { unit: 'PIXELS', value: val.lineHeight.value };
+    } else if (val.lineHeight.unit === '%') {
+      style.lineHeight = { unit: 'PERCENT', value: val.lineHeight.value };
     }
   }
   if (val.letterSpacing) {
