@@ -224,3 +224,16 @@ Already up to date.
 
 --- Merging: Rename conflict detection: warn when renaming a token that is referenced by aliases ---
 Already up to date.
+[main bb1ae19] chore(backlog): done – Rename conflict detection: warn when renaming a token that is referenced by aliases
+ 10 files changed, 238 insertions(+), 45 deletions(-)
+
+## 2026-03-28 - Rename conflict detection
+- Added full rename conflict detection for both individual tokens and groups:
+  - Token rename (already had basic detection) now shows a 3-option modal: "Auto-update all aliases", "Rename only (break references)", or "Cancel"
+  - Group rename now fetches group-level dependents before renaming and shows the same 3-option modal
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  42 items remaining
+===============================================================
+  Claimed: SelectionInspector binding failure feedback — binding a token currently posts to the plugin sandbox with no response; add a round-trip confirmation so the inspector shows an inline error if the binding fails (invalid token type for the property, node locked, etc.)
+  Worktree: /tmp/backlog-9231-uUrD35

@@ -380,3 +380,15 @@
   - Pre-existing duplicate imports across different lines in TokenList.tsx (line 5 vs 26) caused build failures in rolldown — the bundler treats duplicate named imports as redeclarations
   - `getGroupDependents` should exclude internal references (tokens within the same group referencing each other) since those will move together and remain valid
 ---
+
+## 2026-03-28 - Variable/style sync dry run — Preview sync button
+- Added "Preview" button next to "Apply" in both the Figma Variables and Figma Styles sync sections of PublishPanel
+- Preview opens a `SyncPreviewModal` showing a git-diff-style dry-run summary: adds, updates, removes grouped by direction (to Figma / to local) with token paths and color swatches
+- New `ConfirmAction` types: `'preview-vars'` and `'preview-styles'`
+- No changes written to Figma or server — purely read-only preview
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L14, ~L502-514, ~L642-654, ~L1432-1448, ~L1580-1674
+- **Learnings for future iterations:**
+  - The VarDiffRow and StyleDiffRow types are compatible enough to share the same preview modal via a `PreviewRow` interface
+  - `isHexColor` and `DiffSwatch` are function declarations (not const arrow) so they hoist above `SyncPreviewModal` even when defined below it in the file
+  - Worktree validation environment has pre-existing failures: server tests (missing fastify), plugin token-parsers test (missing @tokenmanager/core), eslint binary missing entirely
+---

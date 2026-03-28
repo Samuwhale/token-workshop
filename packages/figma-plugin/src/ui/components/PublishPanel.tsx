@@ -11,7 +11,7 @@ import { useGitSync } from '../hooks/useGitSync';
 import type { GitStatus } from '../hooks/useGitSync';
 import { ConfirmModal } from './ConfirmModal';
 
-type ConfirmAction = 'apply-vars' | 'apply-styles' | 'git-push' | 'git-pull' | 'apply-diff' | null;
+type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'git-push' | 'git-pull' | 'apply-diff' | null;
 
 /* ── Interfaces ──────────────────────────────────────────────────────────── */
 
@@ -499,13 +499,22 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                         ].filter(Boolean).join(' \u00b7 ')
                     }
                   </span>
-                  <button
-                    onClick={() => setConfirmAction('apply-vars')}
-                    disabled={varSync.varSyncing || varSync.varSyncCount === 0}
-                    className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                  >
-                    {varSync.varSyncing ? 'Syncing\u2026' : `Apply ${varSync.varSyncCount > 0 ? varSync.varSyncCount + ' change' + (varSync.varSyncCount !== 1 ? 's' : '') : ''}`}
-                  </button>
+                  <span className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setConfirmAction('preview-vars')}
+                      disabled={varSync.varSyncCount === 0}
+                      className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                    >
+                      Preview
+                    </button>
+                    <button
+                      onClick={() => setConfirmAction('apply-vars')}
+                      disabled={varSync.varSyncing || varSync.varSyncCount === 0}
+                      className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                    >
+                      {varSync.varSyncing ? 'Syncing\u2026' : `Apply ${varSync.varSyncCount > 0 ? varSync.varSyncCount + ' change' + (varSync.varSyncCount !== 1 ? 's' : '') : ''}`}
+                    </button>
+                  </span>
                 </div>
               </>
             );
@@ -633,13 +642,22 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                         ].filter(Boolean).join(' \u00b7 ')
                     }
                   </span>
-                  <button
-                    onClick={() => setConfirmAction('apply-styles')}
-                    disabled={styleSync.styleSyncing || styleSync.styleSyncCount === 0}
-                    className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                  >
-                    {styleSync.styleSyncing ? 'Syncing\u2026' : `Apply ${styleSync.styleSyncCount > 0 ? styleSync.styleSyncCount + ' change' + (styleSync.styleSyncCount !== 1 ? 's' : '') : ''}`}
-                  </button>
+                  <span className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setConfirmAction('preview-styles')}
+                      disabled={styleSync.styleSyncCount === 0}
+                      className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] font-medium hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                    >
+                      Preview
+                    </button>
+                    <button
+                      onClick={() => setConfirmAction('apply-styles')}
+                      disabled={styleSync.styleSyncing || styleSync.styleSyncCount === 0}
+                      className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+                    >
+                      {styleSync.styleSyncing ? 'Syncing\u2026' : `Apply ${styleSync.styleSyncCount > 0 ? styleSync.styleSyncCount + ' change' + (styleSync.styleSyncCount !== 1 ? 's' : '') : ''}`}
+                    </button>
+                  </span>
                 </div>
               </>
             );
@@ -1430,6 +1448,24 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     </div>
 
     {/* ── Confirmation modals ── */}
+    {confirmAction === 'preview-vars' && (
+      <SyncPreviewModal
+        title="Variable sync preview"
+        rows={varSync.varRows}
+        dirs={varSync.varDirs}
+        onClose={() => setConfirmAction(null)}
+      />
+    )}
+
+    {confirmAction === 'preview-styles' && (
+      <SyncPreviewModal
+        title="Style sync preview"
+        rows={styleSync.styleRows}
+        dirs={styleSync.styleDirs}
+        onClose={() => setConfirmAction(null)}
+      />
+    )}
+
     {confirmAction === 'apply-vars' && (
       <ConfirmModal
         title="Apply variable sync?"
@@ -1527,6 +1563,111 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
       </ConfirmModal>
     )}
     </>
+  );
+}
+
+/* ── SyncPreviewModal ───────────────────────────────────────────────────── */
+
+interface PreviewRow {
+  path: string;
+  localValue?: string;
+  figmaValue?: string;
+  localType?: string;
+  figmaType?: string;
+  cat: 'local-only' | 'figma-only' | 'conflict';
+}
+
+function SyncPreviewModal({
+  title,
+  rows,
+  dirs,
+  onClose,
+}: {
+  title: string;
+  rows: PreviewRow[];
+  dirs: Record<string, 'push' | 'pull' | 'skip'>;
+  onClose: () => void;
+}) {
+  const pushAdds = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'local-only');
+  const pushUpdates = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'conflict');
+  const pullAdds = rows.filter(r => dirs[r.path] === 'pull' && r.cat === 'figma-only');
+  const pullUpdates = rows.filter(r => dirs[r.path] === 'pull' && r.cat === 'conflict');
+  const deletesFromFigma = rows.filter(r => dirs[r.path] === 'pull' && r.cat === 'local-only');
+  const deletesFromLocal = rows.filter(r => dirs[r.path] === 'push' && r.cat === 'figma-only');
+  const skipped = rows.filter(r => dirs[r.path] === 'skip');
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const sections: { label: string; badge: string; rows: PreviewRow[]; color: string }[] = [
+    { label: 'Add to Figma', badge: '+', rows: pushAdds, color: 'var(--color-figma-success)' },
+    { label: 'Update in Figma', badge: '~', rows: pushUpdates, color: 'var(--color-figma-warning, #e5a000)' },
+    { label: 'Remove from Figma', badge: '-', rows: deletesFromLocal, color: 'var(--color-figma-error)' },
+    { label: 'Add to local', badge: '+', rows: pullAdds, color: 'var(--color-figma-success)' },
+    { label: 'Update in local', badge: '~', rows: pullUpdates, color: 'var(--color-figma-warning, #e5a000)' },
+    { label: 'Remove from local', badge: '-', rows: deletesFromFigma, color: 'var(--color-figma-error)' },
+    { label: 'Skipped', badge: '·', rows: skipped, color: 'var(--color-figma-text-tertiary)' },
+  ].filter(s => s.rows.length > 0);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-[280px] max-h-[70vh] flex flex-col rounded-lg border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shadow-xl" role="dialog" aria-modal="true" aria-labelledby="preview-modal-title">
+        <div className="px-4 pt-4 pb-2">
+          <h3 id="preview-modal-title" className="text-[12px] font-semibold text-[var(--color-figma-text)]">{title}</h3>
+          <p className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+            Dry run — no changes will be written.
+          </p>
+        </div>
+        <div className="flex-1 overflow-y-auto px-4 pb-2">
+          {sections.length === 0 ? (
+            <p className="py-3 text-[10px] text-[var(--color-figma-text-secondary)]">Nothing to sync — all items skipped.</p>
+          ) : (
+            sections.map(section => (
+              <div key={section.label} className="mb-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span
+                    className="text-[10px] font-bold w-3.5 h-3.5 flex items-center justify-center rounded"
+                    style={{ color: section.color }}
+                  >
+                    {section.badge}
+                  </span>
+                  <span className="text-[10px] font-medium text-[var(--color-figma-text)]">
+                    {section.label} ({section.rows.length})
+                  </span>
+                </div>
+                <div className="ml-5 space-y-0.5">
+                  {section.rows.map(r => (
+                    <div key={r.path} className="flex items-center gap-1 min-w-0">
+                      {(r.localType === 'color' || r.figmaType === 'color') && (
+                        (() => {
+                          const hex = r.localValue ?? r.figmaValue ?? '';
+                          return isHexColor(hex) ? <DiffSwatch hex={hex} /> : null;
+                        })()
+                      )}
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={r.path}>{r.path}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="px-4 pb-4 pt-2 border-t border-[var(--color-figma-border)]">
+          <button
+            onClick={onClose}
+            className="w-full px-3 py-1.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

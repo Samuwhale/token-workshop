@@ -260,3 +260,10 @@ Already up to date.
 ===============================================================
   Claimed: Variable/style sync dry run — add a "Preview sync" button next to Apply in the variable and style sync sections of PublishPanel that shows adds/updates/deletes without writing to Figma, mirroring how git diff works
   Worktree: /tmp/backlog-10054-ZjL9Ov
+
+  ✓ done: Variable/style sync dry run — Preview sync button
+    Added "Preview" button next to Apply in both variable and style sync sections. Opens a SyncPreviewModal showing git-diff-style dry-run summary (adds/updates/removes by direction) with token paths and color swatches, without writing to Figma.
+    35 turns · 257s · $1.57
+
+--- Merging: Variable/style sync dry run — Preview sync button ---
+Already up to date.
