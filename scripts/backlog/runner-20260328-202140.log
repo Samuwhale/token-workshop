@@ -334,3 +334,20 @@ Already up to date.
   ✓ code pass: code-pass
     6 items written to inbox: styleSync per-token API re-fetch + any types, App.tsx keyboard shortcut stale closures, App.tsx boolean dep bug, TokenTableView description edit no-op, server JSON load without validation, generator skip-without-requeue
 Already up to date.
+[main d6e0126] chore(backlog): code pass – code-pass
+ 6 files changed, 31 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 6 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-28 - code-pass
+- Areas explored: `packages/figma-plugin/src/plugin/styleSync.ts` (per-token style re-fetch, `any` types), `packages/figma-plugin/src/ui/App.tsx` (keyboard shortcuts stale closure, tokens.length boolean dep), `packages/figma-plugin/src/ui/components/TokenTableView.tsx` (description edit no-op), `packages/server/src/services/resolver-store.ts` (unvalidated JSON load), `packages/server/src/routes/generators.ts` (unsafe casts), `packages/server/src/services/generator-service.ts` (runForSourceToken skip-without-requeue), `packages/server/src/routes/tokens.ts`, `packages/server/src/routes/sync.ts`, `packages/server/src/services/token-store.ts`, `packages/server/src/services/git-sync.ts`, `packages/core/src/resolver.ts`, `packages/core/src/dtcg-resolver.ts`, `packages/core/src/dtcg-types.ts`, `packages/figma-plugin/src/plugin/variableSync.ts`, `packages/figma-plugin/src/plugin/selectionHandling.ts`, `packages/figma-plugin/src/ui/components/GraphPanel.tsx`, `packages/figma-plugin/src/ui/components/CommandPalette.tsx`, `packages/figma-plugin/src/ui/hooks/useVariableSync.ts`, `packages/figma-plugin/src/ui/hooks/useStyleSync.ts`, `packages/figma-plugin/src/ui/hooks/useResolvers.ts`
+- Found 6 items — written to backlog-inbox.md
+- Notable: `styleSync.ts` makes N async Figma API calls for N tokens (should be 1), and App.tsx keyboard shortcuts use stale closures due to empty useEffect dep array
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  42 items remaining
+===============================================================
+  Claimed: CommandPalette structured search qualifiers — token search in the command palette (prefixed with `>`) only does substring matching; bring over the `type:color`, `alias:{path}`, and `has:ref` qualifiers from TokenList search so power users get the same filter expressiveness in the palette
+  Worktree: /tmp/backlog-9651-IiQDpc

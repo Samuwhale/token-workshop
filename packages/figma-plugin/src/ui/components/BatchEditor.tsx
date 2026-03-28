@@ -57,7 +57,7 @@ function scaleValue(value: unknown, factor: number): unknown {
   return null;
 }
 
-const PREVIEW_MAX = 3;
+const PREVIEW_MAX = 8;
 
 function formatBatchValue(v: unknown): string {
   if (v === null || v === undefined) return '—';
@@ -198,18 +198,6 @@ export function BatchEditor({
       .filter((x): x is { path: string; from: unknown; to: unknown } => x !== null);
   }, [allScalable, scaleFactor, selectedEntries]);
 
-  // Dry-run: compute path changes for find/replace preview
-  const renameChanges = useMemo(() => {
-    if (!findText) return [];
-    return selectedEntries
-      .filter(({ path }) => path.includes(findText))
-      .map(({ path }) => ({
-        from: path,
-        to: path.split(findText).join(replaceText),
-      }))
-      .filter(({ from, to }) => from !== to);
-  }, [findText, replaceText, selectedEntries]);
-
   const hasOp = description.trim() !== '' ||
     newType !== '' ||
     (allColors && opacityPct !== '' && !isNaN(parseFloat(opacityPct))) ||
@@ -227,6 +215,29 @@ export function BatchEditor({
     if (!useRegex || !findText || regexError) return null;
     try { return new RegExp(findText, 'g'); } catch { return null; }
   }, [useRegex, findText, regexError]);
+
+  // Dry-run: compute path changes for find/replace preview (supports both literal and regex)
+  const renameChanges = useMemo(() => {
+    if (!findText) return [];
+    if (useRegex) {
+      if (regexError || !parsedRegex) return [];
+      return selectedEntries
+        .filter(({ path }) => path.search(parsedRegex) >= 0)
+        .map(({ path }) => {
+          // Reset lastIndex since parsedRegex has 'g' flag
+          parsedRegex.lastIndex = 0;
+          return { from: path, to: path.replace(parsedRegex, replaceText) };
+        })
+        .filter(({ from, to }) => from !== to);
+    }
+    return selectedEntries
+      .filter(({ path }) => path.includes(findText))
+      .map(({ path }) => ({
+        from: path,
+        to: path.split(findText).join(replaceText),
+      }))
+      .filter(({ from, to }) => from !== to);
+  }, [findText, replaceText, useRegex, regexError, parsedRegex, selectedEntries]);
 
   // Find/replace: count tokens whose paths would change
   const renamePreview = useMemo(() => {
@@ -774,17 +785,24 @@ export function BatchEditor({
             {renaming ? '…' : `Rename${renamePreview > 0 ? ` ${renamePreview}` : ''}`}
           </button>
         </div>
+        {regexError && useRegex && findText && (
+          <div className="ml-[88px] text-[10px] text-[var(--color-figma-error)]">
+            {regexError}
+          </div>
+        )}
         {renameChanges.length > 0 && (
           <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] pb-0.5">
+              {renameChanges.length} path{renameChanges.length === 1 ? '' : 's'} will change
+              {renamePreview > renameChanges.length && (
+                <span className="font-normal text-[var(--color-figma-text-tertiary)]"> ({renamePreview - renameChanges.length} unchanged)</span>
+              )}:
+            </div>
             {renameChanges.slice(0, PREVIEW_MAX).map(({ from, to }) => (
-              <div key={from} className="text-[10px] leading-snug space-y-0">
-                <div className="flex items-center gap-1">
-                  <span className="text-[var(--color-figma-text-secondary)] truncate" title={from}>{from}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                  <span className="text-[var(--color-figma-text)] font-medium truncate" title={to}>{to}</span>
-                </div>
+              <div key={from} className="text-[10px] leading-snug flex items-baseline gap-1">
+                <span className="text-[var(--color-figma-text-secondary)] truncate shrink" title={from}>{from}</span>
+                <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                <span className="text-[var(--color-figma-text)] font-medium truncate shrink" title={to}>{to}</span>
               </div>
             ))}
             {renameChanges.length > PREVIEW_MAX && (

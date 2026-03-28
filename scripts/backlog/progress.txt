@@ -446,3 +446,11 @@
 - Found 6 items — written to backlog-inbox.md
 - Notable: `styleSync.ts` makes N async Figma API calls for N tokens (should be 1), and App.tsx keyboard shortcuts use stale closures due to empty useEffect dep array
 ---
+
+## 2026-03-28 - Batch editor live regex match preview
+- The `renameChanges` useMemo only handled literal string matching — regex mode showed no preview. Updated it to use `parsedRegex` when `useRegex` is true, with proper `lastIndex` reset for the global flag. Moved `renameChanges` after `regexError`/`parsedRegex` declarations to avoid TDZ. Added inline regex error display, a header showing match count (with unchanged count), and increased `PREVIEW_MAX` from 3→8 so over-broad patterns are easier to spot. Made preview rows single-line `from → to` for compactness.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L60,201-250,790-810
+- **Learnings for future iterations:**
+  - `useMemo` callbacks execute immediately during the hook call — referencing a later `useMemo` variable causes TDZ crash. Always declare dependency memos first.
+  - `String.prototype.search()` does not mutate `lastIndex` on a regex, but `replace()` with `g` flag does — reset `lastIndex = 0` before `replace()` in map callbacks.
+---

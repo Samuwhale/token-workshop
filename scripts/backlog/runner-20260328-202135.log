@@ -277,3 +277,10 @@ Already up to date.
 ===============================================================
   Claimed: Batch editor live regex match preview — when the batch rename pattern field contains a valid regex, show a live preview table of "original path → new path" for all matching tokens before the user clicks Apply, so accidental over-broad patterns are caught before they land
   Worktree: /tmp/backlog-9231-TEdZ0G
+
+  ✓ done: Batch editor live regex match preview
+    Updated renameChanges memo to support regex mode with live preview, added inline regex error display, match count header with unchanged count, and increased preview limit to 8
+    40 turns · 315s · $1.52
+
+--- Merging: Batch editor live regex match preview ---
+Already up to date.
