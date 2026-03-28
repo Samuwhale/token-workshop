@@ -45,9 +45,9 @@
 
 ### UX
 
-- [~] Theme switcher is buried and hard to discover — dimension buttons only appear if themes exist, and ThemeManager is behind overflow menu; show an empty-state prompt on the Tokens tab: "Set up themes to manage light/dark mode, brands, and more" linking directly to ThemeManager
+- [x] Theme switcher is buried and hard to discover — dimension buttons only appear if themes exist, and ThemeManager is behind overflow menu; show an empty-state prompt on the Tokens tab: "Set up themes to manage light/dark mode, brands, and more" linking directly to ThemeManager
 - [~] ThemeManager is the most complex and least intuitive screen — the matrix of dimensions × options × sets × states doesn't help users build a mental model; redesign around a visual stacking model: dimensions as layers in a stack (top overrides bottom), options as tabs per layer, sets shown with "base" vs "override" clearly distinguished, plus a live preview showing "with these settings, token X resolves to Y"
-- [ ] Tokens and themes are edited in completely separate interfaces — unlike Figma's native variables where mode values are columns next to each other, TokenManager requires global theme switching to see one value at a time; add an optional multi-mode column view to the token list showing resolved values per theme option side-by-side, with inline editing that auto-routes changes to the correct override set
+- [~] Tokens and themes are edited in completely separate interfaces — unlike Figma's native variables where mode values are columns next to each other, TokenManager requires global theme switching to see one value at a time; add an optional multi-mode column view to the token list showing resolved values per theme option side-by-side, with inline editing that auto-routes changes to the correct override set
 
 ---
 

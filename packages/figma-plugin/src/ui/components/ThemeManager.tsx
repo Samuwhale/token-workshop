@@ -1,6 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { flattenTokenGroup } from '@tokenmanager/core';
 import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
 
@@ -119,60 +118,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         return next;
       });
 
-      // Compute coverage
-      const setTokenValues: Record<string, Record<string, any>> = {};
-      await Promise.all(sets.map(async (s) => {
-        try {
-          const r = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(s)}`);
-          if (r.ok) {
-            const d = await r.json();
-            const map: Record<string, any> = {};
-            for (const [path, token] of flattenTokenGroup(d.tokens || {})) {
-              map[path] = token.$value;
-            }
-            setTokenValues[s] = map;
-          }
-        } catch { /* ignore */ }
-      }));
-
-      const isResolved = (value: any, activeValues: Record<string, any>, visited = new Set<string>()): boolean => {
-        if (typeof value !== 'string') return true;
-        const m = /^\{([^}]+)\}$/.exec(value);
-        if (!m) return true;
-        const target = m[1];
-        if (visited.has(target)) return false;
-        if (!(target in activeValues)) return false;
-        return isResolved(activeValues[target], activeValues, new Set([...visited, target]));
-      };
-
-      const cov: CoverageMap = {};
-      for (const dim of allDimensions) {
-        cov[dim.id] = {};
-        for (const opt of dim.options) {
-          const activeValues: Record<string, any> = {};
-          const tokenSetOrigin: Record<string, string> = {};
-          for (const [setName, state] of Object.entries(opt.sets)) {
-            if (state === 'source') {
-              for (const path of Object.keys(setTokenValues[setName] ?? {})) {
-                tokenSetOrigin[path] = setName;
-              }
-              Object.assign(activeValues, setTokenValues[setName] ?? {});
-            }
-          }
-          for (const [setName, state] of Object.entries(opt.sets)) {
-            if (state === 'enabled') {
-              for (const path of Object.keys(setTokenValues[setName] ?? {})) {
-                tokenSetOrigin[path] = setName;
-              }
-              Object.assign(activeValues, setTokenValues[setName] ?? {});
-            }
-          }
-          const uncovered = Object.entries(activeValues)
-            .filter(([, v]) => !isResolved(v, activeValues))
-            .map(([p]) => ({ path: p, set: tokenSetOrigin[p] ?? '' }));
-          cov[dim.id][opt.name] = { uncovered };
-        }
-      }
+      // Fetch coverage gaps from the server (single request instead of N per-set fetches)
+      const covRes = await fetch(`${serverUrl}/api/themes/coverage`);
+      const covData = covRes.ok ? await covRes.json() : { coverage: {} };
+      const cov: CoverageMap = covData.coverage ?? {};
       setCoverage(cov);
       // Auto-expand all options that have coverage gaps so users see them without clicking
       const keysWithGaps = new Set<string>();

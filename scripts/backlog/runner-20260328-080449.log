@@ -262,3 +262,16 @@ Already up to date.
 
 --- Merging: Theme switcher is buried and hard to discover ---
 Already up to date.
+[main e4a9c3e] chore(backlog): done – Theme switcher is buried and hard to discover
+ 6 files changed, 40 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - Theme switcher is buried and hard to discover
+- Replaced the tiny "+ Add theme" dashed button (shown when no dimensions exist) with a more prominent empty-state prompt: "Set up themes to manage light/dark mode, brands, and more" with a Venn-diagram icon, clicking navigates to ThemeManager. Only shows when connected to server (avoids false empty state when disconnected).
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1769-1780
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  63 items remaining
+===============================================================
+  Claimed: Tokens and themes are edited in completely separate interfaces — unlike Figma's native variables where mode values are columns next to each other, TokenManager requires global theme switching to see one value at a time; add an optional multi-mode column view to the token list showing resolved values per theme option side-by-side, with inline editing that auto-routes changes to the correct override set
+  Worktree: /tmp/backlog-63973-0BHm4l

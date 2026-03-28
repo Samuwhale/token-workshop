@@ -242,3 +242,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager fetches all token sets on mount to compute coverage gaps — with many sets or large token files this creates a waterfall of requests and memory pressure; move coverage computation server-side or lazy-load per-option on expand
   Worktree: /tmp/backlog-63411-oIWA5c
+
+  ✓ done: ThemeManager fetches all token sets on mount to compute coverage gaps
+    Added GET /api/themes/coverage server-side endpoint; replaced N+1 client-side token set fetches with a single request
+    29 turns · 461s · $1.02
+
+--- Merging: ThemeManager fetches all token sets on mount to compute coverage gaps ---
+Already up to date.

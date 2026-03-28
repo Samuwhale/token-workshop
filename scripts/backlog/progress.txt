@@ -467,3 +467,13 @@
   - The theme bar already had a `dimensions.length === 0` branch — the fix was making it more descriptive rather than adding new conditional logic
   - When changing a binary condition to a ternary in JSX (`a : b` → `a : c ? b : null`), don't forget the null fallback or the parser gives a confusing "`:` expected" error
 ---
+
+## 2026-03-28 - ThemeManager fetches all token sets on mount to compute coverage gaps
+- Added `GET /api/themes/coverage` server-side endpoint that computes coverage gaps using the in-memory TokenStore, returning the full CoverageMap in a single request. Replaced the client-side N+1 fetch pattern (one request per token set) with a single fetch to the new endpoint.
+- Removed `flattenTokenGroup` import from ThemeManager.tsx since coverage computation is now server-side.
+- Files changed: `packages/server/src/routes/themes.ts` ~L270 (new endpoint), `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L1 (removed import), ~L118 (replaced N fetch calls with single coverage fetch)
+- **Learnings for future iterations:**
+  - The server's `TokenStore` already holds all sets in memory — server-side computation avoids re-fetching data the server already has
+  - `fastify.tokenStore` is available in all route plugins since it's decorated before route registration in index.ts
+  - Pre-existing TS errors in the server package are known; only check for new errors from your changes
+---
