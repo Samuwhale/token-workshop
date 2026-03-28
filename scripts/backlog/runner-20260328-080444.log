@@ -370,3 +370,19 @@ Already up to date.
 
 --- Merging: Stale handleSave closure in keyboard shortcut effect ---
 Already up to date.
+[main dc7e1eb] chore(backlog): done – Stale handleSave closure in keyboard shortcut effect
+ 8 files changed, 111 insertions(+), 6 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+--- Inbox drained ---
+
+## 2026-03-28 - Stale handleSave closure in keyboard shortcut effect
+- Added `handleSaveRef` (a mutable ref) that always holds the latest `handleSave` function. The Cmd+S and Cmd+Enter keyboard shortcut effect now calls through `handleSaveRef.current` instead of capturing `handleSave` directly, eliminating the stale closure bug where outdated values for path, type, reference, scopes, modifiers, etc. would be submitted.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L144 (ref declaration), ~L431-439 (effect uses ref), ~L526 (ref assignment after handleSave)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  41 items remaining
+===============================================================
+  Claimed: Set rename is not atomic — comment says "atomic (same filesystem, so fs.rename is atomic)" but code uses `fs.writeFile` then `fs.unlink`; if the process crashes between steps, both files exist on disk and the next startup loads both
+  Worktree: /tmp/backlog-63411-sn96lf

@@ -35,7 +35,7 @@ export function UndoToast({ description, onUndo, onDismiss, canUndo, canRedo, re
         <button
           onClick={onRedo}
           disabled={!canRedo}
-          title={redoDescription ? `Redo: ${redoDescription} (${modKey}{shiftKey}Z)` : `Redo (${modKey}{shiftKey}Z)`}
+          title={redoDescription ? `Redo: ${redoDescription} (${modKey}${shiftKey}Z)` : `Redo (${modKey}${shiftKey}Z)`}
           className="shrink-0 px-2 py-0.5 rounded font-medium text-[10px] transition-colors disabled:opacity-30 disabled:cursor-default bg-white/20 hover:bg-white/30 disabled:hover:bg-white/20"
         >
           Redo

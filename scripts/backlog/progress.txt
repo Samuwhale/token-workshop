@@ -469,3 +469,12 @@
 - **Learnings for future iterations:**
   - When a `useEffect` handler needs to call a function that depends on many state variables, prefer a mutable ref (`fnRef.current = fn` after definition) over adding all transitive deps to the effect's dependency array. This avoids re-registering event listeners on every state change.
 ---
+
+## 2026-03-28 - UndoToast `{shiftKey}` not interpolated
+- Fixed missing `$` prefix in template literal interpolations on line 38 of UndoToast.tsx
+- `{shiftKey}` was inside backtick strings without `$`, rendering as literal text instead of the platform-specific shift key symbol (⇧ on Mac, Shift+ on other)
+- Files changed: `packages/figma-plugin/src/ui/components/UndoToast.tsx` ~L38
+- **Learnings for future iterations:**
+  - JSX `{var}` and template literal `${var}` look similar but are different — easy to forget the `$` when writing template literals inside JSX attributes
+  - Build has pre-existing `MISSING_EXPORT` error (`getNextUnboundProperty` in SelectionInspector.tsx) — not related to this fix
+---
