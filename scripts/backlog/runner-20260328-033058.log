@@ -391,3 +391,10 @@ Already up to date.
 ===============================================================
   Claimed: ImportPanel has no rollback after import — if a user imports tokens and realizes they're wrong, there's no undo; they must manually delete each imported token one by one
   Worktree: /tmp/backlog-85816-jT3a4k
+
+  ✓ done: ImportPanel has no rollback after import
+    Added undo import button to success screen that bulk-deletes all imported tokens via existing bulk-delete endpoint, supporting both multi-set (Variables) and single-set (Styles/JSON) imports
+    28 turns · 232s · $0.98
+
+--- Merging: ImportPanel has no rollback after import ---
+Already up to date.

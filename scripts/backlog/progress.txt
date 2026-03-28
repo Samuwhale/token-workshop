@@ -338,3 +338,13 @@
   - Step names in DTCG must not contain dots since they become path segments joined with dots — this is distinct from the server's `validateTokenPath` which validates full paths
   - ColorRamp steps are numbers, so `String(step)` is needed before validation; other generators use `.name` string fields
 ---
+
+## 2026-03-28 - ImportPanel has no rollback after import
+- Added undo import feature: after a successful import, an "Undo import" button appears on the success screen that bulk-deletes all imported tokens via `POST /api/tokens/:set/bulk-delete`
+- Tracks rollback info (`lastImport` state) with per-set token paths for both Variables multi-set imports and Styles/JSON single-set imports
+- Uses existing `bulk-delete` endpoint with `force: true` to bypass dependency checks during rollback
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L96 (state), ~L536 (handler), ~L422/L523 (recording rollback entries), ~L739 (UI)
+- **Learnings for future iterations:**
+  - The existing `bulk-delete` endpoint with `force: true` is the cleanest rollback mechanism — no new server code needed
+  - UndoToast component exists but is designed for the main undo/redo stack; import undo is better as an inline button since it's a one-shot action on the success screen
+---

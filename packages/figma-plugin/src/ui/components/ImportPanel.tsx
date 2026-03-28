@@ -93,6 +93,10 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [existingPathsFetching, setExistingPathsFetching] = useState(false);
   const existingPathsCacheRef = useRef<{ set: string; paths: Set<string> } | null>(null);
 
+  // Rollback state: tracks the last import so it can be undone
+  const [lastImport, setLastImport] = useState<{ entries: { setName: string; paths: string[] }[] } | null>(null);
+  const [undoing, setUndoing] = useState(false);
+
   // Pre-fetch existing token paths for the target set to show new vs. overwrite preview
   const prefetchExistingPaths = useCallback((setName: string) => {
     if (existingPathsCacheRef.current?.set === setName) {
@@ -357,6 +361,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     let importedSets = 0;
     let importedTokens = 0;
     const failedPaths: string[] = [];
+    const rollbackEntries: { setName: string; paths: string[] }[] = [];
     try {
       const allModes = collectionData.flatMap(col =>
         col.modes
@@ -398,6 +403,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             },
           );
           importedTokens += imported;
+          if (imported > 0) {
+            rollbackEntries.push({ setName, paths: mode.tokens.map(t => t.path) });
+          }
         } catch {
           for (const t of mode.tokens) failedPaths.push(t.path);
         }
@@ -416,6 +424,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       setCollectionData([]);
       setSource(null);
       if (failedCount > 0) { setFailedImportPaths(failedPaths); setSucceededImportCount(importedTokens); }
+      if (rollbackEntries.length > 0) setLastImport({ entries: rollbackEntries });
       const successMsg = failedCount > 0
         ? `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''} — ${failedCount} token${failedCount !== 1 ? 's' : ''} could not be saved`
         : `Imported ${importedTokens} token${importedTokens !== 1 ? 's' : ''} across ${importedSets} set${importedSets !== 1 ? 's' : ''}`;
@@ -510,6 +519,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       onImportComplete(targetSet);
       existingPathsCacheRef.current = null;
       setExistingPaths(null);
+      if (imported > 0) {
+        setLastImport({ entries: [{ setName: targetSet, paths: tokensToImport.map(t => t.path) }] });
+      }
       setTokens([]);
       setSource(null);
       setSuccessMessage(`Imported ${imported} token${imported !== 1 ? 's' : ''} to "${targetSet}"`);
@@ -518,6 +530,31 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     } finally {
       setImporting(false);
       setImportProgress(null);
+    }
+  };
+
+  const handleUndoImport = async () => {
+    if (!lastImport || undoing) return;
+    setUndoing(true);
+    setError(null);
+    try {
+      for (const entry of lastImport.entries) {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(entry.setName)}/bulk-delete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths: entry.paths, force: true }),
+        });
+      }
+      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Import undone' } }, '*');
+      onImported();
+      setLastImport(null);
+      setSuccessMessage(null);
+      setFailedImportPaths([]);
+      setSucceededImportCount(0);
+    } catch (err) {
+      setError(`Undo failed: ${getErrorMessage(err)}`);
+    } finally {
+      setUndoing(false);
     }
   };
 
@@ -699,12 +736,23 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 </ul>
               </div>
             )}
-            <button
-              onClick={() => { setSuccessMessage(null); setFailedImportPaths([]); setSucceededImportCount(0); }}
-              className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline"
-            >
-              Import more
-            </button>
+            <div className="flex items-center gap-3 mt-1">
+              {lastImport && (
+                <button
+                  onClick={handleUndoImport}
+                  disabled={undoing}
+                  className="text-[10px] text-[var(--color-figma-error)] hover:underline disabled:opacity-50"
+                >
+                  {undoing ? 'Undoing…' : 'Undo import'}
+                </button>
+              )}
+              <button
+                onClick={() => { setSuccessMessage(null); setFailedImportPaths([]); setSucceededImportCount(0); setLastImport(null); }}
+                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
+              >
+                Import more
+              </button>
+            </div>
           </div>
         )}
 

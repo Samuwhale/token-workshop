@@ -382,3 +382,16 @@ Already up to date.
 
 --- Merging: Generator config steps accept arbitrary names without validating they form valid token path segments ---
 Already up to date.
+[main ffb63f5] chore(backlog): done – Generator config steps accept arbitrary names without validating they form valid token path segments
+ 9 files changed, 129 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - Generator config steps accept arbitrary names without validating they form valid token path segments
+- Added `validateStepName()` to `@tokenmanager/core` generator-types.ts that rejects empty names, `$` prefix, dots (path separators), and slashes
+- Called validation in all 11 generator engine functions before path construction
+- Called validation in `GeneratorService.setStepOverride()` before storing overrides
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  42 items remaining
+===============================================================
+  Claimed: PreviewPanel has no copy-to-clipboard for token values or CSS variables — users see a rendered preview of their tokens but can't copy the CSS variable name or resolved value without switching panels
+  Worktree: /tmp/backlog-84992-NhCfXn
