@@ -595,3 +595,11 @@
   - Value completion for prefix-style qualifiers (`type:`, `has:`) follows the pattern: strip the prefix, match remaining text against domain values, return `{ qualifier: 'type:color', desc: '...' }` objects — the existing hint insertion logic (`words[words.length-1] = hint.qualifier`) handles them identically to qualifier-name hints.
   - Showing all options when the cursor is immediately after a `:` (empty suffix) is the expected UX for qualifier value dropdowns.
 ---
+
+## 2026-03-28 - `creatingSet` state stuck on error in App.tsx `handleCreateSet`
+- Fixed the catch block in `handleCreateSet` to reset `creatingSet`, `newSetName`, and `newSetError` when a network/disconnect error is detected (i.e., when `markDisconnected()` is called). For non-connection errors (e.g., server-side validation), the error message is still shown in the input form so the user can correct and retry.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L807-815
+- **Learnings for future iterations:**
+  - The bug was subtle: on network error, `markDisconnected()` sets `connected=false` but `creatingSet` stayed `true`, leaving the input form open in a disconnected state where it couldn't succeed
+  - The right UX split: connection errors → dismiss the form (can't do anything); server errors → keep form open with error message so user can retry
+---

@@ -67,3 +67,23 @@ Already up to date.
 
 --- Merging: Search qualifier discoverability: add autocomplete, placeholder hints, or a filter dropdown for advanced qualifiers (`type:color`, `alias:{path}`, `>has:ref`) in the token search input ---
 Already up to date.
+[main b56ce52] chore(backlog): done – Search qualifier discoverability: add autocomplete, placeholder hints, or a filter dropdown for advanced qualifiers (`type:color`, `alias:{path}`, `>has:ref`) in the token search input
+ 6 files changed, 79 insertions(+), 14 deletions(-)
+
+## 2026-03-28 - Search qualifier discoverability: autocomplete, placeholder hints, filter dropdown
+- Extended qualifier autocomplete with value completion: typing `type:` now shows all token types from the current set; typing `has:` shows all recognized has: values (alias, direct, duplicate, description, extension). Partial prefixes filter the list (e.g. `type:co` → `type:color`).
+- Added discovery mode: focusing an empty search field now shows all available qualifiers in the autocomplete dropdown with a "Search qualifiers" header, so new users can discover the qualifier syntax without pressing `?`.
+- Moved `qualifierHints` useMemo to after `availableTypes` declaration to fix a potential TDZ crash (per codebase patterns).
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  67 items remaining
+===============================================================
+  Claimed: `creatingSet` state stuck on error in App.tsx `handleCreateSet` — `setCreatingSet(false)` at line 789 only runs on success; if the fetch throws (network error), the catch block at line 794-797 never resets `creatingSet`, leaving the UI in a loading state
+  Worktree: /tmp/backlog-10461-A62wj8
+
+  ✓ done: `creatingSet` state stuck on error in App.tsx `handleCreateSet`
+    Fixed catch block to reset creatingSet/newSetName/newSetError on network errors (when markDisconnected is called), while preserving error display for server-side errors so user can retry
+    9 turns · 79s · $0.23
+
+--- Merging: `creatingSet` state stuck on error in App.tsx `handleCreateSet` ---
+Already up to date.

@@ -805,8 +805,14 @@ export function App() {
       refreshTokens();
       setSuccessToast(`Created set "${name}"`);
     } catch (err) {
-      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
-      setNewSetError(err instanceof Error ? err.message : 'Network error');
+      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) {
+        markDisconnected();
+        setCreatingSet(false);
+        setNewSetName('');
+        setNewSetError('');
+      } else {
+        setNewSetError(err instanceof Error ? err.message : 'Network error');
+      }
     }
   };
 
