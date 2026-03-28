@@ -30,3 +30,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token list: keyboard shortcut hint on group rows** — the `n` key opens a sibling create form when a group is focused, but there's no visible hint of this. Add a small `n` hint label (similar to how IDE sidebars show `+` shortcut hints) that appears when a group row is focused via keyboard.
   Worktree: /tmp/backlog-76772-PHp0r1
+
+  ✓ done: Token list: keyboard shortcut hint on group rows
+    Added N key handler on group row onKeyDown and a <kbd>N</kbd> hint label visible only on :focus-visible via group-focus-visible/group Tailwind variant
+    22 turns · 180s · $0.83
+
+--- Merging: Token list: keyboard shortcut hint on group rows ---
+Already up to date.

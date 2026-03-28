@@ -16,3 +16,9 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: Token list: back navigation when jumping to alias ---
 Already up to date.
+[main 5fcd835] chore(backlog): done – Token list: back navigation when jumping to alias
+ 11 files changed, 121 insertions(+), 26 deletions(-)
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

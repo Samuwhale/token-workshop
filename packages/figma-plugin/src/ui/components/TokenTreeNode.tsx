@@ -458,6 +458,11 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               e.preventDefault();
               onToggleExpand(node.path);
             }
+            if (e.key === 'n' && !renamingGroup && !selectMode) {
+              e.preventDefault();
+              e.stopPropagation();
+              onCreateSibling?.(node.path, inferGroupTokenType(node.children));
+            }
           }}
           onContextMenu={e => {
             e.preventDefault();
@@ -509,6 +514,9 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             >
               {node.$type}
             </span>
+          )}
+          {!selectMode && !renamingGroup && (
+            <kbd className="hidden group-focus-visible/group:inline text-[9px] leading-none px-1 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] font-sans ml-auto shrink-0" aria-hidden="true">N</kbd>
           )}
           {!selectMode && !renamingGroup && (
             <div className="absolute right-1 top-0 bottom-0 flex items-center gap-0.5 opacity-0 group-hover/group:opacity-100 pointer-events-none group-hover/group:pointer-events-auto transition-opacity">

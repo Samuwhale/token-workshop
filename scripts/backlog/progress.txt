@@ -455,3 +455,13 @@
   - `handleNavigateBack` reads `navHistory` from state directly (not inside a `setState` callback) and dispatches `setNavHistory(prev => prev.slice(0, -1))` as a separate call, avoiding calling other state setters inside a functional update.
   - The back button count badge `({navHistoryLength})` only shows when depth > 1 — avoids clutter at depth 1 where "Back" is self-explanatory.
 ---
+
+## 2026-03-28 - Token list: keyboard shortcut hint on group rows
+- Added `n` key handler directly on group row `onKeyDown` so pressing `n` while a group is focused opens the create sibling form (previously only available via context menu accelerator)
+- Added a `<kbd>N</kbd>` hint label that appears only when the group row receives `:focus-visible` (keyboard focus), using Tailwind's `group-focus-visible/group:inline` variant
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L456 (keydown handler), ~L519 (kbd hint element)
+- **Learnings for future iterations:**
+  - Tailwind v4 supports named group focus-visible variants like `group-focus-visible/group:` — useful for showing keyboard hints only during keyboard navigation
+  - The `group/group` named group was already on the group row div, so the hint automatically hides on mouse interaction
+  - `hidden` + `group-focus-visible/group:inline` is cleaner than opacity toggles for keyboard-only UI
+---
