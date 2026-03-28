@@ -173,3 +173,15 @@
   - Theme dimensions store is local to `themeRoutes`; capturing before-state requires wrapping `store.withLock` in a helper that clones dims before mutation
   - Inverse steps must be computed BEFORE executing rollback steps (to capture current state), not after
 ---
+
+## 2026-03-29 - Remove dead TokenGraph.tsx (superseded by NodeGraphCanvas)
+- Deleted `TokenGraph.tsx` (512 lines of dead code)
+- Removed `'graph'` from `viewMode` type union in TokenList.tsx
+- Removed `TokenGraph` import and its `viewMode === 'graph'` render branch
+- Simplified `viewMode !== 'graph'` filter guard (was never reachable from UI anyway — no button set viewMode to 'graph')
+- Also fixed pre-existing build error in `ResolverPanel.tsx:215` where `)}` should have been `</div>`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenGraph.tsx` (deleted), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L9,419,2527,2937, `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L215
+- **Learnings for future iterations:**
+  - The `graph` viewMode in TokenList was unreachable — no UI element ever set it; GraphPanel uses its own internal viewMode
+  - ResolverPanel.tsx had a pre-existing JSX syntax error (`)}` instead of `</div>`) that broke the build — collateral fix
+---

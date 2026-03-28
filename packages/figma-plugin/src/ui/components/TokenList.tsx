@@ -6,7 +6,6 @@ import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
 import { ComparePanel } from './ComparePanel';
 import { TokenCanvas } from './TokenCanvas';
-import { TokenGraph } from './TokenGraph';
 import { colorDeltaE } from '@tokenmanager/core';
 import { stableStringify, getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
@@ -416,7 +415,7 @@ export function TokenList({
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
-  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid' | 'json' | 'graph'>('tree');
+  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid' | 'json'>('tree');
   const [density, setDensityState] = useState<Density>(() => {
     const stored = lsGet(STORAGE_KEYS.DENSITY);
     return (stored === 'compact' || stored === 'comfortable') ? stored : 'default';
@@ -2524,8 +2523,8 @@ export function TokenList({
               </div>
             </div>
 
-            {/* Row 2: Search + active filters (only in non-json/graph views) */}
-            {viewMode !== 'json' && viewMode !== 'graph' && (<>
+            {/* Row 2: Search + active filters (only in non-json views) */}
+            {viewMode !== 'json' && (<>
               <div className="flex items-center gap-1 px-2 pb-1">
                 <div className="flex-1 min-w-0 relative">
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)] pointer-events-none" aria-hidden="true">
@@ -2934,16 +2933,6 @@ export function TokenList({
             <p className="mt-2 text-[11px] font-medium">Select a layer to inspect</p>
             <p className="text-[10px] mt-0.5">Tokens bound to the selected layer will appear here</p>
           </div>
-        ) : viewMode === 'graph' ? (
-          /* Graph view — node-based generator editor */
-          <TokenGraph
-            generators={generators ?? []}
-            serverUrl={serverUrl}
-            sets={sets}
-            activeSet={setName}
-            onRefresh={onRefresh}
-            onRefreshGenerators={onRefreshGenerators ?? (() => {})}
-          />
         ) : viewMode === 'json' ? (
           /* JSON editor — raw DTCG JSON, works for both empty and non-empty sets */
           <div className="h-full flex flex-col">

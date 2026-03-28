@@ -212,7 +212,7 @@ function ResolverInner({
             </button>
           </div>
         </div>
-      )}
+      </div>
 
       {/* Create form */}
       {creating && (
