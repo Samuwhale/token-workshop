@@ -474,3 +474,11 @@
   - The ValueDiff component already existed but fell through to JSON.stringify for complex types. When adding visual previews for composite token types, extract reusable swatch components that both the diff and the static preview can share.
   - `initialRef.current` in TokenEditor holds the full loaded state including `.value` — use it as the source for "current/original" value display.
 ---
+
+## 2026-03-28 - No token count badge on set tabs
+- Token counts were already rendered as plain text spans in all three tab locations (main tab bar ~L1116, sidebar ~L1336, sidebar folders ~L1387). Upgraded styling from plain text to pill-shaped badges with `rounded-full`, `px-1.5 py-0.5`, `leading-none`, `tabular-nums`, and contextual background colors (white/20 on active accent tabs, bg-secondary on inactive, accent/20 on active sidebar). Also improved spacing in filtered count display with thin spaces around `/`.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1117, ~L1337, ~L1388
+- **Learnings for future iterations:**
+  - Token counts were already fetched and displayed — the issue was purely a styling/visibility concern, not missing data.
+  - `tabular-nums` ensures badge width doesn't shift as counts change.
+---

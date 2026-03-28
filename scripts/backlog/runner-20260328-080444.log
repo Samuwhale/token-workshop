@@ -112,3 +112,10 @@ Already up to date.
 ===============================================================
   Claimed: No token count badge on set tabs — you have to open a set to discover how many tokens it contains; show a count in the tab label
   Worktree: /tmp/backlog-63411-mTTuUj
+
+  ✓ done: No token count badge on set tabs
+    Upgraded existing plain-text token counts to pill-shaped badges with rounded-full styling, contextual background colors, and tabular-nums across all three tab locations (main tabs, sidebar, sidebar folders).
+    15 turns · 106s · $0.49
+
+--- Merging: No token count badge on set tabs ---
+Already up to date.

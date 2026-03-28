@@ -1201,8 +1201,8 @@ export function App() {
                     >
                       {set}
                       {setTokenCounts[set] !== undefined && (
-                        <span className={`ml-1.5 ${isActive ? 'text-white/70' : 'text-[var(--color-figma-text-tertiary)]'}`}>
-                          {isActive && filteredSetCount !== null ? `${filteredSetCount} / ${setTokenCounts[set]}` : setTokenCounts[set]}
+                        <span className={`ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full leading-none tabular-nums ${isActive ? 'bg-white/20 text-white/90' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
+                          {isActive && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
                         </span>
                       )}
                     </button>
@@ -1421,8 +1421,8 @@ export function App() {
                         >
                           <span className="truncate flex-1">{set}</span>
                           {setTokenCounts[set] !== undefined && (
-                            <span className={`text-[9px] shrink-0 ml-1 ${activeSet === set ? 'opacity-60' : 'text-[var(--color-figma-text-tertiary)]'}`}>
-                              {activeSet === set && filteredSetCount !== null ? `${filteredSetCount} / ${setTokenCounts[set]}` : setTokenCounts[set]}
+                            <span className={`text-[9px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
+                              {activeSet === set && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
                             </span>
                           )}
                         </button>
@@ -1472,8 +1472,8 @@ export function App() {
                             >
                               <span className="truncate flex-1">{leaf}</span>
                               {setTokenCounts[set] !== undefined && (
-                                <span className={`text-[9px] shrink-0 ml-1 ${activeSet === set ? 'opacity-60' : 'text-[var(--color-figma-text-tertiary)]'}`}>
-                                  {activeSet === set && filteredSetCount !== null ? `${filteredSetCount} / ${setTokenCounts[set]}` : setTokenCounts[set]}
+                                <span className={`text-[9px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
+                                  {activeSet === set && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
                                 </span>
                               )}
                             </button>
