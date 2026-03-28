@@ -1,8 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useLayoutEffect, Fragment } from 'react';
 import { TokenTreeNodeProps } from './tokenListTypes';
-import type { MultiModeValue } from './tokenListTypes';
-import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
-import type { BindableProperty, TokenMapEntry } from '../../shared/types';
+import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS, PROPERTY_LABELS } from '../../shared/types';
+import type { BindableProperty } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { countTokensInGroup, formatDisplayPath, nodeParentPath, formatValue, countLeaves } from './tokenListUtils';
@@ -11,6 +10,7 @@ import { INLINE_SIMPLE_TYPES } from './tokenListTypes';
 import { PropertyPicker } from './PropertyPicker';
 import { ValuePreview } from './ValuePreview';
 import { ColorPicker } from './ColorPicker';
+import { getQuickBindTargets } from './selectionInspectorUtils';
 
 // ---------------------------------------------------------------------------
 // MultiModeCell — compact inline-editable value cell for a single theme option
@@ -116,8 +116,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onDragOverToken, onDragLeaveToken, onDropOnToken, dragOverReorder,
     chainExpanded: chainExpandedProp = false,
     onToggleChain, searchQuery, showFullPath, tokenUsageCounts,
-    isPinned, onTogglePin,
-    multiModeValues, onMultiModeInlineSave,
+    isPinned, onTogglePin, selectedNodes,
   } = props;
 
   const isExpanded = expandedPaths.has(node.path);
@@ -133,6 +132,8 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   const [inlineEditActive, setInlineEditActive] = useState(false);
   const [inlineEditValue, setInlineEditValue] = useState('');
   const inlineEditEscapedRef = useRef(false);
+  const [quickBound, setQuickBound] = useState<string | null>(null);
+  const [pickerProps, setPickerProps] = useState<BindableProperty[] | null>(null);
   const nodeRef = useRef<HTMLDivElement>(null);
 
   // Group-specific state
@@ -328,11 +329,36 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     const validProps = TOKEN_PROPERTY_MAP[node.$type];
     if (!validProps || validProps.length === 0) return;
 
+    // Quick-bind: use scope + capability + binding info to narrow targets
+    if (selectedNodes && selectedNodes.length > 0) {
+      const entry = allTokensFlat[node.path];
+      const targets = getQuickBindTargets(
+        node.$type,
+        entry?.$scopes,
+        selectedNodes,
+      );
+      if (targets.length === 1) {
+        applyWithProperty(targets[0]);
+        setQuickBound(PROPERTY_LABELS[targets[0]]);
+        setTimeout(() => setQuickBound(null), 1500);
+        return;
+      }
+      // If scope filtering narrowed to a subset, show picker with just those
+      if (targets.length > 1 && targets.length < validProps.length) {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setPickerAnchor({ top: rect.bottom + 2, left: rect.left });
+        setPickerProps(targets);
+        setShowPicker(true);
+        return;
+      }
+    }
+
     if (validProps.length === 1) {
       applyWithProperty(validProps[0]);
     } else {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setPickerAnchor({ top: rect.bottom + 2, left: rect.left });
+      setPickerProps(null);
       setShowPicker(true);
     }
   };
@@ -1292,12 +1318,29 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           )}
           <button
             onClick={e => { e.stopPropagation(); handleApplyToSelection(e); }}
-            title="Apply to selection"
-            className="p-1 rounded hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 transition-opacity"
+            title={quickBound ? `Bound to ${quickBound}` : (() => {
+              if (!node.$type || !selectedNodes || selectedNodes.length === 0) return 'Apply to selection';
+              const entry = allTokensFlat[node.path];
+              const targets = getQuickBindTargets(node.$type, entry?.$scopes, selectedNodes);
+              if (targets.length === 0) return 'No compatible properties on selection';
+              if (targets.length === 1) return `Quick bind to ${PROPERTY_LABELS[targets[0]]}`;
+              return `Apply to ${targets.map(t => PROPERTY_LABELS[t]).join(', ')}`;
+            })()}
+            className={`p-1 rounded transition-opacity ${
+              quickBound
+                ? 'text-[var(--color-figma-success)] opacity-100'
+                : 'hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100'
+            }`}
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M12 5l7 7-7 7M5 12h14" />
-            </svg>
+            {quickBound ? (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 5l7 7-7 7M5 12h14" />
+              </svg>
+            )}
           </button>
           <button
             onClick={e => { e.stopPropagation(); handleCopyPath(); }}
@@ -1335,10 +1378,10 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       {/* Property picker dropdown */}
       {showPicker && node.$type && TOKEN_PROPERTY_MAP[node.$type] && (
         <PropertyPicker
-          properties={TOKEN_PROPERTY_MAP[node.$type]}
-          capabilities={selectionCapabilities}
+          properties={pickerProps || TOKEN_PROPERTY_MAP[node.$type]}
+          capabilities={pickerProps ? null : selectionCapabilities}
           onSelect={applyWithProperty}
-          onClose={() => setShowPicker(false)}
+          onClose={() => { setShowPicker(false); setPickerProps(null); }}
           anchorRect={pickerAnchor}
         />
       )}

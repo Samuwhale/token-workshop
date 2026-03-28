@@ -436,3 +436,17 @@
   - `setBindingFromProp` in the setTimeout callback must check current state to avoid overriding a user-initiated panel open.
   - Figma's `parent.children` array gives sibling access; `indexOf` finds the current node's position for next-sibling navigation.
 ---
+
+## 2026-03-28 - Quick-bind flow for Inspect tab
+- Added smart quick-bind to the existing "Apply to selection" button on token tree rows
+- When a token has scopes or only one compatible unbound property, clicking applies immediately without showing the property picker (1-click instead of 4+ steps)
+- `getQuickBindTargets()` utility filters properties by token type, scopes, layer capabilities, and existing bindings
+- When scope filtering narrows to a subset but >1 property, the picker shows only the narrowed options
+- Dynamic tooltip shows which property will be bound (e.g. "Quick bind to Fill Color")
+- Green checkmark feedback flashes briefly after successful quick-bind
+- Files changed: `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L336-L379, `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L169, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2448,L2810, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L3-L13,L33,L49,L209-L260,L1188-L1216,L1231-L1239
+- **Learnings for future iterations:**
+  - `getQuickBindTargets` must check existing bindings to avoid accidental overwrites — `getBindingForProperty` returns `'mixed'` for multi-select with different bindings, which we treat as rebindable
+  - When passing narrowed property lists to `PropertyPicker`, pass `capabilities: null` since `getQuickBindTargets` already did capability filtering
+  - The `CAPABILITY_FILTER` map is duplicated between `PropertyPicker.tsx` and `selectionInspectorUtils.ts` — could be shared in future
+---

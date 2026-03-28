@@ -350,3 +350,16 @@ Already up to date.
 
 --- Merging: No "apply and advance" flow in Inspect ---
 Already up to date.
+[main a347cc3] chore(backlog): done – No "apply and advance" flow in Inspect
+ 11 files changed, 166 insertions(+), 21 deletions(-)
+
+## 2026-03-28 - No "apply and advance" flow in Inspect
+- Implemented auto-advance after binding: when a token is bound to a property (via bind or create-and-bind), the bind panel automatically opens on the next unbound property after a 300ms delay, enabling sequential binding without manual navigation.
+- Added "All properties bound — Next layer →" footer bar that appears when all visible properties are bound on a single-selection layer. Clicking "Next layer" sends `select-next-sibling` message to select the next sibling SceneNode in Figma.
+- Added `getNextUnboundProperty()` helper to `selectionInspectorUtils.ts` that walks PROPERTY_GROUPS to find the next visible, unbound property with a value.
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  44 items remaining
+===============================================================
+  Claimed: Stale `handleSave` closure in keyboard shortcut effect — the `useEffect` for Cmd+S references `handleSave` via closure but omits it from the dependency array; when the user presses Cmd+S, a stale version may submit outdated values for path, type, reference, scopes, modifiers, etc.
+  Worktree: /tmp/backlog-63411-rLAQ59

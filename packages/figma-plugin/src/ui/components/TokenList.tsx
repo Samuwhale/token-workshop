@@ -2612,6 +2612,7 @@ export function TokenList({
                 onDeleteGroup={requestDeleteGroup}
                 setName={setName}
                 selectionCapabilities={selectionCapabilities}
+                selectedNodes={selectedNodes}
                 allTokensFlat={allTokensFlat}
                 selectMode={selectMode}
                 isSelected={selectedPaths.has(node.path)}
@@ -2976,6 +2977,7 @@ export function TokenList({
                 onDeleteGroup={requestDeleteGroup}
                 setName={setName}
                 selectionCapabilities={selectionCapabilities}
+                selectedNodes={selectedNodes}
                 allTokensFlat={allTokensFlat}
                 selectMode={selectMode}
                 isSelected={node.isGroup ? false : selectedPaths.has(node.path)}

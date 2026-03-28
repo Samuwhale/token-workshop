@@ -182,8 +182,5 @@ export interface TokenTreeNodeProps {
   tokenUsageCounts?: Record<string, number>;
   isPinned?: boolean;
   onTogglePin?: (path: string) => void;
-  /** Per-option resolved values for multi-mode column view */
-  multiModeValues?: MultiModeValue[];
-  /** Inline save handler that routes to a specific override set */
-  onMultiModeInlineSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
+  selectedNodes?: SelectionNodeInfo[];
 }

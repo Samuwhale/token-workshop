@@ -329,32 +329,58 @@ export function collectBoundPrefixes(
   return prefixes;
 }
 
+// ---------------------------------------------------------------------------
+// Quick-bind: determine which properties a token can auto-bind to
+// ---------------------------------------------------------------------------
+
+const CAPABILITY_FILTER: Partial<Record<BindableProperty, keyof NodeCapabilities>> = {
+  fill: 'hasFills',
+  stroke: 'hasStrokes',
+  paddingTop: 'hasAutoLayout',
+  paddingRight: 'hasAutoLayout',
+  paddingBottom: 'hasAutoLayout',
+  paddingLeft: 'hasAutoLayout',
+  itemSpacing: 'hasAutoLayout',
+  typography: 'isText',
+  shadow: 'hasEffects',
+};
+
 /**
- * Find the next visible, unbound property after `afterProp`.
- * Walks PROPERTY_GROUPS in display order, skipping until past `afterProp`,
- * then returns the first unbound property with a non-null current value.
- * Returns null if all remaining properties are bound.
+ * Determine which bindable properties a token can be quickly applied to,
+ * given the current selection. Filters by type, scope, capability, and
+ * existing bindings (unbound properties only).
  */
-export function getNextUnboundProperty(
-  afterProp: BindableProperty | null,
-  rootNodes: SelectionNodeInfo[],
-  caps: NodeCapabilities,
-): BindableProperty | null {
-  let pastAfterProp = afterProp === null;
-  for (const group of PROPERTY_GROUPS) {
-    if (!shouldShowGroup(group.condition, caps)) continue;
-    for (const prop of group.properties) {
-      if (!pastAfterProp) {
-        if (prop === afterProp) pastAfterProp = true;
-        continue;
-      }
-      const value = getCurrentValue(rootNodes, prop);
-      if (value === undefined || value === null) continue;
-      const binding = getBindingForProperty(rootNodes, prop);
-      if (!binding) return prop;
+export function getQuickBindTargets(
+  tokenType: string,
+  tokenScopes: string[] | undefined,
+  selectedNodes: SelectionNodeInfo[],
+): BindableProperty[] {
+  if (selectedNodes.length === 0) return [];
+  const typeProps = TOKEN_PROPERTY_MAP[tokenType];
+  if (!typeProps || typeProps.length === 0) return [];
+
+  const caps = getMergedCapabilities(selectedNodes);
+
+  return typeProps.filter(prop => {
+    // 1. Capability check — layer must support this property
+    const capKey = CAPABILITY_FILTER[prop];
+    if (capKey && !caps[capKey]) return false;
+
+    // 2. Scope check — if token has scopes, it must include this property
+    if (tokenScopes && tokenScopes.length > 0) {
+      const scopeAllows = tokenScopes.some(scope => {
+        const allowed = SCOPE_TO_PROPERTIES[scope];
+        return allowed?.includes(prop);
+      });
+      if (!scopeAllows) return false;
     }
-  }
-  return null;
+
+    // 3. Binding check — skip properties already bound on ALL selected nodes
+    const binding = getBindingForProperty(selectedNodes, prop);
+    if (binding && binding !== 'mixed') return false;
+
+    return true;
+  });
 }
 
 /** Build an undo slot for removing a single binding */

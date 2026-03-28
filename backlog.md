@@ -64,7 +64,7 @@
 
 ### QoL
 
-- [~] No "apply and advance" flow in Inspect — after binding a token to a property, there's no shortcut to jump to the next unbound property or next layer; binding 20 properties across layers is 20 separate manual workflows
+- [x] No "apply and advance" flow in Inspect — after binding a token to a property, there's no shortcut to jump to the next unbound property or next layer; binding 20 properties across layers is 20 separate manual workflows
 - [x] Inspect tab can't search or filter layers — no way to find layers by name, type, or component; users must click around the Figma canvas to locate layers they want to bind tokens to
 
 ### UX
@@ -102,7 +102,7 @@
 
 ### Bugs
 
-- [ ] Stale `handleSave` closure in keyboard shortcut effect — the `useEffect` for Cmd+S references `handleSave` via closure but omits it from the dependency array; when the user presses Cmd+S, a stale version may submit outdated values for path, type, reference, scopes, modifiers, etc.
+- [~] Stale `handleSave` closure in keyboard shortcut effect — the `useEffect` for Cmd+S references `handleSave` via closure but omits it from the dependency array; when the user presses Cmd+S, a stale version may submit outdated values for path, type, reference, scopes, modifiers, etc.
 - [ ] UndoToast `{shiftKey}` not interpolated — in the redo tooltip, `{shiftKey}` is inside a template literal without `${}`, rendering as the literal string `{shiftKey}Z` instead of the actual key symbol
 
 ### QoL

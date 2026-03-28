@@ -325,3 +325,10 @@ Already up to date.
 ===============================================================
   Claimed: Inspect tab has no quick-bind flow — binding requires select layer → find property → click bind → search token → apply (4+ steps); add a fast path: select layer(s) in Figma → hover token in list → see preview on canvas → click to apply; also consider drag-from-list-to-property and click-token-to-auto-bind-matching-property
   Worktree: /tmp/backlog-62956-suZLsg
+
+  ✓ done: Inspect tab has no quick-bind flow
+    Added smart quick-bind: getQuickBindTargets() narrows compatible properties by token type/scopes/capabilities/existing bindings; single-match auto-applies (1 click), multi-match shows narrowed picker, with green checkmark feedback and dynamic tooltip
+    36 turns · 363s · $2.19
+
+--- Merging: Inspect tab has no quick-bind flow ---
+Already up to date.
