@@ -55,6 +55,8 @@ export function TokenList({
   const [renameGroupConfirm, setRenameGroupConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null>(null);
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // Loading indicator for async token operations (delete, rename, move, duplicate, reorder, etc.)
+  const [operationLoading, setOperationLoading] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const lastSelectedPathRef = useRef<string | null>(null);
@@ -1193,6 +1195,7 @@ export function TokenList({
 
   const executeGroupRename = useCallback(async (oldGroupPath: string, newGroupPath: string, updateAliases = true) => {
     if (!connected) return;
+    setOperationLoading('Renaming group…');
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename`, {
         method: 'POST',
@@ -1201,6 +1204,7 @@ export function TokenList({
       });
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Rename group failed: network error');
+      setOperationLoading(null);
       return;
     }
     setRenameGroupConfirm(null);
@@ -1228,6 +1232,7 @@ export function TokenList({
       });
     }
     onRefresh();
+    setOperationLoading(null);
   }, [connected, serverUrl, setName, onRefresh, onPushUndo, onError]);
 
   const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
@@ -1247,6 +1252,7 @@ export function TokenList({
 
   const executeTokenRename = useCallback(async (oldPath: string, newPath: string, updateAliases = true) => {
     if (!connected) return;
+    setOperationLoading('Renaming token…');
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
         method: 'POST',
@@ -1255,6 +1261,7 @@ export function TokenList({
       });
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Rename token failed: network error');
+      setOperationLoading(null);
       return;
     }
     setRenameTokenConfirm(null);
@@ -1284,6 +1291,7 @@ export function TokenList({
     onRefresh();
     recentlyTouched.renamePath(oldPath, newPath);
     pinnedTokens.renamePin(oldPath, newPath);
+    setOperationLoading(null);
   }, [connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched, pinnedTokens, onError]);
 
 
@@ -1311,11 +1319,16 @@ export function TokenList({
 
   const handleConfirmMoveGroup = useCallback(async () => {
     if (!movingGroup || !moveTargetSet || !connected) { setMovingGroup(null); return; }
-    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/move`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupPath: movingGroup, targetSet: moveTargetSet }),
-    });
+    setOperationLoading('Moving group…');
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupPath: movingGroup, targetSet: moveTargetSet }),
+      });
+    } finally {
+      setOperationLoading(null);
+    }
     setMovingGroup(null);
     onRefresh();
   }, [movingGroup, moveTargetSet, connected, serverUrl, setName, onRefresh]);
@@ -1328,6 +1341,7 @@ export function TokenList({
 
   const handleConfirmMoveToken = useCallback(async () => {
     if (!movingToken || !moveTargetSet || !connected) { setMovingToken(null); return; }
+    setOperationLoading('Moving token…');
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
         method: 'POST',
@@ -1336,14 +1350,17 @@ export function TokenList({
       });
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Move failed: network error');
+      setOperationLoading(null);
       return;
     }
     setMovingToken(null);
     onRefresh();
+    setOperationLoading(null);
   }, [movingToken, moveTargetSet, connected, serverUrl, setName, onRefresh, onError]);
 
   const handleDuplicateGroup = useCallback(async (groupPath: string) => {
     if (!connected) return;
+    setOperationLoading('Duplicating group…');
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/duplicate`, {
         method: 'POST',
@@ -1352,9 +1369,11 @@ export function TokenList({
       });
     } catch (err) {
       onError?.(err instanceof ApiError ? err.message : 'Duplicate group failed: network error');
+      setOperationLoading(null);
       return;
     }
     onRefresh();
+    setOperationLoading(null);
   }, [connected, serverUrl, setName, onRefresh, onError]);
 
   const handleUpdateGroupMeta = useCallback(async (
@@ -1373,6 +1392,7 @@ export function TokenList({
   const handleCreateGroup = useCallback(async (parent: string, name: string) => {
     if (!connected || !name.trim()) return;
     const groupPath = parent ? `${parent}.${name.trim()}` : name.trim();
+    setOperationLoading('Creating group…');
     try {
       await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/create`, {
         method: 'POST',
@@ -1381,12 +1401,14 @@ export function TokenList({
       });
     } catch (err) {
       setNewGroupError(err instanceof ApiError ? err.message : 'Failed to create group');
+      setOperationLoading(null);
       return;
     }
     setNewGroupDialogParent(null);
     setNewGroupName('');
     setNewGroupError('');
     onRefresh();
+    setOperationLoading(null);
   }, [connected, serverUrl, setName, onRefresh]);
 
   const handleDuplicateToken = useCallback(async (path: string) => {
@@ -1399,11 +1421,16 @@ export function TokenList({
     while (allTokensFlat[newPath]) {
       newPath = `${baseCopy}-${i++}`;
     }
-    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ $type: token.$type, $value: token.$value, ...(token.$description ? { $description: token.$description } : {}) }),
-    });
+    setOperationLoading('Duplicating token…');
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ $type: token.$type, $value: token.$value, ...(token.$description ? { $description: token.$description } : {}) }),
+      });
+    } finally {
+      setOperationLoading(null);
+    }
     onRefresh();
     recentlyTouched.recordTouch(newPath);
   }, [connected, serverUrl, setName, allTokensFlat, onRefresh, recentlyTouched]);
@@ -1419,6 +1446,7 @@ export function TokenList({
     const newOrder = [...siblings];
     [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
     const prevOrder = [...siblings];
+    setOperationLoading('Reordering…');
     await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1448,6 +1476,7 @@ export function TokenList({
       });
     }
     onRefresh();
+    setOperationLoading(null);
   }, [connected, serverUrl, setName, siblingOrderMap, onRefresh, onPushUndo]);
 
 
@@ -1654,6 +1683,7 @@ export function TokenList({
 
     setDeleteConfirm(null);
     setDeleteError(null);
+    setOperationLoading(deletedType === 'bulk' ? `Deleting ${deletedPaths.length} tokens…` : 'Deleting…');
     try {
       if (deletedType === 'token' || deletedType === 'group') {
         await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' });
@@ -1701,6 +1731,8 @@ export function TokenList({
       console.error('Failed to delete:', err);
       setDeleteError(getErrorMessage(err, 'Delete failed'));
       onRefresh();
+    } finally {
+      setOperationLoading(null);
     }
   };
 
@@ -2191,7 +2223,8 @@ export function TokenList({
                 </button>
                 <button
                   onClick={requestBulkDelete}
-                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                  disabled={!!operationLoading}
+                  className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-50 disabled:pointer-events-none"
                 >
                   Delete {selectedPaths.size}
                 </button>
@@ -2826,6 +2859,13 @@ export function TokenList({
           >
             Promote all to aliases
           </button>
+        </div>
+      )}
+      {/* Operation loading banner */}
+      {operationLoading && (
+        <div role="status" aria-live="polite" className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text-secondary)]">
+          <svg className="animate-spin shrink-0" width="12" height="12" viewBox="0 0 14 14" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>
+          <span>{operationLoading}</span>
         </div>
       )}
       {/* Delete error banner */}

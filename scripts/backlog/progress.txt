@@ -298,3 +298,15 @@
   - The token search has three modes: browse (no query), qualifier-only, and free-text fuzzy — each path in the useMemo needs consistent capping
   - `totalTokenMatches` tracks the pre-cap total so the UI can show "X of Y"
 ---
+
+## 2026-03-29 - No loading/progress indicator for token list operations
+- Added `operationLoading` state to TokenList.tsx that shows a spinner banner with descriptive text during async operations
+- Wrapped 9 async operations: executeDelete (single/group/bulk), executeGroupRename, executeTokenRename, handleConfirmMoveGroup, handleConfirmMoveToken, handleDuplicateGroup, handleDuplicateToken, handleMoveTokenInGroup (reorder), handleCreateGroup
+- Loading banner appears between the toolbar and scroll area with an animate-spin SVG spinner matching the existing codebase pattern (TokenDependents style)
+- Disabled bulk delete button while an operation is in progress to prevent double-clicks
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L58 (state), ~L1190-1230 (group rename), ~L1245-1290 (token rename), ~L1310-1320 (move group), ~L1330-1345 (move token), ~L1350-1365 (duplicate group), ~L1395-1420 (duplicate token), ~L1440-1470 (reorder), ~L1400-1410 (create group), ~L1660-1710 (delete), ~L2860-2870 (banner JSX), ~L2220 (disabled button)
+- **Learnings for future iterations:**
+  - BatchEditor.tsx already has its own `applying`/`moving`/`renaming` states with progress bars — those are separate from the TokenList-level operations
+  - Single-token inline saves (handleInlineSave, handleDescriptionSave) are fast enough to not warrant a loading indicator
+  - The existing spinner pattern in this codebase uses `<svg className="animate-spin" ...><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="22 10" /></svg>` from TokenDependents
+---
