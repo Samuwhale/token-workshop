@@ -7,6 +7,7 @@ interface UseSetDuplicateParams {
   sets: string[];
   refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
+  setErrorToast: (msg: string) => void;
   markDisconnected: () => void;
   pushUndo: (slot: UndoSlot) => void;
   setTabMenuOpen: (v: string | null) => void;
@@ -14,7 +15,7 @@ interface UseSetDuplicateParams {
 
 export function useSetDuplicate({
   serverUrl, connected, getDisconnectSignal,
-  sets, refreshTokens, setSuccessToast,
+  sets, refreshTokens, setSuccessToast, setErrorToast,
   markDisconnected, pushUndo, setTabMenuOpen,
 }: UseSetDuplicateParams) {
 
@@ -30,7 +31,10 @@ export function useSetDuplicate({
     try {
       const signal = AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]);
       const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`, { signal });
-      if (!res.ok) return;
+      if (!res.ok) {
+        setErrorToast(`Failed to read set "${setName}": server returned ${res.status}`);
+        return;
+      }
       const data = await res.json();
       savedTokens = data.tokens || {};
       const createRes = await fetch(`${serverUrl}/api/sets`, {
@@ -39,9 +43,13 @@ export function useSetDuplicate({
         body: JSON.stringify({ name: newName, tokens: data.tokens }),
         signal,
       });
-      if (!createRes.ok) return;
+      if (!createRes.ok) {
+        setErrorToast(`Failed to create duplicate set "${newName}": server returned ${createRes.status}`);
+        return;
+      }
     } catch (err) {
       if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
+      else setErrorToast(`Duplicate failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
       return;
     }
     refreshTokens();

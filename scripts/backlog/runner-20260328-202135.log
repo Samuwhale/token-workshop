@@ -157,3 +157,10 @@ Already up to date.
 ===============================================================
   Claimed: `useSetDuplicate.ts` silently returns on HTTP errors (~lines 32, 42) — if fetching the source set or creating the duplicate fails with 4xx/5xx, the user gets no error feedback and the operation appears to do nothing
   Worktree: /tmp/backlog-9231-cIUwrP
+
+  ✓ done: useSetDuplicate.ts silently returns on HTTP errors
+    Added setErrorToast callback to surface HTTP 4xx/5xx errors and non-network exceptions as user-visible error toasts instead of silently returning
+    14 turns · 99s · $0.51
+
+--- Merging: useSetDuplicate.ts silently returns on HTTP errors ---
+Already up to date.

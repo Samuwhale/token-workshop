@@ -593,3 +593,11 @@
 - **Learnings for future iterations:**
   - Cache invalidation on demand (at the call site that triggers a user action) is simpler than TTL for module-level caches in plugin sandboxes — no timer needed, and the user-initiated font picker open is the natural trigger.
 ---
+
+## 2026-03-28 - useSetDuplicate.ts silently returns on HTTP errors
+- Added `setErrorToast` callback to `useSetDuplicate` hook params; on HTTP 4xx/5xx from either the source-set fetch or the duplicate-create POST, the user now sees an error toast with the status code. Non-network caught exceptions also surface via error toast.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetDuplicate.ts` ~L8,17,33,42,44; `packages/figma-plugin/src/ui/App.tsx` ~L506
+- **Learnings for future iterations:**
+  - Pattern for silent-return hooks: add `setErrorToast` to params interface, call it before each `return` on `!res.ok`, and in the catch block for non-network errors
+  - `setErrorToast` is already available at the App.tsx call site for all hooks — just thread it through
+---

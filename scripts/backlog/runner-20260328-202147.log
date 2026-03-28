@@ -186,3 +186,16 @@ Already up to date.
 
 --- Merging: fontLoading.ts font cache is never invalidated ---
 Already up to date.
+[main 987586b] chore(backlog): done – fontLoading.ts font cache is never invalidated
+ 7 files changed, 36 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - fontLoading.ts font cache never invalidated
+- Added `invalidateFontCache()` export that nulls `cachedFonts`. Called it in the `get-available-fonts` message handler in `controller.ts` before fetching, so each time the UI requests font families it gets a fresh list (capturing any fonts installed during the plugin session).
+- Files changed: `packages/figma-plugin/src/plugin/fontLoading.ts` ~L27, `packages/figma-plugin/src/plugin/controller.ts` ~L6,124
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  48 items remaining
+===============================================================
+  Claimed: `TokenEditor.tsx` repeats identical `as any` cast for `baseValue` four times (~lines 882-893) — `extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined` should be extracted to a typed variable to remove the casts and the duplication
+  Worktree: /tmp/backlog-10461-4LqQpu

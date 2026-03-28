@@ -138,10 +138,10 @@
 - [x] `useStyleSync.ts` pullRows `Promise.all` never checks `res.ok` on individual fetch responses (~line 152) — a 4xx/5xx from a single token PATCH silently succeeds, leaving the UI out of sync with the server
 - [x] `ThemeManager.tsx` set-fetch loop silently swallows all errors (~line 153) — if a set fails to load, coverage calculations are silently incomplete with no user feedback
 - [x] `ThemeCompare.tsx` and `ExportPanel.tsx` clipboard writes are fire-and-forget — `navigator.clipboard.writeText()` is not awaited and has no `.catch()`, so the "Copied!" feedback shows even if clipboard access is denied
-- [~] `fontLoading.ts` font cache is never invalidated — `cachedFonts` is set once on first call and never cleared, so fonts installed during a plugin session are invisible to weight resolution
+- [x] `fontLoading.ts` font cache is never invalidated — `cachedFonts` is set once on first call and never cleared, so fonts installed during a plugin session are invisible to weight resolution
 - [~] `useFindReplace.ts` bulk-rename fetch has no abort signal or timeout (~line 86) — a slow server response hangs the UI indefinitely with no way to cancel
 - [~] `useSetDuplicate.ts` silently returns on HTTP errors (~lines 32, 42) — if fetching the source set or creating the duplicate fails with 4xx/5xx, the user gets no error feedback and the operation appears to do nothing
-- [ ] `TokenEditor.tsx` repeats identical `as any` cast for `baseValue` four times (~lines 882-893) — `extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined` should be extracted to a typed variable to remove the casts and the duplication
+- [~] `TokenEditor.tsx` repeats identical `as any` cast for `baseValue` four times (~lines 882-893) — `extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined` should be extracted to a typed variable to remove the casts and the duplication
 - [ ] `PublishPanel.tsx` retry loop catches all errors as timeout retries (~line 198-200) — non-timeout errors (e.g. malformed message, plugin crash) are silently retried instead of surfaced, masking real failures
 - [ ] `git-sync.ts` conflict parser skips `>>>>>>>` marker with unchecked `i++` (~line 45) — if the closing marker is the last line in the file and is malformed or missing, the parser silently produces incomplete conflict data
 - [ ] `useGeneratorDialog.ts` fetch for existing set tokens silently swallows errors (~line 247) — `.catch(() => {})` means generator sync proceeds with empty existing tokens, potentially overwriting real values
