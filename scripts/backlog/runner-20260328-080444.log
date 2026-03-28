@@ -181,3 +181,16 @@ Already up to date.
 
 --- Merging: No inline editing in the token list — dual-mode editing ---
 Already up to date.
+[main 9bb03ff] chore(backlog): done – No inline editing in the token list — dual-mode editing
+ 6 files changed, 68 insertions(+), 13 deletions(-)
+
+## 2026-03-28 - No inline editing in the token list — dual-mode editing
+- Added `activateInlineEdit` callback in TokenTreeNode that branches by type: boolean toggles immediately, color opens picker, others activate text input
+- Modified `handleRowKeyDown`: Enter/e now triggers inline edit for simple types (color, dimension, number, boolean, string, etc.) and opens full editor for complex types (typography, shadow, composition)
+- Space key in non-select mode now opens the full TokenEditor panel instead of the context menu
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  80 items remaining
+===============================================================
+  Claimed: No "create token from Figma selection" flow — users must manually read values from selected layers and re-enter them; add "Extract tokens from selection" that reads fill colors, font properties, dimensions, shadows, borders from selected layers and pre-populates a batch token creation form with suggested names based on the layer/component context
+  Worktree: /tmp/backlog-63411-rYkMOJ

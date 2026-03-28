@@ -109,7 +109,7 @@ export function AliasAutocomplete({
           data-idx={idx}
           onMouseDown={e => { e.preventDefault(); onSelect(path); }}
           onMouseEnter={() => setActiveIdx(idx)}
-          className={`w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''}`}
+          className={`w-full flex items-center gap-2 px-2 py-1.5 text-left transition-colors ${idx === activeIdx ? 'bg-[var(--color-figma-bg-hover)]' : ''} ${entry.$lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
         >
           {/* Value preview */}
           {entry.$type === 'color' && typeof entry.$value === 'string' ? (
@@ -122,7 +122,7 @@ export function AliasAutocomplete({
           )}
 
           {/* Path */}
-          <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate">{path}</span>
+          <span className={`flex-1 text-[10px] text-[var(--color-figma-text)] truncate ${entry.$lifecycle === 'deprecated' ? 'line-through' : ''}`}>{path}</span>
 
           {/* Resolved value */}
           {formatValuePreview(entry.$value) && (
@@ -135,6 +135,14 @@ export function AliasAutocomplete({
           <span className={`text-[8px] px-1 py-0.5 rounded font-medium uppercase shrink-0 ${TOKEN_TYPE_BADGE_CLASS[entry.$type ?? ''] ?? 'token-type-string'}`}>
             {entry.$type}
           </span>
+
+          {/* Lifecycle badge */}
+          {entry.$lifecycle === 'draft' && (
+            <span className="text-[8px] px-1 py-0.5 rounded font-medium shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400">draft</span>
+          )}
+          {entry.$lifecycle === 'deprecated' && (
+            <span className="text-[8px] px-1 py-0.5 rounded font-medium shrink-0 bg-gray-300/40 text-gray-500 dark:text-gray-400">deprecated</span>
+          )}
 
           {/* Set name */}
           {pathToSet[path] && (

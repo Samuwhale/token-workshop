@@ -126,7 +126,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const fontFamilyRef = useRef<HTMLInputElement>(null);
   const fontSizeRef = useRef<HTMLInputElement>(null);
   const [scopes, setScopes] = useState<string[]>([]);
-  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[]; modeValues: Record<string, any>; extensionsJsonText: string } | null>(null);
+  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[]; modeValues: Record<string, any>; extensionsJsonText: string; lifecycle: 'draft' | 'published' | 'deprecated' } | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -139,6 +139,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const [modeValues, setModeValues] = useState<Record<string, any>>({});
   const [extensionsJsonText, setExtensionsJsonText] = useState('');
   const [extensionsJsonError, setExtensionsJsonError] = useState<string | null>(null);
+  const [lifecycle, setLifecycle] = useState<'draft' | 'published' | 'deprecated'>('published');
   const initialServerSnapshotRef = useRef<string | null>(null);
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
 
@@ -180,6 +181,9 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         const savedModes = token?.$extensions?.tokenmanager?.modes;
         const loadedModes: Record<string, any> = (savedModes && typeof savedModes === 'object' && !Array.isArray(savedModes)) ? savedModes as Record<string, any> : {};
         setModeValues(loadedModes);
+        const savedLifecycle = token?.$extensions?.tokenmanager?.lifecycle;
+        const loadedLifecycle: 'draft' | 'published' | 'deprecated' = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
+        setLifecycle(loadedLifecycle);
         const ext = token?.$extensions ?? {};
         const knownExtKeys = new Set(['com.figma.scopes', 'tokenmanager']);
         const otherExt: Record<string, any> = {};
@@ -200,6 +204,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           colorModifiers: loadedModifiers,
           modeValues: loadedModes,
           extensionsJsonText: otherExtText,
+          lifecycle: loadedLifecycle,
         };
         if (typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}')) {
           setReference(token.$value);
@@ -249,9 +254,10 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       JSON.stringify(scopes) !== JSON.stringify(init.scopes) ||
       JSON.stringify(colorModifiers) !== JSON.stringify(init.colorModifiers) ||
       JSON.stringify(modeValues) !== JSON.stringify(init.modeValues) ||
-      extensionsJsonText !== init.extensionsJsonText
+      extensionsJsonText !== init.extensionsJsonText ||
+      lifecycle !== init.lifecycle
     );
-  }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText]);
+  }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle]);
 
   useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
@@ -473,6 +479,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       if (colorModifiers.length > 0) tmExt.colorModifier = colorModifiers;
       const cleanModes = Object.fromEntries(Object.entries(modeValues).filter(([, v]) => v !== '' && v !== undefined && v !== null));
       if (Object.keys(cleanModes).length > 0) tmExt.modes = cleanModes;
+      if (lifecycle !== 'published') tmExt.lifecycle = lifecycle;
       if (Object.keys(tmExt).length > 0) extensions.tokenmanager = tmExt;
       const trimmedExtJson = extensionsJsonText.trim();
       if (trimmedExtJson && trimmedExtJson !== '{}') {
@@ -754,6 +761,30 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             colorFlatMap={colorFlatMap}
           />
         )}
+
+        {/* Lifecycle */}
+        <div className="flex items-center gap-2">
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium shrink-0">Lifecycle</label>
+          <div className="flex gap-1">
+            {(['draft', 'published', 'deprecated'] as const).map(lc => (
+              <button
+                key={lc}
+                onClick={() => setLifecycle(lc)}
+                className={`px-2 py-0.5 rounded text-[9px] font-medium transition-colors ${
+                  lifecycle === lc
+                    ? lc === 'draft'
+                      ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/40'
+                      : lc === 'deprecated'
+                        ? 'bg-gray-500/20 text-gray-600 dark:text-gray-400 ring-1 ring-gray-500/40'
+                        : 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] ring-1 ring-[var(--color-figma-accent)]/40'
+                    : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                }`}
+              >
+                {lc}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Description, Scopes, Mode Values, Extensions */}
         <MetadataEditor

@@ -47,6 +47,7 @@ export type {
   ActiveThemes,
   ThemesFile,
   ResolvedToken,
+  TokenLifecycle,
 } from './types.js';
 
 // DTCG file-format types & utilities

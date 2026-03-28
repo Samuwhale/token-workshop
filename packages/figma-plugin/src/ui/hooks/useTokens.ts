@@ -14,7 +14,9 @@ function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): A
     const path = prefix ? `${prefix}.${key}` : key;
     if (isDTCGToken(value)) {
       const $type = value.$type ?? inheritedType ?? 'unknown';
-      out.push([path, { $value: value.$value as TokenValue | TokenReference, $type, $name: key }]);
+      const lc = (value.$extensions as any)?.tokenmanager?.lifecycle;
+      const $lifecycle = (lc === 'draft' || lc === 'deprecated') ? lc : undefined;
+      out.push([path, { $value: value.$value as TokenValue | TokenReference, $type, $name: key, ...($lifecycle ? { $lifecycle } : {}) }]);
     } else if (typeof value === 'object' && !Array.isArray(value)) {
       out.push(...flattenWithNames(value as DTCGGroup, path, inheritedType));
     }

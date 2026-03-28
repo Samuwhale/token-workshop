@@ -491,3 +491,21 @@
   - TokenTreeNode already had full inline editing UI for simple types — the missing piece was only the activation path (keyboard/double-click routed to full editor unconditionally)
   - `canInlineEdit` flag + `INLINE_SIMPLE_TYPES` set are the gatekeepers for inline edit eligibility — reuse them for any future inline-edit branching
 ---
+
+## 2026-03-28 - No token lifecycle states
+- Added token lifecycle states (draft/published/deprecated) across the full stack
+- Core: `TokenLifecycle` type in `packages/core/src/types.ts` ~L14, exported from index.ts
+- Data model: lifecycle stored in `$extensions.tokenmanager.lifecycle`; `published` is default (not written to file)
+- `TokenMapEntry` extended with `$lifecycle` field in `packages/figma-plugin/src/shared/types.ts` ~L155
+- `flattenWithNames` populates `$lifecycle` from extensions in `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L17
+- TokenEditor: state, load, dirty check, save body, and 3-button toggle UI in `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L143,L183-186,L200,L253,L476,L758-778
+- TokenTreeNode: lifecycle badge (amber for draft, gray+line-through for deprecated) after type badge, deprecated rows dimmed to 50% opacity in `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L765,L909-920
+- PropertyRow: deprecated tokens filtered out of bind candidates in `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L101
+- AliasAutocomplete: deprecated tokens shown dimmed with strikethrough + lifecycle badge in `packages/figma-plugin/src/ui/components/AliasAutocomplete.tsx` ~L112,L125,L142-148
+- Storage key `HIDE_DEPRECATED` added in `packages/figma-plugin/src/ui/shared/storage.ts` ~L32
+- Server: no changes needed — `$extensions` already persisted transparently
+- **Learnings for future iterations:**
+  - `$extensions.tokenmanager.*` is already treated as a known ext key in TokenEditor so lifecycle doesn't leak into the raw JSON editor
+  - Storing only non-default values (`draft`/`deprecated`) keeps token files clean — `published` is inferred by absence
+  - Bind pickers (PropertyRow) should hard-filter deprecated tokens; alias autocomplete should show them dimmed since aliases may reference deprecated tokens during migration
+---

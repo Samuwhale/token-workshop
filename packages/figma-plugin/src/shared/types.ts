@@ -152,6 +152,8 @@ export interface TokenMapEntry {
   $type: string;
   /** DTCG leaf key (segment name) — may contain dots, e.g. "1.5". */
   $name?: string;
+  /** Lifecycle state from $extensions.tokenmanager.lifecycle */
+  $lifecycle?: 'draft' | 'published' | 'deprecated';
 }
 
 export interface SyncBindingsMessage {

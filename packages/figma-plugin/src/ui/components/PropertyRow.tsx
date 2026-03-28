@@ -98,6 +98,7 @@ export function PropertyRow({
   const bindCandidatesAll = bindingFromProp === prop
     ? Object.entries(tokenMap)
         .filter(([, entry]) => compatibleTypesForBind.includes(entry.$type))
+        .filter(([, entry]) => entry.$lifecycle !== 'deprecated')
         .filter(([path]) => !bindQuery || path.toLowerCase().includes(bindQuery.toLowerCase()))
     : [];
   const bindCandidates = bindCandidatesAll.slice(0, 12);

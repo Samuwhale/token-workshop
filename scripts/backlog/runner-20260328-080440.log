@@ -121,3 +121,10 @@ Already up to date.
 ===============================================================
   Claimed: No token lifecycle states — all tokens are immediately live with no way to mark them as "draft", "published", or "deprecated"; for multi-team usage, add lifecycle badges and optionally hide deprecated tokens from bind pickers
   Worktree: /tmp/backlog-62956-jpIcet
+
+  ✓ done: No token lifecycle states
+    Added draft/published/deprecated lifecycle states with editor toggle, tree badges, deprecated row dimming, bind picker filtering, and alias autocomplete visual indicators
+    64 turns · 560s · $3.09
+
+--- Merging: No token lifecycle states ---
+Already up to date.

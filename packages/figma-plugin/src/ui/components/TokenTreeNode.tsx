@@ -777,7 +777,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   return (
     <div ref={nodeRef}>
     <div
-      className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''}`}
+      className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${(node.$extensions?.tokenmanager as any)?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       tabIndex={selectMode ? -1 : 0}
       data-token-path={node.path}
@@ -928,6 +928,17 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               {node.$type}
             </button>
           )}
+          {/* Lifecycle badge */}
+          {(() => {
+            const lc = (node.$extensions?.tokenmanager as any)?.lifecycle;
+            if (lc === 'draft') return (
+              <span className="px-1 py-0.5 rounded text-[8px] font-medium shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400" title="Draft — not yet published">draft</span>
+            );
+            if (lc === 'deprecated') return (
+              <span className="px-1 py-0.5 rounded text-[8px] font-medium shrink-0 bg-gray-300/40 text-gray-500 dark:bg-gray-700/40 dark:text-gray-400 line-through" title="Deprecated — avoid using this token">deprecated</span>
+            );
+            return null;
+          })()}
           {/* Generator source indicator */}
           {generatorsBySource?.has(node.path) && (
             <span

@@ -11,6 +11,9 @@ import { TOKEN_TYPES } from './constants.js';
 // Primitive / Composite Token Value Types
 // ---------------------------------------------------------------------------
 
+/** Token lifecycle state for multi-team workflows. */
+export type TokenLifecycle = 'draft' | 'published' | 'deprecated';
+
 /** Hex (#RGB, #RRGGBB, #RRGGBBAA) or CSS color string. */
 export type ColorValue = string;
 
