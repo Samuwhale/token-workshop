@@ -367,3 +367,10 @@ Already up to date.
 ===============================================================
   Claimed: `applyDiffChoices` continues to `git push` after commit failure — if the push-direction `git commit` fails (caught with `.catch(warn)`), execution continues to `git.push()` on line 141, pushing whatever was previously committed instead of the intended changes (`git-sync.ts` ~L140)
   Worktree: /tmp/backlog-10278-fAw98J
+
+  ✓ done: applyDiffChoices continues to git push after commit failure
+    stale — already done. Fixed in commit 7e79614 with a pushCommitSucceeded guard flag.
+    8 turns · 46s · $0.22
+
+--- Merging: applyDiffChoices continues to git push after commit failure ---
+Already up to date.

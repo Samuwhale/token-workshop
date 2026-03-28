@@ -465,3 +465,10 @@
 - **Learnings for future iterations:**
   - Non-null assertions on refs in event handlers are unsafe — refs can become null between renders or during unmount while pointer events are still in-flight.
 ---
+
+## 2026-03-28 - `applyDiffChoices` continues to `git push` after commit failure
+- Already fixed in commit 7e79614. The current code uses a `pushCommitSucceeded` boolean flag to guard `git.push()`, only pushing when the commit succeeds.
+- Files changed: none (already implemented)
+- **Learnings for future iterations:**
+  - Check git log for prior fixes before implementing — backlog items may reference bugs that were already resolved in earlier sessions.
+---

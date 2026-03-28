@@ -456,3 +456,17 @@ Already up to date.
 
 --- Merging: ColorPicker canvas ref uses non-null assertion without guard ---
 Already up to date.
+[main 2e2d095] chore(backlog): done – ColorPicker canvas ref uses non-null assertion without guard
+ 7 files changed, 40 insertions(+), 5 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - ColorPicker canvas ref uses non-null assertion without guard
+- Added null guard to `getPos()` in `usePointerDrag` hook — `ref.current!.getBoundingClientRect()` replaced with an early return of `{ x: 0, y: 0 }` when `ref.current` is null, preventing crash if canvas unmounts during a pointer drag.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L114
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  26 items remaining
+===============================================================
+  Claimed: `setHexAlpha` does not validate hex input — passing a non-hex string like `"#GGG"` silently produces garbage output; no regex check or error before slicing and concatenating alpha bytes (`color-math.ts` ~L69)
+  Worktree: /tmp/backlog-92630-IigPtJ
