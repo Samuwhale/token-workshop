@@ -1,10 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
-import { getErrorMessage } from '../shared/utils';
-
-function describeError(err: unknown, operation: string): string {
-  return `${operation} failed: ${getErrorMessage(err, String(err))}`;
-}
+import { describeError } from '../shared/utils';
 
 const STYLE_TYPES = new Set(['color', 'typography', 'shadow']);
 

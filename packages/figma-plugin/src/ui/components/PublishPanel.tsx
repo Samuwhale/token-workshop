@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
-import { getErrorMessage } from '../shared/utils';
+import { describeError } from '../shared/utils';
 import { PLATFORMS } from '../shared/platforms';
 import type { Platform } from '../shared/platforms';
 import { useVariableSync } from '../hooks/useVariableSync';
@@ -8,12 +8,6 @@ import type { VarDiffRow } from '../hooks/useVariableSync';
 import { useStyleSync } from '../hooks/useStyleSync';
 import { useGitSync } from '../hooks/useGitSync';
 import type { GitStatus } from '../hooks/useGitSync';
-
-/* ── Helpers ─────────────────────────────────────────────────────────────── */
-
-function describeError(err: unknown, operation: string): string {
-  return `${operation} failed: ${getErrorMessage(err, String(err))}`;
-}
 
 /* ── Interfaces ──────────────────────────────────────────────────────────── */
 

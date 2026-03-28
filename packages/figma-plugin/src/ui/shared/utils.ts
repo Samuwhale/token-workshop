@@ -18,6 +18,11 @@ export function getErrorMessage(err: unknown, fallback = 'An unexpected error oc
   return err instanceof Error ? err.message : fallback;
 }
 
+/** Build a user-facing error string for a failed operation. */
+export function describeError(err: unknown, operation: string): string {
+  return `${operation} failed: ${getErrorMessage(err, String(err))}`;
+}
+
 /** JSON.stringify with keys sorted recursively, so key-insertion-order differences never produce different strings. */
 export function stableStringify(value: unknown): string {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
