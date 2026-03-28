@@ -501,3 +501,9 @@ Already up to date.
 - Added `res.ok` checks and try/catch network error handling to 5 functions: `handleRenameGroup`, `executeTokenRename`, `handleDropOnGroup`, `handleDuplicateGroup`, `handleInlineSave`
 - On failure, calls `onError?.(message)` and returns early — no undo slot is pushed and no refresh-as-if-succeeded occurs
 - Undo/redo callbacks left as best-effort (they run later asynchronously)
+
+===============================================================
+  Iteration 25 / 90  (claude)  —  24 items remaining
+===============================================================
+  Claimed: `useGitSync` mutates ref inside `setState` updater — `setSelectedFiles(prev => ...)` mutates `knownFilesRef.current` inside the updater function; updater functions should be pure; will be replayed incorrectly in StrictMode
+  Worktree: /tmp/backlog-62956-a92mYO

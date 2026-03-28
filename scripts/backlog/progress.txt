@@ -412,3 +412,13 @@
 - **Learnings for future iterations:**
   - App.tsx already has `setErrorToast` / `errorToast` state with a red toast variant — just pass it to hooks that need error reporting.
 ---
+
+## 2026-03-28 - TokenList handleListKeyDown has stale closure
+- Added `selectedPaths` and `onCreateNew` to `useCallback` dependency array so the callback sees current values
+- For `displayedLeafNodes` (line 732) and `copyTokensAsJson` (line 1751), which are defined after the callback (line 211), used mutable refs (`displayedLeafNodesRef`, `copyTokensAsJsonRef`) to avoid TDZ while keeping values fresh
+- Refs are assigned immediately after their source values are defined; callback body reads from `.current`
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L127-128, ~L211-256, ~L393, ~L733, ~L1773
+- **Learnings for future iterations:**
+  - When fixing stale closures in `useCallback`, check whether the missing deps are defined before or after the callback in the component body — adding a later-defined variable to a dep array causes TDZ at runtime (TypeScript won't catch it)
+  - The ref pattern (declare ref early, assign `.current` after the real value, read `.current` in the callback) is the correct workaround for deps that can't be hoisted above the callback
+---

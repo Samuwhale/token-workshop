@@ -464,3 +464,16 @@ Already up to date.
 
 --- Merging: useSetMergeSplit silently swallows all errors ---
 Already up to date.
+[main efb476b] chore(backlog): done – useSetMergeSplit silently swallows all errors
+ 7 files changed, 42 insertions(+), 13 deletions(-)
+
+## 2026-03-28 - useSetMergeSplit silently swallows all errors
+- Replaced 4 `catch { // ignore }` blocks with descriptive error toasts via `setErrorToast` — covers merge conflict check, merge confirm, split dialog open, and split confirm.
+- Added `setErrorToast` to the hook's params interface and wired it from App.tsx (which already had `errorToast` state and the `SuccessToast variant="error"` renderer).
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L13,28,95,149,176,233; `packages/figma-plugin/src/ui/App.tsx` ~L448
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  23 items remaining
+===============================================================
+  Claimed: Token badge text contrast fails WCAG AA — several badge colors (`#95a5a6` shadow, `#00cec9` duration, `#00b894` asset, `#1abc9c` number) have < 4.5:1 contrast ratio against the `#2c2c2c` dark background; lighten these text colors to meet AA minimum
+  Worktree: /tmp/backlog-63973-hf8u7e

@@ -123,6 +123,10 @@ export function TokenList({
   const createFormRef = useRef<HTMLDivElement>(null);
   const virtualListRef = useRef<HTMLDivElement>(null);
   const [virtualScrollTop, setVirtualScrollTop] = useState(0);
+  // Refs for values defined later in the component, used inside handleListKeyDown to avoid TDZ
+  const displayedLeafNodesRef = useRef<TokenNode[]>([]);
+  const copyTokensAsJsonRef = useRef<(nodes: TokenNode[]) => void>(() => {});
+
   // Refs for scroll-position preservation across filter changes (avoids TDZ issues with stale closures)
   const virtualScrollTopRef = useRef(0);
   const flatItemsRef = useRef<Array<{ node: { path: string } }>>([]);
@@ -234,18 +238,18 @@ export function TokenList({
     if (e.key === 'c' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
       if (selectMode && selectedPaths.size > 0) {
         e.preventDefault();
-        const nodes = displayedLeafNodes.filter(n => selectedPaths.has(n.path));
-        copyTokensAsJson(nodes);
+        const nodes = displayedLeafNodesRef.current.filter(n => selectedPaths.has(n.path));
+        copyTokensAsJsonRef.current(nodes);
         return;
       }
       // Single focused token row — copy that token
       if (!isTyping) {
         const focusedPath = (document.activeElement as HTMLElement)?.dataset?.tokenPath;
         if (focusedPath) {
-          const node = displayedLeafNodes.find(n => n.path === focusedPath);
+          const node = displayedLeafNodesRef.current.find(n => n.path === focusedPath);
           if (node) {
             e.preventDefault();
-            copyTokensAsJson([node]);
+            copyTokensAsJsonRef.current([node]);
             return;
           }
         }
@@ -387,7 +391,7 @@ export function TokenList({
         }
       }
     }
-  }, [showCreateForm, selectMode, handleOpenCreateSibling, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll]);
+  }, [showCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll]);
 
   // Expand ancestor groups when navigating to a highlighted token
   useEffect(() => {
@@ -725,6 +729,7 @@ export function TokenList({
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
+  displayedLeafNodesRef.current = displayedLeafNodes;
 
   // Pinned tokens from the displayed (filtered) set — shown in a dedicated section above the list
   const pinnedDisplayedNodes = useMemo(() => {
@@ -1816,6 +1821,7 @@ export function TokenList({
       setTimeout(() => setCopyFeedback(false), 1500);
     }).catch(() => {});
   }, []);
+  copyTokensAsJsonRef.current = copyTokensAsJson;
 
   const flattenTokens = (nodes: TokenNode[]): any[] => {
     const result: any[] = [];

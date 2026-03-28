@@ -441,3 +441,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenList `handleListKeyDown` has stale closure — `selectedPaths` and `displayedLeafNodes` are missing from the `useCallback` dependency array; Cmd+C copies stale selection
   Worktree: /tmp/backlog-63685-wbfMfL
+
+  ✓ done: TokenList handleListKeyDown has stale closure
+    Added selectedPaths and onCreateNew to useCallback deps; used mutable refs for displayedLeafNodes and copyTokensAsJson (defined later in component, avoiding TDZ) so Cmd+C always copies current selection.
+    31 turns · 163s · $0.8
+
+--- Merging: TokenList handleListKeyDown has stale closure ---
+Already up to date.
