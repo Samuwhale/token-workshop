@@ -436,3 +436,9 @@
   - `ConfirmModal.onConfirm` supports async — dismiss the modal by clearing state before awaiting the action to avoid stale UI
   - Wrapping a return in `<>...</>` fragment is needed when adding sibling portals (modals) alongside the main component tree
 ---
+
+## 2026-03-28 - code-pass
+- Areas explored: UI components (TokenEditor, TokenTableView, ThemeManager, ThemeCompare, ExportPanel, PublishPanel, BatchEditor, ColorPicker, GraphPanel, SelectionInspector), hooks (useFigmaSync, useGitSync, useGeneratorDialog, useFindReplace, useSetDuplicate, useStyleSync, useVariableSync, useResolvers, useLint, useWindowExpand, useTokenCreate, useRecentlyTouched, useSetMetadata), shared utilities (colorUtils, tokenListHelpers), plugin internals (fontLoading, styleSync, variableSync, git-sync conflict parsing)
+- Found 13 items — written to backlog-inbox.md
+- Notable: useFigmaSync.ts error handlers restore stale closure values (setSyncGroupPending(syncGroupPending) captures the value at callback creation, not the current state); useStyleSync pullRows Promise.all never checks res.ok so 4xx/5xx silently pass
+---

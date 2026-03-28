@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: PublishPanel sync actions have no confirmation step ---
 Already up to date.
+[main e3c73c2] chore(backlog): done – PublishPanel sync actions have no confirmation step
+ 11 files changed, 268 insertions(+), 28 deletions(-)
+ create mode 100755 scripts/backlog/validate.sh
+
+## 2026-03-28 - PublishPanel sync actions have no confirmation step
+- Added confirmation dialogs to all 5 destructive sync actions in PublishPanel: variable sync Apply, style sync Apply, git Pull, git Push, and git diff Apply
+- Used the existing `ConfirmModal` component with contextual summaries (push/pull counts for var/style sync, branch name for git push, file counts for diff apply)
+- Added `ConfirmAction` type and `confirmAction` state to gate execution behind user confirmation
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  47 items remaining
+===============================================================
+  Claimed: **Token list: keyboard shortcut hint on group rows** — the `n` key opens a sibling create form when a group is focused, but there's no visible hint of this. Add a small `n` hint label (similar to how IDE sidebars show `+` shortcut hints) that appears when a group row is focused via keyboard.
+  Worktree: /tmp/backlog-76772-PHp0r1

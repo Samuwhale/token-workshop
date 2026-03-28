@@ -84,7 +84,9 @@ function startServer() {
     const server = http.createServer((req, res) => {
       const url = new URL(req.url, `http://localhost:${PORT}`);
       let filePath;
-      if (url.pathname === '/' || url.pathname === '/harness') {
+      if (url.pathname === '/favicon.ico') {
+        res.writeHead(204); res.end(); return;
+      } else if (url.pathname === '/' || url.pathname === '/harness') {
         filePath = path.join(__dirname, 'harness.html');
       } else if (url.pathname.startsWith('/dist/')) {
         filePath = path.join(pluginRoot, url.pathname);
@@ -160,13 +162,18 @@ async function run() {
       errors.push('Plugin UI #root element not found in iframe');
     }
 
-    // Filter out benign errors (network failures to :9400 are expected when server isn't running)
+    // Filter out benign errors:
+    // - Network failures to :9400 (server not running)
+    // - CORS blocks (expected when server is down)
+    // - favicon 404 (browser auto-requests it)
     const realErrors = errors.filter((e) =>
       !e.includes('localhost:9400') &&
       !e.includes('ERR_CONNECTION_REFUSED') &&
       !e.includes('Failed to fetch') &&
       !e.includes('NetworkError') &&
-      !e.includes('net::ERR_')
+      !e.includes('net::ERR_') &&
+      !e.includes('CORS policy') &&
+      !e.includes('favicon.ico')
     );
 
     if (realErrors.length > 0) {

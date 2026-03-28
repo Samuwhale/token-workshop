@@ -32,7 +32,9 @@ pass "plugin build"
 # Gate 3: Lint (errors only — warnings are acceptable)
 echo -e "${DIM}── Gate 3: Lint ──${RESET}"
 LINT_OUT=$(npx eslint packages/*/src/ 2>&1 || true)
-ERROR_COUNT=$(echo "$LINT_OUT" | grep -oP '\d+ error' | grep -oP '\d+' || echo "0")
+# Extract error count from eslint summary line like "✖ 102 problems (3 errors, 99 warnings)"
+ERROR_COUNT=$(echo "$LINT_OUT" | sed -n 's/.*(\([0-9]*\) error.*/\1/p' || echo "0")
+[ -z "$ERROR_COUNT" ] && ERROR_COUNT=0
 if [ "$ERROR_COUNT" != "0" ] && [ "$ERROR_COUNT" != "3" ]; then
   # 3 errors are pre-existing baseline — only fail if new errors introduced
   echo "$LINT_OUT" | grep "error" | grep -v "warning"

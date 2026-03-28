@@ -38,7 +38,9 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   let filePath;
 
-  if (url.pathname === '/' || url.pathname === '/harness') {
+  if (url.pathname === '/favicon.ico') {
+    res.writeHead(204); res.end(); return;
+  } else if (url.pathname === '/' || url.pathname === '/harness') {
     filePath = path.join(__dirname, 'harness.html');
   } else if (url.pathname === '/dist/ui.html' || url.pathname.startsWith('/dist/')) {
     filePath = path.join(pluginRoot, url.pathname);
