@@ -452,3 +452,12 @@
   - `ConfirmModal` supports `children` prop for custom content — ideal for scrollable lists without needing a new component
   - The `wide` prop on `ConfirmModal` gives 360px width, good for path lists
 ---
+
+## 2026-03-29 - Alias autocomplete shows no indication when results are truncated
+- Added total match count tracking to the `useMemo` that computes filtered/scored entries
+- When `totalCount > MAX_RESULTS`, a footer line shows "Showing 24 of N matches — refine your search" with a top border separator
+- Files changed: `packages/figma-plugin/src/ui/components/AliasAutocomplete.tsx` ~L47-62 (totalCount tracking), ~L158-162 (truncation hint)
+- **Learnings for future iterations:**
+  - The `entries` memo already had all the data needed — just needed to return total count alongside the sliced array
+  - No test file exists for AliasAutocomplete; it's a pure UI component validated by build + headless UI gate
+---

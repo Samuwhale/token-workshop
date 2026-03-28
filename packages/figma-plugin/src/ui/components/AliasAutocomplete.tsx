@@ -44,12 +44,12 @@ export function AliasAutocomplete({
   const [activeIdx, setActiveIdx] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const entries = useMemo(() => {
+  const { entries, totalCount } = useMemo(() => {
     const q = query.trim();
     if (!q) {
-      return Object.entries(allTokensFlat)
-        .filter(([, entry]) => !filterType || entry.$type === filterType)
-        .slice(0, MAX_RESULTS);
+      const all = Object.entries(allTokensFlat)
+        .filter(([, entry]) => !filterType || entry.$type === filterType);
+      return { entries: all.slice(0, MAX_RESULTS), totalCount: all.length };
     }
     const scored: [string, TokenMapEntry, number][] = [];
     for (const [path, entry] of Object.entries(allTokensFlat)) {
@@ -58,7 +58,10 @@ export function AliasAutocomplete({
       if (score >= 0) scored.push([path, entry, score]);
     }
     scored.sort((a, b) => b[2] - a[2]);
-    return scored.slice(0, MAX_RESULTS).map(([p, e]) => [p, e] as [string, TokenMapEntry]);
+    return {
+      entries: scored.slice(0, MAX_RESULTS).map(([p, e]) => [p, e] as [string, TokenMapEntry]),
+      totalCount: scored.length,
+    };
   }, [allTokensFlat, query, filterType]);
 
   useEffect(() => {
@@ -152,6 +155,11 @@ export function AliasAutocomplete({
           )}
         </button>
       ))}
+      {totalCount > MAX_RESULTS && (
+        <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)] text-center">
+          Showing {MAX_RESULTS} of {totalCount} matches — refine your search
+        </div>
+      )}
     </div>
   );
 }
