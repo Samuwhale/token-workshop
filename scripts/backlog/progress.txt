@@ -348,3 +348,13 @@
   - Transform nodes have typed ports (e.g., lighten/darken use `color`, scale uses `number`) while generator/source/output nodes use `any` — type validation is most impactful for transform node connections
   - SVG `r` attribute transition doesn't work via inline `style.transition` — the glow ring as a separate circle is a better visual cue than trying to animate radius
 ---
+
+## 2026-03-29 - No keyboard shortcut for "New token"
+- The `N` shortcut already existed in TokenList.tsx (line 931) with full functionality: opens inline create form, pre-fills group from focused element, scrolls to form, auto-focuses name input
+- Added `N` shortcut (plus `/`, `↑↓`, `←→`) to KeyboardShortcutsModal so users can discover it
+- Added `title="Create a new token (N)"` tooltip to the "+ New Token" button for discoverability
+- Files changed: `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L48-54 (added shortcuts), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L3784 (button tooltip)
+- **Learnings for future iterations:**
+  - KeyboardShortcutsModal was missing several existing shortcuts (`N`, `/`, arrow keys) — always check the modal when adding keyboard shortcuts
+  - The `handleListKeyDown` handler at TokenList.tsx ~L864 guards letter-key shortcuts with `isTyping` check at line 915
+---

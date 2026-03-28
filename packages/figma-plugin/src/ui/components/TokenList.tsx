@@ -3846,6 +3846,7 @@ export function TokenList({
           <button
             onClick={() => { resetTableCreate(); onCreateNew ? onCreateNew() : setShowCreateForm(true); }}
             disabled={!connected}
+            title="Create a new token (N)"
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
           >
             + New Token
