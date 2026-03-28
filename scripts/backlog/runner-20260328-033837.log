@@ -354,3 +354,16 @@ Already up to date.
 
 --- Merging: substituteVars silently replaces unknown variable names with zero ---
 Already up to date.
+[main fa81870] chore(backlog): done – substituteVars silently replaces unknown variable names with zero
+ 6 files changed, 52 insertions(+), 11 deletions(-)
+
+## 2026-03-28 - `substituteVars` silently replaces unknown variable names with zero
+- After substituting known variables, `substituteVars` now scans the result for remaining word-like tokens (`/\b[a-zA-Z_]\w*\b/`) and throws a descriptive error listing unknown variable names and available variables. The caller in `generator-engine.ts` already catches formula errors and surfaces them as warnings, so users now see e.g. "Unknown variable in formula: multipler (available: base, index, multiplier, prev)" instead of silent zero substitution or a cryptic "Unexpected character" error.
+- Files changed: `packages/core/src/eval-expr.ts` ~L107
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  30 items remaining
+===============================================================
+  Claimed: `applyDiffChoices` continues to `git push` after commit failure — if the push-direction `git commit` fails (caught with `.catch(warn)`), execution continues to `git.push()` on line 141, pushing whatever was previously committed instead of the intended changes (`git-sync.ts` ~L140)
+  Worktree: /tmp/backlog-10278-fAw98J

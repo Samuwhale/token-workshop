@@ -428,3 +428,10 @@ Already up to date.
 ===============================================================
   Claimed: Generator Math.pow results are not validated for Infinity/NaN — `Math.pow(ratio, exponent)` in type scale and custom scale generators can produce `Infinity` (e.g. ratio=0 with negative exponent) or `NaN` (negative ratio with fractional exponent), which flow into token values unchecked (`generator-engine.ts` ~L88, ~L245)
   Worktree: /tmp/backlog-92630-W2EceQ
+
+  ✓ done: Generator Math.pow results are not validated for Infinity/NaN
+    Added sanitizeNumber helper that catches NaN/Infinity from Math.pow and evalExpr, replacing with fallback value + warning. Applied in runTypeScaleGenerator and runCustomScaleGenerator.
+    9 turns · 58s · $0.32
+
+--- Merging: Generator Math.pow results are not validated for Infinity/NaN ---
+Already up to date.

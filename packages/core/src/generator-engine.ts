@@ -21,6 +21,24 @@ import { hexToLab, labToHex, wcagLuminance } from './color-math.js';
 import { evalExpr, substituteVars } from './eval-expr.js';
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Clamp non-finite values (Infinity, -Infinity, NaN) to a fallback. */
+function sanitizeNumber(
+  value: number,
+  fallback: number,
+): { value: number; warning?: string } {
+  if (Number.isNaN(value)) {
+    return { value: fallback, warning: `Formula produced NaN — fell back to ${fallback}` };
+  }
+  if (!Number.isFinite(value)) {
+    return { value: fallback, warning: `Formula produced ${value > 0 ? 'Infinity' : '-Infinity'} — fell back to ${fallback}` };
+  }
+  return { value };
+}
+
+// ---------------------------------------------------------------------------
 // Color Ramp
 // ---------------------------------------------------------------------------
 
@@ -97,13 +115,15 @@ export function runTypeScaleGenerator(
   return steps.map(step => {
     const relativeExponent = step.exponent - baseExponent;
     const rawValue = sourceValue.value * Math.pow(ratio, relativeExponent);
-    const rounded = parseFloat(rawValue.toFixed(roundTo));
+    const { value: safeValue, warning } = sanitizeNumber(rawValue, sourceValue.value);
+    const rounded = parseFloat(safeValue.toFixed(roundTo));
 
     return {
       stepName: step.name,
       path: `${targetGroup}.${step.name}`,
       type: 'dimension',
       value: { value: rounded, unit: unit || sourceValue.unit },
+      ...(warning ? { warning } : {}),
     };
   });
 }
@@ -275,6 +295,9 @@ export function runCustomScaleGenerator(
     try {
       const substituted = substituteVars(formula, vars);
       computed = evalExpr(substituted);
+      const sanitized = sanitizeNumber(computed, base);
+      computed = sanitized.value;
+      if (sanitized.warning) warning = sanitized.warning;
     } catch (err) {
       computed = base;
       warning = `Formula error: ${err instanceof Error ? err.message : String(err)} — fell back to base (${base})`;

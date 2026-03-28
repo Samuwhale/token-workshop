@@ -432,3 +432,13 @@
 - **Learnings for future iterations:**
   - The `evalExpr` tokenizer already throws on non-numeric/non-operator characters, so unknown vars would eventually error — but the message was unhelpful ("Unexpected character: m"). Detecting unknowns in `substituteVars` gives much better diagnostics.
 ---
+
+## 2026-03-28 - Generator Math.pow results are not validated for Infinity/NaN
+- Added `sanitizeNumber` helper in `generator-engine.ts` that detects `NaN`, `Infinity`, and `-Infinity`, replacing them with a fallback value and attaching a warning string.
+- Applied sanitization in `runTypeScaleGenerator` after `Math.pow(ratio, relativeExponent)` — falls back to `sourceValue.value` with warning.
+- Applied sanitization in `runCustomScaleGenerator` after `evalExpr()` — falls back to `base` with warning (consistent with existing formula-error fallback).
+- Files changed: `packages/core/src/generator-engine.ts` ~L24 (helper), ~L115 (type scale), ~L293 (custom scale)
+- **Learnings for future iterations:**
+  - `GeneratedTokenResult` already has an optional `warning` field — use it for non-fatal computation issues rather than silently swallowing bad values.
+  - `NaN.toFixed(n)` returns the string `"NaN"` and `parseFloat("NaN")` returns `NaN`, so without sanitization the bad value propagates all the way to the UI.
+---
