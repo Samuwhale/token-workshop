@@ -325,3 +325,9 @@ Already up to date.
 
 --- Merging: SelectionInspector "apply to other layers" fast path ---
 Already up to date.
+[main 1bbc012] chore(backlog): done – SelectionInspector "apply to other layers" fast path
+ 12 files changed, 218 insertions(+), 8 deletions(-)
+
+================================================================
+  ★ Maintenance Pass: code
+================================================================

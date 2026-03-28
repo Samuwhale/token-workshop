@@ -257,3 +257,10 @@ Already up to date.
 ===============================================================
   Claimed: Analytics panel bulk "promote duplicates to alias" — when the duplicate-values view shows N tokens with the same raw value, add a "Promote to alias" button that creates a single canonical token and converts all duplicates to aliases pointing to it, reducing N tokens to 1+N aliases in one action
   Worktree: /tmp/backlog-9231-TZ0mae
+
+  ✓ done: Analytics panel bulk "promote duplicates to alias"
+    Added bulk "Promote all duplicates to aliases" button with confirmation dialog in Duplicate Colors section. Converts all non-canonical tokens across all duplicate groups to aliases in one action via parallel PATCH requests.
+    45 turns · 325s · $1.72
+
+--- Merging: Analytics panel bulk "promote duplicates to alias" ---
+Already up to date.

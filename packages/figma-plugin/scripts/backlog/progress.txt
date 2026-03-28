@@ -21,3 +21,11 @@
   - When two switch cases share the same string discriminant, only the first one executes — JS doesn't warn about duplicate cases. TypeScript also doesn't flag this because the duplicate interface names merge in the union.
   - Fixing a duplicate case often requires fixing the type system (duplicate interfaces) and the sender (UI postMessage calls) simultaneously.
 ---
+
+## 2026-03-28 - Analytics panel bulk "promote duplicates to alias"
+- Added bulk "Promote all duplicates to aliases" button to the Duplicate Colors section in AnalyticsPanel. When expanded and there are 2+ duplicate groups, a button at the top allows promoting all duplicates at once. Clicking shows a confirmation dialog listing each group's hex, count of tokens to convert, and the canonical target. On confirm, all non-canonical tokens across all groups are PATCHed to alias `{canonical.path}` in parallel, then the panel reloads. Uses existing per-group canonical selection (radio buttons + localStorage persistence).
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L75-77 (state), ~L380-407 (handler + count), ~L853-905 (bulk UI)
+- **Learnings for future iterations:**
+  - The validate.sh server tests fail in worktrees due to `@tokenmanager/core` not resolving through broken pnpm workspace symlinks — this is a pre-existing infrastructure issue, not caused by UI changes
+  - The existing per-group deduplication pattern (PATCH with `$value: "{canonical.path}"`) is the correct way to convert a token to an alias
+---

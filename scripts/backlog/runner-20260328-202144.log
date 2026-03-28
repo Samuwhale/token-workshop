@@ -280,3 +280,9 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager coverage gap "auto-fill from source" — the coverage view already highlights tokens missing in a theme option; add an "Auto-fill from source" action per uncovered token (and a "Fill all" bulk button) that copies the source-set value into the option as a new override token
   Worktree: /tmp/backlog-10054-deQnAk
+
+  ✓ done: ThemeManager coverage gap "auto-fill from source"
+    Added per-token Fill button (hover) and bulk Fill All button to coverage gaps view. Extended coverage computation to track missing alias refs and find fill values across all sets. Single fill via POST, bulk via batch endpoint with deduplication.
+    67 turns · 562s · $3.23
+
+--- Merging: ThemeManager coverage gap "auto-fill from source" ---

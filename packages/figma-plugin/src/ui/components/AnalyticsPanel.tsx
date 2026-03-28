@@ -74,6 +74,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const [showDuplicates, setShowDuplicates] = useState(false);
   const [deduplicating, setDeduplicating] = useState<string | null>(null); // hex key being deduplicated
   const [confirmDedup, setConfirmDedup] = useState<{ hex: string; canonical: { path: string; set: string }; others: { path: string; set: string }[] } | null>(null);
+  const [bulkDeduplicating, setBulkDeduplicating] = useState(false);
+  const [confirmBulkDedup, setConfirmBulkDedup] = useState(false);
   const [canonicalPick, setCanonicalPick] = useState<Record<string, string>>(() =>
     lsGetJson<Record<string, string>>(STORAGE_KEYS.ANALYTICS_CANONICAL, {})
   ); // hex → chosen canonical path
@@ -377,6 +379,38 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       setDeduplicating(null);
     }
   };
+
+  const handleBulkDeduplicate = async () => {
+    setBulkDeduplicating(true);
+    try {
+      const patches: Promise<Response>[] = [];
+      for (const [hex, tokens] of duplicateGroups) {
+        const chosenPath = canonicalPick[hex] ?? tokens[0].path;
+        const canonicalToken = tokens.find(t => t.path === chosenPath) ?? tokens[0];
+        const others = tokens.filter(t => t.path !== canonicalToken.path);
+        for (const { path, set } of others) {
+          patches.push(
+            fetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ $value: `{${canonicalToken.path}}` }),
+            })
+          );
+        }
+      }
+      await Promise.all(patches);
+      setBulkDeduplicating(false);
+      setConfirmBulkDedup(false);
+      setReloadKey(k => k + 1);
+    } catch {
+      setBulkDeduplicating(false);
+    }
+  };
+
+  const totalDuplicateAliases = duplicateGroups.reduce((sum, [hex, tokens]) => {
+    const chosenPath = canonicalPick[hex] ?? tokens[0]?.path;
+    return sum + tokens.filter(t => t.path !== chosenPath).length;
+  }, 0);
 
   return (
     <div className="flex flex-col gap-3 p-3">
@@ -849,6 +883,57 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
           </button>
           {showDuplicates && (
             <div className="divide-y divide-[var(--color-figma-border)]">
+              {/* Bulk promote all duplicates */}
+              {duplicateGroups.length > 1 && (
+                <div className="p-3 flex flex-col gap-2">
+                  {confirmBulkDedup ? (
+                    <div className="flex flex-col gap-1.5 p-2 rounded border border-[var(--color-figma-warning)]/40 bg-[var(--color-figma-warning)]/5">
+                      <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                        This will convert <span className="font-medium text-[var(--color-figma-text)]">{totalDuplicateAliases} token{totalDuplicateAliases !== 1 ? 's' : ''}</span> across {duplicateGroups.length} groups into aliases, each pointing to its group's canonical token.
+                      </p>
+                      <ul className="flex flex-col gap-0.5 pl-2 max-h-[120px] overflow-y-auto">
+                        {duplicateGroups.map(([hex, tokens]) => {
+                          const chosenPath = canonicalPick[hex] ?? tokens[0].path;
+                          const canonicalToken = tokens.find(t => t.path === chosenPath) ?? tokens[0];
+                          const others = tokens.filter(t => t.path !== canonicalToken.path);
+                          return (
+                            <li key={hex} className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-3 h-3 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: hex }} />
+                                <span className="font-mono">{hex}</span>
+                                <span>— {others.length} → <span className="font-mono text-[var(--color-figma-text)]">{`{${canonicalToken.path}}`}</span></span>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <div className="flex gap-2 mt-0.5">
+                        <button
+                          disabled={bulkDeduplicating}
+                          onClick={handleBulkDeduplicate}
+                          className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+                        >
+                          {bulkDeduplicating ? 'Promoting…' : `Confirm — promote ${totalDuplicateAliases} to aliases`}
+                        </button>
+                        <button
+                          onClick={() => setConfirmBulkDedup(false)}
+                          className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      disabled={bulkDeduplicating}
+                      onClick={() => setConfirmBulkDedup(true)}
+                      className="self-start text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40 transition-colors"
+                    >
+                      {bulkDeduplicating ? 'Promoting…' : `Promote all duplicates to aliases (${totalDuplicateAliases} tokens → ${duplicateGroups.length} canonicals)`}
+                    </button>
+                  )}
+                </div>
+              )}
               {duplicateGroups.map(([hex, tokens]) => {
                 const canonical = canonicalPick[hex] ?? tokens[0].path;
                 const canonicalToken = tokens.find(t => t.path === canonical) ?? tokens[0];
