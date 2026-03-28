@@ -438,3 +438,10 @@ Already up to date.
 ===============================================================
   Claimed: `consistencyScanner.ts` re-duplicates `hexToRgb` color conversion already in `plugin/colorUtils.ts` — the scanner defines its own `hexToRgb255` (line ~38) alongside a `colorDist` function; `colorUtils.ts` already has `rgbToHex` and related helpers; the scanner only imports `rgbToHex` and `parseDimValue` from colorUtils but not the inverse, causing a third independent hex-parsing implementation across the plugin sandbox (`packages/figma-plugin/src/plugin/consistencyScanner.ts` ~L38, compare to `packages/figma-plugin/src/plugin/colorUtils.ts`)
   Worktree: /tmp/backlog-9231-yV7Cu2
+
+  ✓ done: consistencyScanner.ts re-duplicates hexToRgb color conversion already in plugin/colorUtils.ts
+    Removed duplicate hexToRgb255 from consistencyScanner.ts; colorDist now uses parseHexRaw imported from colorUtils.ts with 0-1→0-255 scaling to preserve identical distance math
+    19 turns · 93s · $0.61
+
+--- Merging: consistencyScanner.ts re-duplicates hexToRgb color conversion already in plugin/colorUtils.ts ---
+Already up to date.

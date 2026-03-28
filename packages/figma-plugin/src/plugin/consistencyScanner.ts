@@ -1,7 +1,7 @@
 // Consistency scanner: find nodes with values close-but-not-exactly a token value
 import { ALL_BINDABLE_PROPERTIES } from '../shared/types.js';
 import { PLUGIN_DATA_NAMESPACE } from './constants.js';
-import { rgbToHex, parseDimValue } from './colorUtils.js';
+import { rgbToHex, parseDimValue, parseHexRaw } from './colorUtils.js';
 
 export interface ConsistencyMatch {
   nodeId: string;
@@ -32,21 +32,15 @@ const DIM_NEAR_MAX = 1;
 // Opacity / number: within 2% absolute
 const OPACITY_NEAR_MAX = 0.02;
 
-function hexToRgb255(hex: string): { r: number; g: number; b: number } | null {
-  const h = hex.replace('#', '');
-  if (h.length < 6) return null;
-  return {
-    r: parseInt(h.slice(0, 2), 16),
-    g: parseInt(h.slice(2, 4), 16),
-    b: parseInt(h.slice(4, 6), 16),
-  };
-}
-
 function colorDist(hex1: string, hex2: string): number {
-  const c1 = hexToRgb255(hex1);
-  const c2 = hexToRgb255(hex2);
+  const c1 = parseHexRaw(hex1.replace('#', ''));
+  const c2 = parseHexRaw(hex2.replace('#', ''));
   if (!c1 || !c2) return Infinity;
-  return Math.sqrt((c1.r - c2.r) ** 2 + (c1.g - c2.g) ** 2 + (c1.b - c2.b) ** 2);
+  // parseHexRaw returns 0-1 values; scale to 0-255 for Euclidean distance
+  const dr = (c1.rgb.r - c2.rgb.r) * 255;
+  const dg = (c1.rgb.g - c2.rgb.g) * 255;
+  const db = (c1.rgb.b - c2.rgb.b) * 255;
+  return Math.sqrt(dr ** 2 + dg ** 2 + db ** 2);
 }
 
 export async function scanConsistency(
