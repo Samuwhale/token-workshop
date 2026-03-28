@@ -43,7 +43,12 @@ export async function applyVariables(tokens: any[], collectionMap: Record<string
     // Load all local variables once to avoid redundant async calls per token
     const localVariables = await figma.variables.getLocalVariablesAsync();
 
-    for (const token of tokens) {
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      // Emit incremental progress so the UI can show "Syncing N / M variables…"
+      if (i % 5 === 0 || i === tokens.length - 1) {
+        figma.ui.postMessage({ type: 'variable-sync-progress', current: i + 1, total: tokens.length, correlationId });
+      }
       const variableType = mapTokenTypeToVariableType(token.$type);
       if (!variableType) continue;
 

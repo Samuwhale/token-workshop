@@ -74,3 +74,10 @@ Already up to date.
 ===============================================================
   Claimed: Variable/style sync shows no per-item progress during large syncs — `useVariableSync` and `useStyleSync` only toggle a loading spinner; for syncs involving hundreds of tokens the panel sits blank for many seconds; emit incremental progress counts from the plugin sandbox message handler and display "Syncing N / M variables…" in the PublishPanel
   Worktree: /tmp/backlog-17062-zaWt7e
+
+  ✓ done: Variable/style sync shows no per-item progress during large syncs
+    Added incremental progress messages from plugin sandbox (every 5 tokens) and SyncProgress state in both hooks; PublishPanel now shows "Syncing N / M…" during variable and style sync operations
+    36 turns · 244s · $1.52
+
+--- Merging: Variable/style sync shows no per-item progress during large syncs ---
+Already up to date.

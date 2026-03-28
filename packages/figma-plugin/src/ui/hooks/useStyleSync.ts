@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { useFigmaMessage } from './useFigmaMessage';
+import type { SyncProgress } from './useVariableSync';
 
 const STYLE_TYPES = new Set(['color', 'typography', 'shadow']);
 
@@ -53,6 +54,7 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
   const [styleSyncing, setStyleSyncing] = useState(false);
   const [styleError, setStyleError] = useState<string | null>(null);
   const [styleChecked, setStyleChecked] = useState(false);
+  const [styleProgress, setStyleProgress] = useState<SyncProgress | null>(null);
 
   const sendStyleRead = useFigmaMessage<any[]>({
     responseType: 'styles-read',
@@ -67,6 +69,18 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     timeout: 15000,
     extractResponse: extractStyleApplyResult,
   });
+
+  // Listen for incremental progress messages from the plugin sandbox
+  useEffect(() => {
+    const handler = (ev: MessageEvent) => {
+      const msg = ev.data?.pluginMessage;
+      if (msg?.type === 'style-sync-progress') {
+        setStyleProgress({ current: msg.current as number, total: msg.total as number });
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const computeStyleDiff = useCallback(async () => {
     if (!activeSet) return;
@@ -124,9 +138,11 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     const rowsSnapshot = styleRows;
     setStyleSyncing(true);
     setStyleError(null);
+    setStyleProgress(null);
     try {
       const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
       const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
+      const totalOps = pushRows.length + pullRows.length;
 
       let pushResult: { count: number; total: number; failures: { path: string; error: string }[] } | null = null;
 
@@ -141,6 +157,8 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
 
       const pullFailures: { path: string; error: string }[] = [];
       if (pullRows.length > 0) {
+        let pullDone = 0;
+        const pullBase = pushRows.length;
         const results = await Promise.all(pullRows.map(async (r) => {
           try {
             await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
@@ -152,6 +170,9 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
           } catch (err) {
             const msg = err instanceof ApiError ? `${err.status}: ${err.message}` : (err instanceof Error ? err.message : String(err));
             return { path: r.path, error: msg };
+          } finally {
+            pullDone++;
+            setStyleProgress({ current: pullBase + pullDone, total: totalOps });
           }
         }));
         for (const f of results) {
@@ -181,6 +202,7 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
       setStyleError(describeError(err, 'Apply style sync'));
     } finally {
       setStyleSyncing(false);
+      setStyleProgress(null);
     }
   }, [serverUrl, activeSet, styleRows, styleDirs, sendStyleApply]);
 
@@ -194,6 +216,7 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     setStyleDirs,
     styleLoading,
     styleSyncing,
+    styleProgress,
     styleError,
     styleChecked,
     computeStyleDiff,

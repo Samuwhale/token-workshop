@@ -1,8 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
 import { useFigmaMessage } from './useFigmaMessage';
+
+export interface SyncProgress {
+  current: number;
+  total: number;
+}
 
 export interface VarDiffRow {
   path: string;
@@ -30,6 +35,8 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
   const [varSyncing, setVarSyncing] = useState(false);
   const [varError, setVarError] = useState<string | null>(null);
   const [varChecked, setVarChecked] = useState(false);
+  const [varProgress, setVarProgress] = useState<SyncProgress | null>(null);
+  const varProgressRef = useRef<SyncProgress | null>(null);
 
   const sendReadVariables = useFigmaMessage<any[]>({
     responseType: 'variables-read',
@@ -41,6 +48,20 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
     () => sendReadVariables('read-variables'),
     [sendReadVariables],
   );
+
+  // Listen for incremental progress messages from the plugin sandbox
+  useEffect(() => {
+    const handler = (ev: MessageEvent) => {
+      const msg = ev.data?.pluginMessage;
+      if (msg?.type === 'variable-sync-progress') {
+        const p = { current: msg.current as number, total: msg.total as number };
+        varProgressRef.current = p;
+        setVarProgress(p);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
   const computeVarDiff = useCallback(async () => {
     if (!activeSet) return;
@@ -99,11 +120,15 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
     const rowsSnapshot = varRows;
     setVarSyncing(true);
     setVarError(null);
+    setVarProgress(null);
+    varProgressRef.current = null;
     try {
       const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
       const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
+      const totalOps = pushRows.length + pullRows.length;
 
       if (pushRows.length > 0) {
+        // Progress for push operations is reported by the plugin sandbox
         const tokens = pushRows.map(r => ({
           path: r.path,
           $type: r.localType ?? 'string',
@@ -115,6 +140,8 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
 
       const pullFailures: { path: string; error: string }[] = [];
       if (pullRows.length > 0) {
+        let pullDone = 0;
+        const pullBase = pushRows.length; // offset by push count
         const results = await Promise.all(pullRows.map(async (r) => {
           try {
             await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
@@ -126,6 +153,9 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
           } catch (err) {
             const msg = err instanceof ApiError ? `${err.status}: ${err.message}` : (err instanceof Error ? err.message : String(err));
             return { path: r.path, error: msg };
+          } finally {
+            pullDone++;
+            setVarProgress({ current: pullBase + pullDone, total: totalOps });
           }
         }));
         for (const f of results) {
@@ -147,6 +177,8 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
       setVarError(describeError(err, 'Apply variable sync'));
     } finally {
       setVarSyncing(false);
+      setVarProgress(null);
+      varProgressRef.current = null;
     }
   }, [serverUrl, activeSet, varRows, varDirs, collectionMap, modeMap]);
 
@@ -160,6 +192,7 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
     setVarDirs,
     varLoading,
     varSyncing,
+    varProgress,
     varError,
     varChecked,
     computeVarDiff,

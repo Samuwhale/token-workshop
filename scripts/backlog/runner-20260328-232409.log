@@ -36,3 +36,17 @@ Already up to date.
 
 --- Merging: No bulk-fill action for tokens missing from multiple theme sets ---
 Already up to date.
+[main 66225d4] chore(backlog): done – No bulk-fill action for tokens missing from multiple theme sets
+ 6 files changed, 124 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - No bulk-fill action for tokens missing from multiple theme sets
+- Added `handleAutoFillAllOptions` function that fills coverage gaps across ALL options in a dimension in one action, batching per-target-set and de-duplicating by missingRef
+- Added cross-option fill banner that appears between option tabs and option content when multiple options have gaps, showing total gap count and a "Fill all options (N)" button
+- Added gap count badges on option tab buttons so users can see at a glance which options have unresolved tokens without clicking each tab
+
+===============================================================
+  Iteration 3  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Waiting for work…

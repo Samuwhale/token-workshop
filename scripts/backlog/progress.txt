@@ -527,3 +527,14 @@
   - The coverage system already tracks per-option fillable items with `fillValue`/`fillType` and `getOverrideSet`; cross-option features can reuse these helpers directly
   - Different options may target different override sets, so cross-option batch fill must group by target set and fire parallel requests
 ---
+
+## 2026-03-28 - Variable/style sync shows no per-item progress during large syncs
+- Added incremental progress reporting from plugin sandbox: `variable-sync-progress` and `style-sync-progress` messages emitted every 5 tokens during push operations in `variableSync.ts` and `styleSync.ts`
+- Added `SyncProgress` state (`{current, total}`) to both `useVariableSync` and `useStyleSync` hooks, listening for sandbox progress messages and tracking pull progress locally
+- Updated PublishPanel apply buttons to show "Syncing N / M…" instead of generic "Syncing…" during both push and pull operations
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L46, `packages/figma-plugin/src/plugin/styleSync.ts` ~L60, `packages/figma-plugin/src/ui/hooks/useVariableSync.ts` ~L1-190, `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` ~L1-220, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L513,L656
+- **Learnings for future iterations:**
+  - Plugin sandbox messages are fire-and-forget (no correlationId matching needed for progress), but using correlationId is still good practice for filtering when multiple syncs could overlap
+  - Emitting progress every 5th iteration (`i % 5 === 0`) avoids flooding the message bridge while still giving responsive feedback
+  - Pull progress is tracked locally in the hooks since PATCH requests are async — increment a counter in `finally` blocks of Promise.all callbacks
+---

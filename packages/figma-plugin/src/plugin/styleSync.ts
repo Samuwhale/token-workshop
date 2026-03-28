@@ -57,7 +57,12 @@ export async function applyStyles(tokens: StyleToken[], correlationId?: string) 
 
   let successCount = 0;
   const failures: { path: string; error: string }[] = [];
-  for (const token of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    // Emit incremental progress so the UI can show "Syncing N / M styles…"
+    if (i % 5 === 0 || i === tokens.length - 1) {
+      figma.ui.postMessage({ type: 'style-sync-progress', current: i + 1, total: tokens.length, correlationId });
+    }
     try {
       if (token.$type === 'color') {
         applyPaintStyle(token, cache);

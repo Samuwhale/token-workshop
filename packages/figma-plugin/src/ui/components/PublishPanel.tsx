@@ -510,7 +510,11 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       disabled={varSync.varSyncing || varSync.varSyncCount === 0}
                       className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
-                      {varSync.varSyncing ? 'Syncing\u2026' : `Apply ${varSync.varSyncCount > 0 ? varSync.varSyncCount + ' change' + (varSync.varSyncCount !== 1 ? 's' : '') : ''}`}
+                      {varSync.varSyncing
+                        ? (varSync.varProgress
+                          ? `Syncing ${varSync.varProgress.current} / ${varSync.varProgress.total}\u2026`
+                          : 'Syncing\u2026')
+                        : `Apply ${varSync.varSyncCount > 0 ? varSync.varSyncCount + ' change' + (varSync.varSyncCount !== 1 ? 's' : '') : ''}`}
                     </button>
                   </span>
                 </div>
@@ -653,7 +657,11 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       disabled={styleSync.styleSyncing || styleSync.styleSyncCount === 0}
                       className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
-                      {styleSync.styleSyncing ? 'Syncing\u2026' : `Apply ${styleSync.styleSyncCount > 0 ? styleSync.styleSyncCount + ' change' + (styleSync.styleSyncCount !== 1 ? 's' : '') : ''}`}
+                      {styleSync.styleSyncing
+                        ? (styleSync.styleProgress
+                          ? `Syncing ${styleSync.styleProgress.current} / ${styleSync.styleProgress.total}\u2026`
+                          : 'Syncing\u2026')
+                        : `Apply ${styleSync.styleSyncCount > 0 ? styleSync.styleSyncCount + ' change' + (styleSync.styleSyncCount !== 1 ? 's' : '') : ''}`}
                     </button>
                   </span>
                 </div>
