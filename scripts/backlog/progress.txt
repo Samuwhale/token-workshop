@@ -495,3 +495,23 @@
   - ColorRampGenerator already had all inputs properly labeled via wrapping `<label>` elements
   - 192 aria-label instances in built output confirms thorough coverage
 ---
+
+## 2026-03-28 - No `aria-live` regions for dynamic status messages
+- Added `role="alert"` to all dynamically-rendered error messages (delete errors, validation errors, sync errors) and `role="status"` / `aria-live="polite"` to success/status feedback (copy feedback, apply result, import success, sync progress). Toasts (SuccessToast, UndoToast) already had `role="status" aria-live="polite"`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` — copy feedback (`aria-live="polite"` wrapper), delete error banner (`role="alert"`), apply result (`role="status" aria-live="polite"`)
+  - `packages/figma-plugin/src/ui/components/ThemeManager.tsx` — main error banner + createDimError, renameError, addOptionErrors, renameOptionError (all `role="alert"`)
+  - `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` — copy feedback (`aria-live="polite"` wrapper)
+  - `packages/figma-plugin/src/ui/components/TokenEditor.tsx` — editor error (`role="alert"`)
+  - `packages/figma-plugin/src/ui/components/TokenListModals.tsx` — newGroupError, extractError, frRegexError, frError (all `role="alert"`)
+  - `packages/figma-plugin/src/ui/components/ImportPanel.tsx` — success message (`role="status" aria-live="polite"`)
+  - `packages/figma-plugin/src/ui/components/ExportPanel.tsx` — export error (`role="alert"`)
+  - `packages/figma-plugin/src/ui/components/PublishPanel.tsx` — readinessError, varSync error, styleSync error, git error, export error (all `role="alert"`)
+  - `packages/figma-plugin/src/ui/components/SelectionInspector.tsx` — sync status region wrapped in `aria-live="polite"`, sync error gets `role="alert"`
+  - `packages/figma-plugin/src/ui/components/generators/OpacityScaleGenerator.tsx` — customError (`role="alert"`)
+  - `packages/figma-plugin/src/ui/components/generators/SpacingScaleGenerator.tsx` — customError (`role="alert"`)
+- **Learnings for future iterations:**
+  - `role="alert"` implies `aria-live="assertive"` — use for errors. `role="status"` implies `aria-live="polite"` — use for success/info.
+  - For conditionally rendered elements, modern screen readers announce `role="alert"` elements even when inserted into the DOM (not just content changes). For ternary chains that toggle between multiple states, wrap the whole region in a persistent `aria-live="polite"` container.
+  - SuccessToast and UndoToast already had proper ARIA attributes — always check existing components before adding.
+---

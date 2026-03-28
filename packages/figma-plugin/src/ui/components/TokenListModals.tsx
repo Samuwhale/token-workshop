@@ -210,7 +210,7 @@ export function TokenListModals(props: TokenListModalsProps) {
               aria-label="New group name"
               autoFocus
             />
-            {newGroupError && <p className="text-[10px] text-[var(--color-figma-error)]">{newGroupError}</p>}
+            {newGroupError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{newGroupError}</p>}
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); }}
@@ -378,7 +378,7 @@ export function TokenListModals(props: TokenListModalsProps) {
                 )}
 
                 {extractError && (
-                  <div className="text-[10px] text-[var(--color-figma-error)]">{extractError}</div>
+                  <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{extractError}</div>
                 )}
               </div>
 
@@ -444,7 +444,7 @@ export function TokenListModals(props: TokenListModalsProps) {
 
               {/* Preview */}
               {frFind && frIsRegex && frRegexError && (
-                <div className="text-[10px] text-[var(--color-figma-error)]">Invalid regex: {frRegexError}</div>
+                <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">Invalid regex: {frRegexError}</div>
               )}
               {frFind && !frRegexError && frPreview.length === 0 && (
                 <div className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No token paths match.</div>
@@ -488,7 +488,7 @@ export function TokenListModals(props: TokenListModalsProps) {
                 </div>
               )}
 
-              {frError && <div className="text-[10px] text-[var(--color-figma-error)]">{frError}</div>}
+              {frError && <div role="alert" className="text-[10px] text-[var(--color-figma-error)]">{frError}</div>}
               {!frError && frReplace === '' && frPreview.length > 0 && (
                 <div className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
                   ⚠ Empty replacement will delete the matched segment from token paths. This may break references.

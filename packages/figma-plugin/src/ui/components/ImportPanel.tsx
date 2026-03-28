@@ -722,7 +722,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               <circle cx="10" cy="10" r="9" stroke="var(--color-figma-success)" strokeWidth="1.5" />
               <path d="M6 10l3 3 5-5" stroke="var(--color-figma-success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <div className="text-[11px] text-[var(--color-figma-success)] font-medium text-center">{successMessage}</div>
+            <div role="status" aria-live="polite" className="text-[11px] text-[var(--color-figma-success)] font-medium text-center">{successMessage}</div>
             {failedImportPaths.length > 0 && (
               <div className="w-full mt-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] p-2">
                 <div className="flex items-center gap-3 mb-1.5">

@@ -2188,7 +2188,7 @@ export function TokenList({
                   }}
                   className="px-2 py-1 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 >
-                  {copyFeedback ? 'Copied!' : 'Copy JSON'}
+                  <span aria-live="polite">{copyFeedback ? 'Copied!' : 'Copy JSON'}</span>
                 </button>
                 <button
                   onClick={requestBulkDelete}
@@ -2644,7 +2644,7 @@ export function TokenList({
       </div>
       {/* Delete error banner */}
       {deleteError && (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)] text-white text-[11px]">
+        <div role="alert" className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)] text-white text-[11px]">
           <span className="flex-1">Delete failed: {deleteError}</span>
           <button onClick={() => setDeleteError(null)} aria-label="Dismiss error" className="opacity-70 hover:opacity-100 font-bold text-[13px] leading-none">&times;</button>
         </div>
@@ -3262,7 +3262,7 @@ export function TokenList({
             New Group
           </button>
           {applyResult && (
-            <span className="text-[10px] text-[var(--color-figma-accent)] ml-auto shrink-0">
+            <span role="status" aria-live="polite" className="text-[10px] text-[var(--color-figma-accent)] ml-auto shrink-0">
               Applied {applyResult.count} {applyResult.type === 'variables' ? 'variables' : 'styles'}
             </span>
           )}

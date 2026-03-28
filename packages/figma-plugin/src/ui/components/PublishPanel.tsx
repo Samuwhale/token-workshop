@@ -316,7 +316,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         </div>
 
         {readinessError && (
-          <div className="mt-1.5 text-[10px] text-[var(--color-figma-error)]">{readinessError}</div>
+          <div role="alert" className="mt-1.5 text-[10px] text-[var(--color-figma-error)]">{readinessError}</div>
         )}
 
         {readinessChecks.length > 0 && (
@@ -396,7 +396,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           </div>
 
           {varSync.varError && (
-            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{varSync.varError}</div>
+            <div role="alert" className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{varSync.varError}</div>
           )}
 
           {varSync.varRows.length > 0 && (() => {
@@ -513,7 +513,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           </div>
 
           {styleSync.styleError && (
-            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{styleSync.styleError}</div>
+            <div role="alert" className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{styleSync.styleError}</div>
           )}
 
           {styleSync.styleRows.length > 0 && (() => {
@@ -617,7 +617,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           }
         >
           {git.gitError && (
-            <div className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
+            <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
               {git.gitError}
             </div>
           )}
@@ -1070,7 +1070,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             </div>
 
             {exportError && (
-              <div className="flex items-start gap-2 px-2.5 py-2 rounded-md bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
+              <div role="alert" className="flex items-start gap-2 px-2.5 py-2 rounded-md bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-px" aria-hidden="true">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="15" y1="9" x2="9" y2="15" />

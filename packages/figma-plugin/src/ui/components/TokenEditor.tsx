@@ -664,7 +664,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       {/* Editor body */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-3">
         {error && (
-          <div className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] break-words max-h-16 overflow-auto">
+          <div role="alert" className="px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] break-words max-h-16 overflow-auto">
             {error}
           </div>
         )}

@@ -749,7 +749,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   return (
     <div className="flex flex-col h-full">
       {error && (
-        <div className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] flex items-center justify-between">
+        <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] flex items-center justify-between">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="ml-2 text-[var(--color-figma-error)] hover:opacity-70 flex-shrink-0">
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -886,7 +886,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             <button onClick={executeRenameDim} disabled={!renameValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
                             <button onClick={cancelRenameDim} className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
                           </div>
-                          {renameError && <p className="text-[9px] text-[var(--color-figma-error)]">{renameError}</p>}
+                          {renameError && <p role="alert" className="text-[9px] text-[var(--color-figma-error)]">{renameError}</p>}
                         </div>
                       ) : (
                         <>
@@ -970,7 +970,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             <button onClick={() => { setShowAddOption(prev => ({ ...prev, [dim.id]: false })); setNewOptionNames(prev => ({ ...prev, [dim.id]: '' })); }} className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
                           )}
                         </div>
-                        {addOptionErrors[dim.id] && <p className="text-[9px] text-[var(--color-figma-error)] mt-1">{addOptionErrors[dim.id]}</p>}
+                        {addOptionErrors[dim.id] && <p role="alert" className="text-[9px] text-[var(--color-figma-error)] mt-1">{addOptionErrors[dim.id]}</p>}
                       </div>
                     )}
 
@@ -993,7 +993,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 <button onClick={executeRenameOption} disabled={!renameOptionValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[9px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
                                 <button onClick={cancelRenameOption} className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
                               </div>
-                              {renameOptionError && <p className="text-[9px] text-[var(--color-figma-error)]">{renameOptionError}</p>}
+                              {renameOptionError && <p role="alert" className="text-[9px] text-[var(--color-figma-error)]">{renameOptionError}</p>}
                             </div>
                           ) : (
                             <>
@@ -1243,7 +1243,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               onKeyDown={e => e.key === 'Enter' && handleCreateDimension()}
               autoFocus
             />
-            {createDimError && <p className="text-[10px] text-[var(--color-figma-error)]">{createDimError}</p>}
+            {createDimError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{createDimError}</p>}
             <div className="flex gap-2">
               <button
                 onClick={handleCreateDimension}

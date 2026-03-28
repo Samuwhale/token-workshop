@@ -124,7 +124,7 @@ export function SpacingScaleConfigEditor({ config, onChange }: { config: Spacing
           <div className="mt-1.5">
             <textarea value={customText} onChange={e => setCustomText(e.target.value)} placeholder="0.5, 1, 1.5, 2, 3, 4, ..." rows={2}
               className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] resize-none font-mono" />
-            {customError && <p className="text-[10px] text-[var(--color-figma-error)] mt-0.5">{customError}</p>}
+            {customError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)] mt-0.5">{customError}</p>}
             <button onClick={handleCustomCommit} className="mt-1 px-2 py-1 rounded bg-[var(--color-figma-accent)] text-white text-[10px] hover:bg-[var(--color-figma-accent-hover)]">Apply</button>
           </div>
         )}

@@ -274,7 +274,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
                 title="Copy diff as tab-separated text"
                 className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                {copyFeedback ? 'Copied!' : 'Copy'}
+                <span aria-live="polite">{copyFeedback ? 'Copied!' : 'Copy'}</span>
               </button>
               <button
                 onClick={handleExportCsv}

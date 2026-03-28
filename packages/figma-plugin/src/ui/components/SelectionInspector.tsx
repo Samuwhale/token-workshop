@@ -534,12 +534,12 @@ export function SelectionInspector({
         >
           Deep
         </button>
-        {syncing && syncProgress ? (
+        <span aria-live="polite">{syncing && syncProgress ? (
           <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
             Syncing... {syncProgress.processed}/{syncProgress.total} layers
           </span>
         ) : syncError ? (
-          <span className="text-[9px] text-[var(--color-figma-error)]" title={syncError}>
+          <span role="alert" className="text-[9px] text-[var(--color-figma-error)]" title={syncError}>
             Sync failed — {syncError}
           </span>
         ) : syncResult ? (
@@ -577,7 +577,7 @@ export function SelectionInspector({
               </button>
             )}
           </>
-        )}
+        )}</span>
         {/* Extract tokens from selection button */}
         {connected && activeSet && (
           <button
