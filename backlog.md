@@ -26,7 +26,7 @@
 - [~] Search doesn't highlight matched substrings — filtering narrows the list but doesn't visually mark which part of the path or value matched, making it unclear why a result appeared
 - [~] No breadcrumb trail for deep token trees — once expanded 4+ levels, users lose spatial context; show a sticky breadcrumb (e.g. `colors › brand › primary`) when scrolled deep into a group
 - [~] No drag-to-reorder tokens within the same group — tokens can be dragged between groups but sort order within a group is not user-controllable
-- [ ] No bulk delete in multi-select mode — multi-select supports batch edit but not batch delete; removing a deprecated set of tokens requires deleting one at a time
+- [~] No bulk delete in multi-select mode — multi-select supports batch edit but not batch delete; removing a deprecated set of tokens requires deleting one at a time
 
 ### UX
 

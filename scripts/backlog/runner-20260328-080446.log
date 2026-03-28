@@ -42,3 +42,24 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 50)
+[main 051cfef] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 201 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Flat token map silently shadows tokens when two sets define the same path
+- Changed `flatTokens` from `Map<string, single_entry>` to `Map<string, Array<entries>>` so all sets' versions of a token are preserved.
+- Added `crossSetDependents` map built by scanning ALL token entries across ALL sets, used by `getDependents()` for accurate delete-safety checks.
+- Updated `rebuildFlatTokens` to push entries into arrays instead of overwriting.
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  91 items remaining
+===============================================================
+  Claimed: No bulk delete in multi-select mode — multi-select supports batch edit but not batch delete; removing a deprecated set of tokens requires deleting one at a time
+  Worktree: /tmp/backlog-63685-NdPxdg
+
+  ✓ done: No bulk delete in multi-select mode
+    stale — already done. Bulk delete is fully implemented: requestBulkDelete callback, Delete N toolbar button, confirmation dialog, and POST /api/tokens/:set/bulk-delete server endpoint all exist and are wired up.
+    10 turns · 109s · $0.42
+
+--- Merging: No bulk delete in multi-select mode ---
+Already up to date.

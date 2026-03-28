@@ -341,3 +341,10 @@
   - Cross-set dependency tracking must be separate from the resolver (which needs one token per path for value resolution) — build a parallel dependents map by scanning all entries.
   - Changing `getAllFlatTokens` from Record to Array is a breaking API change but necessary since JS objects can't have duplicate keys.
 ---
+- Updated `lint.ts` consumers (`lintTokens`, `validateAllTokens`) for new `getAllFlatTokens` return type.
+- Files changed: `packages/server/src/services/token-store.ts` ~L34 (data structure), ~L170 (rebuild), ~L203 (resolver), ~L213 (crossSetDependents), ~L260 (buildDependencyMap), ~L745 (findTokensByGeneratorId), ~L795 (resolveTokens/resolveToken), ~L855 (getFlatTokensForSet/getAllFlatTokens), ~L885 (searchTokens), ~L950 (getDependents); `packages/server/src/services/lint.ts` ~L198, ~L412
+- **Learnings for future iterations:**
+  - When a Map is keyed by path but needs to store entries from multiple sets, use `Map<string, Array<entry>>` and push rather than overwrite.
+  - Cross-set dependency tracking must be separate from the resolver (which needs one token per path for value resolution) — build a parallel dependents map by scanning all entries.
+  - Changing `getAllFlatTokens` from Record to Array is a breaking API change but necessary since JS objects can't have duplicate keys.
+---
