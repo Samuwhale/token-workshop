@@ -503,3 +503,15 @@
   - Worktree node_modules can have broken symlinks; `npx pnpm install` fixes them
   - Core dist must be rebuilt after editing core src before server tests will pass
 ---
+
+## 2026-03-28 - selectionHandling.ts uses `as any` to access Figma typography value properties
+- Removed 5 `as any` casts on lines 484-493 in the typography extraction block
+- Replaced `(lh as any).unit` / `(lh as any).value` with direct discriminated union narrowing: check `lh.unit === 'PIXELS'` or `lh.unit === 'PERCENT'`, then access `lh.value` (TypeScript narrows to the variant with `.value` after the unit check)
+- Removed redundant `typeof lh === 'object'` guard — after `lh !== figma.mixed`, LineHeight is always an object
+- Same approach for `letterSpacing`: removed `typeof ls === 'object'` and direct `ls.unit` / `ls.value` access without cast
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L483-494
+- **Learnings for future iterations:**
+  - Figma's `LineHeight` is a discriminated union on `.unit` (`'PIXELS' | 'PERCENT' | 'AUTO'`); the AUTO variant has no `.value`. Checking `.unit === 'PIXELS'` narrows to the variant with `.value`, so no cast needed.
+  - `LetterSpacing` always has `.unit` and `.value`, so direct access is always safe after `!== figma.mixed`.
+  - `typeof x === 'object'` is redundant after a `!== figma.mixed` check for lineHeight/letterSpacing — the only non-object value from Figma for these props is `figma.mixed`.
+---

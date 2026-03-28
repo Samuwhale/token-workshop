@@ -481,16 +481,16 @@ export async function extractTokensFromSelection() {
           fontSize: { value: fontSize, unit: 'px' },
         };
         const lh = textNode.lineHeight;
-        if (lh !== figma.mixed && typeof lh === 'object') {
-          if ((lh as any).unit === 'PIXELS') {
-            typoValue.lineHeight = { value: (lh as any).value, unit: 'px' };
-          } else if ((lh as any).unit === 'PERCENT') {
-            typoValue.lineHeight = (lh as any).value / 100;
+        if (lh !== figma.mixed) {
+          if (lh.unit === 'PIXELS') {
+            typoValue.lineHeight = { value: lh.value, unit: 'px' };
+          } else if (lh.unit === 'PERCENT') {
+            typoValue.lineHeight = lh.value / 100;
           }
         }
         const ls = textNode.letterSpacing;
-        if (ls !== figma.mixed && typeof ls === 'object' && (ls as any).unit === 'PIXELS' && (ls as any).value !== 0) {
-          typoValue.letterSpacing = { value: (ls as any).value, unit: 'px' };
+        if (ls !== figma.mixed && ls.unit === 'PIXELS' && ls.value !== 0) {
+          typoValue.letterSpacing = { value: ls.value, unit: 'px' };
         }
         entries.push({
           property: 'typography',
