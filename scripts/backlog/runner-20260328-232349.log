@@ -16,3 +16,31 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 
 --- Merging: Token create form: type-specific value field placeholders and hints ---
 Already up to date.
+[main 91c9151] chore(backlog): done – Token create form: type-specific value field placeholders and hints
+ 8 files changed, 67 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - Token create form: type-specific value field placeholders and hints
+- Added `valuePlaceholderForType()` function mapping each DTCG token type to contextual placeholder text
+- Replaced static "Value (optional, e.g. #FF0000, 16px)" with dynamic placeholder that updates when type changes
+- Covers all 13 types: color, dimension, typography, shadow, border, gradient, duration, fontFamily, fontWeight, strokeStyle, number, string, boolean
+
+===============================================================
+  Iteration 2  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Waiting for work…
+
+===============================================================
+  Iteration 3  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Waiting for work…
+
+===============================================================
+  Iteration 4  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Waiting for work…
