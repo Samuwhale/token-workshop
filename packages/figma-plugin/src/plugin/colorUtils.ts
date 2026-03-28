@@ -142,6 +142,10 @@ export function rgbToHex(color: RGB | RGBA, alpha = 1): string {
 
 export function parseDimValue(dim: any): number {
   if (typeof dim === 'number') return dim;
+  if (typeof dim === 'string') {
+    const parsed = parseFloat(dim);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
   if (typeof dim === 'object' && dim.value != null) return dim.value;
   return 0;
 }

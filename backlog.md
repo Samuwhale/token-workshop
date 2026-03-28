@@ -46,7 +46,7 @@
 ### UX
 
 - [x] Theme switcher is buried and hard to discover — dimension buttons only appear if themes exist, and ThemeManager is behind overflow menu; show an empty-state prompt on the Tokens tab: "Set up themes to manage light/dark mode, brands, and more" linking directly to ThemeManager
-- [~] ThemeManager is the most complex and least intuitive screen — the matrix of dimensions × options × sets × states doesn't help users build a mental model; redesign around a visual stacking model: dimensions as layers in a stack (top overrides bottom), options as tabs per layer, sets shown with "base" vs "override" clearly distinguished, plus a live preview showing "with these settings, token X resolves to Y"
+- [x] ThemeManager is the most complex and least intuitive screen — the matrix of dimensions × options × sets × states doesn't help users build a mental model; redesign around a visual stacking model: dimensions as layers in a stack (top overrides bottom), options as tabs per layer, sets shown with "base" vs "override" clearly distinguished, plus a live preview showing "with these settings, token X resolves to Y"
 - [~] Tokens and themes are edited in completely separate interfaces — unlike Figma's native variables where mode values are columns next to each other, TokenManager requires global theme switching to see one value at a time; add an optional multi-mode column view to the token list showing resolved values per theme option side-by-side, with inline editing that auto-routes changes to the correct override set
 
 ---
@@ -82,7 +82,7 @@
 
 ### Bugs
 
-- [ ] `parseDimValue` returns 0 for string dimensions — DTCG dimension tokens like `"16px"` or `"1.5rem"` hit neither the `number` nor `object` branch, so all string dimensions silently become 0 when applied to layers
+- [~] `parseDimValue` returns 0 for string dimensions — DTCG dimension tokens like `"16px"` or `"1.5rem"` hit neither the `number` nor `object` branch, so all string dimensions silently become 0 when applied to layers
 - [ ] `applyTextStyle` modifies text style properties without loading font — when `fontFamily` is falsy the font-loading block is skipped, but `fontSize`/`lineHeight`/`letterSpacing` are still set on the style, which throws if the font isn't loaded
 - [ ] Opacity percentage values silently clamped to 1.0 — DTCG allows opacity as 0–100 percentage; a token with value `50` (meaning 50%) is clamped to 1.0 (fully opaque) because there's no unit-awareness for opacity
 - [ ] `lineHeight` handled inconsistently — numeric values are treated as multipliers and converted to percent (`val * 100`), but `{unit: '%', value: 150}` is silently ignored; also, unitless-as-percent interpretation may be wrong for systems where unitless means pixels

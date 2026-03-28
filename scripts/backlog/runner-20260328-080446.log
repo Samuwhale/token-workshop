@@ -230,3 +230,24 @@ Already up to date.
 
 --- Merging: ThemeManager redesign: visual stacking model with layers, option tabs, grouped sets, and live preview ---
 Already up to date.
+[main 802eeed] chore(backlog): done – ThemeManager redesign: visual stacking model with layers, option tabs, grouped sets, and live preview
+ 6 files changed, 681 insertions(+), 504 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - ThemeManager redesign: visual stacking model
+- Complete redesign of the ThemeManager component around a layer-stack metaphor:
+  1. **Dimensions as numbered layers** — displayed top-to-bottom with numbered badges showing priority (top = highest). Priority hint bar shows directional arrows.
+  2. **Options as tabs per layer** — instead of nested option rows, each dimension shows a horizontal tab bar; only the selected option's content is visible. Auto-selects first option on load.
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  55 items remaining
+===============================================================
+  Claimed: `parseDimValue` returns 0 for string dimensions — DTCG dimension tokens like `"16px"` or `"1.5rem"` hit neither the `number` nor `object` branch, so all string dimensions silently become 0 when applied to layers
+  Worktree: /tmp/backlog-63685-xI7ziZ
+
+  ✓ done: `parseDimValue` returns 0 for string dimensions
+    Added string branch using parseFloat() to extract numeric values from DTCG dimension strings like \"16px\" and \"1.5rem\"
+    10 turns · 38s · $0.3
+
+--- Merging: `parseDimValue` returns 0 for string dimensions ---
+Already up to date.
