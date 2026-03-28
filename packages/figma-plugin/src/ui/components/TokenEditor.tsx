@@ -160,6 +160,7 @@ function ThemeValuesSection({
   const [expanded, setExpanded] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, string>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Build per-option entries grouped by dimension
   const entries = useMemo(() => {
@@ -209,15 +210,22 @@ function ThemeValuesSection({
       finalValue = editedStr === 'true' || editedStr === '1';
     }
     setSavingKey(optionName);
+    setSaveError(null);
     try {
       const encodedPath = tokenPath.split('.').map(encodeURIComponent).join('/');
-      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $type: tokenType, $value: finalValue }),
       });
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(body || `Server returned ${res.status}`);
+      }
       setEdits(prev => { const next = { ...prev }; delete next[optionName]; return next; });
       onRefresh?.();
+    } catch (err) {
+      setSaveError(`Failed to save "${optionName}": ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSavingKey(null);
     }
@@ -248,6 +256,15 @@ function ThemeValuesSection({
       </button>
       {expanded && (
         <div className="border-t border-[var(--color-figma-border)]">
+          {saveError && (
+            <div className="mx-3 mt-2 px-2 py-1.5 rounded bg-red-500/10 text-red-400 text-[10px] flex items-center gap-1.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+              <span className="flex-1 min-w-0 truncate" title={saveError}>{saveError}</span>
+              <button type="button" onClick={() => setSaveError(null)} className="shrink-0 text-red-400 hover:text-red-300 text-[9px] font-medium">Dismiss</button>
+            </div>
+          )}
           {dimensions.map(dim => {
             const dimEntries = entries.filter(e => e.dimId === dim.id);
             if (dimEntries.length === 0) return null;

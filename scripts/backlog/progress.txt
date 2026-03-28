@@ -515,3 +515,14 @@
   - `LetterSpacing` always has `.unit` and `.value`, so direct access is always safe after `!== figma.mixed`.
   - `typeof x === 'object'` is redundant after a `!== figma.mixed` check for lineHeight/letterSpacing — the only non-object value from Figma for these props is `figma.mixed`.
 ---
+
+## 2026-03-28 - ThemeValuesSection.handleSave has no .ok check and no catch block
+- Added `res.ok` check to the PATCH fetch in `ThemeValuesSection.handleSave`; throws on non-2xx with response body as message
+- Added `catch` block that sets a `saveError` state instead of silently swallowing errors
+- Edit state is no longer cleared on failure — the dirty value stays in the input so the user can retry
+- Added dismissible error banner in the theme values section UI showing the failure message
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L161-163,212-229,258-268
+- **Learnings for future iterations:**
+  - `await res.text().catch(() => '')` is a safe way to extract error body without risking a secondary throw
+  - For inline save buttons, keep the edited value on failure so the user doesn't lose their input
+---
