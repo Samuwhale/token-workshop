@@ -451,3 +451,10 @@
   - The `GenericPreview` component in `generatorShared.tsx` is what renders customScale and zIndexScale previews — it uses `OverrideRow` per token
   - Core package has no dist directory in this project; the plugin build bundles core source directly
 ---
+
+## 2026-03-28 - useServerEvents onGeneratorError dependency can cause SSE reconnection churn
+- Already fixed: `callbackRef` pattern is in place (L21-22) and `onGeneratorError` is NOT in the useEffect dep array (L86 has only `[serverUrl, connected]`)
+- Files changed: none
+- **Learnings for future iterations:**
+  - Check current code before implementing — backlog items can become stale if the fix was included alongside the original feature
+---
