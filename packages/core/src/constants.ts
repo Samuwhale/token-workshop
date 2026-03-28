@@ -40,6 +40,15 @@ export const TOKEN_TYPES = {
 /** Set of all valid token type strings for quick membership checks. */
 export const TOKEN_TYPE_VALUES = new Set<string>(Object.values(TOKEN_TYPES));
 
+/** Token types that support `$extends` inheritance (composite types with object values). */
+export const COMPOSITE_TOKEN_TYPES = new Set<string>([
+  TOKEN_TYPES.TYPOGRAPHY,
+  TOKEN_TYPES.SHADOW,
+  TOKEN_TYPES.BORDER,
+  TOKEN_TYPES.TRANSITION,
+  TOKEN_TYPES.COMPOSITION,
+]);
+
 // ---------------------------------------------------------------------------
 // Dimension Units
 // ---------------------------------------------------------------------------

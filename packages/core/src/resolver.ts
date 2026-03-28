@@ -7,7 +7,7 @@
  */
 
 import { isReference, isFormula, parseReference } from './dtcg-types.js';
-import { TOKEN_TYPES, makeReferenceGlobalRegex } from './constants.js';
+import { TOKEN_TYPES, COMPOSITE_TOKEN_TYPES, makeReferenceGlobalRegex } from './constants.js';
 import { evalExpr } from './eval-expr.js';
 import { applyColorModifiers, validateColorModifiers } from './color-modifier.js';
 import type {
@@ -157,7 +157,7 @@ export class TokenResolver {
     this.dependents.clear();
 
     for (const [path, token] of this.tokens) {
-      const refs = this.collectReferences(token.$value);
+      const refs = this.collectAllDependencies(token);
       this.dependencies.set(path, refs);
 
       for (const ref of refs) {
@@ -184,7 +184,7 @@ export class TokenResolver {
       return;
     }
 
-    const refs = this.collectReferences(token.$value);
+    const refs = this.collectAllDependencies(token);
     this.dependencies.set(path, refs);
 
     for (const ref of refs) {
@@ -193,6 +193,27 @@ export class TokenResolver {
       }
       this.dependents.get(ref)!.add(path);
     }
+  }
+
+  /**
+   * Collect all dependency paths for a token: value references + $extends target.
+   */
+  private collectAllDependencies(token: Token): Set<string> {
+    const refs = this.collectReferences(token.$value);
+    const extendsPath = TokenResolver.getExtendsPath(token);
+    if (extendsPath) {
+      refs.add(extendsPath);
+    }
+    return refs;
+  }
+
+  /**
+   * Extract the `$extends` path from a token's `$extensions.tokenmanager.extends`.
+   */
+  static getExtendsPath(token: Token): string | null {
+    const tmExt = token.$extensions?.tokenmanager as Record<string, unknown> | undefined;
+    const ext = tmExt?.extends;
+    return typeof ext === 'string' && ext.length > 0 ? ext : null;
   }
 
   /**
@@ -273,6 +294,28 @@ export class TokenResolver {
       // All deps are resolved — resolve this token
       let resolvedValue = this.resolveValue(token.$value, path);
       const $type = this.resolveType(token, path);
+
+      // Apply $extends inheritance: merge base token value with local overrides
+      const extendsPath = TokenResolver.getExtendsPath(token);
+      if (extendsPath) {
+        const baseResolved = this.resolved.get(extendsPath);
+        if (!baseResolved) {
+          throw new Error(
+            `Token "${path}" extends "${extendsPath}" but that token could not be found or resolved.`,
+          );
+        }
+        // Only merge if the base value is an object (composite token)
+        if (
+          typeof baseResolved.$value === 'object' &&
+          baseResolved.$value !== null &&
+          !Array.isArray(baseResolved.$value) &&
+          typeof resolvedValue === 'object' &&
+          resolvedValue !== null &&
+          !Array.isArray(resolvedValue)
+        ) {
+          resolvedValue = { ...(baseResolved.$value as Record<string, unknown>), ...(resolvedValue as Record<string, unknown>) };
+        }
+      }
 
       // Apply color modifiers if present
       const tokenmanagerExt = token.$extensions?.tokenmanager as Record<string, unknown> | undefined;
@@ -404,6 +447,13 @@ export class TokenResolver {
       const refPath = parseReference(token.$value as string);
       const resolved = this.resolved.get(refPath);
       if (resolved) return resolved.$type;
+    }
+
+    // Inherit type from $extends base token
+    const extendsPath = TokenResolver.getExtendsPath(token);
+    if (extendsPath) {
+      const baseResolved = this.resolved.get(extendsPath);
+      if (baseResolved) return baseResolved.$type;
     }
 
     // Fallback: try to infer from value shape

@@ -12,6 +12,7 @@ import {
   makeReferenceGlobalRegex,
   flattenTokenGroup,
   TokenResolver,
+  COMPOSITE_TOKEN_TYPES,
 } from '@tokenmanager/core';
 import {
   validateTokenPath,
@@ -219,7 +220,7 @@ export class TokenStore {
 
     for (const [tokenPath, entries] of this.flatTokens) {
       for (const { token, setName } of entries) {
-        const refs = this.collectRefsFromValue(token.$value);
+        const refs = this.collectAllRefsFromToken(token);
         for (const ref of refs) {
           let list = dependents.get(ref);
           if (!list) {
@@ -268,6 +269,16 @@ export class TokenStore {
   }
 
   /**
+   * Collect all references from a token: value references + $extends target.
+   */
+  private collectAllRefsFromToken(token: Token): Set<string> {
+    const refs = this.collectRefsFromValue(token.$value);
+    const extendsPath = TokenResolver.getExtendsPath(token);
+    if (extendsPath) refs.add(extendsPath);
+    return refs;
+  }
+
+  /**
    * Build a dependency adjacency map from the current flatTokens,
    * optionally overriding specific token values (for proposed changes).
    */
@@ -279,6 +290,9 @@ export class TokenStore {
       for (const { token } of entries) {
         const value = overrides?.has(tokenPath) ? overrides.get(tokenPath) : token.$value;
         for (const ref of this.collectRefsFromValue(value)) merged.add(ref);
+        // Include $extends target in dependency graph
+        const extendsPath = TokenResolver.getExtendsPath(token);
+        if (extendsPath) merged.add(extendsPath);
       }
       deps.set(tokenPath, merged);
     }

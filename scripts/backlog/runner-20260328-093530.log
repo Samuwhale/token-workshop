@@ -358,3 +358,30 @@ Already up to date.
 
 --- Merging: No DTCG v2025.10 resolver support ---
 Already up to date.
+[main 8494858] chore(backlog): done – No DTCG v2025.10 resolver support
+ 14 files changed, 1504 insertions(+), 6 deletions(-)
+ create mode 100644 packages/core/src/dtcg-resolver.ts
+ create mode 100644 packages/figma-plugin/src/ui/components/ResolverPanel.tsx
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useResolvers.ts
+ create mode 100644 packages/server/src/routes/resolvers.ts
+ create mode 100644 packages/server/src/services/resolver-store.ts
+ create mode 100644 packages/server/src/services/themes-to-resolver.ts
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - No DTCG v2025.10 resolver support
+- Implemented full DTCG v2025.10 resolver support across all three packages:
+  - **Core types** (`packages/core/src/types.ts`): Added `ResolverFile`, `ResolverSet`, `ResolverModifier`, `ResolverInput`, `ResolverRef`, `ResolverSource`, `ResolutionOrderEntry` types
+  - **Core engine** (`packages/core/src/dtcg-resolver.ts`): New file implementing resolver validation, default input generation, token resolution (merges sources in resolutionOrder, picks modifier contexts, feeds through TokenResolver for alias resolution)
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  4 items remaining
+===============================================================
+  Claimed: No $extends token inheritance — composite tokens (typography, shadow) must duplicate all properties even when only one differs from a base; support DTCG $extends so component tokens can inherit from and override specific properties of parent tokens
+  Worktree: /tmp/backlog-34977-ryyrJ0
+
+  ✓ done: No $extends token inheritance
+    Implemented $extends inheritance for composite tokens via $extensions.tokenmanager.extends — core resolver merges base+overrides during DFS, server tracks extends in dependency graphs, UI provides picker/inherited-property badges in TokenEditor and TokenTreeNode
+    89 turns · 701s · $5.63
+
+--- Merging: No $extends token inheritance ---
+Already up to date.

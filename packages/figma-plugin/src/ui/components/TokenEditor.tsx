@@ -10,6 +10,7 @@ import { validateColorModifiers } from '@tokenmanager/core';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { ValueDiff, OriginalValuePreview } from './ValueDiff';
 import type { TokenGenerator } from '../hooks/useGenerators';
+import { COMPOSITE_TOKEN_TYPES } from '@tokenmanager/core';
 import { ColorEditor, DimensionEditor, TypographyEditor, ShadowEditor, BorderEditor, GradientEditor, NumberEditor, DurationEditor, FontFamilyEditor, FontWeightEditor, StrokeStyleEditor, StringEditor, BooleanEditor, CompositionEditor, AssetEditor } from './ValueEditors';
 import { AliasPicker, resolveAliasChain } from './AliasPicker';
 import { resolveTokenValue, isAlias } from '../../shared/resolveAlias';
@@ -47,6 +48,78 @@ function detectAliasCycle(
       return null;
     }
   }
+}
+
+/** Compact picker for selecting a base token to extend. */
+function ExtendsTokenPicker({ tokenType, allTokensFlat, pathToSet, currentPath, onSelect }: {
+  tokenType: string;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToSet: Record<string, string>;
+  currentPath: string;
+  onSelect: (path: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const candidates = useMemo(() => {
+    return Object.entries(allTokensFlat)
+      .filter(([p, e]) => e.$type === tokenType && p !== currentPath)
+      .map(([p]) => p);
+  }, [allTokensFlat, tokenType, currentPath]);
+  const filtered = useMemo(() => {
+    if (!search) return candidates.slice(0, 50);
+    const q = search.toLowerCase();
+    return candidates.filter(p => p.toLowerCase().includes(q)).slice(0, 50);
+  }, [candidates, search]);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 0); }}
+        className="w-full px-2 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors text-left"
+      >
+        + Set base token to inherit from…
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex gap-1">
+        <input
+          ref={inputRef}
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={`Search ${tokenType} tokens…`}
+          className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[11px] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
+          onKeyDown={e => { if (e.key === 'Escape') { setOpen(false); setSearch(''); } }}
+        />
+        <button
+          type="button"
+          onClick={() => { setOpen(false); setSearch(''); }}
+          className="px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+        >Cancel</button>
+      </div>
+      <div className="max-h-32 overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+        {filtered.length === 0 && (
+          <p className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">No matching {tokenType} tokens</p>
+        )}
+        {filtered.map(p => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => { onSelect(p); setOpen(false); setSearch(''); }}
+            className="w-full text-left px-2 py-1 text-[11px] font-mono text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] truncate"
+            title={`${p} (${pathToSet[p] || ''})`}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /** Suggested namespace prefixes per token type to help new users build consistent hierarchies. */
@@ -127,7 +200,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const fontFamilyRef = useRef<HTMLInputElement>(null);
   const fontSizeRef = useRef<HTMLInputElement>(null);
   const [scopes, setScopes] = useState<string[]>([]);
-  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[]; modeValues: Record<string, any>; extensionsJsonText: string; lifecycle: 'draft' | 'published' | 'deprecated' } | null>(null);
+  const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[]; modeValues: Record<string, any>; extensionsJsonText: string; lifecycle: 'draft' | 'published' | 'deprecated'; extendsPath: string } | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -141,6 +214,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const [extensionsJsonText, setExtensionsJsonText] = useState('');
   const [extensionsJsonError, setExtensionsJsonError] = useState<string | null>(null);
   const [lifecycle, setLifecycle] = useState<'draft' | 'published' | 'deprecated'>('published');
+  const [extendsPath, setExtendsPath] = useState('');
   const initialServerSnapshotRef = useRef<string | null>(null);
   const handleSaveRef = useRef<(forceOverwrite?: boolean, createAnother?: boolean) => void>(() => {});
   const [showConflictConfirm, setShowConflictConfirm] = useState(false);
@@ -186,6 +260,9 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         const savedLifecycle = token?.$extensions?.tokenmanager?.lifecycle;
         const loadedLifecycle: 'draft' | 'published' | 'deprecated' = (savedLifecycle === 'draft' || savedLifecycle === 'deprecated') ? savedLifecycle : 'published';
         setLifecycle(loadedLifecycle);
+        const savedExtends = token?.$extensions?.tokenmanager?.extends;
+        const loadedExtends = typeof savedExtends === 'string' ? savedExtends : '';
+        setExtendsPath(loadedExtends);
         const ext = token?.$extensions ?? {};
         const knownExtKeys = new Set(['com.figma.scopes', 'tokenmanager']);
         const otherExt: Record<string, any> = {};
@@ -207,6 +284,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           modeValues: loadedModes,
           extensionsJsonText: otherExtText,
           lifecycle: loadedLifecycle,
+          extendsPath: loadedExtends,
         };
         if (typeof token?.$value === 'string' && token.$value.startsWith('{') && token.$value.endsWith('}')) {
           setReference(token.$value);
@@ -257,9 +335,10 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       JSON.stringify(colorModifiers) !== JSON.stringify(init.colorModifiers) ||
       JSON.stringify(modeValues) !== JSON.stringify(init.modeValues) ||
       extensionsJsonText !== init.extensionsJsonText ||
-      lifecycle !== init.lifecycle
+      lifecycle !== init.lifecycle ||
+      extendsPath !== init.extendsPath
     );
-  }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle]);
+  }, [tokenType, value, description, reference, scopes, colorModifiers, modeValues, extensionsJsonText, lifecycle, extendsPath]);
 
   useEffect(() => { onDirtyChange?.(isDirty); }, [isDirty, onDirtyChange]);
 
@@ -349,6 +428,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     setAliasMode(false);
     setShowAutocomplete(false);
     setPendingTypeChange(null);
+    setExtendsPath('');
   };
 
   const handleTypeChange = (newType: string) => {
@@ -377,6 +457,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     setModeValues(init.modeValues);
     setExtensionsJsonText(init.extensionsJsonText);
     setExtensionsJsonError(null);
+    setExtendsPath(init.extendsPath);
     setAliasMode(!!init.reference);
   };
 
@@ -482,6 +563,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       const cleanModes = Object.fromEntries(Object.entries(modeValues).filter(([, v]) => v !== '' && v !== undefined && v !== null));
       if (Object.keys(cleanModes).length > 0) tmExt.modes = cleanModes;
       if (lifecycle !== 'published') tmExt.lifecycle = lifecycle;
+      if (extendsPath) tmExt.extends = extendsPath;
       if (Object.keys(tmExt).length > 0) extensions.tokenmanager = tmExt;
       const trimmedExtJson = extensionsJsonText.trim();
       if (trimmedExtJson && trimmedExtJson !== '{}') {
@@ -712,11 +794,56 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           refInputRef={refInputRef}
         />
 
+        {/* $extends — base token inheritance for composite types */}
+        {!aliasMode && COMPOSITE_TOKEN_TYPES.has(tokenType) && (
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Extends</label>
+            {extendsPath ? (
+              <div className="flex items-center gap-1.5">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-accent)]">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+                <span className="text-[11px] text-[var(--color-figma-text)] font-mono truncate flex-1" title={extendsPath}>{extendsPath}</span>
+                <button
+                  type="button"
+                  onClick={() => setExtendsPath('')}
+                  title="Remove base token"
+                  className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
+                >
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <ExtendsTokenPicker
+                tokenType={tokenType}
+                allTokensFlat={allTokensFlat}
+                pathToSet={pathToSet}
+                currentPath={isCreateMode ? editPath.trim() : tokenPath}
+                onSelect={setExtendsPath}
+              />
+            )}
+            {extendsPath && (() => {
+              const base = allTokensFlat[extendsPath];
+              if (!base) return <p className="text-[10px] text-[var(--color-figma-error)]">Base token not found</p>;
+              return (
+                <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">
+                  Inherited properties will be merged with overrides below.
+                </p>
+              );
+            })()}
+          </div>
+        )}
+
         {/* Type-specific editor */}
         {!reference && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">Value</label>
+              <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
+                {extendsPath ? 'Overrides' : 'Value'}
+              </label>
               {!canSave && tokenType === 'typography' && saveBlockReason && (
                 <button type="button" onClick={focusBlockedField} className="text-[10px] text-[var(--color-figma-error)] hover:underline cursor-pointer bg-transparent border-none p-0">{saveBlockReason}</button>
               )}
@@ -728,9 +855,9 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             )}
             {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} autoFocus={!isCreateMode} allTokensFlat={allTokensFlat} />}
             {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} autoFocus={!isCreateMode} />}
-            {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} fontFamilyRef={fontFamilyRef} fontSizeRef={fontSizeRef} />}
-            {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
-            {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+            {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} fontFamilyRef={fontFamilyRef} fontSizeRef={fontSizeRef} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
+            {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
+            {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
             {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'number' && <NumberEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} autoFocus={!isCreateMode} />}
             {tokenType === 'duration' && <DurationEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
@@ -739,7 +866,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             {tokenType === 'strokeStyle' && <StrokeStyleEditor value={value} onChange={setValue} />}
             {tokenType === 'string' && <StringEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
             {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
-            {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} />}
+            {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
             {tokenType === 'asset' && <AssetEditor value={value} onChange={setValue} />}
           </div>
         )}

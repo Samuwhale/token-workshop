@@ -502,3 +502,19 @@
   - Server `tsc` build has pre-existing failures (missing @types/node, core dist not built) — only the plugin build (`npm run build`) is the reliable validation target
   - `themedAllTokensFlat` can be cleanly overridden by renaming the hook return to `themeOnlyTokensFlat` and wrapping with a useMemo that prefers resolver output
 ---
+
+## 2026-03-28 - No $extends token inheritance
+- Implemented DTCG `$extends` token inheritance for composite tokens (typography, shadow, border, transition, composition). Tokens can now reference a base token via `$extensions.tokenmanager.extends` and override only specific properties, inheriting the rest.
+- **Core resolver** (`packages/core/src/resolver.ts`): Added `getExtendsPath()` static method, `collectAllDependencies()` to include extends targets in the dependency graph, and value merging logic in `dfsResolve()` that shallow-merges base token value with local overrides. Type resolution also inherits from the base token. Cycle detection works automatically through the existing DFS.
+- **Core constants** (`packages/core/src/constants.ts` ~L42): Added `COMPOSITE_TOKEN_TYPES` set exported from `index.ts`.
+- **Server token-store** (`packages/server/src/services/token-store.ts`): Updated `rebuildCrossSetDependents()` and `buildDependencyMap()` to include `$extends` targets via new `collectAllRefsFromToken()` method.
+- **TokenEditor UI** (`packages/figma-plugin/src/ui/components/TokenEditor.tsx`): Added `extendsPath` state, load/save/revert/dirty-check support, and `ExtendsTokenPicker` component for selecting base tokens. Extends picker shows only same-type tokens with search filtering.
+- **ValueEditors** (`packages/figma-plugin/src/ui/components/ValueEditors.tsx`): Updated TypographyEditor, ShadowEditor, BorderEditor, and CompositionEditor to accept `baseValue` prop. When extending, editors show merged base+override values, with "inherited"/"revert" badges on each property and only emit overridden properties on change.
+- **TokenTreeNode** (`packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1035): Added purple "extends" badge with chain-link icon showing the base token path.
+- Files changed: `packages/core/src/constants.ts`, `packages/core/src/index.ts`, `packages/core/src/resolver.ts`, `packages/server/src/services/token-store.ts`, `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, `packages/figma-plugin/src/ui/components/ValueEditors.tsx`, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx`
+- **Learnings for future iterations:**
+  - `$extensions.tokenmanager.extends` is the right namespace for custom DTCG extensions — avoids conflict with future spec additions and matches existing patterns (colorModifier, modes, lifecycle, formula)
+  - Shallow merge (`{ ...base, ...local }`) is the correct strategy for composite inheritance — deep merge would be over-complicated for DTCG token values
+  - The resolver's DFS cycle detection handles extends chains automatically because extends targets are added to the dependency graph — no special cycle detection needed
+  - Server `tsc` has pre-existing type errors (missing @types/node, fastify) — only `npm run build` in figma-plugin is the reliable validation target
+---

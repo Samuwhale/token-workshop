@@ -11,6 +11,31 @@ import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 export const inputClass = 'w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]';
 export const labelClass = 'text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5';
 
+function InheritedBadge({ propKey, onOverride }: { propKey: string; onOverride: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-0.5 ml-1">
+      <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">inherited</span>
+      <button
+        type="button"
+        onClick={onOverride}
+        className="text-[9px] text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
+        title={`Override ${propKey}`}
+      >override</button>
+    </span>
+  );
+}
+
+function RevertBadge({ propKey, onRevert }: { propKey: string; onRevert: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onRevert}
+      className="ml-1 text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer"
+      title={`Revert ${propKey} to inherited value`}
+    >revert</button>
+  );
+}
+
 function resolveFormulaPreview(
   formula: string,
   allTokensFlat: Record<string, TokenMapEntry>,
@@ -350,9 +375,25 @@ function resolveTypographyValue(raw: unknown, allTokensFlat: Record<string, Toke
   return raw;
 }
 
-export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement> }) {
-  const val = typeof value === 'object' ? value : {};
-  const update = (key: string, v: any) => onChange({ ...val, [key]: v });
+export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef, baseValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement>; baseValue?: any }) {
+  const rawVal = typeof value === 'object' ? value : {};
+  // When extending, merge base + overrides for display, but only emit overrides on change
+  const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
+  const val = base ? { ...base, ...rawVal } : rawVal;
+  const isInherited = (key: string) => base && !(key in rawVal) && key in base;
+  const update = (key: string, v: any) => {
+    if (base) {
+      // When extending, store only overridden properties
+      onChange({ ...rawVal, [key]: v });
+    } else {
+      onChange({ ...val, [key]: v });
+    }
+  };
+  const revertToInherited = (key: string) => {
+    const next = { ...rawVal };
+    delete next[key];
+    onChange(next);
+  };
   const isFontSizeAlias = typeof val.fontSize === 'string' && val.fontSize.startsWith('{');
   const fontSize = !isFontSizeAlias && typeof val.fontSize === 'object' ? val.fontSize : { value: val.fontSize ?? 16, unit: 'px' };
   const isFontWeightAlias = typeof val.fontWeight === 'string' && val.fontWeight.startsWith('{');
@@ -410,7 +451,11 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
   return (
     <div className="flex flex-col gap-2">
       <div>
-        <div className={labelClass}>Font Family</div>
+        <div className={labelClass}>
+          Font Family
+          {base && isInherited('fontFamily') && <InheritedBadge propKey="fontFamily" onOverride={() => update('fontFamily', val.fontFamily)} />}
+          {base && !isInherited('fontFamily') && <RevertBadge propKey="fontFamily" onRevert={() => revertToInherited('fontFamily')} />}
+        </div>
         <SubPropInput
           value={Array.isArray(val.fontFamily) ? val.fontFamily[0] : (val.fontFamily || '')}
           onChange={v => update('fontFamily', v)}
@@ -423,7 +468,11 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
-          <div className={labelClass}>Font Size</div>
+          <div className={labelClass}>
+            Font Size
+            {base && isInherited('fontSize') && <InheritedBadge propKey="fontSize" onOverride={() => update('fontSize', val.fontSize)} />}
+            {base && !isInherited('fontSize') && <RevertBadge propKey="fontSize" onRevert={() => revertToInherited('fontSize')} />}
+          </div>
           {isFontSizeAlias ? (
             <SubPropInput
               value={val.fontSize}
@@ -460,7 +509,11 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
           )}
         </div>
         <div className="w-20">
-          <div className={labelClass}>Weight</div>
+          <div className={labelClass}>
+            Weight
+            {base && isInherited('fontWeight') && <InheritedBadge propKey="fontWeight" onOverride={() => update('fontWeight', val.fontWeight)} />}
+            {base && !isInherited('fontWeight') && <RevertBadge propKey="fontWeight" onRevert={() => revertToInherited('fontWeight')} />}
+          </div>
           {isFontWeightAlias ? (
             <SubPropInput
               value={val.fontWeight}
@@ -489,7 +542,11 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
       </div>
       <div className="flex gap-2">
         <div className="flex-1">
-          <div className={labelClass}>Line Height</div>
+          <div className={labelClass}>
+            Line Height
+            {base && isInherited('lineHeight') && <InheritedBadge propKey="lineHeight" onOverride={() => update('lineHeight', val.lineHeight)} />}
+            {base && !isInherited('lineHeight') && <RevertBadge propKey="lineHeight" onRevert={() => revertToInherited('lineHeight')} />}
+          </div>
           <SubPropInput
             value={typeof val.lineHeight === 'object' ? val.lineHeight.value : (val.lineHeight ?? 1.5)}
             onChange={v => update('lineHeight', v)}
@@ -499,7 +556,11 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
           />
         </div>
         <div className="flex-1">
-          <div className={labelClass}>Letter Spacing</div>
+          <div className={labelClass}>
+            Letter Spacing
+            {base && isInherited('letterSpacing') && <InheritedBadge propKey="letterSpacing" onOverride={() => update('letterSpacing', val.letterSpacing)} />}
+            {base && !isInherited('letterSpacing') && <RevertBadge propKey="letterSpacing" onRevert={() => revertToInherited('letterSpacing')} />}
+          </div>
           <SubPropInput
             value={typeof val.letterSpacing === 'object' ? val.letterSpacing.value : (val.letterSpacing ?? 0)}
             onChange={v => update('letterSpacing', typeof v === 'string' && v.startsWith('{') ? v : { value: typeof v === 'number' ? v : parseFloat(String(v)) || 0, unit: 'px' })}
@@ -535,9 +596,18 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
   );
 }
 
-export function ShadowEditor({ value, onChange, allTokensFlat, pathToSet }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string> }) {
-  const val = typeof value === 'object' ? value : {};
-  const update = (key: string, v: any) => onChange({ ...val, [key]: v });
+export function ShadowEditor({ value, onChange, allTokensFlat, pathToSet, baseValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; baseValue?: any }) {
+  const rawVal = typeof value === 'object' ? value : {};
+  const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
+  const val = base ? { ...base, ...rawVal } : rawVal;
+  const isInherited = (key: string) => base && !(key in rawVal) && key in base;
+  const update = (key: string, v: any) => {
+    if (base) {
+      onChange({ ...rawVal, [key]: v });
+    } else {
+      onChange({ ...val, [key]: v });
+    }
+  };
   const getDim = (v: any) => (typeof v === 'string' && v.startsWith('{') ? v : (typeof v === 'object' ? v.value : (v ?? 0)));
   const setDim = (key: string, v: any) => update(key, typeof v === 'string' && v.startsWith('{') ? v : { value: typeof v === 'number' ? v : parseFloat(String(v)) || 0, unit: 'px' });
   const isColorAlias = typeof val.color === 'string' && val.color.startsWith('{');
@@ -597,9 +667,17 @@ export function ShadowEditor({ value, onChange, allTokensFlat, pathToSet }: { va
   );
 }
 
-export function BorderEditor({ value, onChange, allTokensFlat, pathToSet }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string> }) {
-  const val = typeof value === 'object' ? value : {};
-  const update = (key: string, v: any) => onChange({ ...val, [key]: v });
+export function BorderEditor({ value, onChange, allTokensFlat, pathToSet, baseValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; baseValue?: any }) {
+  const rawVal = typeof value === 'object' ? value : {};
+  const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
+  const val = base ? { ...base, ...rawVal } : rawVal;
+  const update = (key: string, v: any) => {
+    if (base) {
+      onChange({ ...rawVal, [key]: v });
+    } else {
+      onChange({ ...val, [key]: v });
+    }
+  };
   const isWidthAlias = typeof val.width === 'string' && val.width.startsWith('{');
   const width = !isWidthAlias && typeof val.width === 'object' ? val.width : { value: val.width ?? 1, unit: 'px' };
   const isColorAlias = typeof val.color === 'string' && val.color.startsWith('{');
@@ -1088,22 +1166,41 @@ const COMPOSITION_PROPERTIES = [
   'typography', 'shadow', 'visible',
 ];
 
-export function CompositionEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+export function CompositionEditor({ value, onChange, baseValue }: { value: any; onChange: (v: any) => void; baseValue?: any }) {
   const [newProp, setNewProp] = useState(COMPOSITION_PROPERTIES[0]);
-  const val = typeof value === 'object' && value !== null ? value : {};
+  const rawVal = typeof value === 'object' && value !== null ? value : {};
+  const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
+  const val = base ? { ...base, ...rawVal } : rawVal;
+  const isInherited = (key: string) => base && !(key in rawVal) && key in base;
   const usedProps = Object.keys(val);
   const unusedProps = COMPOSITION_PROPERTIES.filter(p => !usedProps.includes(p));
 
-  const update = (key: string, v: string) => onChange({ ...val, [key]: v });
+  const update = (key: string, v: string) => {
+    if (base) {
+      onChange({ ...rawVal, [key]: v });
+    } else {
+      onChange({ ...val, [key]: v });
+    }
+  };
   const remove = (key: string) => {
-    const next = { ...val };
-    delete next[key];
-    onChange(next);
+    if (base) {
+      const next = { ...rawVal };
+      delete next[key];
+      onChange(next);
+    } else {
+      const next = { ...val };
+      delete next[key];
+      onChange(next);
+    }
   };
   const addProp = () => {
     const prop = newProp || unusedProps[0];
     if (!prop || prop in val) return;
-    onChange({ ...val, [prop]: '' });
+    if (base) {
+      onChange({ ...rawVal, [prop]: '' });
+    } else {
+      onChange({ ...val, [prop]: '' });
+    }
     setNewProp(unusedProps.filter(p => p !== prop)[0] || '');
   };
 
@@ -1114,18 +1211,21 @@ export function CompositionEditor({ value, onChange }: { value: any; onChange: (
       )}
       {usedProps.map(prop => (
         <div key={prop} className="flex items-center gap-1.5">
-          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 w-24 truncate" title={prop}>{prop}</span>
+          <span className={`text-[10px] shrink-0 w-24 truncate ${isInherited(prop) ? 'text-[var(--color-figma-text-tertiary)] italic' : 'text-[var(--color-figma-text-secondary)]'}`} title={prop}>
+            {prop}
+            {isInherited(prop) && <span className="text-[9px] ml-0.5">(inherited)</span>}
+          </span>
           <input
             type="text"
             value={typeof val[prop] === 'string' ? val[prop] : JSON.stringify(val[prop])}
             onChange={e => update(prop, e.target.value)}
             placeholder="{token.path} or value"
-            className={inputClass + ' flex-1'}
+            className={inputClass + ' flex-1' + (isInherited(prop) ? ' opacity-60' : '')}
           />
           <button
             type="button"
             onClick={() => remove(prop)}
-            title={`Remove ${prop}`}
+            title={isInherited(prop) ? `Override ${prop}` : `Remove ${prop}`}
             className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
           >
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">

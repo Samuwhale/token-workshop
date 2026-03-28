@@ -1032,6 +1032,23 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             );
             return null;
           })()}
+          {/* Extends (inheritance) indicator */}
+          {(() => {
+            const ext = (node.$extensions?.tokenmanager as any)?.extends;
+            if (typeof ext === 'string' && ext) return (
+              <span
+                title={`Extends ${ext}`}
+                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-medium shrink-0 bg-purple-500/15 text-purple-700 dark:text-purple-400 cursor-default max-w-[120px]"
+              >
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+                <span className="truncate">{ext}</span>
+              </span>
+            );
+            return null;
+          })()}
           {/* Generator source indicator */}
           {generatorsBySource?.has(node.path) && (
             <span
