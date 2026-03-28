@@ -622,3 +622,9 @@
   - ValuePreview already resolves alias values via `displayValue` — the visual swatch was never the problem, only the text layout balance between alias path and resolved value
   - The alias badge border + full path text was the main culprit for making rows feel alias-dominated
 ---
+
+## 2026-03-28 - code-pass
+- Areas explored: packages/server/src/routes/ (themes, tokens, resolvers, generators, docs), packages/server/src/services/ (token-store, git-sync, generator-service), packages/core/src/ (resolver, validator, dtcg-types, color-modifier), packages/figma-plugin/src/plugin/ (controller, styleSync, selectionHandling, variableSync, shared/types), packages/figma-plugin/src/ui/ (App.tsx, ImportPanel, hooks/useDragDrop, hooks/useSetMergeSplit, hooks/useTokens, hooks/useServerEvents)
+- Found 11 items — written to backlog-inbox.md
+- Notable: ImportPanel.clearConflictState has infinite recursion (calls itself on line 107); controller.ts has duplicate 'scan-token-usage' case AND calls scanTokenUsageMap which is never imported (runtime ReferenceError)
+---

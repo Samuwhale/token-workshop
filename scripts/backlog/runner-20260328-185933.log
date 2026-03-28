@@ -36,3 +36,17 @@ Already up to date.
 
 --- Merging: Token row: resolved value always visible for aliases ---
 Already up to date.
+[main eec9858] chore(backlog): done – Token row: resolved value always visible for aliases
+ 5 files changed, 25 insertions(+), 9 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Token row: resolved value always visible for aliases
+- Alias tokens now show their resolved value prominently instead of hiding it behind the alias path. The alias badge was changed from a full-path bordered pill to a compact link icon with truncated path (max 80px), styled as tertiary text. The resolved value text was upgraded from 10px to 11px to match non-alias token value styling. The ValuePreview swatch was already rendering the resolved value correctly — the main issue was the alias badge dominating the row and the resolved text being too small/secondary.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1082-1093 (alias badge compacted), ~L1189-1195 (resolved value text prominence)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  34 items remaining
+===============================================================
+  Claimed: **Token list: "focus group" / zoom-in mode** — clicking a group header in the tree could optionally "zoom into" that group: the path breadcrumb becomes the root, only that group's tokens are shown, and a ← Back button exits the zoom. This makes deep hierarchies navigable without losing context. Currently expanding a group still shows the whole tree, which can be noisy in large sets. Similar to how Figma's left panel lets you "enter" a frame.
+  Worktree: /tmp/backlog-92332-Uzuh06
