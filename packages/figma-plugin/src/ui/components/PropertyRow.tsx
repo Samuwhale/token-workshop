@@ -16,6 +16,8 @@ import {
   formatTokenValuePreview,
   resolveBindingDisplay,
   buildRemoveBindingUndo,
+  isTokenScopeCompatible,
+  getDefaultScopesForProperty,
   SUGGESTED_NAMES,
   suggestTokenPath,
 } from './selectionInspectorUtils';
@@ -98,7 +100,7 @@ export function PropertyRow({
   const bindCandidatesAll = bindingFromProp === prop
     ? Object.entries(tokenMap)
         .filter(([, entry]) => compatibleTypesForBind.includes(entry.$type))
-        .filter(([, entry]) => entry.$lifecycle !== 'deprecated')
+        .filter(([, entry]) => isTokenScopeCompatible(entry, prop))
         .filter(([path]) => !bindQuery || path.toLowerCase().includes(bindQuery.toLowerCase()))
     : [];
   const bindCandidates = bindCandidatesAll.slice(0, 12);
@@ -144,7 +146,11 @@ export function PropertyRow({
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${encodedTokenPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $type: tokenType, $value: tokenValue }),
+        body: JSON.stringify({
+          $type: tokenType,
+          $value: tokenValue,
+          $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
+        }),
       });
       if (res.ok) {
         onTokenCreated(tokenPath, prop, tokenType, tokenValue);

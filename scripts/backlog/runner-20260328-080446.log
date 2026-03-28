@@ -125,3 +125,17 @@ Already up to date.
 
 --- Merging: No interactive token dependency graph ---
 Already up to date.
+[main e122bb7] chore(backlog): done – No interactive token dependency graph
+ 7 files changed, 636 insertions(+), 4 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx
+
+## 2026-03-28 - No interactive token dependency graph
+- Created `TokenFlowPanel.tsx` — a new "Token Flow" sub-tab under Define that shows an interactive SVG node graph of token alias/reference relationships
+- Search bar to select any token; visualizes 3-column layout: References (upstream) → Selected → Dependents (downstream)
+- Walks full alias chains in both directions (up to 20 upstream, 30 downstream) using `extractAliasPath` for direct refs and a reverse dependency map
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  78 items remaining
+===============================================================
+  Claimed: No smart token name suggestions — users must invent names from scratch; when creating a token, suggest names based on: the token type (color → "color/"), the value (blue hex → "blue"), sibling patterns in the same group (if siblings are 100/200/300, suggest the next scale step), and the Figma layer name if created from selection
+  Worktree: /tmp/backlog-63685-BCxiuZ

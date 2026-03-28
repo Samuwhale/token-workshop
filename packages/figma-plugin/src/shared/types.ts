@@ -152,9 +152,34 @@ export interface TokenMapEntry {
   $type: string;
   /** DTCG leaf key (segment name) — may contain dots, e.g. "1.5". */
   $name?: string;
-  /** Lifecycle state from $extensions.tokenmanager.lifecycle */
-  $lifecycle?: 'draft' | 'published' | 'deprecated';
+  /** Figma variable scopes from $extensions['com.figma.scopes']. Empty/undefined = unrestricted. */
+  $scopes?: string[];
 }
+
+/**
+ * Maps Figma variable scope values to the BindableProperty values they allow.
+ * Used to filter bind-picker candidates so scoped tokens only appear for
+ * compatible properties (e.g. a FILL_COLOR-scoped color token won't show
+ * in stroke pickers).
+ */
+export const SCOPE_TO_PROPERTIES: Record<string, BindableProperty[]> = {
+  FILL_COLOR:     ['fill'],
+  STROKE_COLOR:   ['stroke'],
+  TEXT_FILL:      ['fill'],
+  EFFECT_COLOR:   ['fill', 'stroke'],
+  WIDTH_HEIGHT:   ['width', 'height'],
+  GAP:            ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'itemSpacing'],
+  CORNER_RADIUS:  ['cornerRadius'],
+  OPACITY:        ['opacity'],
+  FONT_SIZE:      ['typography'],
+  LINE_HEIGHT:    ['typography'],
+  LETTER_SPACING: ['typography'],
+  STROKE_FLOAT:   ['strokeWeight'],
+  FONT_FAMILY:    ['typography'],
+  FONT_STYLE:     ['typography'],
+  TEXT_CONTENT:   [],
+  SHOW_HIDE:      ['visible'],
+};
 
 export interface SyncBindingsMessage {
   type: 'sync-bindings';

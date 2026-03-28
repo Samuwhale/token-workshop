@@ -1,5 +1,5 @@
 import type { BindableProperty, SelectionNodeInfo, NodeCapabilities, TokenMapEntry } from '../../shared/types';
-import { TOKEN_PROPERTY_MAP, PROPERTY_LABELS } from '../../shared/types';
+import { TOKEN_PROPERTY_MAP, PROPERTY_LABELS, SCOPE_TO_PROPERTIES } from '../../shared/types';
 import { resolveTokenValue } from '../../shared/resolveAlias';
 import { isDimensionLike } from './generators/generatorShared';
 import type { UndoSlot } from '../hooks/useUndo';
@@ -155,6 +155,37 @@ export function resolveBindingDisplay(
     }
   }
   return { resolvedDisplay, resolvedColor };
+}
+
+/**
+ * Check whether a token's scopes (if any) allow it to be bound to a target property.
+ * Tokens without scopes are unrestricted and pass all checks.
+ */
+export function isTokenScopeCompatible(
+  entry: TokenMapEntry,
+  targetProperty: BindableProperty,
+): boolean {
+  if (!entry.$scopes || entry.$scopes.length === 0) return true;
+  return entry.$scopes.some(scope => {
+    const allowedProps = SCOPE_TO_PROPERTIES[scope];
+    return allowedProps?.includes(targetProperty);
+  });
+}
+
+/** Return default Figma variable scopes for a given bindable property. */
+export function getDefaultScopesForProperty(prop: BindableProperty): string[] {
+  switch (prop) {
+    case 'fill': return ['FILL_COLOR'];
+    case 'stroke': return ['STROKE_COLOR'];
+    case 'paddingTop': case 'paddingRight': case 'paddingBottom': case 'paddingLeft':
+    case 'itemSpacing': return ['GAP'];
+    case 'cornerRadius': return ['CORNER_RADIUS'];
+    case 'width': case 'height': return ['WIDTH_HEIGHT'];
+    case 'strokeWeight': return ['STROKE_FLOAT'];
+    case 'opacity': return ['OPACITY'];
+    case 'visible': return ['SHOW_HIDE'];
+    default: return [];
+  }
 }
 
 /** Build an undo slot for removing a single binding */

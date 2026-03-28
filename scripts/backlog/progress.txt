@@ -524,3 +524,19 @@
   - The reverse dependency map (`path → dependents`) can be built once with `useMemo` from `allTokensFlat` — no server round-trip needed
   - SVG edges must use `pointer-events-none` to avoid intercepting clicks on underlying HTML node cards
 ---
+
+## 2026-03-28 - No token scoping to limit where tokens can be applied
+- Added token scoping so tokens with Figma variable scopes (`$extensions['com.figma.scopes']`) are filtered in bind pickers — scoped tokens only appear for compatible properties (e.g. FILL_COLOR-scoped color tokens only show for fill bindings, not stroke)
+- Added `$scopes` field to `TokenMapEntry` and `SCOPE_TO_PROPERTIES` mapping bridging Figma scope values to `BindableProperty` values
+- Scopes propagated through `flattenWithNames` so they're available in the tokenMap used by bind pickers
+- Added `isTokenScopeCompatible()` utility that checks whether a token's scopes allow binding to a target property; tokens without scopes remain unrestricted (backward compatible)
+- Added `getDefaultScopesForProperty()` that auto-assigns scopes when creating tokens from the inspector (e.g. creating from a fill property sets FILL_COLOR scope)
+- Bind candidate list in `PropertyRow.tsx` now filters by scope after type filtering
+- Also fixed pre-existing build error: added missing `buildTreeByType` export in `tokenListUtils.ts`
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L150-176, `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L15-18, `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L2,L160-192, `packages/figma-plugin/src/ui/components/PropertyRow.tsx` ~L11-12,L100,L148-151, `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L463-497
+- **Learnings for future iterations:**
+  - Figma variable scopes are already stored in `$extensions['com.figma.scopes']` and editable in `MetadataEditor.tsx` — the missing piece was propagating them to `TokenMapEntry` and using them for bind-picker filtering
+  - `flattenWithNames` in `useTokens.ts` previously dropped `$extensions` entirely — only `$value`, `$type`, and `$name` were preserved in `TokenMapEntry`
+  - Tokens without scopes pass all filters (opt-in restriction model), maintaining backward compatibility
+  - The `SCOPE_TO_PROPERTIES` map bridges Figma's variable scope vocabulary to the plugin's `BindableProperty` type
+---
