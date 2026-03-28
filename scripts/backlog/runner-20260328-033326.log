@@ -171,3 +171,10 @@ Already up to date.
 ===============================================================
   Claimed: `useUndo` keyboard listener churns on every undo/redo — `executeUndo`/`executeRedo` recreated on every `past`/`future` change, causing the keyboard handler effect to tear down and re-register; use refs instead
   Worktree: /tmp/backlog-92630-6kKoUl
+
+  ✓ done: `useUndo` keyboard listener churns on every undo/redo
+    Replaced state closures in executeUndo/executeRedo with refs (pastRef, futureRef), making callbacks stable and the keyboard useEffect register-once.
+    8 turns · 53s · $0.28
+
+--- Merging: `useUndo` keyboard listener churns on every undo/redo ---
+Already up to date.

@@ -98,3 +98,16 @@ Already up to date.
 
 --- Merging: `fetchAllTokensFlat` and `fetchAllTokensFlatWithSets` fetch sets sequentially ---
 Already up to date.
+[main d7722c2] chore(backlog): done – `fetchAllTokensFlat` and `fetchAllTokensFlatWithSets` fetch sets sequentially
+ 6 files changed, 54 insertions(+), 14 deletions(-)
+
+## 2026-03-28 - `countLeafNodes` is in `colorUtils.ts` despite being unrelated to colors — misplaced token tree utility function
+- Moved `countLeafNodes` from `colorUtils.ts` to `utils.ts` (the general shared utilities file). Updated the import in `AnalyticsPanel.tsx` to pull from the new location.
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L245 (removed), `packages/figma-plugin/src/ui/shared/utils.ts` ~L31 (added), `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L2 (import updated)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  78 items remaining
+===============================================================
+  Claimed: `$value` typed as `any` in `TokenNode` interface (`useTokens.ts`) — type safety lost throughout entire token data flow
+  Worktree: /tmp/backlog-10278-jT9CmV

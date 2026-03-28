@@ -15,6 +15,10 @@ export function useUndo() {
   const [future, setFuture] = useState<UndoSlot[]>([]);
   const [dismissed, setDismissed] = useState(false);
   const executingRef = useRef(false);
+  const pastRef = useRef(past);
+  pastRef.current = past;
+  const futureRef = useRef(future);
+  futureRef.current = future;
 
   const pushUndo = useCallback((slot: UndoSlot) => {
     setPast(prev => {
@@ -27,9 +31,10 @@ export function useUndo() {
 
   const executeUndo = useCallback(async () => {
     if (executingRef.current) return;
-    if (past.length === 0) return;
-    const slot = past[past.length - 1];
-    const next = past.slice(0, -1);
+    const p = pastRef.current;
+    if (p.length === 0) return;
+    const slot = p[p.length - 1];
+    const next = p.slice(0, -1);
     executingRef.current = true;
     setPast(next);
     if (slot.redo) {
@@ -40,14 +45,15 @@ export function useUndo() {
     } finally {
       executingRef.current = false;
     }
-  }, [past]);
+  }, []);
 
   const executeRedo = useCallback(async () => {
     if (executingRef.current) return;
-    if (future.length === 0) return;
-    const slot = future[future.length - 1];
+    const f = futureRef.current;
+    if (f.length === 0) return;
+    const slot = f[f.length - 1];
     if (!slot.redo) return;
-    const next = future.slice(0, -1);
+    const next = f.slice(0, -1);
     executingRef.current = true;
     setFuture(next);
     setPast(p => [...p, slot]);
@@ -56,7 +62,7 @@ export function useUndo() {
     } finally {
       executingRef.current = false;
     }
-  }, [future]);
+  }, []);
 
   const dismissToast = useCallback(() => {
     setDismissed(true);
@@ -66,12 +72,12 @@ export function useUndo() {
     const handler = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey)) return;
       if (e.key === 'z' && !e.shiftKey) {
-        if (past.length > 0) {
+        if (pastRef.current.length > 0) {
           e.preventDefault();
           executeUndo();
         }
       } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
-        if (future.length > 0) {
+        if (futureRef.current.length > 0) {
           e.preventDefault();
           executeRedo();
         }
@@ -79,7 +85,7 @@ export function useUndo() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [past, future, executeUndo, executeRedo]);
+  }, [executeUndo, executeRedo]);
 
   const canUndo = past.length > 0;
   const canRedo = future.length > 0;

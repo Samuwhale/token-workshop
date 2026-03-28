@@ -308,3 +308,10 @@
 - **Learnings for future iterations:**
   - `utils.ts` is the right home for general token-tree helpers that aren't color-specific. It already contains `stableStringify` which is also token-related.
 ---
+
+## 2026-03-28 - `useUndo` keyboard listener churns on every undo/redo
+- Added `pastRef` and `futureRef` that mirror `past`/`future` state. `executeUndo` and `executeRedo` now read from refs instead of closing over state, making them stable (empty dependency arrays). The keyboard `useEffect` no longer depends on `past`/`future` and registers/deregisters only once.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L17, ~L28, ~L45, ~L65
+- **Learnings for future iterations:**
+  - Classic React pattern: when a `useCallback` closes over state that changes frequently and is used in a `useEffect` dependency array, replace the state read with a ref to break the dependency chain. The ref assignment (`ref.current = state`) goes in the render body, not in an effect.
+---
