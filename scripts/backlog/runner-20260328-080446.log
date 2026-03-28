@@ -428,3 +428,16 @@ Already up to date.
 
 --- Merging: refreshTokens double-fires on initial load ---
 Already up to date.
+[main 4f17579] chore(backlog): done – refreshTokens double-fires on initial load
+ 7 files changed, 63 insertions(+), 6 deletions(-)
+
+## 2026-03-28 - refreshTokens double-fires on initial load
+- Removed `activeSet` from `refreshTokens` useCallback deps by reading it via `activeSetRef` instead
+- Added separate `useEffect` for external `activeSet` changes (user switches tab) with guards to skip: (1) initial mount, (2) internal set changes from `refreshTokens` itself (initial set selection)
+- Uses `internalSetChangeRef` flag set before `setActiveSet` inside `refreshTokens`, and `mountedRef` to skip first render
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  28 items remaining
+===============================================================
+  Claimed: TokenList `handleListKeyDown` has stale closure — `selectedPaths` and `displayedLeafNodes` are missing from the `useCallback` dependency array; Cmd+C copies stale selection
+  Worktree: /tmp/backlog-63685-wbfMfL

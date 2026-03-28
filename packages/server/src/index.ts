@@ -31,6 +31,7 @@ export async function startServer(config: ServerConfig) {
   const fastify = Fastify({ logger: true });
 
   await fastify.register(cors, {
+    // 'null' origin is sent by the Figma plugin iframe (sandboxed iframe with no inherited origin)
     origin: ['https://www.figma.com', 'https://figma.com', /^https:\/\/.*\.figma\.com$/, 'null'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   });

@@ -465,3 +465,10 @@ Already up to date.
 ===============================================================
   Claimed: CORS origin includes string `'null'` — allows requests from sandboxed iframes, data: URLs, and redirects; if intentional for the Figma plugin iframe, add a comment; otherwise remove
   Worktree: /tmp/backlog-62956-4yYBES
+
+  ✓ done: CORS origin includes string 'null'
+    Added comment explaining 'null' origin is intentional for Figma plugin sandboxed iframe
+    9 turns · 42s · $0.25
+
+--- Merging: CORS origin includes string 'null' ---
+Already up to date.
