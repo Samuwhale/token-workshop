@@ -102,18 +102,32 @@ export function evalExpr(expr: string): number {
 
 /**
  * Substitute named variables in a formula string with their numeric values.
- * Unknown variables are replaced with 0.
+ * Throws if any unrecognized variable names remain after substitution.
  */
 export function substituteVars(
   formula: string,
   vars: Record<string, number>,
 ): string {
   const keys = Object.keys(vars);
-  if (keys.length === 0) return formula;
-  // Escape any regex-special chars in key names; sort longest-first to avoid partial matches
-  const escaped = keys
-    .sort((a, b) => b.length - a.length)
-    .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  const pattern = new RegExp(`\\b(${escaped.join('|')})\\b`, 'g');
-  return formula.replace(pattern, (match) => String(vars[match] ?? 0));
+  let result = formula;
+  if (keys.length > 0) {
+    // Escape any regex-special chars in key names; sort longest-first to avoid partial matches
+    const escaped = keys
+      .sort((a, b) => b.length - a.length)
+      .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const pattern = new RegExp(`\\b(${escaped.join('|')})\\b`, 'g');
+    result = result.replace(pattern, (match) => String(vars[match] ?? 0));
+  }
+
+  // Detect any remaining word-like tokens that look like unresolved variable names
+  const remaining = result.match(/\b[a-zA-Z_][a-zA-Z0-9_]*\b/g);
+  if (remaining) {
+    const unique = [...new Set(remaining)];
+    const available = keys.length > 0 ? ` (available: ${keys.join(', ')})` : '';
+    throw new Error(
+      `Unknown variable${unique.length > 1 ? 's' : ''} in formula: ${unique.join(', ')}${available}`,
+    );
+  }
+
+  return result;
 }

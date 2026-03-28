@@ -425,3 +425,10 @@
 - **Learnings for future iterations:**
   - Unary operator parsing must always recurse into the same precedence level to handle chained unary operators (e.g., `--x`, `+-x`). Calling the next-lower precedence (`parsePrimary`) breaks this.
 ---
+
+## 2026-03-28 - `substituteVars` silently replaces unknown variable names with zero
+- After substituting known variables, `substituteVars` now scans the result for remaining word-like tokens (`/\b[a-zA-Z_]\w*\b/`) and throws a descriptive error listing unknown variable names and available variables. The caller in `generator-engine.ts` already catches formula errors and surfaces them as warnings, so users now see e.g. "Unknown variable in formula: multipler (available: base, index, multiplier, prev)" instead of silent zero substitution or a cryptic "Unexpected character" error.
+- Files changed: `packages/core/src/eval-expr.ts` ~L107
+- **Learnings for future iterations:**
+  - The `evalExpr` tokenizer already throws on non-numeric/non-operator characters, so unknown vars would eventually error — but the message was unhelpful ("Unexpected character: m"). Detecting unknowns in `substituteVars` gives much better diagnostics.
+---

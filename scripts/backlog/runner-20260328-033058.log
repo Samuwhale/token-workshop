@@ -459,3 +459,16 @@ Already up to date.
 
 --- Merging: `evalExpr` parseUnary does not recurse — calls `parsePrimary()` instead of `parseUnary()` ---
 Already up to date.
+[main 4c1f93f] chore(backlog): done – `evalExpr` parseUnary does not recurse — calls `parsePrimary()` instead of `parseUnary()`
+ 6 files changed, 33 insertions(+), 5 deletions(-)
+
+## 2026-03-28 - `evalExpr` parseUnary does not recurse — calls `parsePrimary()` instead of `parseUnary()`
+- Changed `parseUnary()` to recurse into itself instead of calling `parsePrimary()` for unary `-` and `+` operators. This allows double-negation (`--5`) and other chained unary operators to parse correctly.
+- Files changed: `packages/core/src/eval-expr.ts` ~L70
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  31 items remaining
+===============================================================
+  Claimed: Theme dimension/option routes accept whitespace-only names — `!name` check passes for `"   "`, then `name.trim()` produces empty string that gets saved to `$themes.json` (`themes.ts` ~L72, ~L92, ~L149, ~L172)
+  Worktree: /tmp/backlog-85816-cJHwNU

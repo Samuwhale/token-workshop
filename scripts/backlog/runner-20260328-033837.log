@@ -347,3 +347,10 @@ Already up to date.
 ===============================================================
   Claimed: `substituteVars` silently replaces unknown variable names with zero — a typo like `"base * multipler"` (missing 'i') becomes `"base * 0"` producing all-zero generated tokens with no error feedback (`eval-expr.ts` ~L111)
   Worktree: /tmp/backlog-10278-DBnZY7
+
+  ✓ done: substituteVars silently replaces unknown variable names with zero
+    substituteVars now detects remaining word-like tokens after substitution and throws a descriptive error listing unknown variable names and available variables, instead of silently passing them through
+    12 turns · 74s · $0.36
+
+--- Merging: substituteVars silently replaces unknown variable names with zero ---
+Already up to date.
