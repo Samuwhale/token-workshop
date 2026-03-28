@@ -377,3 +377,10 @@
 - **Learnings for future iterations:**
   - Generation counters are simpler than AbortController for race-guarding fetches where you only care about the latest result — no need to plumb signals through every internal fetch call
 ---
+
+## 2026-03-28 - `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale`
+- Added three missing switch cases (`accessibleColorPair` → "Accessible color pair", `darkModeInversion` → "Dark mode inversion", `responsiveScale` → "Responsive scale") and a `default` branch that falls back to the raw type string to prevent future `undefined` rendering.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L181
+- **Learnings for future iterations:**
+  - When adding new `GeneratorType` variants in core, all switch/map lookups in UI must be updated — search for `GeneratorType` across the plugin to find them all.
+---

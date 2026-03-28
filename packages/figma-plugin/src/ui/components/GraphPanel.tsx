@@ -179,6 +179,10 @@ function getGeneratorTypeLabel(type: GeneratorType): string {
     case 'zIndexScale': return 'Z-index scale';
     case 'customScale': return 'Custom scale';
     case 'contrastCheck': return 'Contrast check';
+    case 'accessibleColorPair': return 'Accessible color pair';
+    case 'darkModeInversion': return 'Dark mode inversion';
+    case 'responsiveScale': return 'Responsive scale';
+    default: return type;
   }
 }
 

@@ -89,3 +89,10 @@ Already up to date.
 ===============================================================
   Claimed: `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale` — no `default` branch, returns `undefined` which renders as "undefined" in the UI
   Worktree: /tmp/backlog-92630-so3uqe
+
+  ✓ done: `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale`
+    Added three missing switch cases and a default fallback to prevent "undefined" rendering in the UI
+    12 turns · 40s · $0.34
+
+--- Merging: `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale` ---
+Already up to date.

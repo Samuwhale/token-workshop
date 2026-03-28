@@ -168,3 +168,10 @@ Already up to date.
 
 --- Merging: Race condition in fetchAllTokensFlatWithSets ---
 Already up to date.
+[main 1fc1535] chore(backlog): done – Race condition in fetchAllTokensFlatWithSets
+ 7 files changed, 42 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - Race condition in `fetchAllTokensFlatWithSets`
+- Added generation counter (`flatFetchGenRef`) to discard stale responses from overlapping fetches. Each effect invocation increments the counter; `.then()` and `.catch()` callbacks bail out if the counter has advanced.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L253 (ref declaration), ~L408 (generation guard in useEffect)
+- **Learnings for future iterations:**
