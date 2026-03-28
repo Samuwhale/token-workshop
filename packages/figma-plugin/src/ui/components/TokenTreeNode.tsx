@@ -1288,11 +1288,19 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
 
       {/* Alias resolution chain tooltip — visible on row hover */}
       {hovered && aliasChainLabel && (
-        <div className="absolute left-4 right-4 top-full z-20 pointer-events-none" style={{ marginTop: '-2px' }}>
+        <div className="absolute left-4 right-4 top-full z-20" style={{ marginTop: '-2px' }}>
           <div className="inline-flex items-center gap-1 px-2 py-1 rounded shadow-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[9px] font-mono text-[var(--color-figma-text-secondary)] whitespace-nowrap max-w-full overflow-hidden">
             {[node.path, ...aliasChain].map((seg, i, arr) => (
               <Fragment key={i}>
-                <span className={i === 0 ? 'text-[var(--color-figma-accent)]' : ''}>{seg}</span>
+                {i === 0 ? (
+                  <span className="text-[var(--color-figma-accent)]">{seg}</span>
+                ) : (
+                  <button
+                    className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline cursor-pointer transition-colors"
+                    onClick={() => onNavigateToAlias?.(seg)}
+                    title={`Navigate to ${seg}`}
+                  >{seg}</button>
+                )}
                 <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><path d="M1 4h6M4 1l3 3-3 3"/></svg>
               </Fragment>
             ))}

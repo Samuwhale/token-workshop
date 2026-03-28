@@ -274,3 +274,13 @@
 - **Learnings for future iterations:**
   - Type inference and validation are a two-stage pipeline: inference must be lenient (match on partial keys) so that validation can be strict (report missing fields). If inference is too strict, malformed data escapes validation entirely.
 ---
+
+## 2026-03-28 - TokenEditor alias resolution chain hops are not clickable
+- Made intermediate hops in the hover tooltip clickable by converting `<span>` to `<button>` with `onNavigateToAlias` handler
+- Removed `pointer-events-none` from tooltip container so clicks can reach the buttons
+- Added hover:underline and hover:accent color for visual affordance
+- The inline chain expansion already had clickable buttons; only the hover tooltip was missing interactivity
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1289-1302
+- **Learnings for future iterations:**
+  - The alias chain is rendered in two places: a hover tooltip (pointer-events-none by default) and an inline expansion (already interactive). Both need to be kept in sync.
+---
