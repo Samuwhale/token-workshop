@@ -104,15 +104,17 @@ export function BatchEditor({
     [selectedEntries]
   );
 
-  // Count scalable tokens whose values contain alias references (e.g. {spacing.base} * 2).
-  // scaleValue() returns null for these, so they'd be silently skipped without a warning.
-  const scaleAliasCount = useMemo(() => {
-    if (!allScalable) return 0;
+  // Collect scalable tokens whose values contain alias references (e.g. {spacing.base}).
+  // scaleValue() returns null for these, so they are skipped during scaling.
+  const skippedAliasTokens = useMemo(() => {
+    if (!allScalable) return [];
     return selectedEntries.filter(({ entry }) => {
       const v = entry.$value;
       return typeof v === 'string' && v.includes('{');
-    }).length;
+    });
   }, [allScalable, selectedEntries]);
+
+  const scaleAliasCount = skippedAliasTokens.length;
 
   const otherSets = useMemo(() => sets.filter(s => s !== setName), [sets, setName]);
 
@@ -488,13 +490,22 @@ export function BatchEditor({
               </span>
             ) : null}
           </div>
-          {scaleAliasCount > 0 && (
-            <div className="flex items-start gap-2 ml-[88px]">
-              <span className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight">
+          {scaleAliasCount > 0 && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0 && (
+            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+              <span className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] leading-tight font-medium">
                 {scaleAliasCount === selectedEntries.length
-                  ? 'All selected tokens use alias values and cannot be scaled.'
-                  : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} use alias values (e.g. {token} * 2) and will be skipped.`}
+                  ? 'All selected tokens use alias values and cannot be scaled:'
+                  : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} will be skipped (alias values cannot be scaled):`}
               </span>
+              {skippedAliasTokens.slice(0, PREVIEW_MAX).map(({ path, entry }) => (
+                <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">
+                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
+                  <span className="text-[var(--color-figma-text-secondary)] shrink-0 truncate max-w-[120px]" title={String(entry.$value)}>{String(entry.$value)}</span>
+                </div>
+              ))}
+              {skippedAliasTokens.length > PREVIEW_MAX && (
+                <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">and {skippedAliasTokens.length - PREVIEW_MAX} more…</div>
+              )}
             </div>
           )}
           {scalePreview && scalePreview.length > 0 && (

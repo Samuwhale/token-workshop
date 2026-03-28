@@ -422,3 +422,17 @@ Already up to date.
 
 --- Merging: PublishPanel git diff view has no search or filter ---
 Already up to date.
+[main 4bffc78] chore(backlog): done – PublishPanel git diff view has no search or filter
+ 6 files changed, 71 insertions(+), 5 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - PublishPanel git diff view has no search or filter
+- Added a filter input to the diff file list that appears when 5+ files are shown. Case-insensitive substring matching on file paths with a search icon, clear button, and "X of Y files" counter. The filter only affects the visible list — all files remain in state for push/pull/skip selection. The search bar auto-hides when fewer than 5 files are present.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L98 (state), ~L830 (filter UI)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  35 items remaining
+===============================================================
+  Claimed: TokenEditor Cmd+L shortcut for alias mode is not discoverable — the keyboard shortcut exists but has no tooltip, hint text, or mention in the editor UI; users must already know about it or find it in the shortcuts modal
+  Worktree: /tmp/backlog-84992-Y9reGO

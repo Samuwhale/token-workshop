@@ -393,3 +393,10 @@
 - **Learnings for future iterations:**
   - The diff file list uses an IIFE inside JSX — state for filtering must live outside it (in the component body) since the IIFE re-runs each render anyway.
 ---
+
+## 2026-03-28 - BatchEditor silently skips alias tokens when scaling
+- Replaced `scaleAliasCount` integer memo with `skippedAliasTokens` array memo to track which specific tokens are aliases. Updated the inline warning to: (a) only appear when a valid scale factor is entered, (b) list the specific skipped token names and their alias values (up to 3, with "and N more…"), styled as a bordered panel matching the scale preview. Post-apply feedback already included skip counts and was left as-is.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L107, ~L491
+- **Learnings for future iterations:**
+  - The existing code already had partial alias-skip reporting (count in feedback + generic warning). The missing piece was showing *which* tokens, not just how many.
+---

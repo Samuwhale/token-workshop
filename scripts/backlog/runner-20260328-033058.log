@@ -432,3 +432,10 @@ Already up to date.
 ===============================================================
   Claimed: BatchEditor silently skips alias tokens when scaling — applying a scale factor to dimension tokens quietly ignores any token whose value is an alias reference, with no report of which tokens were skipped or why
   Worktree: /tmp/backlog-85816-FBphdD
+
+  ✓ done: BatchEditor silently skips alias tokens when scaling
+    Added detailed alias-token skip reporting: inline warning now lists specific skipped token names/values (up to 3 with overflow), only shown when a valid scale factor is entered, styled as a bordered panel matching the scale preview.
+    12 turns · 113s · $0.55
+
+--- Merging: BatchEditor silently skips alias tokens when scaling ---
+Already up to date.
