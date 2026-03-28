@@ -485,3 +485,16 @@ Already up to date.
 
 --- Merging: Cannot access 'fetchConflicts' before initialization — TDZ error ---
 Already up to date.
+[main 9a6d02b] chore(backlog): done – Cannot access 'fetchConflicts' before initialization — TDZ error
+ 5 files changed, 32 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - Cannot access 'fetchConflicts' before initialization — TDZ error
+- Already fixed in a prior session (commit 81f80b2). `fetchConflicts` useCallback is now declared at line 92, above the useEffect at line 114 that references it.
+- Files changed: none (already done)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 25 / 90  (claude)  —  13 items remaining
+===============================================================
+  Claimed: useStyleSync.ts race condition: single resolve ref instead of correlation map — `styleReadResolveRef` is overwritten on concurrent `computeStyleDiff` calls, so the earlier call's promise resolves with the later call's data; `useVariableSync` already uses a `Map<correlationId, resolver>` — adopt the same pattern (`useStyleSync.ts` ~L46,96)
+  Worktree: /tmp/backlog-9231-Ad0ZAE

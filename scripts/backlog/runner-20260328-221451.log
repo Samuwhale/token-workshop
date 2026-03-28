@@ -50,3 +50,10 @@ Already up to date.
 ===============================================================
   Claimed: styleSync.ts re-fetches entire Figma style list for every token — `applyPaintStyle`, `applyTextStyle`, `applyEffectStyle`, and `applyGradientPaintStyle` each call `figma.getLocalPaintStylesAsync()` / `getLocalTextStylesAsync()` / `getLocalEffectStylesAsync()` at the top of every invocation; for a 100-token batch this means 100 round-trips instead of 1 — fetch once in `applyStyles` and pass as a parameter (`styleSync.ts` ~L34–108)
   Worktree: /tmp/backlog-23617-YvEgVM
+
+  ✓ done: styleSync.ts re-fetches entire Figma style list for every token
+    stale — already done. applyStyles() already fetches all style lists once into a StyleCache and passes it to each per-type applicator.
+    7 turns · 51s · $0.27
+
+--- Merging: styleSync.ts re-fetches entire Figma style list for every token ---
+Already up to date.

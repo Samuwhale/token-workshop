@@ -392,3 +392,10 @@
 - **Learnings for future iterations:**
   - Check the archive/runner logs before implementing — items may have been fixed in a prior run but not yet marked done in the backlog
 ---
+
+## 2026-03-28 - styleSync.ts re-fetches entire Figma style list for every token
+- Already implemented: `applyStyles()` fetches all three style lists once into a `StyleCache` object (L50-56) and passes it to each per-type applicator. No per-token re-fetching occurs. Newly created styles are also pushed into the cache arrays so subsequent tokens in the same batch can find them.
+- Files changed: none (already done)
+- **Learnings for future iterations:**
+  - Always check current code before assuming backlog items are still outstanding — rapid development means items may be addressed before the backlog agent reaches them
+---
