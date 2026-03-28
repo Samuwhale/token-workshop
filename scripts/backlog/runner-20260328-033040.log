@@ -571,3 +571,17 @@ Already up to date.
 
 --- Merging: BatchEditor has no progress indicator for large operations ---
 Already up to date.
+[main 9389435] chore(backlog): done – BatchEditor has no progress indicator for large operations
+ 6 files changed, 84 insertions(+), 15 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - BatchEditor has no progress indicator for large operations
+- Added `progress` state (`{ current, total } | null`) to BatchEditor
+- Converted `handleApply` and `handleMove` from `Promise.allSettled` to sequential loops with per-token progress updates (matching `handleRename`'s existing pattern)
+- Added progress counter to `handleRename`'s existing sequential loop
+
+===============================================================
+  Iteration 28 / 90  (claude)  —  5 items remaining
+===============================================================
+  Claimed: PasteTokensModal creates tokens one-at-a-time via individual POST requests — importing 200 tokens makes 200 sequential HTTP calls; no batch endpoint usage despite `/api/tokens/:set/batch` existing
+  Worktree: /tmp/backlog-84992-euuYJh

@@ -435,3 +435,15 @@
   - Converting `Promise.allSettled` to sequential loops is the simplest way to get per-item progress — the trade-off is slower execution but better UX for large batches
   - `tabular-nums` class keeps the counter from jumping as digits change width
 ---
+
+## 2026-03-28 - BatchEditor type conversion doesn't validate value compatibility
+- Added value-vs-type compatibility validation to BatchEditor's type change flow using `TokenValidator` from `@tokenmanager/core`
+- `typeChangeInfo` useMemo now validates each token's current `$value` against the target type, collecting incompatible tokens with error messages
+- Inline preview shows count of incompatible values; confirmation banner turns red and lists specific incompatible tokens (up to 3 with "and N more…")
+- Button text changes from "Confirm" to "Change Anyway" when incompatible tokens exist; warning explains proceeding will produce invalid tokens
+- Alias references and formulas are automatically skipped by `TokenValidator.validate()` (no false positives)
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L1-6 (imports), ~L165-180 (typeChangeInfo validation), ~L575-580 (inline preview), ~L582-630 (confirmation banner)
+- **Learnings for future iterations:**
+  - `TokenValidator` from `@tokenmanager/core` is safe to import directly in UI components (not a re-export chain issue); it handles references/formulas gracefully
+  - The `validate()` method returns errors with `path: message` format; splitting on first `:` gives a clean user-facing message
+---

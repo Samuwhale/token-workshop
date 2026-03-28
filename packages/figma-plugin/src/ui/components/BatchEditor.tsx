@@ -1,6 +1,10 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { TokenValidator } from '@tokenmanager/core';
+import type { Token } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
+
+const typeValidator = new TokenValidator();
 
 const DTCG_TYPES = [
   'color', 'dimension', 'fontFamily', 'fontWeight', 'duration', 'cubicBezier',
@@ -160,11 +164,24 @@ export function BatchEditor({
     return { items, conflicts };
   }, [targetSet, selectedEntries, targetSetPaths]);
 
-  // For type-change confirmation: gather distinct current types of affected tokens
+  // For type-change confirmation: gather distinct current types + validate value compatibility
   const typeChangeInfo = useMemo(() => {
     if (!newType) return null;
     const currentTypes = [...new Set(selectedEntries.map(x => x.entry.$type).filter(Boolean))];
-    return { currentTypes, count: selectedEntries.length };
+    // Validate each token's current value against the new type
+    const incompatible: { path: string; error: string }[] = [];
+    for (const { path, entry } of selectedEntries) {
+      // Skip if already the target type
+      if (entry.$type === newType) continue;
+      const result = typeValidator.validate(
+        { $value: entry.$value, $type: newType } as Token,
+        path,
+      );
+      if (!result.valid) {
+        incompatible.push({ path, error: result.errors[0] ?? 'incompatible value' });
+      }
+    }
+    return { currentTypes, count: selectedEntries.length, incompatible };
   }, [newType, selectedEntries]);
 
   // Dry-run: compute scaled values for preview
@@ -597,12 +614,21 @@ export function BatchEditor({
         <div className="ml-[88px] text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
           {typeChangeInfo.currentTypes.join(', ')} → <span className="text-[var(--color-figma-text)] font-medium">{newType}</span>
           {' '}on {typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}
+          {typeChangeInfo.incompatible.length > 0 && (
+            <span className="text-[var(--color-figma-error,#ef4444)]">
+              {' '}— {typeChangeInfo.incompatible.length} with incompatible value{typeChangeInfo.incompatible.length === 1 ? '' : 's'}
+            </span>
+          )}
         </div>
       )}
 
       {/* Type-change confirmation banner */}
       {showTypeConfirm && typeChangeInfo && (
-        <div className="rounded border border-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning-bg,rgba(245,158,11,0.08))] px-2 py-1.5 space-y-1">
+        <div className={`rounded border px-2 py-1.5 space-y-1 ${
+          typeChangeInfo.incompatible.length > 0
+            ? 'border-[var(--color-figma-error,#ef4444)] bg-[rgba(239,68,68,0.08)]'
+            : 'border-[var(--color-figma-warning,#f59e0b)] bg-[var(--color-figma-warning-bg,rgba(245,158,11,0.08))]'
+        }`}>
           <p className="text-[10px] text-[var(--color-figma-text)] leading-snug">
             Change type of <strong>{typeChangeInfo.count} token{typeChangeInfo.count === 1 ? '' : 's'}</strong>{' '}
             {typeChangeInfo.currentTypes.length > 0 && (
@@ -610,15 +636,41 @@ export function BatchEditor({
             )}
             to <strong>{newType}</strong>?
           </p>
-          <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
-            This may break alias references that depend on the current type.
-          </p>
+          {typeChangeInfo.incompatible.length > 0 ? (
+            <div className="space-y-0.5">
+              <p className="text-[10px] text-[var(--color-figma-error,#ef4444)] leading-snug font-medium">
+                {typeChangeInfo.incompatible.length} token{typeChangeInfo.incompatible.length === 1 ? ' has a' : 's have'} value{typeChangeInfo.incompatible.length === 1 ? '' : 's'} incompatible with {newType}:
+              </p>
+              {typeChangeInfo.incompatible.slice(0, PREVIEW_MAX).map(({ path, error }) => (
+                <div key={path} className="flex items-start gap-1 text-[10px] leading-snug">
+                  <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px] shrink-0" title={path}>{path.split('.').pop()}</span>
+                  <span className="text-[var(--color-figma-error,#ef4444)] truncate" title={error}>
+                    {error.includes(':') ? error.split(':').slice(1).join(':').trim() : error}
+                  </span>
+                </div>
+              ))}
+              {typeChangeInfo.incompatible.length > PREVIEW_MAX && (
+                <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">and {typeChangeInfo.incompatible.length - PREVIEW_MAX} more…</div>
+              )}
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+                Proceeding will produce invalid tokens. Update their values afterward or cancel.
+              </p>
+            </div>
+          ) : (
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug">
+              This may break alias references that depend on the current type.
+            </p>
+          )}
           <div className="flex gap-1.5 pt-0.5">
             <button
               onClick={handleApply}
-              className="px-2 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)] text-white hover:opacity-90 transition-opacity"
+              className={`px-2 py-0.5 rounded text-[10px] font-medium text-white hover:opacity-90 transition-opacity ${
+                typeChangeInfo.incompatible.length > 0
+                  ? 'bg-[var(--color-figma-error,#ef4444)]'
+                  : 'bg-[var(--color-figma-accent)]'
+              }`}
             >
-              Confirm
+              {typeChangeInfo.incompatible.length > 0 ? 'Change Anyway' : 'Confirm'}
             </button>
             <button
               onClick={() => setShowTypeConfirm(false)}
