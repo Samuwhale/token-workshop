@@ -107,29 +107,24 @@ export class GitSync {
     remoteOnly: string[];
     conflicts: string[];
   }> {
-    try {
-      await this.git.fetch();
-      const branch = await this.getCurrentBranch();
-      const remote = `origin/${branch}`;
+    await this.git.fetch();
+    const branch = await this.getCurrentBranch();
+    const remote = `origin/${branch}`;
 
-      const [localRaw, remoteRaw] = await Promise.all([
-        this.git.raw(['diff', '--name-only', `${remote}..HEAD`]).catch(() => ''),
-        this.git.raw(['diff', '--name-only', `HEAD..${remote}`]).catch(() => ''),
-      ]);
+    const [localRaw, remoteRaw] = await Promise.all([
+      this.git.raw(['diff', '--name-only', `${remote}..HEAD`]).catch(() => ''),
+      this.git.raw(['diff', '--name-only', `HEAD..${remote}`]).catch(() => ''),
+    ]);
 
-      const localFiles = localRaw.trim().split('\n').filter(Boolean);
-      const remoteFiles = remoteRaw.trim().split('\n').filter(Boolean);
-      const conflictSet = new Set(localFiles.filter(f => remoteFiles.includes(f)));
+    const localFiles = localRaw.trim().split('\n').filter(Boolean);
+    const remoteFiles = remoteRaw.trim().split('\n').filter(Boolean);
+    const conflictSet = new Set(localFiles.filter(f => remoteFiles.includes(f)));
 
-      return {
-        localOnly: localFiles.filter(f => !conflictSet.has(f)),
-        remoteOnly: remoteFiles.filter(f => !conflictSet.has(f)),
-        conflicts: [...conflictSet],
-      };
-    } catch (err) {
-      console.warn('[GitSync] Failed to compute unified diff:', err);
-      return { localOnly: [], remoteOnly: [], conflicts: [] };
-    }
+    return {
+      localOnly: localFiles.filter(f => !conflictSet.has(f)),
+      remoteOnly: remoteFiles.filter(f => !conflictSet.has(f)),
+      conflicts: [...conflictSet],
+    };
   }
 
   /** Apply direction choices: push, pull, or skip per file */

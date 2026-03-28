@@ -378,3 +378,16 @@ Already up to date.
 
 --- Merging: Generator create route bypasses type checking with `as unknown as GeneratorConfig` ---
 Already up to date.
+[main d854d77] chore(backlog): done – Generator create route bypasses type checking with `as unknown as GeneratorConfig`
+ 5 files changed, 135 insertions(+), 5 deletions(-)
+
+## 2026-03-28 - useServerEvents onGeneratorError dependency can cause SSE reconnection churn
+- Already fixed: `callbackRef` pattern is in place (L21-22) and `onGeneratorError` is NOT in the useEffect dep array (L86 has only `[serverUrl, connected]`)
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  45 items remaining
+===============================================================
+  Claimed: ImportPanel has no rollback after import — if a user imports tokens and realizes they're wrong, there's no undo; they must manually delete each imported token one by one
+  Worktree: /tmp/backlog-85816-jT3a4k

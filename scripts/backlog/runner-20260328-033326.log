@@ -360,3 +360,10 @@ Already up to date.
 ===============================================================
   Claimed: computeUnifiedDiff error result is indistinguishable from "no conflicts" — `git-sync.ts` ~L118 catch block returns `{ localOnly: [], remoteOnly: [], conflicts: [] }`, which the caller interprets as "no differences," silently masking git command failures
   Worktree: /tmp/backlog-92630-6qVyTO
+
+  ✓ done: computeUnifiedDiff error result is indistinguishable from "no conflicts"
+    Removed outer try/catch that swallowed errors and returned empty-success result; errors now propagate to route handler's existing 500 response
+    12 turns · 75s · $0.36
+
+--- Merging: computeUnifiedDiff error result is indistinguishable from "no conflicts" ---
+Already up to date.

@@ -458,3 +458,11 @@
 - **Learnings for future iterations:**
   - Check current code before implementing — backlog items can become stale if the fix was included alongside the original feature
 ---
+
+## 2026-03-28 - computeUnifiedDiff error result is indistinguishable from "no conflicts"
+- Removed the outer try/catch in `computeUnifiedDiff` that swallowed errors from `git.fetch()` and `getCurrentBranch()`, returning `{ localOnly: [], remoteOnly: [], conflicts: [] }` which the route handler treated as a successful empty diff. Errors now propagate to the route handler's existing try/catch which returns a proper 500 with error details.
+- The inner `.catch(() => '')` on individual diff commands is preserved — those handle legitimate cases like missing remote tracking branch.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L109
+- **Learnings for future iterations:**
+  - When a route handler already has error handling, don't add a second catch inside the service method that returns a "success-shaped" empty result — let errors propagate
+---
