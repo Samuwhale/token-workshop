@@ -985,6 +985,27 @@ export class TokenStore {
     return this.crossSetDependents.get(tokenPath) ?? [];
   }
 
+  /** Get all tokens that reference any token under the given group prefix (cross-set). */
+  getGroupDependents(groupPrefix: string): Array<{ path: string; setName: string; referencedToken: string }> {
+    const prefix = groupPrefix + '.';
+    const seen = new Set<string>();
+    const result: Array<{ path: string; setName: string; referencedToken: string }> = [];
+    for (const [refPath, deps] of this.crossSetDependents) {
+      if (refPath === groupPrefix || refPath.startsWith(prefix)) {
+        for (const dep of deps) {
+          // Exclude tokens that are themselves under the group (internal refs)
+          if (dep.path === groupPrefix || dep.path.startsWith(prefix)) continue;
+          const key = `${dep.setName}:${dep.path}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            result.push({ path: dep.path, setName: dep.setName, referencedToken: refPath });
+          }
+        }
+      }
+    }
+    return result;
+  }
+
   /** Get all token groups (the raw data) keyed by set name */
   getAllTokenData(): Record<string, TokenGroup> {
     const result: Record<string, TokenGroup> = {};
@@ -996,7 +1017,7 @@ export class TokenStore {
 
   // ----- Group operations -----
 
-  async renameGroup(setName: string, oldGroupPath: string, newGroupPath: string): Promise<{ renamedCount: number; aliasesUpdated: number }> {
+  async renameGroup(setName: string, oldGroupPath: string, newGroupPath: string, updateAliases = true): Promise<{ renamedCount: number; aliasesUpdated: number }> {
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
     const leafTokens = collectGroupLeafTokens(set.tokens, oldGroupPath);
@@ -1024,12 +1045,14 @@ export class TokenStore {
       deleteTokenAtPath(set.tokens, oldGroupPath);
       await this.saveSet(setName);
       let aliasesUpdated = 0;
-      const setsToSave = new Set<string>();
-      for (const [sName, s] of this.sets) {
-        const changed = updateAliasRefs(s.tokens, oldGroupPath, newGroupPath);
-        if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+      if (updateAliases) {
+        const setsToSave = new Set<string>();
+        for (const [sName, s] of this.sets) {
+          const changed = updateAliasRefs(s.tokens, oldGroupPath, newGroupPath);
+          if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+        }
+        for (const sName of setsToSave) await this.saveSet(sName);
       }
-      for (const sName of setsToSave) await this.saveSet(sName);
       this.rebuildFlatTokens();
       return { renamedCount: leafTokens.length, aliasesUpdated };
     } finally {
@@ -1037,7 +1060,7 @@ export class TokenStore {
     }
   }
 
-  async renameToken(setName: string, oldPath: string, newPath: string): Promise<{ aliasesUpdated: number }> {
+  async renameToken(setName: string, oldPath: string, newPath: string, updateAliases = true): Promise<{ aliasesUpdated: number }> {
     validateTokenPath(newPath);
     const set = this.sets.get(setName);
     if (!set) throw new Error(`Set "${setName}" not found`);
@@ -1047,14 +1070,16 @@ export class TokenStore {
     setTokenAtPath(set.tokens, newPath, token);
     deleteTokenAtPath(set.tokens, oldPath);
     await this.saveSet(setName);
-    const pathMap = new Map([[oldPath, newPath]]);
     let aliasesUpdated = 0;
-    const setsToSave = new Set<string>();
-    for (const [sName, s] of this.sets) {
-      const changed = updateBulkAliasRefs(s.tokens, pathMap);
-      if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+    if (updateAliases) {
+      const pathMap = new Map([[oldPath, newPath]]);
+      const setsToSave = new Set<string>();
+      for (const [sName, s] of this.sets) {
+        const changed = updateBulkAliasRefs(s.tokens, pathMap);
+        if (changed > 0) { aliasesUpdated += changed; setsToSave.add(sName); }
+      }
+      for (const sName of setsToSave) await this.saveSet(sName);
     }
-    for (const sName of setsToSave) await this.saveSet(sName);
     this.rebuildFlatTokens();
     return { aliasesUpdated };
   }

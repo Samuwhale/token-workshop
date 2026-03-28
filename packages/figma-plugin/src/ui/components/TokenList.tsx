@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect } fr
 import type { TokenNode } from '../hooks/useTokens';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { ApiErrorBody, NodeCapabilities, TokenMapEntry } from '../../shared/types';
-import { resolveAllAliases, isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { BatchEditor } from './BatchEditor';
 import { ComparePanel } from './ComparePanel';
 import { TokenCanvas } from './TokenCanvas';
@@ -52,6 +51,7 @@ export function TokenList({
   const [varDiffLoading, setVarDiffLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [renameTokenConfirm, setRenameTokenConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null>(null);
+  const [renameGroupConfirm, setRenameGroupConfirm] = useState<{ oldPath: string; newPath: string; depCount: number; deps: Array<{ path: string; setName: string }> } | null>(null);
   const [locallyDeletedPaths, setLocallyDeletedPaths] = useState<Set<string>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -1170,13 +1170,13 @@ export function TokenList({
   const [movingToken, setMovingToken] = useState<string | null>(null);
   const [moveTargetSet, setMoveTargetSet] = useState('');
 
-  const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
+  const executeGroupRename = useCallback(async (oldGroupPath: string, newGroupPath: string, updateAliases = true) => {
     if (!connected) return;
     try {
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldGroupPath, newGroupPath }),
+        body: JSON.stringify({ oldGroupPath, newGroupPath, updateAliases }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: `Rename failed (${res.status})` }));
@@ -1187,6 +1187,7 @@ export function TokenList({
       onError?.('Rename group failed: network error');
       return;
     }
+    setRenameGroupConfirm(null);
     if (onPushUndo) {
       const capturedSet = setName;
       const capturedUrl = serverUrl;
@@ -1213,13 +1214,29 @@ export function TokenList({
     onRefresh();
   }, [connected, serverUrl, setName, onRefresh, onPushUndo, onError]);
 
-  const executeTokenRename = useCallback(async (oldPath: string, newPath: string) => {
+  const handleRenameGroup = useCallback(async (oldGroupPath: string, newGroupPath: string) => {
+    if (!connected) return;
+    try {
+      const encodedPath = oldGroupPath.split('.').map(encodeURIComponent).join('/');
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/group-dependents/${encodedPath}`);
+      const data = res.ok ? await res.json() as { count: number; dependents: Array<{ path: string; setName: string }> } : { count: 0, dependents: [] };
+      if (data.count > 0) {
+        setRenameGroupConfirm({ oldPath: oldGroupPath, newPath: newGroupPath, depCount: data.count, deps: data.dependents ?? [] });
+        return;
+      }
+    } catch {
+      // If dependents check fails, proceed with rename anyway
+    }
+    await executeGroupRename(oldGroupPath, newGroupPath);
+  }, [connected, serverUrl, setName, executeGroupRename]);
+
+  const executeTokenRename = useCallback(async (oldPath: string, newPath: string, updateAliases = true) => {
     if (!connected) return;
     try {
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldPath, newPath }),
+        body: JSON.stringify({ oldPath, newPath, updateAliases }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: `Rename failed (${res.status})` }));
@@ -3922,6 +3939,9 @@ export function TokenList({
         renameTokenConfirm={renameTokenConfirm}
         executeTokenRename={executeTokenRename}
         onSetRenameTokenConfirm={setRenameTokenConfirm}
+        renameGroupConfirm={renameGroupConfirm}
+        executeGroupRename={executeGroupRename}
+        onSetRenameGroupConfirm={setRenameGroupConfirm}
         varDiffPending={varDiffPending}
         doApplyVariables={doApplyVariables}
         onSetVarDiffPending={setVarDiffPending}

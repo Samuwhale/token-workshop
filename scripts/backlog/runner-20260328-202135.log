@@ -217,3 +217,10 @@ Already up to date.
 ===============================================================
   Claimed: Rename conflict detection: warn when renaming a token that is referenced by aliases — show a list of dependent tokens and offer "Auto-update all aliases" so users don't silently break their token graph when refactoring paths
   Worktree: /tmp/backlog-9231-dIyweL
+
+  ✓ done: Rename conflict detection: warn when renaming a token that is referenced by aliases
+    Added 3-option rename conflict modal (auto-update aliases / rename only / cancel) for both token and group renames, new group-dependents server endpoint, updateAliases flag on rename APIs, and operation log for token renames. Build and UI validation pass; pre-existing server test/eslint failures in worktree are unrelated.
+    87 turns · 670s · $4.5
+
+--- Merging: Rename conflict detection: warn when renaming a token that is referenced by aliases ---
+Already up to date.

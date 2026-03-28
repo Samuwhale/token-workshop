@@ -361,3 +361,22 @@
   - Untracked files don't appear in `git diff HEAD` — need `git ls-files --others --exclude-standard` to catch newly created .tokens.json files
   - Pre-existing duplicate imports in TokenList.tsx (lines 5 and 26) caused a build-breaking parse error; esbuild rejects duplicate `import { X }` bindings unlike TS which silently shadows
 ---
+
+## 2026-03-28 - Rename conflict detection
+- Added full rename conflict detection for both individual tokens and groups:
+  - Token rename (already had basic detection) now shows a 3-option modal: "Auto-update all aliases", "Rename only (break references)", or "Cancel"
+  - Group rename now fetches group-level dependents before renaming and shows the same 3-option modal
+  - Server-side `renameToken()` and `renameGroup()` accept optional `updateAliases` flag to skip alias ref updates
+  - New `GET /api/tokens/:set/group-dependents/*` endpoint aggregates cross-set dependents for all tokens under a group prefix
+  - Added operation log recording to token rename route (was missing; group rename already had it)
+  - Fixed pre-existing duplicate import of `isAlias`/`resolveTokenValue` in TokenList.tsx that blocked builds
+- Files changed:
+  - `packages/server/src/services/token-store.ts` ~L984-1062 — `getGroupDependents()`, `updateAliases` param on `renameToken`/`renameGroup`
+  - `packages/server/src/routes/tokens.ts` ~L55,285-320 — `group-dependents` route, `updateAliases` body param, operation log for token rename
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L55,1174-1240 — `renameGroupConfirm` state, `executeGroupRename`/`handleRenameGroup` split, `updateAliases` param on `executeTokenRename`
+  - `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L9-100,243-275 — `RenameConfirmModal` component with 3-option layout, props for group rename confirm
+- **Learnings for future iterations:**
+  - The `ConfirmModal` component only supports a single confirm + cancel pair. For multi-option choices (auto-update / rename only / cancel), build a custom modal inline
+  - Pre-existing duplicate imports across different lines in TokenList.tsx (line 5 vs 26) caused build failures in rolldown — the bundler treats duplicate named imports as redeclarations
+  - `getGroupDependents` should exclude internal references (tokens within the same group referencing each other) since those will move together and remain valid
+---

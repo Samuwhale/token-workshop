@@ -52,17 +52,17 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // POST /api/tokens/:set/groups/rename — rename a group (updates all token paths and alias refs)
-  fastify.post<{ Params: { set: string }; Body: { oldGroupPath: string; newGroupPath: string } }>(
+  fastify.post<{ Params: { set: string }; Body: { oldGroupPath: string; newGroupPath: string; updateAliases?: boolean } }>(
     '/tokens/:set/groups/rename',
     async (request, reply) => {
       const { set } = request.params;
-      const { oldGroupPath, newGroupPath } = request.body ?? {};
+      const { oldGroupPath, newGroupPath, updateAliases } = request.body ?? {};
       if (!oldGroupPath || !newGroupPath) {
         return reply.status(400).send({ error: 'oldGroupPath and newGroupPath are required' });
       }
       try {
         const before = await snapshotGroup(fastify.tokenStore, set, oldGroupPath);
-        const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath);
+        const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath, updateAliases !== false);
         const after = await snapshotGroup(fastify.tokenStore, set, newGroupPath);
         fastify.operationLog.record({
           type: 'group-rename',
@@ -281,17 +281,41 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // GET /api/tokens/:set/group-dependents/* — get tokens that reference any token under a group prefix
+  fastify.get<{ Params: { set: string; '*': string } }>('/tokens/:set/group-dependents/*', async (request, reply) => {
+    const groupPath = request.params['*'].split('/').join('.');
+    if (!groupPath) {
+      return reply.status(400).send({ error: 'Group path is required' });
+    }
+    try {
+      const dependents = fastify.tokenStore.getGroupDependents(groupPath);
+      return { groupPath, dependents, count: dependents.length };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to get group dependents', detail: String(err) });
+    }
+  });
+
   // POST /api/tokens/:set/tokens/rename — rename a single leaf token and update alias references
-  fastify.post<{ Params: { set: string }; Body: { oldPath: string; newPath: string } }>(
+  fastify.post<{ Params: { set: string }; Body: { oldPath: string; newPath: string; updateAliases?: boolean } }>(
     '/tokens/:set/tokens/rename',
     async (request, reply) => {
       const { set } = request.params;
-      const { oldPath, newPath } = request.body ?? {};
+      const { oldPath, newPath, updateAliases } = request.body ?? {};
       if (!oldPath || !newPath) {
         return reply.status(400).send({ error: 'oldPath and newPath are required' });
       }
       try {
-        const result = await fastify.tokenStore.renameToken(set, oldPath, newPath);
+        const before = await snapshotPaths(fastify.tokenStore, set, [oldPath]);
+        const result = await fastify.tokenStore.renameToken(set, oldPath, newPath, updateAliases !== false);
+        const after = await snapshotPaths(fastify.tokenStore, set, [newPath]);
+        fastify.operationLog.record({
+          type: 'token-rename',
+          description: `Rename token "${oldPath}" → "${newPath}" in ${set}`,
+          setName: set,
+          affectedPaths: [oldPath, newPath],
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        });
         await fastify.generatorService.updateTokenPaths(new Map([[oldPath, newPath]]));
         return result;
       } catch (err) {

@@ -305,3 +305,16 @@ Already up to date.
 
 --- Merging: Git sync diff preview before push ---
 Already up to date.
+[main dabad99] chore(backlog): done – Git sync diff preview before push
+ 10 files changed, 276 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - Git sync diff preview before push
+- Added "Preview changes" button to the Git section of PublishPanel that fetches a token-level diff of uncommitted working tree changes vs HEAD. Shows added/modified/removed tokens with before/after values, colored status indicators, and summary counts. Users can inspect exactly which token values changed before committing.
+- Server: new `getWorkingTreeTokenDiff()` method on `GitSync` service (`packages/server/src/services/git-sync.ts` ~L330) — compares working tree .tokens.json files against HEAD using `git diff HEAD --name-status` plus `ls-files --others` for untracked files.
+- Server: new `GET /api/sync/diff/tokens` route (`packages/server/src/routes/sync.ts` ~L448) — flattens before/after token groups and computes per-token adds/removes/modifications.
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  43 items remaining
+===============================================================
+  Claimed: SelectionInspector "apply to other layers" fast path — after binding a token to one property, show a toast with "Apply to N other selected layers with the same property" so users can bind the same token to a whole multi-selection in one click instead of repeating per layer
+  Worktree: /tmp/backlog-9651-XkC840

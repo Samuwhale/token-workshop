@@ -254,3 +254,9 @@ Already up to date.
 - Moved `fetchConflicts` useCallback declaration (was line 95) above the useEffect (was line 83) that references it in its body and dependency array. The `const` declaration via `useCallback` was after the `useEffect` that called it, causing a Temporal Dead Zone crash on component mount.
 - Files changed: `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L83-115
 - **Learnings for future iterations:**
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  44 items remaining
+===============================================================
+  Claimed: Variable/style sync dry run — add a "Preview sync" button next to Apply in the variable and style sync sections of PublishPanel that shows adds/updates/deletes without writing to Figma, mirroring how git diff works
+  Worktree: /tmp/backlog-10054-ZjL9Ov
