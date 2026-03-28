@@ -51,6 +51,20 @@ import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType } from './components/tokenListUtils';
 
+/** Valid set name: alphanumeric, hyphens, underscores, with `/` as folder separator. */
+const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+
+/** Format a timestamp as a human-readable relative time string. */
+function timeAgo(iso: string): string {
+  const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 class ErrorBoundary extends Component<{ children: ReactNode; panelName?: string; onReset?: () => void }, { error: Error | null }> {
   state = { error: null };
   static getDerivedStateFromError(error: Error) { return { error }; }
@@ -329,6 +343,29 @@ export function App() {
   const lintViolations = useLint(serverUrl, activeSet, connected, lintKey);
   const { generators, refreshGenerators, generatorsBySource, derivedTokenPaths } = useGenerators(serverUrl, connected);
   const refreshAll = useCallback(() => { refreshTokens(); setLintKey(k => k + 1); refreshGenerators(); }, [refreshTokens, refreshGenerators]);
+
+  // Server-side operation log for undo/rollback
+  const [recentOperations, setRecentOperations] = useState<Array<{ id: string; timestamp: string; type: string; description: string; setName: string; affectedPaths: string[]; rolledBack: boolean }>>([]);
+  const fetchRecentOps = useCallback(async () => {
+    if (!connected) return;
+    try {
+      const data = await apiFetch<{ operations: typeof recentOperations }>(`${serverUrl}/api/operations?limit=10`);
+      setRecentOperations(data.operations);
+    } catch { /* ignore */ }
+  }, [serverUrl, connected]);
+  // Refresh operations list whenever tokens refresh
+  useEffect(() => { fetchRecentOps(); }, [fetchRecentOps, lintKey]);
+  const handleRollback = useCallback(async (opId: string) => {
+    try {
+      await apiFetch(`${serverUrl}/api/operations/${opId}/rollback`, { method: 'POST' });
+      refreshAll();
+      fetchRecentOps();
+      setSuccessToast('Operation rolled back');
+    } catch (err) {
+      setErrorToast(`Rollback failed: ${getErrorMessage(err)}`);
+    }
+  }, [serverUrl, refreshAll, fetchRecentOps]);
+
   const handleEditorClose = useCallback(() => { setEditingToken(null); refreshAll(); }, [refreshAll]);
   const handlePreviewEdit = useCallback(() => {
     if (previewingToken) { setEditingToken({ path: previewingToken.path, name: previewingToken.name, set: previewingToken.set }); setPreviewingToken(null); }
@@ -918,9 +955,20 @@ export function App() {
         shortcut: '?',
         handler: () => setShowKeyboardShortcuts(true),
       },
+      // Server-side undo: recent operations with rollback
+      ...recentOperations
+        .filter(op => !op.rolledBack)
+        .slice(0, 5)
+        .map((op, i) => ({
+          id: `undo-op-${op.id}`,
+          label: i === 0 ? `Undo: ${op.description}` : `Rollback: ${op.description}`,
+          description: `${op.affectedPaths.length} path(s) \u00b7 ${op.setName} \u00b7 ${timeAgo(op.timestamp)}`,
+          category: 'Undo',
+          handler: () => handleRollback(op.id),
+        })),
     ];
     return cmds;
-  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan]);
+  }, [activeSet, sets, setTokenCounts, openOverflowPanel, navigateTo, triggerHeatmapScan, recentOperations, handleRollback]);
 
   // Flat token list for command palette token search mode
   const paletteTokens: TokenEntry[] = useMemo(() => {

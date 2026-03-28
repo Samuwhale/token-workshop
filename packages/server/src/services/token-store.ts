@@ -759,6 +759,31 @@ export class TokenStore {
   }
 
   /**
+   * Restore a set of token paths to a previous state.
+   * Used by the operation log rollback feature.
+   * Items with `token: null` are deleted; items with a token value are created/updated.
+   */
+  async restoreSnapshot(setName: string, items: Array<{ path: string; token: Token | null }>): Promise<void> {
+    const set = this.sets.get(setName);
+    if (!set) throw new Error(`Set "${setName}" not found`);
+    this.beginBatch();
+    try {
+      for (const { path: tokenPath, token } of items) {
+        if (token === null) {
+          deleteTokenAtPath(set.tokens, tokenPath);
+        } else {
+          setTokenAtPath(set.tokens, tokenPath, structuredClone(token));
+        }
+      }
+      await this.saveSet(setName);
+    } finally {
+      this.endBatch();
+    }
+    this.rebuildFlatTokens();
+    this.emit({ type: 'token-updated', setName });
+  }
+
+  /**
    * Find tokens tagged with a generatorId.
    * Pass '*' to find ALL tokens that have any generatorId.
    */

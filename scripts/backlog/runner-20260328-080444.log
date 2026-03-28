@@ -407,3 +407,10 @@ Already up to date.
 ===============================================================
   Claimed: No undo for destructive operations beyond toast — bulk delete, group rename, and generator runs have confirmation modals but no rollback; implement undo for all write operations via server-side operation log, or at minimum show "last 5 operations" with rollback in the command palette
   Worktree: /tmp/backlog-63411-X7RYLD
+
+  ✓ done: No undo for destructive operations beyond toast
+    Implemented server-side operation log with before/after snapshots for all write operations, REST endpoints for listing and rolling back operations, and command palette integration showing last 5 undoable operations under an 'Undo' category
+    83 turns · 708s · $5.41
+
+--- Merging: No undo for destructive operations beyond toast ---
+Already up to date.

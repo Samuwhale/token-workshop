@@ -19,7 +19,9 @@ import { docsRoutes } from './routes/docs.js';
 import { TokenStore } from './services/token-store.js';
 import { GitSync } from './services/git-sync.js';
 import { GeneratorService } from './services/generator-service.js';
+import { OperationLog } from './services/operation-log.js';
 import { generatorRoutes } from './routes/generators.js';
+import { operationRoutes } from './routes/operations.js';
 
 export interface ServerConfig {
   tokenDir: string;
@@ -45,10 +47,13 @@ export async function startServer(config: ServerConfig) {
   const generatorService = new GeneratorService(config.tokenDir);
   await generatorService.initialize();
 
+  const operationLog = new OperationLog();
+
   // Decorate fastify with services
   fastify.decorate('tokenStore', tokenStore);
   fastify.decorate('gitSync', gitSync);
   fastify.decorate('generatorService', generatorService);
+  fastify.decorate('operationLog', operationLog);
 
   // Auto-run generators when a source token is updated
   tokenStore.onChange((event) => {
@@ -78,6 +83,7 @@ export async function startServer(config: ServerConfig) {
   await fastify.register(sseRoutes, { prefix: '/api' });
   await fastify.register(lintRoutes, { prefix: '/api', tokenDir: config.tokenDir });
   await fastify.register(generatorRoutes, { prefix: '/api' });
+  await fastify.register(operationRoutes, { prefix: '/api' });
   await fastify.register(docsRoutes);
 
   try {
@@ -98,5 +104,6 @@ declare module 'fastify' {
     tokenStore: TokenStore;
     gitSync: GitSync;
     generatorService: GeneratorService;
+    operationLog: OperationLog;
   }
 }

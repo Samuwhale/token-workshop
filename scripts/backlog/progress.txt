@@ -367,3 +367,28 @@
   - The three-color DFS cycle detection pattern requires consistent initialization — any token known to be fully resolved must start as Black, not undefined
   - The lazy `resolved.has()` check at the DFS visit site partially masked the bug, but left the color map in an inconsistent state where resolved tokens had no color entry
 ---
+
+## 2026-03-28 - No undo for destructive operations beyond toast
+- Implemented server-side operation log with rollback for all write operations, plus command palette integration
+- New `OperationLog` service: in-memory ring buffer (50 entries max) with `record()`, `getRecent()`, `rollback()` methods
+- Snapshot helpers (`snapshotPaths`, `snapshotSet`, `snapshotGroup`) capture token state before/after each mutation
+- Instrumented all destructive routes in `tokens.ts` (create, update, delete, bulk-delete, group-rename, bulk-rename, batch-upsert, set-replace) and `generators.ts` (create, update, run, delete with tokens)
+- New REST endpoints: `GET /api/operations?limit=N` (list recent ops) and `POST /api/operations/:id/rollback` (restore before-state)
+- `restoreSnapshot()` method added to TokenStore for batch restore of token paths
+- UI: command palette now shows up to 5 recent non-rolled-back operations under "Undo" category with rollback handlers
+- Also fixed pre-existing broken build: added missing `getNextUnboundProperty` export in `selectionInspectorUtils.ts`
+- Files changed:
+  - `packages/server/src/services/operation-log.ts` (new, ~160 lines)
+  - `packages/server/src/routes/operations.ts` (new, ~25 lines)
+  - `packages/server/src/services/token-store.ts` ~L759 (added `restoreSnapshot` method)
+  - `packages/server/src/routes/tokens.ts` ~L1,L63,L198,L244,L315,L370,L409,L456,L529,L596 (snapshot recording)
+  - `packages/server/src/routes/generators.ts` ~L3,L202,L277,L305,L316 (snapshot recording)
+  - `packages/server/src/index.ts` ~L22,L49,L85,L107 (wire up OperationLog)
+  - `packages/figma-plugin/src/ui/App.tsx` ~L55,L335-355,L935-946 (operations state, fetch, rollback handler, palette commands)
+  - `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L337-373 (added missing `getNextUnboundProperty`)
+- **Learnings for future iterations:**
+  - The `structuredClone` API is available in Node 17+ and is the cleanest way to deep-copy token snapshots for before/after comparison
+  - Snapshot granularity matters: `snapshotGroup` is preferred over `snapshotSet` for generator operations to avoid capturing unrelated tokens
+  - The existing client-side `useUndo` hook coexists with server-side operation log — Cmd+Z uses the fast client stack, command palette shows persistent server history
+  - Pre-existing build was broken by missing `getNextUnboundProperty` export — unrelated to this item but had to be fixed for build validation
+---

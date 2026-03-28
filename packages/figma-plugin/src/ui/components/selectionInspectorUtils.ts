@@ -330,6 +330,47 @@ export function collectBoundPrefixes(
 }
 
 // ---------------------------------------------------------------------------
+// Auto-advance: find the next unbound property
+// ---------------------------------------------------------------------------
+
+/**
+ * Iterate through all visible property groups and return the first unbound
+ * property after `afterProp` (or the first unbound property if `afterProp` is null).
+ */
+export function getNextUnboundProperty(
+  afterProp: BindableProperty | null,
+  nodes: SelectionNodeInfo[],
+  caps: NodeCapabilities,
+): BindableProperty | null {
+  // Build a flat ordered list of eligible properties
+  const ordered: BindableProperty[] = [];
+  for (const group of PROPERTY_GROUPS) {
+    if (!shouldShowGroup(group.condition, caps)) continue;
+    for (const prop of group.properties) {
+      ordered.push(prop);
+    }
+  }
+  // Find the start index (right after afterProp, or 0 if null)
+  let startIdx = 0;
+  if (afterProp !== null) {
+    const idx = ordered.indexOf(afterProp);
+    startIdx = idx >= 0 ? idx + 1 : 0;
+  }
+  // Search from startIdx to end, then wrap around
+  for (let i = 0; i < ordered.length; i++) {
+    const prop = ordered[(startIdx + i) % ordered.length];
+    if (prop === afterProp) continue;
+    const binding = getBindingForProperty(nodes, prop);
+    if (!binding) {
+      // Also check there's a meaningful current value to bind
+      const val = getCurrentValue(nodes, prop);
+      if (val !== undefined && val !== null) return prop;
+    }
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Quick-bind: determine which properties a token can auto-bind to
 // ---------------------------------------------------------------------------
 
