@@ -399,3 +399,13 @@
 - **Learnings for future iterations:**
   - Always check current code before assuming backlog items are still outstanding — rapid development means items may be addressed before the backlog agent reaches them
 ---
+
+## 2026-03-28 - Server-side JSON files loaded without runtime validation
+- Added runtime validation to `resolver-store.ts` `loadFile`: uses the already-imported `validateResolverFile` from `@tokenmanager/core` to validate parsed JSON before accepting it; invalid files are logged and skipped instead of silently entering the system
+- Added runtime validation to `generator-service.ts` `loadGenerators`: validates the top-level `{ $generators: [...] }` shape and each generator entry's required fields (id, type, name, targetSet, targetGroup, config) before loading; invalid entries are logged and skipped
+- Note: `generator-routes.ts` already had proper validation via `validateGeneratorConfig()` — no `as unknown as GeneratorConfig` casts remain (that part of the backlog item was stale)
+- Files changed: `packages/server/src/services/resolver-store.ts` ~L244, `packages/server/src/services/generator-service.ts` ~L38-60, ~L83-100
+- **Learnings for future iterations:**
+  - Check if validation functions already exist and are imported before writing new ones — `validateResolverFile` was imported but unused in `loadFile`
+  - Backlog items may reference code patterns that have already been fixed in a prior session — always verify the current state before implementing
+---

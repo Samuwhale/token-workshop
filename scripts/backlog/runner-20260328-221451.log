@@ -57,3 +57,16 @@ Already up to date.
 
 --- Merging: styleSync.ts re-fetches entire Figma style list for every token ---
 Already up to date.
+[main 50a3cad] chore(backlog): done – styleSync.ts re-fetches entire Figma style list for every token
+ 5 files changed, 30 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - styleSync.ts re-fetches entire Figma style list for every token
+- Already implemented: `applyStyles()` fetches all three style lists once into a `StyleCache` object (L50-56) and passes it to each per-type applicator. No per-token re-fetching occurs. Newly created styles are also pushed into the cache arrays so subsequent tokens in the same batch can find them.
+- Files changed: none (already done)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  12 items remaining
+===============================================================
+  Claimed: useUndo.ts failed undo permanently loses the undo slot — `setPast(next)` removes the slot from the stack before `slot.restore()` is awaited; if the restore fails (network error, server 500), the slot is gone and the user can never retry — move the stack update to after a successful restore (`useUndo.ts` ~L39–48)
+  Worktree: /tmp/backlog-23617-YgD0ks

@@ -39,6 +39,28 @@ interface GeneratorsFile {
   $generators: TokenGenerator[];
 }
 
+const VALID_GENERATOR_TYPES: ReadonlySet<string> = new Set([
+  'colorRamp', 'typeScale', 'spacingScale', 'opacityScale',
+  'borderRadiusScale', 'zIndexScale', 'customScale',
+  'accessibleColorPair', 'darkModeInversion', 'responsiveScale', 'contrastCheck',
+]);
+
+/**
+ * Validates the basic shape of a TokenGenerator loaded from disk.
+ * Returns an error string or null if valid.
+ */
+function validateGeneratorShape(gen: unknown): string | null {
+  if (typeof gen !== 'object' || gen === null || Array.isArray(gen)) return 'entry is not an object';
+  const g = gen as Record<string, unknown>;
+  if (typeof g.id !== 'string' || !g.id) return 'missing or invalid "id"';
+  if (typeof g.type !== 'string' || !VALID_GENERATOR_TYPES.has(g.type)) return `invalid generator type "${g.type}"`;
+  if (typeof g.name !== 'string') return 'missing or invalid "name"';
+  if (typeof g.targetSet !== 'string') return 'missing or invalid "targetSet"';
+  if (typeof g.targetGroup !== 'string') return 'missing or invalid "targetGroup"';
+  if (g.config !== undefined && (typeof g.config !== 'object' || g.config === null || Array.isArray(g.config))) return '"config" must be an object';
+  return null;
+}
+
 export interface GeneratorRunError {
   message: string;
   at: string;
@@ -67,10 +89,20 @@ export class GeneratorService {
   private async loadGenerators(): Promise<void> {
     try {
       const content = await fs.readFile(this.filePath, 'utf-8');
-      const data = JSON.parse(content) as GeneratorsFile;
+      const data = JSON.parse(content);
+      if (typeof data !== 'object' || data === null || !Array.isArray(data.$generators)) {
+        console.warn('[GeneratorService] Invalid generators file: expected { $generators: [...] }');
+        this.generators.clear();
+        return;
+      }
       this.generators.clear();
-      for (const gen of data.$generators ?? []) {
-        this.generators.set(gen.id, gen);
+      for (const gen of data.$generators) {
+        const err = validateGeneratorShape(gen);
+        if (err) {
+          console.warn(`[GeneratorService] Skipping invalid generator entry: ${err}`, gen?.id ?? '(no id)');
+          continue;
+        }
+        this.generators.set((gen as TokenGenerator).id, gen as TokenGenerator);
       }
     } catch {
       // File doesn't exist yet — perfectly normal on first run

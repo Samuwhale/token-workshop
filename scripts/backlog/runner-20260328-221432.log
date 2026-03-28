@@ -49,3 +49,10 @@ Already up to date.
 ===============================================================
   Claimed: Server-side JSON files loaded without runtime validation — `resolver-store.ts` `loadFile` (line 249) casts `JSON.parse(content) as ResolverFile` with no shape validation, and `generator-routes.ts` uses `as unknown as GeneratorConfig` casts extensively (lines ~50-115) instead of runtime validation; invalid data from hand-edited or corrupted files silently enters the system and causes crashes later during resolution/execution; both should use a validation function (like `validateTokenBody` in tokens.ts) before accepting parsed JSON (`packages/server/src/services/resolver-store.ts` ~L244, `packages/server/src/routes/generators.ts`)
   Worktree: /tmp/backlog-22646-pJpMNn
+
+  ✓ done: Server-side JSON files loaded without runtime validation
+    Added runtime validation to resolver-store.ts loadFile (using already-imported validateResolverFile) and generator-service.ts loadGenerators (new validateGeneratorShape for each entry); generator-routes.ts already had proper validation — that part was stale
+    22 turns · 135s · $0.7
+
+--- Merging: Server-side JSON files loaded without runtime validation ---
+Already up to date.

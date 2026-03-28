@@ -246,8 +246,13 @@ export class ResolverStore {
     if (!name) return;
     try {
       const content = await fs.readFile(filePath, 'utf-8');
-      const data = JSON.parse(content) as ResolverFile;
-      this.resolvers.set(name, data);
+      const data = JSON.parse(content);
+      const errors = validateResolverFile(data);
+      if (errors.length > 0) {
+        console.warn(`[ResolverStore] Invalid resolver file ${filePath}: ${errors.join('; ')}`);
+        return;
+      }
+      this.resolvers.set(name, data as ResolverFile);
     } catch (err) {
       console.warn(`[ResolverStore] Failed to load ${filePath}:`, err);
     }
