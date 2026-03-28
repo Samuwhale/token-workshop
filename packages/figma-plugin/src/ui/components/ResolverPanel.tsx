@@ -161,11 +161,7 @@ export function ResolverPanel({
   }, [templateName, sets, serverUrl, fetchResolvers]);
 
   const handleDelete = useCallback(async (name: string) => {
-    try {
-      await deleteResolver(name);
-    } catch {
-      // Error handled by hook
-    }
+    await deleteResolver(name);
     setConfirmDelete(null);
   }, [deleteResolver]);
 

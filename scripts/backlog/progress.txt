@@ -396,3 +396,12 @@
   - `a.click()` for blob-URL downloads is async in some browsers — always defer `revokeObjectURL` by ~1s
   - Same pattern exists in AnalyticsPanel, PublishPanel, GraphPanel, ThemeCompare, ExportPanel
 ---
+
+## 2026-03-28 - handleDelete in ResolverPanel.tsx swallows all errors silently
+- Removed the try/catch in `handleDelete` that silently swallowed errors and always closed the modal
+- Now `handleDelete` lets errors propagate to `ConfirmModal`, which already has built-in error display (catches errors from `onConfirm`, shows them inline, keeps modal open)
+- Modal only closes on successful delete via `setConfirmDelete(null)` after `await deleteResolver(name)` succeeds
+- Files changed: `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L163-167
+- **Learnings for future iterations:**
+  - `ConfirmModal` has built-in error handling: it catches errors from `onConfirm`, displays them inline, and keeps the modal open. Don't duplicate error handling in the caller — just let errors propagate.
+---
