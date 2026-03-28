@@ -120,3 +120,16 @@ Already up to date.
 
 --- Merging: Unsafe `as unknown as { dir: string }` cast in server resolvers.ts ---
 Already up to date.
+[main a65eba9] chore(backlog): done – Unsafe `as unknown as { dir: string }` cast in server resolvers.ts
+ 5 files changed, 26 insertions(+), 1 deletion(-)
+
+## 2026-03-28 - Unsafe `as unknown as { dir: string }` cast in server resolvers.ts
+- Added public `getDir()` method to `ResolverStore` class, replacing the unsafe `as unknown as { dir: string }` cast in `resolvers.ts` line 44
+- Files changed: `packages/server/src/services/resolver-store.ts` ~L55 (new getter), `packages/server/src/routes/resolvers.ts` ~L44 (use getter)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  60 items remaining
+===============================================================
+  Claimed: VersionHistoryPanel has no revert/restore actions — the panel shows commit diffs with added/modified/removed badges but is purely informational; add a "Restore this version" button per commit and a "Restore this token" action per changed token row, wiring into the existing operation-log rollback API
+  Worktree: /tmp/backlog-9651-5m2acY

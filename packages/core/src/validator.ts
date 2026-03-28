@@ -196,6 +196,11 @@ export class TokenValidator {
           errors.push(`${path}: textTransform must be a string`);
         }
         break;
+      case TOKEN_TYPES.ASSET:
+        if (typeof value !== 'string') {
+          errors.push(`${path}: asset must be a string (URI or data-URI), got ${typeof value}`);
+        }
+        break;
       // composition & custom — no strict shape, accept anything
       case TOKEN_TYPES.COMPOSITION:
       case TOKEN_TYPES.CUSTOM:

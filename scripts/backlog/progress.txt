@@ -381,3 +381,11 @@
 - **Learnings for future iterations:**
   - Multiple server services (`TokenStore`, `GeneratorService`, `GitSync`) also have `private dir` — same pattern could apply if accessed unsafely elsewhere
 ---
+
+## 2026-03-28 - Missing ASSET token type validation in core validator.ts
+- Added `case TOKEN_TYPES.ASSET` to the validator switch statement, requiring the value to be a string (URI or data-URI). Previously, asset tokens fell through to the `default` case and were silently accepted regardless of value shape.
+- Added tests for valid asset values (URLs, data URIs, relative paths) and invalid values (number, boolean, object).
+- Files changed: `packages/core/src/validator.ts` ~L200 (new case), `packages/core/src/__tests__/validator.test.ts` ~L404 (new test block)
+- **Learnings for future iterations:**
+  - The validator switch uses `TOKEN_TYPES.*` constants from constants.ts — always check that new types in constants have a corresponding case
+---

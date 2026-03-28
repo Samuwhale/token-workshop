@@ -401,6 +401,20 @@ describe('TokenValidator', () => {
     });
   });
 
+  describe('asset', () => {
+    it('accepts string URIs', () => {
+      expectValid(validator.validate(makeToken('https://example.com/icon.svg', 'asset'), 'a'));
+      expectValid(validator.validate(makeToken('data:image/png;base64,abc', 'asset'), 'a'));
+      expectValid(validator.validate(makeToken('./icons/star.svg', 'asset'), 'a'));
+    });
+
+    it('rejects non-string values', () => {
+      expectInvalid(validator.validate(makeToken(42, 'asset'), 'a'), 'asset must be a string');
+      expectInvalid(validator.validate(makeToken(true, 'asset'), 'a'), 'asset must be a string');
+      expectInvalid(validator.validate(makeToken({ url: 'x' }, 'asset'), 'a'), 'asset must be a string');
+    });
+  });
+
   describe('references are skipped', () => {
     it('skips validation for reference values', () => {
       expectValid(validator.validate(makeToken('{colors.primary}', 'color'), 'ref'));

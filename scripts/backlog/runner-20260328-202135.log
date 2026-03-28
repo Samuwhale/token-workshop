@@ -75,3 +75,10 @@ Already up to date.
 ===============================================================
   Claimed: Missing ASSET token type validation in core validator.ts — the `ASSET` type is defined in constants.ts but has no validation case in the validator's switch statement, so invalid ASSET token values pass validation silently
   Worktree: /tmp/backlog-9231-R4P1n4
+
+  ✓ done: Missing ASSET token type validation in core validator.ts
+    Added validation case for ASSET type requiring string value (URI/data-URI), with tests for valid and invalid inputs. All 4 validation gates pass.
+    14 turns · 65s · $0.46
+
+--- Merging: Missing ASSET token type validation in core validator.ts ---
+Already up to date.
