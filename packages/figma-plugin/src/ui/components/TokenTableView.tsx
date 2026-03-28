@@ -15,6 +15,7 @@ interface TokenTableViewProps {
   allTokensFlat: Record<string, TokenMapEntry>;
   onEdit: (path: string, name?: string) => void;
   onInlineSave?: (path: string, type: string, newValue: any) => void;
+  onDescriptionSave?: (path: string, description: string) => void;
   connected: boolean;
   highlightedToken: string | null;
   filtersActive: boolean;
@@ -47,6 +48,7 @@ export function TokenTableView({
   allTokensFlat,
   onEdit,
   onInlineSave,
+  onDescriptionSave,
   connected,
   highlightedToken,
   filtersActive,
@@ -147,16 +149,14 @@ export function TokenTableView({
       setEditingCell(null);
       onInlineSave?.(node.path, node.$type!, parsed);
     } else {
-      // description edit — use same PATCH endpoint pattern
+      // description edit
       const raw = editValue.trim();
       const oldDesc = (node.$description ?? '') as string;
       if (raw === oldDesc) { setEditingCell(null); return; }
       setEditingCell(null);
-      // Description saves go through the same inline save mechanism;
-      // we pass a special type marker so the parent can handle it
-      onInlineSave?.(node.path, node.$type || 'string', node.$value as any);
+      onDescriptionSave?.(node.path, raw);
     }
-  }, [editingCell, editValue, leafNodes, onInlineSave]);
+  }, [editingCell, editValue, leafNodes, onInlineSave, onDescriptionSave]);
 
   const cancelEdit = useCallback(() => setEditingCell(null), []);
 

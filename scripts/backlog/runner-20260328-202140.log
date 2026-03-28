@@ -485,3 +485,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenTableView description edit silently discarded — `commitEdit` at TokenTableView.tsx:132 passes `node.$value` (the existing token value) instead of the edited description text `raw`, making all table-view description edits no-ops that send the old value back to the server
   Worktree: /tmp/backlog-9651-6Bt1vQ
+
+  ✓ done: TokenTableView description edit silently discarded
+    Fixed commitEdit to send edited description text via new onDescriptionSave prop instead of passing node.$value back to the server
+    22 turns · 116s · $0.68
+
+--- Merging: TokenTableView description edit silently discarded ---
+Already up to date.

@@ -1495,6 +1495,51 @@ export function TokenList({
     recentlyTouched.recordTouch(path);
   }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, recentlyTouched, onError]);
 
+  const handleDescriptionSave = useCallback(async (path: string, description: string) => {
+    if (!connected) return;
+    const encodedPath = path.split('.').map(encodeURIComponent).join('/');
+    const oldEntry = allTokensFlat[path];
+    try {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ $description: description }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: `Save failed (${res.status})` }));
+        onError?.(data.error || `Save failed (${res.status})`);
+        return;
+      }
+    } catch {
+      onError?.('Save failed: network error');
+      return;
+    }
+    if (onPushUndo && oldEntry) {
+      const oldDesc = (oldEntry as any).$description ?? '';
+      onPushUndo({
+        description: `Edit description of ${path}`,
+        restore: async () => {
+          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $description: oldDesc }),
+          });
+          onRefresh();
+        },
+        redo: async () => {
+          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ $description: description }),
+          });
+          onRefresh();
+        },
+      });
+    }
+    onRefresh();
+    recentlyTouched.recordTouch(path);
+  }, [connected, serverUrl, setName, allTokensFlat, onRefresh, onPushUndo, recentlyTouched, onError]);
+
   // Detach a token from its generator by removing the generator extension
   const handleDetachFromGenerator = useCallback(async (path: string) => {
     if (!connected) return;
@@ -3201,6 +3246,7 @@ export function TokenList({
             allTokensFlat={allTokensFlat}
             onEdit={onEdit}
             onInlineSave={handleInlineSave}
+            onDescriptionSave={handleDescriptionSave}
             connected={connected}
             highlightedToken={highlightedToken ?? null}
             filtersActive={filtersActive}

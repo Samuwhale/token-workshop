@@ -428,3 +428,13 @@
   - When validating a discriminated union from untrusted input, always construct a new object with only known fields rather than casting the input object — `as unknown as T` passes the type check but carries all original properties
   - The PUT update route was a second unvalidated entry point — always audit all routes that accept the same data shape
 ---
+
+## 2026-03-28 - TokenTableView description edit silently discarded
+- Fixed `commitEdit` in TokenTableView.tsx: description edits were passing `node.$value` (existing token value) instead of the edited description text `raw` to the save callback
+- Added `onDescriptionSave` prop to TokenTableView that sends `{ $description: text }` via PATCH to the server (which already supports it)
+- Created `handleDescriptionSave` in TokenList.tsx with proper undo/redo support
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTableView.tsx` ~L17,50,150-158, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1498-1540,3247
+- **Learnings for future iterations:**
+  - The server PATCH endpoint already accepted `$description` — the bug was purely in the UI not sending the right field
+  - Description edits need a separate save callback since `onInlineSave` sends `{ $type, $value }` — mixing description into the value field is a type mismatch
+---
