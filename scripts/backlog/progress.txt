@@ -518,3 +518,10 @@
   - The resolver's DFS cycle detection handles extends chains automatically because extends targets are added to the dependency graph — no special cycle detection needed
   - Server `tsc` has pre-existing type errors (missing @types/node, fastify) — only `npm run build` in figma-plugin is the reliable validation target
 ---
+
+## 2026-03-28 - Graph tab crashes — `graphScrollRef is not defined`
+- Already fixed in a prior session. The `graphScrollRef` reference was removed from `GraphPanel.tsx` as part of the node-graph canvas feature work (see progress entry for "No visual node-graph editor"). No occurrences of `graphScrollRef` remain in the source. Build passes.
+- Files changed: none (already resolved)
+- **Learnings for future iterations:**
+  - Check progress.txt for prior fixes before starting work — items may have been resolved as collateral fixes in other items.
+---

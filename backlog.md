@@ -127,9 +127,9 @@
 - [x] No live typography preview in the editor — TypographyEditor shows form fields for font-family, size, weight, line-height, etc. but no rendered text sample; add a preview block showing "The quick brown fox" (or user-configurable sample text) rendered with the current values, updating in real-time as properties change
 - [x] No expression/formula builder with autocomplete — formula mode (`fx`) accepts expressions like `{spacing.base} * 2` but provides no syntax help; add autocomplete for token references inside formulas, operator hints, live evaluation preview showing the computed result, and error highlighting for invalid expressions
 - [x] No DTCG v2025.10 resolver support — theme variations require separate token sets per brand/mode combination, causing file proliferation; implement DTCG resolver config so a single resolver file contextually applies overrides, reducing the set management overhead and aligning with the new spec
-- [~] No $extends token inheritance — composite tokens (typography, shadow) must duplicate all properties even when only one differs from a base; support DTCG $extends so component tokens can inherit from and override specific properties of parent tokens
+- [x] No $extends token inheritance — composite tokens (typography, shadow) must duplicate all properties even when only one differs from a base; support DTCG $extends so component tokens can inherit from and override specific properties of parent tokens
 
-- [ ] Graph tab crashes — `graphScrollRef is not defined`; reference error causes the graph view to fail on render
+- [~] Graph tab crashes — `graphScrollRef is not defined`; reference error causes the graph view to fail on render
 
 - [ ] TokenList delete has no user-facing error feedback — catch block only logs to console, user sees token disappear optimistically even if server rejects the delete
 - [ ] SyncPanel "Delete orphan variables" has no retry mechanism — if plugin doesn't respond within timeout, user must manually re-run the full readiness check

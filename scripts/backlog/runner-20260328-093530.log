@@ -385,3 +385,23 @@ Already up to date.
 
 --- Merging: No $extends token inheritance ---
 Already up to date.
+[main d009f4d] chore(backlog): done – No $extends token inheritance
+ 12 files changed, 402 insertions(+), 39 deletions(-)
+
+## 2026-03-28 - No $extends token inheritance
+- Implemented DTCG `$extends` token inheritance for composite tokens (typography, shadow, border, transition, composition). Tokens can now reference a base token via `$extensions.tokenmanager.extends` and override only specific properties, inheriting the rest.
+- **Core resolver** (`packages/core/src/resolver.ts`): Added `getExtendsPath()` static method, `collectAllDependencies()` to include extends targets in the dependency graph, and value merging logic in `dfsResolve()` that shallow-merges base token value with local overrides. Type resolution also inherits from the base token. Cycle detection works automatically through the existing DFS.
+- **Core constants** (`packages/core/src/constants.ts` ~L42): Added `COMPOSITE_TOKEN_TYPES` set exported from `index.ts`.
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  3 items remaining
+===============================================================
+  Claimed: Graph tab crashes — `graphScrollRef is not defined`; reference error causes the graph view to fail on render
+  Worktree: /tmp/backlog-34977-iSpt6n
+
+  ✓ done: Graph tab crashes — `graphScrollRef is not defined`
+    stale — already done. The `graphScrollRef` reference was removed in a prior session as part of the node-graph canvas feature work. No occurrences remain in source; build passes.
+    10 turns · 46s · $0.26
+
+--- Merging: Graph tab crashes — `graphScrollRef is not defined` ---
+Already up to date.
