@@ -4,16 +4,7 @@ import type { TransformOp, PortDirection } from './nodeGraphTypes';
 import { portPosition, TRANSFORM_OPS, nodeHeight } from './nodeGraphTypes';
 import { useNodeGraph } from './useNodeGraph';
 import { NodeRenderer } from './NodeRenderer';
-
-// ---------------------------------------------------------------------------
-// Bezier edge helper
-// ---------------------------------------------------------------------------
-
-function edgePath(x1: number, y1: number, x2: number, y2: number): string {
-  const dx = Math.abs(x2 - x1);
-  const cpx = Math.max(40, dx * 0.5);
-  return `M${x1},${y1} C${x1 + cpx},${y1} ${x2 - cpx},${y2} ${x2},${y2}`;
-}
+import { edgePath } from '../../shared/graphUtils';
 
 // ---------------------------------------------------------------------------
 // Context menu for adding transform nodes

@@ -4,6 +4,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import { extractAliasPath, isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import type { TokenValue, TokenReference } from '@tokenmanager/core';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
+import { edgePath } from '../shared/graphUtils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -241,12 +242,10 @@ function FlowEdges({
         </marker>
       </defs>
       {edges.map((e, i) => {
-        const dx = e.x2 - e.x1;
-        const cpOffset = Math.abs(dx) * 0.4;
         return (
           <path
             key={i}
-            d={`M${e.x1},${e.y1} C${e.x1 + cpOffset},${e.y1} ${e.x2 - cpOffset},${e.y2} ${e.x2},${e.y2}`}
+            d={edgePath(e.x1, e.y1, e.x2, e.y2)}
             fill="none"
             stroke="var(--color-figma-accent)"
             strokeWidth="1.5"
