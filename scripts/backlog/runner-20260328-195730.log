@@ -16,3 +16,24 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 
 --- Merging: Token creation: multi-token "table create" mode ---
 Already up to date.
+[main 4c67148] chore(backlog): done – Token creation: multi-token "table create" mode
+ 5 files changed, 409 insertions(+), 2 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useTableCreate.ts
+
+## 2026-03-28 - Token creation: multi-token "table create" mode
+- Implemented a "Bulk" create mode accessible via a new "Bulk" button in the bottom action bar
+- Mode shows a spreadsheet-like table with Name | Type | Value columns; each row is one token
+- Tab from the last row's value input auto-adds a new row and focuses it (key UX feature)
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  67 items remaining
+===============================================================
+  Claimed: Token impact summary on edit: show "affects N layers across M components", list affected component names, option to highlight affected layers on canvas, before/after value diff for aliases/dependents
+  Worktree: /tmp/backlog-52272-5fOojH
+
+  ✓ done: Token impact summary on edit: show "affects N layers across M components", list affected component names, option to highlight affected layers on canvas, before/after value diff for aliases/dependents
+    Added impact summary banner with layer/component counts, component pill list, highlight-on-canvas button, and extended before/after diff to all token types in the TokenDependents section of the token editor
+    26 turns · 293s · $0.9
+
+--- Merging: Token impact summary on edit: show "affects N layers across M components", list affected component names, option to highlight affected layers on canvas, before/after value diff for aliases/dependents ---
+Already up to date.

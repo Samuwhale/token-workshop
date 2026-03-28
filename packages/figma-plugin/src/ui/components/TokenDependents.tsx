@@ -6,6 +6,7 @@ interface BoundLayer {
   id: string;
   name: string;
   type: string;
+  componentName: string | null;
   properties: string[];
 }
 
@@ -42,12 +43,24 @@ function getNodeIcon(type: string) {
   );
 }
 
+/** Format a value for display in before/after diff. */
+function formatDiffValue(val: any, type: string): string {
+  if (val === null || val === undefined) return '—';
+  if (type === 'color' && typeof val === 'string') return val.slice(0, 7);
+  if (typeof val === 'object') {
+    try { return JSON.stringify(val); } catch { return String(val); }
+  }
+  return String(val);
+}
+
 export function TokenDependents({ dependents, dependentsLoading, setName, tokenPath, tokenType, value, isDirty, aliasMode, allTokensFlat, colorFlatMap, initialValue }: TokenDependentsProps) {
   const [showDependents, setShowDependents] = useState(false);
   const [layers, setLayers] = useState<BoundLayer[]>([]);
   const [layersTotal, setLayersTotal] = useState(0);
   const [layersLoading, setLayersLoading] = useState(false);
   const [layersScanned, setLayersScanned] = useState(false);
+  const [componentNames, setComponentNames] = useState<string[]>([]);
+  const [showComponentList, setShowComponentList] = useState(false);
 
   // Scan for bound layers when section is expanded
   useEffect(() => {
@@ -60,6 +73,7 @@ export function TokenDependents({ dependents, dependentsLoading, setName, tokenP
       if (!msg || msg.type !== 'token-usage-result' || msg.tokenPath !== tokenPath) return;
       setLayers(msg.layers ?? []);
       setLayersTotal(msg.total ?? 0);
+      setComponentNames(msg.componentNames ?? []);
       setLayersLoading(false);
       setLayersScanned(true);
     };
@@ -75,11 +89,17 @@ export function TokenDependents({ dependents, dependentsLoading, setName, tokenP
     setLayersScanned(false);
     setLayers([]);
     setLayersTotal(0);
+    setComponentNames([]);
+    setShowComponentList(false);
   }, [tokenPath]);
 
   const selectLayer = useCallback((nodeId: string) => {
     parent.postMessage({ pluginMessage: { type: 'select-node', nodeId } }, '*');
   }, []);
+
+  const highlightAll = useCallback(() => {
+    parent.postMessage({ pluginMessage: { type: 'highlight-layer-by-token', tokenPath } }, '*');
+  }, [tokenPath]);
 
   const totalCount = dependents.length + (layersScanned ? layersTotal : 0);
   const countLabel = dependentsLoading
@@ -87,6 +107,13 @@ export function TokenDependents({ dependents, dependentsLoading, setName, tokenP
     : layersScanned
       ? (totalCount > 0 ? ` (${totalCount})` : '')
       : (dependents.length > 0 ? ` (${dependents.length}+)` : '');
+
+  // Value diff for non-color types
+  const oldValueStr = formatDiffValue(initialValue, tokenType);
+  const newValueStr = formatDiffValue(value, tokenType);
+  const showValueDiff = isDirty && !aliasMode && oldValueStr !== newValueStr && oldValueStr !== '—';
+  const oldColorHex = tokenType === 'color' && typeof initialValue === 'string' ? initialValue.slice(0, 7) : null;
+  const newColorHex = tokenType === 'color' && typeof value === 'string' ? value.slice(0, 7) : null;
 
   return (
     <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
@@ -107,6 +134,78 @@ export function TokenDependents({ dependents, dependentsLoading, setName, tokenP
       </button>
       {showDependents && (
         <div className="border-t border-[var(--color-figma-border)]">
+
+          {/* Impact summary banner */}
+          {layersScanned && layersTotal > 0 && (
+            <div className="px-3 py-2 flex items-center justify-between gap-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-[10px] text-[var(--color-figma-text)]">
+                  <span className="font-medium">{layersTotal}</span> layer{layersTotal !== 1 ? 's' : ''}
+                  {componentNames.length > 0 && (
+                    <>
+                      {' across '}
+                      <button
+                        type="button"
+                        onClick={() => setShowComponentList(v => !v)}
+                        className="font-medium underline decoration-dotted hover:text-[var(--color-figma-accent)] transition-colors"
+                        title={componentNames.join(', ')}
+                      >
+                        {componentNames.length} component{componentNames.length !== 1 ? 's' : ''}
+                      </button>
+                    </>
+                  )}
+                </span>
+                {/* Before/after value diff */}
+                {showValueDiff && (
+                  <span className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
+                    {tokenType === 'color' && oldColorHex && newColorHex ? (
+                      <>
+                        <span className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ background: oldColorHex }} title="Before" />
+                        <svg width="8" height="6" viewBox="0 0 8 6" fill="none" className="shrink-0" aria-hidden="true">
+                          <path d="M1 3h5M4 1l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ background: newColorHex }} title="After" />
+                        <span className="font-mono truncate">{oldColorHex} → {newColorHex}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-mono truncate max-w-[80px]" title={oldValueStr}>{oldValueStr}</span>
+                        <svg width="8" height="6" viewBox="0 0 8 6" fill="none" className="shrink-0" aria-hidden="true">
+                          <path d="M1 3h5M4 1l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="font-mono truncate max-w-[80px]" title={newValueStr}>{newValueStr}</span>
+                        <span className="text-[9px] opacity-50">(unsaved)</span>
+                      </>
+                    )}
+                  </span>
+                )}
+              </div>
+              {/* Highlight all button */}
+              <button
+                type="button"
+                onClick={highlightAll}
+                title="Select and zoom to all affected layers on canvas"
+                className="shrink-0 flex items-center gap-1 px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                Highlight
+              </button>
+            </div>
+          )}
+
+          {/* Collapsible component name list */}
+          {showComponentList && componentNames.length > 0 && (
+            <div className="px-3 py-1.5 flex flex-wrap gap-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+              {componentNames.map(name => (
+                <span key={name} className="px-1.5 py-0.5 rounded text-[9px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] truncate max-w-[120px]" title={name}>
+                  {name}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Dependent tokens section */}
           {dependentsLoading ? (
             <div className="flex items-center gap-1.5 px-3 py-2.5 text-[10px] text-[var(--color-figma-text-secondary)]">
@@ -123,13 +222,11 @@ export function TokenDependents({ dependents, dependentsLoading, setName, tokenP
                   const entry = allTokensFlat[dep.path];
                   const resolvedColor = entry?.$type === 'color' ? resolveRefValue(dep.path, colorFlatMap) : null;
                   const isAliasDependent = entry?.$type === 'color' && typeof entry.$value === 'string' && entry.$value.startsWith('{');
-                  const oldColorHex = typeof initialValue === 'string' ? initialValue.slice(0, 7) : null;
-                  const newColorHex = typeof value === 'string' ? value.slice(0, 7) : null;
-                  const showBeforeAfter = isAliasDependent && tokenType === 'color' && isDirty && !aliasMode && oldColorHex && newColorHex;
+                  const showDepBeforeAfter = isAliasDependent && tokenType === 'color' && isDirty && !aliasMode && oldColorHex && newColorHex;
 
                   return (
                     <div key={dep.path} className="px-3 py-1.5 flex items-center gap-2">
-                      {showBeforeAfter ? (
+                      {showDepBeforeAfter ? (
                         <span className="flex items-center gap-1 shrink-0">
                           <span
                             className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)]"
@@ -187,11 +284,18 @@ export function TokenDependents({ dependents, dependentsLoading, setName, tokenP
                     type="button"
                     onClick={() => selectLayer(layer.id)}
                     className="px-3 py-1.5 flex items-center gap-2 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
-                    title={`Select "${layer.name}" on canvas\nType: ${layer.type}\nBound: ${layer.properties.join(', ')}`}
+                    title={`Select "${layer.name}" on canvas\nType: ${layer.type}${layer.componentName ? `\nComponent: ${layer.componentName}` : ''}\nBound: ${layer.properties.join(', ')}`}
                   >
                     {getNodeIcon(layer.type)}
-                    <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate">
-                      {layer.name}
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[10px] text-[var(--color-figma-text)] truncate">
+                        {layer.name}
+                      </span>
+                      {layer.componentName && (
+                        <span className="block text-[9px] text-[var(--color-figma-text-secondary)] truncate opacity-70">
+                          {layer.componentName}
+                        </span>
+                      )}
                     </span>
                     <span className="shrink-0 px-1 py-0.5 rounded text-[8px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-60 group-hover:opacity-100">
                       {layer.properties.join(', ')}

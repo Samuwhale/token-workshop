@@ -355,3 +355,14 @@
   - Delete buttons in table rows should use `tabIndex={-1}` so they don't interrupt Tab-cell navigation
   - Inheriting last row's type for newly added rows reduces friction when creating many tokens of the same type (e.g. all dimension tokens)
 ---
+
+## 2026-03-28 - Token impact summary on edit
+- Enhanced `scanTokenUsage` in heatmapScanning.ts to walk each found layer's parent chain and extract the nearest COMPONENT/COMPONENT_SET/INSTANCE ancestor name as `componentName`. The response now includes `componentNames: string[]` (unique component names across all matching layers).
+- Rewrote `TokenDependents.tsx` to show: (1) impact summary banner "N layers across M components" with a "Highlight" button that sends `highlight-layer-by-token`; (2) clickable component count that toggles a pill-list of component names; (3) before/after value diff in the banner for non-color types (was only colors before); (4) component name shown as a second line under each layer name in the layers list.
+- Files changed: `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L211 (new `findComponentAncestor`, updated `scanTokenUsage`), `packages/figma-plugin/src/ui/components/TokenDependents.tsx` (full rewrite with new BoundLayer.componentName field and impact summary UI)
+- **Learnings for future iterations:**
+  - Figma parent chain traversal must stop at PAGE/DOCUMENT; check `current.type !== 'PAGE' && current.type !== 'DOCUMENT'` before accessing `.parent`
+  - `componentNames` de-dupe best done with `new Set()` + `.filter()` on the plugin side before sending — avoids duplicated work in the UI
+  - The `highlight-layer-by-token` message already existed in the plugin; no new plugin handler needed for the highlight button
+  - Before/after diff for non-color tokens is best done by formatting both values to strings with a `formatDiffValue` helper; skip if `oldValueStr === newValueStr` to avoid false diffs
+---

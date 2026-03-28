@@ -208,12 +208,24 @@ export async function selectHeatmapNodes(nodeIds: string[]) {
   }
 }
 
+// Walk up the parent chain to find the nearest component or instance ancestor name.
+function findComponentAncestor(node: SceneNode): string | null {
+  let current: BaseNode | null = node.parent;
+  while (current && current.type !== 'PAGE' && current.type !== 'DOCUMENT') {
+    if (current.type === 'COMPONENT' || current.type === 'COMPONENT_SET' || current.type === 'INSTANCE') {
+      return current.name;
+    }
+    current = (current as BaseNode & { parent?: BaseNode | null }).parent ?? null;
+  }
+  return null;
+}
+
 // Scan all nodes on the current page to find layers bound to a specific token path.
-// Returns a list of { id, name, type, properties } for each node using this token.
+// Returns a list of { id, name, type, componentName, properties } for each node using this token.
 export async function scanTokenUsage(tokenPath: string) {
   try {
     const BATCH_SIZE = 200;
-    const layers: { id: string; name: string; type: string; properties: string[] }[] = [];
+    const layers: { id: string; name: string; type: string; componentName: string | null; properties: string[] }[] = [];
     const stack = [...figma.currentPage.children];
     let walkCount = 0;
 
@@ -239,6 +251,7 @@ export async function scanTokenUsage(tokenPath: string) {
           id: current.id,
           name: current.name,
           type: current.type,
+          componentName: findComponentAncestor(current),
           properties: boundProps,
         });
       }
@@ -256,14 +269,18 @@ export async function scanTokenUsage(tokenPath: string) {
       }
     }
 
+    // Collect unique component names from all found layers
+    const componentNames = [...new Set(layers.map(l => l.componentName).filter((n): n is string => n !== null))];
+
     figma.ui.postMessage({
       type: 'token-usage-result',
       tokenPath,
       layers: layers.slice(0, 200),
       total: layers.length,
+      componentNames,
     });
   } catch (error) {
-    figma.ui.postMessage({ type: 'token-usage-result', tokenPath, layers: [], total: 0 });
+    figma.ui.postMessage({ type: 'token-usage-result', tokenPath, layers: [], total: 0, componentNames: [] });
   }
 }
 
