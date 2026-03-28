@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, type Ref } from 'react';
 import { evalExpr, isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
@@ -227,6 +227,7 @@ function SubPropInput({
   placeholder,
   className,
   inputType = 'number',
+  inputRef,
 }: {
   value: any;
   onChange: (v: any) => void;
@@ -236,6 +237,7 @@ function SubPropInput({
   placeholder?: string;
   className?: string;
   inputType?: 'number' | 'string';
+  inputRef?: Ref<HTMLInputElement>;
 }) {
   const isAlias = typeof value === 'string' && value.startsWith('{');
   const displayValue = isAlias ? value : String(value ?? '');
@@ -244,6 +246,7 @@ function SubPropInput({
   return (
     <div className="relative">
       <input
+        ref={inputRef}
         type="text"
         value={displayValue}
         onChange={e => {
@@ -282,7 +285,7 @@ function SubPropInput({
   );
 }
 
-export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string> }) {
+export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement> }) {
   const val = typeof value === 'object' ? value : {};
   const update = (key: string, v: any) => onChange({ ...val, [key]: v });
   const isFontSizeAlias = typeof val.fontSize === 'string' && val.fontSize.startsWith('{');
@@ -300,6 +303,7 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet }: 
           pathToSet={pathToSet}
           inputType="string"
           placeholder="Inter"
+          inputRef={fontFamilyRef}
         />
       </div>
       <div className="flex gap-2">
@@ -311,10 +315,12 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet }: 
               onChange={v => update('fontSize', v)}
               allTokensFlat={allTokensFlat}
               pathToSet={pathToSet}
+              inputRef={fontSizeRef}
             />
           ) : (
             <div className="flex gap-1">
               <input
+                ref={fontSizeRef}
                 type="number"
                 value={fontSize.value}
                 onChange={e => update('fontSize', { ...fontSize, value: parseFloat(e.target.value) || 0 })}

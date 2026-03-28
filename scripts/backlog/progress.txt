@@ -348,3 +348,15 @@
   - Using `useState` initializer + external change detection via `lastSyncedText` tracking avoids stale state when parent re-renders with new data
   - `entriesToJson` tries `JSON.parse` on values to preserve object types; falls back to string — this lets users type `{"key": "val"}` in the value field and have it stored as an object, not a string
 ---
+
+## 2026-03-28 - TokenEditor typography required-field error doesn't focus the offending field
+- Added `inputRef` prop to `SubPropInput` and `fontFamilyRef`/`fontSizeRef` props to `TypographyEditor`
+- Created `focusBlockedField` callback in TokenEditor that checks which typography field is missing and focuses it
+- Error message above typography fields is now a clickable button that focuses the offending field
+- Save button wrapper div captures clicks when disabled due to typography validation and focuses the offending field
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L1,L221-L240,L247,L297-L304,L309-L320
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L120-L123,L293-L309,L666-L668,L890-L904
+- **Learnings for future iterations:**
+  - Disabled buttons swallow click events; wrapping in a div with its own onClick is the simplest way to handle "click on disabled button" UX
+  - `SubPropInput` now supports `inputRef` prop — can be used for focusing any sub-property input in future
+---

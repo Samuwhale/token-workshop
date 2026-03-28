@@ -123,6 +123,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const refInputRef = useRef<HTMLInputElement>(null);
   const preAliasValueRef = useRef<any>(null);
+  const fontFamilyRef = useRef<HTMLInputElement>(null);
+  const fontSizeRef = useRef<HTMLInputElement>(null);
   const [scopes, setScopes] = useState<string[]>([]);
   const initialRef = useRef<{ value: any; description: string; reference: string; scopes: string[]; type: string; colorModifiers: ColorModifierOp[]; modeValues: Record<string, any>; extensionsJsonText: string } | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -294,6 +296,22 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     if (isCreateMode && !editPath.trim()) return 'Enter a token path';
     return null;
   }, [aliasHasCycle, duplicatePath, extensionsJsonError, tokenType, value, aliasMode, isCreateMode, editPath]);
+
+  const focusBlockedField = useCallback(() => {
+    if (tokenType !== 'typography' || aliasMode) return;
+    const v = typeof value === 'object' && value !== null ? value : {};
+    const family = Array.isArray(v.fontFamily) ? v.fontFamily[0] : v.fontFamily;
+    const missingFamily = !family || String(family).trim() === '';
+    if (missingFamily) {
+      fontFamilyRef.current?.focus();
+      return;
+    }
+    const fsVal = typeof v.fontSize === 'object' ? v.fontSize?.value : v.fontSize;
+    const missingSize = fsVal === undefined || fsVal === null || fsVal === '' || isNaN(Number(fsVal)) || Number(fsVal) <= 0;
+    if (missingSize) {
+      fontSizeRef.current?.focus();
+    }
+  }, [tokenType, aliasMode, value]);
 
   const DEFAULT_VALUE_FOR_TYPE: Record<string, any> = {
     color: '#000000',
@@ -684,8 +702,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">Value</label>
-              {!canSave && tokenType === 'typography' && (
-                <span className="text-[9px] text-[var(--color-figma-error)]">Font family and size required</span>
+              {!canSave && tokenType === 'typography' && saveBlockReason && (
+                <button type="button" onClick={focusBlockedField} className="text-[9px] text-[var(--color-figma-error)] hover:underline cursor-pointer bg-transparent border-none p-0">{saveBlockReason}</button>
               )}
             </div>
             {initialRef.current && JSON.stringify(value) !== JSON.stringify(initialRef.current.value) && (
@@ -693,7 +711,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             )}
             {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
             {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} autoFocus={!isCreateMode} />}
-            {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+            {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} fontFamilyRef={fontFamilyRef} fontSizeRef={fontSizeRef} />}
             {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
@@ -909,18 +927,20 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             {saving ? 'Creating…' : 'Create & New'}
           </button>
         )}
-        <button
-          onClick={() => handleSave()}
-          disabled={saving || !canSave || (!isCreateMode && !isDirty) || (isCreateMode && !editPath.trim())}
-          title={saveBlockReason || undefined}
-          className="flex-1 px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving
-            ? (isCreateMode ? 'Creating…' : 'Saving…')
-            : (saveBlockReason
-              ? saveBlockReason
-              : (!isCreateMode && !isDirty ? 'No changes' : (isCreateMode ? 'Create' : 'Save changes')))}
-        </button>
+        <div className="flex-1" onClick={() => { if (!canSave && saveBlockReason && tokenType === 'typography') focusBlockedField(); }}>
+          <button
+            onClick={() => handleSave()}
+            disabled={saving || !canSave || (!isCreateMode && !isDirty) || (isCreateMode && !editPath.trim())}
+            title={saveBlockReason || undefined}
+            className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving
+              ? (isCreateMode ? 'Creating…' : 'Saving…')
+              : (saveBlockReason
+                ? saveBlockReason
+                : (!isCreateMode && !isDirty ? 'No changes' : (isCreateMode ? 'Create' : 'Save changes')))}
+          </button>
+        </div>
       </div>
 
       {/* Token Generator Dialog */}

@@ -503,3 +503,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor typography required-field error doesn't focus the offending field — error says "Font family required" but the cursor stays wherever it was; user must manually find and click into the empty field
   Worktree: /tmp/backlog-84992-fJHuxY
+
+  ✓ done: TokenEditor typography required-field error doesn't focus the offending field
+    Error message and save button now auto-focus the offending typography field (fontFamily or fontSize) when clicked
+    27 turns · 228s · $0.92
+
+--- Merging: TokenEditor typography required-field error doesn't focus the offending field ---
+Already up to date.

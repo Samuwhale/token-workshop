@@ -540,3 +540,17 @@ Already up to date.
 
 --- Merging: TokenEditor extensions editor is a raw JSON textarea ---
 Already up to date.
+[main 1d44402] chore(backlog): done – TokenEditor extensions editor is a raw JSON textarea
+ 6 files changed, 344 insertions(+), 60 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - TokenEditor extensions editor is a raw JSON textarea
+- Replaced raw JSON textarea with a structured key-value editor in MetadataEditor.tsx
+- Each extension is a row with key input (e.g. "com.example") and value input
+- Object/array values auto-expand to a resizable textarea; simple values use a single-line input
+
+===============================================================
+  Iteration 27 / 90  (claude)  —  14 items remaining
+===============================================================
+  Claimed: TokenList inline create form and full TokenEditor both support creation but with different field sets — inline form has path+value+description+type; full editor has those plus aliases, modifiers, scopes, extensions, modes; there's no obvious path from "I need more fields" to "open full editor" during inline creation
+  Worktree: /tmp/backlog-85816-UHsAT5
