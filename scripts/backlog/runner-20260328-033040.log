@@ -463,3 +463,9 @@ Already up to date.
 
 --- Merging: Plugin applyVariables silently swallows rollback errors ---
 Already up to date.
+[main 977dc0c] chore(backlog): done – Plugin applyVariables silently swallows rollback errors
+ 7 files changed, 38 insertions(+), 6 deletions(-)
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 51)
