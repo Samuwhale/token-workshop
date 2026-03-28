@@ -36,3 +36,9 @@ Already up to date.
 
 --- Merging: Flat token map silently shadows tokens when two sets define the same path ---
 Already up to date.
+[main 5e4a226] chore(backlog): done – Flat token map silently shadows tokens when two sets define the same path
+ 7 files changed, 173 insertions(+), 76 deletions(-)
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 50)
