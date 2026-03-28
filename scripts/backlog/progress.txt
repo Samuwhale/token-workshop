@@ -134,3 +134,11 @@
   - The dimension reorder endpoint follows the same pattern as options-order: accept full ordered list of IDs, validate completeness, swap atomically
   - `dimIdx` is already computed in the render loop (`dimensions.indexOf(dim)`) so boundary checks are trivial
 ---
+
+## 2026-03-29 - "Copy color in format" missing from context menu
+- Added 5 format-specific copy options (hex, rgb(), hsl(), oklch(), display-p3) to the token row context menu, shown only when `node.$type === 'color'`. Uses existing `formatHexAs()` from `colorUtils.ts` to format the resolved display value.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L18 (import), ~L1678-1692 (menu items)
+- **Learnings for future iterations:**
+  - The context menu is entirely in TokenTreeNode.tsx ~L1523-1703, rendered as a fixed div with `data-context-menu="token"`
+  - `displayValue` (resolved alias value) is already available in scope for the context menu section
+---

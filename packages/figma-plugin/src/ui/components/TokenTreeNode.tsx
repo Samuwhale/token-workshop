@@ -15,6 +15,7 @@ import { ColorPicker } from './ColorPicker';
 import { getQuickBindTargets } from './selectionInspectorUtils';
 import { useTokenTree } from './TokenTreeContext';
 import { ComplexTypePreviewCard, COMPLEX_PREVIEW_TYPES } from './ComplexTypePreviewCard';
+import { formatHexAs, type ColorFormat } from '../shared/colorUtils';
 import { useNearbyTokenMatch } from '../hooks/useNearbyTokenMatch';
 import { TokenNudge } from './TokenNudge';
 
@@ -1675,6 +1676,19 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           >
             <span>Copy value</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">V</span>
           </button>
+          {node.$type === 'color' && typeof displayValue === 'string' && (['hex', 'rgb', 'hsl', 'oklch', 'p3'] as ColorFormat[]).map(fmt => (
+            <button
+              key={fmt}
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => {
+                navigator.clipboard.writeText(formatHexAs(displayValue, fmt)).catch(() => {});
+                setContextMenuPos(null);
+              }}
+            >
+              <span>Copy as {fmt === 'hex' ? 'hex' : fmt === 'rgb' ? 'rgb()' : fmt === 'hsl' ? 'hsl()' : fmt === 'oklch' ? 'oklch()' : 'display-p3'}</span>
+            </button>
+          ))}
           <button
             data-accel="j"
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
