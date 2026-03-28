@@ -905,7 +905,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             <button
               onClick={handleAliasClick}
               className={`flex items-center gap-0.5 px-1 py-0.5 rounded border text-[8px] transition-colors ${isBrokenAlias ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 cursor-default' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
-              title={isBrokenAlias ? `Broken reference — ${resolveResult?.error}` : `Navigate to ${node.$value}`}
+              title={isBrokenAlias ? `Broken reference — ${resolveResult?.error}` : `${(node.$value as string).slice(1, -1)} → ${formatValue(node.$type, displayValue)}\nClick to navigate`}
             >
               <span>{(node.$value as string).slice(1, -1)}</span>
               <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -1290,7 +1290,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
 
       {/* Alias resolution chain tooltip — visible on row hover */}
       {hovered && aliasChainLabel && (
-        <div className="absolute left-4 right-4 top-full z-20" style={{ marginTop: '-2px' }}>
+        <div className="absolute left-4 right-4 bottom-full z-20" style={{ marginBottom: '-2px' }}>
           <div className="inline-flex items-center gap-1 px-2 py-1 rounded shadow-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[9px] font-mono text-[var(--color-figma-text-secondary)] whitespace-nowrap max-w-full overflow-hidden">
             {[node.path, ...aliasChain].map((seg, i, arr) => (
               <Fragment key={i}>

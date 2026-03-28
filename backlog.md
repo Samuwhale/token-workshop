@@ -36,9 +36,9 @@
 
 ### QoL
 
-- [~] Search qualifiers are undiscoverable — powerful query system (type:color, has:alias, value:#ff0000) has no autocomplete, cheat sheet, or inline hint; add a "?" icon showing available qualifiers or structured filter chips that generate the query (like GitHub issue filters)
+- [x] Search qualifiers are undiscoverable — powerful query system (type:color, has:alias, value:#ff0000) has no autocomplete, cheat sheet, or inline hint; add a "?" icon showing available qualifiers or structured filter chips that generate the query (like GitHub issue filters)
 - [~] No visual diff when editing token values — no "before → after" preview; show the current resolved value alongside the edit field, especially for complex types like typography and shadows
-- [ ] No hover preview on alias tokens — hovering `{color.primary}` in the token list doesn't show the resolved value; users must enter edit mode to see what an alias resolves to
+- [~] No hover preview on alias tokens — hovering `{color.primary}` in the token list doesn't show the resolved value; users must enter edit mode to see what an alias resolves to
 - [ ] No token count badge on set tabs — you have to open a set to discover how many tokens it contains; show a count in the tab label
 - [ ] Color swatches too small in token list — at 11px text, color preview dots are hard to distinguish between similar shades; increase swatch size or show hex on hover
 - [ ] No "Duplicate token" in context menu — creating a variant requires re-entering all values; add a Duplicate action that copies value/type/description with a `-copy` suffix

@@ -441,3 +441,13 @@
   - The search qualifier system already had autocomplete on typing — the gap was a zero-state discovery mechanism
   - Using onBlur with setTimeout(150) for popover dismissal is the existing pattern in this file (used by qualifier hints dropdown)
 ---
+
+## 2026-03-28 - No hover preview on alias tokens
+- Fixed two issues preventing alias hover previews from working:
+  1. Alias badge tooltip now shows resolved value (`color.primary → #ff0000\nClick to navigate`) instead of just "Navigate to {color.primary}"
+  2. Alias resolution chain tooltip repositioned from `top-full` (below row, clipped by scroll container's `overflow-y-auto`) to `bottom-full` (above row, visible)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L908 (alias badge title), ~L1293 (hover tooltip positioning)
+- **Learnings for future iterations:**
+  - Absolute-positioned tooltips using `top-full` inside `overflow-y-auto` scroll containers get clipped — use `bottom-full` to render above the triggering element instead
+  - Native `title` attributes are not clipped by overflow and are a reliable fallback for showing resolved values
+---

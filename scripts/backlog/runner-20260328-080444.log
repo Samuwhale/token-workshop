@@ -78,3 +78,23 @@ Already up to date.
 
 --- Merging: Search qualifiers are undiscoverable ---
 Already up to date.
+[main c02e6d6] chore(backlog): done – Search qualifiers are undiscoverable
+ 6 files changed, 80 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - Search qualifiers are undiscoverable
+- Added a "?" help button next to the search input that opens a popover cheat sheet listing all available search qualifiers (type:, has:, value:, desc:, path:, name:) with descriptions and examples. Clicking a qualifier inserts it into the search input. Popover includes a footer tip about combining qualifiers.
+- The existing autocomplete dropdown (appears while typing) was already in place; this adds a persistent discovery mechanism for users who don't know qualifiers exist.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L491 (state + ref), ~L2103 (help button + popover UI)
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  98 items remaining
+===============================================================
+  Claimed: No hover preview on alias tokens — hovering `{color.primary}` in the token list doesn't show the resolved value; users must enter edit mode to see what an alias resolves to
+  Worktree: /tmp/backlog-63411-UPMkMk
+
+  ✓ done: No hover preview on alias tokens
+    Alias badge tooltip now shows resolved value (e.g. "color.primary → #ff0000"), and hover chain tooltip repositioned above row to avoid scroll container clipping.
+    20 turns · 217s · $0.88
+
+--- Merging: No hover preview on alias tokens ---
+Already up to date.
