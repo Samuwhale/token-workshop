@@ -51,13 +51,13 @@ export function AliasPicker({
         </label>
         <button
           onClick={onToggleAlias}
-          title={aliasMode ? 'Switch to direct value (\u2318L)' : 'Switch to alias reference (\u2318L)'}
+          title={aliasMode ? 'Switch to direct value (\u2318L)' : 'Switch to reference mode (\u2318L)'}
           className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] border transition-colors ${aliasMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
         >
           <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <path d="M1 4h2.5M4.5 4H7M5.5 2L7 4L5.5 6M2.5 2L1 4L2.5 6"/>
           </svg>
-          Alias mode
+          Reference mode
           <kbd className="ml-1 text-[9px] opacity-60 font-sans">⌘L</kbd>
         </button>
       </div>

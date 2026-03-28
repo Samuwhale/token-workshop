@@ -1042,7 +1042,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             {showChainBadge && (
               <button
                 className={`text-[8px] shrink-0 px-0.5 rounded transition-colors ${chainExpanded ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]'}`}
-                title={chainExpanded ? 'Collapse alias chain' : `Show alias chain (${aliasChain.length} hops)`}
+                title={chainExpanded ? 'Collapse reference chain' : `Show reference chain (${aliasChain.length} hops)`}
                 onClick={e => { e.stopPropagation(); onToggleChain?.(node.path); }}
               >{aliasChain.length}×</button>
             )}
@@ -1258,7 +1258,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               setContextMenuPos(null);
             }}
           >
-            <span>Copy as alias ref <span className="text-[var(--color-figma-text-tertiary)]">({`{${node.path}}`})</span></span>
+            <span>Copy as reference <span className="text-[var(--color-figma-text-tertiary)]">({`{${node.path}}`})</span></span>
           </button>
           <button
             data-accel="v"

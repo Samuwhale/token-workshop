@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: Developer-facing copy leaks into designer UI — terms like "DTCG", "alias", "$extensions", "$value", "source/enabled" are implementation details; audit all user-facing labels (e.g. "Alias" → "Reference", "Source" → "Base layer", "Enabled" → "Override") and keep DTCG terms only in export/developer views
   Worktree: /tmp/backlog-63411-LFZJOv
+
+  ✓ done: Developer-facing copy leaks into designer UI
+    Replaced "alias" → "reference", "$extensions" → "extensions", and other developer terms across 8 UI component files. Internal variable names unchanged; ThemeManager already had friendly labels.
+    43 turns · 201s · $1.07
+
+--- Merging: Developer-facing copy leaks into designer UI ---
+Already up to date.

@@ -367,3 +367,26 @@
   - The EmptyState already had most action handlers wired up; the main gap was "Import from Figma" which maps to openOverflowPanel('import')
   - The "Use a preset" button (onUsePreset) was redundant with "Start from template" (onGoToGraph) — consolidated into the template option
 ---
+
+## 2026-03-28 - Developer-facing copy leaks into designer UI
+- Audited all user-facing labels across the plugin UI and replaced developer terminology with designer-friendly copy:
+  - "Alias mode" → "Reference mode" (AliasPicker toggle button + tooltip)
+  - "Toggle alias mode" → "Toggle reference mode" (keyboard shortcuts modal)
+  - "Unresolved alias" → "Unresolved reference" (ValuePreview tooltip)
+  - "Collapse/Show alias chain" → "Collapse/Show reference chain" (TokenTreeNode tooltips)
+  - "Copy as alias ref" → "Copy as reference" (context menu)
+  - "Only alias/reference tokens" → "Only reference tokens" (search qualifier hint)
+  - "Only tokens with $extensions" → "Only tokens with extensions" (search qualifier hint)
+  - "$extensions" code block in MetadataEditor → "Custom extension data" plain text
+  - "value or {alias}" placeholder → "value or {reference}" (MetadataEditor inputs)
+  - "aliases, scopes, extensions" tooltip → "references, scopes, extensions" (TokenList create form)
+  - "alias values" in BatchEditor scale warnings → "reference values"
+- ThemeManager already uses friendly labels (Off/Base/On) — no changes needed there.
+- "DTCG" not found in any user-facing strings.
+- "Source" in TokenGraph refers to generator source token (not theme state) — left as-is.
+- Files changed: `AliasPicker.tsx` ~L54,60, `KeyboardShortcutsModal.tsx` ~L57, `ValuePreview.tsx` ~L5, `TokenTreeNode.tsx` ~L1045,1261, `tokenListUtils.ts` ~L65,69, `MetadataEditor.tsx` ~L214,488, `TokenList.tsx` ~L2719, `BatchEditor.tsx` ~L312,363,580
+- **Learnings for future iterations:**
+  - Internal variable/function names (aliasMode, isAlias, resolveAliasChain) were kept as-is — only user-facing strings were changed. Renaming internals would be a massive refactor with no user benefit.
+  - ThemeManager already maps internal states (source/enabled/disabled) to user-friendly labels (Base/On/Off) via STATE_LABELS — a good pattern to follow elsewhere.
+  - Search qualifier keys (has:alias) were kept unchanged since they're functional syntax, but descriptions were updated.
+---

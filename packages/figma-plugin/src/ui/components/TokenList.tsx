@@ -2716,7 +2716,7 @@ export function TokenList({
                     onCreateNew(path || undefined, newTokenType, newTokenValue.trim() || undefined);
                     setShowCreateForm(false); setNewTokenPath(''); setNewTokenValue(''); setNewTokenDescription(''); setTypeAutoInferred(false); setSiblingPrefix(null); setCreateError('');
                   }}
-                  title="Open full editor with more fields (aliases, scopes, extensions, modes)"
+                  title="Open full editor with more fields (references, scopes, extensions, modes)"
                   className="px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
                 >
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"/></svg>

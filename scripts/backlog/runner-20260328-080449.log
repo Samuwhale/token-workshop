@@ -16,3 +16,20 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: No onboarding or first-run experience ---
 Already up to date.
+[main 6b21c34] chore(backlog): done – No onboarding or first-run experience
+ 8 files changed, 142 insertions(+), 72 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-28 - No onboarding or first-run experience
+- Redesigned EmptyState component from plain "No tokens yet" into a full first-run onboarding flow
+- Added "Import from Figma Variables" as primary CTA (accent-colored button at top), wired to openOverflowPanel('import')
+- Reorganized actions: Import Figma > Guided setup > Start from template (renamed, mentions Material/Tailwind) > Paste existing tokens (renamed for migration context) > Generate color scale > Create manually (demoted to secondary)
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  104 items remaining
+===============================================================
+  Claimed: `alert()` used for error feedback in token move operations — jarring, unthemed, blocks the UI thread; replace with inline error state or toast matching the existing error banner pattern
+  Worktree: /tmp/backlog-63973-IxM1Zq

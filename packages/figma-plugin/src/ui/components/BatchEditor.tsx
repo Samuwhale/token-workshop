@@ -309,7 +309,7 @@ export function BatchEditor({
       // If scale is the only op and all tokens have alias values, explain why nothing happened.
       const scalingActive = allScalable && scaleFactor !== '' && !isNaN(parseFloat(scaleFactor)) && parseFloat(scaleFactor) > 0;
       if (scalingActive && scaleAliasCount === selectedEntries.length) {
-        setFeedback({ ok: false, msg: 'Cannot scale — all selected tokens use alias values' });
+        setFeedback({ ok: false, msg: 'Cannot scale — all selected tokens use reference values' });
       }
       return;
     }
@@ -360,7 +360,7 @@ export function BatchEditor({
 
       if (failed === 0) {
         const skipNote = skippedAliases > 0
-          ? ` (${skippedAliases} skipped — alias value${skippedAliases === 1 ? '' : 's'} can't be scaled)`
+          ? ` (${skippedAliases} skipped — reference value${skippedAliases === 1 ? '' : 's'} can't be scaled)`
           : '';
         setFeedback({ ok: skippedAliases === 0, msg: `Applied to ${succeeded} token${succeeded === 1 ? '' : 's'}${skipNote}` });
         setDescription('');
@@ -577,8 +577,8 @@ export function BatchEditor({
             <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
               <span className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] leading-tight font-medium">
                 {scaleAliasCount === selectedEntries.length
-                  ? 'All selected tokens use alias values and cannot be scaled:'
-                  : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} will be skipped (alias values cannot be scaled):`}
+                  ? 'All selected tokens use reference values and cannot be scaled:'
+                  : `${scaleAliasCount} token${scaleAliasCount === 1 ? '' : 's'} will be skipped (reference values cannot be scaled):`}
               </span>
               {skippedAliasTokens.slice(0, PREVIEW_MAX).map(({ path, entry }) => (
                 <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">

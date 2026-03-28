@@ -62,11 +62,11 @@ export function hasStructuredQualifiers(raw: string): boolean {
 /** Available qualifier suggestions for the autocomplete hint. */
 export const QUERY_QUALIFIERS = [
   { qualifier: 'type:', desc: 'Filter by token type', example: 'type:color' },
-  { qualifier: 'has:alias', desc: 'Only alias/reference tokens', example: '' },
+  { qualifier: 'has:alias', desc: 'Only reference tokens', example: '' },
   { qualifier: 'has:direct', desc: 'Only direct-value tokens', example: '' },
   { qualifier: 'has:duplicate', desc: 'Only tokens with duplicate values', example: '' },
   { qualifier: 'has:description', desc: 'Only tokens with a description', example: '' },
-  { qualifier: 'has:extension', desc: 'Only tokens with $extensions', example: '' },
+  { qualifier: 'has:extension', desc: 'Only tokens with extensions', example: '' },
   { qualifier: 'value:', desc: 'Search within token values', example: 'value:#ff0000' },
   { qualifier: 'desc:', desc: 'Search within descriptions', example: 'desc:primary' },
   { qualifier: 'path:', desc: 'Filter by path prefix', example: 'path:colors.brand' },

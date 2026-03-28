@@ -211,7 +211,7 @@ function ExtensionsEditor({
         <div className="px-3 py-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
           <div className="flex items-center justify-between">
             <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
-              Custom <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">$extensions</code> data. <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">tokenmanager</code> and <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">com.figma.scopes</code> are managed above.
+              Custom extension data. The <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">tokenmanager</code> and <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">scopes</code> sections are managed above.
             </p>
             <button
               type="button"
@@ -485,7 +485,7 @@ export function MetadataEditor({
                           onKeyDown={e => {
                             if (hasTokens && e.key === '{') setAutocompleteModeKey(option.name);
                           }}
-                          placeholder={aliasMode ? (reference || 'value or {alias}') : String(value !== '' && value !== undefined ? value : 'value or {alias}')}
+                          placeholder={aliasMode ? (reference || 'value or {reference}') : String(value !== '' && value !== undefined ? value : 'value or {reference}')}
                           className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
                         />
                         {showingAutocomplete && (
