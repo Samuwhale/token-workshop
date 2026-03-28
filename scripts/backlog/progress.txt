@@ -378,3 +378,10 @@
 - **Learnings for future iterations:**
   - The concurrency guard overhaul (commit 6144721 "Generator auto-run from tokenStore.onChange has no concurrency guard") already addressed this skip-vs-queue issue as part of its broader fix
 ---
+
+## 2026-03-28 - TokenTableView description edit is a no-op
+- Already fixed in commit 804a4c6. The current `commitEdit` at ~L151-157 correctly uses `editValue.trim()` for description edits and calls `onDescriptionSave?.(node.path, raw)`. The `handleDescriptionSave` callback in `TokenList.tsx` properly sends `{ $description: description }` via PATCH.
+- Files changed: none
+- **Learnings for future iterations:**
+  - Always check git log before implementing — prior sessions may have already fixed the issue
+---

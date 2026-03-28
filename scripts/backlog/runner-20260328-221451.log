@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenTableView description edit is a no-op — `commitEdit` (line 132) passes `node.$value` (the unchanged token value) instead of `editValue` (the user's edited description text) to `onInlineSave`, so all description edits in the table view are silently discarded; the code even has a comment acknowledging the intent but the implementation doesn't follow through (`packages/figma-plugin/src/ui/components/TokenTableView.tsx` ~L125-133)
   Worktree: /tmp/backlog-23617-yaqi2C
+
+  ✓ done: TokenTableView description edit is a no-op
+    stale — already done (fixed in commit 804a4c6)
+    14 turns · 60s · $0.37
+
+--- Merging: TokenTableView description edit is a no-op ---
+Already up to date.
