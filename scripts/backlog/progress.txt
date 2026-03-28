@@ -405,3 +405,11 @@
 - **Learnings for future iterations:**
   - `ConfirmModal` has built-in error handling: it catches errors from `onConfirm`, displays them inline, and keeps the modal open. Don't duplicate error handling in the caller — just let errors propagate.
 ---
+
+## 2026-03-28 - SnapshotPanel all operations silently broken — wrong apiFetch signature
+- Fixed all 5 `apiFetch` calls in `SnapshotPanel.tsx` to use the correct 2-arg signature `apiFetch(url, options?)` instead of the wrong 3-arg `apiFetch(serverUrl, path, options?)`. Also fixed the two calls that did `const res = await apiFetch(...); res.json()` — `apiFetch` already returns parsed JSON, not a Response.
+- Files changed: `packages/figma-plugin/src/ui/components/SnapshotPanel.tsx` ~L160–238
+- **Learnings for future iterations:**
+  - `apiFetch` signature is `(url: string, options?: RequestInit): Promise<T>` — url must be the full URL including path. Always concatenate `${serverUrl}/api/...`.
+  - `apiFetch` returns parsed JSON directly as `T`, not a `Response` — no `.json()` call needed on the result.
+---

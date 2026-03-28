@@ -157,8 +157,7 @@ export function SnapshotPanel({ serverUrl, connected }: SnapshotPanelProps) {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch(serverUrl, '/api/snapshots');
-      const data = await res.json() as { snapshots: SnapshotSummary[] };
+      const data = await apiFetch<{ snapshots: SnapshotSummary[] }>(`${serverUrl}/api/snapshots`);
       setSnapshots(data.snapshots ?? []);
     } catch {
       setError('Could not load snapshots');
@@ -181,7 +180,7 @@ export function SnapshotPanel({ serverUrl, connected }: SnapshotPanelProps) {
     setSaving(true);
     setError(null);
     try {
-      await apiFetch(serverUrl, '/api/snapshots', {
+      await apiFetch(`${serverUrl}/api/snapshots`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ label }),
@@ -204,8 +203,7 @@ export function SnapshotPanel({ serverUrl, connected }: SnapshotPanelProps) {
     setView('compare');
     setError(null);
     try {
-      const res = await apiFetch(serverUrl, `/api/snapshots/${id}/diff`);
-      const data = await res.json() as { diffs: TokenDiff[] };
+      const data = await apiFetch<{ diffs: TokenDiff[] }>(`${serverUrl}/api/snapshots/${id}/diff`);
       setDiffs(data.diffs ?? []);
     } catch {
       setError('Failed to load comparison');
@@ -220,7 +218,7 @@ export function SnapshotPanel({ serverUrl, connected }: SnapshotPanelProps) {
     setReverting(true);
     setError(null);
     try {
-      await apiFetch(serverUrl, `/api/snapshots/${comparing}/restore`, { method: 'POST' });
+      await apiFetch(`${serverUrl}/api/snapshots/${comparing}/restore`, { method: 'POST' });
       showSuccess('Reverted to saved state');
       setView('list');
       setComparing(null);
@@ -235,7 +233,7 @@ export function SnapshotPanel({ serverUrl, connected }: SnapshotPanelProps) {
   const handleDelete = async (id: string) => {
     setError(null);
     try {
-      await apiFetch(serverUrl, `/api/snapshots/${id}`, { method: 'DELETE' });
+      await apiFetch(`${serverUrl}/api/snapshots/${id}`, { method: 'DELETE' });
       if (comparing === id) {
         setView('list');
         setComparing(null);
