@@ -327,3 +327,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager options cannot be reordered within a dimension — options are displayed in creation order with no drag-to-reorder or move up/down; users must delete and recreate to change order
   Worktree: /tmp/backlog-10278-B5z0Vj
+
+  ✓ done: ThemeManager options cannot be reordered within a dimension
+    Added move up/down buttons on option rows and a PUT /api/themes/dimensions/:id/options-order server endpoint with optimistic UI updates.
+    17 turns · 155s · $0.77
+
+--- Merging: ThemeManager options cannot be reordered within a dimension ---
+Already up to date.

@@ -389,6 +389,36 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
   };
 
+  // --- Move option (reorder) ---
+
+  const handleMoveOption = async (dimId: string, optionName: string, direction: 'up' | 'down') => {
+    const dim = dimensions.find(d => d.id === dimId);
+    if (!dim || !connected) return;
+    const idx = dim.options.findIndex(o => o.name === optionName);
+    if (idx === -1) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= dim.options.length) return;
+    const reordered = [...dim.options];
+    [reordered[idx], reordered[newIdx]] = [reordered[newIdx], reordered[idx]];
+    // Optimistic update
+    setDimensions(prev => prev.map(d => d.id === dimId ? { ...d, options: reordered } : d));
+    try {
+      const res = await fetch(
+        `${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options-order`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ options: reordered.map(o => o.name) }),
+        },
+      );
+      if (!res.ok) {
+        fetchDimensions(); // revert on failure
+      }
+    } catch {
+      fetchDimensions(); // revert on failure
+    }
+  };
+
   // --- Delete option ---
 
   const executeDeleteOption = async (dimId: string, optionName: string) => {
@@ -714,6 +744,32 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                               )}
                             </div>
                             <div className="flex items-center gap-0.5 opacity-0 group-hover/opt:opacity-100">
+                              {dim.options.length > 1 && (
+                                <>
+                                  <button
+                                    onClick={() => handleMoveOption(dim.id, opt.name, 'up')}
+                                    disabled={dim.options.indexOf(opt) === 0}
+                                    className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0 disabled:opacity-25 disabled:pointer-events-none"
+                                    title="Move up"
+                                    aria-label="Move option up"
+                                  >
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <path d="M18 15l-6-6-6 6" />
+                                    </svg>
+                                  </button>
+                                  <button
+                                    onClick={() => handleMoveOption(dim.id, opt.name, 'down')}
+                                    disabled={dim.options.indexOf(opt) === dim.options.length - 1}
+                                    className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0 disabled:opacity-25 disabled:pointer-events-none"
+                                    title="Move down"
+                                    aria-label="Move option down"
+                                  >
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <path d="M6 9l6 6 6-6" />
+                                    </svg>
+                                  </button>
+                                </>
+                              )}
                               <button
                                 onClick={() => startRenameOption(dim.id, opt.name)}
                                 className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"

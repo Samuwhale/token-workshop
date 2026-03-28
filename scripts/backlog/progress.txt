@@ -400,3 +400,13 @@
 - **Learnings for future iterations:**
   - The existing code already had partial alias-skip reporting (count in feedback + generic warning). The missing piece was showing *which* tokens, not just how many.
 ---
+
+## 2026-03-28 - ThemeManager options cannot be reordered within a dimension
+- Added `PUT /api/themes/dimensions/:id/options-order` server endpoint that accepts `{ options: string[] }` — validates all names exist and list is complete, then reorders the persisted options array.
+- Added move up/down arrow buttons in the ThemeManager option header row (visible on hover, only shown when dimension has >1 option, disabled at boundaries).
+- Optimistic UI update with server rollback on failure.
+- Files changed: `packages/server/src/routes/themes.ts` ~L210 (new route), `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L394 (handler), ~L750 (buttons)
+- **Learnings for future iterations:**
+  - The existing option action buttons (rename, duplicate, delete) appear on hover via `opacity-0 group-hover/opt:opacity-100` — new buttons follow the same pattern.
+  - Fastify route registration order matters for parameterized routes but `options-order` is a fixed path so it doesn't conflict with `:optionName`.
+---

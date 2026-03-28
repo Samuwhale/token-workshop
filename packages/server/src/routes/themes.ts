@@ -207,6 +207,41 @@ export const themeRoutes: FastifyPluginAsync<{ tokenDir: string }> = async (fast
     },
   );
 
+  // PUT /api/themes/dimensions/:id/options-order — reorder options within a dimension
+  fastify.put<{ Params: { id: string }; Body: { options: string[] } }>(
+    '/themes/dimensions/:id/options-order',
+    async (request, reply) => {
+      const { id } = request.params;
+      const { options } = request.body || {};
+      if (!Array.isArray(options) || options.some(o => typeof o !== 'string')) {
+        return reply.status(400).send({ error: 'options must be an array of option name strings' });
+      }
+      try {
+        const dimensions = await store.load();
+        const dimIdx = dimensions.findIndex(d => d.id === id);
+        if (dimIdx === -1) {
+          return reply.status(404).send({ error: `Dimension "${id}" not found` });
+        }
+        const dim = dimensions[dimIdx];
+        const byName = new Map(dim.options.map(o => [o.name, o]));
+        // Validate all names exist
+        for (const name of options) {
+          if (!byName.has(name)) {
+            return reply.status(400).send({ error: `Option "${name}" not found in dimension "${id}"` });
+          }
+        }
+        if (options.length !== dim.options.length || new Set(options).size !== options.length) {
+          return reply.status(400).send({ error: 'options must list every option name exactly once' });
+        }
+        dimensions[dimIdx] = { ...dim, options: options.map(n => byName.get(n)!) };
+        await store.save(dimensions);
+        return { dimension: dimensions[dimIdx] };
+      } catch (err) {
+        return reply.status(500).send({ error: 'Failed to reorder options', detail: String(err) });
+      }
+    },
+  );
+
   // DELETE /api/themes/dimensions/:id/options/:optionName — remove an option
   fastify.delete<{ Params: { id: string; optionName: string } }>(
     '/themes/dimensions/:id/options/:optionName',

@@ -439,3 +439,16 @@ Already up to date.
 
 --- Merging: BatchEditor silently skips alias tokens when scaling ---
 Already up to date.
+[main 1e68844] chore(backlog): done – BatchEditor silently skips alias tokens when scaling
+ 6 files changed, 52 insertions(+), 13 deletions(-)
+
+## 2026-03-28 - BatchEditor silently skips alias tokens when scaling
+- Replaced `scaleAliasCount` integer memo with `skippedAliasTokens` array memo to track which specific tokens are aliases. Updated the inline warning to: (a) only appear when a valid scale factor is entered, (b) list the specific skipped token names and their alias values (up to 3, with "and N more…"), styled as a bordered panel matching the scale preview. Post-apply feedback already included skip counts and was left as-is.
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L107, ~L491
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  34 items remaining
+===============================================================
+  Claimed: `evalExpr` parseUnary does not recurse — calls `parsePrimary()` instead of `parseUnary()` so double-negation expressions like `--5` fail with "Unexpected token" instead of returning 5; affects custom scale generator formulas (`eval-expr.ts` ~L73)
+  Worktree: /tmp/backlog-85816-RUVCuk
