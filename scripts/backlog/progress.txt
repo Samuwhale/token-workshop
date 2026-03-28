@@ -366,3 +366,9 @@
   - The `highlight-layer-by-token` message already existed in the plugin; no new plugin handler needed for the highlight button
   - Before/after diff for non-color tokens is best done by formatting both values to strings with a `formatDiffValue` helper; skip if `oldValueStr === newValueStr` to avoid false diffs
 ---
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L216 (added `themeCoverage` to `TokenTreeContextType`), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L469 (coverage memo), ~L2028 (context value), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L514 (badge rendering)
+- **Learnings for future iterations:**
+  - `perSetFlat` and `dimensions` are already destructured from `data` prop in TokenList — no extra plumbing needed
+  - The IIFE pattern `{condition && (() => { ... })()}` works for inline multi-line logic in JSX without extracting a sub-component
+  - CSS vars `--color-figma-success` and `--color-figma-text-tertiary` are already defined in styles.css
+---

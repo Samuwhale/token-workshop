@@ -37,3 +37,16 @@ Already up to date.
 
 --- Merging: Token impact summary on edit: show "affects N layers across M components", list affected component names, option to highlight affected layers on canvas, before/after value diff for aliases/dependents ---
 Already up to date.
+[main c43897f] chore(backlog): done – Token impact summary on edit: show "affects N layers across M components", list affected component names, option to highlight affected layers on canvas, before/after value diff for aliases/dependents
+ 6 files changed, 166 insertions(+), 13 deletions(-)
+
+## 2026-03-28 - Token impact summary on edit
+- Enhanced `scanTokenUsage` in heatmapScanning.ts to walk each found layer's parent chain and extract the nearest COMPONENT/COMPONENT_SET/INSTANCE ancestor name as `componentName`. The response now includes `componentNames: string[]` (unique component names across all matching layers).
+- Rewrote `TokenDependents.tsx` to show: (1) impact summary banner "N layers across M components" with a "Highlight" button that sends `highlight-layer-by-token`; (2) clickable component count that toggles a pill-list of component names; (3) before/after value diff in the banner for non-color types (was only colors before); (4) component name shown as a second line under each layer name in the layers list.
+- Files changed: `packages/figma-plugin/src/plugin/heatmapScanning.ts` ~L211 (new `findComponentAncestor`, updated `scanTokenUsage`), `packages/figma-plugin/src/ui/components/TokenDependents.tsx` (full rewrite with new BoundLayer.componentName field and impact summary UI)
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  66 items remaining
+===============================================================
+  Claimed: Consistency scanner: scan selection/page for values that are close-to-but-not-exactly a token (colors 2% off, spacing 1px away), surface as suggestions with one-click snap-to-token
+  Worktree: /tmp/backlog-52272-DPkokp

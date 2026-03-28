@@ -28,3 +28,6 @@ Already up to date.
 ================================================================
   ★ Maintenance Pass: code
 ================================================================
+  ✓ code pass: code-pass
+    11 items written to inbox — top finds: UNIT_CONVERSIONS percentage conversions are identity functions, contrastCheck generator silently produces ratio=1 for invalid bg hex, eval-expr substitutes 0 for undefined vars
+Already up to date.
