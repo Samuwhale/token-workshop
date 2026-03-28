@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BindableProperty, NodeCapabilities } from '../../shared/types';
 import { PROPERTY_LABELS } from '../../shared/types';
 
@@ -22,8 +22,46 @@ const CAPABILITY_FILTER: Partial<Record<BindableProperty, keyof NodeCapabilities
   shadow: 'hasEffects',
 };
 
+/** Minimum number of capability-filtered properties before the search input is shown. */
+const SEARCH_THRESHOLD = 6;
+
 export function PropertyPicker({ properties, capabilities, onSelect, onClose, anchorRect }: PropertyPickerProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState('');
+  const [highlightIdx, setHighlightIdx] = useState(0);
+
+  // Properties filtered by node capabilities
+  const capFiltered = useMemo(
+    () =>
+      properties.filter(prop => {
+        if (!capabilities) return true;
+        const cap = CAPABILITY_FILTER[prop];
+        return !cap || capabilities[cap];
+      }),
+    [properties, capabilities],
+  );
+
+  const showSearch = capFiltered.length >= SEARCH_THRESHOLD;
+
+  // Further filter by search query
+  const filtered = useMemo(() => {
+    if (!query) return capFiltered;
+    const q = query.toLowerCase();
+    return capFiltered.filter(prop => PROPERTY_LABELS[prop].toLowerCase().includes(q));
+  }, [capFiltered, query]);
+
+  // Reset highlight when filtered list changes
+  useEffect(() => {
+    setHighlightIdx(0);
+  }, [filtered.length]);
+
+  // Auto-focus the search input when shown
+  useEffect(() => {
+    if (showSearch) {
+      inputRef.current?.focus();
+    }
+  }, [showSearch]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -42,13 +80,20 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
     };
   }, [onClose]);
 
-  const filtered = properties.filter(prop => {
-    if (!capabilities) return true;
-    const cap = CAPABILITY_FILTER[prop];
-    return !cap || capabilities[cap];
-  });
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightIdx(i => (i + 1) % filtered.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightIdx(i => (i - 1 + filtered.length) % filtered.length);
+    } else if (e.key === 'Enter' && filtered.length > 0) {
+      e.preventDefault();
+      onSelect(filtered[highlightIdx]);
+    }
+  };
 
-  if (filtered.length === 0) {
+  if (capFiltered.length === 0) {
     return (
       <div
         ref={ref}
@@ -65,19 +110,42 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
       ref={ref}
       className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[140px]"
       style={anchorRect ? { top: anchorRect.top, left: anchorRect.left } : undefined}
+      onKeyDown={handleKeyDown}
     >
       <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] uppercase font-medium">
         Apply to property
       </div>
-      {filtered.map(prop => (
-        <button
-          key={prop}
-          onClick={() => onSelect(prop)}
-          className="w-full text-left px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-        >
-          {PROPERTY_LABELS[prop]}
-        </button>
-      ))}
+      {showSearch && (
+        <div className="px-2 pb-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Filter properties\u2026"
+            className="w-full px-1.5 py-1 text-[11px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none focus:border-[var(--color-figma-border-selected)]"
+          />
+        </div>
+      )}
+      {filtered.length === 0 ? (
+        <div className="px-2 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)]">
+          No matching properties
+        </div>
+      ) : (
+        filtered.map((prop, idx) => (
+          <button
+            key={prop}
+            onClick={() => onSelect(prop)}
+            className={`w-full text-left px-2 py-1.5 text-[11px] text-[var(--color-figma-text)] transition-colors ${
+              idx === highlightIdx
+                ? 'bg-[var(--color-figma-bg-selected)] text-[var(--color-figma-text-onselected)]'
+                : 'hover:bg-[var(--color-figma-bg-hover)]'
+            }`}
+          >
+            {PROPERTY_LABELS[prop]}
+          </button>
+        ))
+      )}
     </div>
   );
 }

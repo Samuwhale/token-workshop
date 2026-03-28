@@ -224,3 +224,10 @@ Already up to date.
 ===============================================================
   Claimed: PropertyPicker dropdown has no search or filter — binding tokens to layer properties requires scrolling a long unfiltered list; layers with many properties (e.g. auto-layout frames) are painful
   Worktree: /tmp/backlog-10278-3IwzyT
+
+  ✓ done: PropertyPicker dropdown has no search or filter
+    Added search/filter input with keyboard navigation (Arrow keys + Enter) to PropertyPicker; appears when 6+ properties are listed, auto-focuses, filters by label substring match.
+    12 turns · 162s · $0.63
+
+--- Merging: PropertyPicker dropdown has no search or filter ---
+Already up to date.

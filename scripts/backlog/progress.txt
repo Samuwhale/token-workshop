@@ -385,3 +385,14 @@
   - Settings panel sections in App.tsx are rendered between the Server card and Danger Zone card — new settings go between those two `div` blocks
   - `useUndo`'s `pushUndo` uses the `limit` closure variable; since it's derived from a prop, changing maxHistory takes effect on the next push without needing to trim existing entries
 ---
+
+## 2026-03-28 - PropertyPicker dropdown has no search or filter
+- Added search/filter input to PropertyPicker that appears when 6+ properties are shown (e.g. dimension tokens on auto-layout frames)
+- Search input auto-focuses, filters by label substring match, shows "No matching properties" for empty results
+- Added keyboard navigation: Arrow Up/Down to highlight, Enter to select
+- Highlighted item uses `bg-selected`/`text-onselected` styling for accessibility
+- Files changed: `packages/figma-plugin/src/ui/components/PropertyPicker.tsx` ~L1-L148
+- **Learnings for future iterations:**
+  - PropertyPicker is a small dropdown (max ~9 items for dimension tokens on auto-layout); a threshold (SEARCH_THRESHOLD=6) prevents showing search on short lists
+  - The dropdown uses fixed positioning via `anchorRect` prop — no layout changes needed for the search input
+---

@@ -307,3 +307,16 @@ Already up to date.
 
 --- Merging: Undo stack is hardcoded to 20 entries with no way to increase ---
 Already up to date.
+[main e7b8fe9] chore(backlog): done – Undo stack is hardcoded to 20 entries with no way to increase
+ 8 files changed, 66 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - Undo stack is hardcoded to 20 entries with no way to increase
+- Made `useUndo` accept a configurable `maxHistory` parameter (clamped 1–200, default 20)
+- Added `UNDO_MAX_HISTORY` localStorage key to `storage.ts`
+- Added "Undo History" section in Settings panel with a number input for max undo steps
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  54 items remaining
+===============================================================
+  Claimed: Split panel resize handle (usePreviewSplit) is not keyboard accessible — the drag divider between token list and preview has no ARIA role, no focus indicator, and no arrow-key resize support
+  Worktree: /tmp/backlog-92630-DTcssa
