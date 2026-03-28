@@ -5,3 +5,10 @@
   - `text-[9px]` was used uniformly for all secondary/tertiary content — a single bulk sed replacement was safe with no special cases needing different sizes
   - 494 occurrences across 51 files confirms this was a pervasive pattern, not isolated usage
 ---
+
+## 2026-03-28 - Token create form: path autocomplete with existing groups
+- Already implemented by commit a6bb853 ("TokenEditor create mode has no path autocomplete from existing tree structure"). `PathAutocomplete.tsx` component exists, is fully wired into TokenEditor's create-mode path input, suggests group prefixes with fuzzy matching, and supports keyboard navigation.
+- Files: `packages/figma-plugin/src/ui/components/PathAutocomplete.tsx`, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L654-683
+- **Learnings for future iterations:**
+  - Some backlog items overlap with previously completed items under different titles — always check git log for the relevant component before implementing
+---
