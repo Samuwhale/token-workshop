@@ -39,9 +39,9 @@
 
 - [~] ThemeManager fetches all token sets on mount to compute coverage gaps — with many sets or large token files this creates a waterfall of requests and memory pressure; move coverage computation server-side or lazy-load per-option on expand
 - [~] ThemeManager calls full `fetchDimensions()` after every mutation (create, rename, delete, reorder, toggle) — redundant after the optimistic update already applied; only re-fetch on error rollback or debounce the re-fetch
-- [~] ThemeManager empty state could be more scannable — single paragraph at 10px explaining dimensions; break into structured examples with clickable quick-start dimension names (e.g. "Color Mode", "Brand", "Density")
+- [x] ThemeManager empty state could be more scannable — single paragraph at 10px explaining dimensions; break into structured examples with clickable quick-start dimension names (e.g. "Color Mode", "Brand", "Density")
 - [~] "Off / Base / On" theme set states are confusing — the three-state toggle (disabled/source/enabled) is cryptic; rename to "Not included" / "Foundation" / "Override", add inline help tooltip, and show a visual stack diagram explaining the layering model
-- [ ] Theme Compare lacks actionable output — you can see diffs between theme options but can't fix gaps directly from the compare view; add inline "create missing token" and "edit value" actions so users don't have to navigate away
+- [~] Theme Compare lacks actionable output — you can see diffs between theme options but can't fix gaps directly from the compare view; add inline "create missing token" and "edit value" actions so users don't have to navigate away
 
 ### UX
 

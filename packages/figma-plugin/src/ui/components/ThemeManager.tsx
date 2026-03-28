@@ -92,6 +92,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [newlyCreatedDim, setNewlyCreatedDim] = useState<string | null>(null);
   const newDimCardRef = useRef<HTMLDivElement | null>(null);
 
+  // Debounced fetchDimensions — coalesces rapid mutations into a single re-fetch
+  const debounceFetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const fetchDimensions = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
     try {
@@ -188,6 +191,17 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
   }, [serverUrl, connected, sets]);
 
+  const debouncedFetchDimensions = useCallback(() => {
+    if (debounceFetchTimer.current) clearTimeout(debounceFetchTimer.current);
+    debounceFetchTimer.current = setTimeout(() => {
+      debounceFetchTimer.current = null;
+      fetchDimensions();
+    }, 600);
+  }, [fetchDimensions]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => () => { if (debounceFetchTimer.current) clearTimeout(debounceFetchTimer.current); }, []);
+
   useEffect(() => { fetchDimensions(); }, [fetchDimensions]);
 
   // --- Create dimension ---
@@ -219,7 +233,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       setNewDimName('');
       setShowCreateDim(false);
       setNewlyCreatedDim(id);
-      fetchDimensions();
+      // Optimistic: add the new dimension locally
+      setDimensions(prev => [...prev, { id, name, options: [] }]);
+      debouncedFetchDimensions();
     } catch (err) {
       setCreateDimError(getErrorMessage(err, 'Failed to create dimension'));
     }
@@ -257,8 +273,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         setRenameError(d.error || 'Rename failed');
         return;
       }
+      // Optimistic: update the name locally
+      setDimensions(prev => prev.map(d => d.id === renameDim ? { ...d, name } : d));
       cancelRenameDim();
-      fetchDimensions();
+      debouncedFetchDimensions();
     } catch (err) {
       setRenameError(getErrorMessage(err, 'Rename failed'));
     }
@@ -299,6 +317,12 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         setRenameOptionError(d.error || 'Rename failed');
         return;
       }
+      // Optimistic: update the option name locally
+      setDimensions(prev => prev.map(d =>
+        d.id === renameOption.dimId
+          ? { ...d, options: d.options.map(o => o.name === renameOption.optionName ? { ...o, name } : o) }
+          : d,
+      ));
       // Update optionSetOrders key
       setOptionSetOrders(prev => {
         const next = { ...prev };
@@ -309,7 +333,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         return next;
       });
       cancelRenameOption();
-      fetchDimensions();
+      debouncedFetchDimensions();
     } catch (err) {
       setRenameOptionError(getErrorMessage(err, 'Rename failed'));
     }
@@ -326,7 +350,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         return;
       }
       setDimensions(prev => prev.filter(d => d.id !== id));
-      fetchDimensions();
+      debouncedFetchDimensions();
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to delete dimension'));
     }
@@ -358,7 +382,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         return;
       }
       setNewOptionNames(prev => ({ ...prev, [dimId]: '' }));
-      fetchDimensions();
+      // Optimistic: add the new option locally
+      setDimensions(prev => prev.map(d =>
+        d.id === dimId ? { ...d, options: [...d.options, { name, sets: defaultSets }] } : d,
+      ));
+      debouncedFetchDimensions();
       setTimeout(() => addOptionInputRefs.current[dimId]?.focus(), 0);
     } catch (err) {
       setAddOptionErrors(prev => ({ ...prev, [dimId]: getErrorMessage(err, 'Failed to add option') }));
@@ -388,7 +416,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         setError(d.error || 'Failed to duplicate option');
         return;
       }
-      fetchDimensions();
+      // Optimistic: add the duplicated option locally
+      setDimensions(prev => prev.map(d =>
+        d.id === dimId ? { ...d, options: [...d.options, { name: newName, sets: { ...opt.sets } }] } : d,
+      ));
+      debouncedFetchDimensions();
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to duplicate option'));
     }
@@ -440,7 +472,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       setDimensions(prev => prev.map(d =>
         d.id === dimId ? { ...d, options: d.options.filter(o => o.name !== optionName) } : d,
       ));
-      fetchDimensions();
+      debouncedFetchDimensions();
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to delete option'));
     }
@@ -474,7 +506,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         setError(d.error || `Failed to save (${res.status})`);
         return;
       }
-      fetchDimensions();
+      // Optimistic update already applied; debounce coverage recalc
+      debouncedFetchDimensions();
     } catch (err) {
       setDimensions(previousDimensions);
       setError(getErrorMessage(err, 'Failed to save'));
@@ -516,7 +549,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         setError(d.error || `Failed to bulk-update (${failed.status})`);
         return;
       }
-      fetchDimensions();
+      // Optimistic update already applied; debounce coverage recalc
+      debouncedFetchDimensions();
     } catch (err) {
       setDimensions(previousDimensions);
       setError(getErrorMessage(err, 'Failed to bulk-update'));

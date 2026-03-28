@@ -235,3 +235,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager calls full `fetchDimensions()` after every mutation (create, rename, delete, reorder, toggle) — redundant after the optimistic update already applied; only re-fetch on error rollback or debounce the re-fetch
   Worktree: /tmp/backlog-63973-NgLyF1
+
+  ✓ done: ThemeManager calls full fetchDimensions() after every mutation
+    Added 600ms debounced fetchDimensions to coalesce rapid mutations; replaced all 9 success-path immediate fetches with debounced version; added optimistic updates to 5 handlers that lacked them; immediate fetch only remains for initial load and error rollback
+    22 turns · 190s · $0.86
+
+--- Merging: ThemeManager calls full fetchDimensions() after every mutation ---
+Already up to date.

@@ -210,3 +210,16 @@ Already up to date.
 
 --- Merging: ThemeManager empty state could be more scannable ---
 Already up to date.
+[main 8313e6e] chore(backlog): done – ThemeManager empty state could be more scannable
+ 6 files changed, 58 insertions(+), 8 deletions(-)
+
+## 2026-03-28 - ThemeManager empty state could be more scannable
+- Replaced the single-paragraph empty state with structured layout: short heading, one-line description, and three clickable quick-start dimension buttons ("Color Mode", "Brand", "Density") that pre-fill the dimension name and open the create form. Added a secondary "or create a custom dimension" text link below.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L673
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  66 items remaining
+===============================================================
+  Claimed: Theme Compare lacks actionable output — you can see diffs between theme options but can't fix gaps directly from the compare view; add inline "create missing token" and "edit value" actions so users don't have to navigate away
+  Worktree: /tmp/backlog-62956-OOazWw

@@ -437,3 +437,14 @@
   - `setNewDimName` + `setShowCreateDim(true)` is all that's needed to pre-fill and open the create dimension form
   - The build output is `dist/ui.html` (not `dist/index.html`) for the figma-plugin
 ---
+
+## 2026-03-28 - ThemeManager calls full fetchDimensions() after every mutation
+- Added `debouncedFetchDimensions` (600ms debounce) to coalesce rapid mutations into a single re-fetch for coverage analysis
+- Replaced all 9 success-path `fetchDimensions()` calls with `debouncedFetchDimensions()` — immediate fetch only remains for initial load and error rollback (handleMoveOption)
+- Added optimistic local state updates to 5 handlers that previously relied solely on fetchDimensions: createDimension, renameDimension, renameOption, addOption, duplicateOption
+- 4 handlers that already had optimistic updates (deleteOption, deleteDimension, setStateToggle, bulkSetState) now skip the redundant immediate re-fetch
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L93 (debounce ref), ~L193 (debounced wrapper), ~L200 (cleanup effect), mutations at ~L237, ~L278, ~L310, ~L335, ~L352, ~L388, ~L422, ~L474, ~L507, ~L545
+- **Learnings for future iterations:**
+  - `fetchDimensions` is expensive: it fetches `/api/themes` + all token set values for coverage analysis — avoid calling it synchronously after every mutation
+  - The debounce pattern (useRef timer + useCallback wrapper) is reusable for any component with frequent server mutations that also needs periodic full-state reconciliation
+---
