@@ -26,6 +26,7 @@ import { resolverRoutes } from './routes/resolvers.js';
 import { ResolverStore } from './services/resolver-store.js';
 import { ManualSnapshotStore } from './services/manual-snapshot.js';
 import { snapshotRoutes } from './routes/snapshots.js';
+import { TokenLock } from './services/token-lock.js';
 
 export interface ServerConfig {
   tokenDir: string;
@@ -58,8 +59,11 @@ export async function startServer(config: ServerConfig) {
 
   const manualSnapshots = new ManualSnapshotStore(config.tokenDir);
 
+  const tokenLock = new TokenLock();
+
   // Decorate fastify with services
   fastify.decorate('tokenStore', tokenStore);
+  fastify.decorate('tokenLock', tokenLock);
   fastify.decorate('gitSync', gitSync);
   fastify.decorate('generatorService', generatorService);
   fastify.decorate('operationLog', operationLog);
@@ -116,6 +120,7 @@ export async function startServer(config: ServerConfig) {
 declare module 'fastify' {
   interface FastifyInstance {
     tokenStore: TokenStore;
+    tokenLock: TokenLock;
     gitSync: GitSync;
     generatorService: GeneratorService;
     operationLog: OperationLog;

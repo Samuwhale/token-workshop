@@ -241,6 +241,8 @@ interface StepOverrideBody {
 }
 
 export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
+  const { withLock } = fastify.tokenLock;
+
   // GET /api/generators — list all generators
   fastify.get('/generators', async (_request, _reply) => {
     return fastify.generatorService.getAll();
@@ -257,17 +259,19 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
   // DELETE /api/generators/orphaned-tokens — delete all orphaned generator tokens
   fastify.delete('/generators/orphaned-tokens', async () => {
-    const allGenerators = await fastify.generatorService.getAll();
-    const activeIds = new Set(allGenerators.map((g) => g.id));
-    const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
-    const orphanIds = new Set(
-      allTagged.filter((t) => !activeIds.has(t.generatorId)).map((t) => t.generatorId),
-    );
-    let totalDeleted = 0;
-    for (const gid of orphanIds) {
-      totalDeleted += await fastify.tokenStore.deleteTokensByGeneratorId(gid);
-    }
-    return { deleted: totalDeleted };
+    return withLock(async () => {
+      const allGenerators = await fastify.generatorService.getAll();
+      const activeIds = new Set(allGenerators.map((g) => g.id));
+      const allTagged = fastify.tokenStore.findTokensByGeneratorId('*');
+      const orphanIds = new Set(
+        allTagged.filter((t) => !activeIds.has(t.generatorId)).map((t) => t.generatorId),
+      );
+      let totalDeleted = 0;
+      for (const gid of orphanIds) {
+        totalDeleted += await fastify.tokenStore.deleteTokensByGeneratorId(gid);
+      }
+      return { deleted: totalDeleted };
+    });
   });
 
   // POST /api/generators — create a new generator and run it immediately
@@ -287,35 +291,37 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     if (configResult.error) {
       return reply.status(400).send({ error: configResult.error });
     }
-    try {
-      const before = await snapshotGroup(fastify.tokenStore, targetSet, targetGroup);
-      const generator = await fastify.generatorService.create({
-        type: type as GeneratorType,
-        sourceToken: sourceToken ?? undefined,
-        targetSet,
-        targetGroup,
-        name: (name || (sourceToken ? `${sourceToken} ${type}` : type)) as string,
-        config: configResult.validated,
-        overrides,
-        inputTable: inputTable as InputTable | undefined,
-        targetSetTemplate: targetSetTemplate ?? undefined,
-      });
-      // Run immediately so tokens exist right away
-      await fastify.generatorService.run(generator.id, fastify.tokenStore);
-      const after = await snapshotGroup(fastify.tokenStore, targetSet, targetGroup);
-      await fastify.operationLog.record({
-        type: 'generator-create',
-        description: `Create generator "${generator.name}" → ${targetGroup}`,
-        setName: targetSet,
-        affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
-        beforeSnapshot: before,
-        afterSnapshot: after,
-      });
-      return reply.status(201).send(generator);
-    } catch (err) {
-      const msg = getErrorMessage(err);
-      return reply.status(500).send({ error: msg });
-    }
+    return withLock(async () => {
+      try {
+        const before = await snapshotGroup(fastify.tokenStore, targetSet, targetGroup);
+        const generator = await fastify.generatorService.create({
+          type: type as GeneratorType,
+          sourceToken: sourceToken ?? undefined,
+          targetSet,
+          targetGroup,
+          name: (name || (sourceToken ? `${sourceToken} ${type}` : type)) as string,
+          config: configResult.validated,
+          overrides,
+          inputTable: inputTable as InputTable | undefined,
+          targetSetTemplate: targetSetTemplate ?? undefined,
+        });
+        // Run immediately so tokens exist right away
+        await fastify.generatorService.run(generator.id, fastify.tokenStore);
+        const after = await snapshotGroup(fastify.tokenStore, targetSet, targetGroup);
+        await fastify.operationLog.record({
+          type: 'generator-create',
+          description: `Create generator "${generator.name}" → ${targetGroup}`,
+          setName: targetSet,
+          affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        });
+        return reply.status(201).send(generator);
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        return reply.status(500).send({ error: msg });
+      }
+    });
   });
 
   // POST /api/generators/preview — preview tokens without saving anything
@@ -362,77 +368,81 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
   // PUT /api/generators/:id — update generator config and re-run
   fastify.put<{ Params: { id: string }; Body: UpdateBody }>('/generators/:id', async (request, reply) => {
-    try {
-      const existing = await fastify.generatorService.getById(request.params.id);
-      if (!existing) {
-        return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
-      }
-
-      // Build a sanitized update object with only known fields
-      const body = request.body ?? {};
-      const updates: Partial<Omit<TokenGenerator, 'id' | 'createdAt'>> = {};
-
-      if (typeof body.name === 'string') updates.name = body.name;
-      if (typeof body.sourceToken === 'string') updates.sourceToken = body.sourceToken;
-      if (typeof body.targetSet === 'string') updates.targetSet = body.targetSet;
-      if (typeof body.targetGroup === 'string') updates.targetGroup = body.targetGroup;
-      if (typeof body.targetSetTemplate === 'string') updates.targetSetTemplate = body.targetSetTemplate;
-      if (body.type !== undefined && typeof body.type === 'string') {
-        if (!VALID_GENERATOR_TYPES.includes(body.type)) {
-          return reply.status(400).send({
-            error: `Unknown generator type "${body.type}". Valid types: ${VALID_GENERATOR_TYPES.join(', ')}`,
-          });
-        }
-        updates.type = body.type as GeneratorType;
-      }
-      if (isObj(body.overrides)) {
-        const overrides: Record<string, { value: unknown; locked: boolean }> = {};
-        for (const [key, val] of Object.entries(body.overrides)) {
-          if (isObj(val) && typeof val.locked === 'boolean') {
-            overrides[key] = { value: val.value, locked: val.locked };
-          }
-        }
-        updates.overrides = overrides;
-      }
-      if (isObj(body.inputTable) && typeof body.inputTable.inputKey === 'string' && Array.isArray(body.inputTable.rows)) {
-        updates.inputTable = body.inputTable as InputTable;
-      }
-
-      // Validate config if provided — use the effective type (updated or existing)
-      if (body.config !== undefined) {
-        const effectiveType = updates.type ?? existing.type;
-        const configResult = validateGeneratorConfig(effectiveType, body.config as Record<string, unknown>);
-        if (configResult.error) {
-          return reply.status(400).send({ error: configResult.error });
-        }
-        updates.config = configResult.validated;
-      }
-
-      const targetSet = updates.targetSet ?? existing.targetSet ?? '';
-      const targetGroup = updates.targetGroup ?? existing.targetGroup ?? '';
-      const before = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
-      const generator = await fastify.generatorService.update(
-        request.params.id,
-        updates,
-      );
-      await fastify.generatorService.run(generator.id, fastify.tokenStore);
-      const afterSet = generator.targetSet || targetSet;
-      const afterGroup = generator.targetGroup || targetGroup;
-      const after = afterSet && afterGroup ? await snapshotGroup(fastify.tokenStore, afterSet, afterGroup) : {};
-      await fastify.operationLog.record({
-        type: 'generator-update',
-        description: `Update generator "${generator.name}"`,
-        setName: afterSet,
-        affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
-        beforeSnapshot: before,
-        afterSnapshot: after,
+    // Validate type early (before acquiring the lock)
+    const body = request.body ?? {};
+    if (body.type !== undefined && typeof body.type === 'string' && !VALID_GENERATOR_TYPES.includes(body.type)) {
+      return reply.status(400).send({
+        error: `Unknown generator type "${body.type}". Valid types: ${VALID_GENERATOR_TYPES.join(', ')}`,
       });
-      return generator;
-    } catch (err) {
-      const msg = getErrorMessage(err);
-      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      return reply.status(500).send({ error: msg });
     }
+
+    return withLock(async () => {
+      try {
+        const existing = await fastify.generatorService.getById(request.params.id);
+        if (!existing) {
+          return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
+        }
+
+        // Build a sanitized update object with only known fields
+        const updates: Partial<Omit<TokenGenerator, 'id' | 'createdAt'>> = {};
+
+        if (typeof body.name === 'string') updates.name = body.name;
+        if (typeof body.sourceToken === 'string') updates.sourceToken = body.sourceToken;
+        if (typeof body.targetSet === 'string') updates.targetSet = body.targetSet;
+        if (typeof body.targetGroup === 'string') updates.targetGroup = body.targetGroup;
+        if (typeof body.targetSetTemplate === 'string') updates.targetSetTemplate = body.targetSetTemplate;
+        if (body.type !== undefined && typeof body.type === 'string') {
+          updates.type = body.type as GeneratorType;
+        }
+        if (isObj(body.overrides)) {
+          const overrides: Record<string, { value: unknown; locked: boolean }> = {};
+          for (const [key, val] of Object.entries(body.overrides)) {
+            if (isObj(val) && typeof val.locked === 'boolean') {
+              overrides[key] = { value: val.value, locked: val.locked };
+            }
+          }
+          updates.overrides = overrides;
+        }
+        if (isObj(body.inputTable) && typeof body.inputTable.inputKey === 'string' && Array.isArray(body.inputTable.rows)) {
+          updates.inputTable = body.inputTable as InputTable;
+        }
+
+        // Validate config if provided — use the effective type (updated or existing)
+        if (body.config !== undefined) {
+          const effectiveType = updates.type ?? existing.type;
+          const configResult = validateGeneratorConfig(effectiveType, body.config as Record<string, unknown>);
+          if (configResult.error) {
+            return reply.status(400).send({ error: configResult.error });
+          }
+          updates.config = configResult.validated;
+        }
+
+        const targetSet = updates.targetSet ?? existing.targetSet ?? '';
+        const targetGroup = updates.targetGroup ?? existing.targetGroup ?? '';
+        const before = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
+        const generator = await fastify.generatorService.update(
+          request.params.id,
+          updates,
+        );
+        await fastify.generatorService.run(generator.id, fastify.tokenStore);
+        const afterSet = generator.targetSet || targetSet;
+        const afterGroup = generator.targetGroup || targetGroup;
+        const after = afterSet && afterGroup ? await snapshotGroup(fastify.tokenStore, afterSet, afterGroup) : {};
+        await fastify.operationLog.record({
+          type: 'generator-update',
+          description: `Update generator "${generator.name}"`,
+          setName: afterSet,
+          affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        });
+        return generator;
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    });
   });
 
   // GET /api/generators/:id/tokens — list tokens created by a generator
@@ -445,37 +455,39 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete<{ Params: { id: string }; Querystring: { deleteTokens?: string } }>(
     '/generators/:id',
     async (request, reply) => {
-      const gen = await fastify.generatorService.getById(request.params.id);
-      if (!gen) {
-        return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
-      }
-      // Snapshot before delete if tokens will also be removed
-      const willDeleteTokens = request.query.deleteTokens === 'true';
-      const before = willDeleteTokens && gen.targetSet && gen.targetGroup
-        ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
-        : {};
-      const deleted = await fastify.generatorService.delete(request.params.id);
-      if (!deleted) {
-        return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
-      }
-      let tokensDeleted = 0;
-      if (willDeleteTokens) {
-        tokensDeleted = await fastify.tokenStore.deleteTokensByGeneratorId(request.params.id);
-      }
-      if (tokensDeleted > 0) {
-        const after = gen.targetSet && gen.targetGroup
+      return withLock(async () => {
+        const gen = await fastify.generatorService.getById(request.params.id);
+        if (!gen) {
+          return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
+        }
+        // Snapshot before delete if tokens will also be removed
+        const willDeleteTokens = request.query.deleteTokens === 'true';
+        const before = willDeleteTokens && gen.targetSet && gen.targetGroup
           ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
           : {};
-        await fastify.operationLog.record({
-          type: 'generator-delete',
-          description: `Delete generator "${gen.name}" and ${tokensDeleted} tokens`,
-          setName: gen.targetSet,
-          affectedPaths: Object.keys(before),
-          beforeSnapshot: before,
-          afterSnapshot: after,
-        });
-      }
-      return { deleted: true, id: request.params.id, tokensDeleted };
+        const deleted = await fastify.generatorService.delete(request.params.id);
+        if (!deleted) {
+          return reply.status(404).send({ error: `Generator "${request.params.id}" not found` });
+        }
+        let tokensDeleted = 0;
+        if (willDeleteTokens) {
+          tokensDeleted = await fastify.tokenStore.deleteTokensByGeneratorId(request.params.id);
+        }
+        if (tokensDeleted > 0) {
+          const after = gen.targetSet && gen.targetGroup
+            ? await snapshotGroup(fastify.tokenStore, gen.targetSet, gen.targetGroup)
+            : {};
+          await fastify.operationLog.record({
+            type: 'generator-delete',
+            description: `Delete generator "${gen.name}" and ${tokensDeleted} tokens`,
+            setName: gen.targetSet,
+            affectedPaths: Object.keys(before),
+            beforeSnapshot: before,
+            afterSnapshot: after,
+          });
+        }
+        return { deleted: true, id: request.params.id, tokensDeleted };
+      });
     },
   );
 
@@ -496,30 +508,32 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /api/generators/:id/run — manually re-run a generator
   fastify.post<{ Params: { id: string } }>('/generators/:id/run', async (request, reply) => {
-    try {
-      const gen = await fastify.generatorService.getById(request.params.id);
-      const targetSet = gen?.targetSet ?? '';
-      const targetGroup = gen?.targetGroup ?? '';
-      const before = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
-      const results = await fastify.generatorService.run(
-        request.params.id,
-        fastify.tokenStore,
-      );
-      const after = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
-      await fastify.operationLog.record({
-        type: 'generator-run',
-        description: `Run generator "${gen?.name ?? request.params.id}"`,
-        setName: targetSet,
-        affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
-        beforeSnapshot: before,
-        afterSnapshot: after,
-      });
-      return { count: results.length, tokens: results };
-    } catch (err) {
-      const msg = getErrorMessage(err);
-      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      return reply.status(500).send({ error: msg });
-    }
+    return withLock(async () => {
+      try {
+        const gen = await fastify.generatorService.getById(request.params.id);
+        const targetSet = gen?.targetSet ?? '';
+        const targetGroup = gen?.targetGroup ?? '';
+        const before = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
+        const results = await fastify.generatorService.run(
+          request.params.id,
+          fastify.tokenStore,
+        );
+        const after = targetSet && targetGroup ? await snapshotGroup(fastify.tokenStore, targetSet, targetGroup) : {};
+        await fastify.operationLog.record({
+          type: 'generator-run',
+          description: `Run generator "${gen?.name ?? request.params.id}"`,
+          setName: targetSet,
+          affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        });
+        return { count: results.length, tokens: results };
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    });
   });
 
   // PUT /api/generators/:id/steps/:stepName/override — set/update a step override
@@ -531,37 +545,41 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
     if (value === undefined || locked === undefined) {
       return reply.status(400).send({ error: 'value and locked are required' });
     }
-    try {
-      const generator = await fastify.generatorService.setStepOverride(
-        request.params.id,
-        request.params.stepName,
-        { value, locked },
-      );
-      await fastify.generatorService.run(generator.id, fastify.tokenStore);
-      return generator;
-    } catch (err) {
-      const msg = getErrorMessage(err);
-      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      return reply.status(500).send({ error: msg });
-    }
+    return withLock(async () => {
+      try {
+        const generator = await fastify.generatorService.setStepOverride(
+          request.params.id,
+          request.params.stepName,
+          { value, locked },
+        );
+        await fastify.generatorService.run(generator.id, fastify.tokenStore);
+        return generator;
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    });
   });
 
   // DELETE /api/generators/:id/steps/:stepName/override — remove a step override
   fastify.delete<{
     Params: { id: string; stepName: string };
   }>('/generators/:id/steps/:stepName/override', async (request, reply) => {
-    try {
-      const generator = await fastify.generatorService.setStepOverride(
-        request.params.id,
-        request.params.stepName,
-        null,
-      );
-      await fastify.generatorService.run(generator.id, fastify.tokenStore);
-      return generator;
-    } catch (err) {
-      const msg = getErrorMessage(err);
-      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      return reply.status(500).send({ error: msg });
-    }
+    return withLock(async () => {
+      try {
+        const generator = await fastify.generatorService.setStepOverride(
+          request.params.id,
+          request.params.stepName,
+          null,
+        );
+        await fastify.generatorService.run(generator.id, fastify.tokenStore);
+        return generator;
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: msg });
+      }
+    });
   });
 };

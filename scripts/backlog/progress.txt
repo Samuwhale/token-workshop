@@ -300,3 +300,18 @@
   - `Promise.allSettled` is the right primitive when you want to collect all results and surface partial failures — use it over `Promise.all` with `.catch(() => null)` whenever callers need to know about failures
   - The core package dist can become stale when a new export is added but `tsc` hasn't been run. Symptoms: `typeof m.exportedFn === 'undefined'` at runtime even though the source has it. Fix: run `node /Users/samuel/Documents/Projects/TokenManager/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc -p packages/core/tsconfig.json` and copy dist to node_modules/@tokenmanager/core/dist/
 ---
+- Wrapped rollback in `operations.ts` with `withLock`
+- Wrapped 7 mutating endpoints in `generators.ts` with `withLock`: DELETE orphaned-tokens, POST create, PUT update, DELETE /:id, POST /:id/run, PUT step override, DELETE step override
+- Input validation stays outside the lock (fast-fail without holding the mutex)
+- Files changed: `packages/server/src/services/token-lock.ts` (new), `packages/server/src/index.ts` ~L29,61-68,120, `packages/server/src/routes/tokens.ts` ~L17, `packages/server/src/routes/sets.ts` ~L6, `packages/server/src/routes/operations.ts` ~L4, `packages/server/src/routes/generators.ts` ~L245
+- **Learnings for future iterations:**
+  - Class methods that reference `this` break when destructured — use arrow function properties instead
+  - The promise-chain `.then(() => {}, () => {})` pattern is simpler than `.catch(() => {})` for advancing the chain on both success and failure
+  - Keep validation outside the lock for fast-fail: pure checks don't need serialization
+---
+
+## 2026-03-28 - code-pass
+- Areas explored: `packages/server/src/routes/themes.ts` (withLock concurrency), `packages/server/src/routes/tokens.ts` (no concurrency), `packages/server/src/routes/sets.ts` (no concurrency), `packages/server/src/routes/generators.ts` (no concurrency), `packages/server/src/routes/resolvers.ts` (no concurrency), `packages/server/src/routes/snapshots.ts` (no concurrency), `packages/server/src/routes/sync.ts` (no concurrency), `packages/server/src/routes/operations.ts` (no concurrency), `packages/server/src/services/manual-snapshot.ts` (diff asymmetry), `packages/server/src/services/token-store.ts` (no lock), `packages/figma-plugin/src/ui/shared/apiFetch.ts` (adoption gap), `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` (undo error handling), `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts`, all 37 UI files with raw fetch
+- Found 5 items — written to backlog-inbox.md
+- Notable: TokenStore has zero concurrency protection — only themes.ts uses the withLock pattern, all other mutating routes (tokens, sets, generators, resolvers, snapshots, sync, operations) can interleave read-modify-write operations
+---

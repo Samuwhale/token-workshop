@@ -13,6 +13,8 @@ function validateTokenBody(body: unknown): body is Partial<Token> {
 }
 
 export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
+  const { withLock } = fastify.tokenLock;
+
   // GET /api/tokens/resolved — get all resolved tokens
   fastify.get('/tokens/resolved', async (_request, reply) => {
     try {
@@ -60,26 +62,28 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!oldGroupPath || !newGroupPath) {
         return reply.status(400).send({ error: 'oldGroupPath and newGroupPath are required' });
       }
-      try {
-        const before = await snapshotGroup(fastify.tokenStore, set, oldGroupPath);
-        const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath, updateAliases !== false);
-        const after = await snapshotGroup(fastify.tokenStore, set, newGroupPath);
-        await fastify.operationLog.record({
-          type: 'group-rename',
-          description: `Rename group "${oldGroupPath}" → "${newGroupPath}" in ${set}`,
-          setName: set,
-          affectedPaths: [...Object.keys(before), ...Object.keys(after)],
-          beforeSnapshot: before,
-          afterSnapshot: after,
-        });
-        await fastify.generatorService.updateGroupPath(oldGroupPath, newGroupPath);
-        return result;
-      } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
-        if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
-        return reply.status(500).send({ error: msg });
-      }
+      return withLock(async () => {
+        try {
+          const before = await snapshotGroup(fastify.tokenStore, set, oldGroupPath);
+          const result = await fastify.tokenStore.renameGroup(set, oldGroupPath, newGroupPath, updateAliases !== false);
+          const after = await snapshotGroup(fastify.tokenStore, set, newGroupPath);
+          await fastify.operationLog.record({
+            type: 'group-rename',
+            description: `Rename group "${oldGroupPath}" → "${newGroupPath}" in ${set}`,
+            setName: set,
+            affectedPaths: [...Object.keys(before), ...Object.keys(after)],
+            beforeSnapshot: before,
+            afterSnapshot: after,
+          });
+          await fastify.generatorService.updateGroupPath(oldGroupPath, newGroupPath);
+          return result;
+        } catch (err) {
+          const msg = getErrorMessage(err);
+          if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
+          if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
+          return reply.status(500).send({ error: msg });
+        }
+      });
     },
   );
 
@@ -92,14 +96,16 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!groupPath || !targetSet) {
         return reply.status(400).send({ error: 'groupPath and targetSet are required' });
       }
-      try {
-        const result = await fastify.tokenStore.moveGroup(set, groupPath, targetSet);
-        return result;
-      } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
-        return reply.status(500).send({ error: msg });
-      }
+      return withLock(async () => {
+        try {
+          const result = await fastify.tokenStore.moveGroup(set, groupPath, targetSet);
+          return result;
+        } catch (err) {
+          const msg = getErrorMessage(err);
+          if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
+          return reply.status(500).send({ error: msg });
+        }
+      });
     },
   );
 
@@ -112,14 +118,16 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!groupPath) {
         return reply.status(400).send({ error: 'groupPath is required' });
       }
-      try {
-        const result = await fastify.tokenStore.duplicateGroup(set, groupPath);
-        return result;
-      } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
-        return reply.status(500).send({ error: msg });
-      }
+      return withLock(async () => {
+        try {
+          const result = await fastify.tokenStore.duplicateGroup(set, groupPath);
+          return result;
+        } catch (err) {
+          const msg = getErrorMessage(err);
+          if (msg.includes('not found') || msg.includes('is empty')) return reply.status(404).send({ error: msg });
+          return reply.status(500).send({ error: msg });
+        }
+      });
     },
   );
 
@@ -132,14 +140,16 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!Array.isArray(orderedKeys)) {
         return reply.status(400).send({ error: 'orderedKeys must be an array' });
       }
-      try {
-        await fastify.tokenStore.reorderGroupChildren(set, groupPath, orderedKeys);
-        return { reordered: true };
-      } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        return reply.status(500).send({ error: msg });
-      }
+      return withLock(async () => {
+        try {
+          await fastify.tokenStore.reorderGroupChildren(set, groupPath, orderedKeys);
+          return { reordered: true };
+        } catch (err) {
+          const msg = getErrorMessage(err);
+          if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+          return reply.status(500).send({ error: msg });
+        }
+      });
     },
   );
 
@@ -152,16 +162,18 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!groupPath) {
         return reply.status(400).send({ error: 'groupPath is required' });
       }
-      try {
-        await fastify.tokenStore.createGroup(set, groupPath);
-        return reply.status(201).send({ groupPath, set });
-      } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('Invalid token path')) return reply.status(400).send({ error: msg });
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
-        return reply.status(500).send({ error: msg });
-      }
+      return withLock(async () => {
+        try {
+          await fastify.tokenStore.createGroup(set, groupPath);
+          return reply.status(201).send({ groupPath, set });
+        } catch (err) {
+          const msg = getErrorMessage(err);
+          if (msg.includes('Invalid token path')) return reply.status(400).send({ error: msg });
+          if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+          if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
+          return reply.status(500).send({ error: msg });
+        }
+      });
     },
   );
 
@@ -175,14 +187,16 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     if ($type !== undefined && $type !== null && !TOKEN_TYPE_VALUES.has($type)) {
       return reply.status(400).send({ error: `Invalid $type "${$type}": must be a valid DTCG token type` });
     }
-    try {
-      await fastify.tokenStore.updateGroup(set, groupPath, { $type, $description });
-      return { updated: true, groupPath, set };
-    } catch (err) {
-      const msg = getErrorMessage(err);
-      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      return reply.status(500).send({ error: 'Failed to update group metadata', detail: msg });
-    }
+    return withLock(async () => {
+      try {
+        await fastify.tokenStore.updateGroup(set, groupPath, { $type, $description });
+        return { updated: true, groupPath, set };
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        return reply.status(500).send({ error: 'Failed to update group metadata', detail: msg });
+      }
+    });
   });
 
   // POST /api/tokens/:set/bulk-rename — rename tokens by find/replace pattern
@@ -195,28 +209,30 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     if (!find || replace === undefined) {
       return reply.status(400).send({ error: 'find and replace are required' });
     }
-    try {
-      const before = await snapshotSet(fastify.tokenStore, set);
-      const result = await fastify.tokenStore.bulkRename(set, find, replace, isRegex);
-      const after = await snapshotSet(fastify.tokenStore, set);
-      await fastify.operationLog.record({
-        type: 'bulk-rename',
-        description: `Bulk rename "${find}" → "${replace}" in ${set}`,
-        setName: set,
-        affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
-        beforeSnapshot: before,
-        afterSnapshot: after,
-      });
-      await fastify.generatorService.updateBulkTokenPaths(find, replace, isRegex ?? false);
-      return result;
-    } catch (err) {
-      const msg = getErrorMessage(err);
-      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      if (msg.includes('Regex pattern rejected') || msg.includes('Invalid regex pattern')) {
-        return reply.status(400).send({ error: msg });
+    return withLock(async () => {
+      try {
+        const before = await snapshotSet(fastify.tokenStore, set);
+        const result = await fastify.tokenStore.bulkRename(set, find, replace, isRegex);
+        const after = await snapshotSet(fastify.tokenStore, set);
+        await fastify.operationLog.record({
+          type: 'bulk-rename',
+          description: `Bulk rename "${find}" → "${replace}" in ${set}`,
+          setName: set,
+          affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        });
+        await fastify.generatorService.updateBulkTokenPaths(find, replace, isRegex ?? false);
+        return result;
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        if (msg.includes('Regex pattern rejected') || msg.includes('Invalid regex pattern')) {
+          return reply.status(400).send({ error: msg });
+        }
+        return reply.status(500).send({ error: msg });
       }
-      return reply.status(500).send({ error: msg });
-    }
+    });
   });
 
   // POST /api/tokens/:set/batch — upsert multiple tokens in a single request
@@ -240,31 +256,33 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: `Invalid token body for "${t.path}": $type must be a valid DTCG token type` });
       }
     }
-    try {
-      const paths = tokens.map(t => t.path);
-      const before = await snapshotPaths(fastify.tokenStore, set, paths);
-      const result = await fastify.tokenStore.batchUpsertTokens(
-        set,
-        tokens.map(t => ({ path: t.path, token: t as Token })),
-        strategy,
-      );
-      const after = await snapshotPaths(fastify.tokenStore, set, paths);
-      await fastify.operationLog.record({
-        type: 'batch-upsert',
-        description: `Batch upsert ${tokens.length} tokens in ${set}`,
-        setName: set,
-        affectedPaths: paths,
-        beforeSnapshot: before,
-        afterSnapshot: after,
-      });
-      return result;
-    } catch (err) {
-      const msg = getErrorMessage(err);
-      if (msg.includes('Invalid token path') || msg.includes('Invalid set name')) return reply.status(400).send({ error: msg });
-      if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-      if (msg.includes('Circular reference')) return reply.status(409).send({ error: msg });
-      return reply.status(500).send({ error: 'Failed to batch upsert tokens', detail: msg });
-    }
+    return withLock(async () => {
+      try {
+        const paths = tokens.map(t => t.path);
+        const before = await snapshotPaths(fastify.tokenStore, set, paths);
+        const result = await fastify.tokenStore.batchUpsertTokens(
+          set,
+          tokens.map(t => ({ path: t.path, token: t as Token })),
+          strategy,
+        );
+        const after = await snapshotPaths(fastify.tokenStore, set, paths);
+        await fastify.operationLog.record({
+          type: 'batch-upsert',
+          description: `Batch upsert ${tokens.length} tokens in ${set}`,
+          setName: set,
+          affectedPaths: paths,
+          beforeSnapshot: before,
+          afterSnapshot: after,
+        });
+        return result;
+      } catch (err) {
+        const msg = getErrorMessage(err);
+        if (msg.includes('Invalid token path') || msg.includes('Invalid set name')) return reply.status(400).send({ error: msg });
+        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+        if (msg.includes('Circular reference')) return reply.status(409).send({ error: msg });
+        return reply.status(500).send({ error: 'Failed to batch upsert tokens', detail: msg });
+      }
+    });
   });
 
   // GET /api/tokens/:set/dependents/* — get tokens that reference a given token path (cross-set)
@@ -304,27 +322,29 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!oldPath || !newPath) {
         return reply.status(400).send({ error: 'oldPath and newPath are required' });
       }
-      try {
-        const before = await snapshotPaths(fastify.tokenStore, set, [oldPath]);
-        const result = await fastify.tokenStore.renameToken(set, oldPath, newPath, updateAliases !== false);
-        const after = await snapshotPaths(fastify.tokenStore, set, [newPath]);
-        await fastify.operationLog.record({
-          type: 'token-rename',
-          description: `Rename token "${oldPath}" → "${newPath}" in ${set}`,
-          setName: set,
-          affectedPaths: [oldPath, newPath],
-          beforeSnapshot: before,
-          afterSnapshot: after,
-        });
-        await fastify.generatorService.updateTokenPaths(new Map([[oldPath, newPath]]));
-        return result;
-      } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('Invalid token path')) return reply.status(400).send({ error: msg });
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
-        return reply.status(500).send({ error: msg });
-      }
+      return withLock(async () => {
+        try {
+          const before = await snapshotPaths(fastify.tokenStore, set, [oldPath]);
+          const result = await fastify.tokenStore.renameToken(set, oldPath, newPath, updateAliases !== false);
+          const after = await snapshotPaths(fastify.tokenStore, set, [newPath]);
+          await fastify.operationLog.record({
+            type: 'token-rename',
+            description: `Rename token "${oldPath}" → "${newPath}" in ${set}`,
+            setName: set,
+            affectedPaths: [oldPath, newPath],
+            beforeSnapshot: before,
+            afterSnapshot: after,
+          });
+          await fastify.generatorService.updateTokenPaths(new Map([[oldPath, newPath]]));
+          return result;
+        } catch (err) {
+          const msg = getErrorMessage(err);
+          if (msg.includes('Invalid token path')) return reply.status(400).send({ error: msg });
+          if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+          if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
+          return reply.status(500).send({ error: msg });
+        }
+      });
     },
   );
 
@@ -337,15 +357,17 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!tokenPath || !targetSet) {
         return reply.status(400).send({ error: 'tokenPath and targetSet are required' });
       }
-      try {
-        await fastify.tokenStore.moveToken(set, tokenPath, targetSet);
-        return { moved: true };
-      } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
-        return reply.status(500).send({ error: msg });
-      }
+      return withLock(async () => {
+        try {
+          await fastify.tokenStore.moveToken(set, tokenPath, targetSet);
+          return { moved: true };
+        } catch (err) {
+          const msg = getErrorMessage(err);
+          if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+          if (msg.includes('already exists')) return reply.status(409).send({ error: msg });
+          return reply.status(500).send({ error: msg });
+        }
+      });
     },
   );
 
@@ -368,25 +390,27 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
       if (!body || typeof body !== 'object' || Array.isArray(body)) {
         return reply.status(400).send({ error: 'Request body must be a JSON object' });
       }
-      try {
-        const before = await snapshotSet(fastify.tokenStore, set);
-        await fastify.tokenStore.replaceSetTokens(set, body as TokenGroup);
-        const after = await snapshotSet(fastify.tokenStore, set);
-        await fastify.operationLog.record({
-          type: 'set-replace',
-          description: `Replace all tokens in ${set}`,
-          setName: set,
-          affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
-          beforeSnapshot: before,
-          afterSnapshot: after,
-        });
-        return { set, replaced: true };
-      } catch (err) {
-        const msg = getErrorMessage(err);
-        if (msg.includes('not found')) return reply.status(404).send({ error: msg });
-        if (msg.includes('Circular reference')) return reply.status(409).send({ error: msg });
-        return reply.status(500).send({ error: 'Failed to replace token set', detail: msg });
-      }
+      return withLock(async () => {
+        try {
+          const before = await snapshotSet(fastify.tokenStore, set);
+          await fastify.tokenStore.replaceSetTokens(set, body as TokenGroup);
+          const after = await snapshotSet(fastify.tokenStore, set);
+          await fastify.operationLog.record({
+            type: 'set-replace',
+            description: `Replace all tokens in ${set}`,
+            setName: set,
+            affectedPaths: [...new Set([...Object.keys(before), ...Object.keys(after)])],
+            beforeSnapshot: before,
+            afterSnapshot: after,
+          });
+          return { set, replaced: true };
+        } catch (err) {
+          const msg = getErrorMessage(err);
+          if (msg.includes('not found')) return reply.status(404).send({ error: msg });
+          if (msg.includes('Circular reference')) return reply.status(409).send({ error: msg });
+          return reply.status(500).send({ error: 'Failed to replace token set', detail: msg });
+        }
+      });
     },
   );
 
@@ -430,35 +454,37 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
       }
 
-      try {
-        // Check if token already exists
-        const existing = await fastify.tokenStore.getToken(set, tokenPath);
-        if (existing) {
-          return reply.status(409).send({ error: `Token "${tokenPath}" already exists in set "${set}"` });
-        }
+      return withLock(async () => {
+        try {
+          // Check if token already exists
+          const existing = await fastify.tokenStore.getToken(set, tokenPath);
+          if (existing) {
+            return reply.status(409).send({ error: `Token "${tokenPath}" already exists in set "${set}"` });
+          }
 
-        const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-        await fastify.tokenStore.createToken(set, tokenPath, body as Token);
-        const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-        await fastify.operationLog.record({
-          type: 'token-create',
-          description: `Create token "${tokenPath}" in ${set}`,
-          setName: set,
-          affectedPaths: [tokenPath],
-          beforeSnapshot: before,
-          afterSnapshot: after,
-        });
-        return reply.status(201).send({ path: tokenPath, set, token: body });
-      } catch (err) {
-        const message = getErrorMessage(err);
-        if (message.includes('Invalid token path') || message.includes('Invalid set name')) {
-          return reply.status(400).send({ error: message });
+          const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          await fastify.tokenStore.createToken(set, tokenPath, body as Token);
+          const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          await fastify.operationLog.record({
+            type: 'token-create',
+            description: `Create token "${tokenPath}" in ${set}`,
+            setName: set,
+            affectedPaths: [tokenPath],
+            beforeSnapshot: before,
+            afterSnapshot: after,
+          });
+          return reply.status(201).send({ path: tokenPath, set, token: body });
+        } catch (err) {
+          const message = getErrorMessage(err);
+          if (message.includes('Invalid token path') || message.includes('Invalid set name')) {
+            return reply.status(400).send({ error: message });
+          }
+          if (message.includes('Circular reference')) {
+            return reply.status(409).send({ error: message });
+          }
+          return reply.status(500).send({ error: 'Failed to create token', detail: message });
         }
-        if (message.includes('Circular reference')) {
-          return reply.status(409).send({ error: message });
-        }
-        return reply.status(500).send({ error: 'Failed to create token', detail: message });
-      }
+      });
     },
   );
 
@@ -477,30 +503,32 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'Invalid token body: $type must be a valid DTCG token type' });
       }
 
-      try {
-        const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-        await fastify.tokenStore.updateToken(set, tokenPath, body);
-        const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-        await fastify.operationLog.record({
-          type: 'token-update',
-          description: `Update token "${tokenPath}" in ${set}`,
-          setName: set,
-          affectedPaths: [tokenPath],
-          beforeSnapshot: before,
-          afterSnapshot: after,
-        });
-        const updated = await fastify.tokenStore.getToken(set, tokenPath);
-        return { path: tokenPath, set, token: updated };
-      } catch (err) {
-        const message = getErrorMessage(err);
-        if (message.includes('not found')) {
-          return reply.status(404).send({ error: message });
+      return withLock(async () => {
+        try {
+          const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          await fastify.tokenStore.updateToken(set, tokenPath, body);
+          const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          await fastify.operationLog.record({
+            type: 'token-update',
+            description: `Update token "${tokenPath}" in ${set}`,
+            setName: set,
+            affectedPaths: [tokenPath],
+            beforeSnapshot: before,
+            afterSnapshot: after,
+          });
+          const updated = await fastify.tokenStore.getToken(set, tokenPath);
+          return { path: tokenPath, set, token: updated };
+        } catch (err) {
+          const message = getErrorMessage(err);
+          if (message.includes('not found')) {
+            return reply.status(404).send({ error: message });
+          }
+          if (message.includes('Circular reference')) {
+            return reply.status(409).send({ error: message });
+          }
+          return reply.status(500).send({ error: 'Failed to update token', detail: message });
         }
-        if (message.includes('Circular reference')) {
-          return reply.status(409).send({ error: message });
-        }
-        return reply.status(500).send({ error: 'Failed to update token', detail: message });
-      }
+      });
     },
   );
 
@@ -514,60 +542,62 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(400).send({ error: 'paths array is required and must not be empty' });
       }
 
-      try {
-        if (!force) {
-          const flatTokens = await fastify.tokenStore.getFlatTokensForSet(set);
-          // Expand group paths to all leaf tokens they contain
-          const allDeletedLeaves = new Set<string>();
-          for (const p of paths) {
-            for (const leafPath of Object.keys(flatTokens)) {
-              if (leafPath === p || leafPath.startsWith(p + '.')) {
-                allDeletedLeaves.add(leafPath);
+      return withLock(async () => {
+        try {
+          if (!force) {
+            const flatTokens = await fastify.tokenStore.getFlatTokensForSet(set);
+            // Expand group paths to all leaf tokens they contain
+            const allDeletedLeaves = new Set<string>();
+            for (const p of paths) {
+              for (const leafPath of Object.keys(flatTokens)) {
+                if (leafPath === p || leafPath.startsWith(p + '.')) {
+                  allDeletedLeaves.add(leafPath);
+                }
               }
+            }
+
+            const externalDependents: Array<{ path: string; setName: string }> = [];
+            const seen = new Set<string>();
+            for (const p of allDeletedLeaves) {
+              for (const dep of fastify.tokenStore.getDependents(p)) {
+                if (!allDeletedLeaves.has(dep.path) && !seen.has(dep.path)) {
+                  seen.add(dep.path);
+                  externalDependents.push(dep);
+                }
+              }
+            }
+
+            if (externalDependents.length > 0) {
+              const preview = externalDependents
+                .slice(0, 5)
+                .map((d) => `"${d.path}"`)
+                .join(', ');
+              const more = externalDependents.length > 5 ? ` and ${externalDependents.length - 5} more` : '';
+              return reply.status(409).send({
+                error: `Cannot delete — ${externalDependents.length} token${externalDependents.length !== 1 ? 's' : ''} reference the selection: ${preview}${more}`,
+                dependents: externalDependents,
+              });
             }
           }
 
-          const externalDependents: Array<{ path: string; setName: string }> = [];
-          const seen = new Set<string>();
-          for (const p of allDeletedLeaves) {
-            for (const dep of fastify.tokenStore.getDependents(p)) {
-              if (!allDeletedLeaves.has(dep.path) && !seen.has(dep.path)) {
-                seen.add(dep.path);
-                externalDependents.push(dep);
-              }
-            }
-          }
-
-          if (externalDependents.length > 0) {
-            const preview = externalDependents
-              .slice(0, 5)
-              .map((d) => `"${d.path}"`)
-              .join(', ');
-            const more = externalDependents.length > 5 ? ` and ${externalDependents.length - 5} more` : '';
-            return reply.status(409).send({
-              error: `Cannot delete — ${externalDependents.length} token${externalDependents.length !== 1 ? 's' : ''} reference the selection: ${preview}${more}`,
-              dependents: externalDependents,
+          const before = await snapshotPaths(fastify.tokenStore, set, paths);
+          const deleted = await fastify.tokenStore.deleteTokens(set, paths);
+          const after = await snapshotPaths(fastify.tokenStore, set, paths);
+          if (deleted.length > 0) {
+            await fastify.operationLog.record({
+              type: 'bulk-delete',
+              description: `Delete ${deleted.length} token(s) from ${set}`,
+              setName: set,
+              affectedPaths: deleted,
+              beforeSnapshot: before,
+              afterSnapshot: after,
             });
           }
+          return { deleted: deleted.length, paths: deleted, set };
+        } catch (err) {
+          return reply.status(500).send({ error: 'Failed to delete tokens', detail: String(err) });
         }
-
-        const before = await snapshotPaths(fastify.tokenStore, set, paths);
-        const deleted = await fastify.tokenStore.deleteTokens(set, paths);
-        const after = await snapshotPaths(fastify.tokenStore, set, paths);
-        if (deleted.length > 0) {
-          await fastify.operationLog.record({
-            type: 'bulk-delete',
-            description: `Delete ${deleted.length} token(s) from ${set}`,
-            setName: set,
-            affectedPaths: deleted,
-            beforeSnapshot: before,
-            afterSnapshot: after,
-          });
-        }
-        return { deleted: deleted.length, paths: deleted, set };
-      } catch (err) {
-        return reply.status(500).send({ error: 'Failed to delete tokens', detail: String(err) });
-      }
+      });
     },
   );
 
@@ -583,58 +613,60 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
 
       const force = request.query.force === 'true';
 
-      try {
-        if (!force) {
-          // Collect all leaf token paths being deleted (single token or all tokens in a group)
-          const flatTokens = await fastify.tokenStore.getFlatTokensForSet(set);
-          const deletedPaths = Object.keys(flatTokens).filter(
-            (p) => p === tokenPath || p.startsWith(tokenPath + '.'),
-          );
-          const deletedSet = new Set(deletedPaths);
+      return withLock(async () => {
+        try {
+          if (!force) {
+            // Collect all leaf token paths being deleted (single token or all tokens in a group)
+            const flatTokens = await fastify.tokenStore.getFlatTokensForSet(set);
+            const deletedPaths = Object.keys(flatTokens).filter(
+              (p) => p === tokenPath || p.startsWith(tokenPath + '.'),
+            );
+            const deletedSet = new Set(deletedPaths);
 
-          // For each deleted path, find dependents that are NOT themselves being deleted
-          const externalDependents: Array<{ path: string; setName: string }> = [];
-          const seen = new Set<string>();
-          for (const p of deletedPaths) {
-            for (const dep of fastify.tokenStore.getDependents(p)) {
-              if (!deletedSet.has(dep.path) && !seen.has(dep.path)) {
-                seen.add(dep.path);
-                externalDependents.push(dep);
+            // For each deleted path, find dependents that are NOT themselves being deleted
+            const externalDependents: Array<{ path: string; setName: string }> = [];
+            const seen = new Set<string>();
+            for (const p of deletedPaths) {
+              for (const dep of fastify.tokenStore.getDependents(p)) {
+                if (!deletedSet.has(dep.path) && !seen.has(dep.path)) {
+                  seen.add(dep.path);
+                  externalDependents.push(dep);
+                }
               }
+            }
+
+            if (externalDependents.length > 0) {
+              const preview = externalDependents
+                .slice(0, 5)
+                .map((d) => `"${d.path}"`)
+                .join(', ');
+              const more = externalDependents.length > 5 ? ` and ${externalDependents.length - 5} more` : '';
+              return reply.status(409).send({
+                error: `Cannot delete "${tokenPath}" — ${externalDependents.length} token${externalDependents.length !== 1 ? 's' : ''} reference it: ${preview}${more}`,
+                dependents: externalDependents,
+              });
             }
           }
 
-          if (externalDependents.length > 0) {
-            const preview = externalDependents
-              .slice(0, 5)
-              .map((d) => `"${d.path}"`)
-              .join(', ');
-            const more = externalDependents.length > 5 ? ` and ${externalDependents.length - 5} more` : '';
-            return reply.status(409).send({
-              error: `Cannot delete "${tokenPath}" — ${externalDependents.length} token${externalDependents.length !== 1 ? 's' : ''} reference it: ${preview}${more}`,
-              dependents: externalDependents,
-            });
+          const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          const deleted = await fastify.tokenStore.deleteToken(set, tokenPath);
+          if (!deleted) {
+            return reply.status(404).send({ error: `Token "${tokenPath}" not found in set "${set}"` });
           }
+          const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
+          await fastify.operationLog.record({
+            type: 'token-delete',
+            description: `Delete "${tokenPath}" from ${set}`,
+            setName: set,
+            affectedPaths: [tokenPath],
+            beforeSnapshot: before,
+            afterSnapshot: after,
+          });
+          return { deleted: true, path: tokenPath, set };
+        } catch (err) {
+          return reply.status(500).send({ error: 'Failed to delete token', detail: String(err) });
         }
-
-        const before = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-        const deleted = await fastify.tokenStore.deleteToken(set, tokenPath);
-        if (!deleted) {
-          return reply.status(404).send({ error: `Token "${tokenPath}" not found in set "${set}"` });
-        }
-        const after = await snapshotPaths(fastify.tokenStore, set, [tokenPath]);
-        await fastify.operationLog.record({
-          type: 'token-delete',
-          description: `Delete "${tokenPath}" from ${set}`,
-          setName: set,
-          affectedPaths: [tokenPath],
-          beforeSnapshot: before,
-          afterSnapshot: after,
-        });
-        return { deleted: true, path: tokenPath, set };
-      } catch (err) {
-        return reply.status(500).send({ error: 'Failed to delete token', detail: String(err) });
-      }
+      });
     },
   );
 };
