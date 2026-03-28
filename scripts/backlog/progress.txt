@@ -314,3 +314,14 @@
   - `resolveTokenValue` from `shared/resolveAlias.ts` works for all token types (not just colors) — prefer it over `resolveRefValue` from core which only handles string→string
   - The `isAlias()` check is important before calling resolve since `reference` may be a partial input like `{` or `{color.`
 ---
+
+## 2026-03-28 - TokenEditor mode/theme override inputs have no alias autocomplete
+- Added AliasAutocomplete dropdown to per-mode value inputs in MetadataEditor
+- Typing `{` in a mode override field now triggers the same fuzzy-search autocomplete used by AliasPicker
+- Selecting an alias inserts `{path}` into the mode value; Escape or blur closes dropdown
+- Passed `allTokensFlat` and `pathToSet` from TokenEditor through to MetadataEditor as new optional props
+- Files changed: `packages/figma-plugin/src/ui/components/MetadataEditor.tsx` ~L1-4, ~L55-56, ~L68-75, ~L150-195; `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L680-681
+- **Learnings for future iterations:**
+  - MetadataEditor didn't have access to allTokensFlat/pathToSet — needed to thread them through from TokenEditor
+  - The `autocompleteModeKey` state tracks which mode option has the dropdown open (only one at a time), using the functional updater in onBlur to avoid stale closures
+---

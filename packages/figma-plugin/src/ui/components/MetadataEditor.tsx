@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
+import type { TokenMapEntry } from '../../shared/types';
+import { AliasAutocomplete } from './AliasAutocomplete';
 
 const FIGMA_SCOPES: Record<string, { label: string; value: string }[]> = {
   color: [
@@ -51,6 +53,8 @@ interface MetadataEditorProps {
   extensionsJsonError: string | null;
   onExtensionsJsonErrorChange: (err: string | null) => void;
   isCreateMode: boolean;
+  allTokensFlat?: Record<string, TokenMapEntry>;
+  pathToSet?: Record<string, string>;
 }
 
 export function MetadataEditor({
@@ -61,10 +65,14 @@ export function MetadataEditor({
   extensionsJsonText, onExtensionsJsonTextChange,
   extensionsJsonError, onExtensionsJsonErrorChange,
   isCreateMode,
+  allTokensFlat = {},
+  pathToSet = {},
 }: MetadataEditorProps) {
   const [showScopes, setShowScopes] = useState(false);
   const [showModeValues, setShowModeValues] = useState(false);
   const [showExtensions, setShowExtensions] = useState(false);
+  // Track which mode option currently has autocomplete open (by option.name)
+  const [autocompleteModeKey, setAutocompleteModeKey] = useState<string | null>(null);
 
   return (
     <>
@@ -145,7 +153,10 @@ export function MetadataEditor({
                 <div className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide mb-1.5">{dim.name}</div>
                 {dim.options.map(option => {
                   const modeVal = modeValues[option.name] ?? '';
+                  const modeValStr = typeof modeVal === 'string' ? modeVal : '';
                   const isColorVal = tokenType === 'color' && typeof modeVal === 'string' && modeVal.startsWith('#') && !modeVal.startsWith('{');
+                  const showingAutocomplete = autocompleteModeKey === option.name;
+                  const hasTokens = Object.keys(allTokensFlat).length > 0;
                   return (
                     <div key={option.name} className="flex items-center gap-2 mb-1.5">
                       <span className="text-[10px] text-[var(--color-figma-text)] w-16 shrink-0 truncate" title={option.name}>{option.name}</span>
@@ -156,13 +167,44 @@ export function MetadataEditor({
                           aria-hidden="true"
                         />
                       )}
-                      <input
-                        type="text"
-                        value={modeVal}
-                        onChange={e => onModeValuesChange({ ...modeValues, [option.name]: e.target.value })}
-                        placeholder={aliasMode ? (reference || 'value or {alias}') : String(value !== '' && value !== undefined ? value : 'value or {alias}')}
-                        className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
-                      />
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={modeVal}
+                          onChange={e => {
+                            const v = e.target.value;
+                            onModeValuesChange({ ...modeValues, [option.name]: v });
+                            if (hasTokens) {
+                              const hasOpen = v.includes('{') && !v.endsWith('}');
+                              setAutocompleteModeKey(hasOpen ? option.name : null);
+                            }
+                          }}
+                          onFocus={() => {
+                            if (hasTokens && modeValStr.includes('{') && !modeValStr.endsWith('}')) {
+                              setAutocompleteModeKey(option.name);
+                            }
+                          }}
+                          onBlur={() => setTimeout(() => setAutocompleteModeKey(k => k === option.name ? null : k), 150)}
+                          onKeyDown={e => {
+                            if (hasTokens && e.key === '{') setAutocompleteModeKey(option.name);
+                          }}
+                          placeholder={aliasMode ? (reference || 'value or {alias}') : String(value !== '' && value !== undefined ? value : 'value or {alias}')}
+                          className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40"
+                        />
+                        {showingAutocomplete && (
+                          <AliasAutocomplete
+                            query={modeValStr.includes('{') ? modeValStr.slice(modeValStr.lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
+                            allTokensFlat={allTokensFlat}
+                            pathToSet={pathToSet}
+                            filterType={tokenType}
+                            onSelect={path => {
+                              onModeValuesChange({ ...modeValues, [option.name]: `{${path}}` });
+                              setAutocompleteModeKey(null);
+                            }}
+                            onClose={() => setAutocompleteModeKey(null)}
+                          />
+                        )}
+                      </div>
                       {modeVal !== '' && (
                         <button
                           type="button"

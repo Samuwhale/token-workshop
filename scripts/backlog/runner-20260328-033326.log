@@ -511,3 +511,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor mode/theme override inputs have no alias autocomplete — the per-mode value fields accept `{alias}` syntax but don't trigger the AliasAutocomplete dropdown, forcing users to type alias paths from memory
   Worktree: /tmp/backlog-92630-Amgypa
+
+  ✓ done: TokenEditor mode/theme override inputs have no alias autocomplete
+    Added AliasAutocomplete dropdown to per-mode value inputs in MetadataEditor — typing { triggers fuzzy-search autocomplete filtered by token type, matching the AliasPicker behavior
+    21 turns · 165s · $0.85
+
+--- Merging: TokenEditor mode/theme override inputs have no alias autocomplete ---
+Already up to date.

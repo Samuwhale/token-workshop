@@ -414,3 +414,17 @@ Already up to date.
 
 --- Merging: TokenEditor "toggle alias mode" doesn't preserve the resolved value ---
 Already up to date.
+[main e3d93ae] chore(backlog): done – TokenEditor "toggle alias mode" doesn't preserve the resolved value
+ 6 files changed, 45 insertions(+), 7 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - TokenEditor "toggle alias mode" doesn't preserve the resolved value
+- Updated `handleToggleAlias` in TokenEditor to resolve the current alias reference via `resolveTokenValue` when switching from alias to direct mode, so the resolved concrete value (e.g. `#1a73e8`) is kept instead of reverting to the stale pre-alias raw value
+- Falls back to pre-alias value if resolution fails (broken alias, not yet set, etc.)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L13-14 (import), ~L342-363 (handleToggleAlias)
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  17 items remaining
+===============================================================
+  Claimed: TokenEditor has no Cmd+S / Ctrl+S keyboard shortcut for save — users must click the Save button or tab to it; the most universal save shortcut in any editor is missing
+  Worktree: /tmp/backlog-10278-cYpdPN

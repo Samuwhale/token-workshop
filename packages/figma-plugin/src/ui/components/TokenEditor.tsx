@@ -744,6 +744,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           extensionsJsonError={extensionsJsonError}
           onExtensionsJsonErrorChange={setExtensionsJsonError}
           isCreateMode={isCreateMode}
+          allTokensFlat={allTokensFlat}
+          pathToSet={pathToSet}
         />
       </div>
 
