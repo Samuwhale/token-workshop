@@ -681,14 +681,35 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
       <div className="flex-1 overflow-y-auto p-3">
         {dimensions.length === 0 && !showCreateDim ? (
-          <div className="flex flex-col items-center justify-center py-8 text-[var(--color-figma-text-secondary)] text-center px-4">
-            <p className="text-[12px] font-medium text-[var(--color-figma-text)]">No theme dimensions configured</p>
-            <p className="text-[10px] mt-1.5 leading-relaxed">Theme dimensions represent axes of variation in your design system — for example, "Color Mode" (Light/Dark), "Brand" (Default/Premium), or "Density" (Regular/Compact). Multiple dimensions can be active at once.</p>
+          <div className="flex flex-col items-center justify-center py-6 text-center px-4">
+            <p className="text-[12px] font-medium text-[var(--color-figma-text)]">No theme dimensions yet</p>
+            <p className="text-[10px] mt-1 text-[var(--color-figma-text-secondary)] leading-relaxed">
+              Dimensions are axes of variation — multiple can be active at once.
+            </p>
+
+            <div className="mt-4 w-full max-w-[240px] flex flex-col gap-1.5">
+              <p className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Quick start</p>
+              {([
+                ['Color Mode', 'Light / Dark'],
+                ['Brand', 'Default / Premium'],
+                ['Density', 'Regular / Compact'],
+              ] as const).map(([name, example]) => (
+                <button
+                  key={name}
+                  onClick={() => { setNewDimName(name); setShowCreateDim(true); }}
+                  className="flex items-center justify-between px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-left hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
+                >
+                  <span className="text-[11px] font-medium text-[var(--color-figma-text)] group-hover:text-[var(--color-figma-accent)]">{name}</span>
+                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{example}</span>
+                </button>
+              ))}
+            </div>
+
             <button
               onClick={() => setShowCreateDim(true)}
-              className="mt-4 px-4 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+              className="mt-3 text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
-              Create your first dimension
+              or create a custom dimension
             </button>
           </div>
         ) : (

@@ -429,3 +429,11 @@
   - Using a `Set<string>` keyed by `dimId/optName/setName` scales cleanly for both single and bulk state changes
   - `finally` block ensures saving keys are cleaned up even on error, preventing stuck loading states
 ---
+
+## 2026-03-28 - ThemeManager empty state could be more scannable
+- Replaced the single-paragraph empty state with structured layout: short heading, one-line description, and three clickable quick-start dimension buttons ("Color Mode", "Brand", "Density") that pre-fill the dimension name and open the create form. Added a secondary "or create a custom dimension" text link below.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L673
+- **Learnings for future iterations:**
+  - `setNewDimName` + `setShowCreateDim(true)` is all that's needed to pre-fill and open the create dimension form
+  - The build output is `dist/ui.html` (not `dist/index.html`) for the figma-plugin
+---
