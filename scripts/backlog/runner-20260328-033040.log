@@ -550,3 +550,11 @@ Already up to date.
 
 --- Merging: BatchEditor move-to-set operation has no preview ---
 Already up to date.
+[main db17aef] chore(backlog): done – BatchEditor move-to-set operation has no preview
+ 6 files changed, 113 insertions(+), 7 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - TokenList double-click to edit is undiscoverable
+- Made the pencil/edit icon always faintly visible (opacity-40) on every token row as a visual hint, fully visible on hover
+- Added `title="Double-click to edit"` tooltip on the token name/info area
+- Updated edit button tooltip to "Edit (or double-click row)"

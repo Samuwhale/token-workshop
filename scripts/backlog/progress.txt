@@ -399,3 +399,13 @@
   - The "faint-always-visible button" pattern (opacity-40 group-hover:opacity-100) is ideal for making primary actions discoverable without cluttering rows
   - Pulling a button out of the hover-only container and giving it its own opacity classes is cleaner than trying to override container-level opacity
 ---
+
+## 2026-03-28 - TokenList hover action buttons cause subtle layout shift
+- Changed token row and group row hover action buttons from inline flex children (opacity-only toggle) to absolutely-positioned overlays (`absolute right-1 top-0 bottom-0`)
+- Both token leaf rows and group rows now use the same pattern: a single absolute container holds all action buttons, preventing them from affecting flex layout
+- The edit button retains its faint-always-visible style (`opacity-40 group-hover:opacity-100`), while other action buttons remain fully hidden until hover
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L372 (group row: added `relative`, wrapped buttons in absolute container), ~L1056 (token row: merged edit + hover actions into single absolute container)
+- **Learnings for future iterations:**
+  - `opacity-0`/`opacity-100` toggles cause layout shift when elements are inline flex children — use absolute positioning for hover overlays to eliminate shift
+  - The `relative` class was already on token rows but needed to be added to group rows for absolute children to work
+---

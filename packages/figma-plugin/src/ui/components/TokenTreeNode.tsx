@@ -291,7 +291,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           aria-expanded={isExpanded}
           aria-label={`Toggle group ${node.name}`}
           data-group-path={node.path}
-          className={`flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-red-500 bg-red-500/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
+          className={`relative flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-red-500 bg-red-500/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
           onDragOver={(e) => {
@@ -370,12 +370,12 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             </span>
           )}
           {!selectMode && !renamingGroup && (
-            <>
+            <div className="absolute right-1 top-0 bottom-0 flex items-center gap-0.5 opacity-0 group-hover/group:opacity-100 pointer-events-none group-hover/group:pointer-events-auto transition-opacity">
               {onMoveUp && (
                 <button
                   onClick={e => { e.stopPropagation(); onMoveUp(); }}
                   title="Move up"
-                  className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
+                  className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M18 15l-6-6-6 6"/>
@@ -386,7 +386,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 <button
                   onClick={e => { e.stopPropagation(); onMoveDown(); }}
                   title="Move down"
-                  className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
+                  className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M6 9l6 6 6-6"/>
@@ -399,7 +399,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                   onCreateSibling?.(node.path, inferGroupTokenType(node.children));
                 }}
                 title="Add token to group"
-                className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
+                className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                   <path d="M12 5v14M5 12h14"/>
@@ -415,13 +415,13 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                   });
                 }}
                 title="Group actions"
-                className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
+                className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
                 </svg>
               </button>
-            </>
+            </div>
           )}
         </div>
 
@@ -1053,26 +1053,24 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         ) : null;
       })()}
 
-      {/* Edit button — always faintly visible as a hint that rows are editable */}
+      {/* Hover actions — absolutely positioned to avoid layout shift */}
       {!selectMode && (
-        <button
-          onClick={() => onEdit(node.path, node.name)}
-          title="Edit (or double-click row)"
-          className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity shrink-0"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-          </svg>
-        </button>
-      )}
-      {/* Hover actions — compact, only on hover */}
-      {!selectMode && (
-        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
+        <div className="absolute right-1 top-0 bottom-0 flex items-center gap-0.5 pointer-events-none group-hover:pointer-events-auto">
+          {/* Edit button — always faintly visible as a hint that rows are editable */}
+          <button
+            onClick={() => onEdit(node.path, node.name)}
+            title="Edit (or double-click row)"
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-40 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </button>
           {onMoveUp && (
             <button
               onClick={e => { e.stopPropagation(); onMoveUp(); }}
               title="Move up"
-              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 15l-6-6-6 6"/>
@@ -1083,7 +1081,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             <button
               onClick={e => { e.stopPropagation(); onMoveDown(); }}
               title="Move down"
-              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+              className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M6 9l6 6 6-6"/>
@@ -1093,7 +1091,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           <button
             onClick={e => { e.stopPropagation(); handleApplyToSelection(e); }}
             title="Apply to selection"
-            className="p-1 rounded hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]"
+            className="p-1 rounded hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <path d="M12 5l7 7-7 7M5 12h14" />
@@ -1102,7 +1100,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           <button
             onClick={e => { e.stopPropagation(); handleCopyPath(); }}
             title={copiedWhat === 'path' ? 'Copied!' : 'Copy token path'}
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
           >
             {copiedWhat === 'path' ? (
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2.5" aria-hidden="true">
@@ -1117,7 +1115,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           <button
             onClick={handleCopyValue}
             title={copiedWhat === 'value' ? 'Copied!' : 'Copy value'}
-            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
+            className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 transition-opacity"
           >
             {copiedWhat === 'value' ? (
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="2.5" aria-hidden="true">

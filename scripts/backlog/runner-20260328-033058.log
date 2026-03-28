@@ -574,3 +574,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenList hover action buttons (edit, copy, apply) cause subtle layout shift — buttons fade in on hover but take up space, pushing the value column slightly; distracting when scanning a long list
   Worktree: /tmp/backlog-85816-Duav2p
+
+  ✓ done: TokenList hover action buttons cause subtle layout shift
+    Changed hover action buttons from inline flex children (opacity-only) to absolutely-positioned overlays on both token rows and group rows, eliminating layout shift when scanning the list.
+    20 turns · 173s · $0.86
+
+--- Merging: TokenList hover action buttons cause subtle layout shift ---
+Already up to date.
