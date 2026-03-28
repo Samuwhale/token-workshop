@@ -531,3 +531,20 @@
   - The existing codebase has multiple local `ColorSwatch` implementations (ThemeCompare, ComparePanel, PasteTokensModal) — no shared one exists, so adding a local helper is the established pattern.
   - VarDiffRow stores values as strings and types as strings; color detection works on both `$type === 'color'` and hex regex fallback since type info may be 'string' for Figma-sourced color variables.
 ---
+
+## 2026-03-28 - ThemeManager redesign: visual stacking model
+- Complete redesign of the ThemeManager component around a layer-stack metaphor:
+  1. **Dimensions as numbered layers** — displayed top-to-bottom with numbered badges showing priority (top = highest). Priority hint bar shows directional arrows.
+  2. **Options as tabs per layer** — instead of nested option rows, each dimension shows a horizontal tab bar; only the selected option's content is visible. Auto-selects first option on load.
+  3. **Sets grouped by role** — within each option, sets are visually grouped into three sections: Override (green, highest priority), Foundation (blue, base defaults), and Not included (collapsed by default). Each section has a labeled header with count.
+  4. **Live token resolution preview** — toggleable panel showing how tokens resolve with current selections. Computes merged values following the stacking model (bottom layer first, foundation then override). Includes color swatches for hex values, alias highlighting, search filtering, source attribution. Shows first 50 tokens with a search prompt for more.
+  5. **UX improvements** — dismissable error banner, stack icon in header/footer, "Layer" terminology throughout, auto-select newly created options, updated empty state messaging.
+- Removed drag-to-reorder for set rows (replaced by grouped sections which better communicate the mental model), removed per-dimension set filter (grouped sections make it less necessary), removed inline "How it works" legend (the visual grouping is self-explanatory).
+- Fixed existing bug: added missing `bulkMenuRef` declaration that was referenced but never created.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` (full rewrite, ~780 lines → ~780 lines)
+- **Learnings for future iterations:**
+  - The existing ThemeManager was missing a `bulkMenuRef` useRef declaration despite being used in 3 places — always grep for ref usage when reviewing components
+  - `useMemo` for the preview token computation is important since it iterates all tokens across all sets; memoize on the 5 dependencies that actually change
+  - Collapsing "Not included" sets by default reduces visual noise significantly — most users only care about assigned sets
+  - The tab pattern for options works better than nested rows because it focuses attention on one option at a time, matching how users actually think about themes (pick one option per dimension)
+---

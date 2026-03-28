@@ -271,3 +271,16 @@ Already up to date.
 
 --- Merging: No visual diff for Figma variable publish ---
 Already up to date.
+[main 2e48339] chore(backlog): done – No visual diff for Figma variable publish
+ 6 files changed, 70 insertions(+), 12 deletions(-)
+
+## 2026-03-28 - No visual diff for Figma variable publish
+- Enhanced `VarDiffRowItem` in PublishPanel.tsx with visual diff preview: inline color swatches for hex color values, side-by-side old→new layout with SVG arrow for conflicts, and swatches for local-only/figma-only rows.
+- Added helper components: `isHexColor` (detects hex values), `DiffSwatch` (inline color swatch matching existing codebase pattern), `ValueCell` (label + optional swatch + truncated value).
+- Conflict rows now show `[Local: ■ #hex] → [Figma: ■ #hex]` instead of plain text "Local: ... vs Figma: ...".
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  56 items remaining
+===============================================================
+  Claimed: No visual version history or changelog — beyond raw `git log`, there's no timeline of token changes with before/after value diffs; useful for reviewing what changed between design reviews or releases
+  Worktree: /tmp/backlog-62956-DDeCgb

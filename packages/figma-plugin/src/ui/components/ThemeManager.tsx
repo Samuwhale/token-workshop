@@ -1,5 +1,6 @@
 import { getErrorMessage } from '../shared/utils';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { flattenTokenGroup } from '@tokenmanager/core';
 import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
 
@@ -49,7 +50,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   const [createDimError, setCreateDimError] = useState<string | null>(null);
 
   // Rename dimension
-  const [renameDim, setRenameDim] = useState<string | null>(null); // dimension id
+  const [renameDim, setRenameDim] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [renameError, setRenameError] = useState<string | null>(null);
 
@@ -69,30 +70,33 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   // Coverage gaps
   const [coverage, setCoverage] = useState<CoverageMap>({});
-  const [expandedCoverage, setExpandedCoverage] = useState<Set<string>>(new Set()); // `${dimId}:${optionName}`
-  const [expandedStale, setExpandedStale] = useState<Set<string>>(new Set()); // `${dimId}:${optionName}`
+  const [expandedCoverage, setExpandedCoverage] = useState<Set<string>>(new Set());
+  const [expandedStale, setExpandedStale] = useState<Set<string>>(new Set());
 
-  // Per-option set ordering (determines override precedence)
+  // Per-option set ordering
   const [optionSetOrders, setOptionSetOrders] = useState<Record<string, Record<string, string[]>>>({});
-
-  // Set row drag
-  const [dragInfo, setDragInfo] = useState<{ dimId: string; optionName: string; setName: string } | null>(null);
-  const [dragOver, setDragOver] = useState<{ dimId: string; optionName: string; setName: string } | null>(null);
-
-  // Per-dimension set search/filter (applies to all options within a dimension)
-  const [dimSetFilters, setDimSetFilters] = useState<Record<string, string>>({});
 
   // Bulk set-status context menu
   const [bulkMenu, setBulkMenu] = useState<{ x: number; y: number; dimId: string; setName: string } | null>(null);
-  // Track in-flight set-state saves for loading feedback
+  const bulkMenuRef = useRef<HTMLDivElement | null>(null);
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
 
   // Newly created dimension for auto-scroll
   const [newlyCreatedDim, setNewlyCreatedDim] = useState<string | null>(null);
-  const newDimCardRef = useRef<HTMLDivElement | null>(null);
 
-  // Debounced fetchDimensions — coalesces rapid mutations into a single re-fetch
+  // Debounced fetchDimensions
   const debounceFetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // --- New stacking UI state ---
+  // Selected option tab per dimension
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  // Token values per set (for live preview)
+  const [setTokenValues, setSetTokenValues] = useState<Record<string, Record<string, any>>>({});
+  // Live preview panel
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewSearch, setPreviewSearch] = useState('');
+  // Collapsed "Not included" sections per dimension
+  const [collapsedDisabled, setCollapsedDisabled] = useState<Set<string>>(new Set());
 
   const fetchDimensions = useCallback(async () => {
     if (!connected) { setLoading(false); return; }
@@ -118,12 +122,77 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         return next;
       });
 
-      // Fetch coverage gaps from the server (single request instead of N per-set fetches)
-      const covRes = await fetch(`${serverUrl}/api/themes/coverage`);
-      const covData = covRes.ok ? await covRes.json() : { coverage: {} };
-      const cov: CoverageMap = covData.coverage ?? {};
+      // Auto-select first option for dimensions without a selection
+      setSelectedOptions(prev => {
+        const next = { ...prev };
+        for (const dim of allDimensions) {
+          if (!next[dim.id] && dim.options.length > 0) {
+            next[dim.id] = dim.options[0].name;
+          }
+          // Fix stale selection
+          if (next[dim.id] && !dim.options.some(o => o.name === next[dim.id])) {
+            next[dim.id] = dim.options[0]?.name || '';
+          }
+        }
+        return next;
+      });
+
+      // Compute token values per set
+      const tokenValues: Record<string, Record<string, any>> = {};
+      await Promise.all(sets.map(async (s) => {
+        try {
+          const r = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(s)}`);
+          if (r.ok) {
+            const d = await r.json();
+            const map: Record<string, any> = {};
+            for (const [path, token] of flattenTokenGroup(d.tokens || {})) {
+              map[path] = token.$value;
+            }
+            tokenValues[s] = map;
+          }
+        } catch { /* ignore */ }
+      }));
+      setSetTokenValues(tokenValues);
+
+      const isResolved = (value: any, activeValues: Record<string, any>, visited = new Set<string>()): boolean => {
+        if (typeof value !== 'string') return true;
+        const m = /^\{([^}]+)\}$/.exec(value);
+        if (!m) return true;
+        const target = m[1];
+        if (visited.has(target)) return false;
+        if (!(target in activeValues)) return false;
+        return isResolved(activeValues[target], activeValues, new Set([...visited, target]));
+      };
+
+      const cov: CoverageMap = {};
+      for (const dim of allDimensions) {
+        cov[dim.id] = {};
+        for (const opt of dim.options) {
+          const activeValues: Record<string, any> = {};
+          const tokenSetOrigin: Record<string, string> = {};
+          for (const [setName, state] of Object.entries(opt.sets)) {
+            if (state === 'source') {
+              for (const path of Object.keys(tokenValues[setName] ?? {})) {
+                tokenSetOrigin[path] = setName;
+              }
+              Object.assign(activeValues, tokenValues[setName] ?? {});
+            }
+          }
+          for (const [setName, state] of Object.entries(opt.sets)) {
+            if (state === 'enabled') {
+              for (const path of Object.keys(tokenValues[setName] ?? {})) {
+                tokenSetOrigin[path] = setName;
+              }
+              Object.assign(activeValues, tokenValues[setName] ?? {});
+            }
+          }
+          const uncovered = Object.entries(activeValues)
+            .filter(([, v]) => !isResolved(v, activeValues))
+            .map(([p]) => ({ path: p, set: tokenSetOrigin[p] ?? '' }));
+          cov[dim.id][opt.name] = { uncovered };
+        }
+      }
       setCoverage(cov);
-      // Auto-expand all options that have coverage gaps so users see them without clicking
       const keysWithGaps = new Set<string>();
       for (const dim of allDimensions) {
         for (const opt of dim.options) {
@@ -148,7 +217,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }, 600);
   }, [fetchDimensions]);
 
-  // Cleanup debounce timer on unmount
   useEffect(() => () => { if (debounceFetchTimer.current) clearTimeout(debounceFetchTimer.current); }, []);
 
   useEffect(() => { fetchDimensions(); }, [fetchDimensions]);
@@ -182,7 +250,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       setNewDimName('');
       setShowCreateDim(false);
       setNewlyCreatedDim(id);
-      // Optimistic: add the new dimension locally
       setDimensions(prev => [...prev, { id, name, options: [] }]);
       debouncedFetchDimensions();
     } catch (err) {
@@ -222,7 +289,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         setRenameError(d.error || 'Rename failed');
         return;
       }
-      // Optimistic: update the name locally
       setDimensions(prev => prev.map(d => d.id === renameDim ? { ...d, name } : d));
       cancelRenameDim();
       debouncedFetchDimensions();
@@ -266,13 +332,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         setRenameOptionError(d.error || 'Rename failed');
         return;
       }
-      // Optimistic: update the option name locally
       setDimensions(prev => prev.map(d =>
         d.id === renameOption.dimId
           ? { ...d, options: d.options.map(o => o.name === renameOption.optionName ? { ...o, name } : o) }
           : d,
       ));
-      // Update optionSetOrders key
       setOptionSetOrders(prev => {
         const next = { ...prev };
         if (next[renameOption.dimId]?.[renameOption.optionName]) {
@@ -280,6 +344,13 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           delete next[renameOption.dimId][renameOption.optionName];
         }
         return next;
+      });
+      // Update selected option if it was the renamed one
+      setSelectedOptions(prev => {
+        if (prev[renameOption.dimId] === renameOption.optionName) {
+          return { ...prev, [renameOption.dimId]: name };
+        }
+        return prev;
       });
       cancelRenameOption();
       debouncedFetchDimensions();
@@ -331,10 +402,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         return;
       }
       setNewOptionNames(prev => ({ ...prev, [dimId]: '' }));
-      // Optimistic: add the new option locally
       setDimensions(prev => prev.map(d =>
         d.id === dimId ? { ...d, options: [...d.options, { name, sets: defaultSets }] } : d,
       ));
+      // Auto-select newly added option
+      setSelectedOptions(prev => ({ ...prev, [dimId]: name }));
       debouncedFetchDimensions();
       setTimeout(() => addOptionInputRefs.current[dimId]?.focus(), 0);
     } catch (err) {
@@ -365,10 +437,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         setError(d.error || 'Failed to duplicate option');
         return;
       }
-      // Optimistic: add the duplicated option locally
       setDimensions(prev => prev.map(d =>
         d.id === dimId ? { ...d, options: [...d.options, { name: newName, sets: { ...opt.sets } }] } : d,
       ));
+      setSelectedOptions(prev => ({ ...prev, [dimId]: newName }));
       debouncedFetchDimensions();
     } catch (err) {
       setError(getErrorMessage(err, 'Failed to duplicate option'));
@@ -386,7 +458,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     if (newIdx < 0 || newIdx >= dim.options.length) return;
     const reordered = [...dim.options];
     [reordered[idx], reordered[newIdx]] = [reordered[newIdx], reordered[idx]];
-    // Optimistic update
     setDimensions(prev => prev.map(d => d.id === dimId ? { ...d, options: reordered } : d));
     try {
       const res = await fetch(
@@ -398,10 +469,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         },
       );
       if (!res.ok) {
-        fetchDimensions(); // revert on failure
+        fetchDimensions();
       }
     } catch {
-      fetchDimensions(); // revert on failure
+      fetchDimensions();
     }
   };
 
@@ -455,7 +526,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         setError(d.error || `Failed to save (${res.status})`);
         return;
       }
-      // Optimistic update already applied; debounce coverage recalc
       debouncedFetchDimensions();
     } catch (err) {
       setDimensions(previousDimensions);
@@ -472,17 +542,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     const dim = dimensions.find(d => d.id === dimId);
     if (!dim) return;
     const previousDimensions = dimensions;
-    // Mark all options for this set as saving
     const bulkKeys = dim.options.map(o => `${dimId}/${o.name}/${setName}`);
     setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.add(k)); return n; });
-    // Optimistic: update all options at once
     setDimensions(prev => prev.map(d =>
       d.id === dimId
         ? { ...d, options: d.options.map(o => ({ ...o, sets: { ...o.sets, [setName]: targetState } })) }
         : d,
     ));
     try {
-      // Send each option update to the server
       const results = await Promise.all(dim.options.map(opt => {
         const updatedSets = { ...opt.sets, [setName]: targetState };
         return fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
@@ -498,7 +565,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         setError(d.error || `Failed to bulk-update (${failed.status})`);
         return;
       }
-      // Optimistic update already applied; debounce coverage recalc
       debouncedFetchDimensions();
     } catch (err) {
       setDimensions(previousDimensions);
@@ -508,11 +574,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
   };
 
-  // Close bulk menu on outside click or Escape; focus first item and handle arrow keys
+  // Close bulk menu on outside click or Escape
   useEffect(() => {
     if (!bulkMenu) return;
     const close = () => setBulkMenu(null);
-    // Focus first menuitem on open
     requestAnimationFrame(() => {
       const first = bulkMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
       first?.focus();
@@ -535,106 +600,133 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
   }, [bulkMenu]);
 
-  // --- Drag-to-reorder set rows within an option ---
+  // --- Live preview: compute resolved token values for current selections ---
 
-  const handleDragStart = (e: React.DragEvent, dimId: string, optionName: string, setName: string) => {
-    setDragInfo({ dimId, optionName, setName });
-    e.dataTransfer.effectAllowed = 'move';
-  };
+  const previewTokens = useMemo(() => {
+    if (!showPreview || dimensions.length === 0) return [];
 
-  const handleDragOver = (e: React.DragEvent, dimId: string, optionName: string, setName: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (!dragInfo || dragInfo.dimId !== dimId || dragInfo.optionName !== optionName || dragInfo.setName === setName) return;
-    setDragOver({ dimId, optionName, setName });
-  };
+    // Merge tokens according to the stacking model
+    const merged: Record<string, { value: any; set: string; layer: string }> = {};
 
-  const handleDrop = async (e: React.DragEvent, dimId: string, optionName: string, targetSetName: string) => {
-    e.preventDefault();
-    if (!dragInfo || dragInfo.dimId !== dimId || dragInfo.optionName !== optionName) return;
-    const dim = dimensions.find(d => d.id === dimId);
-    const opt = dim?.options.find(o => o.name === optionName);
-    if (!opt) return;
-    const order = [...(optionSetOrders[dimId]?.[optionName] || sets)];
-    const fromIdx = order.indexOf(dragInfo.setName);
-    const toIdx = order.indexOf(targetSetName);
-    setDragInfo(null);
-    setDragOver(null);
-    if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
-    const newOrder = [...order];
-    newOrder.splice(fromIdx, 1);
-    newOrder.splice(toIdx, 0, dragInfo.setName);
-    const previousOrder = order;
-    setOptionSetOrders(prev => ({
-      ...prev,
-      [dimId]: { ...(prev[dimId] || {}), [optionName]: newOrder },
-    }));
-    const reorderedSets: Record<string, 'enabled' | 'disabled' | 'source'> = {};
-    for (const s of newOrder) {
-      reorderedSets[s] = opt.sets[s] ?? 'disabled';
-    }
-    try {
-      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: optionName, sets: reorderedSets }),
-      });
-      if (!res.ok) {
-        const body = await res.text().catch(() => '');
-        throw new Error(body || `Server returned ${res.status}`);
+    // Apply dimensions bottom to top (last dimension = lowest priority, first = highest)
+    for (let i = dimensions.length - 1; i >= 0; i--) {
+      const dim = dimensions[i];
+      const optName = selectedOptions[dim.id];
+      const opt = dim.options.find(o => o.name === optName);
+      if (!opt) continue;
+
+      // Foundation sets first (can be overridden)
+      for (const [setName, status] of Object.entries(opt.sets)) {
+        if (status !== 'source') continue;
+        const tokens = setTokenValues[setName];
+        if (!tokens) continue;
+        for (const [path, value] of Object.entries(tokens)) {
+          merged[path] = { value, set: setName, layer: `${dim.name} / Foundation` };
+        }
       }
-    } catch (err) {
-      setOptionSetOrders(prev => ({
-        ...prev,
-        [dimId]: { ...(prev[dimId] || {}), [optionName]: previousOrder },
-      }));
-      setError(getErrorMessage(err, 'Failed to save set order'));
-    }
-  };
-
-  const handleDragEnd = () => {
-    setDragInfo(null);
-    setDragOver(null);
-  };
-
-  const handleKeyboardReorder = async (dimId: string, optionName: string, setName: string, direction: 'up' | 'down') => {
-    const dim = dimensions.find(d => d.id === dimId);
-    const opt = dim?.options.find(o => o.name === optionName);
-    if (!opt) return;
-    const order = [...(optionSetOrders[dimId]?.[optionName] || sets)];
-    const idx = order.indexOf(setName);
-    if (idx === -1) return;
-    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= order.length) return;
-    const newOrder = [...order];
-    newOrder.splice(idx, 1);
-    newOrder.splice(targetIdx, 0, setName);
-    const previousOrder = order;
-    setOptionSetOrders(prev => ({
-      ...prev,
-      [dimId]: { ...(prev[dimId] || {}), [optionName]: newOrder },
-    }));
-    const reorderedSets: Record<string, 'enabled' | 'disabled' | 'source'> = {};
-    for (const s of newOrder) {
-      reorderedSets[s] = opt.sets[s] ?? 'disabled';
-    }
-    try {
-      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: optionName, sets: reorderedSets }),
-      });
-      if (!res.ok) {
-        const body = await res.text().catch(() => '');
-        throw new Error(body || `Server returned ${res.status}`);
+      // Override sets (take priority)
+      for (const [setName, status] of Object.entries(opt.sets)) {
+        if (status !== 'enabled') continue;
+        const tokens = setTokenValues[setName];
+        if (!tokens) continue;
+        for (const [path, value] of Object.entries(tokens)) {
+          merged[path] = { value, set: setName, layer: `${dim.name} / Override` };
+        }
       }
-    } catch (err) {
-      setOptionSetOrders(prev => ({
-        ...prev,
-        [dimId]: { ...(prev[dimId] || {}), [optionName]: previousOrder },
-      }));
-      setError(getErrorMessage(err, 'Failed to save set order'));
     }
+
+    // Resolve aliases
+    const resolveAlias = (value: any, depth = 0): any => {
+      if (depth > 10 || typeof value !== 'string') return value;
+      const m = /^\{([^}]+)\}$/.exec(value);
+      if (!m) return value;
+      const target = m[1];
+      if (merged[target]) return resolveAlias(merged[target].value, depth + 1);
+      return value;
+    };
+
+    let entries = Object.entries(merged).map(([path, info]) => ({
+      path,
+      rawValue: info.value,
+      resolvedValue: resolveAlias(info.value),
+      set: info.set,
+      layer: info.layer,
+    }));
+
+    if (previewSearch) {
+      const term = previewSearch.toLowerCase();
+      entries = entries.filter(e =>
+        e.path.toLowerCase().includes(term) ||
+        e.set.toLowerCase().includes(term) ||
+        String(e.resolvedValue).toLowerCase().includes(term)
+      );
+    }
+
+    return entries.slice(0, 50);
+  }, [showPreview, dimensions, selectedOptions, setTokenValues, previewSearch]);
+
+  // --- Render helpers ---
+
+  const renderSetRow = (dim: ThemeDimension, opt: ThemeOption, setName: string, status: string) => {
+    const isSaving = savingKeys.has(`${dim.id}/${opt.name}/${setName}`);
+    const saveKey = `${dim.id}/${opt.name}/${setName}`;
+    return (
+      <div
+        key={setName}
+        className={`group/setrow flex items-center gap-1.5 px-2 py-0.5 transition-colors hover:bg-[var(--color-figma-bg-hover)] ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}
+        onContextMenu={e => {
+          e.preventDefault();
+          const x = Math.min(e.clientX, window.innerWidth - 180);
+          const y = Math.min(e.clientY, window.innerHeight - 120);
+          setBulkMenu({ x, y, dimId: dim.id, setName });
+        }}
+      >
+        <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate" title={setName}>{setName}</span>
+        <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[9px] font-medium">
+          {(['disabled', 'source', 'enabled'] as const).map(s => (
+            <button
+              key={s}
+              onClick={() => { if (status !== s) handleSetState(dim.id, opt.name, setName, s); }}
+              className={`px-1.5 py-0.5 transition-colors ${
+                status === s
+                  ? s === 'source'
+                    ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]'
+                    : s === 'enabled'
+                    ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]'
+                    : 'bg-[var(--color-figma-border)]/60 text-[var(--color-figma-text-secondary)]'
+                  : 'text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
+              }`}
+              title={STATE_DESCRIPTIONS[s]}
+              aria-pressed={status === s}
+            >
+              {STATE_LABELS[s]}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderValuePreview = (value: any) => {
+    if (typeof value === 'string') {
+      // Color preview
+      if (/^#[0-9a-fA-F]{6,8}$/.test(value)) {
+        return (
+          <span className="flex items-center gap-1">
+            <span
+              className="inline-block w-3 h-3 rounded border border-[var(--color-figma-border)]"
+              style={{ backgroundColor: value }}
+            />
+            <span className="font-mono text-[9px]">{value}</span>
+          </span>
+        );
+      }
+      // Alias reference
+      if (/^\{[^}]+\}$/.test(value)) {
+        return <span className="font-mono text-[9px] text-[var(--color-figma-warning)]">{value}</span>;
+      }
+    }
+    return <span className="font-mono text-[9px]">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>;
   };
 
   if (!connected) {
@@ -657,17 +749,27 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
   return (
     <div className="flex flex-col h-full">
       {error && (
-        <div className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
-          {error}
+        <div className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-2 text-[var(--color-figma-error)] hover:opacity-70 flex-shrink-0">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto">
         {dimensions.length === 0 && !showCreateDim ? (
+          /* Empty state */
           <div className="flex flex-col items-center justify-center py-6 text-center px-4">
-            <p className="text-[12px] font-medium text-[var(--color-figma-text)]">No theme dimensions yet</p>
-            <p className="text-[10px] mt-1 text-[var(--color-figma-text-secondary)] leading-relaxed">
-              Dimensions are axes of variation — multiple can be active at once.
+            <div className="w-10 h-10 rounded-lg bg-[var(--color-figma-accent)]/10 flex items-center justify-center mb-3">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="6" rx="1.5" />
+                <rect x="3" y="12" width="18" height="6" rx="1.5" opacity="0.5" />
+              </svg>
+            </div>
+            <p className="text-[12px] font-medium text-[var(--color-figma-text)]">No theme layers yet</p>
+            <p className="text-[10px] mt-1 text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[220px]">
+              Layers stack from top to bottom. Each layer is a dimension (like Color Mode or Brand) with options that control which token sets are active.
             </p>
 
             <div className="mt-4 w-full max-w-[240px] flex flex-col gap-1.5">
@@ -692,408 +794,442 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               onClick={() => setShowCreateDim(true)}
               className="mt-3 text-[10px] text-[var(--color-figma-accent)] hover:underline"
             >
-              or create a custom dimension
+              or create a custom layer
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
-            {dimensions.map(dim => (
-              <div
-                key={dim.id}
-                ref={dim.id === newlyCreatedDim ? (el) => { if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } } : undefined}
-                className="rounded border border-[var(--color-figma-border)] overflow-hidden"
-              >
-                {/* Dimension header */}
-                <div className="flex items-center justify-between px-3 py-2 bg-[var(--color-figma-bg-secondary)]">
-                  {renameDim === dim.id ? (
-                    <div className="flex flex-col gap-1 flex-1 mr-2">
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="text"
-                          value={renameValue}
-                          onChange={e => { setRenameValue(e.target.value); setRenameError(null); }}
-                          onKeyDown={e => { if (e.key === 'Enter') executeRenameDim(); else if (e.key === 'Escape') cancelRenameDim(); }}
-                          className={`flex-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${renameError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
-                          autoFocus
-                        />
-                        <button onClick={executeRenameDim} disabled={!renameValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
-                        <button onClick={cancelRenameDim} className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
-                      </div>
-                      {renameError && <p className="text-[9px] text-[var(--color-figma-error)]">{renameError}</p>}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 flex-1 min-w-0 group">
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-medium truncate" title={dim.name}>{dim.name}</span>
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">· {dim.options.length} option{dim.options.length !== 1 ? 's' : ''}</span>
+          <div className="flex flex-col">
+            {/* Stack header */}
+            <div className="px-3 py-2 flex items-center justify-between border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+              <div className="flex items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                  <path d="M2 17l10 5 10-5" />
+                  <path d="M2 12l10 5 10-5" />
+                </svg>
+                Layer Stack
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowPreview(p => !p)}
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${
+                    showPreview
+                      ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
+                      : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                  }`}
+                  title="Toggle live token preview"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  Preview
+                </button>
+              </div>
+            </div>
+
+            {/* Priority hint */}
+            {dimensions.length > 1 && (
+              <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)]/50 border-b border-[var(--color-figma-border)] flex items-center gap-1">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+                Higher priority
+                <span className="flex-1 border-b border-dotted border-[var(--color-figma-border)] mx-1" />
+                Lower priority
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+              </div>
+            )}
+
+            {/* Dimension layer cards */}
+            <div className="flex flex-col">
+              {dimensions.map((dim, dimIdx) => {
+                const selectedOpt = selectedOptions[dim.id] || dim.options[0]?.name || '';
+                const opt = dim.options.find(o => o.name === selectedOpt);
+                const optSets = opt ? (optionSetOrders[dim.id]?.[opt.name] || sets) : sets;
+                const layerNum = dimensions.length - dimIdx;
+
+                // Group sets by status
+                const overrideSets = optSets.filter(s => opt?.sets[s] === 'enabled');
+                const foundationSets = optSets.filter(s => opt?.sets[s] === 'source');
+                const disabledSets = optSets.filter(s => !opt?.sets[s] || opt?.sets[s] === 'disabled');
+                const isDisabledCollapsed = collapsedDisabled.has(dim.id);
+
+                const covKey = `${dim.id}:${selectedOpt}`;
+                const hasUncovered = (coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0;
+                const staleSetNames = opt
+                  ? Object.entries(opt.sets).filter(([s, status]) => !sets.includes(s) && status !== 'disabled').map(([s]) => s)
+                  : [];
+
+                return (
+                  <div
+                    key={dim.id}
+                    ref={dim.id === newlyCreatedDim ? (el) => { if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } : undefined}
+                    className="border-b border-[var(--color-figma-border)]"
+                  >
+                    {/* Layer header */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] group">
+                      {/* Layer number badge */}
+                      <span className="flex items-center justify-center w-4 h-4 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[9px] font-bold flex-shrink-0" title={`Layer ${layerNum} — ${dimIdx === 0 ? 'highest' : dimIdx === dimensions.length - 1 ? 'lowest' : ''} priority`}>
+                        {layerNum}
+                      </span>
+
+                      {renameDim === dim.id ? (
+                        <div className="flex flex-col gap-1 flex-1 min-w-0">
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={renameValue}
+                              onChange={e => { setRenameValue(e.target.value); setRenameError(null); }}
+                              onKeyDown={e => { if (e.key === 'Enter') executeRenameDim(); else if (e.key === 'Escape') cancelRenameDim(); }}
+                              className={`flex-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${renameError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                              autoFocus
+                            />
+                            <button onClick={executeRenameDim} disabled={!renameValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
+                            <button onClick={cancelRenameDim} className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
+                          </div>
+                          {renameError && <p className="text-[9px] text-[var(--color-figma-error)]">{renameError}</p>}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-1 flex-1 min-w-0">
+                            <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate" title={dim.name}>{dim.name}</span>
+                            <button
+                              onClick={() => startRenameDim(dim.id, dim.name)}
+                              className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
+                              title="Rename layer" aria-label="Rename layer"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </button>
+                          </div>
                           <button
-                            onClick={() => startRenameDim(dim.id, dim.name)}
-                            className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
-                            title="Rename dimension"
-                            aria-label="Rename dimension"
+                            onClick={() => setDeleteConfirm({ type: 'dimension', id: dim.id })}
+                            className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100"
+                            title="Delete layer" aria-label="Delete layer"
                           >
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
                             </svg>
                           </button>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setDeleteConfirm({ type: 'dimension', id: dim.id })}
-                        className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] text-[10px] flex-shrink-0 opacity-0 group-hover:opacity-100"
-                        title="Delete dimension"
-                        aria-label="Delete dimension"
-                      >
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                        </svg>
-                      </button>
+                        </>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Dimension-level set filter — shown when there are enough sets to warrant filtering */}
-                {sets.length >= 5 && (
-                  <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]/30">
-                    <input
-                      type="text"
-                      placeholder="Filter sets…"
-                      value={dimSetFilters[dim.id] || ''}
-                      onChange={e => setDimSetFilters(prev => ({ ...prev, [dim.id]: e.target.value }))}
-                      className="w-full bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
-                    />
-                  </div>
-                )}
+                    {/* Option tabs */}
+                    {dim.options.length > 0 && (
+                      <div className="flex items-center gap-0 px-2 pt-1 pb-0 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-x-auto">
+                        {dim.options.map((o, oIdx) => (
+                          <button
+                            key={o.name}
+                            onClick={() => setSelectedOptions(prev => ({ ...prev, [dim.id]: o.name }))}
+                            className={`relative px-2.5 py-1 text-[10px] font-medium rounded-t transition-colors flex-shrink-0 ${
+                              selectedOpt === o.name
+                                ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-bg-secondary)]'
+                                : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'
+                            }`}
+                          >
+                            {o.name}
+                            {selectedOpt === o.name && (
+                              <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-[var(--color-figma-accent)] rounded-t" />
+                            )}
+                          </button>
+                        ))}
+                        {/* Add option inline */}
+                        {showAddOption[dim.id] ? null : (
+                          <button
+                            onClick={() => setShowAddOption(prev => ({ ...prev, [dim.id]: true }))}
+                            className="px-1.5 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] flex-shrink-0"
+                            title="Add option"
+                          >
+                            +
+                          </button>
+                        )}
+                      </div>
+                    )}
 
-                {/* Options */}
-                {dim.options.length > 0 && (
-                  <div className="divide-y divide-[var(--color-figma-border)]">
-                    {dim.options.map(opt => {
-                      const covKey = `${dim.id}:${opt.name}`;
-                      const hasUncovered = (coverage[dim.id]?.[opt.name]?.uncovered.length ?? 0) > 0;
-                      const staleSetNames = Object.entries(opt.sets)
-                        .filter(([s, status]) => !sets.includes(s) && status !== 'disabled')
-                        .map(([s]) => s);
-                      const hasStale = staleSetNames.length > 0;
-                      const optSets = optionSetOrders[dim.id]?.[opt.name] || sets;
-                      const setSearchTerm = (dimSetFilters[dim.id] || '').toLowerCase().trim();
-                      const filteredOptSets = setSearchTerm ? optSets.filter(s => s.toLowerCase().includes(setSearchTerm)) : optSets;
-                      return (
-                        <div key={opt.name} className="group/opt">
-                          {/* Option header row */}
-                          <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]/50 border-t border-[var(--color-figma-border)]">
-                            {renameOption?.dimId === dim.id && renameOption?.optionName === opt.name ? (
-                              <div className="flex flex-col gap-1 flex-1">
-                                <div className="flex items-center gap-1">
-                                  <input
-                                    type="text"
-                                    value={renameOptionValue}
-                                    onChange={e => { setRenameOptionValue(e.target.value); setRenameOptionError(null); }}
-                                    onKeyDown={e => { if (e.key === 'Enter') executeRenameOption(); else if (e.key === 'Escape') cancelRenameOption(); }}
-                                    className={`flex-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${renameOptionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
-                                    autoFocus
-                                  />
-                                  <button onClick={executeRenameOption} disabled={!renameOptionValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[9px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
-                                  <button onClick={cancelRenameOption} className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
-                                </div>
-                                {renameOptionError && <p className="text-[9px] text-[var(--color-figma-error)]">{renameOptionError}</p>}
+                    {/* Add option input (when no options exist or user clicked +) */}
+                    {(showAddOption[dim.id] || dim.options.length === 0) && (
+                      <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+                        <div className="flex items-center gap-1">
+                          <input
+                            ref={el => { addOptionInputRefs.current[dim.id] = el; }}
+                            type="text"
+                            value={newOptionNames[dim.id] || ''}
+                            onChange={e => { setNewOptionNames(prev => ({ ...prev, [dim.id]: e.target.value })); setAddOptionErrors(prev => ({ ...prev, [dim.id]: '' })); }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') handleAddOption(dim.id);
+                              if (e.key === 'Escape') { setShowAddOption(prev => ({ ...prev, [dim.id]: false })); setNewOptionNames(prev => ({ ...prev, [dim.id]: '' })); }
+                            }}
+                            placeholder={dim.options.length === 0 ? 'First option (e.g. Light, Dark)' : 'Option name'}
+                            className={`flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${addOptionErrors[dim.id] ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                            autoFocus
+                          />
+                          <button onClick={() => handleAddOption(dim.id)} disabled={!newOptionNames[dim.id]?.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Add</button>
+                          {dim.options.length > 0 && (
+                            <button onClick={() => { setShowAddOption(prev => ({ ...prev, [dim.id]: false })); setNewOptionNames(prev => ({ ...prev, [dim.id]: '' })); }} className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
+                          )}
+                        </div>
+                        {addOptionErrors[dim.id] && <p className="text-[9px] text-[var(--color-figma-error)] mt-1">{addOptionErrors[dim.id]}</p>}
+                      </div>
+                    )}
+
+                    {/* Selected option content */}
+                    {opt && (
+                      <div className="bg-[var(--color-figma-bg-secondary)]">
+                        {/* Option actions bar */}
+                        <div className="flex items-center justify-between px-3 py-1 border-t border-[var(--color-figma-border)]">
+                          {renameOption?.dimId === dim.id && renameOption?.optionName === opt.name ? (
+                            <div className="flex flex-col gap-1 flex-1">
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={renameOptionValue}
+                                  onChange={e => { setRenameOptionValue(e.target.value); setRenameOptionError(null); }}
+                                  onKeyDown={e => { if (e.key === 'Enter') executeRenameOption(); else if (e.key === 'Escape') cancelRenameOption(); }}
+                                  className={`flex-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${renameOptionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                                  autoFocus
+                                />
+                                <button onClick={executeRenameOption} disabled={!renameOptionValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[9px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
+                                <button onClick={cancelRenameOption} className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
                               </div>
-                            ) : (
+                              {renameOptionError && <p className="text-[9px] text-[var(--color-figma-error)]">{renameOptionError}</p>}
+                            </div>
+                          ) : (
                             <>
-                            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                              <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{opt.name}</span>
-                              {hasUncovered && (
-                                <button
-                                  onClick={() => setExpandedCoverage(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
-                                  className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/40 hover:bg-[var(--color-figma-warning)]/25 transition-colors flex-shrink-0"
-                                  title={`${coverage[dim.id][opt.name].uncovered.length} tokens have no value in active sets`}
-                                >
-                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                  {coverage[dim.id][opt.name].uncovered.length} gaps
-                                </button>
-                              )}
-                              {hasStale && (
-                                <button
-                                  onClick={() => setExpandedStale(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
-                                  className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] border border-[var(--color-figma-error)]/40 hover:bg-[var(--color-figma-error)]/25 transition-colors flex-shrink-0"
-                                  title={`${staleSetNames.length} set${staleSetNames.length !== 1 ? 's' : ''} referenced here no longer exist`}
-                                >
-                                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                                  {staleSetNames.length} deleted set{staleSetNames.length !== 1 ? 's' : ''}
-                                </button>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-0.5 opacity-0 group-hover/opt:opacity-100">
-                              {dim.options.length > 1 && (
-                                <>
+                              <div className="flex items-center gap-1">
+                                {hasUncovered && (
                                   <button
-                                    onClick={() => handleMoveOption(dim.id, opt.name, 'up')}
-                                    disabled={dim.options.indexOf(opt) === 0}
-                                    className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0 disabled:opacity-25 disabled:pointer-events-none"
-                                    title="Move up"
-                                    aria-label="Move option up"
+                                    onClick={() => setExpandedCoverage(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
+                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/40 hover:bg-[var(--color-figma-warning)]/25 transition-colors"
+                                    title={`${coverage[dim.id][selectedOpt].uncovered.length} tokens have no value in active sets`}
                                   >
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M18 15l-6-6-6 6" />
-                                    </svg>
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                    {coverage[dim.id][selectedOpt].uncovered.length} gaps
                                   </button>
+                                )}
+                                {staleSetNames.length > 0 && (
                                   <button
-                                    onClick={() => handleMoveOption(dim.id, opt.name, 'down')}
-                                    disabled={dim.options.indexOf(opt) === dim.options.length - 1}
-                                    className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0 disabled:opacity-25 disabled:pointer-events-none"
-                                    title="Move down"
-                                    aria-label="Move option down"
+                                    onClick={() => setExpandedStale(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
+                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] border border-[var(--color-figma-error)]/40 hover:bg-[var(--color-figma-error)]/25 transition-colors"
+                                    title={`${staleSetNames.length} set${staleSetNames.length !== 1 ? 's' : ''} referenced here no longer exist`}
                                   >
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <path d="M6 9l6 6 6-6" />
-                                    </svg>
+                                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                    {staleSetNames.length} stale
                                   </button>
-                                </>
-                              )}
-                              <button
-                                onClick={() => startRenameOption(dim.id, opt.name)}
-                                className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
-                                title="Rename option"
-                                aria-label="Rename option"
-                              >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
-                                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => handleDuplicateOption(dim.id, opt.name)}
-                                className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] flex-shrink-0"
-                                title="Duplicate option"
-                                aria-label="Duplicate option"
-                              >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-                                </svg>
-                              </button>
-                              <button
-                                onClick={() => setDeleteConfirm({ type: 'option', dimId: dim.id, optionName: opt.name })}
-                                className="p-0.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)] flex-shrink-0"
-                                title="Delete option"
-                                aria-label="Delete option"
-                              >
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
-                                </svg>
-                              </button>
-                            </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-0.5">
+                                {dim.options.length > 1 && (
+                                  <>
+                                    <button onClick={() => handleMoveOption(dim.id, opt.name, 'up')} disabled={dim.options.indexOf(opt) === 0} className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-25 disabled:pointer-events-none" title="Move option left" aria-label="Move option left">
+                                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+                                    </button>
+                                    <button onClick={() => handleMoveOption(dim.id, opt.name, 'down')} disabled={dim.options.indexOf(opt) === dim.options.length - 1} className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] disabled:opacity-25 disabled:pointer-events-none" title="Move option right" aria-label="Move option right">
+                                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6" /></svg>
+                                    </button>
+                                  </>
+                                )}
+                                <button onClick={() => startRenameOption(dim.id, opt.name)} className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]" title="Rename option" aria-label="Rename option">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                                    <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                  </svg>
+                                </button>
+                                <button onClick={() => handleDuplicateOption(dim.id, opt.name)} className="p-0.5 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]" title="Duplicate option" aria-label="Duplicate option">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+                                  </svg>
+                                </button>
+                                <button onClick={() => setDeleteConfirm({ type: 'option', dimId: dim.id, optionName: opt.name })} className="p-0.5 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)]" title="Delete option" aria-label="Delete option">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                                  </svg>
+                                </button>
+                              </div>
                             </>
+                          )}
+                        </div>
+
+                        {/* Set groups */}
+                        {sets.length > 0 && (
+                          <div className="border-t border-[var(--color-figma-border)]">
+                            {/* Override section */}
+                            {overrideSets.length > 0 && (
+                              <div>
+                                <div className="px-3 py-0.5 flex items-center gap-1 text-[9px] font-medium text-[var(--color-figma-success)] bg-[var(--color-figma-success)]/5">
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
+                                  Override ({overrideSets.length})
+                                  <span className="text-[var(--color-figma-text-tertiary)] font-normal ml-1">highest priority</span>
+                                </div>
+                                {overrideSets.map(s => renderSetRow(dim, opt, s, 'enabled'))}
+                              </div>
+                            )}
+
+                            {/* Foundation section */}
+                            {foundationSets.length > 0 && (
+                              <div>
+                                <div className="px-3 py-0.5 flex items-center gap-1 text-[9px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5">
+                                  <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="3" opacity="0.3" /></svg>
+                                  Foundation ({foundationSets.length})
+                                  <span className="text-[var(--color-figma-text-tertiary)] font-normal ml-1">base defaults</span>
+                                </div>
+                                {foundationSets.map(s => renderSetRow(dim, opt, s, 'source'))}
+                              </div>
+                            )}
+
+                            {/* Not included section — collapsed by default */}
+                            {disabledSets.length > 0 && (
+                              <div>
+                                <button
+                                  onClick={() => setCollapsedDisabled(prev => {
+                                    const next = new Set(prev);
+                                    next.has(dim.id) ? next.delete(dim.id) : next.add(dim.id);
+                                    return next;
+                                  })}
+                                  className="w-full px-3 py-0.5 flex items-center gap-1 text-[9px] font-medium text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-left"
+                                >
+                                  <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isDisabledCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
+                                  Not included ({disabledSets.length})
+                                </button>
+                                {isDisabledCollapsed && disabledSets.map(s => renderSetRow(dim, opt, s, 'disabled'))}
+                              </div>
+                            )}
+
+                            {/* All sets are in one group — show empty hint */}
+                            {overrideSets.length === 0 && foundationSets.length === 0 && disabledSets.length > 0 && !isDisabledCollapsed && (
+                              <div className="px-3 py-2 text-[9px] text-[var(--color-figma-text-tertiary)] italic">
+                                No sets assigned yet. Expand &ldquo;Not included&rdquo; and assign sets as Foundation or Override.
+                              </div>
                             )}
                           </div>
+                        )}
 
-                          {/* Set matrix for this option */}
-                          {sets.length > 0 && (
-                            <>
-                              <div className="flex items-center px-3 py-0.5 bg-[var(--color-figma-bg-secondary)] gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)]">
-                                <span className="font-medium text-[var(--color-figma-text-secondary)]">Not included</span>
-                                <span>= skipped</span>
-                                <span className="opacity-40">·</span>
-                                <span className="font-medium text-[var(--color-figma-accent)]">Foundation</span>
-                                <span>= base layer</span>
-                                <span className="opacity-40">·</span>
-                                <span className="font-medium text-[var(--color-figma-success)]">Override</span>
-                                <span>= top layer</span>
-                                <span className="opacity-40">·</span>
-                                <button
-                                  className="inline-flex items-center gap-0.5 text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors cursor-help"
-                                  title={"How layering works:\n\n┌─────────────────────────┐\n│  Override sets (top)    │ ← Highest priority\n│  Tokens here win.       │\n├─────────────────────────┤\n│  Foundation sets        │ ← Provides defaults\n│  Overridden if conflict │\n├─────────────────────────┤\n│  Not included           │\n│  (ignored entirely)     │\n└─────────────────────────┘\n\nWhen two sets define the same token,\nthe Override layer takes priority\nover the Foundation layer.\n\nDrag sets to reorder priority\nwithin the same layer."}
-                                >
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
-                                    <line x1="12" y1="17" x2="12.01" y2="17" />
-                                  </svg>
-                                  <span>How it works</span>
-                                </button>
-                              </div>
-                              <div className="divide-y divide-[var(--color-figma-border)]">
-                                {filteredOptSets.length === 0 ? (
-                                  <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)] italic">No sets match &ldquo;{dimSetFilters[dim.id]}&rdquo;</div>
-                                ) : filteredOptSets.map(setName => {
-                                  const state = opt.sets[setName] || 'disabled';
-                                  const isSaving = savingKeys.has(`${dim.id}/${opt.name}/${setName}`);
-                                  const isDropTarget = dragOver?.dimId === dim.id && dragOver?.optionName === opt.name && dragOver?.setName === setName;
-                                  const isDragging = dragInfo?.dimId === dim.id && dragInfo?.optionName === opt.name && dragInfo?.setName === setName;
-                                  return (
-                                    <div
-                                      key={setName}
-                                      draggable
-                                      onDragStart={e => handleDragStart(e, dim.id, opt.name, setName)}
-                                      onDragOver={e => handleDragOver(e, dim.id, opt.name, setName)}
-                                      onDrop={e => handleDrop(e, dim.id, opt.name, setName)}
-                                      onDragEnd={handleDragEnd}
-                                      onContextMenu={e => {
-                                        e.preventDefault();
-                                        const x = Math.min(e.clientX, window.innerWidth - 180);
-                                        const y = Math.min(e.clientY, window.innerHeight - 120);
-                                        setBulkMenu({ x, y, dimId: dim.id, setName });
-                                      }}
-                                      className={`group/setrow flex items-center justify-between px-3 py-1 transition-colors ${
-                                        isDropTarget
-                                          ? 'bg-[var(--color-figma-accent)]/10 border-l-2 border-l-[var(--color-figma-accent)]'
-                                          : isDragging
-                                          ? 'opacity-40'
-                                          : 'hover:bg-[var(--color-figma-bg-hover)]'
-                                      }`}
-                                    >
-                                      <span className="mr-2 text-[var(--color-figma-text-tertiary)] cursor-grab active:cursor-grabbing flex-shrink-0 select-none" title="Drag to reorder" aria-hidden="true">
-                                        <svg width="8" height="12" viewBox="0 0 8 12" fill="currentColor">
-                                          <circle cx="2" cy="2" r="1"/><circle cx="6" cy="2" r="1"/>
-                                          <circle cx="2" cy="6" r="1"/><circle cx="6" cy="6" r="1"/>
-                                          <circle cx="2" cy="10" r="1"/><circle cx="6" cy="10" r="1"/>
-                                        </svg>
-                                      </span>
-                                      <span className="text-[11px] text-[var(--color-figma-text)] flex-1 truncate" title={setName}>{setName}</span>
-                                      <div className={`flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[9px] font-medium transition-opacity ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
-                                        {(['disabled', 'source', 'enabled'] as const).map(s => (
-                                          <button
-                                            key={s}
-                                            onClick={() => { if (state !== s) handleSetState(dim.id, opt.name, setName, s); }}
-                                            className={`px-1.5 py-0.5 transition-colors ${
-                                              state === s
-                                                ? s === 'source'
-                                                  ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]'
-                                                  : s === 'enabled'
-                                                  ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]'
-                                                  : 'bg-[var(--color-figma-border)]/60 text-[var(--color-figma-text-secondary)]'
-                                                : 'text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)]'
-                                            }`}
-                                            title={STATE_DESCRIPTIONS[s]}
-                                            aria-pressed={state === s}
-                                          >
-                                            {STATE_LABELS[s]}
-                                          </button>
-                                        ))}
-                                      </div>
-                                      <div className="flex flex-col ml-1 opacity-0 group-hover/setrow:opacity-100 focus-within:opacity-100 transition-opacity">
-                                        <button
-                                          onClick={() => handleKeyboardReorder(dim.id, opt.name, setName, 'up')}
-                                          disabled={optSets.indexOf(setName) === 0}
-                                          title="Move up (higher precedence)"
-                                          aria-label="Move up"
-                                          className="px-0.5 py-px text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] disabled:opacity-30 disabled:cursor-not-allowed leading-none"
-                                        >
-                                          <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M4 0L8 5H0z"/></svg>
-                                        </button>
-                                        <button
-                                          onClick={() => handleKeyboardReorder(dim.id, opt.name, setName, 'down')}
-                                          disabled={optSets.indexOf(setName) === optSets.length - 1}
-                                          title="Move down (lower precedence)"
-                                          aria-label="Move down"
-                                          className="px-0.5 py-px text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] disabled:opacity-30 disabled:cursor-not-allowed leading-none"
-                                        >
-                                          <svg width="8" height="5" viewBox="0 0 8 5" fill="currentColor"><path d="M4 5L0 0h8z"/></svg>
-                                        </button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </>
-                          )}
-
-                          {/* Coverage gaps */}
-                          {expandedCoverage.has(covKey) && (coverage[dim.id]?.[opt.name]?.uncovered.length ?? 0) > 0 && (
-                            <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/10 px-3 py-2">
-                              <div className="text-[10px] font-medium text-[var(--color-figma-warning)] mb-1">
-                                Missing values ({coverage[dim.id][opt.name].uncovered.length})
-                              </div>
-                              <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can't be resolved within the active sets.</p>
-                              <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
-                                {coverage[dim.id][opt.name].uncovered.map(item => (
-                                  onNavigateToToken && item.set ? (
-                                    <button
-                                      key={item.path}
-                                      onClick={() => onNavigateToToken(item.set, item.path)}
-                                      className="text-left text-[9px] text-[var(--color-figma-warning)] font-mono truncate hover:underline cursor-pointer"
-                                      title={`Navigate to ${item.path} in set "${item.set}"`}
-                                    >
-                                      {item.path}
-                                    </button>
-                                  ) : (
-                                    <div key={item.path} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate">{item.path}</div>
-                                  )
-                                ))}
-                              </div>
+                        {/* Coverage gaps */}
+                        {expandedCoverage.has(covKey) && (coverage[dim.id]?.[selectedOpt]?.uncovered.length ?? 0) > 0 && (
+                          <div className="border-t border-[var(--color-figma-warning)]/25 bg-[var(--color-figma-warning)]/10 px-3 py-2">
+                            <div className="text-[10px] font-medium text-[var(--color-figma-warning)] mb-1">
+                              Missing values ({coverage[dim.id][selectedOpt].uncovered.length})
                             </div>
-                          )}
-                          {expandedStale.has(covKey) && hasStale && (
-                            <div className="border-t border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/10 px-3 py-2">
-                              <div className="text-[10px] font-medium text-[var(--color-figma-error)] mb-1">
-                                Deleted sets ({staleSetNames.length})
-                              </div>
-                              <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These sets are referenced as active or base in this option but no longer exist. Their tokens are silently skipped when applying this theme.</p>
-                              <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
-                                {staleSetNames.map(s => (
-                                  <div key={s} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate" title={s}>{s}</div>
-                                ))}
-                              </div>
+                            <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can't be resolved within the active sets.</p>
+                            <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
+                              {coverage[dim.id][selectedOpt].uncovered.map(item => (
+                                onNavigateToToken && item.set ? (
+                                  <button
+                                    key={item.path}
+                                    onClick={() => onNavigateToToken(item.set, item.path)}
+                                    className="text-left text-[9px] text-[var(--color-figma-warning)] font-mono truncate hover:underline cursor-pointer"
+                                    title={`Navigate to ${item.path} in set "${item.set}"`}
+                                  >
+                                    {item.path}
+                                  </button>
+                                ) : (
+                                  <div key={item.path} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate">{item.path}</div>
+                                )
+                              ))}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Add option */}
-                <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-                  {showAddOption[dim.id] ? (
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1">
-                        <input
-                          ref={el => { addOptionInputRefs.current[dim.id] = el; }}
-                          type="text"
-                          value={newOptionNames[dim.id] || ''}
-                          onChange={e => { setNewOptionNames(prev => ({ ...prev, [dim.id]: e.target.value })); setAddOptionErrors(prev => ({ ...prev, [dim.id]: '' })); }}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') handleAddOption(dim.id);
-                            if (e.key === 'Escape') { setShowAddOption(prev => ({ ...prev, [dim.id]: false })); setNewOptionNames(prev => ({ ...prev, [dim.id]: '' })); }
-                          }}
-                          placeholder="Option name (e.g. Light, Dark)"
-                          className={`flex-1 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${addOptionErrors[dim.id] ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => handleAddOption(dim.id)}
-                          disabled={!newOptionNames[dim.id]?.trim()}
-                          className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
-                        >
-                          Add
-                        </button>
-                        <button
-                          onClick={() => { setShowAddOption(prev => ({ ...prev, [dim.id]: false })); setNewOptionNames(prev => ({ ...prev, [dim.id]: '' })); }}
-                          className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
-                        >
-                          Cancel
-                        </button>
+                          </div>
+                        )}
+                        {expandedStale.has(covKey) && staleSetNames.length > 0 && (
+                          <div className="border-t border-[var(--color-figma-error)]/25 bg-[var(--color-figma-error)]/10 px-3 py-2">
+                            <div className="text-[10px] font-medium text-[var(--color-figma-error)] mb-1">
+                              Deleted sets ({staleSetNames.length})
+                            </div>
+                            <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These sets are referenced but no longer exist.</p>
+                            <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto">
+                              {staleSetNames.map(s => (
+                                <div key={s} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate" title={s}>{s}</div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      {addOptionErrors[dim.id] && <p className="text-[9px] text-[var(--color-figma-error)]">{addOptionErrors[dim.id]}</p>}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Live Token Resolution Preview */}
+            {showPreview && dimensions.length > 0 && (
+              <div className="border-t-2 border-[var(--color-figma-accent)]/30">
+                <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[10px] font-medium text-[var(--color-figma-text)]">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Token Resolution Preview
+                  </div>
+                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                    {dimensions.map(d => {
+                      const optName = selectedOptions[d.id];
+                      return optName ? `${d.name}: ${optName}` : null;
+                    }).filter(Boolean).join(' + ')}
+                  </span>
+                </div>
+                <div className="px-3 py-1 border-t border-[var(--color-figma-border)]">
+                  <input
+                    type="text"
+                    placeholder="Search tokens..."
+                    value={previewSearch}
+                    onChange={e => setPreviewSearch(e.target.value)}
+                    className="w-full bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1.5 py-0.5 text-[10px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {previewTokens.length === 0 ? (
+                    <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-tertiary)] text-center italic">
+                      {Object.keys(setTokenValues).length === 0
+                        ? 'No token data available'
+                        : dimensions.every(d => {
+                            const opt = d.options.find(o => o.name === selectedOptions[d.id]);
+                            return !opt || Object.values(opt.sets).every(s => s === 'disabled');
+                          })
+                        ? 'Assign sets as Foundation or Override to see resolved tokens'
+                        : previewSearch
+                        ? 'No matching tokens'
+                        : 'No tokens resolved with current selections'}
                     </div>
                   ) : (
-                    <button
-                      onClick={() => setShowAddOption(prev => ({ ...prev, [dim.id]: true }))}
-                      className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
-                    >
-                      + Add option
-                    </button>
+                    <table className="w-full text-[9px]">
+                      <thead>
+                        <tr className="text-left text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)]">
+                          <th className="px-3 py-0.5 font-medium">Token</th>
+                          <th className="px-2 py-0.5 font-medium">Value</th>
+                          <th className="px-2 py-0.5 font-medium text-right">Source</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--color-figma-border)]">
+                        {previewTokens.map(t => (
+                          <tr
+                            key={t.path}
+                            className="hover:bg-[var(--color-figma-bg-hover)] cursor-default"
+                            onClick={() => onNavigateToToken?.(t.set, t.path)}
+                            title={`${t.path}\nRaw: ${typeof t.rawValue === 'object' ? JSON.stringify(t.rawValue) : t.rawValue}\nFrom: ${t.set} (${t.layer})`}
+                          >
+                            <td className="px-3 py-0.5 font-mono text-[var(--color-figma-text)] truncate max-w-[120px]">{t.path}</td>
+                            <td className="px-2 py-0.5 text-[var(--color-figma-text-secondary)]">{renderValuePreview(t.resolvedValue)}</td>
+                            <td className="px-2 py-0.5 text-right text-[var(--color-figma-text-tertiary)] truncate max-w-[80px]" title={t.layer}>{t.set}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                  {previewTokens.length >= 50 && (
+                    <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] text-center border-t border-[var(--color-figma-border)]">
+                      Showing first 50 tokens. Use search to filter.
+                    </div>
                   )}
                 </div>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
 
-      {/* Create dimension */}
+      {/* Create dimension footer */}
       <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
         {showCreateDim ? (
           <div className="flex flex-col gap-2">
@@ -1101,7 +1237,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               type="text"
               value={newDimName}
               onChange={e => { setNewDimName(e.target.value); setCreateDimError(null); }}
-              placeholder="Dimension name (e.g. Color Mode, Brand)"
+              placeholder="Layer name (e.g. Color Mode, Brand)"
               className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${createDimError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               onKeyDown={e => e.key === 'Enter' && handleCreateDimension()}
               autoFocus
@@ -1113,7 +1249,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                 disabled={!newDimName}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
               >
-                Create
+                Create Layer
               </button>
               <button
                 onClick={() => { setShowCreateDim(false); setNewDimName(''); setCreateDimError(null); }}
@@ -1126,9 +1262,13 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         ) : (
           <button
             onClick={() => setShowCreateDim(true)}
-            className="w-full px-3 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] hover:border-[var(--color-figma-text-secondary)] transition-colors text-left"
+            className="w-full px-3 py-1.5 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] hover:border-[var(--color-figma-text-secondary)] transition-colors text-left flex items-center gap-1.5"
           >
-            + New dimension
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="6" rx="1.5" />
+              <rect x="3" y="12" width="18" height="6" rx="1.5" opacity="0.5" />
+            </svg>
+            New layer
           </button>
         )}
       </div>
@@ -1170,10 +1310,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       {/* Delete confirm modal */}
       {deleteConfirm && (
         <ConfirmModal
-          title={deleteConfirm.type === 'dimension' ? 'Delete dimension?' : 'Delete option?'}
+          title={deleteConfirm.type === 'dimension' ? 'Delete layer?' : 'Delete option?'}
           message={
             deleteConfirm.type === 'dimension'
-              ? `Delete dimension "${dimensions.find(d => d.id === deleteConfirm.id)?.name}"? All its options will also be deleted.`
+              ? `Delete layer "${dimensions.find(d => d.id === deleteConfirm.id)?.name}"? All its options will also be deleted.`
               : `Delete option "${deleteConfirm.optionName}" from "${dimensions.find(d => d.id === deleteConfirm.dimId)?.name}"?`
           }
           confirmLabel="Delete"

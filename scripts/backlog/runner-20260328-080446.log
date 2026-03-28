@@ -223,3 +223,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager is the most complex and least intuitive screen — the matrix of dimensions × options × sets × states doesn't help users build a mental model; redesign around a visual stacking model: dimensions as layers in a stack (top overrides bottom), options as tabs per layer, sets shown with "base" vs "override" clearly distinguished, plus a live preview showing "with these settings, token X resolves to Y"
   Worktree: /tmp/backlog-63685-f2MwwP
+
+  ✓ done: ThemeManager redesign: visual stacking model with layers, option tabs, grouped sets, and live preview
+    Redesigned ThemeManager around a layer-stack metaphor: dimensions as numbered priority layers, options as tabs per layer, sets grouped into Override/Foundation/Not included sections, plus a toggleable live token resolution preview panel showing how tokens resolve with current selections.
+    29 turns · 514s · $2.41
+
+--- Merging: ThemeManager redesign: visual stacking model with layers, option tabs, grouped sets, and live preview ---
+Already up to date.
