@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 
 --- Merging: ~170 raw fetch() calls across 37 UI files bypass shared apiFetch utility ---
 Already up to date.
+[main 902c0c4] chore(backlog): done – ~170 raw fetch() calls across 37 UI files bypass shared apiFetch utility
+ 5 files changed, 31 insertions(+), 2 deletions(-)
+
+## 2026-03-28 - ~170 raw fetch() calls across 37 UI files bypass shared apiFetch utility
+- Already done: all UI files already use `apiFetch` from `shared/apiFetch.ts` (230 occurrences across 43 files)
+- Only 3 raw `fetch()` calls remain: 1 in `apiFetch.ts` itself (the wrapper), 2 in `useServerConnection.ts` (intentional health-check pings that only need `res.ok`)
+- No changes needed
+
+===============================================================
+  Iteration 2  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Waiting for work…

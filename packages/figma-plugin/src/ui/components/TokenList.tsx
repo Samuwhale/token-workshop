@@ -24,7 +24,7 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density } from './tokenListTypes';
 import { VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
-import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions } from './tokenListHelpers';
+import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions, valuePlaceholderForType } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
 import { TokenTreeNode } from './TokenTreeNode';
 import { TokenTreeProvider } from './TokenTreeContext';
@@ -3608,7 +3608,7 @@ export function TokenList({
               )}
               <input
                 type="text"
-                placeholder="Value (optional, e.g. #FF0000, 16px)"
+                placeholder={valuePlaceholderForType(newTokenType)}
                 value={newTokenValue}
                 onChange={e => {
                   const val = e.target.value;

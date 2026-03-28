@@ -416,3 +416,13 @@
 - **Learnings for future iterations:**
   - This item was stale — the migration was completed in prior sessions
 ---
+
+## 2026-03-28 - Token create form: type-specific value field placeholders and hints
+- Added `valuePlaceholderForType()` function mapping each DTCG token type to contextual placeholder text
+- Replaced static "Value (optional, e.g. #FF0000, 16px)" with dynamic placeholder that updates when type changes
+- Covers all 13 types: color, dimension, typography, shadow, border, gradient, duration, fontFamily, fontWeight, strokeStyle, number, string, boolean
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` ~L395-420, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L27,3611
+- **Learnings for future iterations:**
+  - tokenListHelpers.tsx is the right place for pure UI utility functions used by the create form
+  - The type select dropdown has 13 options — make sure placeholder map covers all of them
+---

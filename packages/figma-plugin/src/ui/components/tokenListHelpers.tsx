@@ -390,3 +390,28 @@ export function highlightMatch(text: string, terms: string[]): React.ReactNode {
     </>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Type-specific placeholder text for the token value input
+// ---------------------------------------------------------------------------
+
+const VALUE_PLACEHOLDERS: Record<string, string> = {
+  color: '#hex, rgb(), oklch(), color(display-p3 …)',
+  dimension: '16px, 1rem, 0.5em',
+  typography: '{"fontFamily":"Inter","fontSize":"16px","fontWeight":400}',
+  shadow: '{"offsetX":"0px","offsetY":"4px","blur":"8px","color":"#00000040"}',
+  border: '{"color":"#000","width":"1px","style":"solid"}',
+  gradient: 'linear-gradient(#000, #fff)',
+  duration: '200ms, 0.3s',
+  fontFamily: 'Inter, Arial, sans-serif',
+  fontWeight: '400, bold, semi-bold',
+  strokeStyle: 'solid, dashed, dotted',
+  number: '1.5, 4, 100',
+  string: 'any text value',
+  boolean: 'true / false',
+};
+
+export function valuePlaceholderForType(type: string): string {
+  const hint = VALUE_PLACEHOLDERS[type];
+  return hint ? `Value (optional) — ${hint}` : 'Value (optional)';
+}
