@@ -147,3 +147,9 @@ Already up to date.
 
 --- Merging: Resolver invalidate() comment says BFS but uses DFS (queue.pop) ---
 Already up to date.
+[main 9d250f5] chore(backlog): done – Resolver invalidate() comment says BFS but uses DFS (queue.pop)
+ 6 files changed, 31 insertions(+), 4 deletions(-)
+
+--- Cleanup: archiving completed items (≥24) ---
+  → Archived 24 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 55)
