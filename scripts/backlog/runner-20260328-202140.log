@@ -100,3 +100,16 @@ Already up to date.
 
 --- Merging: `useSetMergeSplit` fetch calls missing `.ok` response checks ---
 Already up to date.
+[main 941574e] chore(backlog): done – `useSetMergeSplit` fetch calls missing `.ok` response checks
+ 7 files changed, 69 insertions(+), 13 deletions(-)
+
+## 2026-03-28 - `useSetMergeSplit` fetch calls missing `.ok` response checks
+- Added `checkedJson` and `checkedFetch` helpers that throw on non-ok HTTP responses
+- Applied response checks to all 7 fetch call sites: `handleCheckMergeConflicts` (2 GETs), `handleConfirmMerge` (1 GET + N writes), `openSplitDialog` (1 GET), `handleConfirmSplit` (1 GET + N creates + 1 delete)
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L28-34 (helpers), ~L82-83, ~L115, ~L138-140, ~L171, ~L198-199, ~L213-214
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  61 items remaining
+===============================================================
+  Claimed: Unsafe `as unknown as { dir: string }` cast in server resolvers.ts line 44 — bypasses type safety to access the private `dir` property of `ResolverStore`; a public getter or constructor param would be safer and survive refactors
+  Worktree: /tmp/backlog-9651-s9Y5DZ

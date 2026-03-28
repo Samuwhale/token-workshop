@@ -635,3 +635,10 @@
   - Every `fetch` → `.json()` without an `.ok` check is a silent-failure bug — the JSON parse may succeed on an error body but produce nonsensical data
   - Centralizing the check into a tiny helper (`checkedJson`/`checkedFetch`) keeps the diff small and the pattern consistent
 ---
+## 2026-03-28 - `useDragDrop` `handleDropReorder` has no error handling on the reorder fetch
+- Added try/catch and `res.ok` check to the reorder fetch in `handleDropReorder`, mirroring the existing pattern from `handleDropOnGroup`. On non-ok responses, calls `onError` with the server error message (or a fallback), refreshes the token list, and returns early without pushing undo state. On network errors, calls `onError` with a network error message. Added `onError` to the `useCallback` dependency array.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useDragDrop.ts` ~L150-166
+- **Learnings for future iterations:**
+  - `handleDropOnGroup` already had the correct error-handling pattern — `handleDropReorder` was simply missing it, an oversight when the function was written
+  - Always add the `onError` callback to the useCallback dep array when it's used inside the callback
+---

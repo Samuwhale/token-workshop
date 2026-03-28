@@ -119,7 +119,7 @@ export class TokenResolver {
 
   /**
    * Invalidate a token and every downstream dependent so they will be
-   * re-resolved on next access. Uses iterative BFS to avoid stack overflow
+   * re-resolved on next access. Uses iterative DFS to avoid stack overflow
    * on deep or circular dependency chains.
    */
   invalidate(path: string): void {

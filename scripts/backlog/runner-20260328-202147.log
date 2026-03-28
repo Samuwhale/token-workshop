@@ -140,3 +140,10 @@ Already up to date.
 ===============================================================
   Claimed: Resolver `invalidate()` comment says "iterative BFS" but uses `queue.pop()` (DFS) — line 122-128 of packages/core/src/resolver.ts; the traversal order doesn't affect correctness for invalidation but the stale comment is misleading
   Worktree: /tmp/backlog-10461-pHu0ch
+
+  ✓ done: Resolver invalidate() comment says BFS but uses DFS (queue.pop)
+    Fixed JSDoc comment on resolver.ts:122 — changed "iterative BFS" to "iterative DFS" to match queue.pop() (LIFO) traversal.
+    7 turns · 32s · $0.14
+
+--- Merging: Resolver invalidate() comment says BFS but uses DFS (queue.pop) ---
+Already up to date.
