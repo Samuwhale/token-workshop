@@ -160,8 +160,8 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
       return { filteredTokens: base.slice(0, MAX_TOKEN_BROWSE), totalTokenMatches: base.length };
     }
     if (!freeText) {
-      // Qualifiers only, no free text — return all qualifier-matched tokens
-      return { filteredTokens: base, totalTokenMatches: base.length };
+      // Qualifiers only, no free text
+      return { filteredTokens: base.slice(0, MAX_TOKEN_BROWSE), totalTokenMatches: base.length };
     }
     // Free text fuzzy matching on the qualifier-filtered set
     const matched = base
@@ -169,7 +169,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
       .filter(({ score }) => score > 0)
       .sort((a, b) => b.score - a.score)
       .map(({ t }) => t);
-    return { filteredTokens: matched, totalTokenMatches: matched.length };
+    return { filteredTokens: matched.slice(0, MAX_TOKEN_BROWSE), totalTokenMatches: matched.length };
   }, [isTokenMode, tokens, parsedTokenQuery, hasQualifiers]);
 
   // Normal command search
@@ -331,7 +331,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
           {/* Token search mode */}
           {isTokenMode && (
             <>
-              {hasQualifiers && filteredTokens.length > 0 && (
+              {(hasQualifiers || parsedTokenQuery.text) && filteredTokens.length > 0 && (
                 <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] border-b border-[var(--color-figma-border)]">
                   {totalTokenMatches} token{totalTokenMatches !== 1 ? 's' : ''} matched
                 </div>
@@ -392,9 +392,9 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                   )}
                 </div>
               ))}
-              {!tokenQuery && totalTokenMatches > MAX_TOKEN_BROWSE && (
+              {totalTokenMatches > MAX_TOKEN_BROWSE && (
                 <div className="px-3 py-2 text-center text-[10px] text-[var(--color-figma-text-secondary)] border-t border-[var(--color-figma-border)]">
-                  Showing first {MAX_TOKEN_BROWSE} of {totalTokenMatches} tokens — type to search all
+                  {MAX_TOKEN_BROWSE} of {totalTokenMatches} shown — refine your search
                 </div>
               )}
             </>

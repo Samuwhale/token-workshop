@@ -288,3 +288,13 @@
   - The grid view was fully inline in TokenList.tsx (~100 lines of IIFE), not a separate component — check before assuming a view has its own file
   - The `graph` view mode mentioned in the backlog item didn't exist in TokenList; graph visualization lives in GraphPanel as a top-level tab
 ---
+
+## 2026-03-29 - Command palette token search caps at 100 results with no indication of total
+- Applied MAX_TOKEN_BROWSE (100) cap to all token search modes (browse, qualifier-only, and fuzzy text), not just browse mode
+- Changed truncation message from "Showing first 100 of X tokens — type to search all" to "100 of X shown — refine your search", shown in all capped cases
+- Added match count header ("N tokens matched") for free-text searches in addition to qualifier searches
+- Files changed: `packages/figma-plugin/src/ui/components/CommandPalette.tsx` ~L151-173 (cap logic), ~L334-338 (match count header), ~L395-399 (truncation message)
+- **Learnings for future iterations:**
+  - The token search has three modes: browse (no query), qualifier-only, and free-text fuzzy — each path in the useMemo needs consistent capping
+  - `totalTokenMatches` tracks the pre-cap total so the UI can show "X of Y"
+---
