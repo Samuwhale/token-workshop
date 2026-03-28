@@ -282,3 +282,23 @@ Already up to date.
 
 --- Merging: Multi-mode column view for token list showing resolved values per theme option side-by-side ---
 Already up to date.
+[main 4689c9f] chore(backlog): done – Multi-mode column view for token list showing resolved values per theme option side-by-side
+ 10 files changed, 351 insertions(+), 12 deletions(-)
+
+## 2026-03-28 - Multi-mode column view for token list (side-by-side theme values)
+- Added optional multi-mode column view to the tree-view token list, showing resolved values per theme option side-by-side with inline editing that auto-routes changes to the correct override set.
+- **Architecture**: Extended `TokenListData` with `dimensions`, `unthemedAllTokensFlat`, and `pathToSet` fields. Added `MultiModeValue` type and `multiModeValues`/`onMultiModeInlineSave` props to `TokenTreeNodeProps`.
+- **Toggle UI**: "Modes" button in the toolbar (next to view mode controls), visible only when theme dimensions exist and tree view is active. Dimension picker dropdown appears when multiple dimensions are configured.
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  47 items remaining
+===============================================================
+  Claimed: Generator silently returns empty array on invalid hex — `runColorRampGenerator`, `runAccessibleColorPairGenerator`, and `runDarkModeInversionGenerator` return `[]` when `hexToLab()` fails; caller cannot distinguish "generation failed" from "produced zero tokens"
+  Worktree: /tmp/backlog-63973-c5Mw1B
+
+  ✓ done: Generator silently returns empty array on invalid hex
+    Changed 3 generator functions to throw descriptive errors instead of returning [] on invalid hex, so callers can distinguish parse failure from zero-token output.
+    15 turns · 68s · $0.42
+
+--- Merging: Generator silently returns empty array on invalid hex ---
+Already up to date.

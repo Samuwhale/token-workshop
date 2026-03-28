@@ -382,3 +382,13 @@
   - When wrapping a ternary chain in JSX with an outer condition `{condition && (a ? ... : b ? ... : c)}`, the extra parentheses around the entire chain are required — otherwise `&&` binds tighter and the false branch leaks through.
   - Set routing for inline edits: prefer enabled sets that already contain the token (existing override), fall back to first enabled set (new override), then source sets.
 ---
+
+## 2026-03-28 - Generator silently returns empty array on invalid hex
+- Changed `runColorRampGenerator`, `runAccessibleColorPairGenerator`, and `runDarkModeInversionGenerator` to throw descriptive errors instead of returning `[]` when hex parsing fails
+- The caller in `generator-service.ts` already validates that the source is a string, but not that it's a valid hex — so invalid hex strings like "not-a-color" passed the type check but silently produced zero tokens
+- Now callers get a clear `Error: Invalid hex color for <generatorType> generator: "<value>"` that distinguishes parse failure from legitimate zero-token output
+- Files changed: `packages/core/src/generator-engine.ts` ~L63, ~L351, ~L400
+- **Learnings for future iterations:**
+  - The server-side caller (`computeResultsWithValue`) already wraps generator calls and propagates errors, so throwing is the correct pattern here — no additional error handling needed upstream
+  - `wcagLuminance` returns `null` on invalid hex just like `hexToLab` — same silent-failure pattern
+---

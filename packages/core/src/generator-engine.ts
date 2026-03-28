@@ -60,7 +60,7 @@ export function runColorRampGenerator(
   }
 
   const lab = hexToLab(sourceHex);
-  if (!lab) return [];
+  if (!lab) throw new Error(`Invalid hex color for colorRamp generator: "${sourceHex}"`);
   const [, bA, bB] = lab;
 
   const { steps, lightEnd, darkEnd, chromaBoost, includeSource, sourceStep } = config;
@@ -348,7 +348,7 @@ export function runAccessibleColorPairGenerator(
   validateStepName(config.foregroundStep);
 
   const bgLum = wcagLuminance(sourceHex);
-  if (bgLum === null) return [];
+  if (bgLum === null) throw new Error(`Invalid hex color for accessibleColorPair generator: "${sourceHex}"`);
 
   // Contrast against white: (1.0 + 0.05) / (bgLum + 0.05)
   const contrastWithWhite = 1.05 / (bgLum + 0.05);
@@ -397,7 +397,7 @@ export function runDarkModeInversionGenerator(
   validateStepName(config.stepName);
 
   const lab = hexToLab(sourceHex);
-  if (!lab) return [];
+  if (!lab) throw new Error(`Invalid hex color for darkModeInversion generator: "${sourceHex}"`);
   const [L, a, b] = lab;
 
   const invertedL = 100 - L;
