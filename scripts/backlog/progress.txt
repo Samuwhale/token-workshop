@@ -534,3 +534,9 @@
 - **Learnings for future iterations:**
   - Always parse JSON defensively with `.catch(() => ({}))` before checking `res.ok` — non-JSON error bodies (e.g., plain text 500s) will throw from `.json()` and mask the real error
 ---
+
+## 2026-03-28 - code-pass
+- Areas explored: `packages/server/src/routes/themes.ts` (withLock concurrency), `packages/server/src/routes/tokens.ts` (no concurrency), `packages/server/src/routes/sets.ts` (no concurrency), `packages/server/src/routes/generators.ts` (no concurrency), `packages/server/src/routes/resolvers.ts` (no concurrency), `packages/server/src/routes/snapshots.ts` (no concurrency), `packages/server/src/routes/sync.ts` (no concurrency), `packages/server/src/routes/operations.ts` (no concurrency), `packages/server/src/services/manual-snapshot.ts` (diff asymmetry), `packages/server/src/services/token-store.ts` (no lock), `packages/figma-plugin/src/ui/shared/apiFetch.ts` (adoption gap), `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` (undo error handling), `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts`, all 37 UI files with raw fetch
+- Found 5 items — written to backlog-inbox.md
+- Notable: TokenStore has zero concurrency protection — only themes.ts uses the withLock pattern, all other mutating routes (tokens, sets, generators, resolvers, snapshots, sync, operations) can interleave read-modify-write operations
+---

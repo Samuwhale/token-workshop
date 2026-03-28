@@ -425,3 +425,16 @@ Already up to date.
 
 --- Merging: useFindReplace.handleFindReplace calls res.json() before res.ok check ---
 Already up to date.
+[main e83b64a] chore(backlog): done – useFindReplace.handleFindReplace calls res.json() before res.ok check
+ 5 files changed, 33 insertions(+), 5 deletions(-)
+
+## 2026-03-28 - useFindReplace.handleFindReplace calls res.json() before res.ok check
+- Changed `res.json()` to `res.json().catch(() => ({}))` so non-JSON error responses don't throw before the `res.ok` check
+- Also improved the fallback error message to include `res.status` for better diagnostics
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` ~L108-109
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  23 items remaining
+===============================================================
+  Claimed: `consistencyScanner.ts` re-duplicates `hexToRgb` color conversion already in `plugin/colorUtils.ts` — the scanner defines its own `hexToRgb255` (line ~38) alongside a `colorDist` function; `colorUtils.ts` already has `rgbToHex` and related helpers; the scanner only imports `rgbToHex` and `parseDimValue` from colorUtils but not the inverse, causing a third independent hex-parsing implementation across the plugin sandbox (`packages/figma-plugin/src/plugin/consistencyScanner.ts` ~L38, compare to `packages/figma-plugin/src/plugin/colorUtils.ts`)
+  Worktree: /tmp/backlog-9231-yV7Cu2
