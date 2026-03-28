@@ -7,6 +7,20 @@ import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import { parseCSSCustomProperties, parseTailwindConfigFile } from '../shared/tokenParsers';
 
+function truncateValue(v: string, max = 24): string {
+  return v.length > max ? v.slice(0, max) + '\u2026' : v;
+}
+
+function DiffSwatch({ hex }: { hex: string }) {
+  return (
+    <span
+      className="inline-block w-3 h-3 rounded-sm border border-white/20 ring-1 ring-[var(--color-figma-border)] shrink-0 align-middle"
+      style={{ backgroundColor: swatchBgColor(hex) }}
+      aria-hidden="true"
+    />
+  );
+}
+
 interface ImportPanelProps {
   serverUrl: string;
   connected: boolean;
@@ -821,11 +835,8 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     if (type === 'color' && typeof value === 'string') {
       return (
         <>
-          <span
-            className="w-3 h-3 rounded-sm border border-white/20 ring-1 ring-[var(--color-figma-border)] shrink-0 inline-block"
-            style={{ backgroundColor: swatchBgColor(value) }}
-          />
-          {value}
+          <DiffSwatch hex={value} />
+          {truncateValue(value, 36)}
         </>
       );
     }
@@ -1591,20 +1602,18 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                                 {isAccepted ? 'Accept' : 'Reject'}
                               </button>
                             </div>
-                            {/* Value comparison */}
-                            <div className={`flex flex-col gap-0.5 rounded px-1.5 py-1 border-l-2 ${
-                              isAccepted ? 'border-l-[var(--color-figma-success,#16a34a)]/50' : 'border-l-[var(--color-figma-border)]'
-                            }`}>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide w-[52px] shrink-0">Current</span>
-                                <span className="flex items-center gap-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                            {/* Value diff (−/+ style matching SyncDiffSummary) */}
+                            <div className="flex flex-col gap-0.5 mt-0.5 ml-1 text-[10px] font-mono">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
+                                <span className="text-[var(--color-figma-text-secondary)] truncate flex items-center gap-1">
                                   {renderConflictValue(existing?.$type ?? 'unknown', existing?.$value)}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide w-[52px] shrink-0">Incoming</span>
-                                <span className={`flex items-center gap-1 text-[10px] font-mono truncate ${
-                                  isAccepted ? 'text-[var(--color-figma-success,#16a34a)]' : 'text-[var(--color-figma-text-secondary)] line-through opacity-60'
+                              <div className="flex items-center gap-1 min-w-0">
+                                <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
+                                <span className={`truncate flex items-center gap-1 ${
+                                  isAccepted ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] line-through opacity-60'
                                 }`}>
                                   {renderConflictValue(incoming?.$type ?? 'unknown', incoming?.$value)}
                                 </span>

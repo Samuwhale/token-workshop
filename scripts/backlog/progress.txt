@@ -415,3 +415,14 @@
   - The multi-select system is already comprehensive (Ctrl+click, Shift+click range, select all, batch editor, compare, bulk delete) — the only gap was the entry point visibility
   - The inspectMode button uses a checkbox+checkmark icon; multi-select uses a checklist icon (two checkboxes with lines) to differentiate
 ---
+
+## 2026-03-29 - Import conflict resolution shows accept/reject toggles but no side-by-side value comparison
+- Replaced "Current"/"Incoming" labeled rows with −/+ diff-style indicators (red minus, green plus) matching the SyncDiffSummary pattern from PublishPanel
+- Added `DiffSwatch` and `truncateValue` helpers to ImportPanel for consistent color swatch rendering
+- Color values now use the same swatch style (`DiffSwatch`) as variable/style sync diffs
+- Incoming value row shows normal text when accepted, strikethrough when rejected
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L10-25 (helpers), ~L835-841 (renderConflictValue color case), ~L1607-1622 (diff view)
+- **Learnings for future iterations:**
+  - `renderConflictValue` already renders inline color swatches so adding `DiffSwatch` on top would double-render; reused `DiffSwatch` inside `renderConflictValue` instead
+  - The SyncDiffSummary pattern (−/+ with red/green) is simple to adapt to structured values — just wrap `renderConflictValue` output in the diff row layout
+---
