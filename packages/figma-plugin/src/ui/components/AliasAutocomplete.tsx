@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
+import { fuzzyScore } from '../shared/fuzzyMatch';
 
 interface AliasAutocompleteProps {
   query: string; // text typed after '{'
@@ -25,13 +26,20 @@ export function AliasAutocomplete({
   const listRef = useRef<HTMLDivElement>(null);
 
   const entries = useMemo(() => {
-    const q = query.toLowerCase();
-    return Object.entries(allTokensFlat)
-      .filter(([path, entry]) => {
-        if (filterType && entry.$type !== filterType) return false;
-        return !q || path.toLowerCase().includes(q);
-      })
-      .slice(0, MAX_RESULTS);
+    const q = query.trim();
+    if (!q) {
+      return Object.entries(allTokensFlat)
+        .filter(([, entry]) => !filterType || entry.$type === filterType)
+        .slice(0, MAX_RESULTS);
+    }
+    const scored: [string, TokenMapEntry, number][] = [];
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      if (filterType && entry.$type !== filterType) continue;
+      const score = fuzzyScore(q, path);
+      if (score >= 0) scored.push([path, entry, score]);
+    }
+    scored.sort((a, b) => b[2] - a[2]);
+    return scored.slice(0, MAX_RESULTS).map(([p, e]) => [p, e] as [string, TokenMapEntry]);
   }, [allTokensFlat, query, filterType]);
 
   useEffect(() => {

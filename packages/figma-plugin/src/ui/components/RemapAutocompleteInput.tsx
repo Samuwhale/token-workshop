@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
+import { fuzzyScore } from '../shared/fuzzyMatch';
 
 interface RemapAutocompleteInputProps {
   value: string;
@@ -22,16 +23,15 @@ export function RemapAutocompleteInput({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const suggestions = useMemo(() => {
-    if (!value.trim()) return [];
-    const q = value.toLowerCase();
-    const results: [string, TokenMapEntry][] = [];
+    const q = value.trim();
+    if (!q) return [];
+    const scored: [string, TokenMapEntry, number][] = [];
     for (const [path, entry] of Object.entries(tokenMap)) {
-      if (path.toLowerCase().includes(q)) {
-        results.push([path, entry]);
-        if (results.length >= MAX_SUGGESTIONS) break;
-      }
+      const score = fuzzyScore(q, path);
+      if (score >= 0) scored.push([path, entry, score]);
     }
-    return results;
+    scored.sort((a, b) => b[2] - a[2]);
+    return scored.slice(0, MAX_SUGGESTIONS).map(([p, e]) => [p, e] as [string, TokenMapEntry]);
   }, [tokenMap, value]);
 
   const showDropdown = focused && value.trim().length > 0 && suggestions.length > 0;

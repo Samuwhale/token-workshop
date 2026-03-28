@@ -294,3 +294,12 @@
   - `resolveAliasChain` was exported from AliasPicker since it's also needed by the parent component for alias chain display elsewhere
   - `ColorSwatchButton` was exported from ValueEditors since ColorModifiersEditor also needs it
 ---
+
+## 2026-03-28 - Fuzzy search for AliasAutocomplete and RemapAutocompleteInput
+- Added `fuzzyScore()` utility in `packages/figma-plugin/src/ui/shared/fuzzyMatch.ts` that scores query-target pairs using ordered character matching with bonuses for consecutive matches, segment boundaries, and camelCase transitions
+- Replaced `path.toLowerCase().includes(q)` substring matching with fuzzy scoring + sort-by-score in both autocomplete components
+- Files changed: `packages/figma-plugin/src/ui/shared/fuzzyMatch.ts` (new), `packages/figma-plugin/src/ui/components/AliasAutocomplete.tsx` ~L28, `packages/figma-plugin/src/ui/components/RemapAutocompleteInput.tsx` ~L24
+- **Learnings for future iterations:**
+  - Fuzzy match with segment-boundary awareness (dots, slashes, dashes) works well for dotted token paths like `color.primary.base`
+  - Exact substring match should still get a large score bonus so it ranks above scattered fuzzy hits
+---

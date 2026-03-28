@@ -118,14 +118,14 @@
 ### Maintainability
 
 - [~] `TokenList.tsx` is 4695 lines — largest file in the codebase; split into sub-components (row renderers, drag-drop logic, inline editing, context menu, filter/sort controls)
-- [~] `TokenEditor.tsx` is 2485 lines — extract form sections (value editors per type, metadata editor, alias picker) into separate components
+- [x] `TokenEditor.tsx` is 2485 lines — extract form sections (value editors per type, metadata editor, alias picker) into separate components
 - [x] `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading
 - [~] `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module
 - [~] `token-store.ts` uses `any` types pervasively for token group traversal — `Record<string, unknown>` with type narrowing would be safer
 
 - [~] Deep Inspect mode has no keyboard shortcut — toggling deep inspection requires clicking a small button; a keyboard shortcut would streamline the inspect workflow
 
-- [ ] AliasAutocomplete and RemapAutocompleteInput only support substring matching — no fuzzy search, so typing "clr.prim" won't match "color.primary"; power users with hundreds of tokens need smarter matching
+- [~] AliasAutocomplete and RemapAutocompleteInput only support substring matching — no fuzzy search, so typing "clr.prim" won't match "color.primary"; power users with hundreds of tokens need smarter matching
 - [ ] AliasAutocomplete shows token path but not the resolved value — when picking an alias, users can't see what color/dimension the alias points to without navigating away
 - [ ] SSE connection (useServerEvents) never reconnects after server restart — if the local server is restarted, generator error events stop arriving until the user manually refreshes the plugin
 - [ ] TokenGeneratorDialog has no unsaved-changes warning — closing or navigating away from a half-configured generator silently discards all input with no confirmation prompt
