@@ -36,3 +36,17 @@ Already up to date.
 
 --- Merging: Developer-facing copy leaks into designer UI ---
 Already up to date.
+[main 4106ca7] chore(backlog): done – Developer-facing copy leaks into designer UI
+ 14 files changed, 67 insertions(+), 19 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Developer-facing copy leaks into designer UI
+- Audited all user-facing labels across the plugin UI and replaced developer terminology with designer-friendly copy:
+  - "Alias mode" → "Reference mode" (AliasPicker toggle button + tooltip)
+  - "Toggle alias mode" → "Toggle reference mode" (keyboard shortcuts modal)
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  103 items remaining
+===============================================================
+  Claimed: Hardcoded Tailwind colors in TokenList (`text-orange-500`, `bg-orange-500`, `text-red-500`) and TokenTreeNode (`ring-red-500`) bypass the CSS variable system; replace with `var(--color-figma-warning)` / `var(--color-figma-error)` equivalents
+  Worktree: /tmp/backlog-63411-NwKbYs

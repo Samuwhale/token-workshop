@@ -169,11 +169,11 @@ function buildSetFolderTree(sets: string[]): { roots: Array<string | FolderTreeN
   return { roots };
 }
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'tokens', label: 'Tokens' },
-  { id: 'inspect', label: 'Inspect' },
-  { id: 'graph', label: 'Generators' },
-  { id: 'publish', label: 'Publish' },
+const TABS: { id: Tab; label: string; shortcutNum: number }[] = [
+  { id: 'tokens', label: 'Tokens', shortcutNum: 1 },
+  { id: 'inspect', label: 'Inspect', shortcutNum: 2 },
+  { id: 'graph', label: 'Generators', shortcutNum: 3 },
+  { id: 'publish', label: 'Publish', shortcutNum: 4 },
 ];
 
 type OverflowPanel = 'import' | 'export' | 'settings' | 'heatmap' | 'analytics' | 'themes' | 'theme-compare' | null;
@@ -489,6 +489,10 @@ export function App() {
         e.preventDefault();
         setActiveTab(TABS[tabIndex].id);
       }
+      if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setShowKeyboardShortcuts(v => !v);
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
@@ -675,6 +679,7 @@ export function App() {
         label: 'Create new token',
         description: `In set: ${activeSet}`,
         category: 'Tokens',
+        shortcut: adaptShortcut('⌘T'),
         handler: () => { goToTokens(); },
       },
       {
@@ -718,6 +723,7 @@ export function App() {
         label: 'Go to Inspect',
         description: 'Inspect token bindings on selected layers',
         category: 'Navigation',
+        shortcut: adaptShortcut('⌘2'),
         handler: () => setActiveTab('inspect'),
       },
       {
@@ -732,6 +738,7 @@ export function App() {
         label: 'Go to Publish',
         description: 'Sync tokens to Figma and export',
         category: 'Navigation',
+        shortcut: adaptShortcut('⌘4'),
         handler: () => { setActiveTab('publish'); setOverflowPanel(null); },
       },
       {
@@ -799,6 +806,7 @@ export function App() {
         label: 'Keyboard shortcuts\u2026',
         description: 'View all keyboard shortcuts',
         category: 'Help',
+        shortcut: '?',
         handler: () => setShowKeyboardShortcuts(true),
       },
     ];
@@ -850,6 +858,7 @@ export function App() {
             role="tab"
             aria-selected={activeTab === tab.id && overflowPanel === null}
             onClick={() => { setActiveTab(tab.id); setOverflowPanel(null); }}
+            title={`${tab.label} (${adaptShortcut('⌘')}${tab.shortcutNum})`}
             className={`relative px-3 py-2 text-[11px] font-medium transition-colors rounded-sm mx-0.5 my-1 ${
               activeTab === tab.id && overflowPanel === null
                 ? 'bg-[var(--color-figma-accent)] text-white'

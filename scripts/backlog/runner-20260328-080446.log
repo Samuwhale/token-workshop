@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Keyboard shortcut discoverability is poor — shortcuts only visible via a dedicated modal (`?`); add inline hint text on buttons and menu items (e.g. "Save ⌘↵") so users learn shortcuts in context
   Worktree: /tmp/backlog-63685-takL14
+
+  ✓ done: Keyboard shortcut discoverability is poor — shortcuts only visible via a dedicated modal (`?`); add inline hint text on buttons and menu items (e.g. "Save ⌘↵") so users learn shortcuts in context
+    Added inline shortcut hints: tab tooltips (⌘1-4), Save button (⌘↵), Create & New (⌘⇧↵), search placeholder (/), command palette entries for navigation commands, and ? key to toggle shortcuts modal
+    41 turns · 306s · $1.54
+
+--- Merging: Keyboard shortcut discoverability is poor — shortcuts only visible via a dedicated modal (`?`); add inline hint text on buttons and menu items (e.g. "Save ⌘↵") so users learn shortcuts in context ---
+Already up to date.

@@ -2073,7 +2073,7 @@ export function TokenList({
                         }
                       }
                     }}
-                    placeholder={hasStructuredQualifiers(searchQuery) ? 'Add more filters…' : 'Search… (try type: has: value:)'}
+                    placeholder={hasStructuredQualifiers(searchQuery) ? 'Add more filters…' : 'Search (/) — try type: has: value:'}
                     className={`w-full pl-6 pr-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none placeholder:text-[var(--color-figma-text-tertiary)] ${hasStructuredQualifiers(searchQuery) ? 'border-[var(--color-figma-accent)]' : 'border-[var(--color-figma-border)]'} focus:border-[var(--color-figma-accent)]`}
                   />
                   {/* Qualifier autocomplete hints */}

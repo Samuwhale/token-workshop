@@ -390,3 +390,17 @@
   - ThemeManager already maps internal states (source/enabled/disabled) to user-friendly labels (Base/On/Off) via STATE_LABELS — a good pattern to follow elsewhere.
   - Search qualifier keys (has:alias) were kept unchanged since they're functional syntax, but descriptions were updated.
 ---
+
+## 2026-03-28 - Keyboard shortcut discoverability — inline hint text on buttons and menu items
+- Added inline shortcut hints across the UI so users learn shortcuts in context:
+  - Tab bar buttons now show `⌘1`–`⌘4` in title tooltips
+  - Token Editor "Save"/"Create" button shows `⌘↵` inline; "Create & New" shows `⌘⇧↵`
+  - Token list search placeholder now reads `Search (/) — try type: has: value:`
+  - Command palette entries now show shortcuts for navigation commands (`⌘2` Go to Inspect, `⌘4` Go to Publish, `⌘T` Create new token, `?` Keyboard shortcuts)
+  - `?` key now toggles the keyboard shortcuts modal globally (outside input fields)
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L172 (TABS), ~L491 (`?` handler), ~L675 (command shortcuts), ~L852 (tab title); `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1 (import), ~L929–946 (button hints); `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2076 (search placeholder)
+- **Learnings for future iterations:**
+  - AliasPicker already uses `<kbd>` elements for shortcut hints — good pattern for inline hints on small buttons
+  - The `adaptShortcut` util handles Mac/Windows differences; always use it for user-visible shortcut text
+  - Tab tooltips are the least intrusive way to add shortcut hints without layout changes
+---

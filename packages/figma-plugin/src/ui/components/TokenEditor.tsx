@@ -1,4 +1,4 @@
-import { getErrorMessage } from '../shared/utils';
+import { getErrorMessage, adaptShortcut } from '../shared/utils';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { resolveRefValue } from '@tokenmanager/core';
 import type { ThemeDimension } from '@tokenmanager/core';
@@ -926,24 +926,24 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           <button
             onClick={() => handleSave(false, true)}
             disabled={saving || !canSave || !editPath.trim()}
-            title="Create this token and immediately start creating another"
+            title={`Create this token and immediately start creating another (${adaptShortcut('⌘⇧↵')})`}
             className="px-3 py-2 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Creating…' : 'Create & New'}
+            {saving ? 'Creating…' : (<>Create & New <span className="ml-1 opacity-50 text-[9px]">{adaptShortcut('⌘⇧↵')}</span></>)}
           </button>
         )}
         <div className="flex-1" onClick={() => { if (!canSave && saveBlockReason && tokenType === 'typography') focusBlockedField(); }}>
           <button
             onClick={() => handleSave()}
             disabled={saving || !canSave || (!isCreateMode && !isDirty) || (isCreateMode && !editPath.trim())}
-            title={saveBlockReason || undefined}
+            title={saveBlockReason || `Save (${adaptShortcut('⌘↵')})`}
             className="w-full px-3 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving
               ? (isCreateMode ? 'Creating…' : 'Saving…')
               : (saveBlockReason
                 ? saveBlockReason
-                : (!isCreateMode && !isDirty ? 'No changes' : (isCreateMode ? 'Create' : 'Save changes')))}
+                : (!isCreateMode && !isDirty ? 'No changes' : (<>{isCreateMode ? 'Create' : 'Save changes'} <span className="ml-1 opacity-60 text-[9px]">{adaptShortcut('⌘↵')}</span></>)))}
           </button>
         </div>
       </div>

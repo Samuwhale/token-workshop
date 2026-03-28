@@ -21,7 +21,7 @@
 
 - [x] No onboarding or first-run experience — empty state shows "No tokens yet" with no guidance; add a first-run flow: "Import from Figma Variables" as primary CTA, "Start from template" using generator presets (Material, Tailwind), "Paste existing tokens" for migrations, and a brief walkthrough of the token → theme → publish workflow
 - [~] Tab structure doesn't match user mental model — current Tokens/Inspect/Graph/Publish tabs split related concerns; restructure around workflow: Define (tokens + themes + generators), Apply (inspect + heatmap + binding), Ship (publish + export + git + validation readiness checklist), with Settings/Themes as secondary panels
-- [~] Developer-facing copy leaks into designer UI — terms like "DTCG", "alias", "$extensions", "$value", "source/enabled" are implementation details; audit all user-facing labels (e.g. "Alias" → "Reference", "Source" → "Base layer", "Enabled" → "Override") and keep DTCG terms only in export/developer views
+- [x] Developer-facing copy leaks into designer UI — terms like "DTCG", "alias", "$extensions", "$value", "source/enabled" are implementation details; audit all user-facing labels (e.g. "Alias" → "Reference", "Source" → "Base layer", "Enabled" → "Override") and keep DTCG terms only in export/developer views
 
 ---
 
@@ -30,7 +30,7 @@
 ### Bugs
 
 - [~] `alert()` used for error feedback in token move operations — jarring, unthemed, blocks the UI thread; replace with inline error state or toast matching the existing error banner pattern
-- [ ] Hardcoded Tailwind colors in TokenList (`text-orange-500`, `bg-orange-500`, `text-red-500`) and TokenTreeNode (`ring-red-500`) bypass the CSS variable system; replace with `var(--color-figma-warning)` / `var(--color-figma-error)` equivalents
+- [~] Hardcoded Tailwind colors in TokenList (`text-orange-500`, `bg-orange-500`, `text-red-500`) and TokenTreeNode (`ring-red-500`) bypass the CSS variable system; replace with `var(--color-figma-warning)` / `var(--color-figma-error)` equivalents
 - [ ] Flat token map silently shadows tokens when two sets define the same path — `rebuildFlatTokens` last-write-wins; `getAllFlatTokens`, `resolveToken`, `getDependents`, and search only see one version, so delete-safety checks miss cross-set references
 - [ ] `inferType` heuristic misclassifies composite tokens — a composition with a `blur` key becomes shadow, `width`+`color` becomes border; confusing when `$type` is omitted
 
