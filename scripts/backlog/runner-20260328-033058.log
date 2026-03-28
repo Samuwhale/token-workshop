@@ -330,3 +330,10 @@ Already up to date.
 ===============================================================
   Claimed: No bulk delete endpoint — deleting multiple tokens requires one API call per token; cleaning up an obsolete group of 50+ tokens is extremely slow
   Worktree: /tmp/backlog-85816-piCrrh
+
+  ✓ done: No bulk delete endpoint
+    Added POST /api/tokens/:set/bulk-delete endpoint with dependency checking, deleteTokens() store method with single save, and updated UI to use it instead of parallel individual DELETEs.
+    23 turns · 149s · $0.7
+
+--- Merging: No bulk delete endpoint ---
+Already up to date.

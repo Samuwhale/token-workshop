@@ -1275,13 +1275,15 @@ export function TokenList({
           throw new Error(body?.error ?? `Server returned ${res.status}`);
         }
       } else {
-        const results = await Promise.all(
-          deletedPaths.map(path =>
-            fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${path.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' })
-          )
-        );
-        const failed = results.filter(r => !r.ok);
-        if (failed.length > 0) throw new Error(`${failed.length} of ${results.length} deletes failed`);
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-delete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paths: deletedPaths }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.error ?? `Server returned ${res.status}`);
+        }
         setSelectedPaths(new Set());
         setSelectMode(false);
       }

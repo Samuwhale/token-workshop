@@ -231,3 +231,17 @@ Already up to date.
 
 --- Merging: PropertyPicker dropdown has no search or filter ---
 Already up to date.
+[main 5d963f5] chore(backlog): done – PropertyPicker dropdown has no search or filter
+ 6 files changed, 118 insertions(+), 19 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - PropertyPicker dropdown has no search or filter
+- Added search/filter input to PropertyPicker that appears when 6+ properties are shown (e.g. dimension tokens on auto-layout frames)
+- Search input auto-focuses, filters by label substring match, shows "No matching properties" for empty results
+- Added keyboard navigation: Arrow Up/Down to highlight, Enter to select
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  53 items remaining
+===============================================================
+  Claimed: Custom scale generator silently falls back to base value when formula evaluation fails — `runCustomScaleGenerator` in `generator-engine.ts` ~L241 catches `evalExpr`/`substituteVars` errors and silently uses `base` as the computed value; users get incorrect generated tokens with no indication their formula was invalid
+  Worktree: /tmp/backlog-10278-XQi3kb

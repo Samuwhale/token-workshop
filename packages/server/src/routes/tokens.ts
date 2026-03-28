@@ -392,6 +392,61 @@ export const tokenRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  // POST /api/tokens/:set/bulk-delete — delete multiple tokens/groups in one call
+  fastify.post<{ Params: { set: string }; Body: { paths: string[]; force?: boolean } }>(
+    '/tokens/:set/bulk-delete',
+    async (request, reply) => {
+      const { set } = request.params;
+      const { paths, force } = request.body ?? {};
+      if (!Array.isArray(paths) || paths.length === 0) {
+        return reply.status(400).send({ error: 'paths array is required and must not be empty' });
+      }
+
+      try {
+        if (!force) {
+          const flatTokens = await fastify.tokenStore.getFlatTokensForSet(set);
+          // Expand group paths to all leaf tokens they contain
+          const allDeletedLeaves = new Set<string>();
+          for (const p of paths) {
+            for (const leafPath of Object.keys(flatTokens)) {
+              if (leafPath === p || leafPath.startsWith(p + '.')) {
+                allDeletedLeaves.add(leafPath);
+              }
+            }
+          }
+
+          const externalDependents: Array<{ path: string; setName: string }> = [];
+          const seen = new Set<string>();
+          for (const p of allDeletedLeaves) {
+            for (const dep of fastify.tokenStore.getDependents(p)) {
+              if (!allDeletedLeaves.has(dep.path) && !seen.has(dep.path)) {
+                seen.add(dep.path);
+                externalDependents.push(dep);
+              }
+            }
+          }
+
+          if (externalDependents.length > 0) {
+            const preview = externalDependents
+              .slice(0, 5)
+              .map((d) => `"${d.path}"`)
+              .join(', ');
+            const more = externalDependents.length > 5 ? ` and ${externalDependents.length - 5} more` : '';
+            return reply.status(409).send({
+              error: `Cannot delete — ${externalDependents.length} token${externalDependents.length !== 1 ? 's' : ''} reference the selection: ${preview}${more}`,
+              dependents: externalDependents,
+            });
+          }
+        }
+
+        const deleted = await fastify.tokenStore.deleteTokens(set, paths);
+        return { deleted: deleted.length, paths: deleted, set };
+      } catch (err) {
+        return reply.status(500).send({ error: 'Failed to delete tokens', detail: String(err) });
+      }
+    },
+  );
+
   // DELETE /api/tokens/:set/* — delete token or group
   fastify.delete<{ Params: { set: string; '*': string }; Querystring: { force?: string } }>(
     '/tokens/:set/*',

@@ -562,6 +562,31 @@ export class TokenStore {
     return deleted;
   }
 
+  /** Delete multiple token paths in a single save. Returns the list of paths actually deleted. */
+  async deleteTokens(setName: string, tokenPaths: string[]): Promise<string[]> {
+    const set = this.sets.get(setName);
+    if (!set) return [];
+    const deleted: string[] = [];
+    this.beginBatch();
+    try {
+      for (const tokenPath of tokenPaths) {
+        if (deleteTokenAtPath(set.tokens, tokenPath)) {
+          deleted.push(tokenPath);
+        }
+      }
+      if (deleted.length > 0) {
+        await this.saveSet(setName);
+      }
+    } finally {
+      this.endBatch();
+    }
+    if (deleted.length > 0) {
+      this.rebuildFlatTokens();
+      this.emit({ type: 'token-updated', setName, tokenPath: '' });
+    }
+    return deleted;
+  }
+
   /**
    * Find tokens tagged with a generatorId.
    * Pass '*' to find ALL tokens that have any generatorId.

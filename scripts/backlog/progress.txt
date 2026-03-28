@@ -396,3 +396,13 @@
   - PropertyPicker is a small dropdown (max ~9 items for dimension tokens on auto-layout); a threshold (SEARCH_THRESHOLD=6) prevents showing search on short lists
   - The dropdown uses fixed positioning via `anchorRect` prop — no layout changes needed for the search input
 ---
+
+## 2026-03-28 - No bulk delete endpoint
+- Added `deleteTokens(setName, tokenPaths[])` method to `TokenStore` that deletes multiple paths in a single save using `beginBatch`/`endBatch`
+- Added `POST /api/tokens/:set/bulk-delete` route accepting `{ paths: string[], force?: boolean }` with full dependency checking across all paths
+- Updated UI `executeDelete` in `TokenList.tsx` to use the bulk endpoint instead of `Promise.all` over individual DELETE calls
+- Files changed: `packages/server/src/services/token-store.ts` ~L565, `packages/server/src/routes/tokens.ts` ~L395, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1278
+- **Learnings for future iterations:**
+  - Fixed routes like `/tokens/:set/bulk-delete` must be registered before wildcard `/tokens/:set/*` in Fastify (already in patterns)
+  - The `beginBatch`/`endBatch` + single `saveSet` pattern from `deleteTokensByGeneratorId` is the right model for any multi-delete operation
+---
