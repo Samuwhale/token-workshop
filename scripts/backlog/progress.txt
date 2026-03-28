@@ -427,3 +427,17 @@
   - `flatItemsRef` has a narrow type (`{ node: { path: string } }`) — pass node name from the component rather than looking it up from the ref.
   - Drag reorder indicator should only show when sortOrder is 'default' — other sort orders have no user-controllable position.
 ---
+
+## 2026-03-28 - Set/file abstraction creates unnecessary cognitive load
+- Implemented "simple mode": when total tokens across all sets < 200, the set tab bar and sidebar are hidden and tokens are auto-organized by type (Colors, Typography, Spacing & Sizing, etc.)
+- Added `buildTreeByType()` utility that groups `allTokensFlat` into virtual `__type__<type>` group nodes with original path hierarchy preserved within each type group
+- Added `ADVANCED_MODE` localStorage key and `isSimpleMode` / `advancedModeOverride` state in App.tsx
+- Simple mode info bar shows "N tokens across M sets — organized by type" with a "Show sets" link to opt into advanced mode
+- Advanced mode shows a "Simplify view" link to return to simple mode
+- Token editing in simple mode resolves the correct set from `pathToSet` map so edits target the right JSON file
+- Files changed: `packages/figma-plugin/src/ui/shared/storage.ts` ~L32, `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L1,~L427-530, `packages/figma-plugin/src/ui/App.tsx` ~L49,~L452-470,~L1172,~L1410,~L1405-1430,~L1990-2050
+- **Learnings for future iterations:**
+  - `effectiveTokens` / `effectiveSetName` pattern works well for mode-switching — compute once near state, use everywhere in render
+  - TokenList's inline API calls (delete, rename, etc.) all use `ctx.setName` — in simple mode with multiple sets, this defaults to the first set. Editing via TokenEditor is correct because `onEdit` resolves from `pathToSet`
+  - Type-grouped virtual nodes use `__type__` prefix to avoid collisions with real token paths
+---

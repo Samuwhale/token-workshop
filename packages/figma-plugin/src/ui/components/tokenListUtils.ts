@@ -1,4 +1,5 @@
 import type { TokenNode } from '../hooks/useTokens';
+import type { TokenMapEntry } from '../../shared/types';
 import { isAlias } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 
@@ -420,4 +421,106 @@ export function getDefaultValue(type: string): any {
     case 'asset': return '';
     default: return '';
   }
+}
+
+// ---------------------------------------------------------------------------
+// Simple mode: build tree organized by token type
+// ---------------------------------------------------------------------------
+
+const TYPE_DISPLAY_NAMES: Record<string, string> = {
+  color: 'Colors',
+  dimension: 'Spacing & Sizing',
+  typography: 'Typography',
+  shadow: 'Shadows',
+  border: 'Borders',
+  number: 'Numbers',
+  string: 'Strings',
+  boolean: 'Booleans',
+  gradient: 'Gradients',
+  duration: 'Durations',
+  fontFamily: 'Font Families',
+  fontWeight: 'Font Weights',
+  composition: 'Compositions',
+  asset: 'Assets',
+};
+
+const TYPE_ORDER = [
+  'color', 'typography', 'dimension', 'shadow', 'border', 'gradient',
+  'number', 'duration', 'fontFamily', 'fontWeight', 'string', 'boolean',
+  'composition', 'asset',
+];
+
+/** Insert a leaf node into a nested tree structure based on its dot-separated path segments. */
+function insertIntoSubTree(
+  roots: TokenNode[],
+  segments: string[],
+  leaf: TokenNode,
+  pathPrefix: string,
+): void {
+  if (segments.length === 1) {
+    roots.push(leaf);
+    return;
+  }
+  const groupName = segments[0];
+  const groupPath = pathPrefix ? `${pathPrefix}.${groupName}` : groupName;
+  let group = roots.find(n => n.isGroup && n.path === groupPath);
+  if (!group) {
+    group = { path: groupPath, name: groupName, isGroup: true, children: [] };
+    roots.push(group);
+  }
+  insertIntoSubTree(group.children!, segments.slice(1), leaf, groupPath);
+}
+
+/**
+ * Build a TokenNode tree from a flat token map, grouped by $type.
+ * Each type becomes a virtual top-level group (e.g., "Colors", "Typography").
+ * Within each type group, the original dot-path hierarchy is preserved.
+ */
+export function buildTreeByType(
+  allTokensFlat: Record<string, TokenMapEntry>,
+): TokenNode[] {
+  // Bucket tokens by type
+  const byType = new Map<string, Array<{ path: string; entry: TokenMapEntry }>>();
+  for (const [path, entry] of Object.entries(allTokensFlat)) {
+    const type = entry.$type || 'unknown';
+    let bucket = byType.get(type);
+    if (!bucket) { bucket = []; byType.set(type, bucket); }
+    bucket.push({ path, entry });
+  }
+
+  // Build group nodes in canonical type order
+  const roots: TokenNode[] = [];
+  const orderedTypes = [
+    ...TYPE_ORDER,
+    ...Array.from(byType.keys()).filter(t => !TYPE_ORDER.includes(t)),
+  ];
+
+  for (const type of orderedTypes) {
+    const bucket = byType.get(type);
+    if (!bucket || bucket.length === 0) continue;
+
+    // Build sub-tree preserving original path hierarchy within each type group
+    const children: TokenNode[] = [];
+    for (const { path, entry } of bucket) {
+      const segments = path.split('.');
+      const leaf: TokenNode = {
+        path,
+        name: segments[segments.length - 1],
+        $type: entry.$type,
+        $value: entry.$value,
+        isGroup: false,
+      };
+      insertIntoSubTree(children, segments, leaf, '');
+    }
+
+    roots.push({
+      path: `__type__${type}`,
+      name: TYPE_DISPLAY_NAMES[type] || type,
+      $type: type,
+      isGroup: true,
+      children,
+    });
+  }
+
+  return roots;
 }

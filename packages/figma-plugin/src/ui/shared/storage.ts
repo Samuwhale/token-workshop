@@ -29,6 +29,7 @@ export const STORAGE_KEYS = {
   EXPORT_PLATFORMS:      'exportPanel.selectedPlatforms',
   EXPORT_CSS_SELECTOR:   'exportPanel.cssSelector',
   UNDO_MAX_HISTORY:      'tm_undo_max_history',
+  ADVANCED_MODE:         'tm_advanced_mode',
 } as const;
 
 /** Per-set dynamic key builders */

@@ -140,3 +140,16 @@ Already up to date.
 
 --- Merging: No per-token usage/documentation view ---
 Already up to date.
+[main f76ec6a] chore(backlog): done – No per-token usage/documentation view
+ 10 files changed, 276 insertions(+), 57 deletions(-)
+
+## 2026-03-28 - No drag-to-reorder tokens within the same group
+- Added drag-over/drop handlers on leaf token rows in TokenTreeNode to detect top/bottom half positioning. Added `handleDropReorder` in TokenList.tsx that computes new sibling order and calls the existing `/groups/reorder` API. Visual indicator is a blue accent line at the drop position. Supports multi-select drag reorder. Undo/redo integrated. Only active when sort order is 'default'.
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L142 (new props), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L779 (drag handlers + indicator), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L67 (state), ~L1132 (handleDropReorder), ~L2725 (prop wiring)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  84 items remaining
+===============================================================
+  Claimed: No spreadsheet/table view for tokens — the tree view is good for hierarchy but poor for scanning and bulk editing; add an alternative flat table view (like Tokens Studio) with sortable columns for Name, Type, Value, Resolved Value, Description, and inline cell editing for simple types — toggle between tree and table via a view switcher
+  Worktree: /tmp/backlog-63973-HQ3g4s

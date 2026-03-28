@@ -46,6 +46,7 @@ import { resolveAllAliases } from '../shared/resolveAlias';
 import { stableStringify, adaptShortcut, getErrorMessage } from './shared/utils';
 import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
+import { buildTreeByType } from './components/tokenListUtils';
 
 /** Valid set name: alphanumeric, hyphens, underscores, with `/` as folder separator. */
 const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
@@ -449,6 +450,26 @@ export function App() {
   // Sidebar mode: activate when any set has a '/' folder separator or there are many sets
   const useSidebar = sets.some(s => s.includes('/')) || sets.length >= 7;
   const sidebarTree = useMemo(() => buildSetFolderTree(sets), [sets]);
+
+  // Simple mode: hide set abstraction when total tokens < 200 and user hasn't opted out
+  const totalTokenCount = useMemo(
+    () => Object.values(setTokenCounts).reduce((a, b) => a + b, 0),
+    [setTokenCounts],
+  );
+  const [advancedModeOverride, setAdvancedModeOverride] = useState<boolean>(
+    () => lsGet(STORAGE_KEYS.ADVANCED_MODE) === 'true',
+  );
+  const isSimpleMode = totalTokenCount > 0 && totalTokenCount < 200 && sets.length > 0 && !advancedModeOverride;
+
+  // In simple mode, build a merged tree organized by token type
+  const simpleModeTokens = useMemo(() => {
+    if (!isSimpleMode) return [];
+    return buildTreeByType(themedAllTokensFlat);
+  }, [isSimpleMode, themedAllTokensFlat]);
+
+  // Effective tokens/set for TokenList — simple mode merges all sets by type
+  const effectiveTokens = isSimpleMode ? simpleModeTokens : tokens;
+  const effectiveSetName = isSimpleMode ? (sets[0] || '') : activeSet;
 
   // Collapsed folders state (persisted to localStorage)
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(() =>
@@ -1168,8 +1189,8 @@ export function App() {
       })()}
       </div>
 
-      {/* Set selector (for tokens tab) — hidden when sidebar mode is active */}
-      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && sets.length > 0 && !useSidebar && (
+      {/* Set selector (for tokens tab) — hidden when sidebar or simple mode is active */}
+      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && sets.length > 0 && !useSidebar && !isSimpleMode && (
         <>
         <div className="relative">
         <div ref={setTabsScrollRef} className="flex gap-1 px-2 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
@@ -1402,12 +1423,39 @@ export function App() {
         </>
       )}
 
+      {/* Simple mode info bar — shows when set navigation is hidden */}
+      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && isSimpleMode && sets.length > 1 && (
+        <div className="flex items-center justify-between px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+            {totalTokenCount} tokens across {sets.length} sets — organized by type
+          </span>
+          <button
+            onClick={() => { setAdvancedModeOverride(true); lsSet(STORAGE_KEYS.ADVANCED_MODE, 'true'); }}
+            className="text-[10px] text-[var(--color-figma-accent)] hover:underline shrink-0 ml-2"
+          >
+            Show sets
+          </button>
+        </div>
+      )}
+
+      {/* Advanced mode return bar — shown when user opted into advanced mode but could use simple mode */}
+      {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && advancedModeOverride && totalTokenCount > 0 && totalTokenCount < 200 && sets.length > 1 && (
+        <div className="flex items-center justify-end px-2 py-0.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+          <button
+            onClick={() => { setAdvancedModeOverride(false); lsRemove(STORAGE_KEYS.ADVANCED_MODE); }}
+            className="text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:underline"
+          >
+            Simplify view
+          </button>
+        </div>
+      )}
+
       {/* Content — outer wrapper is flex-row so the set sidebar can sit alongside the content column */}
       <ErrorBoundary>
       <div className="flex-1 flex overflow-hidden">
 
-        {/* Set sidebar — shown when sets have folder structure (/) or count ≥ 7 */}
-        {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && useSidebar && (
+        {/* Set sidebar — shown when sets have folder structure (/) or count ≥ 7, hidden in simple mode */}
+        {activeTopTab === 'define' && activeSubTab === 'tokens' && overflowPanel === null && useSidebar && !isSimpleMode && (
           <aside className="w-[128px] shrink-0 border-r border-[var(--color-figma-border)] flex flex-col bg-[var(--color-figma-bg-secondary)] overflow-hidden">
             <div className="flex-1 overflow-y-auto py-0.5" style={{ scrollbarWidth: 'none' }}>
               {sidebarTree.roots.map(item => {
@@ -1975,7 +2023,7 @@ export function App() {
               </button>
             </div>
           )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && tokens.length === 0 && !createFromEmpty && !editingToken && (
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && effectiveTokens.length === 0 && !createFromEmpty && !editingToken && (
             <EmptyState
               connected={connected}
               onCreateToken={() => setEditingToken({ path: '', set: activeSet, isCreate: true })}
@@ -1987,14 +2035,14 @@ export function App() {
               onGuidedSetup={() => setShowGuidedSetup(true)}
             />
           )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && !showPreviewSplit && (
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (effectiveTokens.length > 0 || createFromEmpty) && !showPreviewSplit && (
             useSidePanel ? (
               <div className="flex h-full overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <TokenList
-                    ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                    data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, tokenUsageCounts }}
-                    actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
+                    ctx={{ setName: effectiveSetName, sets, serverUrl, connected, selectedNodes }}
+                    data={{ tokens: effectiveTokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames }}
+                    actions={{ onEdit: (path, name) => { const resolvedSet = isSimpleMode ? (pathToSet[path] || sets[0]) : activeSet; setEditingToken({ path, name, set: resolvedSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
                     defaultCreateOpen={createFromEmpty}
                     highlightedToken={editingToken?.path ?? highlightedToken}
                     showIssuesOnly={showIssuesOnly}
@@ -2024,22 +2072,22 @@ export function App() {
               </div>
             ) : (
               <TokenList
-                ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, tokenUsageCounts }}
-                actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
+                ctx={{ setName: effectiveSetName, sets, serverUrl, connected, selectedNodes }}
+                data={{ tokens: effectiveTokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames }}
+                actions={{ onEdit: (path, name) => { const resolvedSet = isSimpleMode ? (pathToSet[path] || sets[0]) : activeSet; setEditingToken({ path, name, set: resolvedSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
                 defaultCreateOpen={createFromEmpty}
                 highlightedToken={highlightedToken}
                 showIssuesOnly={showIssuesOnly}
               />
             )
           )}
-          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (tokens.length > 0 || createFromEmpty) && showPreviewSplit && (
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'tokens' && (effectiveTokens.length > 0 || createFromEmpty) && showPreviewSplit && (
             <div ref={splitContainerRef} className="flex flex-col h-full overflow-hidden">
               <div style={{ height: `${splitRatio * 100}%`, flexShrink: 0, overflow: 'hidden' }}>
                 <TokenList
-                  ctx={{ setName: activeSet, sets, serverUrl, connected, selectedNodes }}
-                  data={{ tokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames, tokenUsageCounts }}
-                  actions={{ onEdit: (path, name) => { setEditingToken({ path, name, set: activeSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
+                  ctx={{ setName: effectiveSetName, sets, serverUrl, connected, selectedNodes }}
+                  data={{ tokens: effectiveTokens, allTokensFlat: themedAllTokensFlat, lintViolations, syncSnapshot: Object.keys(syncSnapshot).length > 0 ? syncSnapshot : undefined, generators, derivedTokenPaths, cascadeDiff: cascadeDiff ?? undefined, perSetFlat, collectionMap: setCollectionNames, modeMap: setModeNames }}
+                  actions={{ onEdit: (path, name) => { const resolvedSet = isSimpleMode ? (pathToSet[path] || sets[0]) : activeSet; setEditingToken({ path, name, set: resolvedSet }); setHighlightedToken(path); }, onCreateNew: (initialPath, initialType, initialValue) => setEditingToken({ path: initialPath ?? '', set: activeSet, isCreate: true, initialType, initialValue }), onRefresh: refreshAll, onPushUndo: pushUndo, onTokenCreated: (path) => setHighlightedToken(path), onNavigateToAlias: handleNavigateToAlias, onClearHighlight: () => setHighlightedToken(null), onSyncGroup: (groupPath, tokenCount) => setSyncGroupPending({ groupPath, tokenCount }), onSyncGroupStyles: (groupPath, tokenCount) => setSyncGroupStylesPending({ groupPath, tokenCount }), onSetGroupScopes: (groupPath) => { setGroupScopesPath(groupPath); setGroupScopesSelected([]); setGroupScopesError(null); }, onGenerateScaleFromGroup: (groupPath, tokenType) => { setPendingGraphFromGroup({ groupPath, tokenType }); navigateTo('define', 'generators'); }, onRefreshGenerators: refreshGenerators, onToggleIssuesOnly: () => setShowIssuesOnly(v => !v), onFilteredCountChange: setFilteredSetCount, onNavigateToSet: handleNavigateToSet }}
                   defaultCreateOpen={createFromEmpty}
                   highlightedToken={highlightedToken}
                   showIssuesOnly={showIssuesOnly}
