@@ -436,3 +436,13 @@
   - When a UI↔plugin message pair uses a single resolve ref, concurrent calls cause the earlier promise to never resolve (or resolve with wrong data). Always use a correlation map for request/response patterns over postMessage.
   - The plugin sandbox (`styleSync.ts`) already forwarded `correlationId` for `styles-read` but not for `styles-applied` — check both directions when fixing correlation issues.
 ---
+
+## 2026-03-28 - Fragile network-error detection breaks disconnect banner on Firefox
+- Extracted `isNetworkError(err)` helper into `shared/apiFetch.ts` that checks for `TypeError`, Chrome's `'Failed to fetch'`, and Firefox's `'NetworkError'`
+- Replaced all inline network-error detection across 5 files (7 call sites) with the shared helper
+- `useTokens.ts` already had the correct multi-string check — now all hooks use the same logic
+- Files changed: `packages/figma-plugin/src/ui/shared/apiFetch.ts` ~L22 (new helper), `packages/figma-plugin/src/ui/hooks/useSetDelete.ts` ~L2,55, `packages/figma-plugin/src/ui/hooks/useSetRename.ts` ~L2,68, `packages/figma-plugin/src/ui/hooks/useSetDuplicate.ts` ~L1,51, `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L6,98, `packages/figma-plugin/src/ui/App.tsx` ~L56,146,564,809
+- **Learnings for future iterations:**
+  - Chrome: `TypeError: Failed to fetch`, Firefox: `TypeError: NetworkError when attempting to fetch resource`, Safari: `TypeError: Load failed` — centralize detection in one place
+  - When the same error-matching pattern is copy-pasted across hooks, extract a shared helper immediately to prevent drift
+---

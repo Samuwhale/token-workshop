@@ -1,5 +1,5 @@
 import { useState, useRef, useLayoutEffect } from 'react';
-import { apiFetch } from '../shared/apiFetch';
+import { apiFetch, isNetworkError } from '../shared/apiFetch';
 import { SET_NAME_RE } from '../shared/utils';
 
 interface UseSetRenameParams {
@@ -65,7 +65,7 @@ export function useSetRename({
       refreshTokens();
       setSuccessToast(`Renamed set "${oldName}" → "${newName}"`);
     } catch (err) {
-      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
+      if (isNetworkError(err)) markDisconnected();
       setRenameError(err instanceof Error ? err.message : 'Rename failed');
     }
   };

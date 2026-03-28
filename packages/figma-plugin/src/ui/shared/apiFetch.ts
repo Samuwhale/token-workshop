@@ -20,6 +20,16 @@ export class ApiError extends Error {
  * Fetch `url` with `options`, parse JSON response, and return it as `T`.
  * Throws `ApiError` (with the server's `error` field if available) on non-2xx.
  */
+/** Detect network errors cross-browser (Chrome: 'Failed to fetch', Firefox: 'NetworkError…'). */
+export function isNetworkError(err: unknown): boolean {
+  if (err instanceof TypeError) return true;
+  if (err instanceof Error) {
+    const msg = err.message;
+    return msg.includes('Failed to fetch') || msg.includes('NetworkError');
+  }
+  return false;
+}
+
 export async function apiFetch<T = unknown>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, options);
   if (!res.ok) {

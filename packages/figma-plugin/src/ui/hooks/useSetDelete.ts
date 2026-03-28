@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { apiFetch, ApiError } from '../shared/apiFetch';
+import { apiFetch, ApiError, isNetworkError } from '../shared/apiFetch';
 
 interface UseSetDeleteParams {
   serverUrl: string;
@@ -52,7 +52,7 @@ export function useSetDelete({
       if (err instanceof ApiError) {
         setErrorToast(`Delete failed: ${err.message}`);
         setDeletingSet(null);
-      } else if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) {
+      } else if (isNetworkError(err)) {
         markDisconnected();
         setDeletingSet(null);
       } else if (err instanceof Error && err.name === 'AbortError') {

@@ -69,3 +69,10 @@ Already up to date.
 ===============================================================
   Claimed: Fragile network-error detection breaks disconnect banner on Firefox — `useSetDelete`, `useSetRename`, and several other hooks detect disconnects via `err instanceof TypeError || err.message.includes('Failed to fetch')`; `'Failed to fetch'` is Chrome-only — Firefox emits `'NetworkError when attempting to fetch resource'` — `useTokens.ts:98` already has the correct multi-string check but the hooks don't follow it, so `markDisconnected` never fires on Firefox (`useSetDelete.ts` ~L51, `useSetRename.ts` ~L68)
   Worktree: /tmp/backlog-22646-Z93F9E
+
+  ✓ done: Fragile network-error detection breaks disconnect banner on Firefox
+    Extracted shared `isNetworkError()` helper to `apiFetch.ts` covering Chrome/Firefox/Safari error strings; replaced all 7 inline checks across useSetDelete, useSetRename, useSetDuplicate, useTokens, and App.tsx
+    36 turns · 117s · $0.63
+
+--- Merging: Fragile network-error detection breaks disconnect banner on Firefox ---
+Already up to date.

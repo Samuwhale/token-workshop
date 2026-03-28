@@ -1,3 +1,4 @@
+import { isNetworkError } from '../shared/apiFetch';
 import type { UndoSlot } from './useUndo';
 
 interface UseSetDuplicateParams {
@@ -48,7 +49,7 @@ export function useSetDuplicate({
         return;
       }
     } catch (err) {
-      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
+      if (isNetworkError(err)) markDisconnected();
       else setErrorToast(`Duplicate failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
       return;
     }

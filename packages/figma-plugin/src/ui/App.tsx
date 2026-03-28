@@ -53,7 +53,7 @@ import { useSetMetadata } from './hooks/useSetMetadata';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases, isAlias } from '../shared/resolveAlias';
 import { stableStringify, adaptShortcut, getErrorMessage, SET_NAME_RE } from './shared/utils';
-import { apiFetch } from './shared/apiFetch';
+import { apiFetch, isNetworkError } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType } from './components/tokenListUtils';
 
@@ -143,8 +143,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
       parent.postMessage({ pluginMessage: { type: 'sync-bindings', tokenMap, scope } }, '*');
     } catch (err) {
       console.error('Failed to fetch tokens for sync:', err);
-      const msg = getErrorMessage(err, '');
-      const isNetworkErr = err instanceof TypeError || msg.includes('Failed to fetch') || msg.includes('NetworkError');
+      const isNetworkErr = isNetworkError(err);
       if (isNetworkErr) onNetworkError?.();
       const friendly = isNetworkErr
         ? 'Could not reach the token server. Check that it is running.'
@@ -562,7 +561,7 @@ export function App() {
         setPerSetFlat(psf);
       }).catch(err => {
         if (gen !== flatFetchGenRef.current) return; // stale response
-        if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
+        if (isNetworkError(err)) markDisconnected();
         console.error('Failed to fetch tokens flat:', err);
       });
     }
@@ -807,7 +806,7 @@ export function App() {
       refreshTokens();
       setSuccessToast(`Created set "${name}"`);
     } catch (err) {
-      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) {
+      if (isNetworkError(err)) {
         markDisconnected();
         setCreatingSet(false);
         setNewSetName('');
