@@ -402,3 +402,16 @@ Already up to date.
 
 --- Merging: PreviewPanel has no copy-to-clipboard for token values or CSS variables ---
 Already up to date.
+[main 2a7b276] chore(backlog): done – PreviewPanel has no copy-to-clipboard for token values or CSS variables
+ 6 files changed, 124 insertions(+), 11 deletions(-)
+
+## 2026-03-28 - PreviewPanel has no copy-to-clipboard for token values or CSS variables
+- Added copy-to-clipboard functionality throughout PreviewPanel: color swatches copy CSS variable on swatch click and resolved value on label click (with overlay feedback), type scale rows show copy buttons on hover for both CSS var name and resolved value. Includes `copyText` helper with `navigator.clipboard` + `execCommand` fallback, and a reusable `CopyButton` component with "Copied" confirmation state.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L1 (import useCallback), ~L237 (SwatchCell with copy), ~L276 (TypeScaleTemplate copy buttons), ~L489 (copyText helper + CopyButton component)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  37 items remaining
+===============================================================
+  Claimed: PublishPanel git diff view has no search or filter — when a push/pull involves 50+ changed files, users must scroll through the entire list with no way to filter by path or file type
+  Worktree: /tmp/backlog-84992-LJ06vl

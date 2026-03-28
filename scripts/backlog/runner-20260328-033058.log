@@ -412,3 +412,10 @@ Already up to date.
 ===============================================================
   Claimed: PreviewPanel silently caps color swatches at 16 tokens — sets with more than 16 colors only show the first 16 with no indication that tokens were omitted or any way to paginate
   Worktree: /tmp/backlog-85816-3HxoSM
+
+  ✓ done: PreviewPanel silently caps color swatches at 16 tokens
+    Added ColorGroup component with expand/collapse: groups with >16 swatches show first 16 with a 'Show all N colors' button, plus token count in group headers.
+    16 turns · 109s · $0.56
+
+--- Merging: PreviewPanel silently caps color swatches at 16 tokens ---
+Already up to date.

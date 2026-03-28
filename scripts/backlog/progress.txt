@@ -379,3 +379,10 @@
   - Figma plugin UI runs in an iframe; `navigator.clipboard.writeText` works but a `document.execCommand('copy')` fallback is prudent
   - Minified builds inline string literals differently — use `grep` on the built HTML to verify functional code (e.g. `writeText`, `execCommand`) rather than UI-visible strings
 ---
+
+## 2026-03-28 - PreviewPanel silently caps color swatches at 16 tokens
+- Extracted a `ColorGroup` component with `useState` for expand/collapse. Groups with >16 swatches show only the first 16 by default, with a "Show all N colors" button. The group header now also shows the token count in parentheses. When expanded, a "Show less" button collapses back to 16.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L204
+- **Learnings for future iterations:**
+  - The original code had no explicit cap — the visual clipping came from `overflow-hidden` on the rounded container plus narrow plugin viewport. Adding an explicit threshold with a toggle is better UX than relying on scroll.
+---

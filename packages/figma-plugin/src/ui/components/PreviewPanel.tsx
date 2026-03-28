@@ -201,6 +201,36 @@ export function PreviewPanel({ allTokensFlat, onGoToTokens }: PreviewPanelProps)
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 
+const SWATCHES_COLLAPSED = 16;
+
+function ColorGroup({ group, tokens, darkMode }: { group: string; tokens: { path: string; value: string }[]; darkMode: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = tokens.length > SWATCHES_COLLAPSED;
+  const visible = expanded ? tokens : tokens.slice(0, SWATCHES_COLLAPSED);
+
+  return (
+    <div>
+      <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>
+        {group}
+        <span className={`ml-1 font-normal normal-case tracking-normal ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>({tokens.length})</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {visible.map(({ path, value }) => (
+          <SwatchCell key={path} path={path} value={value} darkMode={darkMode} />
+        ))}
+      </div>
+      {hasMore && (
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className={`mt-1.5 text-[10px] hover:underline ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}
+        >
+          {expanded ? 'Show less' : `Show all ${tokens.length} colors`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ColorsTemplate({ groups, darkMode, onGoToTokens }: { groups: Record<string, { path: string; value: string }[]>; darkMode: boolean; onGoToTokens?: () => void }) {
   const groupEntries = Object.entries(groups);
   if (groupEntries.length === 0) {
@@ -221,14 +251,7 @@ function ColorsTemplate({ groups, darkMode, onGoToTokens }: { groups: Record<str
   return (
     <div className="p-3 flex flex-col gap-4">
       {groupEntries.map(([group, tokens]) => (
-        <div key={group}>
-          <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`}>{group}</div>
-          <div className="flex flex-wrap gap-1.5">
-            {tokens.map(({ path, value }) => (
-              <SwatchCell key={path} path={path} value={value} darkMode={darkMode} />
-            ))}
-          </div>
-        </div>
+        <ColorGroup key={group} group={group} tokens={tokens} darkMode={darkMode} />
       ))}
     </div>
   );
