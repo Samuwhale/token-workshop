@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: useSetMergeSplit.ts merge/split undo callbacks use raw fetch with no error handling ---
 Already up to date.
+[main 84784b2] chore(backlog): done – useSetMergeSplit.ts merge/split undo callbacks use raw fetch with no error handling
+ 8 files changed, 59 insertions(+), 9 deletions(-)
+
+## 2026-03-28 - useSetMergeSplit.ts merge/split undo callbacks use raw fetch with no error handling
+- The undo restore callbacks in both merge and split already threw errors on failure, but `useUndo.executeUndo` (and `executeRedo`) had no catch handler — errors became unhandled promise rejections invisible to the user
+- Added `onError` callback parameter to `useUndo()`, with a stable ref to avoid re-renders. `executeUndo` and `executeRedo` now catch errors from restore/redo callbacks and surface them via `onError`
+- Wired `setErrorToast` from `useToastStack` as the `onError` handler in `App.tsx` (reordered hook calls so `useToastStack` precedes `useUndo`)
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Backlog fully drained!

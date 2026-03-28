@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { Token } from '@tokenmanager/core';
 import type { TokenStore } from './token-store.js';
+import { stableStringify } from './stable-stringify.js';
 
 /** Deterministic JSON string — sorts object keys so comparison is key-order independent. */
 function stableStringify(value: unknown): string {
@@ -177,7 +178,9 @@ export class ManualSnapshotStore {
         } else if (before && !after) {
           diffs.push({ path: p, set: setName, status: 'removed', before });
         } else if (before && after) {
-          if (stableStringify(before) !== stableStringify(after)) {
+          const bVal = stableStringify(before.$value);
+          const aVal = stableStringify(after.$value);
+          if (bVal !== aVal) {
             diffs.push({ path: p, set: setName, status: 'modified', before, after });
           }
         }

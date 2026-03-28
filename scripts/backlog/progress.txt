@@ -516,3 +516,15 @@
   - When restore callbacks throw, the error must be caught at the `executeUndo` call site — otherwise it's an unhandled promise rejection. A centralized `onError` callback on the undo hook is cleaner than having each restore callback try to access toast functions via closure
   - Reordering React hooks is safe as long as the total count and order remain stable across renders
 ---
+
+## 2026-03-28 - Server-side token value comparisons use JSON.stringify (non-deterministic key order) instead of stableStringify
+- Created `packages/server/src/services/stable-stringify.ts` with a recursive key-sorting JSON serializer (same implementation as the existing client-side `stableStringify` in `packages/figma-plugin/src/ui/shared/utils.ts`)
+- Replaced `JSON.stringify` with `stableStringify` for token `$value` comparisons in:
+  - `packages/server/src/services/manual-snapshot.ts` ~L165-166 (snapshot diff)
+  - `packages/server/src/routes/sync.ts` ~L225-226, ~L324, ~L500-501 (sync diff and restore)
+  - `packages/server/src/services/generator-service.ts` ~L325 (generator conflict detection)
+- Files changed: `packages/server/src/services/stable-stringify.ts` (new), `packages/server/src/services/manual-snapshot.ts`, `packages/server/src/routes/sync.ts`, `packages/server/src/services/generator-service.ts`
+- **Learnings for future iterations:**
+  - The backlog line references (e.g., generator-service.ts:292) may be stale — always grep for the actual `JSON.stringify` usage rather than trusting line numbers
+  - `stableStringify` was already in the UI package but not shared to server; duplicating a 7-line pure function is simpler and safer than creating a shared package
+---

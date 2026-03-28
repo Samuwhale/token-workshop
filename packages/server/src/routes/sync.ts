@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 import type { Token } from '@tokenmanager/core';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { snapshotPaths } from '../services/operation-log.js';
+import { stableStringify } from '../services/stable-stringify.js';
 
 export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/sync/status — git status + isRepo + current branch
@@ -221,8 +222,8 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         for (const [p, afterToken] of afterTokens) {
           const beforeToken = beforeTokens.get(p);
           if (beforeToken) {
-            const bVal = JSON.stringify(beforeToken.$value);
-            const aVal = JSON.stringify(afterToken.$value);
+            const bVal = stableStringify(beforeToken.$value);
+            const aVal = stableStringify(afterToken.$value);
             if (bVal !== aVal) {
               changes.push({
                 path: p,
@@ -320,7 +321,7 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
           // Modified → restore to before
           for (const [p, afterToken] of afterTokens) {
             const beforeToken = beforeTokens.get(p);
-            if (beforeToken && JSON.stringify(beforeToken.$value) !== JSON.stringify(afterToken.$value)) {
+            if (beforeToken && stableStringify(beforeToken.$value) !== stableStringify(afterToken.$value)) {
               toRestore.push({ path: p, set: setName, token: beforeToken });
             }
           }
@@ -496,8 +497,8 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
         for (const [p, afterToken] of afterTokens) {
           const beforeToken = beforeTokens.get(p);
           if (beforeToken) {
-            const bVal = JSON.stringify(beforeToken.$value);
-            const aVal = JSON.stringify(afterToken.$value);
+            const bVal = stableStringify(beforeToken.$value);
+            const aVal = stableStringify(afterToken.$value);
             if (bVal !== aVal) {
               changes.push({
                 path: p,
