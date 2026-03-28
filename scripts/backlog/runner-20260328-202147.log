@@ -47,3 +47,16 @@ Already up to date.
 
 --- Merging: Inline theme editing in token editor: when editing a token that participates in themes, show all theme values side-by-side in the editor instead of requiring navigation to a separate Themes panel ---
 Already up to date.
+[main febad8c] chore(backlog): done – Inline theme editing in token editor: when editing a token that participates in themes, show all theme values side-by-side in the editor instead of requiring navigation to a separate Themes panel
+ 7 files changed, 246 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - Inline theme editing in token editor
+- Added a "Theme values" collapsible section to `TokenEditor.tsx` that appears when editing a token with theme dimensions configured. For each dimension × option, shows the current raw value from the appropriate theme set (perSetFlat), with inline text editing for simple types (color, string, number, dimension, duration, boolean, fontFamily, fontWeight). Complex/composite types show read-only "overridden/inherited" status. Alias values show read-only token reference path. Each editable row has a "Save" button that PATCHes the target set directly and calls `onRefresh` to stay in the editor. Added `perSetFlat` and `onRefresh` props to `TokenEditorProps` and passed them from both TokenEditor usage sites in App.tsx.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L142 (ThemeValuesSection component), ~L330 (new props), ~L1165 (render call); `packages/figma-plugin/src/ui/App.tsx` ~L2173, ~L2464 (prop passing)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  70 items remaining
+===============================================================
+  Claimed: Search qualifier discoverability: add autocomplete, placeholder hints, or a filter dropdown for advanced qualifiers (`type:color`, `alias:{path}`, `>has:ref`) in the token search input
+  Worktree: /tmp/backlog-10461-cyv5fC

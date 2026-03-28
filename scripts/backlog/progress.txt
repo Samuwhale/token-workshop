@@ -552,3 +552,12 @@
   - The "best target set" selection order: first enabled set that already contains the token, then first enabled set, then first source set.
   - `onRefresh` (not `onSaved`) is the right callback for in-editor saves since `onSaved` also calls `onBack()`.
 ---
+
+## 2026-03-28 - Set management discoverability: visible menu affordance on set tabs
+- Added visible three-dot kebab menu buttons to sidebar mode set items (both root-level and foldered). Previously sidebar mode relied solely on right-click with no visual hint. The kebab appears on hover (opacity-0 → opacity-60) and is always visible on the active set (opacity-60). Tab bar mode already had a kebab button but was opacity-40 on inactive tabs — kept as-is since it's already discoverable. Updated tab bar tooltip from "Right-click for options" to show the set name instead.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1559 (sidebar root-level kebab), ~L1623 (sidebar foldered kebab), ~L1329 (tab bar tooltip)
+- **Learnings for future iterations:**
+  - Tab bar mode already had a split button design (label | kebab) with group-hover visibility — only sidebar mode was missing the affordance
+  - Use `group/sidebarset` scoped group to avoid hover conflicts with parent sidebar scroll container
+  - The `hover:!opacity-100` with `!` important modifier is needed to override group-hover opacity on direct button hover
+---

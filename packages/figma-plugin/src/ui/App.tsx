@@ -1326,7 +1326,7 @@ export function App() {
                     <button
                       onClick={() => setActiveSet(set)}
                       onContextMenu={e => openSetMenu(set, e)}
-                      title={setDescriptions[set] || 'Right-click for options'}
+                      title={setDescriptions[set] || set}
                       className={`flex items-center pl-2 pr-1 py-1 rounded-l text-[10px] whitespace-nowrap transition-colors ${
                         isActive
                           ? 'bg-[var(--color-figma-accent)] text-white font-medium'
@@ -1556,7 +1556,7 @@ export function App() {
                   // Root-level (unfoldered) set
                   const set = item;
                   return (
-                    <div key={set} className="relative">
+                    <div key={set} className="group/sidebarset relative">
                       {renamingSet === set ? (
                         <div className="px-1 py-0.5">
                           <input
@@ -1571,24 +1571,39 @@ export function App() {
                           {renameError && <span className="block text-[10px] text-red-500 px-1">{renameError}</span>}
                         </div>
                       ) : (
-                        <button
-                          onClick={() => setActiveSet(set)}
-                          onContextMenu={e => openSetMenu(set, e)}
-                          title={setDescriptions[set] || set}
-                          data-active-set={activeSet === set}
-                          className={`w-full flex items-center justify-between pl-2 pr-1 py-1 text-[10px] text-left transition-colors ${
-                            activeSet === set
-                              ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium'
-                              : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                          }`}
-                        >
-                          <span className="truncate flex-1">{set}</span>
-                          {setTokenCounts[set] !== undefined && (
-                            <span className={`text-[10px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
-                              {activeSet === set && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
-                            </span>
-                          )}
-                        </button>
+                        <div className="flex items-center">
+                          <button
+                            onClick={() => setActiveSet(set)}
+                            onContextMenu={e => openSetMenu(set, e)}
+                            title={setDescriptions[set] || set}
+                            data-active-set={activeSet === set}
+                            className={`flex-1 min-w-0 flex items-center justify-between pl-2 pr-1 py-1 text-[10px] text-left transition-colors ${
+                              activeSet === set
+                                ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium'
+                                : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                            }`}
+                          >
+                            <span className="truncate flex-1">{set}</span>
+                            {setTokenCounts[set] !== undefined && (
+                              <span className={`text-[10px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
+                                {activeSet === set && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
+                              </span>
+                            )}
+                          </button>
+                          <button
+                            onClick={e => openSetMenu(set, e)}
+                            onContextMenu={e => openSetMenu(set, e)}
+                            title="Set options"
+                            aria-label="Set options"
+                            className={`shrink-0 flex items-center justify-center w-5 h-5 rounded transition-opacity ${
+                              activeSet === set
+                                ? 'opacity-60 hover:opacity-100 text-[var(--color-figma-accent)]'
+                                : 'opacity-0 group-hover/sidebarset:opacity-60 hover:!opacity-100 text-[var(--color-figma-text-tertiary)]'
+                            }`}
+                          >
+                            <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="1" r="0.9" /><circle cx="4" cy="4" r="0.9" /><circle cx="4" cy="7" r="0.9" /></svg>
+                          </button>
+                        </div>
                       )}
                     </div>
                   );
@@ -1608,7 +1623,7 @@ export function App() {
                     {!isCollapsed && folder.sets.map(set => {
                       const leaf = set.slice(folder.path.length + 1);
                       return (
-                        <div key={set} className="relative">
+                        <div key={set} className="group/sidebarset relative">
                           {renamingSet === set ? (
                             <div className="pl-4 pr-1 py-0.5">
                               <input
@@ -1623,24 +1638,39 @@ export function App() {
                               {renameError && <span className="block text-[10px] text-red-500 px-1">{renameError}</span>}
                             </div>
                           ) : (
-                            <button
-                              onClick={() => setActiveSet(set)}
-                              onContextMenu={e => openSetMenu(set, e)}
-                              title={setDescriptions[set] || leaf}
-                              data-active-set={activeSet === set}
-                              className={`w-full flex items-center justify-between pl-5 pr-1 py-1 text-[10px] text-left transition-colors ${
-                                activeSet === set
-                                  ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium'
-                                  : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
-                              }`}
-                            >
-                              <span className="truncate flex-1">{leaf}</span>
-                              {setTokenCounts[set] !== undefined && (
-                                <span className={`text-[10px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
-                                  {activeSet === set && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
-                                </span>
-                              )}
-                            </button>
+                            <div className="flex items-center">
+                              <button
+                                onClick={() => setActiveSet(set)}
+                                onContextMenu={e => openSetMenu(set, e)}
+                                title={setDescriptions[set] || leaf}
+                                data-active-set={activeSet === set}
+                                className={`flex-1 min-w-0 flex items-center justify-between pl-5 pr-1 py-1 text-[10px] text-left transition-colors ${
+                                  activeSet === set
+                                    ? 'bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium'
+                                    : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
+                                }`}
+                              >
+                                <span className="truncate flex-1">{leaf}</span>
+                                {setTokenCounts[set] !== undefined && (
+                                  <span className={`text-[10px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
+                                    {activeSet === set && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
+                                  </span>
+                                )}
+                              </button>
+                              <button
+                                onClick={e => openSetMenu(set, e)}
+                                onContextMenu={e => openSetMenu(set, e)}
+                                title="Set options"
+                                aria-label="Set options"
+                                className={`shrink-0 flex items-center justify-center w-5 h-5 rounded transition-opacity ${
+                                  activeSet === set
+                                    ? 'opacity-60 hover:opacity-100 text-[var(--color-figma-accent)]'
+                                    : 'opacity-0 group-hover/sidebarset:opacity-60 hover:!opacity-100 text-[var(--color-figma-text-tertiary)]'
+                                }`}
+                              >
+                                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="1" r="0.9" /><circle cx="4" cy="4" r="0.9" /><circle cx="4" cy="7" r="0.9" /></svg>
+                              </button>
+                            </div>
                           )}
                         </div>
                       );

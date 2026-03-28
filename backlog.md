@@ -131,14 +131,14 @@
 - [x] Interactive scale curve editors: draggable bezier for color ramp lightness distribution, visual staircase for type scale with adjustable ratio — make generator output directly manipulable
 - [x] Smart naming suggestions: pattern-match existing token names and suggest paths for new tokens (e.g. if `color.brand.primary/secondary/tertiary` exist, suggest `color.brand.{?}` not a blank field)
 - [x] Before/After snapshots: "Save this state" → experiment → "Compare with saved" → keep or revert — two buttons, zero git concepts, designed for trying things and showing stakeholders
-- [~] Inline theme editing in token editor: when editing a token that participates in themes, show all theme values side-by-side in the editor instead of requiring navigation to a separate Themes panel
+- [x] Inline theme editing in token editor: when editing a token that participates in themes, show all theme values side-by-side in the editor instead of requiring navigation to a separate Themes panel
 - [x] Toast stacking system: queue multiple toasts vertically instead of overlapping in the same bottom-left position
 - [x] Hover tooltips on truncated token paths: show full path on hover for deep hierarchies that get line-clamped
 - [~] Consistent empty states across sub-panels: Themes, Resolvers, Generators, Heatmap, History all need guidance-oriented empty states (what is this, why use it, how to start) matching the quality of the main EmptyState
 - [~] Contextual help for advanced features: first-time hints or inline descriptions for Resolvers, Token Flow, Heatmap, Generators — no onboarding wizard, just "what is this?" affordances on each panel
 - [x] [HIGH] Missing `await` on `tokenStore.getSet()` in resolver-store.ts:161 — `getSet` is async (returns `Promise<TokenSet | undefined>`) but called without `await` in `loadExternal`, so `set` is a Promise (always truthy), the `!set` guard never triggers, and `set.tokens` is `undefined`; resolver external-set loading silently produces undefined tokens for every resolution
 - [~] Set management discoverability: add visible affordance (menu icon, kebab, dropdown) on set tabs instead of relying solely on right-click for create/rename/duplicate/merge/split/reorder
-- [ ] Search qualifier discoverability: add autocomplete, placeholder hints, or a filter dropdown for advanced qualifiers (`type:color`, `alias:{path}`, `>has:ref`) in the token search input
+- [~] Search qualifier discoverability: add autocomplete, placeholder hints, or a filter dropdown for advanced qualifiers (`type:color`, `alias:{path}`, `>has:ref`) in the token search input
 - [ ] "Did you mean this token?" nudge: when a designer pastes/eyedrops a raw value that's within a small delta of an existing token, suggest the token inline — make the systemized path easier than the unsystemized path
 - [ ] Bulk type-change in batch editor: allow changing the type of multiple tokens at once (e.g. converting `string` tokens to `dimension` during a migration)
 - [ ] `creatingSet` state stuck on error in App.tsx `handleCreateSet` — `setCreatingSet(false)` at line 789 only runs on success; if the fetch throws (network error), the catch block at line 794-797 never resets `creatingSet`, leaving the UI in a loading state

@@ -63,3 +63,10 @@ Already up to date.
 ===============================================================
   Claimed: Set management discoverability: add visible affordance (menu icon, kebab, dropdown) on set tabs instead of relying solely on right-click for create/rename/duplicate/merge/split/reorder
   Worktree: /tmp/backlog-10054-pJV4Ea
+
+  ✓ done: Set management discoverability: add visible affordance on set tabs
+    Added three-dot kebab menu buttons to sidebar mode set items (root-level and foldered) that appear on hover; tab bar mode already had kebab buttons. Updated tooltip from 'Right-click for options' to show set name.
+    12 turns · 163s · $0.71
+
+--- Merging: Set management discoverability: add visible affordance on set tabs ---
+Already up to date.
