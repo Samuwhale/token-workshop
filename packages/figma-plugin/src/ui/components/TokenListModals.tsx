@@ -74,6 +74,7 @@ export interface TokenListModalsProps {
   onSetFrError: (v: string) => void;
   onSetShowFindReplace: (v: boolean) => void;
   handleFindReplace: () => void;
+  cancelFindReplace: () => void;
 
   // Promote to Semantic modal
   promoteRows: PromoteRow[] | null;
@@ -148,6 +149,7 @@ export function TokenListModals(props: TokenListModalsProps) {
     onSetFrError,
     onSetShowFindReplace,
     handleFindReplace,
+    cancelFindReplace,
     promoteRows,
     promoteBusy,
     onSetPromoteRows,
@@ -496,12 +498,21 @@ export function TokenListModals(props: TokenListModalsProps) {
               )}
             </div>
             <div className="flex gap-2 justify-end p-4 border-t border-[var(--color-figma-border)]">
-              <button
-                onClick={() => { onSetShowFindReplace(false); onSetFrFind(''); onSetFrReplace(''); onSetFrIsRegex(false); onSetFrError(''); }}
-                className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-              >
-                Cancel
-              </button>
+              {frBusy ? (
+                <button
+                  onClick={cancelFindReplace}
+                  className="px-3 py-1.5 rounded text-[11px] text-red-500 hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  Cancel rename
+                </button>
+              ) : (
+                <button
+                  onClick={() => { onSetShowFindReplace(false); onSetFrFind(''); onSetFrReplace(''); onSetFrIsRegex(false); onSetFrError(''); }}
+                  className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 onClick={handleFindReplace}
                 disabled={!frFind || frBusy || frPreview.length === 0 || frPreview.every(r => r.conflict)}

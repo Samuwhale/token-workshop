@@ -164,3 +164,16 @@ Already up to date.
 
 --- Merging: useSetDuplicate.ts silently returns on HTTP errors ---
 Already up to date.
+[main 3a4b045] chore(backlog): done – useSetDuplicate.ts silently returns on HTTP errors
+ 7 files changed, 43 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - useSetDuplicate.ts silently returns on HTTP errors
+- Added `setErrorToast` callback to `useSetDuplicate` hook params; on HTTP 4xx/5xx from either the source-set fetch or the duplicate-create POST, the user now sees an error toast with the status code. Non-network caught exceptions also surface via error toast.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetDuplicate.ts` ~L8,17,33,42,44; `packages/figma-plugin/src/ui/App.tsx` ~L506
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  47 items remaining
+===============================================================
+  Claimed: `PublishPanel.tsx` retry loop catches all errors as timeout retries (~line 198-200) — non-timeout errors (e.g. malformed message, plugin crash) are silently retried instead of surfaced, masking real failures
+  Worktree: /tmp/backlog-9231-kEpDwB

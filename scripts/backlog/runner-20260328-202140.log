@@ -256,3 +256,10 @@ Already up to date.
 ===============================================================
   Claimed: `useFindReplace.ts` bulk-rename fetch has no abort signal or timeout (~line 86) — a slow server response hangs the UI indefinitely with no way to cancel
   Worktree: /tmp/backlog-9651-Ho8Mrh
+
+  ✓ done: useFindReplace.ts bulk-rename fetch has no abort signal or timeout
+    Added AbortController with 30s timeout to bulk-rename fetch, exposed cancelFindReplace callback, and added cancel button to modal UI during rename operations.
+    23 turns · 126s · $0.72
+
+--- Merging: useFindReplace.ts bulk-rename fetch has no abort signal or timeout ---
+Already up to date.

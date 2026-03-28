@@ -1,7 +1,10 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import type { UndoSlot } from './useUndo';
 import { getErrorMessage } from '../shared/utils';
+
+/** Default timeout for bulk-rename requests (ms). */
+const BULK_RENAME_TIMEOUT_MS = 30_000;
 
 export interface UseFindReplaceParams {
   connected: boolean;
@@ -41,6 +44,7 @@ export function useFindReplace({
   const [frIsRegex, setFrIsRegex] = useState(false);
   const [frError, setFrError] = useState('');
   const [frBusy, setFrBusy] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
   const frRegexError = useMemo(() => {
     if (!frIsRegex || !frFind) return null;
@@ -74,6 +78,13 @@ export function useFindReplace({
     return renames;
   }, [frFind, frReplace, frIsRegex, frRegexError, tokens, setName]);
 
+  const cancelFindReplace = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  }, []);
+
   const handleFindReplace = useCallback(async () => {
     if (!frFind || frBusy) return;
     setFrError('');
@@ -82,11 +93,17 @@ export function useFindReplace({
     const capturedReplace = frReplace;
     const capturedIsRegex = frIsRegex;
     const renamedCount = frPreview.filter(r => !r.conflict).length;
+
+    const ac = new AbortController();
+    abortRef.current = ac;
+    const timer = setTimeout(() => ac.abort(), BULK_RENAME_TIMEOUT_MS);
+
     try {
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
+        signal: ac.signal,
       });
       const data = await res.json() as { renamed?: number; skipped?: string[]; aliasesUpdated?: number; error?: string };
       if (!res.ok) { setFrError(data.error ?? 'Rename failed'); return; }
@@ -107,6 +124,7 @@ export function useFindReplace({
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
+              signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
             });
             onRefresh();
           },
@@ -115,6 +133,7 @@ export function useFindReplace({
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
+              signal: AbortSignal.timeout(BULK_RENAME_TIMEOUT_MS),
             });
             onRefresh();
           },
@@ -126,8 +145,14 @@ export function useFindReplace({
       setFrIsRegex(false);
       onRefresh();
     } catch (err) {
-      setFrError(getErrorMessage(err));
+      if (ac.signal.aborted) {
+        setFrError('Bulk rename was cancelled');
+      } else {
+        setFrError(getErrorMessage(err));
+      }
     } finally {
+      clearTimeout(timer);
+      abortRef.current = null;
       setFrBusy(false);
     }
   }, [frFind, frReplace, frIsRegex, frBusy, frPreview, serverUrl, setName, onRefresh, onPushUndo]);
@@ -147,5 +172,6 @@ export function useFindReplace({
     frRegexError,
     frPreview,
     handleFindReplace,
+    cancelFindReplace,
   };
 }

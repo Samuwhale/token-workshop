@@ -601,3 +601,15 @@
   - Pattern for silent-return hooks: add `setErrorToast` to params interface, call it before each `return` on `!res.ok`, and in the catch block for non-network errors
   - `setErrorToast` is already available at the App.tsx call site for all hooks — just thread it through
 ---
+
+## 2026-03-28 - useFindReplace.ts bulk-rename fetch has no abort signal or timeout
+- Added AbortController + 30s timeout to the bulk-rename fetch in `handleFindReplace`
+- Added `cancelFindReplace` callback that aborts the in-flight request, exposed from the hook
+- Added `AbortSignal.timeout(30s)` to undo/redo restore callbacks as well
+- Updated TokenListModals.tsx to show "Cancel rename" button when busy (replaces the close button)
+- Wired `cancelFindReplace` through TokenList.tsx → TokenListModals.tsx props
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFindReplace.ts` ~L1-6,45,80-135, `packages/figma-plugin/src/ui/components/TokenListModals.tsx` ~L77,152,499-515, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L820,3958
+- **Learnings for future iterations:**
+  - `AbortSignal.timeout()` is a clean one-liner for undo/redo callbacks that don't need user-cancellable abort controllers
+  - For the primary action, use `AbortController` + `setTimeout` so the user can cancel manually before the timeout fires
+---
