@@ -400,3 +400,20 @@
   - ImportPanel, ExportPanel, PreviewPanel, HeatmapPanel had zero icon-only buttons missing labels — all their buttons contain visible text.
   - Dynamic labels (e.g., `aria-label={expanded ? 'Collapse' : 'Expand'}`) are needed for toggle buttons whose function changes with state.
 ---
+
+## 2026-03-28 - `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks
+- Extracted 5 new hooks from App.tsx, reducing it from 2829 to 2492 lines (~337 lines removed):
+  - `useSetRename` — rename state (renamingSet, renameValue, renameError), renameInputRef, useLayoutEffect for focus, startRename/cancelRename/handleRenameConfirm
+  - `useSetDelete` — deletingSet state, startDelete/cancelDelete/handleDeleteSet
+  - `useSetDuplicate` — handleDuplicateSet with undo support (stateless hook)
+  - `useSetMergeSplit` — all merge state (7 useState calls) + all split state (4 useState calls) + flattenTokensObj helper + all merge/split handlers with undo support
+  - `useSetMetadata` — metadata editing state (4 useState calls) + openSetMetadata/handleSaveMetadata
+- Also introduced `closeMergeDialog`, `closeSplitDialog`, `closeSetMetadata`, `changeMergeTarget` helper functions to encapsulate multi-setter patterns that were previously inline in JSX
+- Removed unused `flattenTokenGroup`/`DTCGGroup` import from App.tsx
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L355, `packages/figma-plugin/src/ui/hooks/useSetRename.ts` (new), `packages/figma-plugin/src/ui/hooks/useSetDelete.ts` (new), `packages/figma-plugin/src/ui/hooks/useSetDuplicate.ts` (new), `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` (new), `packages/figma-plugin/src/ui/hooks/useSetMetadata.ts` (new)
+- **Learnings for future iterations:**
+  - The JSX for modal dialogs (merge, split, metadata, delete confirmation) remains in App.tsx — extracting those into components would be a separate item
+  - When hooks need to close a context menu, pass `setTabMenuOpen` as a parameter rather than having the caller close it before calling the hook function — the hook handles the full operation atomically
+  - `useSetDuplicate` is effectively stateless (just an async handler) but still benefits from being a hook since it captures reactive values (sets, serverUrl, connected) via closure
+  - The `startDelete` helper bundles `setDeletingSet` + `setTabMenuOpen(null)` which were previously inline in two JSX locations — consolidating them prevents future divergence
+---

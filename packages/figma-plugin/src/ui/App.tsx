@@ -35,12 +35,16 @@ import { useHeatmap } from './hooks/useHeatmap';
 import { useTokenNavigation } from './hooks/useTokenNavigation';
 import { useThemeSwitcher } from './hooks/useThemeSwitcher';
 import { useFigmaSync } from './hooks/useFigmaSync';
+import { useSetRename } from './hooks/useSetRename';
+import { useSetDelete } from './hooks/useSetDelete';
+import { useSetDuplicate } from './hooks/useSetDuplicate';
+import { useSetMergeSplit } from './hooks/useSetMergeSplit';
+import { useSetMetadata } from './hooks/useSetMetadata';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
 import { stableStringify, adaptShortcut, getErrorMessage } from './shared/utils';
 import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
-import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
 
 /** Valid set name: alphanumeric, hyphens, underscores, with `/` as folder separator. */
 const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
@@ -343,40 +347,15 @@ export function App() {
   const [tabMenuPos, setTabMenuPos] = useState({ x: 0, y: 0 });
   const tabMenuRef = useRef<HTMLDivElement>(null);
 
-  // Set metadata editing state
-  const [editingMetadataSet, setEditingMetadataSet] = useState<string | null>(null);
-  const [metadataDescription, setMetadataDescription] = useState('');
-  const [metadataCollectionName, setMetadataCollectionName] = useState('');
-  const [metadataModeName, setMetadataModeName] = useState('');
-
-  // Delete state
-  const [deletingSet, setDeletingSet] = useState<string | null>(null);
-
-  // Merge state
-  const [mergingSet, setMergingSet] = useState<string | null>(null);
-  const [mergeTargetSet, setMergeTargetSet] = useState<string>('');
-  const [mergeConflicts, setMergeConflicts] = useState<Array<{ path: string; sourceValue: any; targetValue: any }>>([]);
-  const [mergeResolutions, setMergeResolutions] = useState<Record<string, 'source' | 'target'>>({});
-  const [mergeSrcFlat, setMergeSrcFlat] = useState<Record<string, any>>({});
-  const [mergeChecked, setMergeChecked] = useState(false);
-  const [mergeLoading, setMergeLoading] = useState(false);
-
-  // Split state
-  const [splittingSet, setSplittingSet] = useState<string | null>(null);
-  const [splitPreview, setSplitPreview] = useState<Array<{ key: string; newName: string; count: number }>>([]);
-  const [splitDeleteOriginal, setSplitDeleteOriginal] = useState(false);
-  const [splitLoading, setSplitLoading] = useState(false);
-
   // Group sync + scope state
   const { syncGroupPending, setSyncGroupPending, syncGroupStylesPending, setSyncGroupStylesPending, groupScopesPath, setGroupScopesPath, groupScopesSelected, setGroupScopesSelected, groupScopesApplying, groupScopesError, setGroupScopesError, groupScopesProgress, handleSyncGroup, handleSyncGroupStyles, handleApplyGroupScopes } = useFigmaSync(serverUrl, connected, pathToSet, setCollectionNames, setModeNames, activeSet);
 
-  // Rename state
-  const [renamingSet, setRenamingSet] = useState<string | null>(null);
-  const [renameValue, setRenameValue] = useState('');
-  const [renameError, setRenameError] = useState('');
-
-  // Drag-to-reorder set tabs (dragSetName/dragOverSetName declared before cascadeDiff useMemo above)
-  const renameInputRef = useRef<HTMLInputElement>(null);
+  // Set management hooks
+  const { editingMetadataSet, metadataDescription, setMetadataDescription, metadataCollectionName, setMetadataCollectionName, metadataModeName, setMetadataModeName, closeSetMetadata, openSetMetadata, handleSaveMetadata } = useSetMetadata({ serverUrl, connected, setDescriptions, setCollectionNames, setModeNames, refreshTokens, setTabMenuOpen });
+  const { deletingSet, startDelete, cancelDelete, handleDeleteSet } = useSetDelete({ serverUrl, connected, getDisconnectSignal, sets, setSets, activeSet, setActiveSet, refreshTokens, setSuccessToast, markDisconnected, setTabMenuOpen });
+  const { renamingSet, renameValue, setRenameValue, renameError, renameInputRef, startRename, cancelRename, handleRenameConfirm } = useSetRename({ serverUrl, connected, getDisconnectSignal, activeSet, setActiveSet, refreshTokens, setSuccessToast, markDisconnected, setTabMenuOpen });
+  const { handleDuplicateSet } = useSetDuplicate({ serverUrl, connected, getDisconnectSignal, sets, refreshTokens, setSuccessToast, markDisconnected, pushUndo, setTabMenuOpen });
+  const { mergingSet, mergeTargetSet, mergeConflicts, mergeResolutions, mergeChecked, mergeLoading, openMergeDialog, closeMergeDialog, changeMergeTarget, setMergeResolutions, handleCheckMergeConflicts, handleConfirmMerge, splittingSet, splitPreview, splitDeleteOriginal, splitLoading, openSplitDialog, closeSplitDialog, setSplitDeleteOriginal, handleConfirmSplit } = useSetMergeSplit({ serverUrl, connected, sets, activeSet, setActiveSet, refreshTokens, setSuccessToast, pushUndo, setTabMenuOpen });
 
   // New set creation state
   const [creatingSet, setCreatingSet] = useState(false);
@@ -489,13 +468,6 @@ export function App() {
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  // Focus rename input when it appears
-  useLayoutEffect(() => {
-    if (renamingSet && renameInputRef.current) {
-      renameInputRef.current.focus();
-      renameInputRef.current.select();
-    }
-  }, [renamingSet]);
 
   // Focus new set input when it appears
   useLayoutEffect(() => {
@@ -552,44 +524,6 @@ export function App() {
     });
   };
 
-  const startRename = (setName: string) => {
-    setTabMenuOpen(null);
-    setRenamingSet(setName);
-    setRenameValue(setName);
-    setRenameError('');
-  };
-
-  const cancelRename = () => {
-    setRenamingSet(null);
-    setRenameError('');
-  };
-
-  const handleRenameConfirm = async () => {
-    if (!renamingSet) return;
-    const newName = renameValue.trim();
-    if (!newName || newName === renamingSet) { cancelRename(); return; }
-    if (!SET_NAME_RE.test(newName)) {
-      setRenameError('Use letters, numbers, - and _ (/ for folders)');
-      return;
-    }
-    if (!connected) { cancelRename(); return; }
-    try {
-      await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(renamingSet)}/rename`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newName }),
-        signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
-      });
-      const oldName = renamingSet;
-      if (activeSet === renamingSet) setActiveSet(newName);
-      cancelRename();
-      refreshTokens();
-      setSuccessToast(`Renamed set "${oldName}" → "${newName}"`);
-    } catch (err) {
-      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
-      setRenameError(err instanceof Error ? err.message : 'Rename failed');
-    }
-  };
 
   const handleSetDragStart = (e: React.DragEvent, setName: string) => {
     setDragSetName(setName);
@@ -678,282 +612,6 @@ export function App() {
     }
   };
 
-  const handleDeleteSet = async () => {
-    if (!deletingSet || !connected) return;
-    try {
-      await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(deletingSet)}`, {
-        method: 'DELETE',
-        signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
-      });
-      const remaining = sets.filter(s => s !== deletingSet);
-      setSets(remaining);
-      if (activeSet === deletingSet) {
-        setActiveSet(remaining[0] ?? '');
-      }
-      const name = deletingSet;
-      setDeletingSet(null);
-      refreshTokens();
-      setSuccessToast(`Deleted set "${name}"`);
-    } catch (err) {
-      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
-      setDeletingSet(null);
-    }
-  };
-
-
-  const handleDuplicateSet = async (setName: string) => {
-    setTabMenuOpen(null);
-    if (!connected) return;
-    let newName = `${setName}-copy`;
-    let i = 2;
-    while (sets.includes(newName)) {
-      newName = `${setName}-copy-${i++}`;
-    }
-    let savedTokens: Record<string, unknown> = {};
-    try {
-      const signal = AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]);
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`, { signal });
-      if (!res.ok) return;
-      const data = await res.json();
-      savedTokens = data.tokens || {};
-      const createRes = await fetch(`${serverUrl}/api/sets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName, tokens: data.tokens }),
-        signal,
-      });
-      if (!createRes.ok) return;
-    } catch (err) {
-      if (err instanceof TypeError || (err instanceof Error && err.message.includes('Failed to fetch'))) markDisconnected();
-      return;
-    }
-    refreshTokens();
-    setSuccessToast(`Duplicated set "${setName}" → "${newName}"`);
-    const url = serverUrl;
-    const dupName = newName;
-    const dupTokens = savedTokens;
-    pushUndo({
-      description: `Duplicated set "${setName}" → "${dupName}"`,
-      restore: async () => {
-        await fetch(`${url}/api/sets/${encodeURIComponent(dupName)}`, { method: 'DELETE' });
-        refreshTokens();
-      },
-      redo: async () => {
-        await fetch(`${url}/api/sets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: dupName, tokens: dupTokens }),
-        });
-        refreshTokens();
-      },
-    });
-  };
-
-  // Flatten a nested token object to { [dotPath]: tokenEntry }
-  const flattenTokensObj = (obj: DTCGGroup): Record<string, any> => {
-    const flat: Record<string, any> = {};
-    for (const [path, token] of flattenTokenGroup(obj)) {
-      flat[path] = token;
-    }
-    return flat;
-  };
-
-  const openMergeDialog = (setName: string) => {
-    setTabMenuOpen(null);
-    setMergingSet(setName);
-    setMergeTargetSet(sets.find(s => s !== setName) || '');
-    setMergeConflicts([]);
-    setMergeResolutions({});
-    setMergeSrcFlat({});
-    setMergeChecked(false);
-  };
-
-  const handleCheckMergeConflicts = async () => {
-    if (!mergingSet || !mergeTargetSet || !connected) return;
-    setMergeLoading(true);
-    try {
-      const [srcRes, tgtRes] = await Promise.all([
-        fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
-        fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`),
-      ]);
-      const srcData = await srcRes.json();
-      const tgtData = await tgtRes.json();
-      const srcFlat = flattenTokensObj(srcData.tokens || {});
-      const tgtFlat = flattenTokensObj(tgtData.tokens || {});
-      const conflicts: Array<{ path: string; sourceValue: any; targetValue: any }> = [];
-      for (const [path, srcEntry] of Object.entries(srcFlat)) {
-        if (tgtFlat[path]) {
-          if (JSON.stringify(srcEntry.$value) !== JSON.stringify(tgtFlat[path].$value)) {
-            conflicts.push({ path, sourceValue: srcEntry.$value, targetValue: tgtFlat[path].$value });
-          }
-        }
-      }
-      setMergeSrcFlat(srcFlat);
-      setMergeConflicts(conflicts);
-      const res: Record<string, 'source' | 'target'> = {};
-      for (const c of conflicts) res[c.path] = 'target';
-      setMergeResolutions(res);
-      setMergeChecked(true);
-    } catch {
-      // ignore
-    } finally {
-      setMergeLoading(false);
-    }
-  };
-
-  const handleConfirmMerge = async () => {
-    if (!mergingSet || !mergeTargetSet || !connected) return;
-    setMergeLoading(true);
-    try {
-      const tgtRes = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
-      const tgtData = await tgtRes.json();
-      const preMergeTokens: Record<string, unknown> = tgtData.tokens || {};
-      const tgtFlat = flattenTokensObj(preMergeTokens);
-      const writes: Promise<any>[] = [];
-      for (const [path, srcEntry] of Object.entries(mergeSrcFlat)) {
-        const conflict = mergeConflicts.find(c => c.path === path);
-        if (conflict) {
-          if (mergeResolutions[path] === 'source') {
-            writes.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),
-            }));
-          }
-        } else if (!tgtFlat[path]) {
-          writes.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),
-          }));
-        }
-      }
-      await Promise.all(writes);
-      const srcName = mergingSet;
-      const targetName = mergeTargetSet;
-      setMergingSet(null);
-      setMergeChecked(false);
-      setActiveSet(mergeTargetSet);
-      refreshTokens();
-      setSuccessToast(`Merged "${srcName}" into "${targetName}"`);
-      const url = serverUrl;
-      pushUndo({
-        description: `Merged "${srcName}" into "${targetName}"`,
-        restore: async () => {
-          await fetch(`${url}/api/tokens/${encodeURIComponent(targetName)}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(preMergeTokens),
-          });
-          refreshTokens();
-        },
-      });
-    } catch {
-      // ignore
-    } finally {
-      setMergeLoading(false);
-    }
-  };
-
-  const openSplitDialog = async (setName: string) => {
-    setTabMenuOpen(null);
-    if (!connected) return;
-    try {
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
-      const data = await res.json();
-      const tokenRoot = data.tokens || {};
-      const preview = Object.entries(tokenRoot)
-        .filter(([k, v]) => !k.startsWith('$') && v && typeof v === 'object' && !('$value' in (v as object)))
-        .map(([key, val]) => {
-          const flat = flattenTokensObj(val as Record<string, any>);
-          const sanitized = key.replace(/[^a-zA-Z0-9_-]/g, '-');
-          return { key, newName: `${setName}-${sanitized}`, count: Object.keys(flat).length };
-        })
-        .filter(p => p.count > 0);
-      setSplittingSet(setName);
-      setSplitPreview(preview);
-      setSplitDeleteOriginal(false);
-    } catch {
-      // ignore
-    }
-  };
-
-  const handleConfirmSplit = async () => {
-    if (!splittingSet || !connected) return;
-    setSplitLoading(true);
-    try {
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`);
-      const data = await res.json();
-      const tokenRoot = data.tokens || {};
-      const originalTokens: Record<string, unknown> = tokenRoot;
-      const createdNames: string[] = [];
-      for (const { key, newName } of splitPreview) {
-        if (sets.includes(newName)) continue;
-        const groupTokens = tokenRoot[key];
-        await fetch(`${serverUrl}/api/sets`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newName, tokens: groupTokens }),
-        });
-        createdNames.push(newName);
-      }
-      if (splitDeleteOriginal) {
-        await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`, { method: 'DELETE' });
-        const remaining = sets.filter(s => s !== splittingSet);
-        if (activeSet === splittingSet) setActiveSet(remaining[0] ?? '');
-      }
-      const name = splittingSet;
-      const count = splitPreview.length;
-      const wasDeleted = splitDeleteOriginal;
-      setSplittingSet(null);
-      refreshTokens();
-      setSuccessToast(`Split "${name}" into ${count} sets`);
-      const url = serverUrl;
-      pushUndo({
-        description: `Split "${name}" into ${count} sets`,
-        restore: async () => {
-          await Promise.all(createdNames.map(n =>
-            fetch(`${url}/api/sets/${encodeURIComponent(n)}`, { method: 'DELETE' })
-          ));
-          if (wasDeleted) {
-            await fetch(`${url}/api/sets`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name, tokens: originalTokens }),
-            });
-          }
-          refreshTokens();
-        },
-      });
-    } catch {
-      // ignore
-    } finally {
-      setSplitLoading(false);
-    }
-  };
-
-  const openSetMetadata = (setName: string) => {
-    setTabMenuOpen(null);
-    setEditingMetadataSet(setName);
-    setMetadataDescription(setDescriptions[setName] || '');
-    setMetadataCollectionName(setCollectionNames[setName] || '');
-    setMetadataModeName(setModeNames[setName] || '');
-  };
-
-  const handleSaveMetadata = async () => {
-    if (!editingMetadataSet || !connected) { setEditingMetadataSet(null); return; }
-    try {
-      await fetch(`${serverUrl}/api/sets/${encodeURIComponent(editingMetadataSet)}/metadata`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: metadataDescription, figmaCollection: metadataCollectionName, figmaMode: metadataModeName }),
-      });
-    } catch {
-      // best-effort; close modal regardless
-    }
-    setEditingMetadataSet(null);
-    refreshTokens();
-  };
 
   const handleClearAll = async () => {
     if (clearConfirmText !== 'DELETE') return;
@@ -1524,7 +1182,7 @@ export function App() {
               <button
                 role="menuitem"
                 onMouseDown={e => e.preventDefault()}
-                onClick={() => { setDeletingSet(tabMenuOpen); setTabMenuOpen(null); }}
+                onClick={() => { startDelete(tabMenuOpen!); }}
                 className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Delete
@@ -1714,7 +1372,7 @@ export function App() {
                 <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => startRename(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Rename</button>
                 <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => handleDuplicateSet(tabMenuOpen)} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Duplicate</button>
                 <div className="border-t border-[var(--color-figma-border)] my-1" />
-                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { setDeletingSet(tabMenuOpen); setTabMenuOpen(null); }} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Delete</button>
+                <button role="menuitem" onMouseDown={e => e.preventDefault()} onClick={() => { startDelete(tabMenuOpen!); }} className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors">Delete</button>
               </div>
             )}
 
@@ -2429,7 +2087,7 @@ export function App() {
                 autoFocus
                 value={metadataDescription}
                 onChange={e => setMetadataDescription(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Escape') setEditingMetadataSet(null); }}
+                onKeyDown={e => { if (e.key === 'Escape') closeSetMetadata(); }}
                 rows={3}
                 placeholder="What is this token set for?"
                 className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] resize-none"
@@ -2441,7 +2099,7 @@ export function App() {
                 type="text"
                 value={metadataCollectionName}
                 onChange={e => setMetadataCollectionName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Escape') setEditingMetadataSet(null); }}
+                onKeyDown={e => { if (e.key === 'Escape') closeSetMetadata(); }}
                 placeholder="TokenManager"
                 className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
               />
@@ -2453,7 +2111,7 @@ export function App() {
                 type="text"
                 value={metadataModeName}
                 onChange={e => setMetadataModeName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Escape') setEditingMetadataSet(null); }}
+                onKeyDown={e => { if (e.key === 'Escape') closeSetMetadata(); }}
                 placeholder="Mode 1"
                 className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
               />
@@ -2461,7 +2119,7 @@ export function App() {
             </div>
             <div className="flex gap-2 justify-end">
               <button
-                onClick={() => setEditingMetadataSet(null)}
+                onClick={() => closeSetMetadata()}
                 className="px-3 py-1.5 rounded text-[11px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 Cancel
@@ -2485,7 +2143,7 @@ export function App() {
           confirmLabel="Delete set"
           danger
           onConfirm={handleDeleteSet}
-          onCancel={() => setDeletingSet(null)}
+          onCancel={cancelDelete}
         />
       )}
 
@@ -2579,7 +2237,7 @@ export function App() {
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
               <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Merge "{mergingSet}" into…</span>
-              <button onClick={() => setMergingSet(null)} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+              <button onClick={closeMergeDialog} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
@@ -2588,7 +2246,7 @@ export function App() {
                 <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Target set</label>
                 <select
                   value={mergeTargetSet}
-                  onChange={e => { setMergeTargetSet(e.target.value); setMergeChecked(false); setMergeConflicts([]); }}
+                  onChange={e => changeMergeTarget(e.target.value)}
                   className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
                 >
                   {sets.filter(s => s !== mergingSet).map(s => (
@@ -2647,7 +2305,7 @@ export function App() {
             </div>
             <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)]">
               <button
-                onClick={() => setMergingSet(null)}
+                onClick={closeMergeDialog}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
               >Cancel</button>
               {!mergeChecked ? (
@@ -2674,7 +2332,7 @@ export function App() {
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
               <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Split "{splittingSet}"</span>
-              <button onClick={() => setSplittingSet(null)} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+              <button onClick={closeSplitDialog} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
@@ -2711,7 +2369,7 @@ export function App() {
             </div>
             <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)]">
               <button
-                onClick={() => setSplittingSet(null)}
+                onClick={closeSplitDialog}
                 className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
               >Cancel</button>
               <button

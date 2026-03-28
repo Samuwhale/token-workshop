@@ -131,3 +131,10 @@ Already up to date.
 ===============================================================
   Claimed: `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks
   Worktree: /tmp/backlog-10278-FXjKKM
+
+  ✓ done: `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks
+    Extracted 5 hooks (useSetRename, useSetDelete, useSetDuplicate, useSetMergeSplit, useSetMetadata) removing ~337 lines and 25 useState calls from App.tsx (2829→2492 lines). Build passes.
+    55 turns · 496s · $2.93
+
+--- Merging: `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks ---
+Already up to date.
