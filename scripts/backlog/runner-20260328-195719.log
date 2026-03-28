@@ -16,3 +16,9 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Token list: group-level "coverage" indicator for themes ---
 Already up to date.
+[main 13cfb69] chore(backlog): done – Token list: group-level "coverage" indicator for themes
+ 8 files changed, 94 insertions(+), 4 deletions(-)
+
+--- Cleanup: archiving completed items (≥22) ---
+  → Archived 22 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 55)
