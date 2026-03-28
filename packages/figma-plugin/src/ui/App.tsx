@@ -1975,7 +1975,6 @@ export function App() {
               onPushUndo={pushUndo}
               onGoToTokens={() => navigateTo('define', 'tokens')}
               triggerCreateToken={triggerCreateToken}
-              onPushActionToast={pushActionToast}
             />
             </ErrorBoundary>
           )}

@@ -106,9 +106,11 @@ function UndoRow({ description, onUndo, onDismiss, canUndo, canRedo, redoDescrip
 
 function MessageRow({ toast, onDismiss }: { toast: ToastItem; onDismiss: (id: number) => void }) {
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
-  const timeout = toast.action ? 8000 : toast.variant === 'error' ? 8000 : 3000;
+  // Action toasts persist until explicitly dismissed or clicked
+  const timeout = toast.action ? null : toast.variant === 'error' ? 8000 : 3000;
 
   useEffect(() => {
+    if (timeout === null) return;
     timerRef.current = setTimeout(() => onDismiss(toast.id), timeout);
     return () => clearTimeout(timerRef.current);
   }, [toast.id, toast.message, timeout, onDismiss]);

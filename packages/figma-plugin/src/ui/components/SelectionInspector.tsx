@@ -156,8 +156,6 @@ interface SelectionInspectorProps {
   onGoToTokens?: () => void;
   /** Increment to trigger create-from-first-property (Cmd+T shortcut) */
   triggerCreateToken?: number;
-  /** Push an actionable toast (with a clickable button) */
-  onPushActionToast?: (message: string, action: { label: string; onClick: () => void }) => void;
 }
 
 export function SelectionInspector({
@@ -176,7 +174,6 @@ export function SelectionInspector({
   onPushUndo,
   onGoToTokens,
   triggerCreateToken,
-  onPushActionToast,
 }: SelectionInspectorProps) {
   const [creatingFromProp, setCreatingFromProp] = useState<BindableProperty | null>(null);
   const [newTokenName, setNewTokenName] = useState('');
@@ -197,6 +194,15 @@ export function SelectionInspector({
   // Extract tokens from selection state
   const [showExtractPanel, setShowExtractPanel] = useState(false);
   const [showLayerSearch, setShowLayerSearch] = useState(false);
+
+  // Persistent peer suggestion — survives until dismissed or selection changes
+  const [peerSuggestion, setPeerSuggestion] = useState<{
+    property: BindableProperty;
+    peerIds: string[];
+    tokenPath: string;
+    tokenType: string;
+    resolvedValue: any;
+  } | null>(null);
 
   const prevNodeIdsRef = useRef<string>('');
 
@@ -290,6 +296,7 @@ export function SelectionInspector({
       setNewTokenName('');
       setShowExtractPanel(false);
       setBindingErrors({});
+      setPeerSuggestion(null);
     }
   }, [selectedNodes]);
 
@@ -427,8 +434,8 @@ export function SelectionInspector({
     }
 
     // "Apply to peers" fast path: for single-layer selection, check if sibling
-    // layers support the same property and offer to apply the binding in one click
-    if (rootNodes.length === 1 && onPushActionToast) {
+    // layers support the same property and offer to apply the binding persistently
+    if (rootNodes.length === 1) {
       const nodeId = rootNodes[0].id;
       parent.postMessage({
         pluginMessage: { type: 'find-peers-for-property', nodeId, property: prop },
@@ -441,25 +448,14 @@ export function SelectionInspector({
         window.removeEventListener('message', handler);
         const peerIds: string[] = msg.nodeIds;
         if (peerIds.length === 0) return;
-        const propLabel = PROPERTY_LABELS[prop] || prop;
-        onPushActionToast(
-          `Apply ${propLabel} to ${peerIds.length} sibling layer${peerIds.length !== 1 ? 's' : ''}?`,
-          {
-            label: 'Apply',
-            onClick: () => {
-              parent.postMessage({
-                pluginMessage: {
-                  type: 'apply-to-nodes',
-                  nodeIds: peerIds,
-                  tokenPath,
-                  tokenType: entry.$type,
-                  targetProperty: prop,
-                  resolvedValue: resolved.value,
-                },
-              }, '*');
-            },
-          },
-        );
+        // Store as persistent state — banner stays until dismissed or selection changes
+        setPeerSuggestion({
+          property: prop,
+          peerIds,
+          tokenPath,
+          tokenType: entry.$type,
+          resolvedValue: resolved.value,
+        });
       };
       window.addEventListener('message', handler);
       // Clean up listener after 5s if no response
@@ -848,6 +844,46 @@ export function SelectionInspector({
           />
         )}
       </div>
+
+      {/* Persistent peer suggestion — stays until dismissed or selection changes */}
+      {peerSuggestion && (
+        <div className="border-t border-[var(--color-figma-border)] px-3 py-2 flex items-center gap-2 bg-[var(--color-figma-accent)]/5 shrink-0">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-accent)]" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+          </svg>
+          <span className="text-[10px] text-[var(--color-figma-text)] flex-1">
+            Apply <strong>{PROPERTY_LABELS[peerSuggestion.property]}</strong> to {peerSuggestion.peerIds.length} sibling{peerSuggestion.peerIds.length !== 1 ? 's' : ''}?
+          </span>
+          <button
+            onClick={() => {
+              parent.postMessage({
+                pluginMessage: {
+                  type: 'apply-to-nodes',
+                  nodeIds: peerSuggestion.peerIds,
+                  tokenPath: peerSuggestion.tokenPath,
+                  tokenType: peerSuggestion.tokenType,
+                  targetProperty: peerSuggestion.property,
+                  resolvedValue: peerSuggestion.resolvedValue,
+                },
+              }, '*');
+              setPeerSuggestion(null);
+            }}
+            className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors font-medium shrink-0"
+          >
+            Apply
+          </button>
+          <button
+            onClick={() => setPeerSuggestion(null)}
+            className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+            title="Dismiss"
+            aria-label="Dismiss"
+          >
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* All bound — advance to next layer */}
       {allPropertiesBound && rootNodes.length === 1 && (
