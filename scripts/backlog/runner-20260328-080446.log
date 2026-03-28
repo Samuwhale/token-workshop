@@ -294,3 +294,20 @@ Already up to date.
 
 --- Merging: Opacity percentage values silently clamped to 1.0 ---
 Already up to date.
+[main 3783f32] chore(backlog): done – Opacity percentage values silently clamped to 1.0
+ 7 files changed, 57 insertions(+), 41 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+--- Inbox has new items — triaging into backlog.md ---
+--- Inbox drained ---
+
+## 2026-03-28 - Opacity percentage values silently clamped to 1.0
+- Added percentage-range detection for opacity token values: values > 1 are now treated as 0–100 percentages and normalized to 0–1 before applying to Figma nodes. Previously, a token with value `50` (meaning 50%) was clamped to 1.0 (fully opaque).
+- Also fixed `formatCurrentValue` display for opacity — percentage-range values now display correctly (e.g., `50` → "50%" instead of "5000%").
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L85, `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L44
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  52 items remaining
+===============================================================
+  Claimed: `lineHeight` handled inconsistently — numeric values are treated as multipliers and converted to percent (`val * 100`), but `{unit: '%', value: 150}` is silently ignored; also, unitless-as-percent interpretation may be wrong for systems where unitless means pixels
+  Worktree: /tmp/backlog-63685-l0xaTz

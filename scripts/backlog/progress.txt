@@ -571,3 +571,14 @@
   - DTCG `number` type tokens used for opacity should be 0–1, but user-authored tokens may use 0–100 percentage convention. Always normalize at the application boundary by checking if value > 1 and dividing by 100.
   - The `ValuePreview.tsx` component already auto-detects 0–1 vs 0–100 range for number tokens (line 140), so no change needed there.
 ---
+
+## 2026-03-28 - No visual version history or changelog
+- Added a full Version History panel under Ship > History sub-tab with timeline view (list of commits with relative dates, author, message) and detail view (token-level before/after diffs grouped by set, with add/modify/remove status badges and rich ValueDiff rendering for modified tokens).
+- Server: Added `getTokenFileDiffs` method to GitSync service and `GET /api/sync/log/:hash/tokens` route that parses `.tokens.json` files at commit and parent, flattens via `flattenTokenGroup`, and returns token-level add/modify/remove changes.
+- UI: Created `VersionHistoryPanel.tsx` component with timeline list view and expandable commit detail view using collapsible sections per set.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L93, `packages/server/src/routes/sync.ts` ~L118, `packages/figma-plugin/src/ui/components/VersionHistoryPanel.tsx` (new), `packages/figma-plugin/src/ui/App.tsx` ~L28, ~L149, ~L201, ~L2276
+- **Learnings for future iterations:**
+  - `git diff-tree --no-commit-id -r --name-status <hash>` gives `STATUS\tFILE` lines for changed files in a commit — useful for programmatic diffing
+  - `git show <hash>:<path>` retrieves file content at a specific commit — combine with parent (`hash~1`) for before/after diffs
+  - The existing `ValueDiff` component handles all token types and is perfect for reuse in history diffs
+---

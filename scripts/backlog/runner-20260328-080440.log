@@ -284,3 +284,10 @@ Already up to date.
 ===============================================================
   Claimed: No visual version history or changelog — beyond raw `git log`, there's no timeline of token changes with before/after value diffs; useful for reviewing what changed between design reviews or releases
   Worktree: /tmp/backlog-62956-DDeCgb
+
+  ✓ done: No visual version history or changelog
+    Added Ship > History sub-tab with commit timeline and token-level before/after diffs (server endpoint parses .tokens.json at each commit, UI renders add/modify/remove changes with ValueDiff component)
+    30 turns · 330s · $1.92
+
+--- Merging: No visual version history or changelog ---
+Already up to date.

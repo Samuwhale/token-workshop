@@ -25,6 +25,7 @@ import { HeatmapPanel } from './components/HeatmapPanel';
 import { GraphPanel, GRAPH_TEMPLATES } from './components/GraphPanel';
 import { TokenFlowPanel } from './components/TokenFlowPanel';
 import { ExportPanel } from './components/ExportPanel';
+import { VersionHistoryPanel } from './components/VersionHistoryPanel';
 import { useServerConnection } from './hooks/useServerConnection';
 import { useServerEvents } from './hooks/useServerEvents';
 import { useTokens, fetchAllTokensFlat, fetchAllTokensFlatWithSets } from './hooks/useTokens';
@@ -146,7 +147,7 @@ type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
 type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'flow';
 type ApplySubTab = 'inspect' | 'heatmap';
-type ShipSubTab = 'publish' | 'export' | 'validation';
+type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
 
 type FolderTreeNode = {
@@ -199,6 +200,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
     { id: 'publish', label: 'Publish' },
     { id: 'export', label: 'Export' },
     { id: 'validation', label: 'Validation' },
+    { id: 'history', label: 'History' },
   ]},
 ];
 
@@ -2270,6 +2272,13 @@ export function App() {
                 serverUrl={serverUrl}
                 connected={connected}
               />
+              </ErrorBoundary>
+          )}
+
+          {/* History sub-tab (Ship > History) */}
+          {overflowPanel === null && activeTopTab === 'ship' && activeSubTab === 'history' && (
+              <ErrorBoundary panelName="History" onReset={() => navigateTo('ship', 'publish')}>
+              <VersionHistoryPanel serverUrl={serverUrl} connected={connected} />
               </ErrorBoundary>
           )}
 

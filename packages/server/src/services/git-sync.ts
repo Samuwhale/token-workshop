@@ -91,6 +91,41 @@ export class GitSync {
     return this.git.log({ maxCount: limit });
   }
 
+  /** Get the content of a file at a specific commit. Returns null if the file doesn't exist at that commit. */
+  async showFileAtCommit(commitHash: string, filePath: string): Promise<string | null> {
+    try {
+      return await this.git.show([`${commitHash}:${filePath}`]);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Get the list of changed .tokens.json files in a commit with their before/after JSON content. */
+  async getTokenFileDiffs(commitHash: string): Promise<Array<{
+    file: string;
+    status: 'A' | 'M' | 'D';
+    before: string | null;
+    after: string | null;
+  }>> {
+    // Get list of changed files with status
+    const raw = await this.git.raw(['diff-tree', '--no-commit-id', '-r', '--name-status', commitHash]);
+    const lines = raw.trim().split('\n').filter(Boolean);
+    const results: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
+
+    for (const line of lines) {
+      const [status, ...pathParts] = line.split('\t');
+      const filePath = pathParts.join('\t');
+      if (!filePath.endsWith('.tokens.json')) continue;
+
+      const s = status.charAt(0) as 'A' | 'M' | 'D';
+      const after = s !== 'D' ? await this.showFileAtCommit(commitHash, filePath) : null;
+      const before = s !== 'A' ? await this.showFileAtCommit(`${commitHash}~1`, filePath) : null;
+      results.push({ file: filePath, status: s, before, after });
+    }
+
+    return results;
+  }
+
   async setRemote(url: string): Promise<void> {
     try {
       await this.git.addRemote('origin', url);

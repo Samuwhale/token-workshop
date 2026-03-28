@@ -1,4 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { flattenTokenGroup } from '@tokenmanager/core';
 
 export const syncRoutes: FastifyPluginAsync = async (fastify) => {
   // GET /api/sync/status — git status + isRepo + current branch
@@ -112,6 +113,88 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       };
     } catch (err) {
       return reply.status(500).send({ error: 'Failed to get log', detail: String(err) });
+    }
+  });
+
+  // GET /api/sync/log/:hash/tokens — token-level diff for a specific commit
+  fastify.get<{ Params: { hash: string } }>('/sync/log/:hash/tokens', async (request, reply) => {
+    const { hash } = request.params;
+    // Validate hash is safe (hex characters only)
+    if (!/^[0-9a-f]{4,40}$/i.test(hash)) {
+      return reply.status(400).send({ error: 'Invalid commit hash' });
+    }
+
+    try {
+      const fileDiffs = await fastify.gitSync.getTokenFileDiffs(hash);
+
+      const changes: Array<{
+        path: string;
+        set: string;
+        type: string;
+        status: 'added' | 'modified' | 'removed';
+        before?: any;
+        after?: any;
+      }> = [];
+
+      for (const diff of fileDiffs) {
+        const setName = diff.file.replace('.tokens.json', '');
+        const beforeTokens = new Map<string, any>();
+        const afterTokens = new Map<string, any>();
+
+        if (diff.before) {
+          try {
+            const parsed = JSON.parse(diff.before);
+            for (const [p, t] of flattenTokenGroup(parsed)) {
+              beforeTokens.set(p, t);
+            }
+          } catch { /* skip unparseable */ }
+        }
+        if (diff.after) {
+          try {
+            const parsed = JSON.parse(diff.after);
+            for (const [p, t] of flattenTokenGroup(parsed)) {
+              afterTokens.set(p, t);
+            }
+          } catch { /* skip unparseable */ }
+        }
+
+        // Find added tokens (in after but not before)
+        for (const [p, token] of afterTokens) {
+          if (!beforeTokens.has(p)) {
+            changes.push({ path: p, set: setName, type: token.$type || 'unknown', status: 'added', after: token.$value });
+          }
+        }
+
+        // Find removed tokens (in before but not after)
+        for (const [p, token] of beforeTokens) {
+          if (!afterTokens.has(p)) {
+            changes.push({ path: p, set: setName, type: token.$type || 'unknown', status: 'removed', before: token.$value });
+          }
+        }
+
+        // Find modified tokens (in both, but value changed)
+        for (const [p, afterToken] of afterTokens) {
+          const beforeToken = beforeTokens.get(p);
+          if (beforeToken) {
+            const bVal = JSON.stringify(beforeToken.$value);
+            const aVal = JSON.stringify(afterToken.$value);
+            if (bVal !== aVal) {
+              changes.push({
+                path: p,
+                set: setName,
+                type: afterToken.$type || beforeToken.$type || 'unknown',
+                status: 'modified',
+                before: beforeToken.$value,
+                after: afterToken.$value,
+              });
+            }
+          }
+        }
+      }
+
+      return { hash, changes, fileCount: fileDiffs.length };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to get commit diff', detail: String(err) });
     }
   });
 
