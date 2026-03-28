@@ -478,3 +478,13 @@
   - When replacing silent `.catch`, still resolve the chain (don't re-throw) so subsequent queued tasks aren't blocked
   - `AbortController` on `useCallback` fetches: store controller in a ref, abort previous on re-entry, check `signal.aborted` before state updates in catch/finally to avoid "setState on unmounted component" patterns
 ---
+
+## 2026-03-28 - useSetMergeSplit.ts merge creates undo slot even on partial failure
+- Fixed `handleConfirmMerge` to only push an undo slot when all writes succeed. On partial failure, the undo slot is skipped with an explicit message ("Undo is not available for partial merges") since restoring the pre-merge snapshot would discard tokens from successful writes.
+- Also added error checking on the undo restore PUT request so failures propagate to `useUndo`.
+- Fixed `handleConfirmSplit` undo to throw when split-set deletions fail, so `useUndo.executeUndo` keeps the slot on the stack and the user sees the failure instead of a silent "undo succeeded". Moved the deletion failure check after the original set recreation (if applicable) so the most critical operation still completes.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L158-175 (merge undo), ~L248-262 (split undo)
+- **Learnings for future iterations:**
+  - Undo slots should not be pushed when the operation partially failed — the restore callback typically assumes full success and would discard partial results
+  - Undo restore callbacks should throw on failure so `useUndo` can keep the slot and surface the error, rather than silently swallowing with console.warn
+---

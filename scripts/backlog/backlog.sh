@@ -577,7 +577,7 @@ cleanup_if_needed() {
 }
 
 # ─── Periodic maintenance passes ──────────────────────────────────
-# Every 3 completed items: alternate product → code discovery passes.
+# Every 10 completed items: run product and code discovery passes (offset by 5).
 # Passes are read-only — they write items to backlog-inbox.md.
 # The main loop implements items; passes just stock the backlog.
 
@@ -697,12 +697,14 @@ run_special_pass() {
 JSON_SCHEMA='{"type":"object","properties":{"status":{"type":"string","enum":["done","failed"]},"item":{"type":"string"},"note":{"type":"string"}},"required":["status"]}'
 
 # Pass schedule:
-#   code pass  — every 15 completed items, or when the backlog is empty
-#   product pass — only when the backlog is empty (restocks the queue)
+#   code pass    — every 10 completed items, or when the backlog is empty
+#   product pass — every 10 completed items (offset by 5), or when the backlog is empty
 
 CURRENT_COUNT=$(get_completed_count)
-NEXT_CODE_PASS_IN=$(( 15 - (CURRENT_COUNT % 15) ))
-[ "$NEXT_CODE_PASS_IN" -eq 0 ] && NEXT_CODE_PASS_IN=15
+NEXT_CODE_PASS_IN=$(( 10 - (CURRENT_COUNT % 10) ))
+[ "$NEXT_CODE_PASS_IN" -eq 0 ] && NEXT_CODE_PASS_IN=10
+NEXT_PRODUCT_PASS_IN=$(( 10 - ((CURRENT_COUNT + 5) % 10) ))
+[ "$NEXT_PRODUCT_PASS_IN" -eq 0 ] && NEXT_PRODUCT_PASS_IN=10
 
 echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iterations: $MAX_ITERATIONS"
 
@@ -710,7 +712,7 @@ echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iteratio
 drain_inbox
 
 echo "  Remaining items: $(remaining)"
-echo "  Completed total: $CURRENT_COUNT (next code pass in $NEXT_CODE_PASS_IN items)"
+echo "  Completed total: $CURRENT_COUNT (next code pass in $NEXT_CODE_PASS_IN items, next product pass in $NEXT_PRODUCT_PASS_IN items)"
 echo "  Stop signal:     Ctrl+C  (or: touch $STOP_FILE)"
 
 for i in $(seq 1 $MAX_ITERATIONS); do

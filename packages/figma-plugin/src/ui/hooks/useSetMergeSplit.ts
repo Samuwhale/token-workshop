@@ -157,22 +157,23 @@ export function useSetMergeSplit({
       refreshTokens();
       if (failures.length > 0) {
         const ok = writes.length - failures.length;
-        setErrorToast(`Merge partially applied: ${ok}/${writes.length} tokens written. ${failures.length} failed.`);
+        setErrorToast(`Merge partially applied: ${ok}/${writes.length} tokens written. ${failures.length} failed. Undo is not available for partial merges.`);
       } else {
         setSuccessToast(`Merged "${srcName}" into "${targetName}"`);
+        const url = serverUrl;
+        pushUndo({
+          description: `Merged "${srcName}" into "${targetName}"`,
+          restore: async () => {
+            const res = await fetch(`${url}/api/tokens/${encodeURIComponent(targetName)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(preMergeTokens),
+            });
+            if (!res.ok) throw new Error(`Failed to restore target set: ${res.status} ${res.statusText}`);
+            refreshTokens();
+          },
+        });
       }
-      const url = serverUrl;
-      pushUndo({
-        description: `Merged "${srcName}" into "${targetName}"`,
-        restore: async () => {
-          await fetch(`${url}/api/tokens/${encodeURIComponent(targetName)}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(preMergeTokens),
-          });
-          refreshTokens();
-        },
-      });
     } catch (err) {
       setErrorToast(`Merge failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
@@ -249,17 +250,18 @@ export function useSetMergeSplit({
             fetch(`${url}/api/sets/${encodeURIComponent(n)}`, { method: 'DELETE' })
           ));
           const deleteFailed = deleteResults.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok));
-          if (deleteFailed.length > 0) {
-            console.warn(`Undo split: ${deleteFailed.length}/${createdNames.length} set deletions failed`);
-          }
           if (wasDeleted) {
-            await fetch(`${url}/api/sets`, {
+            const recreateRes = await fetch(`${url}/api/sets`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name, tokens: originalTokens }),
             });
+            if (!recreateRes.ok) throw new Error(`Failed to recreate original set "${name}": ${recreateRes.status} ${recreateRes.statusText}`);
           }
           refreshTokens();
+          if (deleteFailed.length > 0) {
+            throw new Error(`Undo split: ${deleteFailed.length}/${createdNames.length} split sets could not be deleted`);
+          }
         },
       });
     } catch (err) {

@@ -520,3 +520,10 @@ Already up to date.
 ===============================================================
   Claimed: `useSetMergeSplit.ts` merge creates undo slot even on partial failure — `handleConfirmMerge` (lines 112-181) fires all token writes via `Promise.all` and pushes an undo slot (line 165) regardless of how many failed; the undo `restore` callback replaces the entire target set with a pre-merge snapshot (line 168-172), which would discard tokens from write operations that DID succeed; also `handleConfirmSplit` undo (line 247-263) uses `Promise.allSettled` to delete created sets but only `console.warn`s failures — if deletion fails the user sees "undo succeeded" but split sets still exist
   Worktree: /tmp/backlog-9231-1rbCOQ
+
+  ✓ done: useSetMergeSplit.ts merge creates undo slot even on partial failure
+    Merge undo slot now only pushed on full success; split undo throws on deletion failure instead of silently warning
+    9 turns · 101s · $0.37
+
+--- Merging: useSetMergeSplit.ts merge creates undo slot even on partial failure ---
+Already up to date.
