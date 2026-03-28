@@ -99,6 +99,7 @@ export function TokenList({
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const moreFiltersRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const createFormRef = useRef<HTMLDivElement>(null);
   const virtualListRef = useRef<HTMLDivElement>(null);
   const [virtualScrollTop, setVirtualScrollTop] = useState(0);
   // Refs for scroll-position preservation across filter changes (avoids TDZ issues with stale closures)
@@ -107,6 +108,17 @@ export function TokenList({
   const itemOffsetsRef = useRef<number[]>([0]);
   const scrollAnchorPathRef = useRef<string | null>(null);
   const isFilterChangeRef = useRef(false);
+
+  // Scroll to and pulse the create form when it appears
+  useEffect(() => {
+    if (showCreateForm && createFormRef.current) {
+      createFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      createFormRef.current.classList.remove('create-form-pulse');
+      // Force reflow so re-adding the class restarts the animation
+      void createFormRef.current.offsetWidth;
+      createFormRef.current.classList.add('create-form-pulse');
+    }
+  }, [showCreateForm]);
 
   useEffect(() => {
     if (tokens.length === 0) return;
@@ -2479,7 +2491,7 @@ export function TokenList({
 
       {/* Create form */}
       {showCreateForm && (
-        <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+        <div ref={createFormRef} className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex flex-col gap-2">
             {siblingPrefix !== null && (
               <div className="text-[9px] text-[var(--color-figma-text-secondary)]">

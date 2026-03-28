@@ -448,3 +448,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenList inline create form is pinned to the bottom of the list — easy to miss on long lists; no scroll-to-form animation or visual pulse to draw attention when "New Token" is clicked
   Worktree: /tmp/backlog-10278-cKQnB1
+
+  ✓ done: TokenList inline create form is pinned to the bottom — no scroll-to-form or visual pulse
+    Added smooth scrollIntoView and accent-colored pulse animation on the create form when "New Token" is clicked. Two files changed: TokenList.tsx (ref + useEffect) and styles.css (keyframe animation).
+    20 turns · 173s · $0.7
+
+--- Merging: TokenList inline create form is pinned to the bottom — no scroll-to-form or visual pulse ---
+Already up to date.

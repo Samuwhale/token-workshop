@@ -360,3 +360,13 @@
   - Disabled buttons swallow click events; wrapping in a div with its own onClick is the simplest way to handle "click on disabled button" UX
   - `SubPropInput` now supports `inputRef` prop — can be used for focusing any sub-property input in future
 ---
+
+## 2026-03-28 - TokenList inline create form is pinned to the bottom — no scroll-to-form or visual pulse
+- Added `createFormRef` and a `useEffect` that calls `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` when `showCreateForm` becomes true
+- Added a CSS `create-form-pulse` keyframe animation (accent-colored inset box-shadow that fades out over 0.6s) applied on form appearance
+- The pulse animation restarts correctly even on rapid toggle via reflow trick (`void offsetWidth`)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L102,112-121,2493; `packages/figma-plugin/src/ui/styles.css` ~L85-94
+- **Learnings for future iterations:**
+  - The create form is rendered outside the virtual scroll container (after the `virtualListRef` div), so `scrollIntoView` on the form div itself is the correct approach rather than manipulating scroll position of the virtual list
+  - `color-mix(in srgb, ...)` works well for semi-transparent accent colors in animations without needing rgba conversion
+---

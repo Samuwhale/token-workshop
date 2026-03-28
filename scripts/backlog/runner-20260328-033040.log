@@ -510,3 +510,16 @@ Already up to date.
 
 --- Merging: TokenEditor typography required-field error doesn't focus the offending field ---
 Already up to date.
+[main d945d3b] chore(backlog): done – TokenEditor typography required-field error doesn't focus the offending field
+ 7 files changed, 79 insertions(+), 20 deletions(-)
+
+## 2026-03-28 - TokenEditor typography required-field error doesn't focus the offending field
+- Added `inputRef` prop to `SubPropInput` and `fontFamilyRef`/`fontSizeRef` props to `TypographyEditor`
+- Created `focusBlockedField` callback in TokenEditor that checks which typography field is missing and focuses it
+- Error message above typography fields is now a clickable button that focuses the offending field
+
+===============================================================
+  Iteration 25 / 90  (claude)  —  13 items remaining
+===============================================================
+  Claimed: TokenList double-click to edit is undiscoverable — the only visual affordance is a pencil icon on hover; new users don't know double-click opens the editor since there's no tooltip or onboarding hint
+  Worktree: /tmp/backlog-84992-emBJIp
