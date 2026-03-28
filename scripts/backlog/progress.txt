@@ -621,3 +621,11 @@
   - When JSX inline expressions need a local variable, an IIFE `{(() => { const x = …; return (<>…</>); })()}` works cleanly without extracting a new component.
   - Editor `baseValue` props are typed `any`, so `TokenMapEntry['$value']` is assignable without casts.
 ---
+
+## 2026-03-28 - PublishPanel retry loop catches all errors as timeout retries
+- Fixed the orphan deletion retry loop to distinguish timeout errors from non-timeout errors. Previously the bare `catch {}` block silently retried all errors (malformed messages, plugin crashes, etc.) as if they were timeouts. Now only `Error('Timeout')` triggers retry with escalating timeouts; any other error is immediately surfaced via `setReadinessError` using `describeError()`.
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L204-212
+- **Learnings for future iterations:**
+  - When a retry loop catches errors, always check the error type before retrying — bare `catch {}` masks real failures
+  - The `describeError()` utility is available for consistent error formatting across the UI
+---

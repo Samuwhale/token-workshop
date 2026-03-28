@@ -206,3 +206,16 @@ Already up to date.
 
 --- Merging: TokenEditor.tsx repeated `as any` cast for baseValue ---
 Already up to date.
+[main b1ab5b6] chore(backlog): done – TokenEditor.tsx repeated `as any` cast for baseValue
+ 6 files changed, 50 insertions(+), 17 deletions(-)
+
+## 2026-03-28 - TokenEditor.tsx repeated `as any` cast for baseValue
+- Extracted `extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined` into a single typed variable `const baseValue: TokenMapEntry['$value'] | undefined` using an IIFE wrapper around the editor block. The four duplicate casts (TypographyEditor, ShadowEditor, BorderEditor, CompositionEditor) now reference the single variable. No `as any` needed since editor components accept `baseValue?: any`.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1066-1084
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 10 / 90  (claude)  —  45 items remaining
+===============================================================
+  Claimed: `useGeneratorDialog.ts` fetch for existing set tokens silently swallows errors (~line 247) — `.catch(() => {})` means generator sync proceeds with empty existing tokens, potentially overwriting real values
+  Worktree: /tmp/backlog-10461-NNEEIs

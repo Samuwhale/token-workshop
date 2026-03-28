@@ -177,3 +177,10 @@ Already up to date.
 ===============================================================
   Claimed: `PublishPanel.tsx` retry loop catches all errors as timeout retries (~line 198-200) — non-timeout errors (e.g. malformed message, plugin crash) are silently retried instead of surfaced, masking real failures
   Worktree: /tmp/backlog-9231-kEpDwB
+
+  ✓ done: PublishPanel retry loop catches all errors as timeout retries
+    Fixed orphan deletion retry loop to only retry on timeout errors; non-timeout errors are now immediately surfaced via describeError() instead of being silently retried.
+    9 turns · 57s · $0.3
+
+--- Merging: PublishPanel retry loop catches all errors as timeout retries ---
+Already up to date.

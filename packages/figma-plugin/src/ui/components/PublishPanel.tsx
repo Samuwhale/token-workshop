@@ -201,8 +201,15 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 });
                 succeeded = true;
                 break;
-              } catch {
-                // Retry with longer timeout on next attempt
+              } catch (err) {
+                const isTimeout = err instanceof Error && err.message === 'Timeout';
+                if (!isTimeout) {
+                  // Non-timeout error — surface immediately, don't retry
+                  setOrphansDeleting(false);
+                  setReadinessError(describeError(err, 'Orphan deletion'));
+                  return;
+                }
+                // Timeout — retry with longer timeout on next attempt
               }
             }
             setOrphansDeleting(false);
