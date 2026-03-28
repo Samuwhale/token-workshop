@@ -33,6 +33,8 @@ export interface LintViolation {
   severity: Severity;
   message: string;
   suggestedFix?: string;
+  /** Concrete suggestion — e.g. the alias path to use, or a corrected name. */
+  suggestion?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +100,73 @@ export class LintConfigStore {
 }
 
 // ---------------------------------------------------------------------------
+// Color distance helpers (CIE76 ΔE in CIELAB)
+// ---------------------------------------------------------------------------
+
+function hexToRgb(hex: string): [number, number, number] | null {
+  const h = hex.replace('#', '');
+  if (h.length !== 6 && h.length !== 8 && h.length !== 3) return null;
+  const full = h.length === 3 ? h[0] + h[0] + h[1] + h[1] + h[2] + h[2] : h.slice(0, 6);
+  return [
+    parseInt(full.slice(0, 2), 16) / 255,
+    parseInt(full.slice(2, 4), 16) / 255,
+    parseInt(full.slice(4, 6), 16) / 255,
+  ];
+}
+
+function rgbToLab(r: number, g: number, b: number): [number, number, number] {
+  const toLinear = (c: number) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  const R = toLinear(r), G = toLinear(g), B = toLinear(b);
+  const X = (0.4124564 * R + 0.3575761 * G + 0.1804375 * B) / 0.95047;
+  const Y = (0.2126729 * R + 0.7151522 * G + 0.0721750 * B) / 1.0;
+  const Z = (0.0193339 * R + 0.1191920 * G + 0.9503041 * B) / 1.08883;
+  const f = (t: number) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+  return [116 * f(Y) - 16, 500 * (f(X) - f(Y)), 200 * (f(Y) - f(Z))];
+}
+
+function colorDeltaE(hexA: string, hexB: string): number | null {
+  const a = hexToRgb(hexA);
+  const b = hexToRgb(hexB);
+  if (!a || !b) return null;
+  const labA = rgbToLab(...a);
+  const labB = rgbToLab(...b);
+  return Math.sqrt((labA[0] - labB[0]) ** 2 + (labA[1] - labB[1]) ** 2 + (labA[2] - labB[2]) ** 2);
+}
+
+/** Find the closest alias color token to the given raw hex value. */
+function findNearestColorAlias(
+  rawHex: string,
+  tokenPath: string,
+  allFlatTokens: Record<string, Token>,
+): { path: string; deltaE: number } | null {
+  let best: { path: string; deltaE: number } | null = null;
+  for (const [candidatePath, candidateToken] of Object.entries(allFlatTokens)) {
+    if (candidatePath === tokenPath) continue;
+    if (candidateToken.$type !== 'color') continue;
+    // Only suggest tokens that are themselves raw values (primitives to alias to)
+    if (isAlias(candidateToken.$value)) continue;
+    const candidateHex = candidateToken.$value;
+    if (typeof candidateHex !== 'string') continue;
+    const dE = colorDeltaE(rawHex, candidateHex);
+    if (dE === null) continue;
+    if (!best || dE < best.deltaE) {
+      best = { path: candidatePath, deltaE: dE };
+    }
+  }
+  return best;
+}
+
+/** Resolve an alias chain to the final non-alias value, returning that token's path. */
+function resolveAliasTarget(path: string, flatTokens: Record<string, Token>, visited = new Set<string>()): string | null {
+  if (visited.has(path)) return null; // cycle
+  const token = flatTokens[path];
+  if (!token) return null;
+  if (!isAlias(token.$value)) return path;
+  visited.add(path);
+  return resolveAliasTarget((token.$value as string).slice(1, -1), flatTokens, visited);
+}
+
+// ---------------------------------------------------------------------------
 // Rules engine
 // ---------------------------------------------------------------------------
 
@@ -147,12 +216,24 @@ export async function lintTokens(
     const severity = noRawColor.severity ?? 'warning';
     for (const [tokenPath, token] of Object.entries(flatTokens)) {
       if (token.$type === 'color' && !isAlias(token.$value)) {
+        const rawHex = token.$value as string;
+        const nearest = findNearestColorAlias(rawHex, tokenPath, allFlatTokens);
+        let suggestion: string | undefined;
+        let hint = '';
+        if (nearest && nearest.deltaE < 1) {
+          suggestion = `{${nearest.path}}`;
+          hint = ` Exact match: {${nearest.path}}`;
+        } else if (nearest && nearest.deltaE < 5) {
+          suggestion = `{${nearest.path}}`;
+          hint = ` Close match: {${nearest.path}} (ΔE ${nearest.deltaE.toFixed(1)})`;
+        }
         violations.push({
           rule: 'no-raw-color',
           path: tokenPath,
           severity,
-          message: `Color token "${tokenPath}" uses a raw value "${token.$value}" instead of an alias.`,
+          message: `Color token "${tokenPath}" uses a raw value "${rawHex}" instead of an alias.${hint}`,
           suggestedFix: 'extract-to-alias',
+          suggestion,
         });
       }
     }
@@ -194,12 +275,21 @@ export async function lintTokens(
       const segments = tokenPath.split('.');
       for (const seg of segments) {
         if (!regex.test(seg)) {
+          // Suggest a kebab-case version of the segment
+          const suggested = seg
+            .replace(/([a-z])([A-Z])/g, '$1-$2')
+            .replace(/[^a-z0-9.-]+/gi, '-')
+            .toLowerCase()
+            .replace(/^-+|-+$/g, '');
+          const suggestion = suggested && suggested !== seg ? suggested : undefined;
+          const hint = suggestion ? ` Try "${suggestion}".` : '';
           violations.push({
             rule: 'path-pattern',
             path: tokenPath,
             severity,
-            message: `Path segment "${seg}" in "${tokenPath}" does not match pattern ${pattern}.`,
+            message: `Path segment "${seg}" in "${tokenPath}" does not match pattern ${pattern}.${hint}`,
             suggestedFix: 'rename-token',
+            suggestion,
           });
           break;
         }
@@ -215,12 +305,16 @@ export async function lintTokens(
     for (const [tokenPath] of Object.entries(flatTokens)) {
       const depth = getAliasDepth(tokenPath, allFlatTokens);
       if (depth > maxDepth) {
+        const resolvedTarget = resolveAliasTarget(tokenPath, allFlatTokens);
+        const suggestion = resolvedTarget && resolvedTarget !== tokenPath ? `{${resolvedTarget}}` : undefined;
+        const hint = suggestion ? ` Point directly to ${suggestion} to flatten.` : '';
         violations.push({
           rule: 'max-alias-depth',
           path: tokenPath,
           severity,
-          message: `Token "${tokenPath}" has alias depth ${depth} (max ${maxDepth}).`,
+          message: `Token "${tokenPath}" has alias depth ${depth} (max ${maxDepth}).${hint}`,
           suggestedFix: 'flatten-alias-chain',
+          suggestion,
         });
       }
     }
@@ -239,13 +333,19 @@ export async function lintTokens(
     }
     for (const [, paths] of valueMap) {
       if (paths.length > 1) {
+        // Suggest aliasing to the shortest-path token (likely the primitive)
+        const sortedByLength = [...paths].sort((a, b) => a.length - b.length);
+        const canonical = sortedByLength[0];
         for (const tokenPath of paths) {
+          const others = paths.filter(p => p !== tokenPath);
+          const aliasTarget = tokenPath === canonical ? sortedByLength[1] : canonical;
           violations.push({
             rule: 'no-duplicate-values',
             path: tokenPath,
             severity,
-            message: `Token "${tokenPath}" has the same value as: ${paths.filter(p => p !== tokenPath).join(', ')}.`,
+            message: `Token "${tokenPath}" has the same value as: ${others.join(', ')}. Consider aliasing to {${aliasTarget}}.`,
             suggestedFix: 'extract-to-alias',
+            suggestion: `{${aliasTarget}}`,
           });
         }
       }

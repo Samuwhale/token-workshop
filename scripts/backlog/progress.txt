@@ -425,3 +425,19 @@
 - **Learnings for future iterations:**
   - Check progress.txt for prior work before implementing — items may have been partially or fully addressed under a different title
 ---
+
+## 2026-03-28 - Lint rules return violations but never suggest fixes
+- Added concrete fix suggestions to all 5 lint rules in the server lint engine:
+  - `no-raw-color`: finds the nearest color token by CIE76 ΔE and suggests it as an alias (exact match <1, close match <5)
+  - `no-duplicate-values`: suggests aliasing to the shortest-path duplicate (likely the primitive)
+  - `max-alias-depth`: resolves the alias chain and suggests pointing directly to the final target
+  - `path-pattern`: suggests a kebab-case conversion of the non-matching segment
+  - `require-description`: already had suggestedFix, no concrete suggestion needed
+- Added `suggestion` field to `LintViolation` interface (server and client) for machine-readable fix data
+- Updated tooltip in `TokenTreeNode.tsx` to display suggestions
+- Added color distance helpers (hexToRgb, rgbToLab, colorDeltaE) to server lint.ts
+- Files changed: `packages/server/src/services/lint.ts` ~L103-160 (color helpers), ~L200-225 (no-raw-color), ~L290-305 (no-duplicate-values), ~L275 (max-alias-depth), ~L250 (path-pattern); `packages/figma-plugin/src/ui/hooks/useLint.ts` ~L8; `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1030
+- **Learnings for future iterations:**
+  - The server sandbox has no `@types/node` so tsc shows many pre-existing errors; grep for your specific file to check for new errors
+  - CIE76 ΔE thresholds: <1 = exact, 1-5 = close — consistent with the ΔE pattern in the codebase
+---

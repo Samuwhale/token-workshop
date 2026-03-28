@@ -335,3 +335,10 @@ Already up to date.
 ===============================================================
   Claimed: Lint rules return violations but never suggest fixes — rules like "no raw hex color" could suggest the nearest matching token alias, but currently only flag the problem
   Worktree: /tmp/backlog-84992-JYXDIo
+
+  ✓ done: Lint rules return violations but never suggest fixes
+    Added concrete fix suggestions to all lint rules: no-raw-color suggests nearest matching token alias by ΔE color distance, no-duplicate-values suggests aliasing to the canonical token, max-alias-depth suggests the resolved chain target, path-pattern suggests kebab-case conversion. New `suggestion` field on LintViolation carries machine-readable fix data; tooltips now display suggestions.
+    31 turns · 244s · $1.14
+
+--- Merging: Lint rules return violations but never suggest fixes ---
+Already up to date.

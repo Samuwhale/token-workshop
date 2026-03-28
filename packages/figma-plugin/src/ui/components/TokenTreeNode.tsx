@@ -1027,7 +1027,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                   if (v.suggestedFix === 'extract-to-alias') onExtractToAliasForLint?.(node.path, node.$type, node.$value);
                   else if (v.suggestedFix === 'add-description') onEdit(node.path, node.name);
                 }}
-                title={lintViolations.map(v => `${v.severity}: ${v.message}`).join('\n')}
+                title={lintViolations.map(v => `${v.severity}: ${v.message}${v.suggestion ? `\nSuggestion: ${v.suggestion}` : ''}`).join('\n')}
                 className={`shrink-0 flex items-center justify-center ${worstSeverity === 'error' ? 'text-[var(--color-figma-error)]' : worstSeverity === 'warning' ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -6,6 +6,8 @@ export interface LintViolation {
   severity: 'error' | 'warning' | 'info';
   message: string;
   suggestedFix?: string;
+  /** Concrete suggestion — e.g. the alias path to use, or a corrected name. */
+  suggestion?: string;
 }
 
 const DEBOUNCE_MS = 800;

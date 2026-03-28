@@ -357,3 +357,17 @@ Already up to date.
 
 --- Merging: File watcher suppression uses fixed 500ms setTimeout ---
 Already up to date.
+[main 796ff71] chore(backlog): done – File watcher suppression uses fixed 500ms setTimeout
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - File watcher suppression uses fixed 500ms setTimeout
+- Already implemented in a prior session (see "Race condition in file write guard" entry above)
+- `_writingFiles` is now a `Map<string, ReturnType<typeof setTimeout>>` with event-driven `_clearWriteGuard` in watcher callbacks and 30s fallback timer
+- Files changed: none (already done)
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  50 items remaining
+===============================================================
+  Claimed: Generator create route bypasses type checking with `as unknown as GeneratorConfig` — `generators.ts` ~L102 casts `config ?? {}` through `unknown`, allowing arbitrarily shaped config objects to reach the generator engine without validation
+  Worktree: /tmp/backlog-85816-0CgTJE
