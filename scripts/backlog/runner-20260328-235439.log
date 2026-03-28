@@ -89,3 +89,10 @@ Already up to date.
   Discovery pass added 11 items — continuing.
   Claimed: manual-snapshot.ts shadows its own import of stableStringify and snapshot diff ignores $type/$description changes — `packages/server/src/services/manual-snapshot.ts` imports `stableStringify` from `./stable-stringify.js` (L7) but immediately redefines a local function with the same name (L10-18) that shadows the import, making the import dead code; separately, the `diff()` method at L181-184 only compares `$value` fields using `stableStringify`, so changes to `$type` or `$description` are silently ignored in snapshot diffs — a token whose type changes from `color` to `string` with the same value will show as unchanged, but restore will overwrite its type
   Worktree: /tmp/backlog-92075-Y8Yzdj
+
+  ✓ done: manual-snapshot.ts shadows its own import of stableStringify and snapshot diff ignores $type/$description changes
+    stale — already done in commit 570b7a7 on 2026-03-28
+    5 turns · 35s · $0.3
+
+--- Merging: manual-snapshot.ts shadows its own import of stableStringify and snapshot diff ignores $type/$description changes ---
+Already up to date.

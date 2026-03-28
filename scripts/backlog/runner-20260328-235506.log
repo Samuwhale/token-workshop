@@ -96,3 +96,18 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 
 --- Merging: Snapshot save/restore bypasses tokenLock ---
 Already up to date.
+[main 34ec907] chore(backlog): done – Snapshot save/restore bypasses tokenLock
+ 9 files changed, 89 insertions(+), 15 deletions(-)
+
+## 2026-03-29 - Snapshot save/restore bypasses tokenLock
+- Already implemented: all three routes (`POST /api/snapshots`, `POST /api/snapshots/:id/restore`, `POST /api/sync/log/:hash/restore`) already wrap tokenStore interactions in `withLock`. Commit `9d42e42` previously addressed this.
+- Files changed: none
+- **Learnings for future iterations:**
+
+  → Stop requested — will exit after current item completes.
+
+===============================================================
+  Iteration 12  (claude)  —  10 items remaining
+===============================================================
+  Claimed: App.tsx is a 2990-line monolith with 53 useState hooks — `packages/figma-plugin/src/ui/App.tsx` still contains five distinct state domains that should be custom hooks: (1) set-tab management (drag, context menu, overflow, new-set form: `dragSetName`, `dragOverSetName`, `tabMenuOpen`, `tabMenuPos`, `creatingSet`, `newSetName`, `newSetError`, `setTabsOverflow`); (2) modal/overlay visibility flags (8+ separate booleans: `showPasteModal`, `showScaffoldWizard`, `showGuidedSetup`, `showColorScaleGen`, `showCommandPalette`, `showKeyboardShortcuts`, `showQuickApply`, `showClearConfirm`); (3) token data loading (`allTokensFlat`, `pathToSet`, `perSetFlat`, `filteredSetCount`, `syncSnapshot`); (4) recent operations log (`recentOperations`); extracting these into domain hooks would mirror the TokenList refactor already done and make App.tsx reviewable
+  Worktree: /tmp/backlog-94410-lMMQwu
