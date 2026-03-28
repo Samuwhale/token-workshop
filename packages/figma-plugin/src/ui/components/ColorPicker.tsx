@@ -22,7 +22,7 @@ import {
   oklabToLinearSrgb,
   serializeColor,
 } from '@tokenmanager/core';
-import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
+import { STORAGE_KEYS, lsGetJson, lsSetJson, lsGet, lsSet } from '../shared/storage';
 import type { TokenMapEntry } from '../../shared/types';
 
 // ---------------------------------------------------------------------------
@@ -258,6 +258,10 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
   const alphaEditing = useRef(false);
   const [eyedropperState, setEyedropperState] = useState<'idle' | 'waiting' | 'success'>('idle');
   const eyedropperTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Inline contrast checker state
+  const [contrastBg, setContrastBg] = useState<string>(() => lsGet(STORAGE_KEYS.CONTRAST_BG, ''));
+  const contrastBgInputRef = useRef<HTMLInputElement>(null);
 
   const areaRef = useRef<HTMLCanvasElement>(null);
   const hueRef = useRef<HTMLCanvasElement>(null);
@@ -701,6 +705,69 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
       ) : (
         renderChannels()
       )}
+
+      {/* Inline contrast badge */}
+      {(() => {
+        const ratio = contrastBg ? wcagContrast(hex6, contrastBg) : null;
+        const level = ratio === null ? null : ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : ratio >= 3 ? 'AA18' : 'Fail';
+        return (
+          <div className="border-t border-[var(--color-figma-border)] pt-2 flex items-center gap-2">
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase shrink-0">Contrast</span>
+            <button
+              type="button"
+              title={contrastBg ? `Background: ${contrastBg} (click to change)` : 'Pick a background color'}
+              onClick={() => contrastBgInputRef.current?.click()}
+              className="w-5 h-5 rounded border border-[var(--color-figma-border)] hover:border-[var(--color-figma-text-secondary)] cursor-pointer shrink-0 transition-colors"
+              style={{ backgroundColor: contrastBg || 'transparent', backgroundImage: contrastBg ? undefined : 'linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%), linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%)', backgroundSize: contrastBg ? undefined : '6px 6px', backgroundPosition: contrastBg ? undefined : '0 0, 3px 3px' }}
+              aria-label="Select contrast background color"
+            />
+            <input
+              ref={contrastBgInputRef}
+              type="color"
+              className="sr-only"
+              key={contrastBg || '#ffffff'}
+              defaultValue={contrastBg || '#ffffff'}
+              onChange={e => {
+                const val = e.target.value;
+                setContrastBg(val);
+                lsSet(STORAGE_KEYS.CONTRAST_BG, val);
+              }}
+              onBlur={e => {
+                const val = e.target.value;
+                setContrastBg(val);
+                lsSet(STORAGE_KEYS.CONTRAST_BG, val);
+              }}
+              aria-label="Contrast background color"
+            />
+            {contrastBg && ratio !== null ? (
+              <>
+                <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center text-[8px] font-bold" style={{ color: hex6, backgroundColor: contrastBg }}>A</div>
+                <span className="text-[10px] text-[var(--color-figma-text)] tabular-nums font-medium">{ratio.toFixed(1)}:1</span>
+                <span className={`text-[9px] font-bold px-1 py-0.5 rounded ${
+                  level === 'AAA' ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]' :
+                  level === 'AA' ? 'bg-[var(--color-figma-success)]/20 text-[var(--color-figma-success)]' :
+                  level === 'AA18' ? 'bg-[var(--color-figma-warning)]/20 text-[var(--color-figma-warning)]' :
+                  'bg-[var(--color-figma-error)]/20 text-[var(--color-figma-error)]'
+                }`}>
+                  {level === 'AA18' ? 'AA 18+' : level}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setContrastBg(''); lsSet(STORAGE_KEYS.CONTRAST_BG, ''); }}
+                  className="ml-auto w-4 h-4 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] shrink-0"
+                  aria-label="Clear contrast background"
+                >
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </>
+            ) : !contrastBg ? (
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Pick bg</span>
+            ) : null}
+          </div>
+        );
+      })()}
 
       {/* Color harmonies */}
       <div className="border-t border-[var(--color-figma-border)] pt-2 flex flex-col gap-1">

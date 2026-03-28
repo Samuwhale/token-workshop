@@ -544,3 +544,15 @@
 - Found 4 items — written to backlog-inbox.md
 - Notable: manual-snapshot.ts L7 imports stableStringify from shared module then shadows it with a local redefinition at L10 — the import is dead code and the diff() method only compares $value, silently missing $type/$description changes
 ---
+
+## 2026-03-28 - WCAG contrast ratio not shown inline in color picker
+- Added inline contrast badge to ColorPicker component that updates in real-time as the user picks colors
+- Shows a configurable background swatch (via native color input), a mini "A" preview, the contrast ratio, and a WCAG level badge (AAA/AA/AA 18+/Fail)
+- Background color persists in localStorage via new CONTRAST_BG storage key
+- Clear button to remove the background selection
+- Checkerboard pattern shown when no background is selected as a visual hint
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L262,L712-L765, `packages/figma-plugin/src/ui/shared/storage.ts` ~L36
+- **Learnings for future iterations:**
+  - The inline color picker pattern (hidden `<input type="color">` triggered by button click) works well for auxiliary color picks like contrast backgrounds
+  - WCAG levels: >=7 AAA, >=4.5 AA (normal text), >=3 AA for large text (18pt+), <3 Fail
+---

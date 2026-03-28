@@ -29,3 +29,8 @@ Already up to date.
   ✓ code pass: code-pass
     4 items written to inbox: (1) [HIGH] snapshot save/restore bypasses tokenLock in snapshots.ts and sync.ts; (2) manual-snapshot.ts shadows its own stableStringify import and diff ignores $type/$description changes; (3) $extensions.tokenmanager typed as Record<string,unknown> forcing as any casts throughout; (4) App.tsx 53-useState monolith — extract 4 domain hooks to match TokenList refactor pattern
 Already up to date.
+[main 915dd31] chore(backlog): code pass – code-pass
+ 6 files changed, 42 insertions(+), 2 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 12 duplicate item(s) skipped

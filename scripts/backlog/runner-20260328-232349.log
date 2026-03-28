@@ -108,3 +108,10 @@ Already up to date.
 ===============================================================
   Claimed: WCAG contrast ratio not shown inline in color picker — `ContrastChecker.tsx` exists as a separate panel but there is no live contrast feedback while the user is picking a color; add a small contrast badge (AA/AAA/Fail) inside the color picker that updates in real-time against a configurable background swatch, making it actionable where the decision is being made
   Worktree: /tmp/backlog-15773-zsaWXz
+
+  ✓ done: WCAG contrast ratio not shown inline in color picker
+    Added inline contrast badge to ColorPicker with configurable background swatch, real-time ratio display, and WCAG level badge (AAA/AA/AA 18+/Fail). Background persists in localStorage.
+    22 turns · 203s · $1.04
+
+--- Merging: WCAG contrast ratio not shown inline in color picker ---
+Already up to date.
