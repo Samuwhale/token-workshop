@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
-import { colorDeltaE } from '../shared/colorUtils';
+import { colorDeltaE } from '@tokenmanager/core';
 
 export interface NearbyMatch {
   path: string;

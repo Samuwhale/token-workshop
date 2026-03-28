@@ -354,3 +354,20 @@
 - **Learnings for future iterations:**
   - In this specific case `navigateTo` also had `[]` deps (stable), and the state setters used updater functions (also stable), so the bug wasn't actively manifesting. But the pattern was still fragile — any future addition of state reads to `navigateTo` or direct state values in the handler would silently create stale closures. The ref pattern future-proofs the effect.
 ---
+
+## 2026-03-28 - Color math duplicated across 4 locations — consolidate into @tokenmanager/core
+- Exported `srgbToLinear`, `srgbFromLinear`, `hexToRgb`, `rgbToHex`, `rgbToLab`, `normalizeHex`, `setHexAlpha` from `@tokenmanager/core` (`color-math.ts`)
+- Refactored `hexToLab`, `labToHex`, `wcagLuminance` in core to use the new shared primitives instead of inline math
+- Removed duplicate `toLinear`/`fromLinear` from `color-parse.ts` — now imports from `color-math.ts`
+- Removed ~70 lines of duplicate color math from `ui/shared/colorUtils.ts` — now imports primitives from core
+- Removed local `colorDeltaE` from `colorUtils.ts` — consumers import from core directly
+- Updated consumer imports: `ColorPicker.tsx`, `TokenList.tsx`, `useNearbyTokenMatch.ts`, `AnalyticsPanel.tsx`
+- Added Vite resolve alias for `@tokenmanager/core` → local TS source in `build.mjs` (eliminates need for separate core build step)
+- `server/lint.ts` already imported `colorDeltaE` from core — no change needed
+- `plugin/consistencyScanner.ts` uses RGB Euclidean `colorDist`, not CIELAB `colorDeltaE` — intentionally different algorithm, left as-is
+- Files changed: `packages/core/src/color-math.ts` ~L1-65, `packages/core/src/color-parse.ts` ~L30-40, `packages/core/src/index.ts` ~L77, `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L1-82,295-302, `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L2-17, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L9, `packages/figma-plugin/src/ui/hooks/useNearbyTokenMatch.ts` ~L4, `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L2, `packages/figma-plugin/build.mjs` ~L56
+- **Learnings for future iterations:**
+  - In worktrees, `@tokenmanager/core` resolves through symlinked node_modules to the original project's dist. Adding a Vite resolve alias to the local TS source bypasses this and eliminates the separate build step entirely.
+  - `consistencyScanner.ts`'s `colorDist` is RGB Euclidean (not CIELAB) — intentionally different algorithm for performance in the Figma sandbox. Don't consolidate with `colorDeltaE`.
+  - The no-re-export constraint means consumers must import color math primitives directly from `@tokenmanager/core`, not through `colorUtils.ts`.
+---

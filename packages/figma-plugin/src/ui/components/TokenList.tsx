@@ -6,7 +6,7 @@ import { BatchEditor } from './BatchEditor';
 import { ComparePanel } from './ComparePanel';
 import { TokenCanvas } from './TokenCanvas';
 import { TokenGraph } from './TokenGraph';
-import { colorDeltaE } from '../shared/colorUtils';
+import { colorDeltaE } from '@tokenmanager/core';
 import { stableStringify, getErrorMessage } from '../shared/utils';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import type { SortOrder } from './tokenListUtils';

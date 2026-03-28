@@ -54,6 +54,7 @@ async function buildUI() {
     },
     resolve: {
       alias: {
+        '@tokenmanager/core': path.join(__dirname, '..', 'core', 'src', 'index.ts'),
         '@': path.join(__dirname, 'src'),
       },
     },

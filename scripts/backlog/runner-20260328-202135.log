@@ -458,3 +458,10 @@ Already up to date.
 ===============================================================
   Claimed: Color math duplicated across 4 locations — `hexToRgb`/`rgbToLab`/`colorDeltaE`/`toLinear`/`fromLinear` are independently reimplemented in `@tokenmanager/core` (`color-math.ts` + `color-parse.ts` both define `toLinear`/`fromLinear`), `server/lint.ts` (lines 106-134), `ui/shared/colorUtils.ts` (lines 27-134, 295-300), and `plugin/consistencyScanner.ts` (lines 35-55); consolidate into `@tokenmanager/core` exports and use a single shared implementation — the server and scanner can import from core directly, and `colorUtils.ts` should delegate to core instead of reimplementing
   Worktree: /tmp/backlog-9231-f5JPM2
+
+  ✓ done: Color math duplicated across 4 locations — consolidate into @tokenmanager/core
+    Exported hexToRgb/rgbToHex/rgbToLab/normalizeHex/srgbToLinear/srgbFromLinear from core, removed ~70 lines of duplicates from colorUtils.ts, deduplicated toLinear/fromLinear in color-parse.ts, updated 4 UI consumer imports to use core directly. Server already used core. Plugin sandbox colorDist left as-is (different algorithm).
+    53 turns · 500s · $2.88
+
+--- Merging: Color math duplicated across 4 locations — consolidate into @tokenmanager/core ---
+Already up to date.

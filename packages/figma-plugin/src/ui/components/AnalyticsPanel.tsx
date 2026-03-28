@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { hexToLuminance, wcagContrast, hexToLstar, normalizeHex } from '../shared/colorUtils';
+import { normalizeHex } from '@tokenmanager/core';
+import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
 import { countLeafNodes } from '../shared/utils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
 

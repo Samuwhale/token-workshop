@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { hexToRgb, rgbToHex } from '@tokenmanager/core';
 import {
-  hexToRgb,
-  rgbToHex,
   hslToRgb,
   hexToHsl,
   hslToHex,

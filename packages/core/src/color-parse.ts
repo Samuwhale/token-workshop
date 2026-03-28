@@ -27,17 +27,10 @@ export interface ParsedColor {
 }
 
 // ---------------------------------------------------------------------------
-// sRGB linearization (IEC 61966-2-1)
+// sRGB linearization — imported from the single source of truth in color-math
 // ---------------------------------------------------------------------------
 
-function toLinear(c: number): number {
-  return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-}
-
-function fromLinear(c: number): number {
-  const v = Math.max(0, Math.min(1, c));
-  return v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
-}
+import { srgbToLinear as toLinear, srgbFromLinear as fromLinear } from './color-math.js';
 
 // ---------------------------------------------------------------------------
 // OKLAB / OKLCh math (Bjorn Ottosson)

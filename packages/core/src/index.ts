@@ -74,7 +74,19 @@ export {
 export { evalExpr, substituteVars } from './eval-expr.js';
 
 // Color math & modifiers
-export { hexToLab, labToHex, wcagLuminance, colorDeltaE } from './color-math.js';
+export {
+  srgbToLinear,
+  srgbFromLinear,
+  normalizeHex,
+  hexToRgb,
+  rgbToHex,
+  rgbToLab,
+  hexToLab,
+  labToHex,
+  wcagLuminance,
+  colorDeltaE,
+  setHexAlpha,
+} from './color-math.js';
 export { applyColorModifiers, validateColorModifiers } from './color-modifier.js';
 
 // CSS Color Module 4 parser
