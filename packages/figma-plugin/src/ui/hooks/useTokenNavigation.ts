@@ -1,6 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { TokenNode } from './useTokens';
 
+interface NavHistoryEntry {
+  path: string | null;
+  set: string;
+}
+
 export function useTokenNavigation(
   pathToSet: Record<string, string>,
   activeSet: string,
@@ -14,6 +19,7 @@ export function useTokenNavigation(
   // (pathToSet uses "first set wins", so shared paths in non-first sets would never match otherwise)
   const [pendingHighlightSet, setPendingHighlightSet] = useState<string | null>(null);
   const [createFromEmpty, setCreateFromEmpty] = useState(false);
+  const [navHistory, setNavHistory] = useState<NavHistoryEntry[]>([]);
 
   // Reset createFromEmpty when switching sets
   useEffect(() => {
@@ -32,7 +38,10 @@ export function useTokenNavigation(
     }
   }, [tokens, pendingHighlight, pendingHighlightSet, activeSet, pathToSet]);
 
-  const handleNavigateToAlias = useCallback((aliasPath: string) => {
+  const handleNavigateToAlias = useCallback((aliasPath: string, fromPath?: string) => {
+    // Push current position to history before navigating
+    setNavHistory(prev => [...prev, { path: fromPath ?? null, set: activeSet }]);
+
     if (pathToSet[aliasPath]) {
       const targetSet = pathToSet[aliasPath];
       if (targetSet === activeSet) {
@@ -45,6 +54,23 @@ export function useTokenNavigation(
       onAliasNotFound?.(aliasPath);
     }
   }, [pathToSet, activeSet, setActiveSet, onAliasNotFound]);
+
+  const handleNavigateBack = useCallback(() => {
+    if (navHistory.length === 0) return;
+    const entry = navHistory[navHistory.length - 1];
+    setNavHistory(prev => prev.slice(0, -1));
+
+    if (entry.set !== activeSet) {
+      // Cross-set back navigation: switch set and highlight the source token
+      if (entry.path) {
+        setPendingHighlight(entry.path);
+        setPendingHighlightSet(entry.set);
+      }
+      setActiveSet(entry.set);
+    } else {
+      setHighlightedToken(entry.path);
+    }
+  }, [navHistory, activeSet, setActiveSet]);
 
   // Use this when navigating to a token in a specific set (not derived from pathToSet)
   const setPendingHighlightForSet = useCallback((path: string, targetSet: string) => {
@@ -61,5 +87,7 @@ export function useTokenNavigation(
     createFromEmpty,
     setCreateFromEmpty,
     handleNavigateToAlias,
+    handleNavigateBack,
+    navHistory,
   };
 }

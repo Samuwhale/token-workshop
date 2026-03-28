@@ -442,3 +442,16 @@
 - Found 13 items — written to backlog-inbox.md
 - Notable: useFigmaSync.ts error handlers restore stale closure values (setSyncGroupPending(syncGroupPending) captures the value at callback creation, not the current state); useStyleSync pullRows Promise.all never checks res.ok so 4xx/5xx silently pass
 ---
+
+## 2026-03-28 - Token list: back navigation when jumping to alias
+- Added navigation history to `useTokenNavigation` hook: a `navHistory` stack of `{path, set}` entries. `handleNavigateToAlias` now accepts an optional `fromPath` parameter and pushes the source position before navigating. `handleNavigateBack` pops the stack and restores the previous token + set (handles cross-set back navigation via `setPendingHighlightForSet`).
+- `onNavigateToAlias` signature updated to `(path: string, fromPath?: string)` in both `TokenListActions` and `TokenTreeContextType`.
+- TokenTreeNode updated to pass `node.path` as `fromPath` at all three `onNavigateToAlias` call sites (direct alias click, chain segment click, inline chain hop click).
+- TokenList shows a "← Back" button strip (above the main toolbar) when `navHistoryLength > 0`. Also wires Alt+← keyboard shortcut.
+- App.tsx destructures `handleNavigateBack` and `navHistory` from the hook and passes them as `onNavigateBack` / `navHistoryLength` in both TokenList instances.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenNavigation.ts`, `packages/figma-plugin/src/ui/components/tokenListTypes.ts`, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L300,1616,1644, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L43,843,908,1962, `packages/figma-plugin/src/ui/App.tsx` ~L318,2170
+- **Learnings for future iterations:**
+  - Cross-set back navigation reuses `setPendingHighlightForSet` — the same mechanism as forward cross-set navigation. History entries must store both `path` and `set` to support this.
+  - `handleNavigateBack` reads `navHistory` from state directly (not inside a `setState` callback) and dispatches `setNavHistory(prev => prev.slice(0, -1))` as a separate call, avoiding calling other state setters inside a functional update.
+  - The back button count badge `({navHistoryLength})` only shows when depth > 1 — avoids clutter at depth 1 where "Back" is self-explanatory.
+---

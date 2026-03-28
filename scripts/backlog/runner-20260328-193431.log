@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 ===============================================================
   Claimed: **Token list: back navigation when jumping to alias** — the "navigate to alias" action (clicking the arrow on an alias token) jumps you to the referenced token and expands its group, but there's no way to go back. Add a "← Back" button or history breadcrumb that appears after an alias navigation, so you can return to where you were.
   Worktree: /tmp/backlog-77899-XUEvkl
+
+  ✓ done: Token list: back navigation when jumping to alias
+    Added navigation history stack to useTokenNavigation; clicking alias arrow now records the source token; a Back button (and Alt+← shortcut) appears in the TokenList toolbar after any alias navigation, supporting cross-set back navigation too.
+    55 turns · 425s · $1.72
+
+--- Merging: Token list: back navigation when jumping to alias ---
+Already up to date.

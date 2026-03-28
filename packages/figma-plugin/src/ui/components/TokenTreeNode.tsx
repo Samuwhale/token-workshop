@@ -297,7 +297,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     e.stopPropagation();
     if (!isAlias(node.$value) || isBrokenAlias) return;
     const aliasPath = (node.$value as string).slice(1, -1);
-    onNavigateToAlias?.(aliasPath);
+    onNavigateToAlias?.(aliasPath, node.path);
   };
 
   const applyWithProperty = (property: BindableProperty) => {
@@ -1613,7 +1613,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 ) : (
                   <button
                     className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline cursor-pointer transition-colors"
-                    onClick={() => onNavigateToAlias?.(seg)}
+                    onClick={() => onNavigateToAlias?.(seg, node.path)}
                     title={`Navigate to ${seg}`}
                   >{seg}</button>
                 )}
@@ -1641,7 +1641,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             </svg>
             <button
               className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] shrink-0 transition-colors"
-              onClick={() => onNavigateToAlias?.(hop)}
+              onClick={() => onNavigateToAlias?.(hop, node.path)}
               title={`Navigate to ${hop}`}
             >
               {hop}

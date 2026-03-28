@@ -40,7 +40,7 @@ import { useDragDrop } from '../hooks/useDragDrop';
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
   data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {} },
-  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError },
+  actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError },
   defaultCreateOpen,
   highlightedToken,
   showIssuesOnly,
@@ -839,6 +839,13 @@ export function TokenList({
       }
     }
 
+    // Alt+←: navigate back in alias navigation history
+    if (e.altKey && !e.metaKey && !e.ctrlKey && e.key === 'ArrowLeft' && (navHistoryLength ?? 0) > 0) {
+      e.preventDefault();
+      onNavigateBack?.();
+      return;
+    }
+
     // Cmd/Ctrl+→: expand all groups; Cmd/Ctrl+←: collapse all groups
     if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
       e.preventDefault();
@@ -899,7 +906,7 @@ export function TokenList({
         }
       }
     }
-  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath]);
+  }, [showCreateForm, resetCreateForm, selectMode, selectedPaths, handleOpenCreateSibling, onCreateNew, expandedPaths, handleToggleExpand, handleExpandAll, handleCollapseAll, zoomRootPath, navHistoryLength, onNavigateBack]);
 
   // Scroll virtual list to bring the highlighted token into view
   useLayoutEffect(() => {
@@ -2040,6 +2047,26 @@ export function TokenList({
             allTokensFlat={allTokensFlat}
             onClose={() => setShowCompare(false)}
           />
+        )}
+
+        {/* Navigation back button — appears after alias navigation */}
+        {(navHistoryLength ?? 0) > 0 && !selectMode && (
+          <div className="flex items-center gap-1 px-2 py-1 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+            <button
+              onClick={onNavigateBack}
+              className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+              title="Go back to previous token (Alt+←)"
+              aria-label="Go back to previous token"
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Back
+            </button>
+            {(navHistoryLength ?? 0) > 1 && (
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">({navHistoryLength})</span>
+            )}
+          </div>
         )}
 
         {/* Unified toolbar — view modes, search, filters, and actions in one compact bar */}

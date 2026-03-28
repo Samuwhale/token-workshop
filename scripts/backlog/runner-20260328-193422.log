@@ -29,3 +29,21 @@ Already up to date.
   ✓ code pass: code-pass
     13 items written to inbox — covers UI components, hooks, plugin internals, and server utilities not explored in previous pass
 Already up to date.
+[main f8429ae] chore(backlog): code pass – code-pass
+ 9 files changed, 55 insertions(+), 8 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 1 priority item(s) inserted at top of queue
+  → 12 normal item(s) appended to bottom
+--- Inbox drained ---
+
+## 2026-03-28 - code-pass
+- Areas explored: UI components (TokenEditor, TokenTableView, ThemeManager, ThemeCompare, ExportPanel, PublishPanel, BatchEditor, ColorPicker, GraphPanel, SelectionInspector), hooks (useFigmaSync, useGitSync, useGeneratorDialog, useFindReplace, useSetDuplicate, useStyleSync, useVariableSync, useResolvers, useLint, useWindowExpand, useTokenCreate, useRecentlyTouched, useSetMetadata), shared utilities (colorUtils, tokenListHelpers), plugin internals (fontLoading, styleSync, variableSync, git-sync conflict parsing)
+- Found 13 items — written to backlog-inbox.md
+- Notable: useFigmaSync.ts error handlers restore stale closure values (setSyncGroupPending(syncGroupPending) captures the value at callback creation, not the current state); useStyleSync pullRows Promise.all never checks res.ok so 4xx/5xx silently pass
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  59 items remaining
+===============================================================
+  Claimed: [HIGH] `useFigmaSync.ts` error handlers restore stale closure values — `setSyncGroupPending(syncGroupPending)` at line 39 and `setSyncGroupStylesPending(syncGroupStylesPending)` at line 60 capture the state value at callback creation time, so on error the state gets set to a stale value instead of being properly reset (e.g. to `null`)
+  Worktree: /tmp/backlog-77155-w1dWKD

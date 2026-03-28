@@ -61,7 +61,9 @@ export interface TokenListActions {
   onRefresh: () => void;
   onPushUndo?: (slot: UndoSlot) => void;
   onTokenCreated?: (path: string) => void;
-  onNavigateToAlias?: (path: string) => void;
+  onNavigateToAlias?: (path: string, fromPath?: string) => void;
+  onNavigateBack?: () => void;
+  navHistoryLength?: number;
   onClearHighlight?: () => void;
   onSyncGroup?: (groupPath: string, tokenCount: number) => void;
   onSyncGroupStyles?: (groupPath: string, tokenCount: number) => void;
@@ -150,7 +152,7 @@ export interface TokenTreeContextType {
   onDeleteGroup: (path: string, name: string, tokenCount: number) => void;
   onToggleSelect: (path: string, modifiers?: { shift: boolean; ctrl: boolean }) => void;
   onToggleExpand: (path: string) => void;
-  onNavigateToAlias?: (path: string) => void;
+  onNavigateToAlias?: (path: string, fromPath?: string) => void;
   onCreateSibling?: (groupPath: string, tokenType: string) => void;
   onCreateGroup?: (parentGroupPath: string) => void;
   onRenameGroup?: (oldGroupPath: string, newGroupPath: string) => void;
