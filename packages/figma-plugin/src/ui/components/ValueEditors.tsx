@@ -270,7 +270,6 @@ export function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToSet
     }
     const conversion = UNIT_CONVERSIONS[val.unit]?.[newUnit];
     if (conversion === null) {
-      // Percentage conversion requires a reference value we don't have
       onChange({ value: numVal, unit: newUnit });
       setConversionWarning(
         `Value kept as-is — converting between % and ${val.unit === '%' ? newUnit : '%'} requires a reference value`

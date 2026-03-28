@@ -419,3 +419,16 @@ Already up to date.
 
 --- Merging: No inline quick-edit for simple token values ---
 Already up to date.
+[main 7f2405e] chore(backlog): done – No inline quick-edit for simple token values
+ 4 files changed, 18 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - No inline quick-edit for simple token values
+- Already fully implemented in `TokenTreeNode.tsx`. Double-click on token name/value area activates inline edit for types in `INLINE_SIMPLE_TYPES` (color, dimension, number, string, boolean, fontFamily, fontWeight, duration, asset). Single-click on value text also activates it. Colors open an inline ColorPicker popover. Numeric types get a stepper with +/- buttons. Strings get a text input. Boolean toggles on click. Enter/blur saves via PATCH with undo support, Escape cancels. Table view (`TokenTableView.tsx`) and multi-mode columns also support inline editing.
+- Files changed: none (stale — already done)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  30 items remaining
+===============================================================
+  Claimed: `token-tree-utils.ts` uses `any` for all tree traversal parameters — every function (`walkAliasValues`, `walkLeafTokens`, `collectGroupLeafTokens`, `getObjectAtPath`, `setGroupAtPath`, etc.) uses `any` instead of `TokenGroup` or generic types, defeating TypeScript's ability to catch misuse across the server
+  Worktree: /tmp/backlog-9651-8YtrrE

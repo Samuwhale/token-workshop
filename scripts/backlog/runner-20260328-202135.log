@@ -338,3 +338,10 @@ Already up to date.
 ===============================================================
   Claimed: `UNIT_CONVERSIONS` percentage conversions are identity functions in `ValueEditors.tsx` — converting between `%` and `px`/`rem`/`em` uses `v => v` (lines 238-243), meaning 50% → 50px; these need proper context-aware conversion or should be disabled/warned since percentage conversion requires a reference value
   Worktree: /tmp/backlog-9231-VPfCf7
+
+  ✓ done: UNIT_CONVERSIONS percentage conversions are identity functions in ValueEditors.tsx
+    Replaced identity v=>v percentage conversions with null to indicate no conversion possible; DimensionEditor now shows a warning when switching to/from % explaining that a reference value is needed
+    46 turns · 276s · $1.47
+
+--- Merging: UNIT_CONVERSIONS percentage conversions are identity functions in ValueEditors.tsx ---
+Already up to date.

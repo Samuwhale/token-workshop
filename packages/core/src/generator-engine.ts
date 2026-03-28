@@ -517,6 +517,7 @@ export function runContrastCheckGenerator(
   }
 
   const bgLum = wcagLuminance(backgroundHex);
+  if (bgLum === null) throw new Error(`Invalid hex color for contrastCheck generator: "${backgroundHex}"`);
   // Use the strictest configured level as the failure threshold.
   // levels includes 'AAA' → 7.0:1; levels includes only 'AA' → 4.5:1; default → 4.5:1
   const failThreshold = levels?.includes('AAA') ? 7.0 : 4.5;

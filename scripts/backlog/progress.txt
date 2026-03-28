@@ -331,3 +331,11 @@
   - The inline editing infrastructure is comprehensive: `activateInlineEdit()` at ~L881, double-click handler at ~L1063, value click at ~L1305, inline input rendering at ~L1225-1297
   - `INLINE_SIMPLE_TYPES` in `tokenListTypes.ts:132` controls which types get inline editing; additional scalar DTCG types (lineHeight, letterSpacing, percentage, fontStyle, textDecoration, textTransform) could be added but are less commonly used standalone
 ---
+
+## 2026-03-28 - UNIT_CONVERSIONS percentage conversions are identity functions in ValueEditors.tsx
+- Replaced identity `v => v` percentage conversions with `null` in `UNIT_CONVERSIONS` to indicate no conversion is possible (% ↔ px/rem/em requires a reference value we don't have). Updated `handleUnitChange` in `DimensionEditor` to detect `null` conversions, keep the numeric value as-is, and show a warning message explaining that the conversion requires a reference value. Added `conversionWarning` state and a styled warning banner below the input.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L249-254 (UNIT_CONVERSIONS), ~L256-282 (DimensionEditor handler + state), ~L338-342 (warning UI)
+- **Learnings for future iterations:**
+  - `UNIT_CONVERSIONS` type changed to `((v: number) => number) | null` — null means "no conversion available", undefined means "unknown unit pair" (falls back to identity). This distinction allows proper handling of each case.
+  - The `git stash` command in worktrees may not preserve all changes if they're in untracked/worktree-specific paths. Avoid stash for verifying pre-existing failures; use a separate check instead.
+---
