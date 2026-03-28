@@ -234,3 +234,10 @@ Already up to date.
 ===============================================================
   Claimed: `PublishPanel.tsx` is 1642 lines — extract diff computation, variable publishing, and style publishing into separate hooks/components
   Worktree: /tmp/backlog-85816-mmpWPg
+
+  ✓ done: `PublishPanel.tsx` is 1642 lines — extract diff computation, variable publishing, and style publishing into separate hooks/components
+    Extracted useVariableSync (180L), useStyleSync (185L), and useGitSync (198L) hooks; PublishPanel reduced from 1615 to 1169 lines. Build passes.
+    18 turns · 378s · $1.57
+
+--- Merging: `PublishPanel.tsx` is 1642 lines — extract diff computation, variable publishing, and style publishing into separate hooks/components ---
+Already up to date.

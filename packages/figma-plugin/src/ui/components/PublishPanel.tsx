@@ -1,8 +1,13 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { getErrorMessage } from '../shared/utils';
 import { PLATFORMS } from '../shared/platforms';
 import type { Platform } from '../shared/platforms';
+import { useVariableSync } from '../hooks/useVariableSync';
+import type { VarDiffRow } from '../hooks/useVariableSync';
+import { useStyleSync } from '../hooks/useStyleSync';
+import { useGitSync } from '../hooks/useGitSync';
+import type { GitStatus } from '../hooks/useGitSync';
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -20,40 +25,6 @@ interface PublishPanelProps {
   modeMap?: Record<string, string>;
 }
 
-interface GitStatus {
-  isRepo: boolean;
-  branch: string | null;
-  remote: string | null;
-  status: {
-    modified: string[];
-    created: string[];
-    deleted: string[];
-    not_added: string[];
-    staged: string[];
-    isClean: boolean;
-  } | null;
-}
-
-interface VarDiffRow {
-  path: string;
-  cat: 'local-only' | 'figma-only' | 'conflict';
-  localValue?: string;
-  figmaValue?: string;
-  localType?: string;
-  figmaType?: string;
-}
-
-interface StyleDiffRow {
-  path: string;
-  cat: 'local-only' | 'figma-only' | 'conflict';
-  localValue?: string;   // display string
-  figmaValue?: string;   // display string
-  localRaw?: any;        // raw value for API/plugin
-  figmaRaw?: any;        // raw value for API/plugin
-  localType?: string;
-  figmaType?: string;
-}
-
 interface ReadinessCheck {
   id: string;
   label: string;
@@ -68,24 +39,6 @@ interface ReadinessCheck {
 
 function truncateValue(v: string, max = 24): string {
   return v.length > max ? v.slice(0, max) + '\u2026' : v;
-}
-
-const STYLE_TYPES = new Set(['color', 'typography', 'shadow']);
-
-function summarizeStyleValue(value: any, type: string): string {
-  if (type === 'color') return String(value);
-  if (type === 'typography' && value && typeof value === 'object') {
-    const family = Array.isArray(value.fontFamily) ? value.fontFamily[0] : value.fontFamily;
-    const size = typeof value.fontSize === 'object'
-      ? `${value.fontSize.value}${value.fontSize.unit}`
-      : String(value.fontSize ?? '');
-    return `${family ?? ''}${size ? ' ' + size : ''}`.trim() || JSON.stringify(value).slice(0, 28);
-  }
-  if (type === 'shadow') {
-    const arr = Array.isArray(value) ? value : [value];
-    return arr.map((s: any) => s?.color ?? '').join(', ').slice(0, 28);
-  }
-  return JSON.stringify(value).slice(0, 28);
 }
 
 function formatRelativeTime(date: Date): string {
@@ -137,40 +90,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     });
   };
 
-  // ── Git state ──
-  const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
-  const [gitLoading, setGitLoading] = useState(true);
-  const [gitError, setGitError] = useState<string | null>(null);
-  const [commitMsg, setCommitMsg] = useState('');
-  const [remoteUrl, setRemoteUrl] = useState('');
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [branches, setBranches] = useState<string[]>([]);
-  const [diffView, setDiffView] = useState<{ localOnly: string[]; remoteOnly: string[]; conflicts: string[] } | null>(null);
-  const [diffLoading, setDiffLoading] = useState(false);
-  const [diffChoices, setDiffChoices] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
-  const [applyingDiff, setApplyingDiff] = useState(false);
-  const [lastSynced, setLastSynced] = useState<Date | null>(null);
-  const [, setTick] = useState(0);
-  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
-  const knownFilesRef = useRef<Set<string>>(new Set());
-
-  // ── Variable sync state ──
-  const [varRows, setVarRows] = useState<VarDiffRow[]>([]);
-  const [varDirs, setVarDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
-  const [varLoading, setVarLoading] = useState(false);
-  const [varSyncing, setVarSyncing] = useState(false);
-  const [varError, setVarError] = useState<string | null>(null);
-  const [varChecked, setVarChecked] = useState(false);
-  const varPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
-
-  // ── Style sync state ──
-  const [styleRows, setStyleRows] = useState<StyleDiffRow[]>([]);
-  const [styleDirs, setStyleDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
-  const [styleLoading, setStyleLoading] = useState(false);
-  const [styleSyncing, setStyleSyncing] = useState(false);
-  const [styleError, setStyleError] = useState<string | null>(null);
-  const [styleChecked, setStyleChecked] = useState(false);
-  const styleReadResolveRef = useRef<((tokens: any[]) => void) | null>(null);
+  // ── Extracted hooks ──
+  const varSync = useVariableSync({ serverUrl, connected, activeSet, collectionMap, modeMap });
+  const styleSync = useStyleSync({ serverUrl, activeSet });
+  const git = useGitSync({ serverUrl, connected });
 
   // ── Readiness state ──
   const [readinessChecks, setReadinessChecks] = useState<ReadinessCheck[]>([]);
@@ -187,192 +110,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
-  const fetchAbortRef = useRef<AbortController | null>(null);
-
-  /* ── Git callbacks ─────────────────────────────────────────────────────── */
-
-  const fetchStatus = useCallback(async () => {
-    fetchAbortRef.current?.abort();
-    const controller = new AbortController();
-    fetchAbortRef.current = controller;
-    const { signal } = controller;
-    if (!connected) { setGitLoading(false); return; }
-    try {
-      const res = await fetch(`${serverUrl}/api/sync/status`, { signal });
-      if (res.ok) {
-        const data = await res.json();
-        setGitStatus(data);
-        if (data.remote) setRemoteUrl(data.remote);
-      } else {
-        setGitStatus({ isRepo: false, branch: null, remote: null, status: null });
-      }
-      const branchRes = await fetch(`${serverUrl}/api/sync/branches`, { signal });
-      if (branchRes.ok) {
-        const branchData = await branchRes.json();
-        setBranches(branchData.branches || []);
-      }
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') return;
-      setGitError(describeError(err, 'Fetch git status'));
-    } finally {
-      if (!signal.aborted) setGitLoading(false);
-    }
-  }, [serverUrl, connected]);
-
-  useEffect(() => {
-    fetchStatus();
-    return () => { fetchAbortRef.current?.abort(); };
-  }, [fetchStatus]);
-
-  useEffect(() => {
-    if (!lastSynced) return;
-    const id = setInterval(() => setTick(t => t + 1), 30_000);
-    return () => clearInterval(id);
-  }, [lastSynced]);
-
-  const doAction = async (action: string, body?: any) => {
-    setActionLoading(action);
-    setGitError(null);
-    try {
-      const res = await fetch(`${serverUrl}/api/sync/${action}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `${action} failed`);
-      }
-      if (action === 'push' || action === 'pull') setLastSynced(new Date());
-      parent.postMessage({ pluginMessage: { type: 'notify', message: `Git ${action} completed` } }, '*');
-      fetchStatus();
-    } catch (err) {
-      setGitError(describeError(err, `Git ${action}`));
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const computeDiff = useCallback(async () => {
-    setDiffLoading(true);
-    setGitError(null);
-    try {
-      const res = await fetch(`${serverUrl}/api/sync/diff`);
-      if (!res.ok) throw new Error('Could not compute diff');
-      const data = await res.json() as { localOnly: string[]; remoteOnly: string[]; conflicts: string[] };
-      setDiffView(data);
-      const choices: Record<string, 'push' | 'pull' | 'skip'> = {};
-      for (const f of data.localOnly) choices[f] = 'push';
-      for (const f of data.remoteOnly) choices[f] = 'pull';
-      for (const f of data.conflicts) choices[f] = 'skip';
-      setDiffChoices(choices);
-    } catch (err) {
-      setGitError(describeError(err, 'Compute diff'));
-    } finally {
-      setDiffLoading(false);
-    }
-  }, [serverUrl]);
-
-  const applyDiff = useCallback(async () => {
-    setApplyingDiff(true);
-    setGitError(null);
-    try {
-      const res = await fetch(`${serverUrl}/api/sync/apply-diff`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ choices: diffChoices }),
-      });
-      if (!res.ok) throw new Error('Failed to apply diff');
-      setDiffView(null);
-      fetchStatus();
-    } catch (err) {
-      setGitError(describeError(err, 'Apply diff'));
-    } finally {
-      setApplyingDiff(false);
-    }
-  }, [serverUrl, diffChoices, fetchStatus]);
-
-  /* ── Variable sync callbacks ───────────────────────────────────────────── */
-
-  const computeVarDiff = useCallback(async () => {
-    if (!activeSet) return;
-    setVarLoading(true);
-    setVarError(null);
-    setVarChecked(false);
-    try {
-      const figmaTokens: any[] = await new Promise((resolve, reject) => {
-        const cid = `publish-${Date.now()}-${Math.random()}`;
-        const timeout = setTimeout(() => {
-          varPendingRef.current.delete(cid);
-          reject(new Error('Figma read timed out \u2014 is the plugin running?'));
-        }, 10000);
-        varPendingRef.current.set(cid, (tokens) => {
-          clearTimeout(timeout);
-          resolve(tokens);
-        });
-        parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
-      });
-
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-      if (!res.ok) throw new Error('Could not fetch local tokens');
-      const data = await res.json();
-      const localTokens = flattenTokenGroup(data.tokens || {});
-
-      const figmaMap = new Map<string, { value: string; type: string }>(
-        figmaTokens.map(t => [t.path, { value: String(t.$value ?? ''), type: String(t.$type ?? 'string') }])
-      );
-      const localMap = new Map<string, { value: string; type: string }>();
-      for (const [path, token] of localTokens) {
-        localMap.set(path, { value: String(token.$value), type: String(token.$type ?? 'string') });
-      }
-
-      const rows: VarDiffRow[] = [];
-      for (const [path, local] of localMap) {
-        const figma = figmaMap.get(path);
-        if (!figma) {
-          rows.push({ path, cat: 'local-only', localValue: local.value, localType: local.type });
-        } else if (figma.value !== local.value) {
-          rows.push({ path, cat: 'conflict', localValue: local.value, figmaValue: figma.value, localType: local.type, figmaType: figma.type });
-        }
-      }
-      for (const [path, figma] of figmaMap) {
-        if (!localMap.has(path)) {
-          rows.push({ path, cat: 'figma-only', figmaValue: figma.value, figmaType: figma.type });
-        }
-      }
-
-      setVarRows(rows);
-      setVarChecked(true);
-      const dirs: Record<string, 'push' | 'pull' | 'skip'> = {};
-      for (const r of rows) {
-        dirs[r.path] = r.cat === 'figma-only' ? 'pull' : 'push';
-      }
-      setVarDirs(dirs);
-    } catch (err) {
-      setVarError(describeError(err, 'Compare variables'));
-    } finally {
-      setVarLoading(false);
-    }
-  }, [serverUrl, activeSet]);
-
-  useEffect(() => {
-    if (connected && activeSet) computeVarDiff();
-  }, [connected, activeSet, computeVarDiff]);
-
+  // ── Orphan deletion message handler ──
   useEffect(() => {
     const handler = (ev: MessageEvent) => {
       const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'variables-read' && msg.correlationId) {
-        const resolve = varPendingRef.current.get(msg.correlationId);
-        if (resolve) {
-          varPendingRef.current.delete(msg.correlationId);
-          resolve(msg.tokens ?? []);
-        }
-      }
-      if (msg?.type === 'styles-read' && styleReadResolveRef.current) {
-        styleReadResolveRef.current(msg.tokens ?? []);
-        styleReadResolveRef.current = null;
-      }
       if (msg?.type === 'orphans-deleted' && orphansResolveRef.current) {
         orphansResolveRef.current(msg.count ?? 0);
         orphansResolveRef.current = null;
@@ -382,150 +123,6 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  const applyVarDiff = useCallback(async () => {
-    const dirsSnapshot = varDirs;
-    const rowsSnapshot = varRows;
-    setVarSyncing(true);
-    setVarError(null);
-    try {
-      const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
-      const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
-
-      if (pushRows.length > 0) {
-        const tokens = pushRows.map(r => ({
-          path: r.path,
-          $type: r.localType ?? 'string',
-          $value: r.localValue ?? '',
-          setName: activeSet,
-        }));
-        parent.postMessage({ pluginMessage: { type: 'apply-variables', tokens, collectionMap, modeMap } }, '*');
-      }
-
-      if (pullRows.length > 0) {
-        await Promise.all(pullRows.map(r =>
-          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaValue ?? '' }),
-          })
-        ));
-      }
-
-      setVarRows([]);
-      setVarDirs({});
-      setVarChecked(true);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Variable sync applied' } }, '*');
-    } catch (err) {
-      setVarError(describeError(err, 'Apply variable sync'));
-    } finally {
-      setVarSyncing(false);
-    }
-  }, [serverUrl, activeSet, varRows, varDirs]);
-
-  /* ── Style sync callbacks ──────────────────────────────────────────────── */
-
-  const computeStyleDiff = useCallback(async () => {
-    if (!activeSet) return;
-    setStyleLoading(true);
-    setStyleError(null);
-    setStyleChecked(false);
-    try {
-      const figmaTokens: any[] = await new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          styleReadResolveRef.current = null;
-          reject(new Error('Figma read timed out \u2014 is the plugin running?'));
-        }, 10000);
-        styleReadResolveRef.current = (tokens) => {
-          clearTimeout(timeout);
-          resolve(tokens);
-        };
-        parent.postMessage({ pluginMessage: { type: 'read-styles' } }, '*');
-      });
-
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-      if (!res.ok) throw new Error('Could not fetch local tokens');
-      const data = await res.json();
-      const localTokens = flattenTokenGroup(data.tokens || {});
-
-      const figmaMap = new Map<string, { raw: any; type: string }>(
-        figmaTokens.map(t => [t.path, { raw: t.$value, type: String(t.$type ?? 'string') }])
-      );
-      const localMap = new Map<string, { raw: any; type: string }>();
-      for (const [path, token] of localTokens) {
-        const type = String(token.$type ?? 'string');
-        if (STYLE_TYPES.has(type)) {
-          localMap.set(path, { raw: token.$value, type });
-        }
-      }
-
-      const rows: StyleDiffRow[] = [];
-      for (const [path, local] of localMap) {
-        const figmaEntry = figmaMap.get(path);
-        if (!figmaEntry) {
-          rows.push({ path, cat: 'local-only', localRaw: local.raw, localValue: summarizeStyleValue(local.raw, local.type), localType: local.type });
-        } else if (JSON.stringify(figmaEntry.raw) !== JSON.stringify(local.raw)) {
-          rows.push({ path, cat: 'conflict', localRaw: local.raw, figmaRaw: figmaEntry.raw, localValue: summarizeStyleValue(local.raw, local.type), figmaValue: summarizeStyleValue(figmaEntry.raw, figmaEntry.type), localType: local.type, figmaType: figmaEntry.type });
-        }
-      }
-      for (const [path, figmaEntry] of figmaMap) {
-        if (!localMap.has(path)) {
-          rows.push({ path, cat: 'figma-only', figmaRaw: figmaEntry.raw, figmaValue: summarizeStyleValue(figmaEntry.raw, figmaEntry.type), figmaType: figmaEntry.type });
-        }
-      }
-
-      setStyleRows(rows);
-      setStyleChecked(true);
-      const dirs: Record<string, 'push' | 'pull' | 'skip'> = {};
-      for (const r of rows) {
-        dirs[r.path] = r.cat === 'figma-only' ? 'pull' : 'push';
-      }
-      setStyleDirs(dirs);
-    } catch (err) {
-      setStyleError(describeError(err, 'Compare styles'));
-    } finally {
-      setStyleLoading(false);
-    }
-  }, [serverUrl, activeSet]);
-
-  const applyStyleDiff = useCallback(async () => {
-    const dirsSnapshot = styleDirs;
-    const rowsSnapshot = styleRows;
-    setStyleSyncing(true);
-    setStyleError(null);
-    try {
-      const pushRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'push');
-      const pullRows = rowsSnapshot.filter(r => dirsSnapshot[r.path] === 'pull');
-
-      if (pushRows.length > 0) {
-        const tokens = pushRows.map(r => ({
-          path: r.path,
-          $type: r.localType ?? 'string',
-          $value: r.localRaw,
-        }));
-        parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens } }, '*');
-      }
-
-      if (pullRows.length > 0) {
-        await Promise.all(pullRows.map(r =>
-          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaRaw }),
-          })
-        ));
-      }
-
-      setStyleRows([]);
-      setStyleDirs({});
-      setStyleChecked(true);
-      parent.postMessage({ pluginMessage: { type: 'notify', message: 'Style sync applied' } }, '*');
-    } catch (err) {
-      setStyleError(describeError(err, 'Apply style sync'));
-    } finally {
-      setStyleSyncing(false);
-    }
-  }, [serverUrl, activeSet, styleRows, styleDirs]);
-
   /* ── Readiness callbacks ───────────────────────────────────────────────── */
 
   const runReadinessChecks = useCallback(async () => {
@@ -533,15 +130,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     setReadinessLoading(true);
     setReadinessError(null);
     try {
-      const figmaTokens: any[] = await new Promise((resolve, reject) => {
-        const cid = `publish-${Date.now()}-${Math.random()}`;
-        const timeout = setTimeout(() => {
-          varPendingRef.current.delete(cid);
-          reject(new Error('Figma read timed out'));
-        }, 10000);
-        varPendingRef.current.set(cid, (tokens) => { clearTimeout(timeout); resolve(tokens); });
-        parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
-      });
+      const figmaTokens = await varSync.readFigmaVariables();
 
       const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       if (!res.ok) throw new Error('Could not fetch local tokens');
@@ -616,7 +205,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     } finally {
       setReadinessLoading(false);
     }
-  }, [serverUrl, activeSet]);
+  }, [serverUrl, activeSet, varSync.readFigmaVariables, collectionMap, modeMap]);
 
   /* ── Export callbacks ───────────────────────────────────────────────────── */
 
@@ -685,43 +274,8 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
 
   /* ── Computed values ───────────────────────────────────────────────────── */
 
-  const varSyncCount = Object.values(varDirs).filter(d => d !== 'skip').length;
-  const varPushCount = Object.values(varDirs).filter(d => d === 'push').length;
-  const varPullCount = Object.values(varDirs).filter(d => d === 'pull').length;
-  const styleSyncCount = Object.values(styleDirs).filter(d => d !== 'skip').length;
-  const stylePushCount = Object.values(styleDirs).filter(d => d === 'push').length;
-  const stylePullCount = Object.values(styleDirs).filter(d => d === 'pull').length;
   const readinessFails = readinessChecks.filter(c => c.status === 'fail').length;
   const readinessPasses = readinessChecks.filter(c => c.status === 'pass').length;
-
-  const allChanges = useMemo(() => gitStatus?.status
-    ? [
-        ...gitStatus.status.modified.map(f => ({ file: f, status: 'M' })),
-        ...gitStatus.status.created.map(f => ({ file: f, status: 'A' })),
-        ...gitStatus.status.deleted.map(f => ({ file: f, status: 'D' })),
-        ...gitStatus.status.not_added.map(f => ({ file: f, status: '?' })),
-      ]
-    : [], [gitStatus]);
-
-  // Keep selectedFiles in sync with allChanges: auto-check new files, prune gone ones
-  useEffect(() => {
-    const currentSet = new Set(allChanges.map(c => c.file));
-    setSelectedFiles(prev => {
-      const next = new Set(prev);
-      // Remove files no longer in the working tree
-      for (const f of next) {
-        if (!currentSet.has(f)) next.delete(f);
-      }
-      // Auto-check files appearing for the first time
-      for (const f of currentSet) {
-        if (!knownFilesRef.current.has(f)) {
-          next.add(f);
-          knownFilesRef.current.add(f);
-        }
-      }
-      return next;
-    });
-  }, [allChanges]);
 
   /* ── Not connected ─────────────────────────────────────────────────────── */
 
@@ -822,10 +376,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           open={openSections.has('figma-variables')}
           onToggle={() => toggleSection('figma-variables')}
           badge={
-            varChecked && varRows.length === 0
+            varSync.varChecked && varSync.varRows.length === 0
               ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
-              : varRows.length > 0
-                ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{varRows.length} differ</span>
+              : varSync.varRows.length > 0
+                ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{varSync.varRows.length} differ</span>
                 : null
           }
         >
@@ -836,22 +390,22 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between border-t border-[var(--color-figma-border)]">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Token differences</span>
             <button
-              onClick={computeVarDiff}
-              disabled={varLoading || !activeSet}
+              onClick={varSync.computeVarDiff}
+              disabled={varSync.varLoading || !activeSet}
               className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
             >
-              {varLoading ? 'Checking\u2026' : varChecked ? 'Re-check' : 'Compare'}
+              {varSync.varLoading ? 'Checking\u2026' : varSync.varChecked ? 'Re-check' : 'Compare'}
             </button>
           </div>
 
-          {varError && (
-            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{varError}</div>
+          {varSync.varError && (
+            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{varSync.varError}</div>
           )}
 
-          {varRows.length > 0 && (() => {
-            const localOnly = varRows.filter(r => r.cat === 'local-only');
-            const figmaOnly = varRows.filter(r => r.cat === 'figma-only');
-            const conflicts = varRows.filter(r => r.cat === 'conflict');
+          {varSync.varRows.length > 0 && (() => {
+            const localOnly = varSync.varRows.filter(r => r.cat === 'local-only');
+            const figmaOnly = varSync.varRows.filter(r => r.cat === 'figma-only');
+            const conflicts = varSync.varRows.filter(r => r.cat === 'conflict');
 
             return (
               <>
@@ -860,7 +414,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   {(['push', 'pull', 'skip'] as const).map(action => (
                     <button
                       key={action}
-                      onClick={() => setVarDirs(Object.fromEntries(varRows.map(r => [r.path, action])))}
+                      onClick={() => varSync.setVarDirs(Object.fromEntries(varSync.varRows.map(r => [r.path, action])))}
                       className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
                     >
                       {action === 'push' ? '\u2191 Push all' : action === 'pull' ? '\u2193 Pull all' : 'Skip all'}
@@ -875,7 +429,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     </div>
                   )}
                   {localOnly.map(row => (
-                    <VarDiffRowItem key={row.path} row={row} dir={varDirs[row.path] ?? 'push'} onChange={d => setVarDirs(prev => ({ ...prev, [row.path]: d }))} />
+                    <VarDiffRowItem key={row.path} row={row} dir={varSync.varDirs[row.path] ?? 'push'} onChange={d => varSync.setVarDirs(prev => ({ ...prev, [row.path]: d }))} />
                   ))}
                   {figmaOnly.length > 0 && (
                     <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
@@ -883,7 +437,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     </div>
                   )}
                   {figmaOnly.map(row => (
-                    <VarDiffRowItem key={row.path} row={row} dir={varDirs[row.path] ?? 'pull'} onChange={d => setVarDirs(prev => ({ ...prev, [row.path]: d }))} />
+                    <VarDiffRowItem key={row.path} row={row} dir={varSync.varDirs[row.path] ?? 'pull'} onChange={d => varSync.setVarDirs(prev => ({ ...prev, [row.path]: d }))} />
                   ))}
                   {conflicts.length > 0 && (
                     <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
@@ -891,41 +445,41 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     </div>
                   )}
                   {conflicts.map(row => (
-                    <VarDiffRowItem key={row.path} row={row} dir={varDirs[row.path] ?? 'push'} onChange={d => setVarDirs(prev => ({ ...prev, [row.path]: d }))} />
+                    <VarDiffRowItem key={row.path} row={row} dir={varSync.varDirs[row.path] ?? 'push'} onChange={d => varSync.setVarDirs(prev => ({ ...prev, [row.path]: d }))} />
                   ))}
                 </div>
 
                 <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
                   <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                    {varSyncCount === 0
+                    {varSync.varSyncCount === 0
                       ? 'Nothing to apply \u2014 all skipped'
                       : [
-                          varPushCount > 0 ? `\u2191 ${varPushCount} to Figma` : null,
-                          varPullCount > 0 ? `\u2193 ${varPullCount} to local` : null,
+                          varSync.varPushCount > 0 ? `\u2191 ${varSync.varPushCount} to Figma` : null,
+                          varSync.varPullCount > 0 ? `\u2193 ${varSync.varPullCount} to local` : null,
                         ].filter(Boolean).join(' \u00b7 ')
                     }
                   </span>
                   <button
-                    onClick={applyVarDiff}
-                    disabled={varSyncing || varSyncCount === 0}
+                    onClick={varSync.applyVarDiff}
+                    disabled={varSync.varSyncing || varSync.varSyncCount === 0}
                     className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                   >
-                    {varSyncing ? 'Syncing\u2026' : `Apply ${varSyncCount > 0 ? varSyncCount + ' change' + (varSyncCount !== 1 ? 's' : '') : ''}`}
+                    {varSync.varSyncing ? 'Syncing\u2026' : `Apply ${varSync.varSyncCount > 0 ? varSync.varSyncCount + ' change' + (varSync.varSyncCount !== 1 ? 's' : '') : ''}`}
                   </button>
                 </div>
               </>
             );
           })()}
 
-          {!varLoading && !varError && (
-            varChecked && varRows.length === 0 ? (
+          {!varSync.varLoading && !varSync.varError && (
+            varSync.varChecked && varSync.varRows.length === 0 ? (
               <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
                 Local tokens match Figma variables.
               </div>
-            ) : !varChecked && varRows.length === 0 ? (
+            ) : !varSync.varChecked && varSync.varRows.length === 0 ? (
               <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
                 Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which tokens differ between local files and Figma.
               </div>
@@ -939,10 +493,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           open={openSections.has('figma-styles')}
           onToggle={() => toggleSection('figma-styles')}
           badge={
-            styleChecked && styleRows.length === 0
+            styleSync.styleChecked && styleSync.styleRows.length === 0
               ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
-              : styleRows.length > 0
-                ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{styleRows.length} differ</span>
+              : styleSync.styleRows.length > 0
+                ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{styleSync.styleRows.length} differ</span>
                 : null
           }
         >
@@ -953,22 +507,22 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between border-t border-[var(--color-figma-border)]">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Style differences</span>
             <button
-              onClick={computeStyleDiff}
-              disabled={styleLoading || !activeSet}
+              onClick={styleSync.computeStyleDiff}
+              disabled={styleSync.styleLoading || !activeSet}
               className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
             >
-              {styleLoading ? 'Checking\u2026' : styleChecked ? 'Re-check' : 'Compare'}
+              {styleSync.styleLoading ? 'Checking\u2026' : styleSync.styleChecked ? 'Re-check' : 'Compare'}
             </button>
           </div>
 
-          {styleError && (
-            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{styleError}</div>
+          {styleSync.styleError && (
+            <div className="px-3 py-2 text-[10px] text-[var(--color-figma-error)]">{styleSync.styleError}</div>
           )}
 
-          {styleRows.length > 0 && (() => {
-            const localOnly = styleRows.filter(r => r.cat === 'local-only');
-            const figmaOnly = styleRows.filter(r => r.cat === 'figma-only');
-            const conflicts = styleRows.filter(r => r.cat === 'conflict');
+          {styleSync.styleRows.length > 0 && (() => {
+            const localOnly = styleSync.styleRows.filter(r => r.cat === 'local-only');
+            const figmaOnly = styleSync.styleRows.filter(r => r.cat === 'figma-only');
+            const conflicts = styleSync.styleRows.filter(r => r.cat === 'conflict');
 
             return (
               <>
@@ -977,7 +531,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   {(['push', 'pull', 'skip'] as const).map(action => (
                     <button
                       key={action}
-                      onClick={() => setStyleDirs(Object.fromEntries(styleRows.map(r => [r.path, action])))}
+                      onClick={() => styleSync.setStyleDirs(Object.fromEntries(styleSync.styleRows.map(r => [r.path, action])))}
                       className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
                     >
                       {action === 'push' ? '\u2191 Push all' : action === 'pull' ? '\u2193 Pull all' : 'Skip all'}
@@ -992,7 +546,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     </div>
                   )}
                   {localOnly.map(row => (
-                    <VarDiffRowItem key={row.path} row={row} dir={styleDirs[row.path] ?? 'push'} onChange={d => setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
+                    <VarDiffRowItem key={row.path} row={row} dir={styleSync.styleDirs[row.path] ?? 'push'} onChange={d => styleSync.setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
                   ))}
                   {figmaOnly.length > 0 && (
                     <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
@@ -1000,7 +554,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     </div>
                   )}
                   {figmaOnly.map(row => (
-                    <VarDiffRowItem key={row.path} row={row} dir={styleDirs[row.path] ?? 'pull'} onChange={d => setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
+                    <VarDiffRowItem key={row.path} row={row} dir={styleSync.styleDirs[row.path] ?? 'pull'} onChange={d => styleSync.setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
                   ))}
                   {conflicts.length > 0 && (
                     <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
@@ -1008,41 +562,41 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     </div>
                   )}
                   {conflicts.map(row => (
-                    <VarDiffRowItem key={row.path} row={row} dir={styleDirs[row.path] ?? 'push'} onChange={d => setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
+                    <VarDiffRowItem key={row.path} row={row} dir={styleSync.styleDirs[row.path] ?? 'push'} onChange={d => styleSync.setStyleDirs(prev => ({ ...prev, [row.path]: d }))} />
                   ))}
                 </div>
 
                 <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
                   <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
-                    {styleSyncCount === 0
+                    {styleSync.styleSyncCount === 0
                       ? 'Nothing to apply \u2014 all skipped'
                       : [
-                          stylePushCount > 0 ? `\u2191 ${stylePushCount} to Figma` : null,
-                          stylePullCount > 0 ? `\u2193 ${stylePullCount} to local` : null,
+                          styleSync.stylePushCount > 0 ? `\u2191 ${styleSync.stylePushCount} to Figma` : null,
+                          styleSync.stylePullCount > 0 ? `\u2193 ${styleSync.stylePullCount} to local` : null,
                         ].filter(Boolean).join(' \u00b7 ')
                     }
                   </span>
                   <button
-                    onClick={applyStyleDiff}
-                    disabled={styleSyncing || styleSyncCount === 0}
+                    onClick={styleSync.applyStyleDiff}
+                    disabled={styleSync.styleSyncing || styleSync.styleSyncCount === 0}
                     className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                   >
-                    {styleSyncing ? 'Syncing\u2026' : `Apply ${styleSyncCount > 0 ? styleSyncCount + ' change' + (styleSyncCount !== 1 ? 's' : '') : ''}`}
+                    {styleSync.styleSyncing ? 'Syncing\u2026' : `Apply ${styleSync.styleSyncCount > 0 ? styleSync.styleSyncCount + ' change' + (styleSync.styleSyncCount !== 1 ? 's' : '') : ''}`}
                   </button>
                 </div>
               </>
             );
           })()}
 
-          {!styleLoading && !styleError && (
-            styleChecked && styleRows.length === 0 ? (
+          {!styleSync.styleLoading && !styleSync.styleError && (
+            styleSync.styleChecked && styleSync.styleRows.length === 0 ? (
               <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
                 Local tokens match Figma styles.
               </div>
-            ) : !styleChecked && styleRows.length === 0 ? (
+            ) : !styleSync.styleChecked && styleSync.styleRows.length === 0 ? (
               <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
                 Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which color, text, and effect styles differ.
               </div>
@@ -1056,50 +610,50 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           open={openSections.has('git')}
           onToggle={() => toggleSection('git')}
           badge={
-            gitLoading ? null :
-            !gitStatus?.isRepo ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] font-medium border border-[var(--color-figma-border)]">No repo</span> :
-            allChanges.length > 0
-              ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{allChanges.length} uncommitted</span>
+            git.gitLoading ? null :
+            !git.gitStatus?.isRepo ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] font-medium border border-[var(--color-figma-border)]">No repo</span> :
+            git.allChanges.length > 0
+              ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{git.allChanges.length} uncommitted</span>
               : <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Clean</span>
           }
         >
-          {gitError && (
+          {git.gitError && (
             <div className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px]">
-              {gitError}
+              {git.gitError}
             </div>
           )}
 
-          {gitLoading && (
+          {git.gitLoading && (
             <div className="flex flex-col items-center justify-center gap-2 py-8 text-[var(--color-figma-text-secondary)] text-[11px]">
               <div className="w-4 h-4 rounded-full border-2 border-[var(--color-figma-border)] border-t-[var(--color-figma-accent)] animate-spin" aria-hidden="true" />
               Loading Git status...
             </div>
           )}
 
-          {!gitLoading && !gitStatus?.isRepo && (
+          {!git.gitLoading && !git.gitStatus?.isRepo && (
             <div className="flex flex-col items-center justify-center py-6 gap-4 px-6">
               <p className="text-[12px] text-[var(--color-figma-text-secondary)]">No Git repository initialized</p>
               <div className="w-full flex flex-col gap-2">
                 <label className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote URL (optional)</label>
                 <input
                   type="text"
-                  value={remoteUrl}
-                  onChange={e => setRemoteUrl(e.target.value)}
+                  value={git.remoteUrl}
+                  onChange={e => git.setRemoteUrl(e.target.value)}
                   placeholder="https://github.com/org/repo.git"
                   className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
                 />
               </div>
               <button
-                onClick={() => doAction('init', remoteUrl ? { remoteUrl } : undefined)}
-                disabled={actionLoading !== null}
+                onClick={() => git.doAction('init', git.remoteUrl ? { remoteUrl: git.remoteUrl } : undefined)}
+                disabled={git.actionLoading !== null}
                 className="w-full px-4 py-2 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50"
               >
-                {actionLoading === 'init' ? 'Initializing\u2026' : 'Initialize Repository'}
+                {git.actionLoading === 'init' ? 'Initializing\u2026' : 'Initialize Repository'}
               </button>
             </div>
           )}
 
-          {!gitLoading && gitStatus?.isRepo && (
+          {!git.gitLoading && git.gitStatus?.isRepo && (
             <div className="p-3 flex flex-col gap-2">
               {/* Branch */}
               <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
@@ -1111,34 +665,34 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       <circle cx="6" cy="18" r="3" />
                       <path d="M18 9a9 9 0 01-9 9" />
                     </svg>
-                    <span className="text-[11px] font-medium truncate max-w-[140px]" title={gitStatus.branch || 'main'}>{gitStatus.branch || 'main'}</span>
+                    <span className="text-[11px] font-medium truncate max-w-[140px]" title={git.gitStatus.branch || 'main'}>{git.gitStatus.branch || 'main'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[9px] font-medium ${allChanges.length > 0 ? 'text-yellow-600' : 'text-[var(--color-figma-success)]'}`}>
-                      {allChanges.length > 0 ? `${allChanges.length} change${allChanges.length !== 1 ? 's' : ''}` : 'Clean'}
+                    <span className={`text-[9px] font-medium ${git.allChanges.length > 0 ? 'text-yellow-600' : 'text-[var(--color-figma-success)]'}`}>
+                      {git.allChanges.length > 0 ? `${git.allChanges.length} change${git.allChanges.length !== 1 ? 's' : ''}` : 'Clean'}
                     </span>
                     <button
-                      onClick={() => { setGitLoading(true); fetchStatus(); }}
-                      disabled={gitLoading}
+                      onClick={() => { git.setGitLoading(true); git.fetchStatus(); }}
+                      disabled={git.gitLoading}
                       title="Refresh git status"
                       aria-label="Refresh git status"
                       className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-40"
                     >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={gitLoading ? 'animate-spin' : ''}>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={git.gitLoading ? 'animate-spin' : ''}>
                         <path d="M23 4v6h-6M1 20v-6h6"/>
                         <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
                       </svg>
                     </button>
                   </div>
                 </div>
-                {branches.length > 1 && (
+                {git.branches.length > 1 && (
                   <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)]">
                     <select
-                      value={gitStatus.branch || ''}
-                      onChange={e => doAction('checkout', { branch: e.target.value })}
+                      value={git.gitStatus.branch || ''}
+                      onChange={e => git.doAction('checkout', { branch: e.target.value })}
                       className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none"
                     >
-                      {branches.map(b => (
+                      {git.branches.map(b => (
                         <option key={b} value={b}>{b}</option>
                       ))}
                     </select>
@@ -1147,35 +701,35 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               </div>
 
               {/* Changed files */}
-              {allChanges.length > 0 && (
+              {git.allChanges.length > 0 && (
                 <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                   <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium flex items-center justify-between">
                     <label className="flex items-center gap-1.5 cursor-pointer select-none">
                       <input
                         type="checkbox"
-                        checked={allChanges.length > 0 && selectedFiles.size === allChanges.length}
-                        ref={el => { if (el) el.indeterminate = selectedFiles.size > 0 && selectedFiles.size < allChanges.length; }}
+                        checked={git.allChanges.length > 0 && git.selectedFiles.size === git.allChanges.length}
+                        ref={el => { if (el) el.indeterminate = git.selectedFiles.size > 0 && git.selectedFiles.size < git.allChanges.length; }}
                         onChange={e => {
                           if (e.target.checked) {
-                            setSelectedFiles(new Set(allChanges.map(c => c.file)));
+                            git.setSelectedFiles(new Set(git.allChanges.map(c => c.file)));
                           } else {
-                            setSelectedFiles(new Set());
+                            git.setSelectedFiles(new Set());
                           }
                         }}
                         className="w-3 h-3"
                       />
                       Uncommitted changes
                     </label>
-                    <span className="text-[9px] opacity-60">{selectedFiles.size}/{allChanges.length} selected</span>
+                    <span className="text-[9px] opacity-60">{git.selectedFiles.size}/{git.allChanges.length} selected</span>
                   </div>
                   <div className="max-h-28 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
-                    {allChanges.map((change, i) => (
+                    {git.allChanges.map((change, i) => (
                       <label key={i} className="flex items-center gap-2 px-3 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)]">
                         <input
                           type="checkbox"
-                          checked={selectedFiles.has(change.file)}
+                          checked={git.selectedFiles.has(change.file)}
                           onChange={e => {
-                            setSelectedFiles(prev => {
+                            git.setSelectedFiles(prev => {
                               const next = new Set(prev);
                               if (e.target.checked) next.add(change.file); else next.delete(change.file);
                               return next;
@@ -1199,7 +753,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               )}
 
               {/* Commit */}
-              {!gitStatus.status?.isClean && (
+              {!git.gitStatus.status?.isClean && (
                 <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                   <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium">
                     Commit message
@@ -1207,20 +761,20 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   <div className="p-3 flex flex-col gap-2">
                     <input
                       type="text"
-                      value={commitMsg}
-                      onChange={e => setCommitMsg(e.target.value)}
+                      value={git.commitMsg}
+                      onChange={e => git.setCommitMsg(e.target.value)}
                       placeholder="Describe your changes\u2026"
                       className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
                       onKeyDown={e => {
-                        if (e.key === 'Enter' && commitMsg.trim() && selectedFiles.size > 0) doAction('commit', { message: commitMsg, files: [...selectedFiles] }).then(() => setCommitMsg(''));
+                        if (e.key === 'Enter' && git.commitMsg.trim() && git.selectedFiles.size > 0) git.doAction('commit', { message: git.commitMsg, files: [...git.selectedFiles] }).then(() => git.setCommitMsg(''));
                       }}
                     />
                     <button
-                      onClick={() => doAction('commit', { message: commitMsg, files: [...selectedFiles] }).then(() => setCommitMsg(''))}
-                      disabled={!commitMsg.trim() || selectedFiles.size === 0 || actionLoading !== null}
+                      onClick={() => git.doAction('commit', { message: git.commitMsg, files: [...git.selectedFiles] }).then(() => git.setCommitMsg(''))}
+                      disabled={!git.commitMsg.trim() || git.selectedFiles.size === 0 || git.actionLoading !== null}
                       className="w-full px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
-                      {actionLoading === 'commit' ? 'Committing\u2026' : `Commit ${selectedFiles.size === allChanges.length ? 'all' : selectedFiles.size} file${selectedFiles.size === 1 ? '' : 's'}`}
+                      {git.actionLoading === 'commit' ? 'Committing\u2026' : `Commit ${git.selectedFiles.size === git.allChanges.length ? 'all' : git.selectedFiles.size} file${git.selectedFiles.size === 1 ? '' : 's'}`}
                     </button>
                   </div>
                 </div>
@@ -1234,14 +788,14 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 <div className="px-3 py-2 flex gap-2">
                   <input
                     type="text"
-                    value={remoteUrl}
-                    onChange={e => setRemoteUrl(e.target.value)}
+                    value={git.remoteUrl}
+                    onChange={e => git.setRemoteUrl(e.target.value)}
                     placeholder="https://github.com/user/repo.git"
                     className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
                   />
                   <button
-                    onClick={() => doAction('remote', { url: remoteUrl })}
-                    disabled={!remoteUrl || actionLoading !== null}
+                    onClick={() => git.doAction('remote', { url: git.remoteUrl })}
+                    disabled={!git.remoteUrl || git.actionLoading !== null}
                     className="px-2 py-1 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text)] text-[10px] hover:bg-[var(--color-figma-border)] disabled:opacity-40"
                   >
                     Save
@@ -1250,28 +804,28 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               </div>
 
               {/* Remote diff */}
-              {gitStatus?.remote && (
+              {git.gitStatus?.remote && (
                 <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                   <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote differences</span>
-                      {diffView && diffView.localOnly.length + diffView.remoteOnly.length + diffView.conflicts.length === 0 && (
+                      {git.diffView && git.diffView.localOnly.length + git.diffView.remoteOnly.length + git.diffView.conflicts.length === 0 && (
                         <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
                       )}
                     </div>
                     <button
-                      onClick={computeDiff}
-                      disabled={diffLoading}
+                      onClick={git.computeDiff}
+                      disabled={git.diffLoading}
                       className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
                     >
-                      {diffLoading ? 'Computing\u2026' : diffView ? 'Re-check' : 'Compare'}
+                      {git.diffLoading ? 'Computing\u2026' : git.diffView ? 'Re-check' : 'Compare'}
                     </button>
                   </div>
-                  {diffView && (() => {
+                  {git.diffView && (() => {
                     const allFiles = [
-                      ...diffView.localOnly.map(f => ({ file: f, cat: 'local' as const })),
-                      ...diffView.remoteOnly.map(f => ({ file: f, cat: 'remote' as const })),
-                      ...diffView.conflicts.map(f => ({ file: f, cat: 'conflict' as const })),
+                      ...git.diffView.localOnly.map(f => ({ file: f, cat: 'local' as const })),
+                      ...git.diffView.remoteOnly.map(f => ({ file: f, cat: 'remote' as const })),
+                      ...git.diffView.conflicts.map(f => ({ file: f, cat: 'conflict' as const })),
                     ];
                     if (allFiles.length === 0) {
                       return (
@@ -1283,12 +837,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                         </div>
                       );
                     }
-                    const pendingCount = Object.values(diffChoices).filter(c => c !== 'skip').length;
+                    const pendingCount = Object.values(git.diffChoices).filter(c => c !== 'skip').length;
                     return (
                       <>
                         <div className="divide-y divide-[var(--color-figma-border)] max-h-48 overflow-y-auto">
                           {allFiles.map(({ file, cat }) => {
-                            const choice = diffChoices[file] ?? 'skip';
+                            const choice = git.diffChoices[file] ?? 'skip';
                             const catLabel = cat === 'local' ? 'Local only' : cat === 'remote' ? 'Remote only' : 'Values differ';
                             const catColor = cat === 'local' ? 'text-[var(--color-figma-success)]' : cat === 'remote' ? 'text-[var(--color-figma-accent)]' : 'text-yellow-600';
                             return (
@@ -1297,7 +851,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                                 <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={file}>{file}</span>
                                 <select
                                   value={choice}
-                                  onChange={e => setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
+                                  onChange={e => git.setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
                                   className="text-[9px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5"
                                 >
                                   <option value="push">{'\u2191'} Push</option>
@@ -1313,17 +867,17 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                             {pendingCount > 0 ? `${pendingCount} file${pendingCount !== 1 ? 's' : ''} will be updated` : 'All skipped'}
                           </span>
                           <button
-                            onClick={applyDiff}
-                            disabled={applyingDiff || pendingCount === 0}
+                            onClick={git.applyDiff}
+                            disabled={git.applyingDiff || pendingCount === 0}
                             className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                           >
-                            {applyingDiff ? 'Applying\u2026' : `Apply ${pendingCount > 0 ? pendingCount + ' change' + (pendingCount !== 1 ? 's' : '') : ''}`}
+                            {git.applyingDiff ? 'Applying\u2026' : `Apply ${pendingCount > 0 ? pendingCount + ' change' + (pendingCount !== 1 ? 's' : '') : ''}`}
                           </button>
                         </div>
                       </>
                     );
                   })()}
-                  {!diffLoading && !diffView && (
+                  {!git.diffLoading && !git.diffView && (
                     <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
                       Click <strong className="font-medium text-[var(--color-figma-text)]">Compare</strong> to see which files differ between local and remote.
                     </div>
@@ -1332,27 +886,27 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
               )}
 
               {/* Push / Pull */}
-              {gitStatus?.remote && (
+              {git.gitStatus?.remote && (
                 <div className="flex flex-col gap-1.5">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => doAction('pull')}
-                      disabled={actionLoading !== null}
+                      onClick={() => git.doAction('pull')}
+                      disabled={git.actionLoading !== null}
                       className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                     >
-                      {actionLoading === 'pull' ? 'Pulling\u2026' : '\u2193 Pull'}
+                      {git.actionLoading === 'pull' ? 'Pulling\u2026' : '\u2193 Pull'}
                     </button>
                     <button
-                      onClick={() => doAction('push')}
-                      disabled={actionLoading !== null}
+                      onClick={() => git.doAction('push')}
+                      disabled={git.actionLoading !== null}
                       className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
-                      {actionLoading === 'push' ? 'Pushing\u2026' : '\u2191 Push'}
+                      {git.actionLoading === 'push' ? 'Pushing\u2026' : '\u2191 Push'}
                     </button>
                   </div>
-                  {lastSynced && (
+                  {git.lastSynced && (
                     <p className="text-[10px] text-[var(--color-figma-text-secondary)] text-right">
-                      Last synced: {formatRelativeTime(lastSynced)}
+                      Last synced: {formatRelativeTime(git.lastSynced)}
                     </p>
                   )}
                 </div>

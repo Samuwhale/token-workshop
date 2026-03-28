@@ -138,3 +138,21 @@ Already up to date.
 
 --- Merging: `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks ---
 Already up to date.
+[main 130c49c] chore(backlog): done – `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks
+ 11 files changed, 605 insertions(+), 368 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useSetDelete.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useSetDuplicate.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useSetMetadata.ts
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useSetRename.ts
+
+## 2026-03-28 - `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks
+- Extracted 5 new hooks from App.tsx, reducing it from 2829 to 2492 lines (~337 lines removed):
+  - `useSetRename` — rename state (renamingSet, renameValue, renameError), renameInputRef, useLayoutEffect for focus, startRename/cancelRename/handleRenameConfirm
+  - `useSetDelete` — deletingSet state, startDelete/cancelDelete/handleDeleteSet
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  67 items remaining
+===============================================================
+  Claimed: `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading
+  Worktree: /tmp/backlog-10278-puUIdb

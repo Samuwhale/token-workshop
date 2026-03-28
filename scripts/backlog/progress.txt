@@ -417,3 +417,16 @@
   - `useSetDuplicate` is effectively stateless (just an async handler) but still benefits from being a hook since it captures reactive values (sets, serverUrl, connected) via closure
   - The `startDelete` helper bundles `setDeletingSet` + `setTabMenuOpen(null)` which were previously inline in two JSX locations — consolidating them prevents future divergence
 ---
+
+## 2026-03-28 - `PublishPanel.tsx` is 1642 lines — extract diff computation, variable publishing, and style publishing into separate hooks/components
+- Extracted three hooks from PublishPanel.tsx (1615→1169 lines, ~28% reduction):
+  - `useVariableSync` (180 lines): variable diff computation, Figma message handling, push/pull sync, computed counts
+  - `useStyleSync` (185 lines): style diff computation, Figma message handling, push/pull sync, computed counts
+  - `useGitSync` (198 lines): git status fetching, commit/push/pull actions, remote diff, branch management, file selection
+- PublishPanel now consumes these hooks via `varSync`, `styleSync`, and `git` objects, keeping only readiness checks, export logic, and JSX rendering
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx`, `packages/figma-plugin/src/ui/hooks/useVariableSync.ts` (new), `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` (new), `packages/figma-plugin/src/ui/hooks/useGitSync.ts` (new)
+- **Learnings for future iterations:**
+  - When extracting hooks from large components, each hook should own its own `useEffect` message handlers rather than sharing a single monolithic handler — cleaner separation and no cross-hook dependencies
+  - The `readFigmaVariables` helper was shared between variable sync and readiness checks — exposing it from the hook via the return object avoids duplicating the Figma message protocol
+  - `VarDiffRow` type is exported from `useVariableSync` and imported by both the hook consumer and the `VarDiffRowItem` component (which renders both variable and style rows)
+---
