@@ -457,3 +457,10 @@ Already up to date.
 ===============================================================
   Claimed: `useSetMergeSplit` silently swallows all errors — multiple `catch {}` blocks with `// ignore`; network errors, server errors, and JSON parse errors all vanish with no user feedback
   Worktree: /tmp/backlog-63973-7BkUJL
+
+  ✓ done: useSetMergeSplit silently swallows all errors
+    Replaced 4 empty catch blocks with descriptive error toasts via setErrorToast, surfacing network/server/parse errors to users through the existing red toast UI.
+    20 turns · 94s · $0.53
+
+--- Merging: useSetMergeSplit silently swallows all errors ---
+Already up to date.

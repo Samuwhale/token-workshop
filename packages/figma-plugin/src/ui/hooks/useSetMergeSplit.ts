@@ -10,6 +10,7 @@ interface UseSetMergeSplitParams {
   setActiveSet: (set: string) => void;
   refreshTokens: () => void;
   setSuccessToast: (msg: string) => void;
+  setErrorToast: (msg: string) => void;
   pushUndo: (slot: UndoSlot) => void;
   setTabMenuOpen: (v: string | null) => void;
 }
@@ -25,7 +26,7 @@ function flattenTokensObj(obj: DTCGGroup): Record<string, any> {
 export function useSetMergeSplit({
   serverUrl, connected, sets,
   activeSet, setActiveSet, refreshTokens,
-  setSuccessToast, pushUndo, setTabMenuOpen,
+  setSuccessToast, setErrorToast, pushUndo, setTabMenuOpen,
 }: UseSetMergeSplitParams) {
   // Merge state
   const [mergingSet, setMergingSet] = useState<string | null>(null);
@@ -91,8 +92,8 @@ export function useSetMergeSplit({
       for (const c of conflicts) res[c.path] = 'target';
       setMergeResolutions(res);
       setMergeChecked(true);
-    } catch {
-      // ignore
+    } catch (err) {
+      setErrorToast(`Failed to check merge conflicts: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setMergeLoading(false);
     }
@@ -145,8 +146,8 @@ export function useSetMergeSplit({
           refreshTokens();
         },
       });
-    } catch {
-      // ignore
+    } catch (err) {
+      setErrorToast(`Merge failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setMergeLoading(false);
     }
@@ -172,8 +173,8 @@ export function useSetMergeSplit({
       setSplittingSet(setName);
       setSplitPreview(preview);
       setSplitDeleteOriginal(false);
-    } catch {
-      // ignore
+    } catch (err) {
+      setErrorToast(`Failed to load set for splitting: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -228,8 +229,8 @@ export function useSetMergeSplit({
           refreshTokens();
         },
       });
-    } catch {
-      // ignore
+    } catch (err) {
+      setErrorToast(`Split failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSplitLoading(false);
     }

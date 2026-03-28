@@ -404,3 +404,11 @@
   - The codebase has inconsistent error handling — some functions check `res.ok`, others don't. When adding new fetch calls, always check.
   - For multi-step loops (handleDropOnGroup), call `onRefresh()` before returning on mid-loop failure so partial moves are reflected in UI
 ---
+
+## 2026-03-28 - useSetMergeSplit silently swallows all errors
+- Replaced 4 `catch { // ignore }` blocks with descriptive error toasts via `setErrorToast` — covers merge conflict check, merge confirm, split dialog open, and split confirm.
+- Added `setErrorToast` to the hook's params interface and wired it from App.tsx (which already had `errorToast` state and the `SuccessToast variant="error"` renderer).
+- Files changed: `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` ~L13,28,95,149,176,233; `packages/figma-plugin/src/ui/App.tsx` ~L448
+- **Learnings for future iterations:**
+  - App.tsx already has `setErrorToast` / `errorToast` state with a red toast variant — just pass it to hooks that need error reporting.
+---

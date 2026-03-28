@@ -493,3 +493,11 @@ Already up to date.
 
 --- Merging: Multiple fetch calls in TokenList with no error handling ---
 Already up to date.
+[main d2a5df0] chore(backlog): done – Multiple fetch calls in TokenList with no error handling
+ 6 files changed, 119 insertions(+), 33 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Multiple fetch calls in TokenList with no error handling
+- Added `res.ok` checks and try/catch network error handling to 5 functions: `handleRenameGroup`, `executeTokenRename`, `handleDropOnGroup`, `handleDuplicateGroup`, `handleInlineSave`
+- On failure, calls `onError?.(message)` and returns early — no undo slot is pushed and no refresh-as-if-succeeded occurs
+- Undo/redo callbacks left as best-effort (they run later asynchronously)
