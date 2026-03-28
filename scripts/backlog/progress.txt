@@ -572,3 +572,11 @@
   - `useStyleSync` was already the gold standard pattern for batch writes with partial-failure handling — always check if a sibling hook already solved the same problem before implementing from scratch
   - `Promise.allSettled` is ideal for undo/cleanup operations where you want all attempts to complete regardless of individual failures
 ---
+
+## 2026-03-28 - `runContrastCheckGenerator` never validates `bgLum`
+- Added null check after `wcagLuminance(backgroundHex)` to throw `Error` with descriptive message when the background hex is invalid, matching the pattern in `runAccessibleColorPairGenerator`. Previously, invalid backgroundHex silently produced ratio `1` (misleading) for every step via `ratio ?? 1`.
+- Files changed: `packages/core/src/generator-engine.ts` ~L520
+- **Learnings for future iterations:**
+  - Pre-existing server test failure (`Cannot find package '@tokenmanager/core'`) is a baseline failure in this worktree — not caused by changes here
+  - When one generator already handles null validation, always check sibling generators for the same gap
+---

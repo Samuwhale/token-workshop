@@ -246,17 +246,18 @@ export function StepperInput({
   );
 }
 
-const UNIT_CONVERSIONS: Record<string, Record<string, (v: number) => number>> = {
-  px: { rem: v => Math.round((v / 16) * 1000) / 1000, em: v => Math.round((v / 16) * 1000) / 1000, '%': v => v },
-  rem: { px: v => Math.round(v * 16 * 1000) / 1000, em: v => v, '%': v => v },
-  em: { px: v => Math.round(v * 16 * 1000) / 1000, rem: v => v, '%': v => v },
-  '%': { px: v => v, rem: v => v, em: v => v },
+const UNIT_CONVERSIONS: Record<string, Record<string, ((v: number) => number) | null>> = {
+  px: { rem: v => Math.round((v / 16) * 1000) / 1000, em: v => Math.round((v / 16) * 1000) / 1000, '%': null },
+  rem: { px: v => Math.round(v * 16 * 1000) / 1000, em: v => v, '%': null },
+  em: { px: v => Math.round(v * 16 * 1000) / 1000, rem: v => v, '%': null },
+  '%': { px: null, rem: null, em: null },
 };
 
 export function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToSet = {}, autoFocus }: { value: any; onChange: (v: any) => void; allTokensFlat?: Record<string, TokenMapEntry>; pathToSet?: Record<string, string>; autoFocus?: boolean }) {
   const val = typeof value === 'object' ? value : { value: value ?? 0, unit: 'px' };
   const isFormulaValue = typeof val.value === 'string' && isFormula(val.value);
   const [formulaMode, setFormulaMode] = useState(isFormulaValue);
+  const [conversionWarning, setConversionWarning] = useState<string | null>(null);
   const numVal = formulaMode ? 0 : (parseFloat(val.value) || 0);
   const formulaStr = formulaMode ? (typeof val.value === 'string' ? val.value : '') : '';
   const preview = formulaMode && formulaStr ? resolveFormulaPreview(formulaStr, allTokensFlat) : null;
@@ -264,11 +265,21 @@ export function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToSet
   const handleUnitChange = (newUnit: string) => {
     if (formulaMode) {
       onChange({ ...val, unit: newUnit });
+      setConversionWarning(null);
       return;
     }
-    const convert = UNIT_CONVERSIONS[val.unit]?.[newUnit];
-    const newValue = convert ? convert(numVal) : numVal;
-    onChange({ value: newValue, unit: newUnit });
+    const conversion = UNIT_CONVERSIONS[val.unit]?.[newUnit];
+    if (conversion === null) {
+      // Percentage conversion requires a reference value we don't have
+      onChange({ value: numVal, unit: newUnit });
+      setConversionWarning(
+        `Value kept as-is — converting between % and ${val.unit === '%' ? newUnit : '%'} requires a reference value`
+      );
+    } else {
+      const newValue = conversion ? conversion(numVal) : numVal;
+      onChange({ value: newValue, unit: newUnit });
+      setConversionWarning(null);
+    }
   };
 
   const toggleFormulaMode = () => {
@@ -323,6 +334,11 @@ export function DimensionEditor({ value, onChange, allTokensFlat = {}, pathToSet
       {formulaMode && formulaStr && (
         <div className={`px-2 py-1 rounded text-[10px] font-mono ${preview?.error ? 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/30' : 'text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-accent)]/5 border border-[var(--color-figma-accent)]/20'}`}>
           {preview?.error ? preview.error : `= ${preview?.result} ${val.unit}`}
+        </div>
+      )}
+      {conversionWarning && (
+        <div className="px-2 py-1 rounded text-[10px] text-[var(--color-figma-warning,#e8a820)] bg-[var(--color-figma-warning,#e8a820)]/10 border border-[var(--color-figma-warning,#e8a820)]/30">
+          {conversionWarning}
         </div>
       )}
     </div>
