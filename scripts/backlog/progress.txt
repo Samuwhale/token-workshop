@@ -13,3 +13,11 @@
   - `PreviewRow` interface must be declared before any component that references it as a type parameter
   - Worktree `packages/server/node_modules` may contain only `.vite` cache, preventing the validate script's symlink logic from working (it checks `! -d` but the dir exists)
 ---
+
+## 2026-03-29 - Git commit allows submit with empty message
+- Already implemented: PublishPanel.tsx L1067 has `disabled={!git.commitMsg.trim() || git.selectedFiles.size === 0 || git.actionLoading !== null}` on the commit button, and L1062 Enter key handler checks `git.commitMsg.trim()` before submitting
+- No changes needed — item is stale
+- Files inspected: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L1048-1074, `packages/figma-plugin/src/ui/hooks/useGitSync.ts`
+- **Learnings for future iterations:**
+  - The git commit form is only in PublishPanel.tsx, no other commit forms exist
+---
