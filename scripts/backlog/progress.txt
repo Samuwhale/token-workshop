@@ -572,3 +572,15 @@
   - All 13 selectable token types already have dedicated editors; none fall through without a UI
   - `--color-figma-text-tertiary` CSS var exists for subtle hint text
 ---
+
+## 2026-03-28 - Token create form: smart alias suggestion when value matches existing token
+- Added `aliasSuggestion` useMemo that scans `allTokensFlat` for tokens with matching type and value (skipping aliases to suggest the primitive source)
+- Renders an inline suggestion button below value editors: "Use reference instead → {matching.token.path}"
+- Clicking the suggestion switches to alias mode with the reference pre-filled
+- Skips default/empty values (#000000, 0, false, empty string) to avoid noisy suggestions
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L360 (useMemo), ~L897 (suggestion UI)
+- **Learnings for future iterations:**
+  - `allTokensFlat` already contains resolved values, so matching is a simple string comparison — no need to resolve aliases
+  - Skipping alias tokens in the match ensures the suggestion points to the primitive source, not another alias
+  - The `preAliasValueRef` pattern is already established for storing the value before switching to alias mode
+---

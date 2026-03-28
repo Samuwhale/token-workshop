@@ -357,6 +357,25 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     return trimmed in allTokensFlat;
   }, [isCreateMode, editPath, allTokensFlat]);
 
+  // Smart alias suggestion: find tokens whose value matches the current value
+  const aliasSuggestion = useMemo((): string | null => {
+    if (aliasMode || !value) return null;
+    // Only suggest for simple value types where duplicating is wasteful
+    const currentPath = isCreateMode ? editPath.trim() : tokenPath;
+    const serialized = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    // Skip default/empty values
+    if (serialized === '' || serialized === '0' || serialized === '#000000' || serialized === 'false') return null;
+    for (const [path, entry] of Object.entries(allTokensFlat)) {
+      if (path === currentPath) continue;
+      if (entry.$type !== tokenType) continue;
+      // Skip tokens that are themselves aliases — suggest the primitive source
+      if (typeof entry.$value === 'string' && entry.$value.startsWith('{') && entry.$value.endsWith('}')) continue;
+      const entryStr = typeof entry.$value === 'object' ? JSON.stringify(entry.$value) : String(entry.$value);
+      if (entryStr === serialized) return path;
+    }
+    return null;
+  }, [aliasMode, value, tokenType, allTokensFlat, isCreateMode, editPath, tokenPath]);
+
   const canSave = useMemo(() => {
     if (aliasHasCycle) return false;
     if (extensionsJsonError) return false;
@@ -873,6 +892,22 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
             {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
             {tokenType === 'asset' && <AssetEditor value={value} onChange={setValue} />}
+            {/* Smart alias suggestion */}
+            {aliasSuggestion && (
+              <button
+                type="button"
+                onClick={() => {
+                  preAliasValueRef.current = value;
+                  setAliasMode(true);
+                  setReference(`{${aliasSuggestion}}`);
+                  setTimeout(() => refInputRef.current?.focus(), 0);
+                }}
+                className="flex items-center gap-1.5 w-full px-2 py-1.5 rounded bg-[var(--color-figma-accent)]/8 border border-dashed border-[var(--color-figma-accent)]/30 text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/15 transition-colors text-left cursor-pointer"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+                <span>Use reference instead &rarr; <strong>{`{${aliasSuggestion}}`}</strong></span>
+              </button>
+            )}
           </div>
         )}
 
