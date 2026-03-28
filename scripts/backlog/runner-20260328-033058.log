@@ -627,3 +627,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 49)
+[main 152d1f7] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 195 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - PasteTokensModal has no progress bar during import
+- Added `progress` state (`{ current, total }`) to track import progress in `handleConfirm`
+- Added a progress bar UI (accent-colored fill bar + "current/total" counter) that appears between the token list and the footer during import
+- Button text also shows "Saving N/M…" while busy
+
+===============================================================
+  Iteration 31 / 90  (claude)  —  2 items remaining
+===============================================================
+  Claimed: Circular alias references are not prevented at token creation time — the server accepts `{a}` pointing to `{b}` pointing to `{a}`; only detected later by the resolver or lint rules, by which point the user may have built more tokens on top of the broken chain
+  Worktree: /tmp/backlog-85816-ISI5jl

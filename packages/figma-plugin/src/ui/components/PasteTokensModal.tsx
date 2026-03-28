@@ -98,6 +98,22 @@ function parseInput(raw: string): ParseResult {
 }
 
 // ---------------------------------------------------------------------------
+// Path validation (mirrors server-side validateTokenPath + extra checks)
+// ---------------------------------------------------------------------------
+
+function validateTokenPath(path: string): string | null {
+  if (!path) return 'Empty token path';
+  const segments = path.split('.');
+  for (const seg of segments) {
+    if (seg === '') return 'Empty segment (double dot or leading/trailing dot)';
+    if (seg.startsWith('$')) return `Segment "${seg}" uses reserved "$" prefix`;
+    if (seg.includes('/') || seg.includes('\\')) return `Segment "${seg}" contains a slash`;
+    if (/\s/.test(seg)) return `Segment "${seg}" contains whitespace`;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -134,6 +150,7 @@ const TYPE_COLORS: Record<string, string> = {
 interface PasteTokenRow extends ParsedToken {
   conflict: boolean;
   overwrite: boolean;
+  validationError: string | null;
 }
 
 interface PasteTokensModalProps {
@@ -165,14 +182,21 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
     [parsedTokens, prefix]
   );
 
+  const prefixError = useMemo(() => {
+    const p = prefix.trim();
+    if (!p) return null;
+    return validateTokenPath(p);
+  }, [prefix]);
+
   const rows: PasteTokenRow[] = useMemo(
     () =>
       prefixedTokens.map(t => ({
         ...t,
         conflict: existingPaths.has(t.path),
         overwrite: false,
+        validationError: prefixError ?? validateTokenPath(t.path),
       })),
-    [prefixedTokens, existingPaths],
+    [prefixedTokens, existingPaths, prefixError],
   );
 
   // Pre-populate from clipboard on mount so Cmd+C → Cmd+Shift+V works end-to-end
@@ -199,8 +223,10 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
     overwrite: r.conflict ? (rowOverwrites[r.path] ?? false) : false,
   }));
 
-  const toCreate = effectiveRows.filter(r => !r.conflict);
-  const conflicts = effectiveRows.filter(r => r.conflict);
+  const validRows = effectiveRows.filter(r => !r.validationError);
+  const invalidRows = effectiveRows.filter(r => r.validationError);
+  const toCreate = validRows.filter(r => !r.conflict);
+  const conflicts = validRows.filter(r => r.conflict);
   const toUpdate = conflicts.filter(r => r.overwrite);
   const skipped = conflicts.filter(r => !r.overwrite);
   const confirmCount = toCreate.length + toUpdate.length;
@@ -333,7 +359,10 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
                 onChange={e => setPrefix(e.target.value)}
               />
             </div>
-            {prefix.trim() && prefixedTokens.length > 0 && (
+            {prefix.trim() && prefixError && (
+              <div className="text-[9px] text-[var(--color-figma-error)] pl-1">{prefixError}</div>
+            )}
+            {prefix.trim() && !prefixError && prefixedTokens.length > 0 && (
               <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate pl-1">
                 → <span className="text-[var(--color-figma-text)]">{prefixedTokens[0].path}</span>
                 {prefixedTokens.length > 1 && <span> …</span>}
@@ -360,6 +389,9 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
                 {toCreate.length > 0 && (
                   <span className="text-green-700">+{toCreate.length} new</span>
                 )}
+                {invalidRows.length > 0 && (
+                  <span className="text-[var(--color-figma-error)]">{invalidRows.length} invalid</span>
+                )}
                 {conflicts.length > 0 && (
                   <span className="text-amber-600">{conflicts.length} conflict{conflicts.length !== 1 ? 's' : ''}</span>
                 )}
@@ -382,27 +414,34 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
             {effectiveRows.map(row => (
               <div
                 key={row.path}
-                className={`flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] ${row.conflict ? 'bg-amber-50/60' : ''}`}
+                className={`flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] ${row.validationError ? 'bg-[var(--color-figma-error)]/5' : row.conflict ? 'bg-amber-50/60' : ''}`}
               >
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{row.path}</span>
+                    <span className={`text-[10px] font-mono truncate ${row.validationError ? 'text-[var(--color-figma-error)]' : 'text-[var(--color-figma-text)]'}`}>{row.path}</span>
                     <span className={`text-[9px] rounded px-1 shrink-0 ${TYPE_COLORS[row.$type] ?? TYPE_COLORS['string']}`}>{row.$type}</span>
-                    {row.conflict && !row.overwrite && (
+                    {row.validationError && (
+                      <span className="text-[9px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1 shrink-0">invalid</span>
+                    )}
+                    {!row.validationError && row.conflict && !row.overwrite && (
                       <span className="text-[9px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 shrink-0">skip</span>
                     )}
-                    {row.conflict && row.overwrite && (
+                    {!row.validationError && row.conflict && row.overwrite && (
                       <span className="text-[9px] text-blue-600 bg-blue-50 border border-blue-200 rounded px-1 shrink-0">overwrite</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1">
-                    {row.$type === 'color' && <ColorSwatch value={row.$value} />}
-                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate">
-                      {typeof row.$value === 'string' ? row.$value : JSON.stringify(row.$value)}
-                    </span>
-                  </div>
+                  {row.validationError ? (
+                    <div className="text-[9px] text-[var(--color-figma-error)]">{row.validationError}</div>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      {row.$type === 'color' && <ColorSwatch value={row.$value} />}
+                      <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate">
+                        {typeof row.$value === 'string' ? row.$value : JSON.stringify(row.$value)}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                {row.conflict && (
+                {!row.validationError && row.conflict && (
                   <label className="flex items-center gap-1 shrink-0 cursor-pointer select-none">
                     <input
                       type="checkbox"
@@ -410,7 +449,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
                       onChange={e => {
                         const next = { ...rowOverwrites, [row.path]: e.target.checked };
                         setRowOverwrites(next);
-                        const allChecked = rows.filter(r => r.conflict).every(r => next[r.path]);
+                        const allChecked = rows.filter(r => r.conflict && !r.validationError).every(r => next[r.path]);
                         setOverwriteAll(allChecked);
                       }}
                       className="accent-[var(--color-figma-accent)]"

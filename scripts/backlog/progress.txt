@@ -284,3 +284,14 @@
   - Progress bar uses `transition-[width] duration-100` for smooth fill animation without being laggy
   - Progress state is set to null on completion/error to cleanly hide the bar
 ---
+
+## 2026-03-28 - PasteTokensModal doesn't validate token path segments
+- Added client-side `validateTokenPath()` that mirrors server rules: rejects empty segments, `$` prefixes, slashes, and whitespace in segments
+- Added `validationError` field to `PasteTokenRow`; invalid rows shown with red highlighting and error message, excluded from confirm count
+- Prefix input also validated — error shown inline below the field
+- Summary bar shows "N invalid" count alongside existing conflict/skip counts
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L100-116 (validation fn), ~L150 (PasteTokenRow type), ~L185-198 (rows with validation), ~L204-210 (filtering), ~L375-425 (row rendering)
+- **Learnings for future iterations:**
+  - Server's `validateTokenPath` in `token-tree-utils.ts` is the canonical path validator — client-side validation should mirror its rules
+  - The modal already handles server errors in `handleConfirm` catch block, but showing errors one-at-a-time on submission is poor UX — proactive validation is better
+---

@@ -488,3 +488,10 @@ Already up to date.
 ===============================================================
   Claimed: PasteTokensModal doesn't validate token path segments — pasted paths with spaces, special characters, or reserved `$` prefixes pass through parsing without error and fail silently on the server
   Worktree: /tmp/backlog-10278-65pret
+
+  ✓ done: PasteTokensModal doesn't validate token path segments
+    Added client-side validateTokenPath() mirroring server rules (empty segments, $ prefix, slashes, whitespace). Invalid rows shown with red error styling and excluded from submission. Prefix input also validated inline.
+    16 turns · 183s · $0.75
+
+--- Merging: PasteTokensModal doesn't validate token path segments ---
+Already up to date.
