@@ -11,7 +11,7 @@ import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { ValueDiff, OriginalValuePreview } from './ValueDiff';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import { COMPOSITE_TOKEN_TYPES } from '@tokenmanager/core';
-import { ColorEditor, DimensionEditor, TypographyEditor, ShadowEditor, BorderEditor, GradientEditor, NumberEditor, DurationEditor, FontFamilyEditor, FontWeightEditor, StrokeStyleEditor, StringEditor, BooleanEditor, CompositionEditor, AssetEditor, VALUE_FORMAT_HINTS } from './ValueEditors';
+import { ColorEditor, DimensionEditor, TypographyEditor, ShadowEditor, BorderEditor, GradientEditor, NumberEditor, DurationEditor, FontFamilyEditor, FontWeightEditor, StrokeStyleEditor, StringEditor, BooleanEditor, CompositionEditor, AssetEditor, FontStyleEditor, TextDecorationEditor, TextTransformEditor, PercentageEditor, LinkEditor, LetterSpacingEditor, LineHeightEditor, CubicBezierEditor, TransitionEditor, CustomEditor, VALUE_FORMAT_HINTS } from './ValueEditors';
 import { AliasPicker, resolveAliasChain } from './AliasPicker';
 import { resolveTokenValue, isAlias } from '../../shared/resolveAlias';
 import { ContrastChecker } from './ContrastChecker';
@@ -623,6 +623,19 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     duration: 0,
     fontFamily: '',
     composition: {},
+    cubicBezier: [0, 0, 1, 1],
+    transition: { duration: { value: 200, unit: 'ms' }, delay: { value: 0, unit: 'ms' }, timingFunction: [0.25, 0.1, 0.25, 1] },
+    fontStyle: 'normal',
+    lineHeight: 1.5,
+    letterSpacing: { value: 0, unit: 'px' },
+    percentage: 0,
+    link: '',
+    textDecoration: 'none',
+    textTransform: 'none',
+    custom: '',
+    fontWeight: 400,
+    strokeStyle: 'solid',
+    asset: '',
   };
 
   const applyTypeChange = (newType: string) => {
@@ -1079,7 +1092,17 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                 {tokenType === 'strokeStyle' && <StrokeStyleEditor value={value} onChange={setValue} />}
                 {tokenType === 'string' && <StringEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
                 {tokenType === 'boolean' && <BooleanEditor value={value} onChange={setValue} />}
-                {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} baseValue={baseValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
+                {tokenType === 'composition' && <CompositionEditor value={value} onChange={setValue} baseValue={baseValue} />}
+                {tokenType === 'cubicBezier' && <CubicBezierEditor value={value} onChange={setValue} />}
+                {tokenType === 'transition' && <TransitionEditor value={value} onChange={setValue} />}
+                {tokenType === 'fontStyle' && <FontStyleEditor value={value} onChange={setValue} />}
+                {tokenType === 'lineHeight' && <LineHeightEditor value={value} onChange={setValue} />}
+                {tokenType === 'letterSpacing' && <LetterSpacingEditor value={value} onChange={setValue} />}
+                {tokenType === 'percentage' && <PercentageEditor value={value} onChange={setValue} />}
+                {tokenType === 'link' && <LinkEditor value={value} onChange={setValue} />}
+                {tokenType === 'textDecoration' && <TextDecorationEditor value={value} onChange={setValue} />}
+                {tokenType === 'textTransform' && <TextTransformEditor value={value} onChange={setValue} />}
+                {tokenType === 'custom' && <CustomEditor value={value} onChange={setValue} />}
               </>);
             })()}
             {tokenType === 'asset' && <AssetEditor value={value} onChange={setValue} />}

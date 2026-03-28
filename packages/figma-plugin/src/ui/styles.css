@@ -39,6 +39,30 @@
   --token-badge-composition-text: #fd79a8;
   --token-badge-asset-bg: #55efc433;
   --token-badge-asset-text: #3dcaaa;
+  --token-badge-cubicBezier-bg: #a29bfe33;
+  --token-badge-cubicBezier-text: #a29bfe;
+  --token-badge-transition-bg: #fd79a833;
+  --token-badge-transition-text: #fd79a8;
+  --token-badge-fontStyle-bg: #9b59b633;
+  --token-badge-fontStyle-text: #9b59b6;
+  --token-badge-lineHeight-bg: #3498db33;
+  --token-badge-lineHeight-text: #3498db;
+  --token-badge-letterSpacing-bg: #1abc9c33;
+  --token-badge-letterSpacing-text: #40ceb2;
+  --token-badge-percentage-bg: #f39c1233;
+  --token-badge-percentage-text: #f39c12;
+  --token-badge-link-bg: #0d99ff33;
+  --token-badge-link-text: #0d99ff;
+  --token-badge-textDecoration-bg: #e67e2233;
+  --token-badge-textDecoration-text: #e67e22;
+  --token-badge-textTransform-bg: #00cec933;
+  --token-badge-textTransform-text: #40d9d4;
+  --token-badge-custom-bg: #636e7233;
+  --token-badge-custom-text: #b2bec3;
+  --token-badge-fontWeight-bg: #6c5ce733;
+  --token-badge-fontWeight-text: #6c5ce7;
+  --token-badge-strokeStyle-bg: #e67e2233;
+  --token-badge-strokeStyle-text: #e67e22;
 }
 
 body {
@@ -106,6 +130,18 @@ button:focus-visible {
 .token-type-fontFamily { background: var(--token-badge-fontFamily-bg); color: var(--token-badge-fontFamily-text); }
 .token-type-composition { background: var(--token-badge-composition-bg); color: var(--token-badge-composition-text); }
 .token-type-asset { background: var(--token-badge-asset-bg); color: var(--token-badge-asset-text); }
+.token-type-cubicBezier { background: var(--token-badge-cubicBezier-bg); color: var(--token-badge-cubicBezier-text); }
+.token-type-transition { background: var(--token-badge-transition-bg); color: var(--token-badge-transition-text); }
+.token-type-fontStyle { background: var(--token-badge-fontStyle-bg); color: var(--token-badge-fontStyle-text); }
+.token-type-lineHeight { background: var(--token-badge-lineHeight-bg); color: var(--token-badge-lineHeight-text); }
+.token-type-letterSpacing { background: var(--token-badge-letterSpacing-bg); color: var(--token-badge-letterSpacing-text); }
+.token-type-percentage { background: var(--token-badge-percentage-bg); color: var(--token-badge-percentage-text); }
+.token-type-link { background: var(--token-badge-link-bg); color: var(--token-badge-link-text); }
+.token-type-textDecoration { background: var(--token-badge-textDecoration-bg); color: var(--token-badge-textDecoration-text); }
+.token-type-textTransform { background: var(--token-badge-textTransform-bg); color: var(--token-badge-textTransform-text); }
+.token-type-custom { background: var(--token-badge-custom-bg); color: var(--token-badge-custom-text); }
+.token-type-fontWeight { background: var(--token-badge-fontWeight-bg); color: var(--token-badge-fontWeight-text); }
+.token-type-strokeStyle { background: var(--token-badge-strokeStyle-bg); color: var(--token-badge-strokeStyle-text); }
 
 /* Toast slide-in animation */
 @keyframes toast-in {

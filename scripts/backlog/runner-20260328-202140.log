@@ -378,3 +378,17 @@ Already up to date.
 
 --- Merging: Operation log (undo history) is in-memory only and lost on server restart ---
 Already up to date.
+[main 30627b9] chore(backlog): done – Operation log (undo history) is in-memory only and lost on server restart
+ 12 files changed, 170 insertions(+), 23 deletions(-)
+ create mode 100755 packages/server/scripts/backlog/validate.sh
+
+## 2026-03-28 - Operation log (undo history) persisted to disk
+- Added disk persistence to `OperationLog` service following the same `ManualSnapshotStore` pattern: lazy load from `{tokenDir}/.tokenmanager/operations.json` on first access, persist after every mutation
+- Constructor now takes `tokenDir` parameter; `ensureLoaded()` + `persist()` methods added
+- `record()`, `getRecent()`, `getById()` changed from sync to async; all call sites updated with `await`
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  36 items remaining
+===============================================================
+  Claimed: ThemeManager allows concurrent mutations without debounce or disable — `handleSetState` and `handleBulkSetState` can be triggered multiple times in rapid succession while previous requests are in-flight; optimistic UI updates interleave with server responses, potentially leaving the UI in an inconsistent state
+  Worktree: /tmp/backlog-9651-pZWKLS

@@ -46,6 +46,18 @@ export const TOKEN_TYPE_BADGE_CLASS: Record<string, string> = {
   fontFamily: 'token-type-fontFamily',
   composition: 'token-type-composition',
   asset: 'token-type-asset',
+  cubicBezier: 'token-type-cubicBezier',
+  transition: 'token-type-transition',
+  fontStyle: 'token-type-fontStyle',
+  lineHeight: 'token-type-lineHeight',
+  letterSpacing: 'token-type-letterSpacing',
+  percentage: 'token-type-percentage',
+  link: 'token-type-link',
+  textDecoration: 'token-type-textDecoration',
+  textTransform: 'token-type-textTransform',
+  custom: 'token-type-custom',
+  fontWeight: 'token-type-fontWeight',
+  strokeStyle: 'token-type-strokeStyle',
 };
 
 export const TOKEN_PROPERTY_MAP: Record<string, BindableProperty[]> = {

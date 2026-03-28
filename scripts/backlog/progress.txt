@@ -521,3 +521,13 @@
   - The `ManualSnapshotStore` in `manual-snapshot.ts` is the canonical pattern for disk-persisted services in this codebase: constructor(tokenDir), ensureLoaded(), persist()
   - When changing a sync method to async, grep all call sites — fire-and-forget `.record()` calls silently swallow the returned Promise without `await`, which means persistence may not complete before the response is sent
 ---
+
+## 2026-03-28 - 10 token types have no value editor
+- Added value editors for all 10 missing DTCG token types: cubicBezier (4-input + SVG curve preview + presets), transition (composite: duration/delay/timingFunction with embedded cubicBezier), fontStyle (select dropdown), lineHeight (unitless/dimension toggle), letterSpacing (number + unit select), percentage (number + % suffix), link (URL input + open-in-new-tab button), textDecoration (select dropdown), textTransform (select dropdown), custom (JSON textarea with parse feedback). Also added these types + fontWeight + strokeStyle to TOKEN_TYPE_BADGE_CLASS so they appear in the type dropdown, with matching CSS badge colors. Added DEFAULT_VALUE_FOR_TYPE entries for all 12 missing types and VALUE_FORMAT_HINTS for all 10 new types.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L1443-1810, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L14,625,1096-1106, `packages/figma-plugin/src/shared/types.ts` ~L49-60, `packages/figma-plugin/src/ui/styles.css` ~L41-66,109-121
+- **Learnings for future iterations:**
+  - Simple enum-like types (fontStyle, textDecoration, textTransform) follow the exact StrokeStyleEditor pattern: select dropdown with string array options
+  - CubicBezierEditor is reusable — TransitionEditor embeds it for the timingFunction sub-field
+  - LineHeight has dual-mode value: unitless number OR dimension object — needs a mode toggle
+  - TOKEN_TYPE_BADGE_CLASS was also missing fontWeight and strokeStyle — these had editors but weren't in the type dropdown
+---

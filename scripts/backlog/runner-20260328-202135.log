@@ -297,3 +297,10 @@ Already up to date.
 ===============================================================
   Claimed: 10 token types have no value editor — cubicBezier, transition, fontStyle, lineHeight, letterSpacing, percentage, link, textDecoration, textTransform, and custom all fall through silently in `TokenEditor.tsx`; users who create these token types see an empty editor with no way to set values through the UI
   Worktree: /tmp/backlog-9231-ptmrmU
+
+  ✓ done: 10 token types have no value editor
+    Added value editors for cubicBezier (4 inputs + SVG curve preview + presets), transition (composite with duration/delay/timingFunction), fontStyle/textDecoration/textTransform (select dropdowns), lineHeight (unitless/dimension toggle), letterSpacing (number + unit), percentage (number + %), link (URL + open button), custom (JSON textarea). Also added all 12 missing types to TOKEN_TYPE_BADGE_CLASS and DEFAULT_VALUE_FOR_TYPE, plus CSS badge colors.
+    55 turns · 534s · $3.06
+
+--- Merging: 10 token types have no value editor ---
+Already up to date.

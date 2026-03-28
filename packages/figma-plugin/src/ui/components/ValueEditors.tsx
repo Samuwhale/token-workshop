@@ -29,6 +29,16 @@ export const VALUE_FORMAT_HINTS: Record<string, string> = {
   composition: 'Key–value pairs of design properties',
   asset: 'URL to an image or file',
   strokeStyle: 'solid, dashed, dotted, double, …',
+  cubicBezier: '[x1, y1, x2, y2] — easing curve',
+  transition: 'Duration, delay, and timing function',
+  fontStyle: 'normal, italic, or oblique',
+  lineHeight: 'Unitless multiplier (1.5) or dimension (24px)',
+  letterSpacing: 'Dimension value (e.g. 0.5px, 0.02em)',
+  percentage: 'Numeric percentage value',
+  link: 'URL (https://…)',
+  textDecoration: 'none, underline, overline, line-through',
+  textTransform: 'none, uppercase, lowercase, capitalize',
+  custom: 'Any value — JSON object, string, or number',
 };
 
 function InheritedBadge({ propKey, onOverride }: { propKey: string; onOverride: () => void }) {
@@ -1713,6 +1723,406 @@ export function CompositionEditor({ value, onChange, baseValue, allTokensFlat = 
         </div>
       )}
       <CompositionPreview val={val} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// FontStyle editor
+// ---------------------------------------------------------------------------
+
+const FONT_STYLES = ['normal', 'italic', 'oblique'];
+
+export function FontStyleEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  return (
+    <select
+      value={typeof value === 'string' ? value : 'normal'}
+      onChange={e => onChange(e.target.value)}
+      className={inputClass}
+    >
+      {FONT_STYLES.map(s => (
+        <option key={s} value={s}>{s}</option>
+      ))}
+    </select>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TextDecoration editor
+// ---------------------------------------------------------------------------
+
+const TEXT_DECORATIONS = ['none', 'underline', 'overline', 'line-through'];
+
+export function TextDecorationEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  return (
+    <select
+      value={typeof value === 'string' ? value : 'none'}
+      onChange={e => onChange(e.target.value)}
+      className={inputClass}
+    >
+      {TEXT_DECORATIONS.map(s => (
+        <option key={s} value={s}>{s}</option>
+      ))}
+    </select>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TextTransform editor
+// ---------------------------------------------------------------------------
+
+const TEXT_TRANSFORMS = ['none', 'uppercase', 'lowercase', 'capitalize'];
+
+export function TextTransformEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  return (
+    <select
+      value={typeof value === 'string' ? value : 'none'}
+      onChange={e => onChange(e.target.value)}
+      className={inputClass}
+    >
+      {TEXT_TRANSFORMS.map(s => (
+        <option key={s} value={s}>{s}</option>
+      ))}
+    </select>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Percentage editor
+// ---------------------------------------------------------------------------
+
+export function PercentageEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const num = typeof value === 'number' ? value : 0;
+  return (
+    <div className="flex gap-2 items-center">
+      <input
+        type="number"
+        step={1}
+        value={num}
+        onChange={e => onChange(parseFloat(e.target.value) || 0)}
+        className={inputClass + ' flex-1'}
+      />
+      <span className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0">%</span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Link editor
+// ---------------------------------------------------------------------------
+
+export function LinkEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const url = typeof value === 'string' ? value : '';
+  return (
+    <div className="flex gap-2 items-center">
+      <input
+        type="url"
+        value={url}
+        onChange={e => onChange(e.target.value)}
+        placeholder="https://…"
+        className={inputClass + ' flex-1'}
+      />
+      {url && (
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open link"
+          className="shrink-0 p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)]"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
+          </svg>
+        </a>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LetterSpacing editor (reuses dimension pattern)
+// ---------------------------------------------------------------------------
+
+const LETTER_SPACING_UNITS = ['px', 'rem', 'em', '%'];
+
+export function LetterSpacingEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const num = typeof value?.value === 'number' ? value.value : typeof value === 'number' ? value : 0;
+  const unit: string = value?.unit || 'px';
+  const update = (patch: { value?: number; unit?: string }) =>
+    onChange({ value: num, unit, ...patch });
+  return (
+    <div className="flex gap-2">
+      <input
+        type="number"
+        step={unit === 'px' ? 0.5 : 0.01}
+        value={num}
+        onChange={e => update({ value: parseFloat(e.target.value) || 0 })}
+        className={inputClass + ' flex-1'}
+      />
+      <select
+        value={unit}
+        onChange={e => update({ unit: e.target.value })}
+        className={inputClass + ' w-16'}
+      >
+        {LETTER_SPACING_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+      </select>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// LineHeight editor (unitless number or dimension)
+// ---------------------------------------------------------------------------
+
+const LINE_HEIGHT_UNITS = ['px', 'rem', 'em', '%'];
+
+export function LineHeightEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const isDimension = typeof value === 'object' && value !== null && 'value' in value;
+  const num = isDimension ? (value.value ?? 0) : (typeof value === 'number' ? value : 1.5);
+  const unit: string = isDimension ? (value.unit || 'px') : '';
+
+  const setUnitless = (n: number) => onChange(n);
+  const setDimension = (patch: { value?: number; unit?: string }) => {
+    const base = isDimension ? { value: num, unit: unit || 'px' } : { value: num, unit: 'px' };
+    onChange({ ...base, ...patch });
+  };
+
+  const toggleMode = () => {
+    if (isDimension) {
+      onChange(num);
+    } else {
+      onChange({ value: num, unit: 'px' });
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2 items-center">
+        <input
+          type="number"
+          step={isDimension ? 1 : 0.1}
+          min={0}
+          value={num}
+          onChange={e => {
+            const n = parseFloat(e.target.value) || 0;
+            isDimension ? setDimension({ value: n }) : setUnitless(n);
+          }}
+          className={inputClass + ' flex-1'}
+        />
+        {isDimension ? (
+          <select
+            value={unit}
+            onChange={e => setDimension({ unit: e.target.value })}
+            className={inputClass + ' w-16'}
+          >
+            {LINE_HEIGHT_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+          </select>
+        ) : (
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 w-16 text-center">unitless</span>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={toggleMode}
+        className="text-[10px] text-[var(--color-figma-accent)] hover:underline bg-transparent border-none p-0 cursor-pointer self-start"
+      >
+        Switch to {isDimension ? 'unitless' : 'dimension'}
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CubicBezier editor
+// ---------------------------------------------------------------------------
+
+const BEZIER_PRESETS: { label: string; value: [number, number, number, number] }[] = [
+  { label: 'linear', value: [0, 0, 1, 1] },
+  { label: 'ease', value: [0.25, 0.1, 0.25, 1] },
+  { label: 'ease-in', value: [0.42, 0, 1, 1] },
+  { label: 'ease-out', value: [0, 0, 0.58, 1] },
+  { label: 'ease-in-out', value: [0.42, 0, 0.58, 1] },
+];
+
+export function CubicBezierEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const pts: [number, number, number, number] = Array.isArray(value) && value.length === 4
+    ? value as [number, number, number, number]
+    : [0, 0, 1, 1];
+
+  const update = (idx: number, v: number) => {
+    const next = [...pts] as [number, number, number, number];
+    next[idx] = v;
+    onChange(next);
+  };
+
+  const labels = ['x1', 'y1', 'x2', 'y2'];
+
+  // SVG curve preview
+  const w = 80, h = 80, pad = 8;
+  const sx = (x: number) => pad + x * (w - 2 * pad);
+  const sy = (y: number) => h - pad - y * (h - 2 * pad);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2 items-end">
+        <svg width={w} height={h} className="shrink-0 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
+          <line x1={sx(0)} y1={sy(0)} x2={sx(pts[0])} y2={sy(pts[1])} stroke="var(--color-figma-text-tertiary)" strokeWidth="1" strokeDasharray="2,2" />
+          <line x1={sx(1)} y1={sy(1)} x2={sx(pts[2])} y2={sy(pts[3])} stroke="var(--color-figma-text-tertiary)" strokeWidth="1" strokeDasharray="2,2" />
+          <path
+            d={`M ${sx(0)},${sy(0)} C ${sx(pts[0])},${sy(pts[1])} ${sx(pts[2])},${sy(pts[3])} ${sx(1)},${sy(1)}`}
+            fill="none"
+            stroke="var(--color-figma-accent)"
+            strokeWidth="2"
+          />
+          <circle cx={sx(pts[0])} cy={sy(pts[1])} r="3" fill="var(--color-figma-accent)" />
+          <circle cx={sx(pts[2])} cy={sy(pts[3])} r="3" fill="var(--color-figma-accent)" />
+        </svg>
+        <div className="flex-1 grid grid-cols-2 gap-1">
+          {labels.map((label, i) => (
+            <div key={label} className="flex flex-col">
+              <span className={labelClass}>{label}</span>
+              <input
+                type="number"
+                step={0.01}
+                min={i % 2 === 0 ? 0 : undefined}
+                max={i % 2 === 0 ? 1 : undefined}
+                value={pts[i]}
+                onChange={e => update(i, parseFloat(e.target.value) || 0)}
+                className={inputClass}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1">
+        {BEZIER_PRESETS.map(p => {
+          const active = p.value.every((v, i) => v === pts[i]);
+          return (
+            <button
+              key={p.label}
+              onClick={() => onChange([...p.value])}
+              className={`px-2 py-0.5 rounded border text-[10px] transition-colors ${active ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+            >
+              {p.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Transition editor (composite: duration, delay, timingFunction)
+// ---------------------------------------------------------------------------
+
+export function TransitionEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const val = typeof value === 'object' && value !== null ? value : {};
+  const duration = val.duration ?? { value: 200, unit: 'ms' };
+  const delay = val.delay ?? { value: 0, unit: 'ms' };
+  const timingFunction = Array.isArray(val.timingFunction) ? val.timingFunction : [0.25, 0.1, 0.25, 1];
+
+  const update = (patch: Record<string, any>) => onChange({ duration, delay, timingFunction, ...val, ...patch });
+
+  const durationMs = typeof duration?.value === 'number' ? duration.value : typeof duration === 'number' ? duration : 200;
+  const durationUnit: 'ms' | 's' = duration?.unit === 's' ? 's' : 'ms';
+  const delayMs = typeof delay?.value === 'number' ? delay.value : typeof delay === 'number' ? delay : 0;
+  const delayUnit: 'ms' | 's' = delay?.unit === 's' ? 's' : 'ms';
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div>
+        <div className={labelClass}>Duration</div>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min={0}
+            step={durationUnit === 'ms' ? 50 : 0.05}
+            value={durationMs}
+            onChange={e => update({ duration: { value: parseFloat(e.target.value) || 0, unit: durationUnit } })}
+            className={inputClass + ' flex-1'}
+          />
+          <select
+            value={durationUnit}
+            onChange={e => update({ duration: { value: durationMs, unit: e.target.value } })}
+            className={inputClass + ' w-16'}
+          >
+            <option value="ms">ms</option>
+            <option value="s">s</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <div className={labelClass}>Delay</div>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min={0}
+            step={delayUnit === 'ms' ? 50 : 0.05}
+            value={delayMs}
+            onChange={e => update({ delay: { value: parseFloat(e.target.value) || 0, unit: delayUnit } })}
+            className={inputClass + ' flex-1'}
+          />
+          <select
+            value={delayUnit}
+            onChange={e => update({ delay: { value: delayMs, unit: e.target.value } })}
+            className={inputClass + ' w-16'}
+          >
+            <option value="ms">ms</option>
+            <option value="s">s</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <div className={labelClass}>Timing Function</div>
+        <CubicBezierEditor value={timingFunction} onChange={(tf: any) => update({ timingFunction: tf })} />
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Custom editor (freeform JSON/string)
+// ---------------------------------------------------------------------------
+
+export function CustomEditor({ value, onChange }: { value: any; onChange: (v: any) => void }) {
+  const isObj = typeof value === 'object' && value !== null;
+  const [text, setText] = useState(() => isObj ? JSON.stringify(value, null, 2) : String(value ?? ''));
+  const [parseError, setParseError] = useState<string | null>(null);
+
+  const commit = (raw: string) => {
+    try {
+      const parsed = JSON.parse(raw);
+      onChange(parsed);
+      setParseError(null);
+    } catch {
+      // Not valid JSON — treat as plain string
+      onChange(raw);
+      setParseError(null);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <textarea
+        value={text}
+        onChange={e => {
+          setText(e.target.value);
+          try {
+            JSON.parse(e.target.value);
+            setParseError(null);
+          } catch {
+            setParseError('Not valid JSON — will be saved as string');
+          }
+        }}
+        onBlur={e => commit(e.target.value)}
+        rows={4}
+        className={inputClass + ' font-mono resize-y'}
+        placeholder='String, number, or JSON object'
+      />
+      {parseError && (
+        <p className="text-[9px] text-[var(--color-figma-warning)]">{parseError}</p>
+      )}
     </div>
   );
 }
