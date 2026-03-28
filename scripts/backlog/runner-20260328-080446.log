@@ -407,3 +407,17 @@ Already up to date.
 
 --- Merging: SET_NAME_RE regex duplicated ---
 Already up to date.
+[main 5dd5177] chore(backlog): done – SET_NAME_RE regex duplicated
+ 8 files changed, 35 insertions(+), 10 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - SET_NAME_RE regex duplicated
+- Extracted `SET_NAME_RE` from both `useSetRename.ts` and `App.tsx` into `shared/utils.ts` as a single export; both files now import it
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` ~L2, `packages/figma-plugin/src/ui/hooks/useSetRename.ts` ~L3, `packages/figma-plugin/src/ui/App.tsx` ~L49
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 20 / 90  (claude)  —  33 items remaining
+===============================================================
+  Claimed: `refreshTokens` double-fires on initial load — `refreshTokens` depends on `activeSet`, and calls `setActiveSet(current)` which changes `activeSet`, which re-triggers the effect; generation counter prevents stale display but the fetch fires twice
+  Worktree: /tmp/backlog-63685-Lm9f5e

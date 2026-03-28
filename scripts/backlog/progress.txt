@@ -557,3 +557,12 @@
 - **Learnings for future iterations:**
   - `shared/utils.ts` is the canonical home for small shared constants — it's already imported widely
 ---
+
+## 2026-03-28 - describeError helper duplicated in 3 hook files
+- Moved identical `describeError(err, operation)` function from `useGitSync.ts`, `useStyleSync.ts`, `useVariableSync.ts`, and `PublishPanel.tsx` into `shared/utils.ts` as a named export alongside existing `getErrorMessage`
+- Updated all 4 files to import from `shared/utils` instead of defining locally
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` ~L22, `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L2, `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` ~L3, `packages/figma-plugin/src/ui/hooks/useVariableSync.ts` ~L3, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L3
+- **Learnings for future iterations:**
+  - Build was already broken by a pre-existing missing export (`getNextUnboundProperty` in `selectionInspectorUtils.ts`) — not introduced by this change
+  - `PublishPanel.tsx` also had a copy of `describeError` (4 copies total, not 3 as the backlog item stated)
+---

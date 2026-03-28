@@ -425,3 +425,10 @@ Already up to date.
 ===============================================================
   Claimed: `resolveStyleForWeight` calls `listAvailableFontsAsync` on every invocation — during a sync processing many typography tokens, this makes redundant API calls; the font list should be cached per plugin session
   Worktree: /tmp/backlog-62956-f9vHcn
+
+  ✓ done: Cache listAvailableFontsAsync in resolveStyleForWeight
+    Added module-level font cache so listAvailableFontsAsync is called only once per plugin session, eliminating redundant API calls during bulk typography token sync.
+    10 turns · 35s · $0.26
+
+--- Merging: Cache listAvailableFontsAsync in resolveStyleForWeight ---
+Already up to date.

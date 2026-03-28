@@ -29,10 +29,19 @@ function weightToFontStyleFallback(weight: number): string {
   return 'Black';
 }
 
+let cachedFonts: Font[] | null = null;
+
+async function getAvailableFonts(): Promise<Font[]> {
+  if (!cachedFonts) {
+    cachedFonts = await figma.listAvailableFontsAsync();
+  }
+  return cachedFonts;
+}
+
 export async function resolveStyleForWeight(family: string, weight: number | string): Promise<string> {
   const targetWeight = typeof weight === 'number' ? weight : parseInt(weight, 10);
   try {
-    const allFonts = await figma.listAvailableFontsAsync();
+    const allFonts = await getAvailableFonts();
     const familyFonts = allFonts.filter(f => f.fontName.family === family);
     if (familyFonts.length === 0) return weightToFontStyleFallback(targetWeight);
     // Map each available style to its weight, find the closest
