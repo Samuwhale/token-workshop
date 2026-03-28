@@ -171,23 +171,44 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
         });
       }
 
+      const pullFailures: { path: string; error: string }[] = [];
       if (pullRows.length > 0) {
-        await Promise.all(pullRows.map(r =>
-          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaRaw }),
-          })
-        ));
+        const results = await Promise.all(pullRows.map(async (r) => {
+          try {
+            const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaRaw }),
+            });
+            if (!res.ok) {
+              const text = await res.text().catch(() => res.statusText);
+              return { path: r.path, error: `${res.status}: ${text}` };
+            }
+            return null;
+          } catch (err) {
+            return { path: r.path, error: err instanceof Error ? err.message : String(err) };
+          }
+        }));
+        for (const f of results) {
+          if (f) pullFailures.push(f);
+        }
       }
 
       setStyleRows([]);
       setStyleDirs({});
       setStyleChecked(true);
 
-      if (pushResult && pushResult.failures.length > 0) {
-        const failedPaths = pushResult.failures.map(f => f.path).join(', ');
-        setStyleError(`${pushResult.count}/${pushResult.total} styles applied. Failed: ${failedPaths}`);
+      const pushFailed = pushResult ? pushResult.failures.length : 0;
+      if (pushFailed > 0 || pullFailures.length > 0) {
+        const parts: string[] = [];
+        if (pushResult && pushFailed > 0) {
+          parts.push(`Push: ${pushResult.count}/${pushResult.total} applied (failed: ${pushResult.failures.map(f => f.path).join(', ')})`);
+        }
+        if (pullFailures.length > 0) {
+          const pullOk = pullRows.length - pullFailures.length;
+          parts.push(`Pull: ${pullOk}/${pullRows.length} applied (failed: ${pullFailures.map(f => f.path).join(', ')})`);
+        }
+        setStyleError(parts.join('. '));
       } else {
         parent.postMessage({ pluginMessage: { type: 'notify', message: 'Style sync applied' } }, '*');
       }

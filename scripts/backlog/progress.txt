@@ -537,3 +537,14 @@
   - `dimensions.indexOf(dim)` preserves correct layer numbering even when filtering
   - Option tab highlight uses `ring-1 ring-accent/40` for subtle non-destructive visual cue
 ---
+
+## 2026-03-28 - useStyleSync pullRows Promise.all never checks res.ok
+- Added `res.ok` check on each individual PATCH response in the `pullRows` `Promise.all` block (~line 175)
+- Failed responses now collect into `pullFailures` array with path and error details
+- Network errors per-request are also caught individually instead of aborting the entire batch
+- Error reporting unified: both push and pull failures shown in `styleError` with counts and failed paths
+- Files changed: `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` ~L174-206
+- **Learnings for future iterations:**
+  - `fetch()` only rejects on network errors, not HTTP errors — always check `res.ok` after `Promise.all` with fetch
+  - Wrapping each fetch in a try/catch inside `Promise.all` allows collecting per-item failures without short-circuiting the batch
+---

@@ -216,3 +216,10 @@ Already up to date.
 ===============================================================
   Claimed: `useStyleSync.ts` pullRows `Promise.all` never checks `res.ok` on individual fetch responses (~line 152) — a 4xx/5xx from a single token PATCH silently succeeds, leaving the UI out of sync with the server
   Worktree: /tmp/backlog-9651-KJ66lG
+
+  ✓ done: useStyleSync pullRows Promise.all never checks res.ok
+    Added per-response res.ok checks and individual error handling in pullRows Promise.all; failures now collected and surfaced in styleError with paths and counts.
+    6 turns · 50s · $0.27
+
+--- Merging: useStyleSync pullRows Promise.all never checks res.ok ---
+Already up to date.
