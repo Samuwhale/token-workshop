@@ -173,6 +173,7 @@ export function TokenGeneratorDialog({
     showSemanticMapping,
     savedTokens,
     savedTargetGroup,
+    showConfirmation,
     handleTypeChange,
     handleNameChange,
     setTargetSet,
@@ -185,6 +186,8 @@ export function TokenGeneratorDialog({
     handleOverrideClear,
     clearAllOverrides,
     handleSave,
+    handleConfirmSave,
+    handleCancelConfirmation,
     handleSemanticMappingClose,
     isDirtyRef,
   } = useGeneratorDialog({
@@ -216,6 +219,146 @@ export function TokenGeneratorDialog({
         onClose={handleSemanticMappingClose}
         onCreated={handleSemanticMappingClose}
       />
+    );
+  }
+
+  if (showConfirmation) {
+    const overwritePaths = new Set(overwrittenEntries.map(e => e.path));
+    const newTokens = previewTokens.filter(pt => !overwritePaths.has(pt.path));
+    // For multi-brand, we don't have previewTokens — show a summary instead
+    const hasPreview = previewTokens.length > 0;
+
+    return (
+      <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+        <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)] shrink-0">
+            <div className="flex items-center gap-2">
+              <button onClick={handleCancelConfirmation} aria-label="Back to editor" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+              </button>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">
+                  Review Changes
+                </span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {name} → {targetGroup}.* in {isMultiBrand ? 'multi-brand' : targetSet}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+            {/* Summary badges */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {hasPreview && newTokens.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)]">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                  {newTokens.length} new
+                </span>
+              )}
+              {overwrittenEntries.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)]">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14" /></svg>
+                  {overwrittenEntries.length} modified
+                </span>
+              )}
+              {hasPreview && newTokens.length === 0 && overwrittenEntries.length === 0 && (
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {previewTokens.length} token{previewTokens.length !== 1 ? 's' : ''} will be created (all new)
+                </span>
+              )}
+              {!hasPreview && isMultiBrand && inputTable && (
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
+                  Multi-brand: {inputTable.rows.length} brand{inputTable.rows.length !== 1 ? 's' : ''} will be generated
+                </span>
+              )}
+            </div>
+
+            {/* Modified tokens (diffs) */}
+            {overwrittenEntries.length > 0 && (
+              <div>
+                <label className="block text-[10px] font-medium text-[var(--color-figma-warning)] mb-1.5">
+                  Modified tokens
+                </label>
+                <div className="flex flex-col gap-1.5">
+                  {overwrittenEntries.map(entry => (
+                    <div key={entry.path} className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={entry.path}>
+                        {entry.path}
+                      </span>
+                      <ValueDiff type={entry.type} before={entry.oldValue} after={entry.newValue} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* New tokens */}
+            {newTokens.length > 0 && (
+              <div>
+                <label className="block text-[10px] font-medium text-[var(--color-figma-success)] mb-1.5">
+                  New tokens
+                </label>
+                <div className="flex flex-col gap-1">
+                  {newTokens.map(token => (
+                    <div key={token.path} className="flex items-center gap-2 px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)]">
+                      {token.type === 'color' && typeof token.value === 'string' && (
+                        <div
+                          className="w-3.5 h-3.5 rounded-sm border border-white/30 ring-1 ring-[var(--color-figma-border)] shrink-0"
+                          style={{ backgroundColor: String(token.value).slice(0, 7) }}
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={token.path}>
+                        {token.path}
+                      </span>
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] shrink-0 max-w-[100px] truncate" title={typeof token.value === 'object' ? JSON.stringify(token.value) : String(token.value)}>
+                        {token.type === 'dimension' && typeof token.value === 'object' && token.value !== null && 'value' in (token.value as Record<string, unknown>)
+                          ? `${(token.value as { value: number; unit?: string }).value}${(token.value as { value: number; unit?: string }).unit ?? 'px'}`
+                          : typeof token.value === 'object' ? JSON.stringify(token.value) : String(token.value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Multi-brand note */}
+            {!hasPreview && isMultiBrand && inputTable && (
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-2 bg-[var(--color-figma-bg-secondary)]">
+                <p className="mb-1">Tokens will be generated for each brand:</p>
+                <ul className="list-disc list-inside">
+                  {inputTable.rows.filter(r => r.brand.trim()).map((row, i) => (
+                    <li key={i} className="font-mono">
+                      {(targetSetTemplate || 'brands/{brand}').replace('{brand}', row.brand)} → {targetGroup}.*
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {saveError && <div className="text-[10px] text-[var(--color-figma-error)]">{saveError}</div>}
+          </div>
+
+          {/* Footer */}
+          <div className="flex gap-2 p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shrink-0">
+            <button onClick={handleCancelConfirmation} className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]">
+              Back
+            </button>
+            <button onClick={handleConfirmSave} disabled={saving}
+              className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50">
+              {saving
+                ? (isEditing ? 'Saving…' : 'Creating…')
+                : isEditing
+                  ? 'Confirm & Update'
+                  : 'Confirm & Create'
+              }
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -472,15 +615,13 @@ export function TokenGeneratorDialog({
           <button onClick={handleClose} className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
           <button onClick={handleSave} disabled={saving || !targetGroup.trim() || !name.trim() || (!isMultiBrand && typeNeedsSource && !hasSource)}
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50">
-            {saving
-              ? (isEditing ? 'Saving…' : 'Creating…')
-              : isEditing
-                ? 'Update generator'
-                : isMultiBrand && inputTable
-                  ? `Create (${inputTable.rows.length} brand${inputTable.rows.length !== 1 ? 's' : ''})`
-                  : previewTokens.length > 0
-                    ? `Create (${previewTokens.length} tokens)`
-                    : 'Create generator'
+            {isEditing
+              ? 'Review & Update'
+              : isMultiBrand && inputTable
+                ? `Review (${inputTable.rows.length} brand${inputTable.rows.length !== 1 ? 's' : ''})`
+                : previewTokens.length > 0
+                  ? `Review (${previewTokens.length} tokens)`
+                  : 'Review & Create'
             }
           </button>
           </div>

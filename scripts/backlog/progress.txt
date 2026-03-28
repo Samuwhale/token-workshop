@@ -406,3 +406,14 @@
   - Port wiring: track `fromDirection` so the bezier curve always flows left-to-right regardless of which port the user starts from
   - ResizeObserver is needed to track container dimensions for fit-to-view calculations
 ---
+
+## 2026-03-28 - No generator preview before committing
+- Added a dry-run confirmation step to the generator dialog. Clicking "Create"/"Update" now shows a "Review Changes" screen with summary badges (N new, N modified), a list of new tokens with values/color swatches, and modified tokens shown via ValueDiff (before→after). User can go back to edit or confirm to commit.
+- The existing live preview API and overwrite diff computation were already in place — the change was purely UI-side: split `handleSave` into validation→show confirmation, and `handleConfirmSave` for the actual commit.
+- The "Create" button label now says "Review (N tokens)" to signal the preview step.
+- Multi-brand mode shows a summary of brands that will be generated since per-token preview is not available.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L162 (showConfirmation state), ~L304-395 (split handleSave/handleConfirmSave), `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L220-340 (confirmation view)
+- **Learnings for future iterations:**
+  - The generator dialog already had full preview infrastructure (live preview API, overwrittenEntries diff) — the missing piece was just a UI confirmation gate
+  - `previewTokens` is empty in multi-brand mode by design (fetchPreview skips); handle this gracefully in any new UI that depends on preview data
+---

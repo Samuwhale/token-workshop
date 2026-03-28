@@ -70,6 +70,7 @@ interface UseGeneratorDialogReturn {
   showSemanticMapping: boolean;
   savedTokens: GeneratedTokenResult[];
   savedTargetGroup: string;
+  showConfirmation: boolean;
   // Handlers
   handleTypeChange: (type: GeneratorType) => void;
   handleNameChange: (value: string) => void;
@@ -83,6 +84,8 @@ interface UseGeneratorDialogReturn {
   handleOverrideClear: (stepName: string) => void;
   clearAllOverrides: () => void;
   handleSave: () => Promise<void>;
+  handleConfirmSave: () => Promise<void>;
+  handleCancelConfirmation: () => void;
   handleSemanticMappingClose: () => void;
 }
 
@@ -161,6 +164,7 @@ export function useGeneratorDialog({
   const [showSemanticMapping, setShowSemanticMapping] = useState(false);
   const [savedTokens, setSavedTokens] = useState<GeneratedTokenResult[]>([]);
   const [savedTargetGroup, setSavedTargetGroup] = useState('');
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -301,6 +305,7 @@ export function useGeneratorDialog({
   const setTargetSetTemplateDirty = useCallback((v: string) => { markDirty(); setTargetSetTemplate(v); }, [markDirty]);
   const setInputTableDirty = useCallback((t: InputTable | undefined) => { markDirty(); setInputTable(t); }, [markDirty]);
 
+  /** Step 1: Validate inputs, then show the confirmation preview. */
   const handleSave = async () => {
     if (!targetGroup.trim()) { setSaveError('Target group is required.'); return; }
     if (!name.trim()) { setSaveError('Generator name is required.'); return; }
@@ -312,6 +317,16 @@ export function useGeneratorDialog({
       const duplicate = brandNames.find((b, i) => brandNames.indexOf(b) !== i);
       if (duplicate) { setSaveError(`Duplicate brand name "${inputTable.rows.find(r => r.brand.trim().toLowerCase() === duplicate)!.brand.trim()}" — each brand name must be unique.`); return; }
     }
+    setSaveError('');
+    setShowConfirmation(true);
+  };
+
+  const handleCancelConfirmation = () => {
+    setShowConfirmation(false);
+  };
+
+  /** Step 2: Actually commit the generator (called from confirmation view). */
+  const handleConfirmSave = async () => {
     setSaving(true);
     setSaveError('');
     try {
@@ -356,6 +371,7 @@ export function useGeneratorDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      setShowConfirmation(false);
       if (!isEditing) {
         let tokensForMapping = previewTokens;
         // In multi-brand mode, previewTokens is always [] because fetchPreview
@@ -427,6 +443,7 @@ export function useGeneratorDialog({
     showSemanticMapping,
     savedTokens,
     savedTargetGroup,
+    showConfirmation,
     // Handlers
     handleTypeChange,
     handleNameChange,
@@ -440,6 +457,8 @@ export function useGeneratorDialog({
     handleOverrideClear,
     clearAllOverrides,
     handleSave,
+    handleConfirmSave,
+    handleCancelConfirmation,
     handleSemanticMappingClose,
   };
 }

@@ -249,3 +249,27 @@ Already up to date.
 
 --- Merging: No visual node-based generator editor ---
 Already up to date.
+[main 3ac7842] chore(backlog): done – No visual node-based generator editor
+ 10 files changed, 1675 insertions(+), 47 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/nodeGraph/NodeGraphCanvas.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/nodeGraph/NodeRenderer.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/nodeGraph/nodeGraphTypes.ts
+ create mode 100644 packages/figma-plugin/src/ui/components/nodeGraph/useNodeGraph.ts
+
+## 2026-03-28 - Visual node-based generator editor
+- Built a full node-graph editor for generator visualization and composition, replacing the flat pipeline card list as the default view in GraphPanel
+- New files created in `packages/figma-plugin/src/ui/components/nodeGraph/`:
+  - `nodeGraphTypes.ts` — types (GraphNode, GraphEdge, Port, WiringState, TransformOp), layout constants, `generatorsToGraph()` conversion, `createTransformNode()` factory
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  9 items remaining
+===============================================================
+  Claimed: No generator preview before committing — running a generator immediately creates/overwrites tokens; add a dry-run preview showing the tokens that would be created with their values, diffs against existing tokens, and a confirm/cancel step
+  Worktree: /tmp/backlog-34977-v8QuKR
+
+  ✓ done: No generator preview before committing
+    Added a Review Changes confirmation step between clicking Create/Update and committing — shows new tokens with values/swatches, modified tokens with before→after diffs, and confirm/cancel buttons. Purely UI-side change leveraging existing preview API and overwrite diff computation.
+    24 turns · 310s · $1.96
+
+--- Merging: No generator preview before committing ---
+Already up to date.
