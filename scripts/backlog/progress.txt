@@ -418,3 +418,10 @@
   - Optimistic stack removal before an async operation is a data-loss anti-pattern — always move destructive state updates to after the async succeeds
   - The same pattern applied symmetrically to executeRedo, which had the identical bug
 ---
+
+## 2026-03-28 - Cannot access 'flattenTokens' before initialization — TDZ error
+- Moved `flattenTokens` const arrow function from ~L1817 to ~L342 in TokenList.tsx, before its first usage in a `useMemo` at the former ~L343. The function was defined as a `const` (not a `function` declaration), so it was subject to TDZ — the `useMemo` at line 343 ran during render before the variable was initialized at line 1817.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L342 (moved definition here), ~L1830 (removed original)
+- **Learnings for future iterations:**
+  - This is another instance of the known Hook declaration order (TDZ) pattern: `const` arrow functions used in `useMemo`/`useCallback` must appear above those hooks in the function body. TypeScript does NOT catch this — it only checks scope existence, not temporal ordering.
+---

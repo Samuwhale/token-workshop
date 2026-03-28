@@ -77,3 +77,16 @@ Already up to date.
 
 --- Merging: useUndo.ts failed undo permanently loses the undo slot ---
 Already up to date.
+[main e3d5d49] chore(backlog): done – useUndo.ts failed undo permanently loses the undo slot
+ 6 files changed, 40 insertions(+), 11 deletions(-)
+
+## 2026-03-28 - useUndo.ts failed undo permanently loses the undo slot
+- Moved `setPast`/`setFuture` stack updates from before `await slot.restore()`/`slot.redo()` to after successful execution in both `executeUndo` and `executeRedo`. On failure, the slot remains in its original stack so the user can retry.
+- Used `prev.filter(s => s !== slot)` instead of `prev.slice(0, -1)` to safely remove the exact slot even if state has shifted during the async operation.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useUndo.ts` ~L33-48 (executeUndo), ~L51-65 (executeRedo)
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  10 items remaining
+===============================================================
+  Claimed: HTTP error responses silently treated as success in multiple mutation paths — `ThemeValuesSection.handleSave` in `TokenEditor.tsx` clears edit state and calls `onRefresh` even on 4xx/5xx; `handleApplyGroupScopes` in `useFigmaSync.ts` discards all response objects in `Promise.all` batch without `.ok` checks; `useSetDelete.ts` only catches `TypeError`, not `ApiError` on server-side rejections — all three need `res.ok` guards and visible error feedback (`TokenEditor.tsx` ~L214, `useFigmaSync.ts` ~L129, `useSetDelete.ts` ~L50)
+  Worktree: /tmp/backlog-23617-trNEfn

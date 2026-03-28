@@ -339,6 +339,20 @@ export function TokenList({
     return { duplicateValuePaths: paths, duplicateCounts: counts };
   }, [debouncedTokens]);
 
+  const flattenTokens = (nodes: TokenNode[]): any[] => {
+    const result: any[] = [];
+    const walk = (list: TokenNode[]) => {
+      for (const node of list) {
+        if (!node.isGroup) {
+          result.push({ path: node.path, $type: node.$type, $value: node.$value, setName });
+        }
+        if (node.children) walk(node.children);
+      }
+    };
+    walk(nodes);
+    return result;
+  };
+
   // Count of non-alias tokens with duplicate values — used by the promote banner
   const promotableDuplicateCount = useMemo(() => {
     const flat = flattenTokens(tokens);
@@ -1813,20 +1827,6 @@ export function TokenList({
     }).catch(() => {});
   }, []);
   copyTokensAsJsonRef.current = copyTokensAsJson;
-
-  const flattenTokens = (nodes: TokenNode[]): any[] => {
-    const result: any[] = [];
-    const walk = (list: TokenNode[]) => {
-      for (const node of list) {
-        if (!node.isGroup) {
-          result.push({ path: node.path, $type: node.$type, $value: node.$value, setName });
-        }
-        if (node.children) walk(node.children);
-      }
-    };
-    walk(nodes);
-    return result;
-  };
 
   const resolveFlat = (flat: any[]) =>
     flat.map(t => {
