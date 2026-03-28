@@ -259,3 +259,11 @@
 - **Learnings for future iterations:**
   - The same rollback-swallowing pattern existed in two separate files — always grep for the pattern across the codebase.
 ---
+
+## 2026-03-28 - `setHexAlpha` does not validate hex input
+- Added hex validation to `setHexAlpha`: expands shorthand via `expandHex`, slices to 6 chars, then validates with `/^[0-9a-fA-F]{6}$/` — returns `null` on invalid input (matching `hexToLab`/`wcagLuminance` pattern). Updated the caller in `color-modifier.ts` to throw a descriptive error on `null`.
+- Files changed: `packages/core/src/color-math.ts` ~L69, `packages/core/src/color-modifier.ts` ~L37
+- **Learnings for future iterations:**
+  - Functions in `color-math.ts` use a consistent `return null` pattern for invalid hex input — new validations should follow this convention.
+  - Callers in `color-modifier.ts` throw with descriptive messages including the modifier name and the offending value.
+---

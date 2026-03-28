@@ -65,9 +65,10 @@ export function wcagLuminance(hex: string): number | null {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-/** Rebuild hex string from 6-char base + alpha (0-255). */
-export function setHexAlpha(hex: string, alpha: number): string {
-  const clean = hex.replace('#', '').slice(0, 6);
+/** Rebuild hex string from 6-char base + alpha (0-255). Returns null if hex is invalid. */
+export function setHexAlpha(hex: string, alpha: number): string | null {
+  const clean = expandHex(hex.replace('#', '')).slice(0, 6);
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
   const a = Math.round(Math.max(0, Math.min(255, alpha)));
   return `#${clean}${a.toString(16).padStart(2, '0')}`;
 }

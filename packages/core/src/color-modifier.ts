@@ -36,7 +36,9 @@ export function applyColorModifiers(hex: string, modifiers: ColorModifierOp[]): 
       }
       case 'alpha': {
         const alpha = Math.round(Math.max(0, Math.min(1, mod.amount)) * 255);
-        current = setHexAlpha(current, alpha);
+        const result = setHexAlpha(current, alpha);
+        if (!result) throw new Error(`Color modifier 'alpha': invalid source color "${current}"`);
+        current = result;
         break;
       }
       case 'mix': {

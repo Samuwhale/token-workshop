@@ -470,3 +470,10 @@ Already up to date.
 ===============================================================
   Claimed: `setHexAlpha` does not validate hex input — passing a non-hex string like `"#GGG"` silently produces garbage output; no regex check or error before slicing and concatenating alpha bytes (`color-math.ts` ~L69)
   Worktree: /tmp/backlog-92630-IigPtJ
+
+  ✓ done: setHexAlpha does not validate hex input
+    Added hex validation (expandHex + regex) returning null on invalid input; caller in color-modifier.ts now throws descriptive error
+    10 turns · 48s · $0.28
+
+--- Merging: setHexAlpha does not validate hex input ---
+Already up to date.

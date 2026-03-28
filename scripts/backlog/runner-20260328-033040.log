@@ -469,3 +469,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 51)
+[main 35ab736] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 249 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Plugin `applyVariables` silently swallows rollback errors
+- Both `applyVariables` (variableSync.ts) and `syncSelectionTokens` (selectionHandling.ts) had empty `catch {}` blocks around rollback logic. Changed both to capture the rollback error, log it via `console.error`, and include a `rollbackError` field in the UI message when rollback fails (only set when `rolledBack` is false).
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L119, `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L568
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  23 items remaining
+===============================================================
+  Claimed: TokenEditor create mode doesn't suggest naming based on the token type — creating a color token gives no hint to use `color.*` namespace; creating a dimension gives no hint for `spacing.*` or `sizing.*`; new users build inconsistent hierarchies
+  Worktree: /tmp/backlog-84992-bWJfB5
