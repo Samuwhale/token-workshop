@@ -77,3 +77,16 @@ Already up to date.
 
 --- Merging: usePinnedTokens hook exists but pinning UI is not wired in TokenList ---
 Already up to date.
+[main 9ac538f] chore(backlog): done – usePinnedTokens hook exists but pinning UI is not wired in TokenList
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - product-pass
+- Areas explored: `packages/figma-plugin/src/ui/` (App.tsx, TokenList.tsx, ThemeManager.tsx, PublishPanel.tsx, ExportPanel.tsx, ImportPanel.tsx, AnalyticsPanel.tsx, GraphPanel.tsx, ResolverPanel.tsx, TokenEditor.tsx, BatchEditor.tsx, ColorPicker.tsx, ContrastChecker.tsx, ConfirmModal.tsx), `packages/figma-plugin/src/ui/hooks/` (usePinnedTokens.ts, useToastStack.ts, useLint.ts, useSetDelete.ts, useSetMergeSplit.ts, useGitSync.ts), `packages/server/src/routes/` (tokens.ts, themes.ts, sync.ts, sets.ts, generators.ts, operations.ts)
+- Found 12 items — written to backlog-inbox.md
+- Notable: `usePinnedTokens` hook is fully implemented but never wired to any UI — the pin infrastructure is complete but invisible to users; and lint violations exist in the data layer but are never surfaced inline in the token list rows
+
+===============================================================
+  Iteration 7  (claude)  —  7 items remaining
+===============================================================
+  Claimed: ImportPanel does no upfront schema validation before importing — user can upload invalid JSON or wrong-format files and the error only surfaces mid-import with a generic message; validate the file structure (check for `$type`/`$value` fields or known nesting format) immediately after file selection and show a clear error before the user clicks Import
+  Worktree: /tmp/backlog-15394-hSeO31

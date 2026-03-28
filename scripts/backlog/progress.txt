@@ -446,3 +446,16 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: `usePinnedTokens` hook is fully implemented but never wired to any UI — the pin infrastructure is complete but invisible to users; and lint violations exist in the data layer but are never surfaced inline in the token list rows
 ---
+
+## 2026-03-28 - bulkRename in token-store.ts does not validate for circular alias references after rename
+- Added circular reference detection after rename + alias updates, before persisting to disk
+- Fixed revert logic to also undo cross-set alias reference updates using a reverse pathMap
+- Moved disk saves (`saveSet`) to after circular check so corrupt state is never persisted
+- Added `rebuildFlatTokens()` in the catch block so in-memory state is consistent after revert
+- Added two API-level tests: one proving circular rename is rejected with full revert, one proving non-circular renames still succeed
+- Files changed: `packages/server/src/services/token-store.ts` ~L1240-1292, `packages/server/src/__tests__/api.test.ts` ~L92-165
+- **Learnings for future iterations:**
+  - `checkCircularReferences` requires affected paths in its `changes` array to seed DFS traversal — passing empty changes checks nothing
+  - Reverse alias updates can be done by applying `updateBulkAliasRefs` with a flipped pathMap instead of snapshotting token trees
+  - Always move disk persistence to after validation checks to avoid partial writes that corrupt on-disk state
+---

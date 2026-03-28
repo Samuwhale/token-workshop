@@ -1237,6 +1237,9 @@ export class TokenStore {
       }
     }
 
+    const pathMap = new Map(filteredRenames.map(r => [r.oldPath, r.newPath]));
+    const aliasModifiedSets = new Set<string>();
+
     this.beginBatch();
     try {
       // Apply: set new paths first, then remove old ones
@@ -1247,29 +1250,44 @@ export class TokenStore {
         deleteTokenAtPath(set.tokens, oldPath);
       }
 
-      await this.saveSet(setName);
-
       // Update alias references across all sets
-      const pathMap = new Map(filteredRenames.map(r => [r.oldPath, r.newPath]));
       let aliasesUpdated = 0;
-      const setsToSave = new Set<string>();
       for (const [sName, s] of this.sets) {
         const changed = updateBulkAliasRefs(s.tokens, pathMap);
         if (changed > 0) {
           aliasesUpdated += changed;
-          setsToSave.add(sName);
+          aliasModifiedSets.add(sName);
         }
       }
-      for (const sName of setsToSave) await this.saveSet(sName);
 
+      // Rebuild flat tokens so circular reference check sees the post-rename state
       this.rebuildFlatTokens();
+
+      // Detect circular alias references created by the rename
+      const circularCheckChanges = filteredRenames.map(({ newPath }) => {
+        const entries = this.flatTokens.get(newPath);
+        return { path: newPath, value: entries?.[0]?.token.$value };
+      });
+      this.checkCircularReferences(circularCheckChanges);
+
+      // All checks passed — persist to disk
+      await this.saveSet(setName);
+      for (const sName of aliasModifiedSets) await this.saveSet(sName);
+
       return { renamed: filteredRenames.length, skipped, aliasesUpdated };
     } catch (err) {
-      // Revert in-memory mutations: restore old tokens, remove new paths
+      // Revert in-memory mutations: restore renamed set
       for (const { oldPath, newPath, token } of filteredRenames) {
         setTokenAtPath(set.tokens, oldPath, token);
         deleteTokenAtPath(set.tokens, newPath);
       }
+      // Revert alias reference updates across other sets
+      const reversePathMap = new Map(filteredRenames.map(r => [r.newPath, r.oldPath]));
+      for (const sName of aliasModifiedSets) {
+        const s = this.sets.get(sName);
+        if (s) updateBulkAliasRefs(s.tokens, reversePathMap);
+      }
+      this.rebuildFlatTokens();
       throw err;
     } finally {
       this.endBatch();
