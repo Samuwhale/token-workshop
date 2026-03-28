@@ -464,3 +464,13 @@
   - When converting overflow panels to sub-tabs, remove both the overflow panel rendering block AND the overflow-specific "Back" header — sub-tabs don't need back buttons since they have persistent tab navigation.
   - The old `activeTab`/`setActiveTab` state is kept but unused (for backward compatibility with any remaining references). The new `activeTopTab`/`activeSubTab` pair is the source of truth.
 ---
+
+## 2026-03-28 - No visual diff when editing token values — no "before → after" preview
+- Added `OriginalValuePreview` component that always shows the current saved value alongside edit fields (not just when changed), with visual swatches for color, typography, shadow, border, and gradient types.
+- Improved `ValueDiff` for shadow, border, and gradient types — replaced JSON.stringify fallback with proper visual previews (shadow box-shadow swatch, border swatch, gradient CSS preview) and human-readable text summaries.
+- Added typography preview swatches to the typography diff (Aa mini-preview with font applied).
+- Files changed: `packages/figma-plugin/src/ui/components/ValueDiff.tsx` (new OriginalValuePreview export, ShadowPreviewSwatch, BorderPreviewSwatch, GradientPreviewSwatch, TypoPreviewSwatch helpers, shadow/border/gradient diff branches), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L10 (import), ~L714 (conditional render: show OriginalValuePreview when unchanged, ValueDiff when changed)
+- **Learnings for future iterations:**
+  - The ValueDiff component already existed but fell through to JSON.stringify for complex types. When adding visual previews for composite token types, extract reusable swatch components that both the diff and the static preview can share.
+  - `initialRef.current` in TokenEditor holds the full loaded state including `.value` — use it as the source for "current/original" value display.
+---

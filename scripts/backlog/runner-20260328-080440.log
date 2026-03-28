@@ -47,3 +47,16 @@ Already up to date.
 
 --- Merging: Tab structure doesn't match user mental model ---
 Already up to date.
+[main fb5de07] chore(backlog): done – Tab structure doesn't match user mental model
+ 8 files changed, 236 insertions(+), 187 deletions(-)
+
+## 2026-03-28 - Tab structure doesn't match user mental model
+- Restructured navigation from flat 4-tab (Tokens/Inspect/Generators/Publish) to workflow-oriented 2-tier tabs: **Define** (Tokens, Themes, Generators), **Apply** (Inspect, Heatmap), **Ship** (Publish, Export, Validation).
+- Top tabs render as accent-colored pills; sub-tabs render as a second row of smaller pills with segmented-control styling. Sub-tab selection persists per top-tab in localStorage.
+- Moved overflow panels to proper sub-tabs: themes→Define/Themes, heatmap→Apply/Heatmap, analytics→Ship/Validation, export→Ship/Export. Import and Settings remain as overlay panels.
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  96 items remaining
+===============================================================
+  Claimed: Color swatches too small in token list — at 11px text, color preview dots are hard to distinguish between similar shades; increase swatch size or show hex on hover
+  Worktree: /tmp/backlog-62956-vUaUsm

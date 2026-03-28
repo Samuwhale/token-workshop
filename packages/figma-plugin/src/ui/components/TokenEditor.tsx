@@ -7,7 +7,7 @@ import type { ApiErrorBody, TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { ColorModifierOp } from '@tokenmanager/core';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
-import { ValueDiff } from './ValueDiff';
+import { ValueDiff, OriginalValuePreview } from './ValueDiff';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import { ColorEditor, DimensionEditor, TypographyEditor, ShadowEditor, BorderEditor, GradientEditor, NumberEditor, DurationEditor, FontFamilyEditor, FontWeightEditor, StrokeStyleEditor, StringEditor, BooleanEditor, CompositionEditor, AssetEditor } from './ValueEditors';
 import { AliasPicker, resolveAliasChain } from './AliasPicker';
@@ -711,8 +711,10 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                 <button type="button" onClick={focusBlockedField} className="text-[9px] text-[var(--color-figma-error)] hover:underline cursor-pointer bg-transparent border-none p-0">{saveBlockReason}</button>
               )}
             </div>
-            {initialRef.current && JSON.stringify(value) !== JSON.stringify(initialRef.current.value) && (
-              <ValueDiff type={tokenType} before={initialRef.current.value} after={value} />
+            {initialRef.current && !isCreateMode && (
+              JSON.stringify(value) !== JSON.stringify(initialRef.current.value)
+                ? <ValueDiff type={tokenType} before={initialRef.current.value} after={value} />
+                : <OriginalValuePreview type={tokenType} value={initialRef.current.value} />
             )}
             {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
             {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} autoFocus={!isCreateMode} />}

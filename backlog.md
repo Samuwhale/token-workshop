@@ -20,7 +20,7 @@
 ### UX
 
 - [x] No onboarding or first-run experience — empty state shows "No tokens yet" with no guidance; add a first-run flow: "Import from Figma Variables" as primary CTA, "Start from template" using generator presets (Material, Tailwind), "Paste existing tokens" for migrations, and a brief walkthrough of the token → theme → publish workflow
-- [~] Tab structure doesn't match user mental model — current Tokens/Inspect/Graph/Publish tabs split related concerns; restructure around workflow: Define (tokens + themes + generators), Apply (inspect + heatmap + binding), Ship (publish + export + git + validation readiness checklist), with Settings/Themes as secondary panels
+- [x] Tab structure doesn't match user mental model — current Tokens/Inspect/Graph/Publish tabs split related concerns; restructure around workflow: Define (tokens + themes + generators), Apply (inspect + heatmap + binding), Ship (publish + export + git + validation readiness checklist), with Settings/Themes as secondary panels
 - [x] Developer-facing copy leaks into designer UI — terms like "DTCG", "alias", "$extensions", "$value", "source/enabled" are implementation details; audit all user-facing labels (e.g. "Alias" → "Reference", "Source" → "Base layer", "Enabled" → "Override") and keep DTCG terms only in export/developer views
 
 ---
@@ -40,7 +40,7 @@
 - [~] No visual diff when editing token values — no "before → after" preview; show the current resolved value alongside the edit field, especially for complex types like typography and shadows
 - [x] No hover preview on alias tokens — hovering `{color.primary}` in the token list doesn't show the resolved value; users must enter edit mode to see what an alias resolves to
 - [~] No token count badge on set tabs — you have to open a set to discover how many tokens it contains; show a count in the tab label
-- [ ] Color swatches too small in token list — at 11px text, color preview dots are hard to distinguish between similar shades; increase swatch size or show hex on hover
+- [~] Color swatches too small in token list — at 11px text, color preview dots are hard to distinguish between similar shades; increase swatch size or show hex on hover
 - [ ] No "Duplicate token" in context menu — creating a variant requires re-entering all values; add a Duplicate action that copies value/type/description with a `-copy` suffix
 - [ ] Search doesn't highlight matched substrings — filtering narrows the list but doesn't visually mark which part of the path or value matched, making it unclear why a result appeared
 - [ ] No breadcrumb trail for deep token trees — once expanded 4+ levels, users lose spatial context; show a sticky breadcrumb (e.g. `colors › brand › primary`) when scrolled deep into a group

@@ -73,3 +73,10 @@ Already up to date.
 ===============================================================
   Claimed: No visual diff when editing token values — no "before → after" preview; show the current resolved value alongside the edit field, especially for complex types like typography and shadows
   Worktree: /tmp/backlog-63973-B65qBj
+
+  ✓ done: No visual diff when editing token values — no "before → after" preview
+    Added always-visible OriginalValuePreview with visual swatches for all complex types (typography, shadow, border, gradient); upgraded ValueDiff with proper visual previews replacing JSON.stringify fallback for shadow/border/gradient types.
+    19 turns · 282s · $1.37
+
+--- Merging: No visual diff when editing token values — no "before → after" preview ---
+Already up to date.
