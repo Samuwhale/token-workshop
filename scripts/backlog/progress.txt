@@ -538,3 +538,9 @@
   - Emitting progress every 5th iteration (`i % 5 === 0`) avoids flooding the message bridge while still giving responsive feedback
   - Pull progress is tracked locally in the hooks since PATCH requests are async — increment a counter in `finally` blocks of Promise.all callbacks
 ---
+
+## 2026-03-28 - code-pass
+- Areas explored: `packages/server/src/routes/snapshots.ts` (no withLock), `packages/server/src/routes/resolvers.ts` (confirmed uses resolverStore which has own locking), `packages/server/src/routes/sync.ts` (0 withLock usages), `packages/server/src/services/manual-snapshot.ts` (shadowed stableStringify import, diff misses $type/$description), `packages/figma-plugin/src/ui/hooks/useSetMergeSplit.ts` (undo logic confirmed correct), `packages/core/src/dtcg-types.ts` + `types.ts` ($extensions untyped), `packages/figma-plugin/src/ui/App.tsx` (53 useState hooks, 2990 lines), `packages/server/src/services/resolver-store.ts` (has own validation, no tokenLock concern)
+- Found 4 items — written to backlog-inbox.md
+- Notable: manual-snapshot.ts L7 imports stableStringify from shared module then shadows it with a local redefinition at L10 — the import is dead code and the diff() method only compares $value, silently missing $type/$description changes
+---

@@ -81,3 +81,18 @@ Already up to date.
 
 --- Merging: Variable/style sync shows no per-item progress during large syncs ---
 Already up to date.
+[main 9ed9ae3] chore(backlog): done – Variable/style sync shows no per-item progress during large syncs
+ 11 files changed, 121 insertions(+), 8 deletions(-)
+  (pass skipped — another runner is handling it)
+
+## 2026-03-28 - Variable/style sync shows no per-item progress during large syncs
+- Added incremental progress reporting from plugin sandbox: `variable-sync-progress` and `style-sync-progress` messages emitted every 5 tokens during push operations in `variableSync.ts` and `styleSync.ts`
+- Added `SyncProgress` state (`{current, total}`) to both `useVariableSync` and `useStyleSync` hooks, listening for sandbox progress messages and tracking pull progress locally
+- Updated PublishPanel apply buttons to show "Syncing N / M…" instead of generic "Syncing…" during both push and pull operations
+
+===============================================================
+  Iteration 7  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Waiting for work…
