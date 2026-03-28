@@ -450,3 +450,17 @@
   - When buttons have dynamic `title` values, use a simplified static `aria-label` for screen readers (e.g., "Apply to selection" instead of the computed tooltip string)
   - Pre-existing build errors may block validation — check with a clean stash first to isolate
 ---
+
+## 2026-03-28 - Token badge text contrast fails WCAG AA
+- Lightened four badge text CSS custom properties in `styles.css` to improve contrast ratios against the `#2c2c2c` dark background:
+  - `--token-badge-shadow-text`: `#95a5a6` → `#b8c9ca` (5.46:1 → 8.14:1)
+  - `--token-badge-number-text`: `#1abc9c` → `#40ceb2` (5.80:1 → 7.11:1)
+  - `--token-badge-duration-text`: `#00cec9` → `#40d9d4` (7.10:1 → 8.04:1)
+  - `--token-badge-asset-text`: `#00b894` → `#3dcaaa` (5.51:1 → 6.80:1)
+- All now comfortably exceed WCAG AA 4.5:1 minimum for small text.
+- Files changed: `packages/figma-plugin/src/ui/styles.css` ~L23,27,35,41
+- Build validation: pre-existing build error (duplicated export in selectionInspectorUtils.ts) prevents build — confirmed failure exists on main branch too, unrelated to this change.
+- **Learnings for future iterations:**
+  - The original colors were borderline-passing (5.46–7.10:1) rather than truly failing; lightening to 7:1+ provides comfortable margin.
+  - Badge text colors are defined as CSS custom properties in `:root` — single-file change, no component modifications needed.
+---

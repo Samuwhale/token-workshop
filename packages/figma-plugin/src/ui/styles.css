@@ -20,11 +20,11 @@
   --token-badge-typography-bg: #9b59b633;
   --token-badge-typography-text: #9b59b6;
   --token-badge-shadow-bg: #2c3e5033;
-  --token-badge-shadow-text: #95a5a6;
+  --token-badge-shadow-text: #b8c9ca;
   --token-badge-border-bg: #e67e2233;
   --token-badge-border-text: #e67e22;
   --token-badge-number-bg: #1abc9c33;
-  --token-badge-number-text: #1abc9c;
+  --token-badge-number-text: #40ceb2;
   --token-badge-string-bg: #f39c1233;
   --token-badge-string-text: #f39c12;
   --token-badge-boolean-bg: #2ecc7133;
@@ -32,13 +32,13 @@
   --token-badge-gradient-bg: #e056fd33;
   --token-badge-gradient-text: #e056fd;
   --token-badge-duration-bg: #00cec933;
-  --token-badge-duration-text: #00cec9;
+  --token-badge-duration-text: #40d9d4;
   --token-badge-fontFamily-bg: #6c5ce733;
   --token-badge-fontFamily-text: #6c5ce7;
   --token-badge-composition-bg: #fd79a833;
   --token-badge-composition-text: #fd79a8;
   --token-badge-asset-bg: #55efc433;
-  --token-badge-asset-text: #00b894;
+  --token-badge-asset-text: #3dcaaa;
 }
 
 body {

@@ -468,3 +468,16 @@ Already up to date.
 
 --- Merging: Icon-only buttons in TokenTreeNode missing aria-label ---
 Already up to date.
+[main 26c02dd] chore(backlog): done – Icon-only buttons in TokenTreeNode missing aria-label
+ 7 files changed, 47 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - Icon-only buttons in TokenTreeNode missing aria-label
+- Added `aria-label` to 11 icon-only buttons that only had `title`: move up/down (group and token), add token to group, group actions, pin/unpin, edit, apply to selection, copy path, copy value
+- Also removed duplicate `getNextUnboundProperty` export in `selectionInspectorUtils.ts` that was causing a pre-existing build failure
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L495-L1375, `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L427-456
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  19 items remaining
+===============================================================
+  Claimed: No `aria-live` regions for dynamic status messages — copy feedback, apply result, delete error, and ThemeManager error banner appear dynamically but aren't announced by screen readers; wrap in `aria-live="polite"`
+  Worktree: /tmp/backlog-63685-IaxPkn
