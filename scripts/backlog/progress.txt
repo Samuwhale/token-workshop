@@ -625,3 +625,15 @@
   - `resolveTokenValue` from resolveAlias can be used to get resolved values for alias tokens in comparison
   - `stableStringify` is essential for value comparison (consistent key ordering)
 ---
+
+## 2026-03-28 - ThemeManager bulk set-status context menu ARIA roles and focus management
+- Added `role="menu"` and `aria-label` to the bulk context menu container div
+- Added `role="menuitem"` and `tabIndex={-1}` to each menu button
+- Added `aria-hidden="true"` to the non-interactive header text
+- Added `bulkMenuRef` and auto-focus on first menuitem when menu opens via `requestAnimationFrame`
+- Added ArrowUp/ArrowDown keyboard navigation with wrapping, matching the WAI-ARIA menu pattern
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L87-88,L518-539,L1110-1130
+- **Learnings for future iterations:**
+  - For context menus: `tabIndex={-1}` on menuitems + programmatic `.focus()` is the correct pattern (not `tabIndex={0}`) since focus is managed via arrow keys, not Tab
+  - The header label inside the menu should be `aria-hidden="true"` since the menu itself has `aria-label` — avoids double announcement
+---

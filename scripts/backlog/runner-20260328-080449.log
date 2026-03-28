@@ -201,3 +201,17 @@ Already up to date.
 
 --- Merging: No token comparison mode ---
 Already up to date.
+[main 67834a8] chore(backlog): done – No token comparison mode
+ 7 files changed, 351 insertions(+), 4 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/ComparePanel.tsx
+
+## 2026-03-28 - No token comparison mode
+- Created `ComparePanel.tsx` component showing selected tokens side-by-side in a table with tokens as columns and properties as rows
+- Highlights differing rows with yellow background and asterisk marker
+- Handles structured values (typography, shadow) by breaking into individual property rows
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  72 items remaining
+===============================================================
+  Claimed: Theme cache returns mutable reference — `load()` returns the cache object directly; route handlers that mutate it (push, filter) change the cached copy in-place, so if `save()` throws the cache is left in an inconsistent state (mutated but not persisted)
+  Worktree: /tmp/backlog-63973-rVORCQ

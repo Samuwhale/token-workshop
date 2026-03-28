@@ -163,3 +163,10 @@ Already up to date.
 ===============================================================
   Claimed: ThemeManager bulk set-status context menu has no ARIA `role="menu"` or `role="menuitem"` — screen readers won't announce it as a menu; add proper roles and focus management matching the TokenList context menu pattern
   Worktree: /tmp/backlog-62956-375MdG
+
+  ✓ done: ThemeManager bulk set-status context menu ARIA roles and focus management
+    Added role=\"menu\"/\"menuitem\", aria-label, auto-focus on open, and ArrowUp/ArrowDown keyboard navigation with wrapping to the bulk set-status context menu
+    16 turns · 106s · $0.5
+
+--- Merging: ThemeManager bulk set-status context menu ARIA roles and focus management ---
+Already up to date.

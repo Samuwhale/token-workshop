@@ -85,6 +85,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   // Bulk set-status context menu
   const [bulkMenu, setBulkMenu] = useState<{ x: number; y: number; dimId: string; setName: string } | null>(null);
+  const bulkMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Newly created dimension for auto-scroll
   const [newlyCreatedDim, setNewlyCreatedDim] = useState<string | null>(null);
@@ -514,11 +515,28 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
   };
 
-  // Close bulk menu on outside click or Escape
+  // Close bulk menu on outside click or Escape; focus first item and handle arrow keys
   useEffect(() => {
     if (!bulkMenu) return;
     const close = () => setBulkMenu(null);
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    // Focus first menuitem on open
+    requestAnimationFrame(() => {
+      const first = bulkMenuRef.current?.querySelector<HTMLElement>('[role="menuitem"]');
+      first?.focus();
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { close(); return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const items = Array.from(bulkMenuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+        if (!items.length) return;
+        const idx = items.indexOf(document.activeElement as HTMLElement);
+        const next = e.key === 'ArrowDown'
+          ? items[(idx + 1) % items.length]
+          : items[(idx - 1 + items.length) % items.length];
+        next?.focus();
+      }
+    };
     document.addEventListener('click', close);
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('click', close); document.removeEventListener('keydown', onKey); };
@@ -1091,16 +1109,21 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       {/* Bulk set-status context menu */}
       {bulkMenu && (
         <div
+          ref={bulkMenuRef}
+          role="menu"
+          aria-label={`Set "${bulkMenu.setName}" in all options`}
           className="fixed z-50 bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded shadow-lg py-1 min-w-[180px]"
           style={{ top: bulkMenu.y, left: bulkMenu.x }}
           onClick={e => e.stopPropagation()}
         >
-          <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider">
+          <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider" aria-hidden="true">
             Set &ldquo;{bulkMenu.setName}&rdquo; in all options
           </div>
           {(['disabled', 'source', 'enabled'] as const).map(s => (
             <button
               key={s}
+              role="menuitem"
+              tabIndex={-1}
               onClick={() => handleBulkSetState(bulkMenu.dimId, bulkMenu.setName, s)}
               className="w-full text-left px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] flex items-center gap-2"
             >
