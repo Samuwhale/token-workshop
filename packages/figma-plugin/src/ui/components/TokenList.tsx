@@ -2653,13 +2653,64 @@ export function TokenList({
             </div>
           </div>
         ) : tokens.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <path d="M12 8v8M8 12h8" />
-            </svg>
-            <p className="mt-2 text-[12px]">No tokens yet</p>
-            <p className="text-[10px]">Create a token or import from Figma</p>
+          <div className="flex flex-col items-center justify-center py-8 px-5 gap-4 text-center">
+            {/* Icon + heading */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-[12px] font-medium text-[var(--color-figma-text)]">This set is empty</p>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">Get started by adding tokens</p>
+              </div>
+            </div>
+
+            {/* Quick-start actions */}
+            <div className="flex flex-col gap-1.5 w-full max-w-[240px]">
+              <button
+                onClick={() => setShowScaffold(true)}
+                disabled={!connected}
+                className="flex flex-col items-start gap-0.5 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="2.5" cy="6" r="1.5" />
+                    <path d="M4 6h4" />
+                    <circle cx="9.5" cy="6" r="1.5" />
+                    <circle cx="6" cy="2.5" r="1.5" />
+                  </svg>
+                  <span className="text-[11px] font-medium">Use a preset</span>
+                </div>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
+                  Color ramp, spacing scale, typography, and more
+                </p>
+              </button>
+
+              <button
+                onClick={() => onCreateNew ? onCreateNew() : setShowCreateForm(true)}
+                disabled={!connected}
+                className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M6 1v10M1 6h10" />
+                </svg>
+                <span className="text-[11px] font-medium">Create a token manually</span>
+              </button>
+
+              <button
+                onClick={() => setNewGroupDialogParent('')}
+                disabled={!connected}
+                className="flex items-center gap-2 px-3 py-2 rounded border border-[var(--color-figma-border)] text-left text-[var(--color-figma-text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1.5 3.5h3L6 2h4.5v8h-9z" />
+                </svg>
+                <span className="text-[11px] font-medium">Create a group</span>
+              </button>
+            </div>
           </div>
         ) : viewMode === 'canvas' ? (
           /* Canvas view */
