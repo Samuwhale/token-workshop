@@ -5,6 +5,7 @@ import { resolveTokenValue } from '../../shared/resolveAlias';
 import { isDimensionLike } from './generators/generatorShared';
 import { nodeParentPath } from './tokenListUtils';
 import { getErrorMessage } from '../shared/utils';
+import { apiFetch } from '../shared/apiFetch';
 import type { UndoSlot } from '../hooks/useUndo';
 import {
   getBindingForProperty,
@@ -164,7 +165,7 @@ export function PropertyRow({
 
     setCreating(true);
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${encodedTokenPath}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${encodedTokenPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -173,17 +174,8 @@ export function PropertyRow({
           $extensions: { 'com.figma.scopes': getDefaultScopesForProperty(prop) },
         }),
       });
-      if (res.ok) {
-        onTokenCreated(tokenPath, prop, tokenType, tokenValue);
-        setCreateError('');
-      } else {
-        let detail = `Server error (${res.status})`;
-        try {
-          const body = await res.json();
-          if (body.error) detail = body.error;
-        } catch { /* use default detail */ }
-        setCreateError(detail);
-      }
+      onTokenCreated(tokenPath, prop, tokenType, tokenValue);
+      setCreateError('');
     } catch (err) {
       setCreateError(getErrorMessage(err, 'Network request failed'));
     } finally {

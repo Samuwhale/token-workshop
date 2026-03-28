@@ -9,6 +9,7 @@ import { useState, useCallback } from 'react';
 import type { ResolverMeta, ResolverModifierMeta } from '../hooks/useResolvers';
 import { ConfirmModal } from './ConfirmModal';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
+import { apiFetch } from '../shared/apiFetch';
 
 interface ResolverPanelProps {
   serverUrl: string;
@@ -84,15 +85,11 @@ export function ResolverPanel({
         modifiers: {},
         resolutionOrder: [{ $ref: '#/sets/foundation' }],
       };
-      const resp = await fetch(`${serverUrl}/api/resolvers`, {
+      await apiFetch(`${serverUrl}/api/resolvers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!resp.ok) {
-        const data = await resp.json().catch(() => ({}));
-        throw new Error((data as { error?: string }).error || `Server returned ${resp.status}`);
-      }
       setNewName('');
       setCreating(false);
       fetchResolvers();
@@ -143,15 +140,11 @@ export function ResolverPanel({
           { $ref: '#/modifiers/mode' },
         ],
       };
-      const resp = await fetch(`${serverUrl}/api/resolvers`, {
+      await apiFetch(`${serverUrl}/api/resolvers`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!resp.ok) {
-        const data = await resp.json().catch(() => ({}));
-        throw new Error((data as { error?: string }).error || `Server returned ${resp.status}`);
-      }
       setTemplateName('');
       setCreatingFromTemplate(false);
       fetchResolvers();

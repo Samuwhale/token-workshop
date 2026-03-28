@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../shared/utils';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import type { ThemeOption, ThemeDimension } from '@tokenmanager/core';
@@ -128,8 +129,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     const controller = new AbortController();
     fetchAbortRef.current = controller;
     try {
-      const res = await fetch(`${serverUrl}/api/themes`, { signal: controller.signal });
-      const data = await res.json();
+      const data = await apiFetch<{ dimensions?: ThemeDimension[] }>(`${serverUrl}/api/themes`, { signal: controller.signal });
       const allDimensions: ThemeDimension[] = data.dimensions || [];
       setDimensions(allDimensions);
 
@@ -170,20 +170,15 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       const failedSets: string[] = [];
       await Promise.all(sets.map(async (s) => {
         try {
-          const r = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(s)}`, { signal: controller.signal });
-          if (r.ok) {
-            const d = await r.json();
-            const map: Record<string, any> = {};
-            const typeMap: Record<string, string> = {};
-            for (const [path, token] of flattenTokenGroup(d.tokens || {})) {
-              map[path] = token.$value;
-              if (token.$type) typeMap[path] = token.$type;
-            }
-            tokenValues[s] = map;
-            tokenTypes[s] = typeMap;
-          } else {
-            failedSets.push(s);
+          const d = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(s)}`, { signal: controller.signal });
+          const map: Record<string, any> = {};
+          const typeMap: Record<string, string> = {};
+          for (const [path, token] of flattenTokenGroup(d.tokens || {})) {
+            map[path] = token.$value;
+            if (token.$type) typeMap[path] = token.$type;
           }
+          tokenValues[s] = map;
+          tokenTypes[s] = typeMap;
         } catch {
           failedSets.push(s);
         }
@@ -315,23 +310,18 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     }
     setCreateDimError(null);
     try {
-      const res = await fetch(`${serverUrl}/api/themes/dimensions`, {
+      await apiFetch(`${serverUrl}/api/themes/dimensions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, name }),
       });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setCreateDimError(d.error || 'Failed to create dimension');
-        return;
-      }
       setNewDimName('');
       setShowCreateDim(false);
       setNewlyCreatedDim(id);
       setDimensions(prev => [...prev, { id, name, options: [] }]);
       debouncedFetchDimensions();
     } catch (err) {
-      setCreateDimError(getErrorMessage(err, 'Failed to create dimension'));
+      setCreateDimError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to create dimension'));
     }
   };
 
@@ -357,21 +347,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     if (!current) { cancelRenameDim(); return; }
     if (name === current.name) { cancelRenameDim(); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(renameDim)}`, {
+      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(renameDim)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setRenameError(d.error || 'Rename failed');
-        return;
-      }
       setDimensions(prev => prev.map(d => d.id === renameDim ? { ...d, name } : d));
       cancelRenameDim();
       debouncedFetchDimensions();
     } catch (err) {
-      setRenameError(getErrorMessage(err, 'Rename failed'));
+      setRenameError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Rename failed'));
     }
   };
 
@@ -401,15 +386,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       return;
     }
     try {
-      const res = await fetch(
+      await apiFetch(
         `${serverUrl}/api/themes/dimensions/${encodeURIComponent(renameOption.dimId)}/options/${encodeURIComponent(renameOption.optionName)}`,
         { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) },
       );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setRenameOptionError(d.error || 'Rename failed');
-        return;
-      }
       setDimensions(prev => prev.map(d =>
         d.id === renameOption.dimId
           ? { ...d, options: d.options.map(o => o.name === renameOption.optionName ? { ...o, name } : o) }
@@ -433,7 +413,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       cancelRenameOption();
       debouncedFetchDimensions();
     } catch (err) {
-      setRenameOptionError(getErrorMessage(err, 'Rename failed'));
+      setRenameOptionError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Rename failed'));
     }
   };
 
@@ -445,12 +425,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     if (!snapshot) return;
     const savedDim = JSON.parse(JSON.stringify(snapshot)) as ThemeDimension;
     try {
-      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(id)}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setError(d.error || `Failed to delete dimension (${res.status})`);
-        return;
-      }
+      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(id)}`, { method: 'DELETE' });
       setDimensions(prev => prev.filter(d => d.id !== id));
       debouncedFetchDimensions();
 
@@ -459,24 +434,25 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         description: `Deleted layer "${savedDim.name}"`,
         restore: async () => {
           // Recreate the dimension
-          const createRes = await fetch(`${serverUrl}/api/themes/dimensions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: savedDim.id, name: savedDim.name }),
-          });
-          if (!createRes.ok) {
-            const d = await createRes.json().catch(() => ({}));
-            setError(d.error || 'Failed to undo: could not recreate layer');
+          try {
+            await apiFetch(`${serverUrl}/api/themes/dimensions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: savedDim.id, name: savedDim.name }),
+            });
+          } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'Failed to undo: could not recreate layer');
             return;
           }
           // Recreate each option
           for (const opt of savedDim.options) {
-            const optRes = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(savedDim.id)}/options`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: opt.name, sets: opt.sets }),
-            });
-            if (!optRes.ok) {
+            try {
+              await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(savedDim.id)}/options`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: opt.name, sets: opt.sets }),
+              });
+            } catch {
               setError(`Undo restored layer but failed to restore option "${opt.name}"`);
             }
           }
@@ -484,7 +460,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         },
       });
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to delete dimension'));
+      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to delete dimension'));
     }
   };
 
@@ -503,16 +479,11 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     const defaultSets: Record<string, 'disabled'> = {};
     sets.forEach(s => { defaultSets[s] = 'disabled'; });
     try {
-      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, sets: defaultSets }),
       });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setAddOptionErrors(prev => ({ ...prev, [dimId]: d.error || 'Failed to add option' }));
-        return;
-      }
       setNewOptionNames(prev => ({ ...prev, [dimId]: '' }));
       setDimensions(prev => prev.map(d =>
         d.id === dimId ? { ...d, options: [...d.options, { name, sets: defaultSets }] } : d,
@@ -522,7 +493,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       debouncedFetchDimensions();
       setTimeout(() => addOptionInputRefs.current[dimId]?.focus(), 0);
     } catch (err) {
-      setAddOptionErrors(prev => ({ ...prev, [dimId]: getErrorMessage(err, 'Failed to add option') }));
+      setAddOptionErrors(prev => ({ ...prev, [dimId]: err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to add option') }));
     }
   };
 
@@ -539,23 +510,18 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       newName = `${optionName} copy ${counter++}`;
     }
     try {
-      const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName, sets: { ...opt.sets } }),
       });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setError(d.error || 'Failed to duplicate option');
-        return;
-      }
       setDimensions(prev => prev.map(d =>
         d.id === dimId ? { ...d, options: [...d.options, { name: newName, sets: { ...opt.sets } }] } : d,
       ));
       setSelectedOptions(prev => ({ ...prev, [dimId]: newName }));
       debouncedFetchDimensions();
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to duplicate option'));
+      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to duplicate option'));
     }
   };
 
@@ -572,7 +538,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     [reordered[idx], reordered[newIdx]] = [reordered[newIdx], reordered[idx]];
     setDimensions(prev => prev.map(d => d.id === dimId ? { ...d, options: reordered } : d));
     try {
-      const res = await fetch(
+      await apiFetch(
         `${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options-order`,
         {
           method: 'PUT',
@@ -580,9 +546,6 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           body: JSON.stringify({ options: reordered.map(o => o.name) }),
         },
       );
-      if (!res.ok) {
-        fetchDimensions();
-      }
     } catch {
       fetchDimensions();
     }
@@ -598,15 +561,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     const savedOpt = JSON.parse(JSON.stringify(snapshot)) as ThemeOption;
     const dimName = dim!.name;
     try {
-      const res = await fetch(
+      await apiFetch(
         `${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options/${encodeURIComponent(optionName)}`,
         { method: 'DELETE' },
       );
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setError(d.error || `Failed to delete option (${res.status})`);
-        return;
-      }
       setDimensions(prev => prev.map(d =>
         d.id === dimId ? { ...d, options: d.options.filter(o => o.name !== optionName) } : d,
       ));
@@ -616,21 +574,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       onPushUndo?.({
         description: `Deleted option "${optionName}" from "${dimName}"`,
         restore: async () => {
-          const optRes = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+          await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: savedOpt.name, sets: savedOpt.sets }),
           });
-          if (!optRes.ok) {
-            const d = await optRes.json().catch(() => ({}));
-            setError(d.error || 'Failed to undo: could not recreate option');
-            return;
-          }
           fetchDimensions();
         },
       });
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to delete option'));
+      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to delete option'));
     }
   };
 
@@ -659,19 +612,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
       const tokenPath = item.missingRef.split('.').join('/');
       const body: Record<string, unknown> = { $value: item.fillValue };
       if (item.fillType) body.$type = item.fillType;
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPath}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${tokenPath}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setError(d.error || `Failed to create fill token (${res.status})`);
-        return;
-      }
       debouncedFetchDimensions();
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to auto-fill token'));
+      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to auto-fill token'));
     } finally {
       setFillingKeys(prev => { const n = new Set(prev); n.delete(fillKey); return n; });
     }
@@ -703,19 +651,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         if (item.fillType) t.$type = item.fillType;
         return t;
       });
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokens: batchTokens, strategy: 'skip' }),
       });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setError(d.error || `Failed to batch-fill tokens (${res.status})`);
-        return;
-      }
       debouncedFetchDimensions();
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to auto-fill tokens'));
+      setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to auto-fill tokens'));
     } finally {
       setFillingKeys(prev => { const n = new Set(prev); n.delete(fillKey); return n; });
     }
@@ -739,21 +682,15 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           : d,
       ));
       try {
-        const res = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+        await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: optionName, sets: updatedSets }),
         });
-        if (!res.ok) {
-          setDimensions(previousDimensions);
-          const d = await res.json().catch(() => ({}));
-          setError(d.error || `Failed to save (${res.status})`);
-          return;
-        }
         debouncedFetchDimensions();
       } catch (err) {
         setDimensions(previousDimensions);
-        setError(getErrorMessage(err, 'Failed to save'));
+        setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to save'));
       } finally {
         setSavingKeys(prev => { const n = new Set(prev); n.delete(saveKey); return n; });
       }
@@ -781,25 +718,18 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           : d,
       ));
       try {
-        const results = await Promise.all(dim.options.map(opt => {
+        await Promise.all(dim.options.map(opt => {
           const updatedSets = { ...opt.sets, [setName]: targetState };
-          return fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+          return apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: opt.name, sets: updatedSets }),
           });
         }));
-        const failed = results.find(r => !r.ok);
-        if (failed) {
-          setDimensions(previousDimensions);
-          const d = await failed.json().catch(() => ({}));
-          setError(d.error || `Failed to bulk-update (${failed.status})`);
-          return;
-        }
         debouncedFetchDimensions();
       } catch (err) {
         setDimensions(previousDimensions);
-        setError(getErrorMessage(err, 'Failed to bulk-update'));
+        setError(err instanceof ApiError ? err.message : getErrorMessage(err, 'Failed to bulk-update'));
       } finally {
         setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.delete(k)); return n; });
       }

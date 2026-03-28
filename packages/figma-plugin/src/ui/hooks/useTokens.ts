@@ -3,7 +3,7 @@ import { isDTCGToken } from '@tokenmanager/core';
 import type { DTCGGroup, TokenValue, TokenReference } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
-import { isNetworkError } from '../shared/apiFetch';
+import { apiFetch, isNetworkError } from '../shared/apiFetch';
 
 /** Flatten a DTCG group into TokenMapEntry records, preserving each leaf's DTCG key as `$name`. */
 function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): Array<[string, TokenMapEntry]> {
@@ -68,9 +68,7 @@ export function useTokens(
       ? AbortSignal.any([AbortSignal.timeout(5000), disconnectSig])
       : AbortSignal.timeout(5000);
     try {
-      const setsRes = await fetch(`${serverUrl}/api/sets`, { signal });
-      if (!setsRes.ok) return;
-      const setsData = await setsRes.json();
+      const setsData = await apiFetch<{ sets: string[]; descriptions?: Record<string, string>; collectionNames?: Record<string, string>; modeNames?: Record<string, string>; counts?: Record<string, number> }>(`${serverUrl}/api/sets`, { signal });
       const allSets: string[] = setsData.sets || [];
       if (gen !== fetchGenRef.current) return;
       setSets(allSets);
@@ -85,9 +83,7 @@ export function useTokens(
           setActiveSet(current);
         }
 
-        const tokensRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
-        if (!tokensRes.ok) return;
-        const tokensData = await tokensRes.json();
+        const tokensData = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
         if (gen !== fetchGenRef.current) return;
         setTokens(buildTree(tokensData.tokens || {}));
 
@@ -127,16 +123,12 @@ export function useTokens(
 }
 
 export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<string, TokenMapEntry>> {
-  const setsRes = await fetch(`${serverUrl}/api/sets`, { signal: AbortSignal.timeout(5000) });
-  if (!setsRes.ok) throw new Error(`Failed to fetch sets: ${setsRes.statusText}`);
-  const setsData = await setsRes.json();
+  const setsData = await apiFetch<{ sets: string[] }>(`${serverUrl}/api/sets`, { signal: AbortSignal.timeout(5000) });
   const setNames: string[] = setsData.sets || [];
 
   const results = await Promise.allSettled(
     setNames.map(async (setName) => {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
-      if (!res.ok) throw new Error(`${setName}: ${res.statusText}`);
-      const data = await res.json();
+      const data = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
       return data.tokens || {};
     })
   );
@@ -167,16 +159,12 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
   pathToSet: Record<string, string>;
   perSetFlat: Record<string, Record<string, TokenMapEntry>>;
 }> {
-  const setsRes = await fetch(`${serverUrl}/api/sets`, { signal: AbortSignal.timeout(5000) });
-  if (!setsRes.ok) throw new Error(`Failed to fetch sets: ${setsRes.statusText}`);
-  const setsData = await setsRes.json();
+  const setsData = await apiFetch<{ sets: string[] }>(`${serverUrl}/api/sets`, { signal: AbortSignal.timeout(5000) });
   const setNames: string[] = setsData.sets || [];
 
   const results = await Promise.allSettled(
     setNames.map(async (setName) => {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
-      if (!res.ok) throw new Error(`${setName}: ${res.statusText}`);
-      const data = await res.json();
+      const data = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
       return { setName, tokens: data.tokens || {} };
     })
   );

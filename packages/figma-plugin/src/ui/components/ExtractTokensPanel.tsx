@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ExtractedTokenEntry, TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { getErrorMessage } from '../shared/utils';
+import { apiFetch } from '../shared/apiFetch';
 
 interface ExtractTokensPanelProps {
   connected: boolean;
@@ -128,15 +129,11 @@ export function ExtractTokensPanel({
         const pathEncoded = item.name.split('.').map(encodeURIComponent).join('/');
         const existing = tokenMap[item.name];
         const method = existing ? 'PATCH' : 'POST';
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
           method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $type: item.tokenType, $value: item.value }),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(data.error || `Failed to create "${item.name}"`);
-        }
         created++;
         setProgress({ current: created, total: toCreate.length });
       }

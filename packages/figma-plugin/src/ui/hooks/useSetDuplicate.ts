@@ -1,4 +1,4 @@
-import { isNetworkError } from '../shared/apiFetch';
+import { apiFetch, isNetworkError } from '../shared/apiFetch';
 import type { UndoSlot } from './useUndo';
 
 interface UseSetDuplicateParams {
@@ -31,23 +31,14 @@ export function useSetDuplicate({
     let savedTokens: Record<string, unknown> = {};
     try {
       const signal = AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]);
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`, { signal });
-      if (!res.ok) {
-        setErrorToast(`Failed to read set "${setName}": server returned ${res.status}`);
-        return;
-      }
-      const data = await res.json();
+      const data = await apiFetch<{ tokens: Record<string, unknown> }>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`, { signal });
       savedTokens = data.tokens || {};
-      const createRes = await fetch(`${serverUrl}/api/sets`, {
+      await apiFetch(`${serverUrl}/api/sets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newName, tokens: data.tokens }),
         signal,
       });
-      if (!createRes.ok) {
-        setErrorToast(`Failed to create duplicate set "${newName}": server returned ${createRes.status}`);
-        return;
-      }
     } catch (err) {
       if (isNetworkError(err)) markDisconnected();
       else setErrorToast(`Duplicate failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -61,11 +52,11 @@ export function useSetDuplicate({
     pushUndo({
       description: `Duplicated set "${setName}" → "${dupName}"`,
       restore: async () => {
-        await fetch(`${url}/api/sets/${encodeURIComponent(dupName)}`, { method: 'DELETE' });
+        await apiFetch(`${url}/api/sets/${encodeURIComponent(dupName)}`, { method: 'DELETE' });
         refreshTokens();
       },
       redo: async () => {
-        await fetch(`${url}/api/sets`, {
+        await apiFetch(`${url}/api/sets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: dupName, tokens: dupTokens }),

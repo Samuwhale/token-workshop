@@ -235,11 +235,7 @@ export function useGeneratorDialog({
     if (!targetSet) return;
     const controller = new AbortController();
     setExistingTokensError('');
-    fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: controller.signal })
-      .then(res => {
-        if (!res.ok) throw new Error(`Failed to load existing tokens (${res.status})`);
-        return res.json();
-      })
+    apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`, { signal: controller.signal })
       .then(data => {
         const map = flattenTokenGroup(data.tokens || {});
         const obj: Record<string, { $value: unknown; $type: string }> = {};
@@ -350,20 +346,18 @@ export function useGeneratorDialog({
       // When updating an existing generator, check for manually-edited tokens
       if (isEditing && existingGenerator) {
         try {
-          const checkRes = await fetch(`${serverUrl}/api/generators/${existingGenerator.id}/check-overwrites`, {
-            method: 'POST',
-          });
-          if (checkRes.ok) {
-            const { modified } = await checkRes.json() as { modified: { path: string }[] };
-            if (modified.length > 0) {
-              const paths = modified.map(m => m.path).join('\n  • ');
-              const confirmed = window.confirm(
-                `${modified.length} token(s) have been manually edited since the last run and will be overwritten:\n\n  • ${paths}\n\nProceed?`,
-              );
-              if (!confirmed) {
-                setSaving(false);
-                return;
-              }
+          const { modified } = await apiFetch<{ modified: { path: string }[] }>(
+            `${serverUrl}/api/generators/${existingGenerator.id}/check-overwrites`,
+            { method: 'POST' },
+          );
+          if (modified.length > 0) {
+            const paths = modified.map(m => m.path).join('\n  • ');
+            const confirmed = window.confirm(
+              `${modified.length} token(s) have been manually edited since the last run and will be overwritten:\n\n  • ${paths}\n\nProceed?`,
+            );
+            if (!confirmed) {
+              setSaving(false);
+              return;
             }
           }
         } catch {
@@ -386,11 +380,8 @@ export function useGeneratorDialog({
         // so the semantic mapping dialog can still be offered.
         if (tokensForMapping.length === 0 && isMultiBrand) {
           try {
-            const tokensRes = await fetch(`${serverUrl}/api/generators/${savedGen.id}/tokens`);
-            if (tokensRes.ok) {
-              const tokensData = await tokensRes.json() as { tokens: GeneratedTokenResult[] };
-              tokensForMapping = tokensData.tokens ?? [];
-            }
+            const tokensData = await apiFetch<{ tokens: GeneratedTokenResult[] }>(`${serverUrl}/api/generators/${savedGen.id}/tokens`);
+            tokensForMapping = tokensData.tokens ?? [];
           } catch {
             // Best-effort — if fetching fails, skip semantic mapping
           }

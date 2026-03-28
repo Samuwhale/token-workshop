@@ -1,5 +1,6 @@
 import { getErrorMessage } from '../shared/utils';
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { apiFetch } from '../shared/apiFetch';
 import { fetchAllTokensFlat } from './useTokens';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 
@@ -101,9 +102,7 @@ export function useFigmaSync(
     setGroupScopesApplying(true);
     setGroupScopesError(null);
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-      if (!res.ok) throw new Error('Failed to fetch tokens');
-      const data = await res.json();
+      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       const prefix = groupScopesPath + '.';
       const tokenPaths: string[] = [];
       const walk = (group: Record<string, any>, p: string) => {
@@ -127,16 +126,11 @@ export function useFigmaSync(
       for (let i = 0; i < tokenPaths.length; i += BATCH_SIZE) {
         const batch = tokenPaths.slice(i, i + BATCH_SIZE);
         const results = await Promise.all(batch.map(async path => {
-          const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $extensions: { 'com.figma.scopes': groupScopesSelected } }),
           });
-          if (!res.ok) {
-            const body = await res.text().catch(() => '');
-            throw new Error(`Failed to update "${path}": ${body || `HTTP ${res.status}`}`);
-          }
-          return res;
         }));
         done += batch.length;
         setGroupScopesProgress({ done, total });

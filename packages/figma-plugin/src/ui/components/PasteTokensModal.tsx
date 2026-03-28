@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { adaptShortcut, getErrorMessage } from '../shared/utils';
 import { parseInput, validateTokenPath, type ParsedToken } from '../shared/tokenParsers';
+import { apiFetch } from '../shared/apiFetch';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -133,29 +134,21 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
     try {
       for (const row of toCreate) {
         const pathEncoded = row.path.split('.').map(encodeURIComponent).join('/');
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $value: row.$value, $type: row.$type }),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(data.error || `Failed to create token "${row.path}"`);
-        }
         done++;
         setProgress({ current: done, total });
       }
       for (const row of toUpdate) {
         const pathEncoded = row.path.split('.').map(encodeURIComponent).join('/');
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $value: row.$value, $type: row.$type }),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(data.error || `Failed to update token "${row.path}"`);
-        }
         done++;
         setProgress({ current: done, total });
       }

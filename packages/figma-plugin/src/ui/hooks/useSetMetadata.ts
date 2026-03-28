@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { getErrorMessage } from '../shared/utils';
+import { apiFetch } from '../shared/apiFetch';
 
 interface UseSetMetadataParams {
   serverUrl: string;
@@ -37,16 +38,11 @@ export function useSetMetadata({
   const handleSaveMetadata = async () => {
     if (!editingMetadataSet || !connected) { setEditingMetadataSet(null); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(editingMetadataSet)}/metadata`, {
+      await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(editingMetadataSet)}/metadata`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description: metadataDescription, figmaCollection: metadataCollectionName, figmaMode: metadataModeName }),
       });
-      if (!res.ok) {
-        const body = await res.text().catch(() => '');
-        onError(`Save metadata failed: ${body || res.statusText}`);
-        return;
-      }
     } catch (err) {
       onError(`Save metadata failed: ${getErrorMessage(err)}`);
       return;

@@ -1,7 +1,7 @@
 import { getErrorMessage } from '../shared/utils';
 import { useState } from 'react';
 import type { GeneratedTokenResult } from '../hooks/useGenerators';
-import type { ApiErrorBody } from '../../shared/types';
+import { apiFetch } from '../shared/apiFetch';
 
 // ---------------------------------------------------------------------------
 // Built-in semantic patterns
@@ -181,26 +181,22 @@ export function SemanticMappingDialog({
           $description: `Semantic reference for ${targetGroup}.${mapping.step}`,
         };
         // POST /api/tokens/:set/* creates the token; PATCH if it already exists (409)
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedFullPath}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        if (!res.ok) {
-          if (res.status === 409) {
+        try {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedFullPath}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+        } catch (postErr: any) {
+          if (postErr?.status === 409) {
             // Token already exists — overwrite via PATCH
-            const patchRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedFullPath}`, {
+            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedFullPath}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body),
             });
-            if (!patchRes.ok) {
-              const data: ApiErrorBody = await patchRes.json().catch(() => ({}));
-              throw new Error(data.error || `Failed to update ${fullPath}`);
-            }
           } else {
-            const data: ApiErrorBody = await res.json().catch(() => ({}));
-            throw new Error(data.error || `Failed to create ${fullPath}`);
+            throw postErr;
           }
         }
         created++;

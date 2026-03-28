@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { swatchBgColor } from '../shared/colorUtils';
 import { ValueDiff } from './ValueDiff';
+import { apiFetch } from '../shared/apiFetch';
 
 /* ── Types ──────────────────────────────────────────────────────────────── */
 
@@ -161,9 +162,7 @@ export function VersionHistoryPanel({ serverUrl, connected, onPushUndo, onRefres
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${serverUrl}/api/sync/log?limit=50`, { signal: controller.signal });
-      if (!res.ok) throw new Error('Failed to fetch commit log');
-      const data = await res.json();
+      const data = await apiFetch<{ commits?: CommitEntry[] }>(`${serverUrl}/api/sync/log?limit=50`, { signal: controller.signal });
       setCommits(data.commits || []);
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
@@ -183,9 +182,7 @@ export function VersionHistoryPanel({ serverUrl, connected, onPushUndo, onRefres
     setDetailLoading(true);
     setDetailError(null);
     try {
-      const res = await fetch(`${serverUrl}/api/sync/log/${hash}/tokens`);
-      if (!res.ok) throw new Error('Failed to fetch commit details');
-      const data = await res.json();
+      const data = await apiFetch<{ hash?: string; changes?: TokenChange[]; fileCount?: number }>(`${serverUrl}/api/sync/log/${hash}/tokens`);
       if (!data || !Array.isArray(data.changes)) {
         throw new Error('Invalid response: expected an object with a "changes" array');
       }
@@ -230,17 +227,11 @@ export function VersionHistoryPanel({ serverUrl, connected, onPushUndo, onRefres
     const key = tokens && tokens.length === 1 ? tokens[0].path : 'all';
     setRestoring(key);
     try {
-      const res = await fetch(`${serverUrl}/api/sync/log/${hash}/restore`, {
+      const result = await apiFetch<{ restored: number; operationId: string; paths: string[] }>(`${serverUrl}/api/sync/log/${hash}/restore`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokens }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: 'Restore failed' }));
-        setError(data.error || 'Restore failed');
-        return;
-      }
-      const result = await res.json() as { restored: number; operationId: string; paths: string[] };
 
       // Push undo slot — rollback the operation via operation-log
       if (onPushUndo && result.operationId) {
@@ -251,11 +242,7 @@ export function VersionHistoryPanel({ serverUrl, connected, onPushUndo, onRefres
         onPushUndo({
           description: desc,
           restore: async () => {
-            const rollbackRes = await fetch(`${serverUrl}/api/operations/${opId}/rollback`, { method: 'POST' });
-            if (!rollbackRes.ok) {
-              const data = await rollbackRes.json().catch(() => ({ error: 'Undo failed' }));
-              throw new Error(data.error || 'Undo failed');
-            }
+            await apiFetch(`${serverUrl}/api/operations/${opId}/rollback`, { method: 'POST' });
             onRefreshTokens?.();
           },
         });

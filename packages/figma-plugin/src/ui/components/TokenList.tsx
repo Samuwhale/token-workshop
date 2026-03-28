@@ -1,13 +1,14 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
 import type { TokenNode } from '../hooks/useTokens';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
-import type { ApiErrorBody, NodeCapabilities, TokenMapEntry } from '../../shared/types';
+import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
 import { ComparePanel } from './ComparePanel';
 import { TokenCanvas } from './TokenCanvas';
 import { TokenGraph } from './TokenGraph';
 import { colorDeltaE } from '@tokenmanager/core';
 import { stableStringify, getErrorMessage } from '../shared/utils';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import type { SortOrder } from './tokenListUtils';
 import {
@@ -564,8 +565,7 @@ export function TokenList({
   useEffect(() => {
     if (viewMode !== 'json' || !connected || !serverUrl || !setName) return;
     if (jsonDirty) return; // don't clobber unsaved edits
-    fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
-      .then(r => r.json())
+    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
       .then(data => {
         const text = JSON.stringify(data, null, 2);
         setJsonText(text);
@@ -578,8 +578,7 @@ export function TokenList({
   // Sync from list view → JSON when tokens change externally (not dirty)
   useEffect(() => {
     if (viewMode !== 'json' || jsonDirty || !connected || !serverUrl || !setName) return;
-    fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
-      .then(r => r.json())
+    apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
       .then(data => {
         const text = JSON.stringify(data, null, 2);
         setJsonText(text);
@@ -679,9 +678,8 @@ export function TokenList({
     crossSetAbortRef.current = ctrl;
 
     const timer = setTimeout(() => {
-      fetch(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
-        .then(r => r.json())
-        .then((data: { results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> }) => {
+      apiFetch<{ results: Array<{ setName: string; path: string; name: string; $type: string; $value: unknown; $description?: string }> }>(`${serverUrl}/api/tokens/search?${params}`, { signal: ctrl.signal })
+        .then(data => {
           setCrossSetResults(data.results.map(r => ({
             setName: r.setName,
             path: r.path,
@@ -1151,24 +1149,24 @@ export function TokenList({
 
     if (extractMode === 'new') {
       if (!newPrimitivePath.trim()) { setExtractError('Enter a path for the new primitive token.'); return; }
-      const createRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(newPrimitiveSet)}/${newPrimitivePath.trim().split('.').map(encodeURIComponent).join('/')}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ $type: extractToken.$type, $value: extractToken.$value }),
-      });
-      if (!createRes.ok) {
-        const err = await createRes.json().catch(() => ({})) as { error?: string };
-        setExtractError(err.error ?? 'Failed to create primitive token.');
+      try {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(newPrimitiveSet)}/${newPrimitivePath.trim().split('.').map(encodeURIComponent).join('/')}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ $type: extractToken.$type, $value: extractToken.$value }),
+        });
+      } catch (err) {
+        setExtractError(err instanceof ApiError ? err.message : 'Failed to create primitive token.');
         return;
       }
-      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path.split('.').map(encodeURIComponent).join('/')}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path.split('.').map(encodeURIComponent).join('/')}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $value: `{${newPrimitivePath.trim()}}` }),
       });
     } else {
       if (!existingAlias) { setExtractError('Select an existing token to alias.'); return; }
-      await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path.split('.').map(encodeURIComponent).join('/')}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${extractToken.path.split('.').map(encodeURIComponent).join('/')}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $value: `{${existingAlias}}` }),
@@ -1187,18 +1185,13 @@ export function TokenList({
   const executeGroupRename = useCallback(async (oldGroupPath: string, newGroupPath: string, updateAliases = true) => {
     if (!connected) return;
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ oldGroupPath, newGroupPath, updateAliases }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: `Rename failed (${res.status})` }));
-        onError?.(data.error || `Rename failed (${res.status})`);
-        return;
-      }
-    } catch {
-      onError?.('Rename group failed: network error');
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Rename group failed: network error');
       return;
     }
     setRenameGroupConfirm(null);
@@ -1208,7 +1201,7 @@ export function TokenList({
       onPushUndo({
         description: `Rename group "${oldGroupPath.split('.').pop() ?? oldGroupPath}"`,
         restore: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ oldGroupPath: newGroupPath, newGroupPath: oldGroupPath }),
@@ -1216,7 +1209,7 @@ export function TokenList({
           onRefresh();
         },
         redo: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ oldGroupPath, newGroupPath }),
@@ -1232,8 +1225,7 @@ export function TokenList({
     if (!connected) return;
     try {
       const encodedPath = oldGroupPath.split('.').map(encodeURIComponent).join('/');
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/group-dependents/${encodedPath}`);
-      const data = res.ok ? await res.json() as { count: number; dependents: Array<{ path: string; setName: string }> } : { count: 0, dependents: [] };
+      const data = await apiFetch<{ count: number; dependents: Array<{ path: string; setName: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/group-dependents/${encodedPath}`);
       if (data.count > 0) {
         setRenameGroupConfirm({ oldPath: oldGroupPath, newPath: newGroupPath, depCount: data.count, deps: data.dependents ?? [] });
         return;
@@ -1247,18 +1239,13 @@ export function TokenList({
   const executeTokenRename = useCallback(async (oldPath: string, newPath: string, updateAliases = true) => {
     if (!connected) return;
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ oldPath, newPath, updateAliases }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: `Rename failed (${res.status})` }));
-        onError?.(data.error || `Rename failed (${res.status})`);
-        return;
-      }
-    } catch {
-      onError?.('Rename token failed: network error');
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Rename token failed: network error');
       return;
     }
     setRenameTokenConfirm(null);
@@ -1268,7 +1255,7 @@ export function TokenList({
       onPushUndo({
         description: `Rename "${oldPath.split('.').pop() ?? oldPath}"`,
         restore: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
@@ -1276,7 +1263,7 @@ export function TokenList({
           onRefresh();
         },
         redo: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ oldPath, newPath }),
@@ -1294,8 +1281,12 @@ export function TokenList({
   const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
     const encodedPath = oldPath.split('.').map(encodeURIComponent).join('/');
-    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedPath}`);
-    const data = res.ok ? await res.json() as { count: number; dependents: Array<{ path: string; setName: string }> } : { count: 0, dependents: [] };
+    let data: { count: number; dependents: Array<{ path: string; setName: string }> };
+    try {
+      data = await apiFetch<{ count: number; dependents: Array<{ path: string; setName: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedPath}`);
+    } catch {
+      data = { count: 0, dependents: [] };
+    }
     if (data.count > 0) {
       setRenameTokenConfirm({ oldPath, newPath, depCount: data.count, deps: data.dependents ?? [] });
     } else {
@@ -1311,7 +1302,7 @@ export function TokenList({
 
   const handleConfirmMoveGroup = useCallback(async () => {
     if (!movingGroup || !moveTargetSet || !connected) { setMovingGroup(null); return; }
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/move`, {
+    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/move`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ groupPath: movingGroup, targetSet: moveTargetSet }),
@@ -1329,18 +1320,13 @@ export function TokenList({
   const handleConfirmMoveToken = useCallback(async () => {
     if (!movingToken || !moveTargetSet || !connected) { setMovingToken(null); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tokenPath: movingToken, targetSet: moveTargetSet }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: `Move failed (${res.status})` }));
-        onError?.(body.error || `Move failed (${res.status})`);
-        return;
-      }
-    } catch {
-      onError?.('Move failed: network error');
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Move failed: network error');
       return;
     }
     setMovingToken(null);
@@ -1350,18 +1336,13 @@ export function TokenList({
   const handleDuplicateGroup = useCallback(async (groupPath: string) => {
     if (!connected) return;
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/duplicate`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/duplicate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ groupPath }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: `Duplicate failed (${res.status})` }));
-        onError?.(data.error || `Duplicate failed (${res.status})`);
-        return;
-      }
-    } catch {
-      onError?.('Duplicate group failed: network error');
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Duplicate group failed: network error');
       return;
     }
     onRefresh();
@@ -1372,29 +1353,25 @@ export function TokenList({
     meta: { $type?: string | null; $description?: string | null },
   ) => {
     if (!connected) return;
-    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/meta`, {
+    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/meta`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ groupPath, ...meta }),
     });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({})) as { error?: string };
-      throw new Error(data.error || 'Failed to update group metadata');
-    }
     onRefresh();
   }, [connected, serverUrl, setName, onRefresh]);
 
   const handleCreateGroup = useCallback(async (parent: string, name: string) => {
     if (!connected || !name.trim()) return;
     const groupPath = parent ? `${parent}.${name.trim()}` : name.trim();
-    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ groupPath }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({})) as { error?: string };
-      setNewGroupError(data.error ?? 'Failed to create group');
+    try {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupPath }),
+      });
+    } catch (err) {
+      setNewGroupError(err instanceof ApiError ? err.message : 'Failed to create group');
       return;
     }
     setNewGroupDialogParent(null);
@@ -1413,7 +1390,7 @@ export function TokenList({
     while (allTokensFlat[newPath]) {
       newPath = `${baseCopy}-${i++}`;
     }
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
+    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ $type: token.$type, $value: token.$value, ...(token.$description ? { $description: token.$description } : {}) }),
@@ -1433,7 +1410,7 @@ export function TokenList({
     const newOrder = [...siblings];
     [newOrder[idx], newOrder[newIdx]] = [newOrder[newIdx], newOrder[idx]];
     const prevOrder = [...siblings];
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
+    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
@@ -1444,7 +1421,7 @@ export function TokenList({
       onPushUndo({
         description: `Reorder "${nodeName}"`,
         restore: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ groupPath: parentPath, orderedKeys: prevOrder }),
@@ -1452,7 +1429,7 @@ export function TokenList({
           onRefresh();
         },
         redo: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ groupPath: parentPath, orderedKeys: newOrder }),
@@ -1470,25 +1447,20 @@ export function TokenList({
     const oldEntry = allTokensFlat[path];
     const encodedPath = path.split('.').map(encodeURIComponent).join('/');
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $type: type, $value: newValue }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: `Save failed (${res.status})` }));
-        onError?.(data.error || `Save failed (${res.status})`);
-        return;
-      }
-    } catch {
-      onError?.('Save failed: network error');
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
     }
     if (onPushUndo && oldEntry) {
       onPushUndo({
         description: `Edit ${path}`,
         restore: async () => {
-          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: oldEntry.$type, $value: oldEntry.$value }),
@@ -1496,7 +1468,7 @@ export function TokenList({
           onRefresh();
         },
         redo: async () => {
-          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: type, $value: newValue }),
@@ -1514,18 +1486,13 @@ export function TokenList({
     const encodedPath = path.split('.').map(encodeURIComponent).join('/');
     const oldEntry = allTokensFlat[path];
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $description: description }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: `Save failed (${res.status})` }));
-        onError?.(data.error || `Save failed (${res.status})`);
-        return;
-      }
-    } catch {
-      onError?.('Save failed: network error');
+    } catch (err) {
+      onError?.(err instanceof ApiError ? err.message : 'Save failed: network error');
       return;
     }
     if (onPushUndo && oldEntry) {
@@ -1533,7 +1500,7 @@ export function TokenList({
       onPushUndo({
         description: `Edit description of ${path}`,
         restore: async () => {
-          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $description: oldDesc }),
@@ -1541,7 +1508,7 @@ export function TokenList({
           onRefresh();
         },
         redo: async () => {
-          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $description: description }),
@@ -1560,12 +1527,16 @@ export function TokenList({
     const encodedPath = path.split('.').map(encodeURIComponent).join('/');
     const url = `${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath}`;
     // Fetch the current token to get its full $extensions
-    const res = await fetch(url);
-    if (!res.ok) return;
-    const { token } = await res.json();
-    const exts: Record<string, unknown> = { ...token?.$extensions };
+    let tokenData: any;
+    try {
+      const result = await apiFetch<{ token: any }>(url);
+      tokenData = result.token;
+    } catch {
+      return;
+    }
+    const exts: Record<string, unknown> = { ...tokenData?.$extensions };
     delete exts['com.tokenmanager.generator'];
-    await fetch(url, {
+    await apiFetch(url, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ $extensions: Object.keys(exts).length > 0 ? exts : undefined }),
@@ -1579,7 +1550,7 @@ export function TokenList({
     if (!connected) return;
     const oldEntry = perSetFlat?.[targetSet]?.[path];
     const encodedPath = path.split('.').map(encodeURIComponent).join('/');
-    await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ $type: type, $value: newValue }),
@@ -1589,7 +1560,7 @@ export function TokenList({
         description: `Edit ${path} in ${targetSet}`,
         restore: async () => {
           if (oldEntry) {
-            await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: oldEntry.$type, $value: oldEntry.$value }),
@@ -1598,7 +1569,7 @@ export function TokenList({
           onRefresh();
         },
         redo: async () => {
-          await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: type, $value: newValue }),
@@ -1676,21 +1647,13 @@ export function TokenList({
     setDeleteError(null);
     try {
       if (deletedType === 'token' || deletedType === 'group') {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' });
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          throw new Error(body?.error ?? `Server returned ${res.status}`);
-        }
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${deletedPath.split('.').map(encodeURIComponent).join('/')}`, { method: 'DELETE' });
       } else {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-delete`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-delete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paths: deletedPaths }),
         });
-        if (!res.ok) {
-          const body = await res.json().catch(() => null);
-          throw new Error(body?.error ?? `Server returned ${res.status}`);
-        }
         setSelectedPaths(new Set());
         setSelectMode(false);
       }
@@ -1712,7 +1675,7 @@ export function TokenList({
           restore: async () => {
             await Promise.all(
               captured.map(({ path, data }) =>
-                fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+                apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify(data),
@@ -1937,7 +1900,7 @@ export function TokenList({
     try {
       await Promise.all(
         toApply.map(r =>
-          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
+          apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $value: `{${r.proposedAlias}}` }),
@@ -3027,8 +2990,7 @@ export function TokenList({
                     <button
                       onClick={() => {
                         setJsonDirty(false);
-                        fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
-                          .then(r => r.json())
+                        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/raw`)
                           .then(data => {
                             const text = JSON.stringify(data, null, 2);
                             setJsonText(text);
@@ -3048,20 +3010,15 @@ export function TokenList({
                       setJsonSaving(true);
                       try {
                         const parsed = JSON.parse(jsonText);
-                        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, {
+                        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify(parsed),
                         });
-                        if (!res.ok) {
-                          const err = await res.json().catch(() => ({})) as { error?: string };
-                          setJsonError(err.error ?? 'Save failed');
-                        } else {
-                          setJsonDirty(false);
-                          onRefresh();
-                        }
-                      } catch {
-                        setJsonError('Invalid JSON — cannot save');
+                        setJsonDirty(false);
+                        onRefresh();
+                      } catch (err) {
+                        setJsonError(err instanceof ApiError ? err.message : 'Invalid JSON — cannot save');
                       } finally {
                         setJsonSaving(false);
                       }

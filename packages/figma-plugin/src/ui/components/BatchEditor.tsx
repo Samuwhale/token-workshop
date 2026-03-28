@@ -3,6 +3,7 @@ import { TokenValidator } from '@tokenmanager/core';
 import type { Token } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
+import { apiFetch } from '../shared/apiFetch';
 
 const typeValidator = new TokenValidator();
 
@@ -130,9 +131,8 @@ export function BatchEditor({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`);
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
+        const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`);
+        if (cancelled) return;
         // Flatten nested DTCG group to get all token paths
         const paths = new Set<string>();
         const walk = (obj: Record<string, unknown>, prefix: string) => {
@@ -255,12 +255,11 @@ export function BatchEditor({
     path.split('.').map(encodeURIComponent).join('/');
 
   const patchToken = async (path: string, body: Record<string, unknown>) => {
-    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath(path)}`, {
+    await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedPath(path)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`PATCH ${path} failed (${res.status})`);
   };
 
   const handleApply = async () => {
@@ -402,12 +401,11 @@ export function BatchEditor({
       let failed = 0;
       for (let i = 0; i < selectedEntries.length; i++) {
         try {
-          const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
+          await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/move`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ tokenPath: selectedEntries[i].path, targetSet }),
           });
-          if (!res.ok) throw new Error(`Move ${selectedEntries[i].path} failed (${res.status})`);
           succeeded++;
         } catch {
           failed++;
@@ -452,12 +450,11 @@ export function BatchEditor({
           : path.split(findText).join(replaceText);
         if (newPath !== path) {
           try {
-            const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
+            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ oldPath: path, newPath }),
             });
-            if (!res.ok) throw new Error(`Rename ${path} failed (${res.status})`);
             succeeded++;
           } catch {
             failed++;

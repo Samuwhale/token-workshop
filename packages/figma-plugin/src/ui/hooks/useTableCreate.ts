@@ -3,6 +3,7 @@ import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
 import { getDefaultValue } from '../components/tokenListUtils';
 import { validateTokenPath } from '../shared/tokenParsers';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 
 export interface TableRow {
   id: string;
@@ -136,20 +137,18 @@ export function useTableCreate({
       }
 
       try {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${encodedPath}`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${encodedPath}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $type: row.type, $value: parsedValue }),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({})) as { error?: string };
-          setRowErrors(prev => ({ ...prev, [row.id]: data.error || `Failed (${res.status})` }));
-          batchAborted = true;
-          break;
-        }
         created.push({ path, encodedPath, type: row.type, value: parsedValue });
-      } catch {
-        setCreateAllError('Network error — could not create tokens');
+      } catch (err) {
+        if (err instanceof ApiError) {
+          setRowErrors(prev => ({ ...prev, [row.id]: err.message || `Failed (${err.status})` }));
+        } else {
+          setCreateAllError('Network error — could not create tokens');
+        }
         batchAborted = true;
         break;
       }
@@ -171,13 +170,13 @@ export function useTableCreate({
           description: `Create ${created.length} token${created.length > 1 ? 's' : ''}`,
           restore: async () => {
             for (const c of created) {
-              await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${c.encodedPath}`, { method: 'DELETE' });
+              await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${c.encodedPath}`, { method: 'DELETE' });
             }
             onRefresh();
           },
           redo: async () => {
             for (const c of created) {
-              await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${c.encodedPath}`, {
+              await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${c.encodedPath}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ $type: c.type, $value: c.value }),

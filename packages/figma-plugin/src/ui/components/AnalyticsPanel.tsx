@@ -3,6 +3,7 @@ import { normalizeHex } from '@tokenmanager/core';
 import { hexToLuminance, wcagContrast, hexToLstar } from '../shared/colorUtils';
 import { countLeafNodes } from '../shared/utils';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
+import { apiFetch } from '../shared/apiFetch';
 
 interface ValidationIssue {
   rule: string;
@@ -115,18 +116,11 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     setValidateLoading(true);
     setValidateError(null);
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/validate`, { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json() as { issues: ValidationIssue[] };
-        const issues = data.issues ?? [];
-        setValidateResults(issues);
-        setResultsStale(false);
-        onValidationComplete?.(issues.length);
-      } else {
-        const text = await res.text().catch(() => '');
-        setValidateError(`Validation failed (${res.status}${text ? ': ' + text.slice(0, 120) : ''})`);
-        setResultsStale(true);
-      }
+      const data = await apiFetch<{ issues: ValidationIssue[] }>(`${serverUrl}/api/tokens/validate`, { method: 'POST' });
+      const issues = data.issues ?? [];
+      setValidateResults(issues);
+      setResultsStale(false);
+      onValidationComplete?.(issues.length);
     } catch {
       setValidateError('Validation failed — check server connection');
     } finally {
@@ -193,9 +187,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     const controller = new AbortController();
 
     const load = async () => {
-      const setsRes = await fetch(`${serverUrl}/api/sets`, { signal: controller.signal });
+      const setsData = await apiFetch<{ sets?: string[]; descriptions?: Record<string, string> }>(`${serverUrl}/api/sets`, { signal: controller.signal });
       if (controller.signal.aborted) return;
-      const setsData = await setsRes.json();
       const sets: string[] = setsData.sets || [];
       const descriptions: Record<string, string> = setsData.descriptions || {};
 
@@ -204,8 +197,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
       const allColors: { path: string; hex: string }[] = [];
       const results = await Promise.all(
         sets.map(async (name) => {
-          const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(name)}`, { signal: controller.signal });
-          const data = await res.json();
+          const data = await apiFetch<{ tokens?: Record<string, { $value: unknown; $type: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(name)}`, { signal: controller.signal });
           const flat = data.tokens as Record<string, { $value: unknown; $type: string }> || {};
           allFlatBySet[name] = flat;
           const { total, byType } = countLeafNodes(data.tokens || {});
@@ -371,7 +363,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
     setDeduplicating(hex);
     try {
       await Promise.all(others.map(({ path, set }) =>
-        fetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $value: `{${canonical.path}}` }),
@@ -388,14 +380,14 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   const handleBulkDeduplicate = async () => {
     setBulkDeduplicating(true);
     try {
-      const patches: Promise<Response>[] = [];
+      const patches: Promise<unknown>[] = [];
       for (const [hex, tokens] of duplicateGroups) {
         const chosenPath = canonicalPick[hex] ?? tokens[0].path;
         const canonicalToken = tokens.find(t => t.path === chosenPath) ?? tokens[0];
         const others = tokens.filter(t => t.path !== canonicalToken.path);
         for (const { path, set } of others) {
           patches.push(
-            fetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+            apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(set)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $value: `{${canonicalToken.path}}` }),

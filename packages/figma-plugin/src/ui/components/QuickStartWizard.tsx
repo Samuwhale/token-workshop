@@ -3,6 +3,7 @@ import { getErrorMessage } from '../shared/utils';
 import type { GeneratedTokenResult, GeneratorType } from '../hooks/useGenerators';
 import { QuickStartDialog } from './QuickStartDialog';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
+import { apiFetch } from '../shared/apiFetch';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -63,41 +64,29 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
     try {
       const dimId = slugify(dimName);
       // Create dimension
-      const dimRes = await fetch(`${serverUrl}/api/themes/dimensions`, {
+      await apiFetch(`${serverUrl}/api/themes/dimensions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: dimId, name: dimName.trim() }),
       });
-      if (!dimRes.ok) {
-        const d = await dimRes.json().catch(() => ({}));
-        throw new Error(d.error || `Failed to create dimension (${dimRes.status})`);
-      }
 
       // Create Light option (active set as source)
       const lightSets: Record<string, string> = {};
       lightSets[activeSet] = 'source';
-      const lightRes = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: lightName.trim(), sets: lightSets }),
       });
-      if (!lightRes.ok) {
-        const d = await lightRes.json().catch(() => ({}));
-        throw new Error(d.error || `Failed to create "${lightName}" option`);
-      }
 
       // Create Dark option (active set disabled by default)
       const darkSets: Record<string, string> = {};
       darkSets[activeSet] = 'disabled';
-      const darkRes = await fetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
+      await apiFetch(`${serverUrl}/api/themes/dimensions/${encodeURIComponent(dimId)}/options`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: darkName.trim(), sets: darkSets }),
       });
-      if (!darkRes.ok) {
-        const d = await darkRes.json().catch(() => ({}));
-        throw new Error(d.error || `Failed to create "${darkName}" option`);
-      }
 
       setDone(true);
       setSaving(false);

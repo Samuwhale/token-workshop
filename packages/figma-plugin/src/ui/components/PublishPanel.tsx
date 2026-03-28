@@ -10,6 +10,7 @@ import { useStyleSync } from '../hooks/useStyleSync';
 import { useGitSync } from '../hooks/useGitSync';
 import type { GitStatus } from '../hooks/useGitSync';
 import { ConfirmModal } from './ConfirmModal';
+import { apiFetch } from '../shared/apiFetch';
 
 type ConfirmAction = 'apply-vars' | 'apply-styles' | 'preview-vars' | 'preview-styles' | 'git-push' | 'git-pull' | 'apply-diff' | null;
 
@@ -136,9 +137,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     try {
       const figmaTokens = await varSync.readFigmaVariables();
 
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-      if (!res.ok) throw new Error('Could not fetch local tokens');
-      const data = await res.json();
+      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       const localTokens = flattenTokenGroup(data.tokens || {});
       const localFlat = Array.from(localTokens, ([path, token]) => ({
         path, value: String(token.$value), type: String(token.$type ?? 'string'),
@@ -245,16 +244,11 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
     setExportError(null);
     setExportResults([]);
     try {
-      const res = await fetch(`${serverUrl}/api/export`, {
+      const data = await apiFetch<{ results?: Array<{ platform: string; files?: Array<{ path: string; content: string }> }> }>(`${serverUrl}/api/export`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ platforms: Array.from(selectedPlatforms) }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Export failed');
-      }
-      const data = await res.json();
       const flatFiles: { platform: string; path: string; content: string }[] = [];
       for (const result of data.results || []) {
         for (const file of result.files || []) {

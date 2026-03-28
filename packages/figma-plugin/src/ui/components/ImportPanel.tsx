@@ -122,17 +122,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
       return;
     }
     setExistingTokenMapFetching(true);
-    fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`)
-      .then(res => {
-        if (!res.ok) return new Map<string, { $type: string; $value: unknown }>();
-        return res.json().then((data: { tokens?: Record<string, unknown> }) => {
-          const flat = flattenTokenGroup(data.tokens ?? {});
-          const map = new Map<string, { $type: string; $value: unknown }>();
-          for (const [path, tok] of flat) {
-            map.set(path, { $type: (tok as any).$type ?? 'unknown', $value: (tok as any).$value });
-          }
-          return map;
-        });
+    apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`)
+      .then(data => {
+        const flat = flattenTokenGroup(data.tokens ?? {});
+        const map = new Map<string, { $type: string; $value: unknown }>();
+        for (const [path, tok] of flat) {
+          map.set(path, { $type: (tok as any).$type ?? 'unknown', $value: (tok as any).$value });
+        }
+        return map;
       })
       .then(tokens => {
         existingPathsCacheRef.current = { set: setName, tokens };
@@ -687,31 +684,28 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     const checkingForSet = targetSet;
 
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(checkingForSet)}`);
-      if (res.ok) {
-        const data = await res.json();
-        const flat = flattenTokenGroup(data.tokens || {});
-        const existingKeys = new Set(flat.keys());
-        const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
-        const conflicts = tokensToImport.filter(t => existingKeys.has(t.path)).map(t => t.path);
-        if (conflicts.length > 0) {
-          // Discard results if the user changed the target set while the fetch was in flight
-          if (checkingForSet === targetSetRef.current) {
-            setConflictPaths(conflicts);
-            // Store existing values for the conflict merge view
-            const existingVals = new Map<string, { $type: string; $value: unknown }>();
-            for (const p of conflicts) {
-              const tok = flat.get(p);
-              if (tok) existingVals.set(p, { $type: (tok as any).$type ?? 'unknown', $value: (tok as any).$value });
-            }
-            setConflictExistingValues(existingVals);
-            // Default all conflicts to 'accept' (incoming wins)
-            const decisions = new Map<string, 'accept' | 'reject'>();
-            for (const p of conflicts) decisions.set(p, 'accept');
-            setConflictDecisions(decisions);
+      const data = await apiFetch<{ tokens?: Record<string, unknown> }>(`${serverUrl}/api/tokens/${encodeURIComponent(checkingForSet)}`);
+      const flat = flattenTokenGroup(data.tokens || {});
+      const existingKeys = new Set(flat.keys());
+      const tokensToImport = tokens.filter(t => selectedTokens.has(t.path));
+      const conflicts = tokensToImport.filter(t => existingKeys.has(t.path)).map(t => t.path);
+      if (conflicts.length > 0) {
+        // Discard results if the user changed the target set while the fetch was in flight
+        if (checkingForSet === targetSetRef.current) {
+          setConflictPaths(conflicts);
+          // Store existing values for the conflict merge view
+          const existingVals = new Map<string, { $type: string; $value: unknown }>();
+          for (const p of conflicts) {
+            const tok = flat.get(p);
+            if (tok) existingVals.set(p, { $type: (tok as any).$type ?? 'unknown', $value: (tok as any).$value });
           }
-          return;
+          setConflictExistingValues(existingVals);
+          // Default all conflicts to 'accept' (incoming wins)
+          const decisions = new Map<string, 'accept' | 'reject'>();
+          for (const p of conflicts) decisions.set(p, 'accept');
+          setConflictDecisions(decisions);
         }
+        return;
       }
       await executeImport('overwrite');
     } catch (err) {

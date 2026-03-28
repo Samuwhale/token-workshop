@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { getErrorMessage } from '../shared/utils';
+import { apiFetch } from '../shared/apiFetch';
 import type { TokenMapEntry } from '../../shared/types';
 import type { TokenValue, TokenReference } from '@tokenmanager/core';
 
@@ -46,12 +47,8 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   // -----------------------------------------------------------------------
   const fetchResolvers = useCallback(() => {
     if (!connected) return;
-    fetch(`${serverUrl}/api/resolvers`)
-      .then(r => {
-        if (!r.ok) throw new Error(`Server returned ${r.status}`);
-        return r.json();
-      })
-      .then((data: { resolvers: ResolverMeta[] }) => {
+    apiFetch<{ resolvers: ResolverMeta[] }>(`${serverUrl}/api/resolvers`)
+      .then(data => {
         setResolvers(data.resolvers ?? []);
       })
       .catch(err => {
@@ -98,17 +95,14 @@ export function useResolvers(serverUrl: string, connected: boolean) {
     abortRef.current = controller;
     setLoading(true);
 
-    fetch(`${serverUrl}/api/resolvers/${encodeURIComponent(activeResolver)}/resolve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ input: resolverInput }),
-      signal: controller.signal,
-    })
-      .then(r => {
-        if (!r.ok) throw new Error(`Server returned ${r.status}`);
-        return r.json();
+    apiFetch<{ tokens: Record<string, { $value: unknown; $type?: string; $description?: string }> }>(
+      `${serverUrl}/api/resolvers/${encodeURIComponent(activeResolver)}/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: resolverInput }),
+        signal: controller.signal,
       })
-      .then((data: { tokens: Record<string, { $value: unknown; $type?: string; $description?: string }> }) => {
+      .then(data => {
         if (controller.signal.aborted) return;
         // Convert to TokenMapEntry format
         const entries: Record<string, TokenMapEntry> = {};
@@ -148,27 +142,22 @@ export function useResolvers(serverUrl: string, connected: boolean) {
   // Create resolver from themes (migration)
   // -----------------------------------------------------------------------
   const convertFromThemes = useCallback(async (name?: string) => {
-    const resp = await fetch(`${serverUrl}/api/resolvers/from-themes`, {
+    const result = await apiFetch(`${serverUrl}/api/resolvers/from-themes`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: name || 'theme-resolver' }),
     });
-    if (!resp.ok) {
-      const data = await resp.json().catch(() => ({}));
-      throw new Error((data as { error?: string }).error || `Server returned ${resp.status}`);
-    }
     fetchResolvers();
-    return resp.json();
+    return result;
   }, [serverUrl, fetchResolvers]);
 
   // -----------------------------------------------------------------------
   // Delete resolver
   // -----------------------------------------------------------------------
   const deleteResolver = useCallback(async (name: string) => {
-    const resp = await fetch(`${serverUrl}/api/resolvers/${encodeURIComponent(name)}`, {
+    await apiFetch(`${serverUrl}/api/resolvers/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     });
-    if (!resp.ok) throw new Error(`Delete failed: ${resp.status}`);
     if (activeResolver === name) {
       setActiveResolverState(null);
       setResolvedTokens(null);

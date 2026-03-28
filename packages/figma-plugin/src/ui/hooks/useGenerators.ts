@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { apiFetch } from '../shared/apiFetch';
 
 // ---------------------------------------------------------------------------
 // Types (defined inline — do not import from @tokenmanager/core in the plugin)
@@ -230,9 +231,7 @@ export function useGenerators(serverUrl: string, connected: boolean): UseGenerat
     if (!connected) return;
     setLoading(true);
     try {
-      const res = await fetch(`${serverUrl}/api/generators`, { signal: AbortSignal.timeout(5000) });
-      if (!res.ok) return;
-      const data: TokenGenerator[] = await res.json();
+      const data = await apiFetch<TokenGenerator[]>(`${serverUrl}/api/generators`, { signal: AbortSignal.timeout(5000) });
       setGenerators(data);
     } catch (err) {
       console.error('Failed to fetch generators:', err);

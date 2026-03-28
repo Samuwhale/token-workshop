@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 
 const STYLE_TYPES = new Set(['color', 'typography', 'shadow']);
 
@@ -106,9 +107,7 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
         parent.postMessage({ pluginMessage: { type: 'read-styles', correlationId: cid } }, '*');
       });
 
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
-      if (!res.ok) throw new Error('Could not fetch local tokens');
-      const data = await res.json();
+      const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       const localTokens = flattenTokenGroup(data.tokens || {});
 
       const figmaMap = new Map<string, { raw: any; type: string }>(
@@ -186,18 +185,15 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
       if (pullRows.length > 0) {
         const results = await Promise.all(pullRows.map(async (r) => {
           try {
-            const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
+            await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${r.path.split('.').map(encodeURIComponent).join('/')}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: r.figmaType ?? 'string', $value: r.figmaRaw }),
             });
-            if (!res.ok) {
-              const text = await res.text().catch(() => res.statusText);
-              return { path: r.path, error: `${res.status}: ${text}` };
-            }
             return null;
           } catch (err) {
-            return { path: r.path, error: err instanceof Error ? err.message : String(err) };
+            const msg = err instanceof ApiError ? `${err.status}: ${err.message}` : (err instanceof Error ? err.message : String(err));
+            return { path: r.path, error: msg };
           }
         }));
         for (const f of results) {

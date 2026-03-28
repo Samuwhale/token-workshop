@@ -3,6 +3,7 @@ import { swatchBgColor } from '../shared/colorUtils';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { hexToLab, labToHex } from '@tokenmanager/core';
 import { ColorPicker } from './ColorPicker';
+import { apiFetch } from '../shared/apiFetch';
 
 // ---------------------------------------------------------------------------
 // Scale generation
@@ -140,18 +141,18 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
     const controller = new AbortController();
     abortRef.current = controller;
     try {
-      const results = await Promise.all(scale.map(step =>
-        fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${prefix}.${step.label}`, {
+      const results = await Promise.allSettled(scale.map(step =>
+        apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${prefix}.${step.label}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ $type: 'color', $value: step.hex }),
           signal: controller.signal,
         })
       ));
-      const failed = results.filter(r => !r.ok);
+      const failed = results.filter(r => r.status === 'rejected');
       if (failed.length > 0) {
-        const firstError = await failed[0].json().catch(() => ({})) as { error?: string };
-        setError(firstError.error || `Failed to create ${failed.length} token(s)`);
+        const firstError = (failed[0] as PromiseRejectedResult).reason;
+        setError(firstError?.message || `Failed to create ${failed.length} token(s)`);
         setCreating(false);
         return;
       }

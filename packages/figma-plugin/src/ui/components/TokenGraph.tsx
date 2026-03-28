@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import type { TokenGenerator, ContrastCheckConfig } from '../hooks/useGenerators';
 import { wcagContrast } from '../shared/colorUtils';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
+import { apiFetch } from '../shared/apiFetch';
 
 // ---------------------------------------------------------------------------
 // Layout constants
@@ -126,22 +127,19 @@ export function TokenGraph({
     // Check for derived tokens and offer cleanup
     let deleteTokens = false;
     try {
-      const res = await fetch(`${serverUrl}/api/generators/${id}/tokens`);
-      if (res.ok) {
-        const data = await res.json();
-        const count = data.count ?? 0;
-        if (count > 0) {
-          deleteTokens = window.confirm(
-            `This generator created ${count} token(s).\n\nAlso delete them? (Cancel = keep tokens)`,
-          );
-        }
+      const data = await apiFetch<{ count?: number }>(`${serverUrl}/api/generators/${id}/tokens`);
+      const count = data.count ?? 0;
+      if (count > 0) {
+        deleteTokens = window.confirm(
+          `This generator created ${count} token(s).\n\nAlso delete them? (Cancel = keep tokens)`,
+        );
       }
     } catch { /* proceed without cleanup */ }
 
     setDeletingId(id);
     try {
       const qs = deleteTokens ? '?deleteTokens=true' : '';
-      await fetch(`${serverUrl}/api/generators/${id}${qs}`, { method: 'DELETE' });
+      await apiFetch(`${serverUrl}/api/generators/${id}${qs}`, { method: 'DELETE' });
       onRefreshGenerators();
       onRefresh();
     } finally {

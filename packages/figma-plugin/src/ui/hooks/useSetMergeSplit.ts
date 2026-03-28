@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { flattenTokenGroup, type DTCGGroup } from '@tokenmanager/core';
 import type { UndoSlot } from './useUndo';
+import { apiFetch } from '../shared/apiFetch';
 
 interface UseSetMergeSplitParams {
   serverUrl: string;
@@ -21,16 +22,6 @@ function flattenTokensObj(obj: DTCGGroup): Record<string, any> {
     flat[path] = token;
   }
   return flat;
-}
-
-async function checkedJson(res: Response, label: string): Promise<any> {
-  if (!res.ok) throw new Error(`${label}: ${res.status} ${res.statusText}`);
-  return res.json();
-}
-
-async function checkedFetch(res: Response, label: string): Promise<Response> {
-  if (!res.ok) throw new Error(`${label}: ${res.status} ${res.statusText}`);
-  return res;
 }
 
 export function useSetMergeSplit({
@@ -80,12 +71,10 @@ export function useSetMergeSplit({
     if (!mergingSet || !mergeTargetSet || !connected) return;
     setMergeLoading(true);
     try {
-      const [srcRes, tgtRes] = await Promise.all([
-        fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
-        fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`),
+      const [srcData, tgtData] = await Promise.all([
+        apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(mergingSet)}`),
+        apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`),
       ]);
-      const srcData = await checkedJson(srcRes, `Failed to load source set "${mergingSet}"`);
-      const tgtData = await checkedJson(tgtRes, `Failed to load target set "${mergeTargetSet}"`);
       const srcFlat = flattenTokensObj(srcData.tokens || {});
       const tgtFlat = flattenTokensObj(tgtData.tokens || {});
       const conflicts: Array<{ path: string; sourceValue: any; targetValue: any }> = [];
@@ -113,42 +102,32 @@ export function useSetMergeSplit({
     if (!mergingSet || !mergeTargetSet || !connected) return;
     setMergeLoading(true);
     try {
-      const tgtRes = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
-      const tgtData = await checkedJson(tgtRes, `Failed to load target set "${mergeTargetSet}"`);
+      const tgtData = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(mergeTargetSet)}`);
       const preMergeTokens: Record<string, unknown> = tgtData.tokens || {};
       const tgtFlat = flattenTokensObj(preMergeTokens);
-      const writes: Promise<Response>[] = [];
+      const writes: Promise<unknown>[] = [];
       for (const [path, srcEntry] of Object.entries(mergeSrcFlat)) {
         const conflict = mergeConflicts.find(c => c.path === path);
         if (conflict) {
           if (mergeResolutions[path] === 'source') {
-            writes.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+            writes.push(apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),
             }));
           }
         } else if (!tgtFlat[path]) {
-          writes.push(fetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+          writes.push(apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(mergeTargetSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $type: srcEntry.$type, $value: srcEntry.$value, $description: srcEntry.$description }),
           }));
         }
       }
-      const writeResults = await Promise.all(writes.map(async (p, i) => {
-        try {
-          const res = await p;
-          if (!res.ok) {
-            const text = await res.text().catch(() => res.statusText);
-            return { index: i, error: `${res.status}: ${text}` };
-          }
-          return null;
-        } catch (err) {
-          return { index: i, error: err instanceof Error ? err.message : String(err) };
-        }
-      }));
-      const failures = writeResults.filter((r): r is { index: number; error: string } => r !== null);
+      const writeResults = await Promise.allSettled(writes);
+      const failures = writeResults
+        .map((r, i) => r.status === 'rejected' ? { index: i, error: r.reason instanceof Error ? r.reason.message : String(r.reason) } : null)
+        .filter((r): r is { index: number; error: string } => r !== null);
       const srcName = mergingSet;
       const targetName = mergeTargetSet;
       setMergingSet(null);
@@ -164,12 +143,11 @@ export function useSetMergeSplit({
         pushUndo({
           description: `Merged "${srcName}" into "${targetName}"`,
           restore: async () => {
-            const res = await fetch(`${url}/api/tokens/${encodeURIComponent(targetName)}`, {
+            await apiFetch(`${url}/api/tokens/${encodeURIComponent(targetName)}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(preMergeTokens),
             });
-            if (!res.ok) throw new Error(`Failed to restore target set: ${res.status} ${res.statusText}`);
             refreshTokens();
           },
         });
@@ -187,8 +165,7 @@ export function useSetMergeSplit({
     setTabMenuOpen(null);
     if (!connected) return;
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
-      const data = await checkedJson(res, `Failed to load set "${setName}"`);
+      const data = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(setName)}`);
       const tokenRoot = data.tokens || {};
       const preview = Object.entries(tokenRoot)
         .filter(([k, v]) => !k.startsWith('$') && v && typeof v === 'object' && !('$value' in (v as object)))
@@ -214,25 +191,22 @@ export function useSetMergeSplit({
     if (!splittingSet || !connected) return;
     setSplitLoading(true);
     try {
-      const res = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`);
-      const data = await checkedJson(res, `Failed to load set "${splittingSet}"`);
+      const data = await apiFetch<{ tokens: Record<string, any> }>(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`);
       const tokenRoot = data.tokens || {};
       const originalTokens: Record<string, unknown> = tokenRoot;
       const createdNames: string[] = [];
       for (const { key, newName } of splitPreview) {
         if (sets.includes(newName)) continue;
         const groupTokens = tokenRoot[key];
-        const createRes = await fetch(`${serverUrl}/api/sets`, {
+        await apiFetch(`${serverUrl}/api/sets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newName, tokens: groupTokens }),
         });
-        await checkedFetch(createRes, `Failed to create split set "${newName}"`);
         createdNames.push(newName);
       }
       if (splitDeleteOriginal) {
-        const delRes = await fetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`, { method: 'DELETE' });
-        await checkedFetch(delRes, `Failed to delete original set "${splittingSet}"`);
+        await apiFetch(`${serverUrl}/api/sets/${encodeURIComponent(splittingSet)}`, { method: 'DELETE' });
         const remaining = sets.filter(s => s !== splittingSet);
         if (activeSet === splittingSet) setActiveSet(remaining[0] ?? '');
       }
@@ -246,18 +220,16 @@ export function useSetMergeSplit({
       pushUndo({
         description: `Split "${name}" into ${count} sets`,
         restore: async () => {
-          const deleteResults = await Promise.allSettled(createdNames.map(async n => {
-            const res = await fetch(`${url}/api/sets/${encodeURIComponent(n)}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error(`${n}: ${res.status} ${res.statusText}`);
-          }));
-          const deleteFailed = deleteResults.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+          const deleteResults = await Promise.allSettled(createdNames.map(n =>
+            apiFetch(`${url}/api/sets/${encodeURIComponent(n)}`, { method: 'DELETE' })
+          ));
+          const deleteFailed = deleteResults.filter(r => r.status === 'rejected');
           if (wasDeleted) {
-            const recreateRes = await fetch(`${url}/api/sets`, {
+            await apiFetch(`${url}/api/sets`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name, tokens: originalTokens }),
             });
-            if (!recreateRes.ok) throw new Error(`Failed to recreate original set "${name}": ${recreateRes.status} ${recreateRes.statusText}`);
           }
           refreshTokens();
           if (deleteFailed.length > 0) {

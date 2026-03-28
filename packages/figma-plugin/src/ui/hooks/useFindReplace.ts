@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useRef } from 'react';
 import type { TokenNode } from './useTokens';
 import type { UndoSlot } from './useUndo';
 import { getErrorMessage } from '../shared/utils';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 
 /** Default timeout for bulk-rename requests (ms). */
 const BULK_RENAME_TIMEOUT_MS = 30_000;
@@ -99,14 +100,12 @@ export function useFindReplace({
     const timer = setTimeout(() => ac.abort(), BULK_RENAME_TIMEOUT_MS);
 
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
+      const data = await apiFetch<{ renamed?: number; skipped?: string[]; aliasesUpdated?: number }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/bulk-rename`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: capturedIsRegex }),
         signal: ac.signal,
       });
-      const data = await res.json().catch(() => ({})) as { renamed?: number; skipped?: string[]; aliasesUpdated?: number; error?: string };
-      if (!res.ok) { setFrError(data.error ?? `Rename failed (${res.status})`); return; }
       if ((data.renamed ?? 0) === 0) {
         const skippedCount = data.skipped?.length ?? 0;
         setFrError(skippedCount > 0
@@ -120,7 +119,7 @@ export function useFindReplace({
         onPushUndo({
           description: `Rename ${renamedCount} token${renamedCount !== 1 ? 's' : ''}: "${capturedFind}" → "${capturedReplace}"`,
           restore: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ find: capturedReplace, replace: capturedFind, isRegex: false }),
@@ -129,7 +128,7 @@ export function useFindReplace({
             onRefresh();
           },
           redo: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/bulk-rename`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ find: capturedFind, replace: capturedReplace, isRegex: false }),
@@ -147,6 +146,8 @@ export function useFindReplace({
     } catch (err) {
       if (ac.signal.aborted) {
         setFrError('Bulk rename was cancelled');
+      } else if (err instanceof ApiError) {
+        setFrError(err.message);
       } else {
         setFrError(getErrorMessage(err));
       }

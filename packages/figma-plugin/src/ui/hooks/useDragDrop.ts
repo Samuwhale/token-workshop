@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import type { UndoSlot } from './useUndo';
 import { nodeParentPath } from '../components/tokenListUtils';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 
 export interface UseDragDropParams {
   connected: boolean;
@@ -74,20 +75,18 @@ export function useDragDrop({
     const failures: string[] = [];
     for (const { oldPath, newPath } of planned) {
       try {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
+        await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/tokens/rename`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ oldPath, newPath }),
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({ error: `Move failed (${res.status})` }));
-          failures.push(data.error || `Move "${oldPath}" failed (${res.status})`);
-          break; // stop on first failure — later renames may depend on earlier ones
-        }
         succeeded.push({ oldPath, newPath });
-      } catch {
-        failures.push(`Move "${oldPath}" failed: network error`);
-        break;
+      } catch (err) {
+        const msg = err instanceof ApiError
+          ? (err.message || `Move "${oldPath}" failed (${err.status})`)
+          : `Move "${oldPath}" failed: network error`;
+        failures.push(msg);
+        break; // stop on first failure — later renames may depend on earlier ones
       }
     }
     if (failures.length > 0) {
@@ -113,12 +112,11 @@ export function useDragDrop({
           for (let i = succeeded.length - 1; i >= 0; i--) {
             const { oldPath, newPath } = succeeded[i];
             try {
-              const res = await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+              await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldPath: newPath, newPath: oldPath }),
               });
-              if (!res.ok) failures.push(oldPath);
             } catch {
               failures.push(oldPath);
             }
@@ -132,12 +130,11 @@ export function useDragDrop({
           const failures: string[] = [];
           for (const { oldPath, newPath } of succeeded) {
             try {
-              const res = await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
+              await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/tokens/rename`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldPath, newPath }),
               });
-              if (!res.ok) failures.push(oldPath);
             } catch {
               failures.push(oldPath);
             }
@@ -182,19 +179,14 @@ export function useDragDrop({
 
     const prevOrder = [...siblings];
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/groups/reorder`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: `Reorder failed (${res.status})` }));
-        onError?.(data.error || `Reorder failed (${res.status})`);
-        onRefresh();
-        return;
-      }
-    } catch {
-      onError?.('Reorder tokens failed: network error');
+    } catch (err) {
+      const msg = err instanceof ApiError ? (err.message || `Reorder failed (${err.status})`) : 'Reorder tokens failed: network error';
+      onError?.(msg);
       onRefresh();
       return;
     }
@@ -207,7 +199,7 @@ export function useDragDrop({
       onPushUndo({
         description: label,
         restore: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ groupPath: targetParent, orderedKeys: prevOrder }),
@@ -215,7 +207,7 @@ export function useDragDrop({
           onRefresh();
         },
         redo: async () => {
-          await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
+          await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/groups/reorder`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ groupPath: targetParent, orderedKeys: newOrder }),

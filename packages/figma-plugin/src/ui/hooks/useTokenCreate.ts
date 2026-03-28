@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import type { SelectionNodeInfo, ApiErrorBody } from '../../shared/types';
+import type { SelectionNodeInfo } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
 import { getDefaultValue, nodeParentPath } from '../components/tokenListUtils';
 import { fuzzyScore } from '../shared/fuzzyMatch';
 import { validateTokenPath } from '../shared/tokenParsers';
+import { apiFetch, ApiError } from '../shared/apiFetch';
 
 export interface PathValidation {
   error: string | null;
@@ -193,7 +194,7 @@ export function useTokenCreate({
     const parsedValue = newTokenValue.trim() ? parseInlineValue(newTokenType, newTokenValue.trim()) : getDefaultValue(newTokenType);
     if (parsedValue === null) { setCreateError('Invalid value — boolean tokens must be "true" or "false"'); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath.split('.').map(encodeURIComponent).join('/')}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(effectiveSet)}/${trimmedPath.split('.').map(encodeURIComponent).join('/')}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -202,11 +203,6 @@ export function useTokenCreate({
           ...(newTokenDescription.trim() ? { $description: newTokenDescription.trim() } : {}),
         }),
       });
-      if (!res.ok) {
-        const data: ApiErrorBody = await res.json().catch(() => ({}));
-        setCreateError(data.error || `Failed to create token (${res.status})`);
-        return;
-      }
       const createdPath = trimmedPath;
       const createdType = newTokenType;
       const createdValue = parsedValue;
@@ -234,11 +230,11 @@ export function useTokenCreate({
         onPushUndo({
           description: `Create "${createdPath.split('.').pop() ?? createdPath}"`,
           restore: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, { method: 'DELETE' });
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, { method: 'DELETE' });
             onRefresh();
           },
           redo: async () => {
-            await fetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, {
+            await apiFetch(`${capturedUrl}/api/tokens/${encodeURIComponent(capturedSet)}/${capturedEncodedPath}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ $type: createdType, $value: createdValue }),
@@ -248,7 +244,11 @@ export function useTokenCreate({
         });
       }
     } catch (err) {
-      setCreateError('Network error — could not create token');
+      if (err instanceof ApiError) {
+        setCreateError(err.message || `Failed to create token (${err.status})`);
+      } else {
+        setCreateError('Network error — could not create token');
+      }
     }
   }, [newTokenPath, newTokenName, newTokenType, newTokenValue, newTokenDescription, connected, serverUrl, setName, onRefresh, onPushUndo, onTokenCreated, onRecordTouch]);
 

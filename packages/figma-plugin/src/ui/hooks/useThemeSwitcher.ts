@@ -1,5 +1,6 @@
 import { getErrorMessage } from '../shared/utils';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { apiFetch } from '../shared/apiFetch';
 import type { TokenMapEntry } from '../../shared/types';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { STORAGE_KEYS, lsGetJson, lsSetJson } from '../shared/storage';
@@ -52,11 +53,7 @@ export function useThemeSwitcher(
   const fetchThemesInner = useCallback((signal: AbortSignal) => {
     if (!connected) return;
     setThemesError(null);
-    fetch(`${serverUrl}/api/themes`, { signal })
-      .then(r => {
-        if (!r.ok) throw new Error(`Server returned ${r.status}`);
-        return r.json();
-      })
+    apiFetch<{ dimensions?: ThemeDimension[] }>(`${serverUrl}/api/themes`, { signal })
       .then(data => {
         if (signal.aborted) return;
         const all: ThemeDimension[] = data.dimensions || [];

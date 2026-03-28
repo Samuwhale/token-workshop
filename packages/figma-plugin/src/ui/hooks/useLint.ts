@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../shared/apiFetch';
 
 export interface LintViolation {
   rule: string;
@@ -28,16 +29,13 @@ export function useLint(
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/tokens/lint`, {
+        const data = await apiFetch<{ violations: LintViolation[] }>(`${serverUrl}/api/tokens/lint`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ set: setName }),
           signal: AbortSignal.any([controller.signal, AbortSignal.timeout(5000)]),
         });
-        if (res.ok) {
-          const data = await res.json() as { violations: LintViolation[] };
-          setViolations(data.violations ?? []);
-        }
+        setViolations(data.violations ?? []);
       } catch {
         // server offline, timeout, or effect cleanup — silently clear
         setViolations([]);

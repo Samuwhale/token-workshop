@@ -4,6 +4,7 @@ import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConf
 import { isDimensionLike } from './generators/generatorShared';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
 import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
+import { apiFetch } from '../shared/apiFetch';
 
 // ---------------------------------------------------------------------------
 // Graph template definitions
@@ -388,20 +389,13 @@ function ApplyForm({
           targetSet: activeSet,
           config: template.config,
         };
-        const res = await fetch(`${serverUrl}/api/generators/preview`, {
+        const data = await apiFetch<{ count: number; tokens: GeneratedTokenResult[] }>(`${serverUrl}/api/generators/preview`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
           signal: controller.signal,
         });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({})) as { error?: string };
-          setPreviewError(data.error || `Preview failed (${res.status})`);
-          setPreviewTokens([]);
-        } else {
-          const data = await res.json() as { count: number; tokens: GeneratedTokenResult[] };
-          setPreviewTokens(data.tokens ?? []);
-        }
+        setPreviewTokens(data.tokens ?? []);
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
         setPreviewError(getErrorMessage(err, 'Preview failed'));
@@ -447,16 +441,12 @@ function ApplyForm({
         targetGroup: prefix.trim(),
         config: template.config,
       };
-      const res = await fetch(`${serverUrl}/api/generators`, {
+      await apiFetch(`${serverUrl}/api/generators`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(genBody),
         signal: AbortSignal.timeout(8000),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({})) as { error?: string };
-        throw new Error(data.error || `Failed to create generator (${res.status})`);
-      }
 
       // Create semantic alias tokens
       const skipped: string[] = [];
@@ -468,28 +458,31 @@ function ApplyForm({
             $value: `{${prefix.trim()}.${mapping.step}}`,
             $description: `Semantic alias for ${prefix.trim()}.${mapping.step}`,
           };
-          const tokenRes = await fetch(
-            `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(tokenBody),
-              signal: AbortSignal.timeout(5000),
-            },
-          );
-          if (tokenRes.status === 409) {
-            skipped.push(fullPath);
-          } else if (!tokenRes.ok) {
-            // Try PATCH as fallback
-            await fetch(
+          try {
+            await apiFetch(
               `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
               {
-                method: 'PATCH',
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(tokenBody),
                 signal: AbortSignal.timeout(5000),
               },
             );
+          } catch (tokenErr: any) {
+            if (tokenErr?.status === 409) {
+              skipped.push(fullPath);
+            } else {
+              // Try PATCH as fallback
+              await apiFetch(
+                `${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${fullPath}`,
+                {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(tokenBody),
+                  signal: AbortSignal.timeout(5000),
+                },
+              );
+            }
           }
         }
       }

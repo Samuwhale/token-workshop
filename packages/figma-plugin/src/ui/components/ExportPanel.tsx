@@ -164,9 +164,8 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
   // Fetch available sets when connected
   useEffect(() => {
     if (!connected) return;
-    fetch(`${serverUrl}/api/sets`)
-      .then(r => r.json())
-      .then((data: { sets?: string[] }) => {
+    apiFetch<{ sets?: string[] }>(`${serverUrl}/api/sets`)
+      .then((data) => {
         setAvailableSets(data.sets || []);
       })
       .catch(() => { /* ignore — sets filter will be hidden */ });
@@ -379,11 +378,11 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
         const setName = collection.name.replace(/[^a-zA-Z0-9_-]/g, '-').toLowerCase();
 
         // Ensure set exists
-        await fetch(`${serverUrl}/api/sets`, {
+        await apiFetch(`${serverUrl}/api/sets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: setName }),
-        });
+        }).catch(() => { /* set may already exist */ });
 
         // Build all tokens and upsert in a single batch request
         const batchTokens = collection.variables.map(variable => {

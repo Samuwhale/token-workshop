@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { describeError } from '../shared/utils';
+import { apiFetch } from '../shared/apiFetch';
 
 export interface ConflictRegion {
   index: number;
@@ -68,18 +69,18 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     const { signal } = controller;
     if (!connected) { setGitLoading(false); return; }
     try {
-      const res = await fetch(`${serverUrl}/api/sync/status`, { signal });
-      if (res.ok) {
-        const data = await res.json();
+      try {
+        const data = await apiFetch<GitStatus>(`${serverUrl}/api/sync/status`, { signal });
         setGitStatus(data);
         if (data.remote) setRemoteUrl(data.remote);
-      } else {
+      } catch {
         setGitStatus({ isRepo: false, branch: null, remote: null, status: null });
       }
-      const branchRes = await fetch(`${serverUrl}/api/sync/branches`, { signal });
-      if (branchRes.ok) {
-        const branchData = await branchRes.json();
+      try {
+        const branchData = await apiFetch<{ branches: string[] }>(`${serverUrl}/api/sync/branches`, { signal });
         setBranches(branchData.branches || []);
+      } catch {
+        // Branch fetch failure is non-fatal
       }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return;
@@ -91,21 +92,18 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
 
   const fetchConflicts = useCallback(async () => {
     try {
-      const res = await fetch(`${serverUrl}/api/sync/conflicts`);
-      if (res.ok) {
-        const data = await res.json();
-        const conflicts: FileConflict[] = data.conflicts || [];
-        setMergeConflicts(conflicts);
-        // Initialize choices: default all regions to 'theirs' (accept incoming)
-        const choices: Record<string, Record<number, 'ours' | 'theirs'>> = {};
-        for (const c of conflicts) {
-          choices[c.file] = {};
-          for (const r of c.regions) {
-            choices[c.file][r.index] = 'theirs';
-          }
+      const data = await apiFetch<{ conflicts: FileConflict[] }>(`${serverUrl}/api/sync/conflicts`);
+      const conflicts: FileConflict[] = data.conflicts || [];
+      setMergeConflicts(conflicts);
+      // Initialize choices: default all regions to 'theirs' (accept incoming)
+      const choices: Record<string, Record<number, 'ours' | 'theirs'>> = {};
+      for (const c of conflicts) {
+        choices[c.file] = {};
+        for (const r of c.regions) {
+          choices[c.file][r.index] = 'theirs';
         }
-        setConflictChoices(choices);
       }
+      setConflictChoices(choices);
     } catch {
       // Conflict fetch failure is non-fatal
     }
@@ -131,15 +129,11 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
         file: c.file,
         choices: conflictChoices[c.file] || {},
       }));
-      const res = await fetch(`${serverUrl}/api/sync/conflicts/resolve`, {
+      await apiFetch(`${serverUrl}/api/sync/conflicts/resolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resolutions }),
       });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to resolve conflicts');
-      }
       setMergeConflicts([]);
       setConflictChoices({});
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Merge conflicts resolved' } }, '*');
@@ -155,8 +149,7 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     setActionLoading('abort');
     setGitError(null);
     try {
-      const res = await fetch(`${serverUrl}/api/sync/conflicts/abort`, { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to abort merge');
+      await apiFetch(`${serverUrl}/api/sync/conflicts/abort`, { method: 'POST' });
       setMergeConflicts([]);
       setConflictChoices({});
       parent.postMessage({ pluginMessage: { type: 'notify', message: 'Merge aborted' } }, '*');
@@ -172,16 +165,11 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     setActionLoading(action);
     setGitError(null);
     try {
-      const res = await fetch(`${serverUrl}/api/sync/${action}`, {
+      const result = await apiFetch<Record<string, any>>(`${serverUrl}/api/sync/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: body ? JSON.stringify(body) : undefined,
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `${action} failed`);
-      }
-      const result = await res.json().catch(() => ({}));
+      }) ?? {};
       if (action === 'push' || action === 'pull') setLastSynced(new Date());
       // Check for merge conflicts after pull
       if (action === 'pull' && result.conflicts && result.conflicts.length > 0) {
@@ -206,9 +194,7 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     setDiffLoading(true);
     setGitError(null);
     try {
-      const res = await fetch(`${serverUrl}/api/sync/diff`);
-      if (!res.ok) throw new Error('Could not compute diff');
-      const data = await res.json() as { localOnly: string[]; remoteOnly: string[]; conflicts: string[] };
+      const data = await apiFetch<{ localOnly: string[]; remoteOnly: string[]; conflicts: string[] }>(`${serverUrl}/api/sync/diff`);
       setDiffView(data);
       const choices: Record<string, 'push' | 'pull' | 'skip'> = {};
       for (const f of data.localOnly) choices[f] = 'push';
@@ -226,12 +212,11 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     setApplyingDiff(true);
     setGitError(null);
     try {
-      const res = await fetch(`${serverUrl}/api/sync/apply-diff`, {
+      await apiFetch(`${serverUrl}/api/sync/apply-diff`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ choices: diffChoices }),
       });
-      if (!res.ok) throw new Error('Failed to apply diff');
       setDiffView(null);
       fetchStatus();
     } catch (err) {
@@ -245,9 +230,7 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     setTokenPreviewLoading(true);
     setGitError(null);
     try {
-      const res = await fetch(`${serverUrl}/api/sync/diff/tokens`);
-      if (!res.ok) throw new Error('Could not fetch token preview');
-      const data = await res.json() as { changes: typeof tokenPreview; fileCount: number };
+      const data = await apiFetch<{ changes: typeof tokenPreview; fileCount: number }>(`${serverUrl}/api/sync/diff/tokens`);
       setTokenPreview(data.changes ?? []);
     } catch (err) {
       setGitError(describeError(err, 'Token preview'));

@@ -1,9 +1,10 @@
 import { getErrorMessage, adaptShortcut } from '../shared/utils';
+import { apiFetch } from '../shared/apiFetch';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { resolveRefValue } from '@tokenmanager/core';
 import type { ThemeDimension } from '@tokenmanager/core';
 import { ConfirmModal } from './ConfirmModal';
-import type { ApiErrorBody, TokenMapEntry } from '../../shared/types';
+import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { ColorModifierOp } from '@tokenmanager/core';
 import { validateColorModifiers } from '@tokenmanager/core';
@@ -213,15 +214,11 @@ function ThemeValuesSection({
     setSaveError(null);
     try {
       const encodedPath = tokenPath.split('.').map(encodeURIComponent).join('/');
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}/${encodedPath}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ $type: tokenType, $value: finalValue }),
       });
-      if (!res.ok) {
-        const body = await res.text().catch(() => '');
-        throw new Error(body || `Server returned ${res.status}`);
-      }
       setEdits(prev => { const next = { ...prev }; delete next[optionName]; return next; });
       onRefresh?.();
     } catch (err) {
@@ -460,9 +457,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     if (isCreateMode) return; // skip fetch in create mode
     const fetchToken = async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`);
-        if (!res.ok) throw new Error('Token not found');
-        const data = await res.json();
+        const data = await apiFetch<{ token?: any }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`);
         const token = data.token;
         setTokenType(token?.$type || 'string');
         setValue(token?.$value ?? '');
@@ -522,11 +517,8 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
     const fetchDependents = async () => {
       setDependentsLoading(true);
       try {
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedTokenPath}`);
-        if (res.ok) {
-          const data = await res.json();
-          setDependents(data.dependents ?? []);
-        }
+        const data = await apiFetch<{ dependents?: Array<{ path: string; setName: string }> }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/dependents/${encodedTokenPath}`);
+        setDependents(data.dependents ?? []);
       } catch {
         // silently fail — dependency info is supplementary
       } finally {
@@ -698,8 +690,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
 
   const handleDelete = async () => {
     try {
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Delete failed');
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`, { method: 'DELETE' });
       onBack();
     } catch (err) {
       setError(getErrorMessage(err, 'Delete failed'));
@@ -771,15 +762,12 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       // Conflict detection: if the token was modified on the server since we loaded it, warn the user.
       if (!isCreateMode && !forceOverwrite && initialServerSnapshotRef.current !== null) {
         try {
-          const checkRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`);
-          if (checkRes.ok) {
-            const checkData = await checkRes.json();
-            const currentSnapshot = JSON.stringify(checkData.token ?? null);
-            if (currentSnapshot !== initialServerSnapshotRef.current) {
-              setShowConflictConfirm(true);
-              setSaving(false);
-              return;
-            }
+          const checkData = await apiFetch<{ token?: any }>(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTokenPath}`);
+          const currentSnapshot = JSON.stringify(checkData.token ?? null);
+          if (currentSnapshot !== initialServerSnapshotRef.current) {
+            setShowConflictConfirm(true);
+            setSaving(false);
+            return;
           }
         } catch {
           // If the conflict check itself fails (network error), proceed with the save.
@@ -818,15 +806,11 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
       const targetPath = isCreateMode ? editPath.trim() : tokenPath;
       const encodedTargetPath = targetPath.split('.').map(encodeURIComponent).join('/');
       const method = isCreateMode ? 'POST' : 'PATCH';
-      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTargetPath}`, {
+      await apiFetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${encodedTargetPath}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      if (!res.ok) {
-        const data: ApiErrorBody = await res.json().catch(() => ({}));
-        throw new Error(data.error || (isCreateMode ? 'Failed to create token' : 'Failed to save token'));
-      }
       const label = isCreateMode ? 'created' : 'saved';
       parent.postMessage({ pluginMessage: { type: 'notify', message: `Token "${targetPath}" ${label}` } }, '*');
       onSaved?.(targetPath);

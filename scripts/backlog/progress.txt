@@ -289,3 +289,18 @@
   - The backlog line references (e.g., generator-service.ts:292) may be stale — always grep for the actual `JSON.stringify` usage rather than trusting line numbers
   - `stableStringify` was already in the UI package but not shared to server; duplicating a 7-line pure function is simpler and safer than creating a shared package
 ---
+
+## 2026-03-28 - Raw fetch() calls across 37 UI files bypass shared apiFetch utility
+- Migrated 170 raw `fetch()` calls across 36 UI files to use the shared `apiFetch` utility, eliminating per-call `res.ok` checks and manual error body parsing
+- Enhanced `apiFetch` to handle 204 No Content responses (returns undefined instead of failing on empty body)
+- Removed duplicate local helpers (`checkedJson`, `checkedFetch` in useSetMergeSplit.ts)
+- Only 2 intentional raw `fetch()` calls remain in `useServerConnection.ts` (health checks that must not throw on non-2xx)
+- Converted `Promise.all` + `.ok` checking patterns to `Promise.allSettled` with `apiFetch`
+- Converted soft-fail patterns (graceful degradation on non-2xx) to try/catch with `ApiError`
+- Files changed: `packages/figma-plugin/src/ui/shared/apiFetch.ts` (204 guard), plus 36 UI files: `TokenList.tsx` (40 calls), `ThemeManager.tsx` (17), `useSetMergeSplit.ts` (12), `useGitSync.ts` (9), `useTokens.ts` (6), `useDragDrop.ts` (6), `TokenEditor.tsx` (6), `AnalyticsPanel.tsx` (5), `useSetDuplicate.ts` (4), `useResolvers.ts` (4), `GraphPanel.tsx` (4), `BatchEditor.tsx` (4), `App.tsx` (4), `VersionHistoryPanel.tsx` (4), `useGeneratorDialog.ts` (3), `useTableCreate.ts` (3), `useFindReplace.ts` (3), `useTokenCreate.ts` (3), `QuickStartWizard.tsx` (3), `useVariableSync.ts` (2), `useStyleSync.ts` (2), `useFigmaSync.ts` (2), `PublishPanel.tsx` (2), `ExportPanel.tsx` (2), `SemanticMappingDialog.tsx` (2), `PasteTokensModal.tsx` (2), `TokenGraph.tsx` (2), `ImportPanel.tsx` (2), `ResolverPanel.tsx` (2), `useSetMetadata.ts` (1), `useGenerators.ts` (1), `useLint.ts` (1), `useThemeSwitcher.ts` (1), `PropertyRow.tsx` (1), `ColorScaleGenerator.tsx` (1), `ExtractTokensPanel.tsx` (1)
+- **Learnings for future iterations:**
+  - `apiFetch` always calls `res.json()` on success — must guard for 204 No Content or content-length: 0
+  - Health-check endpoints that return boolean liveness status should remain as raw `fetch()` — they must not throw on non-2xx
+  - Soft-fail patterns (`if (res.ok) { use data } else { fallback }`) become try/catch blocks — the catch should silently set defaults, not re-throw
+  - `Promise.all` with `.ok` checking on raw Response arrays must be restructured to `Promise.allSettled` when using apiFetch (since errors throw instead of returning Response objects)
+---

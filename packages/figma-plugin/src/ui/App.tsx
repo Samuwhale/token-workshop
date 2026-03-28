@@ -419,11 +419,10 @@ export function App() {
     let cancelled = false;
     const check = async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/sync/status`, {
+        const data = await apiFetch<{ status?: { isClean?: boolean } }>(`${serverUrl}/api/sync/status`, {
           signal: AbortSignal.any([AbortSignal.timeout(5000), getDisconnectSignal()]),
         });
-        if (res.ok && !cancelled) {
-          const data = await res.json();
+        if (!cancelled) {
           setGitHasChanges(data.status != null && !data.status.isClean);
         }
       } catch { /* ignore */ }
@@ -753,7 +752,7 @@ export function App() {
     setSets(newOrder);
     setTabMenuOpen(null);
     try {
-      await fetch(`${serverUrl}/api/sets/reorder`, {
+      await apiFetch(`${serverUrl}/api/sets/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: newOrder }),
@@ -777,7 +776,7 @@ export function App() {
     setDragOverSetName(null);
     setSets(newOrder);
     try {
-      await fetch(`${serverUrl}/api/sets/reorder`, {
+      await apiFetch(`${serverUrl}/api/sets/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: newOrder }),
@@ -822,7 +821,7 @@ export function App() {
     if (clearConfirmText !== 'DELETE') return;
     setClearing(true);
     try {
-      await fetch(`${serverUrl}/api/data`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'DELETE' }) });
+      await apiFetch(`${serverUrl}/api/data`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm: 'DELETE' }) });
     } catch {
       // best-effort
     }
