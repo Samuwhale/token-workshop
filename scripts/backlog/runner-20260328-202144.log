@@ -112,3 +112,16 @@ Already up to date.
 
 --- Merging: Add SCSS, LESS, and TypeScript export formats to ExportPanel ---
 Already up to date.
+[main d535593] chore(backlog): done – Add SCSS, LESS, and TypeScript export formats to ExportPanel
+ 9 files changed, 60 insertions(+), 127 deletions(-)
+
+## 2026-03-28 - Add SCSS, LESS, and TypeScript export formats to ExportPanel
+- Added three new export platforms: SCSS (`$token-name: value;`), LESS (`@token-name: value;`), and TypeScript (`export const tokenName = value;`)
+- SCSS and LESS use the `css` transform group (kebab-case names) with built-in Style Dictionary formats `scss/variables` and `less/variables`
+- TypeScript uses the `js` transform group (camelCase names) with `javascript/es6` format outputting to `.ts`
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  55 items remaining
+===============================================================
+  Claimed: QuickStart wizard has no skip option for individual steps — experienced users who already have primitives must still click through the "Generate Primitives" step to reach theme setup; add a "Skip" button on each step and a step indicator that allows jumping to any step directly
+  Worktree: /tmp/backlog-10054-3PfekR

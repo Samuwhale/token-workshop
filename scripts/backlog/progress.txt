@@ -445,3 +445,15 @@
   - `javascript/es6` format outputs `export const name = value;` which is valid TypeScript — just use `.ts` extension
   - SCSS/LESS support `calc()` so they should use the CSS-optimized token file (formula injection) like the CSS platform
 ---
+
+## 2026-03-28 - Asset token editor has no file upload or preview
+- Enhanced AssetEditor with drag-and-drop upload area, file picker, image preview with error state, and data URI support
+- Drop zone accepts image files and converts to data URI via FileReader
+- Preview shows loaded images with error fallback (X icon + message), data URI size badge
+- URL input disables when a data URI is set; "Clear" button to reset
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L847-960
+- **Learnings for future iterations:**
+  - The existing AssetEditor already had a basic preview (added in a prior iteration) — the backlog description was partially stale
+  - `FileReader.readAsDataURL` is the simplest approach for asset storage in a Figma plugin context since there's no server-side file storage endpoint
+  - For data URIs, approximate decoded size as `(base64.length * 3) / 4 / 1024` KB
+---

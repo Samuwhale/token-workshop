@@ -153,3 +153,10 @@ Already up to date.
 ===============================================================
   Claimed: Asset token editor has no file upload or preview — the AssetEditor is a bare URL input with no way to upload an image, preview the current URL, or validate that the URL resolves; add an image preview below the input and a drag-and-drop upload area that stores the asset (or encodes as data URI)
   Worktree: /tmp/backlog-9651-dxPSSS
+
+  ✓ done: Asset token editor has no file upload or preview
+    Added drag-and-drop upload zone with data URI encoding, file picker button, image preview with load error state, data URI size badge, and clear button to the AssetEditor component.
+    10 turns · 111s · $0.46
+
+--- Merging: Asset token editor has no file upload or preview ---
+Already up to date.
