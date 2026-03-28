@@ -11,6 +11,25 @@ import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 export const inputClass = 'w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]';
 export const labelClass = 'text-[10px] text-[var(--color-figma-text-secondary)] mb-0.5';
 
+/** Per-type format hints shown below the "Value" label in the token editor. */
+export const VALUE_FORMAT_HINTS: Record<string, string> = {
+  color: '#hex, rgb(), oklch(), color(display-p3 …)',
+  dimension: 'Number + unit (px, rem, em, %)',
+  number: 'Numeric value or fx expression',
+  string: 'Any text value',
+  boolean: 'true / false',
+  fontFamily: 'Font name(s), comma-separated',
+  fontWeight: '100–900 (Thin → Black)',
+  duration: 'Time value in ms or s',
+  shadow: 'Color, offset X/Y, blur, spread',
+  border: 'Color, width, style',
+  gradient: 'Color stops with positions',
+  typography: 'Font family, size, weight, line height, letter spacing',
+  composition: 'Key–value pairs of design properties',
+  asset: 'URL to an image or file',
+  strokeStyle: 'solid, dashed, dotted, double, …',
+};
+
 function InheritedBadge({ propKey, onOverride }: { propKey: string; onOverride: () => void }) {
   return (
     <span className="inline-flex items-center gap-0.5 ml-1">

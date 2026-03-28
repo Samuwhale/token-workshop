@@ -20,3 +20,9 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Token create form: breadcrumb-style path builder ---
 Already up to date.
+[main bdc5fd0] chore(backlog): done – Token create form: breadcrumb-style path builder
+ 8 files changed, 210 insertions(+), 60 deletions(-)
+
+================================================================
+  ★ Maintenance Pass: product
+================================================================

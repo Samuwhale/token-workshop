@@ -11,7 +11,7 @@ import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { ValueDiff, OriginalValuePreview } from './ValueDiff';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import { COMPOSITE_TOKEN_TYPES } from '@tokenmanager/core';
-import { ColorEditor, DimensionEditor, TypographyEditor, ShadowEditor, BorderEditor, GradientEditor, NumberEditor, DurationEditor, FontFamilyEditor, FontWeightEditor, StrokeStyleEditor, StringEditor, BooleanEditor, CompositionEditor, AssetEditor } from './ValueEditors';
+import { ColorEditor, DimensionEditor, TypographyEditor, ShadowEditor, BorderEditor, GradientEditor, NumberEditor, DurationEditor, FontFamilyEditor, FontWeightEditor, StrokeStyleEditor, StringEditor, BooleanEditor, CompositionEditor, AssetEditor, VALUE_FORMAT_HINTS } from './ValueEditors';
 import { AliasPicker, resolveAliasChain } from './AliasPicker';
 import { resolveTokenValue, isAlias } from '../../shared/resolveAlias';
 import { ContrastChecker } from './ContrastChecker';
@@ -840,12 +840,17 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         {/* Type-specific editor */}
         {!reference && (
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
-                {extendsPath ? 'Overrides' : 'Value'}
-              </label>
-              {!canSave && tokenType === 'typography' && saveBlockReason && (
-                <button type="button" onClick={focusBlockedField} className="text-[10px] text-[var(--color-figma-error)] hover:underline cursor-pointer bg-transparent border-none p-0">{saveBlockReason}</button>
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">
+                  {extendsPath ? 'Overrides' : 'Value'}
+                </label>
+                {!canSave && tokenType === 'typography' && saveBlockReason && (
+                  <button type="button" onClick={focusBlockedField} className="text-[10px] text-[var(--color-figma-error)] hover:underline cursor-pointer bg-transparent border-none p-0">{saveBlockReason}</button>
+                )}
+              </div>
+              {VALUE_FORMAT_HINTS[tokenType] && (
+                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] italic">{VALUE_FORMAT_HINTS[tokenType]}</span>
               )}
             </div>
             {initialRef.current && !isCreateMode && (

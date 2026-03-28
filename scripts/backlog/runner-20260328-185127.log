@@ -32,3 +32,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token create form: type-specific value field placeholders and hints** — the value field shows no placeholder text that tells the user what format is expected for each type. Add contextual placeholder text per type (e.g., `#hex or oklch(...)` for color, `16px / 1rem` for dimension, `400 / bold` for fontWeight). This is especially valuable for users unfamiliar with DTCG value formats.
   Worktree: /tmp/backlog-73948-wDw8IX
+
+  ✓ done: Token create form: type-specific value field placeholders and hints
+    Added VALUE_FORMAT_HINTS map (15 types) in ValueEditors.tsx and display as italic hint text below the Value label in TokenEditor.tsx, updating reactively on type change.
+    29 turns · 202s · $1.05
+
+--- Merging: Token create form: type-specific value field placeholders and hints ---
+Already up to date.

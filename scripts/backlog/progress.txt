@@ -563,3 +563,12 @@
   - Combobox blur→close needs `setTimeout` (~150ms) to allow click events on dropdown items to fire before the dropdown disappears
   - `onMouseDown={e => e.preventDefault()}` on dropdown items prevents the input blur from firing, which is a cleaner alternative to `setTimeout` for keeping the dropdown open during selection
 ---
+
+## 2026-03-28 - Token create form: type-specific value field placeholders and hints
+- Added `VALUE_FORMAT_HINTS` map in `ValueEditors.tsx` with per-type format hint strings (color, dimension, number, string, boolean, fontFamily, fontWeight, duration, shadow, border, gradient, typography, composition, asset, strokeStyle).
+- Display hint text as an italic 9px tertiary-color line below the "Value" label in `TokenEditor.tsx`. The hint updates reactively when the user changes the token type.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L13 (VALUE_FORMAT_HINTS), `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L14 (import), ~L843-852 (hint display)
+- **Learnings for future iterations:**
+  - All 13 selectable token types already have dedicated editors; none fall through without a UI
+  - `--color-figma-text-tertiary` CSS var exists for subtle hint text
+---
