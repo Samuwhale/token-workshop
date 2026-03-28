@@ -57,3 +57,17 @@ Already up to date.
 
 --- Merging: Hardcoded Tailwind colors in TokenList/TokenTreeNode bypass CSS variable system ---
 Already up to date.
+[main e1100e1] chore(backlog): done – Hardcoded Tailwind colors in TokenList/TokenTreeNode bypass CSS variable system
+ 7 files changed, 31 insertions(+), 9 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Hardcoded Tailwind colors in TokenList/TokenTreeNode bypass CSS variable system
+- Replaced all hardcoded Tailwind color classes (`text-orange-500`, `bg-orange-500`, `text-red-500`, `ring-red-500`) with CSS variable equivalents (`var(--color-figma-warning)` for orange, `var(--color-figma-error)` for red) in TokenList.tsx (5 replacements) and TokenTreeNode.tsx (2 replacements).
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1923, ~L1925, ~L2147, ~L2273, ~L2276; `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L294, ~L847
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  100 items remaining
+===============================================================
+  Claimed: Search qualifiers are undiscoverable — powerful query system (type:color, has:alias, value:#ff0000) has no autocomplete, cheat sheet, or inline hint; add a "?" icon showing available qualifiers or structured filter chips that generate the query (like GitHub issue filters)
+  Worktree: /tmp/backlog-63411-YWWRGC

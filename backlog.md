@@ -30,13 +30,13 @@
 ### Bugs
 
 - [x] `alert()` used for error feedback in token move operations — jarring, unthemed, blocks the UI thread; replace with inline error state or toast matching the existing error banner pattern
-- [~] Hardcoded Tailwind colors in TokenList (`text-orange-500`, `bg-orange-500`, `text-red-500`) and TokenTreeNode (`ring-red-500`) bypass the CSS variable system; replace with `var(--color-figma-warning)` / `var(--color-figma-error)` equivalents
+- [x] Hardcoded Tailwind colors in TokenList (`text-orange-500`, `bg-orange-500`, `text-red-500`) and TokenTreeNode (`ring-red-500`) bypass the CSS variable system; replace with `var(--color-figma-warning)` / `var(--color-figma-error)` equivalents
 - [~] Flat token map silently shadows tokens when two sets define the same path — `rebuildFlatTokens` last-write-wins; `getAllFlatTokens`, `resolveToken`, `getDependents`, and search only see one version, so delete-safety checks miss cross-set references
-- [ ] `inferType` heuristic misclassifies composite tokens — a composition with a `blur` key becomes shadow, `width`+`color` becomes border; confusing when `$type` is omitted
+- [~] `inferType` heuristic misclassifies composite tokens — a composition with a `blur` key becomes shadow, `width`+`color` becomes border; confusing when `$type` is omitted
 
 ### QoL
 
-- [ ] Search qualifiers are undiscoverable — powerful query system (type:color, has:alias, value:#ff0000) has no autocomplete, cheat sheet, or inline hint; add a "?" icon showing available qualifiers or structured filter chips that generate the query (like GitHub issue filters)
+- [~] Search qualifiers are undiscoverable — powerful query system (type:color, has:alias, value:#ff0000) has no autocomplete, cheat sheet, or inline hint; add a "?" icon showing available qualifiers or structured filter chips that generate the query (like GitHub issue filters)
 - [ ] No visual diff when editing token values — no "before → after" preview; show the current resolved value alongside the edit field, especially for complex types like typography and shadows
 - [ ] No hover preview on alias tokens — hovering `{color.primary}` in the token list doesn't show the resolved value; users must enter edit mode to see what an alias resolves to
 - [ ] No token count badge on set tabs — you have to open a set to discover how many tokens it contains; show a count in the tab label

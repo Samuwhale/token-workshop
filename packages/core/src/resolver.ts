@@ -429,22 +429,20 @@ export class TokenResolver {
       const v = value as Record<string, unknown>;
       const keys = Object.keys(v);
 
-      // Shadow: any of its characteristic keys (offsetX, offsetY, blur, spread)
-      const shadowKeys = ['offsetX', 'offsetY', 'blur', 'spread'];
-      if (keys.some((k) => shadowKeys.includes(k))) return TOKEN_TYPES.SHADOW;
+      // Shadow: require offsetX or offsetY (unique to shadow); blur/spread alone are ambiguous
+      if ('offsetX' in v || 'offsetY' in v) return TOKEN_TYPES.SHADOW;
 
-      // Typography: any of its characteristic keys
-      const typographyKeys = ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
-      if (keys.some((k) => typographyKeys.includes(k))) return TOKEN_TYPES.TYPOGRAPHY;
+      // Typography: require fontFamily or fontSize (distinctive to typography)
+      if ('fontFamily' in v || 'fontSize' in v) return TOKEN_TYPES.TYPOGRAPHY;
 
-      // Border: needs at least one border-specific key (width or style alongside color)
-      // 'color' alone is ambiguous, but 'style' with strokeStyle values or 'width' with color hints border
-      if (('width' in v || 'style' in v) && 'color' in v) return TOKEN_TYPES.BORDER;
-      if ('style' in v && 'width' in v) return TOKEN_TYPES.BORDER;
+      // Border: require style (the DTCG strokeStyle key) alongside color or width;
+      // width+color alone is ambiguous (could be a composition)
+      if ('style' in v && ('color' in v || 'width' in v)) return TOKEN_TYPES.BORDER;
 
-      // Transition: any of its characteristic keys
+      // Transition: require timingFunction (distinctive) or at least 2 of duration/delay/timingFunction
       const transitionKeys = ['duration', 'delay', 'timingFunction'];
-      if (keys.some((k) => transitionKeys.includes(k))) return TOKEN_TYPES.TRANSITION;
+      const transitionHits = keys.filter((k) => transitionKeys.includes(k)).length;
+      if ('timingFunction' in v || transitionHits >= 2) return TOKEN_TYPES.TRANSITION;
 
       if ('value' in v && 'unit' in v) {
         const unit = (v as { unit: string }).unit;

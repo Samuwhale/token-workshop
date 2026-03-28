@@ -47,3 +47,16 @@ Already up to date.
 - Replaced `alert()` calls in `handleConfirmMoveToken` with `onError?.()` callback that triggers the existing error toast (`SuccessToast` with `variant="error"`).
 - Added `onError` to `TokenListActions` interface, destructured it in `TokenList`, and passed `setErrorToast` from all three `<TokenList>` call sites in `App.tsx`.
 - Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L57, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L32, ~L1011, ~L1015, ~L1020, `packages/figma-plugin/src/ui/App.tsx` ~L1938, ~L1970, ~L1983
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  101 items remaining
+===============================================================
+  Claimed: `inferType` heuristic misclassifies composite tokens — a composition with a `blur` key becomes shadow, `width`+`color` becomes border; confusing when `$type` is omitted
+  Worktree: /tmp/backlog-63973-70ktHO
+
+  ✓ done: `inferType` heuristic misclassifies composite tokens
+    Tightened inferType in resolver.ts to require distinctive keys (offsetX/offsetY for shadow, fontFamily/fontSize for typography, style for border, timingFunction or 2+ keys for transition) instead of single-key matches that caused misclassification of compositions.
+    19 turns · 105s · $0.47
+
+--- Merging: `inferType` heuristic misclassifies composite tokens ---
+Already up to date.

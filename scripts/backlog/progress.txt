@@ -421,3 +421,14 @@
   - CSS variables `--color-figma-warning` and `--color-figma-error` are defined in `styles.css` and already used extensively in App.tsx — always prefer these over Tailwind color utilities for warning/error semantics.
   - Tailwind's `/10` alpha modifier works with `var()` values (e.g., `bg-[var(--color-figma-error)]/10`), so the pattern is a direct swap.
 ---
+
+## 2026-03-28 - `inferType` heuristic misclassifies composite tokens
+- Tightened the `inferType` heuristic in `packages/core/src/resolver.ts` to require more distinctive key combinations instead of single-key matches:
+  - **Shadow**: now requires `offsetX` or `offsetY` (previously any of `offsetX`/`offsetY`/`blur`/`spread` — so a composition with just `blur` was misclassified as shadow)
+  - **Typography**: now requires `fontFamily` or `fontSize` (previously any of 5 typography keys)
+  - **Border**: now requires `style` alongside `color` or `width` (previously `width`+`color` alone triggered border, which is ambiguous for compositions)
+  - **Transition**: now requires `timingFunction` or at least 2 of 3 transition keys (previously any single key matched)
+- Files changed: `packages/core/src/resolver.ts` ~L432-L448
+- **Learnings for future iterations:**
+  - When inferring composite token types from object keys, prefer keys that are *unique* to that type (e.g., `offsetX` for shadow, `fontFamily` for typography) over keys shared across types (e.g., `blur`, `color`, `width`).
+---
