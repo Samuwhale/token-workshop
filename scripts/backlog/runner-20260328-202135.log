@@ -144,3 +144,16 @@ Already up to date.
 
 --- Merging: PublishPanel conflict resolution bulk actions ---
 Already up to date.
+[main 80b868b] chore(backlog): done – PublishPanel conflict resolution bulk actions
+ 6 files changed, 85 insertions(+), 6 deletions(-)
+
+## 2026-03-28 - PublishPanel conflict resolution bulk actions
+- Added per-category "Push all / Pull all / Skip all" bulk buttons to the "Values differ" conflict headers in both variable sync and style sync sections (only shown when 2+ conflicts exist)
+- Added "All ours / All theirs" bulk buttons to the git merge conflict instruction bar for setting all regions at once
+- The top-level "Select all" bar already existed but applied to ALL rows (local-only + figma-only + conflicts); the new per-category buttons let users bulk-set only the conflict rows without disturbing sensible defaults for other categories
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  49 items remaining
+===============================================================
+  Claimed: `useSetDuplicate.ts` silently returns on HTTP errors (~lines 32, 42) — if fetching the source set or creating the duplicate fails with 4xx/5xx, the user gets no error feedback and the operation appears to do nothing
+  Worktree: /tmp/backlog-9231-cIUwrP

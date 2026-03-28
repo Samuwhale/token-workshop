@@ -3,7 +3,7 @@
 import type { PluginMessage } from '../shared/types.js';
 import { applyVariables, readFigmaVariables, deleteOrphanVariables, exportAllVariables } from './variableSync.js';
 import { applyStyles, readFigmaStyles } from './styleSync.js';
-import { getAvailableFontFamilies } from './fontLoading.js';
+import { getAvailableFontFamilies, invalidateFontCache } from './fontLoading.js';
 import { applyToSelection, getSelection, removeBinding, clearAllBindings, syncBindings, remapBindings, highlightLayersByToken, extractTokensFromSelection, scanTokenUsageMap } from './selectionHandling.js';
 import { scanComponentCoverage, selectNode, selectNextSibling, scanCanvasHeatmap, selectHeatmapNodes, batchBindHeatmapNodes, scanTokenUsage } from './heatmapScanning.js';
 import { scanConsistency } from './consistencyScanner.js';
@@ -121,6 +121,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       searchLayers(msg.query);
       break;
     case 'get-available-fonts': {
+      invalidateFontCache();
       const families = await getAvailableFontFamilies();
       figma.ui.postMessage({ type: 'fonts-loaded', families });
       break;

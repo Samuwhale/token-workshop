@@ -26,6 +26,10 @@ function weightToFontStyleFallback(weight: number): string {
 
 let cachedFonts: Font[] | null = null;
 
+export function invalidateFontCache(): void {
+  cachedFonts = null;
+}
+
 async function getAvailableFonts(): Promise<Font[]> {
   if (!cachedFonts) {
     cachedFonts = await figma.listAvailableFontsAsync();

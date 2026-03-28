@@ -586,3 +586,10 @@
   - PublishPanel has three distinct conflict resolution modes: var sync (push/pull/skip), style sync (push/pull/skip), and git merge conflicts (ours/theirs) — each needs its own bulk action pattern
   - The `\u2014` em-dash in source requires matching the exact escape sequence, not the rendered character
 ---
+
+## 2026-03-28 - fontLoading.ts font cache never invalidated
+- Added `invalidateFontCache()` export that nulls `cachedFonts`. Called it in the `get-available-fonts` message handler in `controller.ts` before fetching, so each time the UI requests font families it gets a fresh list (capturing any fonts installed during the plugin session).
+- Files changed: `packages/figma-plugin/src/plugin/fontLoading.ts` ~L27, `packages/figma-plugin/src/plugin/controller.ts` ~L6,124
+- **Learnings for future iterations:**
+  - Cache invalidation on demand (at the call site that triggers a user action) is simpler than TTL for module-level caches in plugin sandboxes — no timer needed, and the user-initiated font picker open is the natural trigger.
+---

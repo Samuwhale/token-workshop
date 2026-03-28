@@ -179,3 +179,10 @@ Already up to date.
 ===============================================================
   Claimed: `fontLoading.ts` font cache is never invalidated — `cachedFonts` is set once on first call and never cleared, so fonts installed during a plugin session are invisible to weight resolution
   Worktree: /tmp/backlog-10461-gDMmuZ
+
+  ✓ done: fontLoading.ts font cache is never invalidated
+    Added invalidateFontCache() export; called it in the get-available-fonts handler so each font picker open fetches a fresh list from Figma
+    14 turns · 68s · $0.24
+
+--- Merging: fontLoading.ts font cache is never invalidated ---
+Already up to date.
