@@ -383,3 +383,10 @@
 - Found 11 items — written to backlog-inbox.md
 - Notable: ExportPanel and PublishPanel's "File Export" section are completely duplicated features; 5 keyboard shortcuts are documented in the help modal but have no event handlers; QuickStart wizard disappears after first use with no re-entry point
 ---
+
+## 2026-03-29 - AnalyticsPanel has no empty state when no tokens exist
+- Added early return when `totalTokens === 0` rendering an empty state with chart icon, explanatory text, and CTA to create/import tokens — following the same visual pattern as GraphPanel's empty state
+- Files changed: `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L280-310
+- **Learnings for future iterations:**
+  - Empty state pattern: centered flex column with icon box (10x10 rounded-xl), title (12px semibold), description (11px secondary, max-w-240px), and optional CTA (10px tertiary)
+---

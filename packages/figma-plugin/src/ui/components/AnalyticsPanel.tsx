@@ -276,6 +276,35 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
   }
 
   const totalTokens = stats.reduce((sum, s) => sum + s.total, 0);
+
+  // Empty state — no tokens exist yet
+  if (totalTokens === 0) {
+    return (
+      <div className="flex flex-col h-full overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8 text-center">
+          {/* Icon */}
+          <div className="mb-4 w-10 h-10 rounded-xl bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)]" aria-hidden="true">
+              <path d="M3 3v18h18" />
+              <path d="M7 16l4-8 4 4 5-9" />
+            </svg>
+          </div>
+
+          <div className="flex flex-col gap-1 mb-4">
+            <p className="text-[12px] font-semibold text-[var(--color-figma-text)]">No tokens to analyze</p>
+            <p className="text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed max-w-[240px]">
+              Analytics will show token counts, type distribution, color palettes, and validation issues once you have tokens in your project.
+            </p>
+          </div>
+
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
+            Create tokens manually or import a tokens.json file to get started.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const allByType: Record<string, number> = {};
   for (const s of stats) {
     for (const [t, c] of Object.entries(s.byType)) {
