@@ -405,3 +405,13 @@
 - **Learnings for future iterations:**
   - All enumerable DTCG type editors were added in a prior session — check ValueEditors.tsx before assuming raw text fallback
 ---
+
+## 2026-03-29 - Multi-select mode is undiscoverable
+- The select mode toolbar with batch actions (select all, batch edit, compare, link, copy JSON, delete, cancel) already existed but the entry point was a tiny 10x10 icon-only button with no text label
+- Replaced the icon-only multi-select button with a visible "Select" text button (icon + label) in the token list toolbar, making the feature discoverable at a glance
+- The selection count bar with batch action buttons was already fully implemented and shows automatically when select mode is active
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2559-2578
+- **Learnings for future iterations:**
+  - The multi-select system is already comprehensive (Ctrl+click, Shift+click range, select all, batch editor, compare, bulk delete) — the only gap was the entry point visibility
+  - The inspectMode button uses a checkbox+checkmark icon; multi-select uses a checklist icon (two checkboxes with lines) to differentiate
+---

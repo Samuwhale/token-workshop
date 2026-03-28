@@ -2556,19 +2556,22 @@ export function TokenList({
                 </svg>
               </button>
 
-              {/* Multi-select */}
+              {/* Multi-select toggle */}
               <button
                 onClick={() => setSelectMode(true)}
-                title="Multi-select tokens (M)"
-                aria-label="Multi-select tokens"
-                className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                title="Select multiple tokens (M)"
+                aria-label="Select multiple tokens"
+                className="flex items-center gap-1 px-1.5 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
               >
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
-                  <rect x="0.5" y="0.5" width="4" height="4" rx="0.5"/>
-                  <rect x="5.5" y="0.5" width="4" height="4" rx="0.5"/>
-                  <rect x="0.5" y="5.5" width="4" height="4" rx="0.5"/>
-                  <rect x="5.5" y="5.5" width="4" height="4" rx="0.5"/>
+                  <rect x="0.5" y="0.5" width="4" height="3.5" rx="0.5"/>
+                  <path d="M1.5 2.25l0.8 0.8 1.5-1.5"/>
+                  <rect x="0.5" y="5.5" width="4" height="3.5" rx="0.5"/>
+                  <path d="M1.5 7.25l0.8 0.8 1.5-1.5"/>
+                  <line x1="6.5" y1="2.25" x2="9.5" y2="2.25"/>
+                  <line x1="6.5" y1="7.25" x2="9.5" y2="7.25"/>
                 </svg>
+                Select
               </button>
 
               {/* More actions menu */}
