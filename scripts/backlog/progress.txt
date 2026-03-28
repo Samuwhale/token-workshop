@@ -418,3 +418,10 @@
   - The existing `handleSetState` sends one POST per option — bulk operations use `Promise.all` over all options. If any fails, the entire bulk update is rolled back.
   - Context menu positioning pattern: clamp to `window.innerWidth - menuWidth` and `window.innerHeight - menuHeight` to prevent off-screen rendering.
 ---
+
+## 2026-03-28 - `evalExpr` parseUnary does not recurse — calls `parsePrimary()` instead of `parseUnary()`
+- Changed `parseUnary()` to recurse into itself instead of calling `parsePrimary()` for unary `-` and `+` operators. This allows double-negation (`--5`) and other chained unary operators to parse correctly.
+- Files changed: `packages/core/src/eval-expr.ts` ~L70
+- **Learnings for future iterations:**
+  - Unary operator parsing must always recurse into the same precedence level to handle chained unary operators (e.g., `--x`, `+-x`). Calling the next-lower precedence (`parsePrimary`) breaks this.
+---

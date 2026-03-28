@@ -452,3 +452,10 @@ Already up to date.
 ===============================================================
   Claimed: `evalExpr` parseUnary does not recurse — calls `parsePrimary()` instead of `parseUnary()` so double-negation expressions like `--5` fail with "Unexpected token" instead of returning 5; affects custom scale generator formulas (`eval-expr.ts` ~L73)
   Worktree: /tmp/backlog-85816-RUVCuk
+
+  ✓ done: `evalExpr` parseUnary does not recurse — calls `parsePrimary()` instead of `parseUnary()`
+    Changed parseUnary to recurse into itself instead of parsePrimary for unary - and + operators, fixing double-negation expressions like --5.
+    7 turns · 37s · $0.2
+
+--- Merging: `evalExpr` parseUnary does not recurse — calls `parsePrimary()` instead of `parseUnary()` ---
+Already up to date.

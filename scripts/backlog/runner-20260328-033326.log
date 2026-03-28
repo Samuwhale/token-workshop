@@ -414,3 +414,17 @@ Already up to date.
 
 --- Merging: ThemeManager has no bulk set-status assignment ---
 Already up to date.
+[main 462452b] chore(backlog): done – ThemeManager has no bulk set-status assignment
+ 6 files changed, 116 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - ThemeManager has no bulk set-status assignment
+- Added right-click context menu on set rows in ThemeManager that offers "Set [Off/Base/On] in all options" for a given set within a dimension. Implemented `handleBulkSetState` which optimistically updates all options at once and sends parallel API requests. Context menu is positioned with viewport clamping and closes on outside click or Escape.
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L87 (state), ~L452 (handler + close effect), ~L831 (onContextMenu on set row), ~L1036 (context menu UI)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  32 items remaining
+===============================================================
+  Claimed: Generator Math.pow results are not validated for Infinity/NaN — `Math.pow(ratio, exponent)` in type scale and custom scale generators can produce `Infinity` (e.g. ratio=0 with negative exponent) or `NaN` (negative ratio with fractional exponent), which flow into token values unchecked (`generator-engine.ts` ~L88, ~L245)
+  Worktree: /tmp/backlog-92630-W2EceQ

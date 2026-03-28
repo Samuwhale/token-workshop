@@ -70,11 +70,11 @@ export function evalExpr(expr: string): number {
   function parseUnary(): number {
     if (peek() === '-') {
       consume();
-      return -parsePrimary();
+      return -parseUnary();
     }
     if (peek() === '+') {
       consume();
-      return parsePrimary();
+      return parseUnary();
     }
     return parsePrimary();
   }
