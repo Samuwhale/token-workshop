@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import type { ThemeDimension } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
@@ -35,6 +35,303 @@ const FIGMA_SCOPES: Record<string, { label: string; value: string }[]> = {
     { label: 'Visibility (Show/Hide)', value: 'SHOW_HIDE' },
   ],
 };
+
+/* ── Structured key-value extensions editor ── */
+
+interface ExtEntry { key: string; value: string }
+
+function parseEntries(jsonText: string): ExtEntry[] | null {
+  const trimmed = jsonText.trim();
+  if (!trimmed || trimmed === '{}') return [];
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) return null;
+    return Object.entries(parsed).map(([k, v]) => ({
+      key: k,
+      value: typeof v === 'string' ? v : JSON.stringify(v, null, 2),
+    }));
+  } catch {
+    return null;
+  }
+}
+
+function entriesToJson(entries: ExtEntry[]): string {
+  const nonEmpty = entries.filter(e => e.key.trim());
+  if (nonEmpty.length === 0) return '';
+  const obj: Record<string, unknown> = {};
+  for (const e of nonEmpty) {
+    const val = e.value.trim();
+    // Try to parse value as JSON (object/array/number/bool/null), fall back to string
+    if (val) {
+      try {
+        obj[e.key] = JSON.parse(val);
+      } catch {
+        obj[e.key] = val;
+      }
+    } else {
+      obj[e.key] = '';
+    }
+  }
+  return JSON.stringify(obj, null, 2);
+}
+
+function validateEntries(entries: ExtEntry[]): string | null {
+  const keys = entries.map(e => e.key.trim()).filter(Boolean);
+  const dups = keys.filter((k, i) => keys.indexOf(k) !== i);
+  if (dups.length > 0) return `Duplicate key: ${dups[0]}`;
+  for (const e of entries) {
+    const val = e.value.trim();
+    if (val && (val.startsWith('{') || val.startsWith('['))) {
+      try { JSON.parse(val); } catch { return `Invalid JSON value for "${e.key}"`; }
+    }
+  }
+  return null;
+}
+
+function syncFromEntries(
+  entries: ExtEntry[],
+  onText: (t: string) => void,
+  onError: (e: string | null) => void,
+) {
+  const err = validateEntries(entries);
+  if (err) {
+    onError(err);
+    // Still sync text so dirty detection works, but mark as invalid
+    onText(entriesToJson(entries));
+  } else {
+    const json = entriesToJson(entries);
+    onText(json);
+    onError(null);
+  }
+}
+
+const inputCls = 'flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-secondary)]/40';
+
+function ExtensionsEditor({
+  showExtensions, onToggleExtensions,
+  extensionsJsonText, onExtensionsJsonTextChange,
+  extensionsJsonError, onExtensionsJsonErrorChange,
+}: {
+  showExtensions: boolean;
+  onToggleExtensions: () => void;
+  extensionsJsonText: string;
+  onExtensionsJsonTextChange: (text: string) => void;
+  extensionsJsonError: string | null;
+  onExtensionsJsonErrorChange: (err: string | null) => void;
+}) {
+  const [rawMode, setRawMode] = useState(false);
+  const [entries, setEntries] = useState<ExtEntry[]>(() => parseEntries(extensionsJsonText) ?? []);
+  // Track the last jsonText we synced from, to detect external changes
+  const [lastSyncedText, setLastSyncedText] = useState(extensionsJsonText);
+
+  // If extensionsJsonText changed externally (e.g. token load), re-parse entries
+  if (extensionsJsonText !== lastSyncedText) {
+    const parsed = parseEntries(extensionsJsonText);
+    if (parsed !== null) {
+      setEntries(parsed);
+      if (rawMode && parsed.length > 0) setRawMode(false);
+    } else {
+      // Can't parse — switch to raw mode
+      setRawMode(true);
+    }
+    setLastSyncedText(extensionsJsonText);
+  }
+
+  const updateEntry = useCallback((idx: number, field: 'key' | 'value', val: string) => {
+    setEntries(prev => {
+      const next = prev.map((e, i) => i === idx ? { ...e, [field]: val } : e);
+      syncFromEntries(next, (t) => { onExtensionsJsonTextChange(t); setLastSyncedText(t); }, onExtensionsJsonErrorChange);
+      return next;
+    });
+  }, [onExtensionsJsonTextChange, onExtensionsJsonErrorChange]);
+
+  const removeEntry = useCallback((idx: number) => {
+    setEntries(prev => {
+      const next = prev.filter((_, i) => i !== idx);
+      syncFromEntries(next, (t) => { onExtensionsJsonTextChange(t); setLastSyncedText(t); }, onExtensionsJsonErrorChange);
+      return next;
+    });
+  }, [onExtensionsJsonTextChange, onExtensionsJsonErrorChange]);
+
+  const addEntry = useCallback(() => {
+    setEntries(prev => {
+      const next = [...prev, { key: '', value: '' }];
+      // Don't sync yet — empty key won't produce JSON
+      return next;
+    });
+  }, []);
+
+  const switchToRaw = useCallback(() => {
+    // Format existing text nicely when switching to raw
+    const trimmed = extensionsJsonText.trim();
+    if (trimmed) {
+      try {
+        const formatted = JSON.stringify(JSON.parse(trimmed), null, 2);
+        onExtensionsJsonTextChange(formatted);
+        setLastSyncedText(formatted);
+      } catch { /* keep as-is */ }
+    }
+    setRawMode(true);
+  }, [extensionsJsonText, onExtensionsJsonTextChange]);
+
+  const switchToStructured = useCallback(() => {
+    const parsed = parseEntries(extensionsJsonText);
+    if (parsed !== null) {
+      setEntries(parsed);
+      setRawMode(false);
+    }
+    // If can't parse, button is disabled so this won't fire
+  }, [extensionsJsonText]);
+
+  const canSwitchToStructured = useMemo(() => parseEntries(extensionsJsonText) !== null, [extensionsJsonText]);
+
+  const hasCustom = extensionsJsonText.trim() && extensionsJsonText.trim() !== '{}';
+
+  return (
+    <div className="border-t border-[var(--color-figma-border)]">
+      <button
+        type="button"
+        onClick={onToggleExtensions}
+        className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
+      >
+        <span className="flex items-center gap-1.5">
+          Extensions
+          {hasCustom && (
+            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] text-[8px] font-medium">custom</span>
+          )}
+          {extensionsJsonError && (
+            <span className="px-1 py-0.5 rounded bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] text-[8px] font-medium">invalid</span>
+          )}
+        </span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showExtensions ? 'rotate-180' : ''}`}>
+          <path d="M2 3.5l3 3 3-3"/>
+        </svg>
+      </button>
+      {showExtensions && (
+        <div className="px-3 py-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
+          <div className="flex items-center justify-between">
+            <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
+              Custom <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">$extensions</code> data. <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">tokenmanager</code> and <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">com.figma.scopes</code> are managed above.
+            </p>
+            <button
+              type="button"
+              onClick={rawMode ? switchToStructured : switchToRaw}
+              disabled={rawMode && !canSwitchToStructured}
+              title={rawMode ? 'Switch to structured editor' : 'Switch to raw JSON'}
+              className="shrink-0 ml-2 px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {rawMode ? (
+                <span className="flex items-center gap-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                  Structured
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M8 6L4 12l4 6M16 6l4 6-4 6M13 4l-2 16"/></svg>
+                  JSON
+                </span>
+              )}
+            </button>
+          </div>
+
+          {rawMode ? (
+            <>
+              <textarea
+                value={extensionsJsonText}
+                onChange={e => {
+                  const text = e.target.value;
+                  onExtensionsJsonTextChange(text);
+                  setLastSyncedText(text);
+                  const trimmed = text.trim();
+                  if (!trimmed || trimmed === '{}') {
+                    onExtensionsJsonErrorChange(null);
+                  } else {
+                    try {
+                      const parsed = JSON.parse(trimmed);
+                      if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+                        onExtensionsJsonErrorChange('Must be a JSON object');
+                      } else {
+                        onExtensionsJsonErrorChange(null);
+                      }
+                    } catch {
+                      onExtensionsJsonErrorChange('Invalid JSON');
+                    }
+                  }
+                }}
+                placeholder={'{\n  "my.tool": { "category": "brand" }\n}'}
+                rows={5}
+                spellCheck={false}
+                className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono outline-none resize-y min-h-[72px] placeholder:text-[var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
+              />
+              {extensionsJsonError && (
+                <p className="text-[9px] text-[var(--color-figma-error)]">{extensionsJsonError}</p>
+              )}
+            </>
+          ) : (
+            <>
+              {entries.length === 0 && (
+                <p className="text-[9px] text-[var(--color-figma-text-secondary)] italic">No custom extensions. Click + to add one.</p>
+              )}
+              {entries.map((entry, idx) => {
+                const isObjectValue = entry.value.trim().startsWith('{') || entry.value.trim().startsWith('[');
+                return (
+                  <div key={idx} className="flex gap-1.5 items-start">
+                    <input
+                      type="text"
+                      value={entry.key}
+                      onChange={e => updateEntry(idx, 'key', e.target.value)}
+                      placeholder="com.example"
+                      className={`${inputCls} w-[110px] shrink-0 flex-none`}
+                    />
+                    {isObjectValue ? (
+                      <textarea
+                        value={entry.value}
+                        onChange={e => updateEntry(idx, 'value', e.target.value)}
+                        placeholder='{ "key": "value" }'
+                        spellCheck={false}
+                        rows={Math.min(entry.value.split('\n').length, 6)}
+                        className={`${inputCls} flex-1 resize-y min-h-[28px]`}
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        value={entry.value}
+                        onChange={e => updateEntry(idx, 'value', e.target.value)}
+                        placeholder="value"
+                        className={`${inputCls} flex-1`}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeEntry(idx)}
+                      title="Remove entry"
+                      className="p-1 mt-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
+                    >
+                      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+                );
+              })}
+              <button
+                type="button"
+                onClick={addEntry}
+                className="self-start flex items-center gap-1 px-2 py-1 rounded text-[10px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                Add extension
+              </button>
+              {extensionsJsonError && (
+                <p className="text-[9px] text-[var(--color-figma-error)]">{extensionsJsonError}</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface MetadataEditorProps {
   description: string;
@@ -229,62 +526,14 @@ export function MetadataEditor({
 
     {/* Other extensions */}
     {!isCreateMode && (
-      <div className="border-t border-[var(--color-figma-border)]">
-        <button
-          type="button"
-          onClick={() => setShowExtensions(v => !v)}
-          className="w-full px-3 py-2 flex items-center justify-between bg-[var(--color-figma-bg-secondary)] text-[10px] text-[var(--color-figma-text-secondary)] font-medium"
-        >
-          <span className="flex items-center gap-1.5">
-            Extensions
-            {extensionsJsonText.trim() && extensionsJsonText.trim() !== '{}' && (
-              <span className="px-1 py-0.5 rounded bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] text-[8px] font-medium">custom</span>
-            )}
-            {extensionsJsonError && (
-              <span className="px-1 py-0.5 rounded bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] text-[8px] font-medium">invalid JSON</span>
-            )}
-          </span>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`transition-transform ${showExtensions ? 'rotate-180' : ''}`}>
-            <path d="M2 3.5l3 3 3-3"/>
-          </svg>
-        </button>
-        {showExtensions && (
-          <div className="px-3 py-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
-            <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
-              Custom <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">$extensions</code> data as JSON object. The <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">tokenmanager</code> and <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">com.figma.scopes</code> keys are managed above and will not be overwritten here.
-            </p>
-            <textarea
-              value={extensionsJsonText}
-              onChange={e => {
-                const text = e.target.value;
-                onExtensionsJsonTextChange(text);
-                const trimmed = text.trim();
-                if (!trimmed || trimmed === '{}') {
-                  onExtensionsJsonErrorChange(null);
-                } else {
-                  try {
-                    const parsed = JSON.parse(trimmed);
-                    if (typeof parsed !== 'object' || Array.isArray(parsed)) {
-                      onExtensionsJsonErrorChange('Must be a JSON object');
-                    } else {
-                      onExtensionsJsonErrorChange(null);
-                    }
-                  } catch {
-                    onExtensionsJsonErrorChange('Invalid JSON');
-                  }
-                }
-              }}
-              placeholder={'{\n  "my.tool": { "category": "brand" }\n}'}
-              rows={5}
-              spellCheck={false}
-              className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono outline-none resize-y min-h-[72px] placeholder:text-[var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
-            />
-            {extensionsJsonError && (
-              <p className="text-[9px] text-[var(--color-figma-error)]">{extensionsJsonError}</p>
-            )}
-          </div>
-        )}
-      </div>
+      <ExtensionsEditor
+        showExtensions={showExtensions}
+        onToggleExtensions={() => setShowExtensions(v => !v)}
+        extensionsJsonText={extensionsJsonText}
+        onExtensionsJsonTextChange={onExtensionsJsonTextChange}
+        extensionsJsonError={extensionsJsonError}
+        onExtensionsJsonErrorChange={onExtensionsJsonErrorChange}
+      />
     )}
     </>
   );

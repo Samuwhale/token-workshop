@@ -333,3 +333,18 @@
   - TokenEditor already has a keydown useEffect with Escape, Cmd+L, and Cmd+Enter — new shortcuts go in that same handler
   - `e.preventDefault()` is critical for Cmd+S to suppress the browser's "Save Page" dialog
 ---
+
+## 2026-03-28 - TokenEditor extensions editor is a raw JSON textarea
+- Replaced raw JSON textarea with a structured key-value editor in MetadataEditor.tsx
+- Each extension is a row with key input (e.g. "com.example") and value input
+- Object/array values auto-expand to a resizable textarea; simple values use a single-line input
+- Add/remove buttons for entries, duplicate key detection, per-value JSON validation
+- Toggle button to switch between structured editor and raw JSON mode for power users
+- Raw JSON mode preserves the original textarea with full manual editing
+- External changes (token load) are detected and re-parsed into entries automatically
+- Files changed: `packages/figma-plugin/src/ui/components/MetadataEditor.tsx` ~L37-210
+- **Learnings for future iterations:**
+  - The structured ↔ raw toggle pattern works well: parse entries from JSON on switch-to-structured, format JSON on switch-to-raw. Disable structured switch when JSON is unparseable.
+  - Using `useState` initializer + external change detection via `lastSyncedText` tracking avoids stale state when parent re-renders with new data
+  - `entriesToJson` tries `JSON.parse` on values to preserve object types; falls back to string — this lets users type `{"key": "val"}` in the value field and have it stored as an object, not a string
+---

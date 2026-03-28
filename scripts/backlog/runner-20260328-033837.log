@@ -435,3 +435,16 @@ Already up to date.
 
 --- Merging: TokenEditor has no Cmd+S / Ctrl+S keyboard shortcut for save ---
 Already up to date.
+[main 10253d7] chore(backlog): done – TokenEditor has no Cmd+S / Ctrl+S keyboard shortcut for save
+ 6 files changed, 35 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - TokenEditor has no Cmd+S / Ctrl+S keyboard shortcut for save
+- Added Cmd+S / Ctrl+S handler to the existing keydown listener in TokenEditor, calling handleSave() and preventing default browser save dialog
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L406-410
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  15 items remaining
+===============================================================
+  Claimed: TokenList inline create form is pinned to the bottom of the list — easy to miss on long lists; no scroll-to-form animation or visual pulse to draw attention when "New Token" is clicked
+  Worktree: /tmp/backlog-10278-cKQnB1

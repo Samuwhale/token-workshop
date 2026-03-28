@@ -533,3 +533,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor extensions editor is a raw JSON textarea — no structured key-value editor, no syntax highlighting, no auto-formatting; easy to produce invalid JSON, especially for users unfamiliar with the extension schema
   Worktree: /tmp/backlog-85816-XVFaZp
+
+  ✓ done: TokenEditor extensions editor is a raw JSON textarea
+    Replaced raw JSON textarea with structured key-value editor (add/remove rows, key+value inputs, auto-expanding textarea for object values, duplicate key detection) plus a toggle to raw JSON mode for power users
+    15 turns · 170s · $0.72
+
+--- Merging: TokenEditor extensions editor is a raw JSON textarea ---
+Already up to date.
