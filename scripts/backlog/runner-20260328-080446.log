@@ -448,3 +448,16 @@ Already up to date.
 
 --- Merging: TokenList handleListKeyDown has stale closure ---
 Already up to date.
+[main b756da3] chore(backlog): done – TokenList handleListKeyDown has stale closure
+ 7 files changed, 51 insertions(+), 9 deletions(-)
+
+## 2026-03-28 - TokenList handleListKeyDown has stale closure
+- Added `selectedPaths` and `onCreateNew` to `useCallback` dependency array so the callback sees current values
+- For `displayedLeafNodes` (line 732) and `copyTokensAsJson` (line 1751), which are defined after the callback (line 211), used mutable refs (`displayedLeafNodesRef`, `copyTokensAsJsonRef`) to avoid TDZ while keeping values fresh
+- Refs are assigned immediately after their source values are defined; callback body reads from `.current`
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  22 items remaining
+===============================================================
+  Claimed: Icon-only buttons in TokenTreeNode missing `aria-label` — move up/down, create sibling, and other icon buttons have `title` but no `aria-label`; screen readers announce these as unlabeled buttons
+  Worktree: /tmp/backlog-63685-q9AwOG

@@ -22,10 +22,13 @@ Good targets:
 - **Code smells** — magic numbers, overly complex conditions, meaningless variable names, unnecessary indirection
 - **Stale comments** — comments that no longer match the code
 
-Items can range from quick fixes to larger refactors:
+Items can range from quick fixes to full architectural overhauls — this project has no shipped users and no backwards-compatibility constraints, so structural rethinks are welcome:
 - Quick: `- [ ] Remove unused \`formatTokenValue\` from utils.ts`
 - Medium: `- [ ] TokenList silently swallows fetch errors — should show error state`
 - Larger: `- [HIGH] Race condition in sync flow — server response can overwrite in-flight edits`
+- Overhaul: `- [ ] Extract TokenList's 40+ useState hooks into domain-specific custom hooks (useTokenCreate, useFindReplace, useDragDrop) — the monolithic state makes every change risky and re-renders expensive`
+
+Overhaul items are encouraged when the root cause of multiple issues is structural. If you see 5 bugs that all stem from the same tangled architecture, write one overhaul item instead of 5 band-aid items.
 
 ---
 

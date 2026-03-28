@@ -507,3 +507,10 @@ Already up to date.
 ===============================================================
   Claimed: `useGitSync` mutates ref inside `setState` updater — `setSelectedFiles(prev => ...)` mutates `knownFilesRef.current` inside the updater function; updater functions should be pure; will be replayed incorrectly in StrictMode
   Worktree: /tmp/backlog-62956-a92mYO
+
+  ✓ done: `useGitSync` mutates ref inside `setState` updater
+    Moved knownFilesRef.current mutation out of setSelectedFiles updater into the useEffect body; updater now reads from pre-computed newFiles set, making it pure and StrictMode-safe. Build has pre-existing failure (duplicate export) unrelated to this change.
+    15 turns · 71s · $0.4
+
+--- Merging: `useGitSync` mutates ref inside `setState` updater ---
+Already up to date.

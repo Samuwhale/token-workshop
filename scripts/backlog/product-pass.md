@@ -20,10 +20,13 @@ Good targets (in priority order):
 - **Discoverability** — features that exist but are hard to find or use without prior knowledge
 - **Polish** — rough interactions, visual inconsistencies, missing loading states
 
-Items can range from small to ambitious — don't artificially limit scope:
+Items can range from atomic fixes to full overhauls — don't artificially limit scope. This project has no shipped users and no backwards-compatibility constraints, so structural rethinks are welcome:
 - Small: `- [ ] No confirmation before deleting a non-empty group`
 - Ambitious: `- [ ] Add keyboard-navigable token tree with expand/collapse and multi-select`
 - Bold: `- [ ] Add inline token value editing on double-click instead of requiring the editor panel`
+- Overhaul: `- [ ] Restructure the token editor from a monolithic 1600-line component into a composition of focused sub-components with shared context — the current prop-drilling and useState sprawl makes every change risky`
+
+Overhaul items are encouraged when a whole area of the product would benefit from a rethink rather than incremental patches. The implementing agent has full freedom to touch as many files as needed.
 
 ---
 

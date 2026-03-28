@@ -422,3 +422,11 @@
   - When fixing stale closures in `useCallback`, check whether the missing deps are defined before or after the callback in the component body — adding a later-defined variable to a dep array causes TDZ at runtime (TypeScript won't catch it)
   - The ref pattern (declare ref early, assign `.current` after the real value, read `.current` in the callback) is the correct workaround for deps that can't be hoisted above the callback
 ---
+
+## 2026-03-28 - useGitSync mutates ref inside setState updater
+- Moved `knownFilesRef.current` mutation out of the `setSelectedFiles` updater function and into the `useEffect` body. The updater now only reads from a pre-computed `newFiles` set, making it pure and safe for StrictMode replay.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L244-268
+- **Learnings for future iterations:**
+  - React setState updater functions must be pure — no side effects (ref mutations, API calls, etc.). StrictMode double-invokes updaters to catch impurity. Move side effects to the effect body before calling setState.
+  - Pre-existing build failure (duplicate export `getNextUnboundProperty`) prevents `npm run build` from completing; unrelated to this change.
+---

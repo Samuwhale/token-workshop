@@ -244,16 +244,24 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
   // Keep selectedFiles in sync with allChanges
   useEffect(() => {
     const currentSet = new Set(allChanges.map(c => c.file));
+    // Determine newly seen files before the state update (ref mutation must stay outside the updater)
+    const newFiles = new Set<string>();
+    for (const f of currentSet) {
+      if (!knownFilesRef.current.has(f)) {
+        newFiles.add(f);
+      }
+    }
+    // Mark new files as known outside the updater so StrictMode replays are safe
+    for (const f of newFiles) {
+      knownFilesRef.current.add(f);
+    }
     setSelectedFiles(prev => {
       const next = new Set(prev);
       for (const f of next) {
         if (!currentSet.has(f)) next.delete(f);
       }
-      for (const f of currentSet) {
-        if (!knownFilesRef.current.has(f)) {
-          next.add(f);
-          knownFilesRef.current.add(f);
-        }
+      for (const f of newFiles) {
+        next.add(f);
       }
       return next;
     });

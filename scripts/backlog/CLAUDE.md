@@ -13,7 +13,7 @@ Codebase patterns are already injected into your context — no need to read a s
 2. **Assess complexity:**
    - *Simple* (single file, change is obviously scoped): plan inline, execute, validate.
    - *Complex* (multi-file, behaviour change, or unclear scope): dispatch a plan subagent, review the plan, then execute.
-3. **Implement** the change — minimal, focused, one concern only.
+3. **Implement** the change — match scope to what's right for the plugin. An atomic fix is fine for a typo; a sweeping overhaul across many files is fine when the item calls for it. There are no users yet and no backwards-compatibility constraints, so don't hold back.
 4. **Validate:**
    - Run `cd packages/figma-plugin && npm run build` — do NOT report success without a passing build.
    - If a UI class or markup was added, grep for it in the output.
@@ -29,8 +29,8 @@ Codebase patterns are already injected into your context — no need to read a s
 ## Quality Rules
 
 - One item per session — stop after completing or failing one.
-- Match your scope to the item. Small items get small changes; ambitious items (new features, new UI patterns) get whatever they need — new components, new handlers, multi-file changes are all fine.
-- Do not refactor unrelated code, but don't artificially constrain yourself either. If the item asks for a feature, build the feature properly.
+- **No artificial scope limits.** This project is in rapid development with no shipped users and no backwards-compatibility constraints. If the item calls for touching 20 files, restructuring a component tree, or rewriting a subsystem — do it. Small items still get small changes, but never shrink scope just to be "safe."
+- If an item's fix reveals that surrounding code is broken, tangled, or blocking the fix, fix that too. Collateral improvement is welcome when it serves the item.
 - If the item references code that no longer exists, report failure with note "stale — code not found."
 - If the item is already implemented, report success with note "stale — already done."
 
