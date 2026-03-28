@@ -38,8 +38,18 @@ async function buildUI() {
     build: {
       outDir: path.join(__dirname, 'dist'),
       emptyOutDir: false,
+      // Disable minification to avoid TDZ errors from scope hoisting —
+      // esbuild minification can collapse module-scope const declarations
+      // into a single scope and rename them in ways that break initialization
+      // order in the single-file bundle.
+      minify: false,
       rollupOptions: {
         input: path.join(__dirname, 'src/ui/index.html'),
+        output: {
+          // IIFE wraps all modules in a function scope, preventing top-level
+          // const/let declarations from different modules from conflicting.
+          format: 'iife',
+        },
       },
     },
     resolve: {

@@ -161,10 +161,10 @@ const TABS: { id: Tab; label: string }[] = [
 
 type OverflowPanel = 'import' | 'export' | 'settings' | 'heatmap' | 'analytics' | 'themes' | 'theme-compare' | null;
 
-const MIN_WIDTH = 320;
-const MIN_HEIGHT = 400;
-const MAX_WIDTH = 900;
-const MAX_HEIGHT = 900;
+const RESIZE_MIN_W = 320;
+const RESIZE_MIN_H = 400;
+const RESIZE_MAX_W = 900;
+const RESIZE_MAX_H = 900;
 
 function useWindowResize() {
   const dragState = useRef<{ startX: number; startY: number; startW: number; startH: number } | null>(null);
@@ -181,8 +181,8 @@ function useWindowResize() {
     const onMove = (ev: MouseEvent) => {
       if (!dragState.current) return;
       const { startX, startY, startW, startH } = dragState.current;
-      const w = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startW + (ev.clientX - startX)));
-      const h = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startH + (ev.clientY - startY)));
+      const w = Math.min(RESIZE_MAX_W, Math.max(RESIZE_MIN_W, startW + (ev.clientX - startX)));
+      const h = Math.min(RESIZE_MAX_H, Math.max(RESIZE_MIN_H, startH + (ev.clientY - startY)));
       parent.postMessage({ pluginMessage: { type: 'resize', width: Math.round(w), height: Math.round(h) } }, '*');
     };
 

@@ -1,6 +1,7 @@
 import { getErrorMessage } from '../shared/utils';
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { apiFetch } from '../shared/apiFetch';
+import { flattenTokenGroup } from '@tokenmanager/core';
 import type {
   TokenGenerator,
   GeneratorType,
@@ -9,25 +10,6 @@ import type {
   GeneratorTemplate,
   InputTable,
 } from './useGenerators';
-
-function flattenTokenGroup(
-  group: Record<string, any>,
-  prefix = '',
-  parentType?: string,
-): Record<string, { $value: unknown; $type: string }> {
-  const out: Record<string, { $value: unknown; $type: string }> = {};
-  const inheritedType: string | undefined = group.$type ?? parentType;
-  for (const [key, value] of Object.entries(group)) {
-    if (key.startsWith('$') || value == null || typeof value !== 'object') continue;
-    const path = prefix ? `${prefix}.${key}` : key;
-    if ('$value' in value) {
-      out[path] = { $value: value.$value, $type: value.$type ?? inheritedType ?? 'unknown' };
-    } else {
-      Object.assign(out, flattenTokenGroup(value as Record<string, any>, path, inheritedType));
-    }
-  }
-  return out;
-}
 import {
   detectGeneratorType,
   suggestTargetGroup,

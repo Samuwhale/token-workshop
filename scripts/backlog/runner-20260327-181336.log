@@ -199,3 +199,18 @@ Already up to date.
 
 --- Merging: HeatmapPanel "select all red" action has no follow-up workflow — selecting unbound layers has no batch "bind all to token X" or "create tokens for these" next step ---
 Already up to date.
+[main 02a833a] chore(backlog): done – HeatmapPanel "select all red" action has no follow-up workflow — selecting unbound layers has no batch "bind all to token X" or "create tokens for these" next step
+ 8 files changed, 143 insertions(+), 7 deletions(-)
+
+## 2026-03-27 - HeatmapPanel "select all red" action has no follow-up workflow — selecting unbound layers has no batch "bind all to token X" or "create tokens for these" next step
+- Added a "Quick Bind" panel that slides in at the bottom of HeatmapPanel whenever the user clicks any "Select all" button (grouped or filtered view). The panel shows the count of selected layers, a token path input backed by a datalist of all available tokens, a property dropdown (all bindable properties, defaults to fill), and a "Bind N layers" button. Clicking Bind sends a new `batch-bind-heatmap-nodes` controller message that re-selects the heatmap nodes then applies the token to all of them via the existing `applyToSelection` logic.
+- Files changed: `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` (full rewrite with new props + Quick Bind UI), `packages/figma-plugin/src/plugin/controller.ts` ~L84 (new case) + ~L522 (new `batchBindHeatmapNodes` function), `packages/figma-plugin/src/ui/App.tsx` ~L2156 (new `availableTokens` and `onBatchBind` props)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  0
+0 items remaining
+===============================================================
+./scripts/backlog/backlog.sh: line 696: [: 0
+0: integer expression expected
+No items available to claim (all in-progress or empty). Exiting.

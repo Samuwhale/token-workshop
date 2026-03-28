@@ -50,7 +50,7 @@ function resolveForOption(
   return resolveAllAliases(merged);
 }
 
-function formatValue(value: any, type: string): string {
+function formatThemeValue(value: any, type: string): string {
   if (value === undefined || value === null) return '—';
   if (type === 'dimension' && typeof value === 'object' && 'value' in value) {
     return `${value.value}${value.unit ?? 'px'}`;
@@ -150,7 +150,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
   const buildTsv = useCallback((rows: typeof filteredDiffs) => {
     const header = ['Token Path', 'Type', labelA, labelB].join('\t');
     const lines = rows.map(d =>
-      [d.path, d.type, formatValue(d.valueA, d.type), formatValue(d.valueB, d.type)].join('\t')
+      [d.path, d.type, formatThemeValue(d.valueA, d.type), formatThemeValue(d.valueB, d.type)].join('\t')
     );
     return [header, ...lines].join('\n');
   }, [filteredDiffs, labelA, labelB]);
@@ -168,8 +168,8 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
     const header = [labelA, labelB, 'Token Path', 'Type'].map(escape).join(',');
     const lines = filteredDiffs.map(d =>
       [
-        escape(formatValue(d.valueA, d.type)),
-        escape(formatValue(d.valueB, d.type)),
+        escape(formatThemeValue(d.valueA, d.type)),
+        escape(formatThemeValue(d.valueB, d.type)),
         escape(d.path),
         escape(d.type),
       ].join(',')
@@ -297,8 +297,8 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet }: ThemeComp
               const isColor = diff.type === 'color';
               const hexA = isColor && typeof diff.valueA === 'string' ? diff.valueA : null;
               const hexB = isColor && typeof diff.valueB === 'string' ? diff.valueB : null;
-              const labelA = formatValue(diff.valueA, diff.type);
-              const labelB = formatValue(diff.valueB, diff.type);
+              const labelA = formatThemeValue(diff.valueA, diff.type);
+              const labelB = formatThemeValue(diff.valueB, diff.type);
               const leaf = diff.name;
               const parent = nodeParentPath(diff.path, diff.name);
               return (

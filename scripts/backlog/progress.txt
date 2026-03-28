@@ -1,6 +1,30 @@
 # Backlog Progress Log
 ---
 
+## 2026-03-27 - code-pass
+- Areas explored: eval-expr.ts (parseUnary recursion, substituteVars fallback), generator-engine.ts (Math.pow validation, opacity range), color-math.ts (setHexAlpha validation), resolver.ts (inferType partial composites), themes.ts (whitespace-only name validation), git-sync.ts (applyDiffChoices control flow), ColorPicker.tsx (ref assertion), controller.ts (applyVariables rollback)
+- Found 11 items — written to backlog-inbox.md
+- Notable: evalExpr parseUnary calls parsePrimary instead of recursing, so double negation in generator formulas crashes; substituteVars silently replaces typos with zero producing wrong tokens
+---
+
+## 2026-03-27 - product-pass
+- Areas explored: ImportPanel.tsx, PreviewPanel.tsx, QuickStartDialog.tsx, AnalyticsPanel.tsx, TokenEditor.tsx, PublishPanel.tsx, ThemeManager.tsx, ThemeCompare.tsx, BatchEditor.tsx, CommandPalette.tsx, useFigmaSync.ts — deep-dive into editing flows, import/export UX, theme management, and batch operations
+- Found 12 items — written to backlog-inbox.md
+- Notable: TokenEditor has no "save and create another" flow forcing repeated navigation; AnalyticsPanel deduplicate is destructive with no confirmation; ThemeManager options can't be reordered
+---
+
+## 2026-03-27 - code-pass
+- Areas explored: generator-engine.ts, generator-types.ts, all generator UI components (ColorRamp, TypeScale, Spacing, Opacity, BorderRadius, ZIndex, Custom, ContrastCheck), ColorScaleGenerator, TokenGeneratorDialog, generatorUtils.ts, generatorShared.tsx, useGeneratorDialog.ts, useGenerators.ts, token-store.ts (_writingFiles mechanism), lint.ts (path-pattern rule), git-sync.ts (computeUnifiedDiff), generators route, useHeatmap.ts, useServerEvents.ts, useTokenNavigation.ts, apiFetch.ts, storage.ts, color-modifier.ts, ValuePreview.tsx, PasteTokensModal.tsx
+- Found 9 items — written to backlog-inbox.md
+- Notable: generator-engine silently falls back to base value when formula eval throws; file watcher suppression via setTimeout(500) is timing-dependent and racy
+---
+
+## 2026-03-27 - product-pass
+- Areas explored: useLint, usePreviewSplit, useSelection, useTokenNavigation, useWindowExpand, useHeatmap, useUndo, useTokens, useServerConnection, useServerEvents, useFigmaSync, useThemeSwitcher, storage.ts, utils.ts, apiFetch.ts, colorUtils.ts, platforms.ts, controller.ts, PropertyPicker.tsx, RemapAutocompleteInput.tsx, AliasAutocomplete.tsx, ConfirmModal.tsx, TokenGeneratorDialog.tsx, ValueDiff.tsx, TokenCanvas.tsx, TokenGraph.tsx, ValuePreview.tsx, all server routes, all services, core resolver/validator/dtcg-types
+- Found 12 items — written to backlog-inbox.md
+- Notable: token path validation is completely missing on create (double dots, $ prefixes accepted); heatmap scan has no timeout so loading spinner can get permanently stuck; SSE never reconnects after server restart
+---
+
 ## 2026-03-27 - Token rename operations don't update theme dimension sets that reference the old token path — can silently break theme configurations
 - Added four methods to GeneratorService to keep $generators.json in sync with rename operations: `updateSetName` (for set renames), `updateTokenPaths` (for single token renames — exact match on sourceToken), `updateGroupPath` (for group renames — prefix match on sourceToken and targetGroup), `updateBulkTokenPaths` (for bulk find/replace — applies same string transform to sourceToken and targetGroup).
 - Wired up each method in the corresponding routes: `POST /api/sets/:name/rename` (sets.ts), `POST /api/tokens/:set/tokens/rename`, `POST /api/tokens/:set/groups/rename`, `POST /api/tokens/:set/bulk-rename` (tokens.ts).

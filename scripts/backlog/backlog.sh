@@ -192,7 +192,11 @@ cleanup_on_exit() {
 trap cleanup_on_exit EXIT
 
 remaining() {
-  grep -cE '^\- \[ \]' "$BACKLOG_FILE" 2>/dev/null || echo 0
+  local count
+  count=$(grep -cE '^\- \[ \]' "$BACKLOG_FILE" 2>/dev/null || echo "0")
+  # Sanitize: strip anything non-numeric (defensive against grep edge cases)
+  count="${count//[!0-9]/}"
+  printf '%d\n' "${count:-0}"
 }
 
 # ─── Stale [~] recovery ──────────────────────────────────────────
@@ -436,10 +440,12 @@ drain_inbox() {
     printf '%s\n' "$line"
   done < "$INBOX_FILE" > "$dedup_tmp"
   mv "$dedup_tmp" "$INBOX_FILE" || rm -f "$dedup_tmp"
-  [ "$skipped" -gt 0 ] && echo "  → $skipped duplicate item(s) skipped"
+  if [ "$skipped" -gt 0 ]; then
+    echo "  → $skipped duplicate item(s) skipped"
+  fi
 
   HIGH_ITEMS=$(grep -E '^\- \[ \] \[(HIGH|P0|BUG)\]' "$INBOX_FILE" 2>/dev/null || true)
-  OTHER_ITEMS=$(grep -E '^\- \[ \]' "$INBOX_FILE" | grep -vE '\[(HIGH|P0|BUG)\]' 2>/dev/null || true)
+  OTHER_ITEMS=$(grep -E '^\- \[ \]' "$INBOX_FILE" 2>/dev/null | grep -vE '\[(HIGH|P0|BUG)\]' || true)
 
   # HIGH/P0/BUG: insert before the first [ ] item so the agent picks them next.
   if [ -n "$HIGH_ITEMS" ]; then
@@ -681,6 +687,10 @@ NEXT_PASS_IN=$(( 3 - (CURRENT_COUNT % 3) ))
 NEXT_PASS_TYPE=$( _pass_type_for_count $(( CURRENT_COUNT + NEXT_PASS_IN )) )
 
 echo "Starting Backlog Runner — Tool: $TOOL — Model: $MODEL — Max iterations: $MAX_ITERATIONS"
+
+# Drain inbox before first iteration so items are available immediately
+drain_inbox
+
 echo "  Remaining items: $(remaining)"
 echo "  Completed total: $CURRENT_COUNT (next ${NEXT_PASS_TYPE} pass in $NEXT_PASS_IN items)"
 echo "  Stop signal:     Ctrl+C  (or: touch $STOP_FILE)"
@@ -693,7 +703,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "==============================================================="
 
   # Early exit: no [ ] items left
-  if [ "$REMAINING" -eq 0 ]; then
+  if [[ "$REMAINING" -eq 0 ]]; then
     echo ""
     echo "No remaining [ ] items in backlog.md. All done!"
     exit 0

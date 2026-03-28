@@ -162,7 +162,7 @@ export const GRAPH_TEMPLATES: GraphTemplate[] = [
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getStepCount(template: GraphTemplate): number {
+function getTemplateStepCount(template: GraphTemplate): number {
   const cfg = template.config as Record<string, unknown>;
   const steps = cfg.steps;
   if (Array.isArray(steps)) return steps.length;
@@ -289,7 +289,7 @@ function TemplateCard({
   onSelect: () => void;
   disabled: boolean;
 }) {
-  const stepCount = getStepCount(template);
+  const stepCount = getTemplateStepCount(template);
   const semanticCount = template.semanticLayers.reduce((n, l) => n + l.mappings.length, 0);
 
   return (
@@ -500,7 +500,7 @@ function ApplyForm({
     }
   };
 
-  const stepCount = getStepCount(template);
+  const stepCount = getTemplateStepCount(template);
   const semanticCount = template.semanticLayers.reduce((n, l) => n + l.mappings.length, 0);
 
   return (

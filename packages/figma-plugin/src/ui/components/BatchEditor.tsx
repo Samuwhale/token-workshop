@@ -55,7 +55,7 @@ function scaleValue(value: unknown, factor: number): unknown {
 
 const PREVIEW_MAX = 3;
 
-function formatValue(v: unknown): string {
+function formatBatchValue(v: unknown): string {
   if (v === null || v === undefined) return '—';
   if (typeof v === 'object') return JSON.stringify(v);
   return String(v);
@@ -502,9 +502,9 @@ export function BatchEditor({
               {scalePreview.slice(0, PREVIEW_MAX).map(({ path, from, to }) => (
                 <div key={path} className="flex items-center gap-1 text-[10px] leading-snug">
                   <span className="text-[var(--color-figma-text-tertiary)] truncate max-w-[90px]" title={path}>{path.split('.').pop()}</span>
-                  <span className="text-[var(--color-figma-text-secondary)] shrink-0">{formatValue(from)}</span>
+                  <span className="text-[var(--color-figma-text-secondary)] shrink-0">{formatBatchValue(from)}</span>
                   <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
-                  <span className="text-[var(--color-figma-text)] shrink-0 font-medium">{formatValue(to)}</span>
+                  <span className="text-[var(--color-figma-text)] shrink-0 font-medium">{formatBatchValue(to)}</span>
                 </div>
               ))}
               {scalePreview.length > PREVIEW_MAX && (

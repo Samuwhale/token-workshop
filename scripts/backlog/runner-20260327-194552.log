@@ -1,0 +1,14 @@
+NOTE: 2 [~] item(s) found — skipping reset (1 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max iterations: 90
+  Remaining items: 0
+0
+  Completed total: 358 (next product pass in 2 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  0
+0 items remaining
+===============================================================
+./scripts/backlog/backlog.sh: line 696: [: 0
+0: integer expression expected
+No items available to claim (all in-progress or empty). Exiting.

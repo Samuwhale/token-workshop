@@ -22,12 +22,12 @@ const DEL_X = OUT_X + OUT_W + 6;
 
 const ROW_H = 106;
 const TOP_PAD = 40;
-const CANVAS_W = DEL_X + 24;
+const GRAPH_GRAPH_CANVAS_W = DEL_X + 24;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-const TYPE_LABELS: Record<string, string> = {
+const GRAPH_TYPE_LABELS: Record<string, string> = {
   colorRamp: 'Color Ramp',
   typeScale: 'Type Scale',
   spacingScale: 'Spacing Scale',
@@ -249,7 +249,7 @@ export function TokenGraph({
           className="absolute"
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px)`,
-            width: CANVAS_W,
+            width: GRAPH_CANVAS_W,
             height: canvasH,
             zIndex: 1,
           }}
@@ -257,7 +257,7 @@ export function TokenGraph({
           {/* Edge SVG — rendered below nodes */}
           <svg
             className="absolute inset-0 pointer-events-none overflow-visible"
-            width={CANVAS_W}
+            width={GRAPH_CANVAS_W}
             height={canvasH}
             style={{ zIndex: 0 }}
             aria-hidden="true"
@@ -307,7 +307,7 @@ export function TokenGraph({
             return (
               <div
                 key={gen.id}
-                style={{ position: 'absolute', top: 0, left: 0, width: CANVAS_W, zIndex: 1 }}
+                style={{ position: 'absolute', top: 0, left: 0, width: GRAPH_CANVAS_W, zIndex: 1 }}
               >
                 {/* ── Source node ── */}
                 <div
@@ -363,7 +363,7 @@ export function TokenGraph({
                 >
                   <div className="flex items-center justify-between gap-1">
                     <div className="text-[7px] font-semibold text-[var(--color-figma-accent)] uppercase tracking-widest truncate">
-                      {TYPE_LABELS[gen.type] ?? gen.type}
+                      {GRAPH_TYPE_LABELS[gen.type] ?? gen.type}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       {/* Contrast failure warning badge */}
