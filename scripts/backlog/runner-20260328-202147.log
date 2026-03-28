@@ -226,3 +226,9 @@ Already up to date.
 
 --- Merging: useGeneratorDialog.ts fetch for existing set tokens silently swallows errors ---
 Already up to date.
+[main 580e7bb] chore(backlog): done – useGeneratorDialog.ts fetch for existing set tokens silently swallows errors
+ 7 files changed, 55 insertions(+), 13 deletions(-)
+
+--- Cleanup: archiving completed items (≥24) ---
+  → Archived 24 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 55)
