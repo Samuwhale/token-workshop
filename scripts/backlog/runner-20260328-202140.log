@@ -298,3 +298,10 @@ Already up to date.
 ===============================================================
   Claimed: Git sync diff preview before push — add a "Preview changes" button that fetches the pending diff and shows before/after values per changed token without committing, so users can catch accidental deletions before they propagate to the repo
   Worktree: /tmp/backlog-9651-lYgHrS
+
+  ✓ done: Git sync diff preview before push
+    Added Preview changes button to Git section showing token-level before/after diff of uncommitted changes. Server endpoint compares working tree vs HEAD for .tokens.json files; UI shows added/modified/removed tokens with values. Also fixed pre-existing duplicate import build error in TokenList.tsx.
+    53 turns · 392s · $2.38
+
+--- Merging: Git sync diff preview before push ---
+Already up to date.

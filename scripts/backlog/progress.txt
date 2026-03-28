@@ -347,3 +347,17 @@
   - Pre-existing test failures: server and plugin tests fail in worktrees due to missing `fastify` and `@tokenmanager/core` packages (empty symlinked node_modules)
   - This is the same TDZ pattern already documented in codebase patterns — always declare useState/useRef/useCallback before any useEffect that references them
 ---
+
+## 2026-03-28 - Git sync diff preview before push
+- Added "Preview changes" button to the Git section of PublishPanel that fetches a token-level diff of uncommitted working tree changes vs HEAD. Shows added/modified/removed tokens with before/after values, colored status indicators, and summary counts. Users can inspect exactly which token values changed before committing.
+- Server: new `getWorkingTreeTokenDiff()` method on `GitSync` service (`packages/server/src/services/git-sync.ts` ~L330) — compares working tree .tokens.json files against HEAD using `git diff HEAD --name-status` plus `ls-files --others` for untracked files.
+- Server: new `GET /api/sync/diff/tokens` route (`packages/server/src/routes/sync.ts` ~L448) — flattens before/after token groups and computes per-token adds/removes/modifications.
+- UI hook: added `tokenPreview`, `tokenPreviewLoading`, `fetchTokenPreview`, `clearTokenPreview` to `useGitSync` hook (`packages/figma-plugin/src/ui/hooks/useGitSync.ts`).
+- UI: token-level preview panel in `PublishPanel.tsx` ~L936 — toggle button, summary bar (+N added, ~N modified, -N removed), scrollable list with before/after values for modified tokens, strikethrough for removed tokens.
+- Collateral fix: merged duplicate `isAlias`/`resolveTokenValue` imports in `TokenList.tsx` (lines 5 and 26 were duplicated, causing pre-existing build failure).
+- Files changed: `packages/server/src/services/git-sync.ts`, `packages/server/src/routes/sync.ts`, `packages/figma-plugin/src/ui/hooks/useGitSync.ts`, `packages/figma-plugin/src/ui/components/PublishPanel.tsx`, `packages/figma-plugin/src/ui/components/TokenList.tsx`
+- **Learnings for future iterations:**
+  - The existing `getTokenFileDiffs` method compares a commit to its parent — for working tree diffs, need to read files from disk (`fs.readFile`) for "after" and `git show HEAD:path` for "before"
+  - Untracked files don't appear in `git diff HEAD` — need `git ls-files --others --exclude-standard` to catch newly created .tokens.json files
+  - Pre-existing duplicate imports in TokenList.tsx (lines 5 and 26) caused a build-breaking parse error; esbuild rejects duplicate `import { X }` bindings unlike TS which silently shadows
+---

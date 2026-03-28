@@ -247,3 +247,10 @@ Already up to date.
 
 --- Merging: useGitSync.ts TDZ crash — fetchConflicts declared after use ---
 Already up to date.
+[main 81f80b2] chore(backlog): done – useGitSync.ts TDZ crash — fetchConflicts declared after use
+ 5 files changed, 44 insertions(+), 15 deletions(-)
+
+## 2026-03-28 - useGitSync.ts TDZ crash — fetchConflicts declared after use
+- Moved `fetchConflicts` useCallback declaration (was line 95) above the useEffect (was line 83) that references it in its body and dependency array. The `const` declaration via `useCallback` was after the `useEffect` that called it, causing a Temporal Dead Zone crash on component mount.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L83-115
+- **Learnings for future iterations:**

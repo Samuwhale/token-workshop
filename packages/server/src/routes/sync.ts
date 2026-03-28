@@ -444,6 +444,80 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
+  // GET /api/sync/diff/tokens — token-level diff of uncommitted working tree changes vs HEAD
+  fastify.get('/sync/diff/tokens', async (_request, reply) => {
+    try {
+      const isRepo = await fastify.gitSync.isRepo();
+      if (!isRepo) return reply.status(400).send({ error: 'Not a git repository' });
+
+      const fileDiffs = await fastify.gitSync.getWorkingTreeTokenDiff();
+
+      const changes: Array<{
+        path: string;
+        set: string;
+        type: string;
+        status: 'added' | 'modified' | 'removed';
+        before?: any;
+        after?: any;
+      }> = [];
+
+      for (const diff of fileDiffs) {
+        const setName = diff.file.replace('.tokens.json', '');
+        const beforeTokens = new Map<string, any>();
+        const afterTokens = new Map<string, any>();
+
+        if (diff.before) {
+          try {
+            const parsed = JSON.parse(diff.before);
+            for (const [p, t] of flattenTokenGroup(parsed)) {
+              beforeTokens.set(p, t);
+            }
+          } catch { /* skip unparseable */ }
+        }
+        if (diff.after) {
+          try {
+            const parsed = JSON.parse(diff.after);
+            for (const [p, t] of flattenTokenGroup(parsed)) {
+              afterTokens.set(p, t);
+            }
+          } catch { /* skip unparseable */ }
+        }
+
+        for (const [p, token] of afterTokens) {
+          if (!beforeTokens.has(p)) {
+            changes.push({ path: p, set: setName, type: token.$type || 'unknown', status: 'added', after: token.$value });
+          }
+        }
+        for (const [p, token] of beforeTokens) {
+          if (!afterTokens.has(p)) {
+            changes.push({ path: p, set: setName, type: token.$type || 'unknown', status: 'removed', before: token.$value });
+          }
+        }
+        for (const [p, afterToken] of afterTokens) {
+          const beforeToken = beforeTokens.get(p);
+          if (beforeToken) {
+            const bVal = JSON.stringify(beforeToken.$value);
+            const aVal = JSON.stringify(afterToken.$value);
+            if (bVal !== aVal) {
+              changes.push({
+                path: p,
+                set: setName,
+                type: afterToken.$type || beforeToken.$type || 'unknown',
+                status: 'modified',
+                before: beforeToken.$value,
+                after: afterToken.$value,
+              });
+            }
+          }
+        }
+      }
+
+      return { changes, fileCount: fileDiffs.length };
+    } catch (err) {
+      return reply.status(500).send({ error: 'Failed to compute token diff', detail: String(err) });
+    }
+  });
+
   // GET /api/sync/diff — compute two-way diff between local HEAD and remote
   fastify.get('/sync/diff', async (_request, reply) => {
     try {

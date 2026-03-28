@@ -326,6 +326,58 @@ export class GitSync {
     await this.git.fetch();
   }
 
+  /** Get token-level diffs for uncommitted changes in .tokens.json files.
+   *  Compares working tree against HEAD. */
+  async getWorkingTreeTokenDiff(): Promise<Array<{
+    file: string;
+    status: 'A' | 'M' | 'D';
+    before: string | null;
+    after: string | null;
+  }>> {
+    // Get both staged and unstaged changes
+    const raw = await this.git.raw(['diff', 'HEAD', '--name-status']);
+    // Also include untracked .tokens.json files
+    const untrackedRaw = await this.git.raw(['ls-files', '--others', '--exclude-standard']);
+    const lines = raw.trim().split('\n').filter(Boolean);
+    const results: Array<{ file: string; status: 'A' | 'M' | 'D'; before: string | null; after: string | null }> = [];
+
+    for (const line of lines) {
+      const [status, ...pathParts] = line.split('\t');
+      const filePath = pathParts.join('\t');
+      if (!filePath.endsWith('.tokens.json')) continue;
+
+      const s = status.charAt(0) as 'A' | 'M' | 'D';
+      const before = s !== 'A' ? await this.showFileAtCommit('HEAD', filePath) : null;
+      let after: string | null = null;
+      if (s !== 'D') {
+        const absPath = path.resolve(this.dir, filePath);
+        try {
+          after = await fs.readFile(absPath, 'utf-8');
+        } catch {
+          after = null;
+        }
+      }
+      results.push({ file: filePath, status: s, before, after });
+    }
+
+    // Add untracked .tokens.json files as 'A' (added)
+    const untrackedFiles = untrackedRaw.trim().split('\n').filter(Boolean);
+    for (const filePath of untrackedFiles) {
+      if (!filePath.endsWith('.tokens.json')) continue;
+      // Skip if already in diff results
+      if (results.some(r => r.file === filePath)) continue;
+      const absPath = path.resolve(this.dir, filePath);
+      try {
+        const content = await fs.readFile(absPath, 'utf-8');
+        results.push({ file: filePath, status: 'A', before: null, after: content });
+      } catch {
+        // skip unreadable files
+      }
+    }
+
+    return results;
+  }
+
   /** Compare local HEAD vs remote tracking branch.
    *  Returns categorized file lists. Requires remote to be configured. */
   async computeUnifiedDiff(): Promise<{

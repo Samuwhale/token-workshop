@@ -49,6 +49,15 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
   const [mergeConflicts, setMergeConflicts] = useState<FileConflict[]>([]);
   const [conflictChoices, setConflictChoices] = useState<Record<string, Record<number, 'ours' | 'theirs'>>>({});
   const [resolvingConflicts, setResolvingConflicts] = useState(false);
+  const [tokenPreview, setTokenPreview] = useState<Array<{
+    path: string;
+    set: string;
+    type: string;
+    status: 'added' | 'modified' | 'removed';
+    before?: any;
+    after?: any;
+  }> | null>(null);
+  const [tokenPreviewLoading, setTokenPreviewLoading] = useState(false);
   const knownFilesRef = useRef<Set<string>>(new Set());
   const fetchAbortRef = useRef<AbortController | null>(null);
 
@@ -232,6 +241,25 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     }
   }, [serverUrl, diffChoices, fetchStatus]);
 
+  const fetchTokenPreview = useCallback(async () => {
+    setTokenPreviewLoading(true);
+    setGitError(null);
+    try {
+      const res = await fetch(`${serverUrl}/api/sync/diff/tokens`);
+      if (!res.ok) throw new Error('Could not fetch token preview');
+      const data = await res.json() as { changes: typeof tokenPreview; fileCount: number };
+      setTokenPreview(data.changes ?? []);
+    } catch (err) {
+      setGitError(describeError(err, 'Token preview'));
+    } finally {
+      setTokenPreviewLoading(false);
+    }
+  }, [serverUrl]);
+
+  const clearTokenPreview = useCallback(() => {
+    setTokenPreview(null);
+  }, []);
+
   const allChanges = useMemo(() => gitStatus?.status
     ? [
         ...gitStatus.status.modified.map(f => ({ file: f, status: 'M' })),
@@ -298,5 +326,9 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     resolveConflicts,
     abortMerge,
     allChanges,
+    tokenPreview,
+    tokenPreviewLoading,
+    fetchTokenPreview,
+    clearTokenPreview,
   };
 }

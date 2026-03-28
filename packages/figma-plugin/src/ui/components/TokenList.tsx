@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect } fr
 import type { TokenNode } from '../hooks/useTokens';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { ApiErrorBody, NodeCapabilities, TokenMapEntry } from '../../shared/types';
-import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
+import { resolveAllAliases, isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { BatchEditor } from './BatchEditor';
 import { ComparePanel } from './ComparePanel';
 import { TokenCanvas } from './TokenCanvas';
@@ -23,7 +23,6 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density } from './tokenListTypes';
 import { VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
-import { resolveAllAliases, isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
 import { TokenTreeNode } from './TokenTreeNode';

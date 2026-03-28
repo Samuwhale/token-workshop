@@ -933,6 +933,93 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 </div>
               )}
 
+              {/* Token-level preview of uncommitted changes */}
+              {git.allChanges.length > 0 && (
+                <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
+                  <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Token-level preview</span>
+                    <button
+                      onClick={git.tokenPreview !== null ? git.clearTokenPreview : git.fetchTokenPreview}
+                      disabled={git.tokenPreviewLoading}
+                      className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40 transition-colors"
+                    >
+                      {git.tokenPreviewLoading ? 'Loading\u2026' : git.tokenPreview !== null ? 'Hide preview' : 'Preview changes'}
+                    </button>
+                  </div>
+                  {git.tokenPreview !== null && (() => {
+                    const changes = git.tokenPreview;
+                    if (changes.length === 0) {
+                      return (
+                        <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)] flex items-center gap-1.5">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-success)] shrink-0" aria-hidden="true">
+                            <path d="M20 6L9 17l-5-5" />
+                          </svg>
+                          No token value changes detected.
+                        </div>
+                      );
+                    }
+                    const added = changes.filter(c => c.status === 'added');
+                    const modified = changes.filter(c => c.status === 'modified');
+                    const removed = changes.filter(c => c.status === 'removed');
+                    return (
+                      <>
+                        <div className="px-3 py-1.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] flex gap-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                          {added.length > 0 && <span className="text-[var(--color-figma-success)]">+{added.length} added</span>}
+                          {modified.length > 0 && <span className="text-[var(--color-figma-warning)]">~{modified.length} modified</span>}
+                          {removed.length > 0 && <span className="text-[var(--color-figma-error)]">-{removed.length} removed</span>}
+                        </div>
+                        <div className="max-h-48 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
+                          {changes.map((change, i) => {
+                            const statusColor =
+                              change.status === 'added' ? 'text-[var(--color-figma-success)]' :
+                              change.status === 'removed' ? 'text-[var(--color-figma-error)]' :
+                              'text-[var(--color-figma-warning)]';
+                            const statusChar = change.status === 'added' ? '+' : change.status === 'removed' ? '\u2212' : '~';
+                            const valStr = (v: any) => typeof v === 'string' ? v : JSON.stringify(v);
+                            return (
+                              <div key={i} className="px-3 py-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-[10px] font-mono font-bold w-3 shrink-0 ${statusColor}`}>{statusChar}</span>
+                                  <span className="text-[10px] text-[var(--color-figma-text)] font-medium truncate" title={change.path}>{change.path}</span>
+                                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0 ml-auto">{change.set}</span>
+                                </div>
+                                {change.status === 'modified' && (
+                                  <div className="ml-4 mt-0.5 flex flex-col gap-0.5 text-[10px] font-mono">
+                                    <div className="flex items-start gap-1">
+                                      <span className="text-[var(--color-figma-error)] shrink-0 w-3">&minus;</span>
+                                      <span className="text-[var(--color-figma-text-secondary)] break-all">{valStr(change.before)}</span>
+                                    </div>
+                                    <div className="flex items-start gap-1">
+                                      <span className="text-[var(--color-figma-success)] shrink-0 w-3">+</span>
+                                      <span className="text-[var(--color-figma-text)] break-all">{valStr(change.after)}</span>
+                                    </div>
+                                  </div>
+                                )}
+                                {change.status === 'added' && change.after !== undefined && (
+                                  <div className="ml-4 mt-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] break-all">
+                                    {valStr(change.after)}
+                                  </div>
+                                )}
+                                {change.status === 'removed' && change.before !== undefined && (
+                                  <div className="ml-4 mt-0.5 text-[10px] font-mono text-[var(--color-figma-text-secondary)] line-through break-all">
+                                    {valStr(change.before)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  })()}
+                  {!git.tokenPreviewLoading && git.tokenPreview === null && (
+                    <div className="px-3 py-3 text-[10px] text-[var(--color-figma-text-secondary)]">
+                      Click <strong className="font-medium text-[var(--color-figma-text)]">Preview changes</strong> to see token-level additions, modifications, and deletions before committing.
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Commit */}
               {!git.gitStatus.status?.isClean && (
                 <div className="rounded border border-[var(--color-figma-border)] overflow-hidden">
