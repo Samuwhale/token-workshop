@@ -10,6 +10,17 @@ export class GitSync {
     this.git = simpleGit(this.dir);
   }
 
+  /** Validate a branch name is safe (not a flag, not empty, no control chars). */
+  private validateBranchName(name: string): void {
+    if (!name || name.startsWith('-')) {
+      throw new Error(`Invalid branch name: "${name}"`);
+    }
+    // Block control characters and whitespace other than normal space (which git itself rejects)
+    if (/[\x00-\x1f\x7f]/.test(name)) {
+      throw new Error(`Invalid branch name: "${name}" contains control characters`);
+    }
+  }
+
   /** Validate that all file paths resolve within the token directory. */
   private validatePaths(files: string[]): void {
     for (const file of files) {
@@ -67,10 +78,12 @@ export class GitSync {
   }
 
   async checkout(branch: string): Promise<void> {
+    this.validateBranchName(branch);
     await this.git.checkout(branch);
   }
 
   async createBranch(branch: string): Promise<void> {
+    this.validateBranchName(branch);
     await this.git.checkoutLocalBranch(branch);
   }
 

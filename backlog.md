@@ -57,12 +57,12 @@
 
 - [x] `convertFromFigmaValue` crashes on undefined COLOR values — when a variable has no value set for a mode, `valuesByMode[modeId]` is `undefined`; calling `rgbToHex(undefined)` throws TypeError; needs a null guard before conversion
 - [x] `convertToFigmaValue` returns NaN for non-numeric strings — for number/fontWeight/percentage types, `parseFloat(value)` on a non-numeric string returns NaN, which is passed to `variable.setValueForMode()` and throws in the Figma API
-- [~] Variable snapshots shallow-copy `valuesByMode` — COLOR variable values are objects (`{r,g,b,a}`); if Figma returns the same reference and it later mutates, the snapshot won't preserve the original; needs deep copy for rollback safety
+- [x] Variable snapshots shallow-copy `valuesByMode` — COLOR variable values are objects (`{r,g,b,a}`); if Figma returns the same reference and it later mutates, the snapshot won't preserve the original; needs deep copy for rollback safety
 - [~] Git sync branch names not validated against flag injection — `checkout` and `createBranch` pass user-supplied names directly to simple-git; a name like `--orphan` could be interpreted as a flag
 
 ### QoL
 
-- [ ] No visual diff for Figma variable publish — the Variables section shows added/modified/unchanged counts but no side-by-side preview of old vs. new values with color swatches; users can't visually verify what will change before applying
+- [~] No visual diff for Figma variable publish — the Variables section shows added/modified/unchanged counts but no side-by-side preview of old vs. new values with color swatches; users can't visually verify what will change before applying
 
 ### UX
 

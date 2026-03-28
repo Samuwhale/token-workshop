@@ -512,3 +512,12 @@
   - `structuredClone` is available in the Figma plugin sandbox (V8-based) and is the simplest way to deep-copy plain data structures
   - Any time a snapshot is taken for rollback purposes, consider whether values are primitives or objects — spread only copies one level
 ---
+
+## 2026-03-28 - Git sync branch names not validated against flag injection
+- Added `validateBranchName()` method to `GitSync` class that rejects branch names starting with `-` (prevents flag injection like `--orphan`) and names containing control characters.
+- Called from both `checkout()` and `createBranch()` before passing names to simple-git.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L14-L24, ~L81, ~L86
+- **Learnings for future iterations:**
+  - simple-git does not internally guard against flag-like arguments — any user-supplied string passed as a branch name could be interpreted as a git flag.
+  - The `--` separator is another mitigation approach, but simple-git's `checkout()` and `checkoutLocalBranch()` don't support inserting `--` before the branch arg. Validation is the reliable fix.
+---

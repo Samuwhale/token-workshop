@@ -250,3 +250,17 @@ Already up to date.
 
 --- Merging: Variable snapshots shallow-copy valuesByMode ---
 Already up to date.
+[main 59d67ec] chore(backlog): done – Variable snapshots shallow-copy valuesByMode
+ 6 files changed, 32 insertions(+), 4 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Variable snapshots shallow-copy valuesByMode
+- Replaced shallow spread (`{ ...existing.valuesByMode }`) with `structuredClone(existing.valuesByMode)` so COLOR variable values (`{r,g,b,a}` objects) are deep-copied in the rollback snapshot, preventing mutation of the snapshot if Figma reuses references.
+- Files changed: `packages/figma-plugin/src/plugin/variableSync.ts` ~L56
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  58 items remaining
+===============================================================
+  Claimed: No visual diff for Figma variable publish — the Variables section shows added/modified/unchanged counts but no side-by-side preview of old vs. new values with color swatches; users can't visually verify what will change before applying
+  Worktree: /tmp/backlog-62956-MIgwOx

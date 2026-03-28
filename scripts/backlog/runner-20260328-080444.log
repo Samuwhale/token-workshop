@@ -303,3 +303,10 @@ Already up to date.
 ===============================================================
   Claimed: Git sync branch names not validated against flag injection — `checkout` and `createBranch` pass user-supplied names directly to simple-git; a name like `--orphan` could be interpreted as a flag
   Worktree: /tmp/backlog-63411-XqGxjB
+
+  ✓ done: Git sync branch names not validated against flag injection
+    Added validateBranchName() to GitSync that rejects names starting with `-` or containing control characters, called from checkout() and createBranch() before passing to simple-git.
+    14 turns · 66s · $0.36
+
+--- Merging: Git sync branch names not validated against flag injection ---
+Already up to date.
