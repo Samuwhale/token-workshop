@@ -307,3 +307,16 @@ Already up to date.
 
 --- Merging: Interactive generator preview ---
 Already up to date.
+[main ee00026] chore(backlog): done – Interactive generator preview
+ 10 files changed, 97 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - Interactive generator preview
+- Added live client-side color swatch strip to BezierCurveEditor that computes colors using the same Lab math as the server engine, giving instant visual feedback while dragging curve control points (no server round-trip needed)
+- Added inline "Ag" text samples to TypeScaleStaircaseEditor via foreignObject, sized proportionally to each step's computed value, providing immediate typographic preview while dragging ratio
+- Wired sourceHex and chromaBoost through ColorRampConfigEditor → BezierCurveEditor so the live swatches reflect the actual source color and chroma settings
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  38 items remaining
+===============================================================
+  Claimed: Composition token editor is a raw key-value text input with no structure — the CompositionEditor renders generic text fields for each property instead of type-aware sub-editors (color picker for fill, dimension stepper for padding, etc.); no validation that values match expected types, no preview of the composed result
+  Worktree: /tmp/backlog-10054-1kSYp9

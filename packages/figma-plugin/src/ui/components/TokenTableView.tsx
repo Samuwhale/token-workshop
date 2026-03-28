@@ -5,7 +5,7 @@ import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { formatValue, formatDisplayPath, sortLeafNodes } from './tokenListUtils';
 import { getEditableString, parseInlineValue } from './tokenListHelpers';
-import { INLINE_SIMPLE_TYPES, DENSITY_PY_CLASS } from './tokenListTypes';
+import { INLINE_SIMPLE_TYPES, DENSITY_ROW_HEIGHT, VIRTUAL_OVERSCAN } from './tokenListTypes';
 import type { Density } from './tokenListTypes';
 import { swatchBgColor } from '../shared/colorUtils';
 import type { TableSort, TableSortField } from './tokenListTypes';
@@ -62,6 +62,12 @@ export function TokenTableView({
   const [editValue, setEditValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Virtual scroll
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollTopRef = useRef(0);
+  const [scrollTop, setScrollTop] = useState(0);
+  const rowHeight = DENSITY_ROW_HEIGHT[density];
+
   // Build resolved value cache
   const resolvedCache = useMemo(() => {
     const cache = new Map<string, string>();
@@ -81,6 +87,25 @@ export function TokenTableView({
     if (!sort) return leafNodes;
     return sortLeafNodes(leafNodes, sort.field, sort.dir, allTokensFlat, resolvedCache);
   }, [leafNodes, sort, allTokensFlat, resolvedCache]);
+
+  // Virtual scroll range
+  const { virtualStartIdx, virtualEndIdx, virtualTopPad, virtualBottomPad } = useMemo(() => {
+    const containerHeight = scrollContainerRef.current?.clientHeight ?? 500;
+    const totalRows = sortedNodes.length;
+    const rawStart = Math.floor(scrollTop / rowHeight);
+    const rawEnd = Math.ceil((scrollTop + containerHeight) / rowHeight);
+    const start = Math.max(0, rawStart - VIRTUAL_OVERSCAN);
+    const end = Math.min(totalRows, rawEnd + VIRTUAL_OVERSCAN);
+    return {
+      virtualStartIdx: start,
+      virtualEndIdx: end,
+      virtualTopPad: start * rowHeight,
+      virtualBottomPad: Math.max(0, (totalRows - end) * rowHeight),
+    };
+  }, [scrollTop, sortedNodes.length, rowHeight]);
+
+  const visibleNodes = sortedNodes.slice(virtualStartIdx, virtualEndIdx);
+  const colSpan = selectMode ? COLUMNS.length + 1 : COLUMNS.length;
 
   const handleHeaderClick = useCallback((field: TableSortField) => {
     setSort(prev => {
@@ -154,7 +179,15 @@ export function TokenTableView({
   }
 
   return (
-    <div className="overflow-auto flex-1">
+    <div
+      ref={scrollContainerRef}
+      className="overflow-auto flex-1"
+      onScroll={e => {
+        const top = e.currentTarget.scrollTop;
+        scrollTopRef.current = top;
+        setScrollTop(top);
+      }}
+    >
       <table className="w-full text-[10px] border-collapse">
         <thead className="sticky top-0 bg-[var(--color-figma-bg-secondary)] z-10">
           <tr className="border-b border-[var(--color-figma-border)]">
@@ -183,7 +216,12 @@ export function TokenTableView({
           </tr>
         </thead>
         <tbody>
-          {sortedNodes.map(node => {
+          {virtualTopPad > 0 && (
+            <tr style={{ height: virtualTopPad }} aria-hidden="true">
+              <td colSpan={colSpan} />
+            </tr>
+          )}
+          {visibleNodes.map(node => {
             const isHighlighted = highlightedToken === node.path;
             const isSelected = selectedPaths.has(node.path);
             const isEditingValue = editingCell?.path === node.path && editingCell.field === 'value';
@@ -198,6 +236,7 @@ export function TokenTableView({
             return (
               <tr
                 key={node.path}
+                style={{ height: rowHeight }}
                 className={`border-b border-[var(--color-figma-border)]/50 hover:bg-[var(--color-figma-bg-hover)] cursor-pointer group ${
                   isHighlighted ? 'bg-[var(--color-figma-accent)]/10' : ''
                 } ${isSelected ? 'bg-[var(--color-figma-accent)]/15' : ''}`}
@@ -321,6 +360,11 @@ export function TokenTableView({
               </tr>
             );
           })}
+          {virtualBottomPad > 0 && (
+            <tr style={{ height: virtualBottomPad }} aria-hidden="true">
+              <td colSpan={colSpan} />
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

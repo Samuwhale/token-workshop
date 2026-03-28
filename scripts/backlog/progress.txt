@@ -488,3 +488,12 @@
   - SVG foreignObject enables inline HTML rendering (e.g., styled text at computed font sizes) within SVG interactive editors
   - Core package.json only had `import` export condition; Vite IIFE builds need `require` condition too
 ---
+
+## 2026-03-28 - TokenTableView virtual scrolling
+- Added virtual scrolling to `TokenTableView` using padding `<tr>` rows at top/bottom of `<tbody>`. Scroll container gets `ref` + `onScroll` handler that updates `scrollTop` state. A `useMemo` computes `virtualStartIdx`/`virtualEndIdx` using `DENSITY_ROW_HEIGHT[density]` and `VIRTUAL_OVERSCAN` (imported from `tokenListTypes`). Only `visibleNodes = sortedNodes.slice(start, end)` are rendered. Each visible `<tr>` gets `style={{ height: rowHeight }}` to enforce consistent heights matching the virtual scroll calculations.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTableView.tsx` ~L8,65-100,175-185,215-220,290,330
+- **Learnings for future iterations:**
+  - For table virtual scrolling, padding `<tr>` rows with `style={{ height: N }}` + `<td colSpan={N} />` is the cleanest approach — stays semantic and doesn't break sticky `<thead>`
+  - Set `style={{ height: rowHeight }}` on each visible `<tr>` to enforce fixed row heights matching the calculations; without this, content variation would cause scroll position drift
+  - Server tests in this worktree always fail due to `@tokenmanager/core` workspace link not resolving — pre-existing, confirmed by stash-and-rerun
+---

@@ -301,3 +301,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenTableView has no virtual scrolling — unlike the tree view which uses virtualization, the table view renders all leaf tokens in the DOM at once; sets with 500+ tokens will cause visible lag and high memory usage
   Worktree: /tmp/backlog-10461-TvQskG
+
+  ✓ done: TokenTableView has no virtual scrolling — unlike the tree view which uses virtualization, the table view renders all leaf tokens in the DOM at once; sets with 500+ tokens will cause visible lag and high memory usage
+    Added virtual scrolling to TokenTableView using padding tr rows at tbody top/bottom; uses DENSITY_ROW_HEIGHT + VIRTUAL_OVERSCAN from tokenListTypes; only renders visible slice of sortedNodes
+    28 turns · 297s · $0.88
+
+--- Merging: TokenTableView has no virtual scrolling — unlike the tree view which uses virtualization, the table view renders all leaf tokens in the DOM at once; sets with 500+ tokens will cause visible lag and high memory usage ---
+Already up to date.
