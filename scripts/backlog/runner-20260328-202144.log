@@ -153,3 +153,16 @@ Already up to date.
 
 --- Merging: CommandPalette token search mode has no "copy path" action ---
 Already up to date.
+[main 99489ea] chore(backlog): done – CommandPalette token search mode has no "copy path" action
+ 6 files changed, 49 insertions(+), 4 deletions(-)
+
+## 2026-03-28 - CommandPalette token search mode has no "copy path" action
+- Added a "Path" copy button to CommandPalette token search results, alongside existing "Val" and "CSS" buttons
+- New `onCopyTokenPath` prop on `CommandPaletteProps` interface, wired in App.tsx to `navigator.clipboard.writeText(path)`
+- Button copies the dot-notation token path (e.g. `colors.brand.500`) for use in alias references and documentation
+
+===============================================================
+  Iteration 8 / 90  (claude)  —  52 items remaining
+===============================================================
+  Claimed: ThemeManager dimension/option search — when a theme has many dimensions (e.g. brand × mode × density × viewport), there's no way to search or filter dimensions or their options; add a search/filter input at the top of the ThemeManager panel
+  Worktree: /tmp/backlog-10054-XqkBQS

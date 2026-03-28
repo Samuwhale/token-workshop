@@ -369,6 +369,10 @@ export interface ScanConsistencyMessage {
   scope: 'selection' | 'page';
 }
 
+export interface GetAvailableFontsMessage {
+  type: 'get-available-fonts';
+}
+
 /** Discriminated union of all UI→Controller messages */
 export type PluginMessage =
   | ApplyVariablesMessage
@@ -399,4 +403,5 @@ export type PluginMessage =
   | ScanSingleTokenUsageMessage
   | ExtractTokensFromSelectionMessage
   | SelectNextSiblingMessage
-  | ScanConsistencyMessage;
+  | ScanConsistencyMessage
+  | GetAvailableFontsMessage;

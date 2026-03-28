@@ -33,6 +33,16 @@ async function getAvailableFonts(): Promise<Font[]> {
   return cachedFonts;
 }
 
+/** Returns deduplicated sorted list of font family names available in Figma. */
+export async function getAvailableFontFamilies(): Promise<string[]> {
+  const fonts = await getAvailableFonts();
+  const seen = new Set<string>();
+  for (const f of fonts) {
+    seen.add(f.fontName.family);
+  }
+  return Array.from(seen).sort((a, b) => a.localeCompare(b));
+}
+
 export async function resolveStyleForWeight(family: string, weight: number | string): Promise<string> {
   const targetWeight = typeof weight === 'number' ? weight : parseInt(weight, 10);
   try {

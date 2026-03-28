@@ -38,6 +38,7 @@ import { useUndo } from './hooks/useUndo';
 import { useLint } from './hooks/useLint';
 import { useGenerators } from './hooks/useGenerators';
 import { usePreviewSplit } from './hooks/usePreviewSplit';
+import { useAvailableFonts } from './hooks/useAvailableFonts';
 import { useWindowExpand } from './hooks/useWindowExpand';
 import { useHeatmap } from './hooks/useHeatmap';
 import { useTokenNavigation } from './hooks/useTokenNavigation';
@@ -309,6 +310,7 @@ export function App() {
   const { connected, checking, serverUrl, getDisconnectSignal, markDisconnected, updateServerUrlAndConnect, retryConnection } = useServerConnection();
   const { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens } = useTokens(serverUrl, connected, markDisconnected, getDisconnectSignal);
   const { selectedNodes } = useSelection();
+  const availableFonts = useAvailableFonts();
   const { syncing, syncProgress, syncResult, syncError, sync } = useSyncBindings(serverUrl, connected, markDisconnected);
   const [allTokensFlat, setAllTokensFlat] = useState<Record<string, TokenMapEntry>>({});
   const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
@@ -2204,6 +2206,7 @@ export function App() {
                     dimensions={dimensions}
                     perSetFlat={perSetFlat}
                     onRefresh={refreshAll}
+                    availableFonts={availableFonts}
                   />
                   ) : previewingToken ? (
                   <TokenDetailPreview
@@ -2500,6 +2503,7 @@ export function App() {
                 dimensions={dimensions}
                 perSetFlat={perSetFlat}
                 onRefresh={refreshAll}
+                availableFonts={availableFonts}
               />
             </div>
           </div>

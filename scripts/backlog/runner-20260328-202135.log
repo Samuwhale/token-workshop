@@ -115,3 +115,10 @@ Already up to date.
 ===============================================================
   Claimed: FontFamily value editor is a plain text input with no font discovery — users must type font names from memory; add a searchable dropdown populated from system/web fonts (or at minimum the fonts used in the current Figma file) with a live text preview rendered in each candidate font
   Worktree: /tmp/backlog-9231-6GajXE
+
+  ✓ done: FontFamily value editor searchable dropdown with font discovery
+    Replaced plain text input with searchable combobox populated from Figma's available fonts (via figma.listAvailableFontsAsync). Includes live Aa preview per font, keyboard navigation, ranked search, alias mode for typography sub-fields, and graceful fallback to plain text outside Figma.
+    55 turns · 495s · $2.9
+
+--- Merging: FontFamily value editor searchable dropdown with font discovery ---
+Already up to date.

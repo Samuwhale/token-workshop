@@ -479,3 +479,25 @@
   - CommandPalette copy buttons follow a simple pattern: conditional render on callback prop existence, stopPropagation + copy + onClose
   - Button order is Path → Val → CSS (left to right)
 ---
+
+## 2026-03-28 - FontFamily value editor searchable dropdown with font discovery
+- Replaced the plain text input for fontFamily tokens with a searchable dropdown populated from Figma's available fonts via `figma.listAvailableFontsAsync()`
+- Added plugin→UI message flow: `get-available-fonts` request → `fonts-loaded` response with deduplicated sorted family names
+- Created `FontFamilyPicker` component: combobox with keyboard nav (arrow keys, enter, escape), ranked fuzzy search (exact → startsWith → contains), live "Aa" preview rendered in each candidate font, checkmark for current selection, custom font name fallback when no match
+- Created `useAvailableFonts` hook called in App.tsx, passed through TokenEditor to FontFamilyEditor and TypographyEditor
+- Typography editor's fontFamily sub-field now uses `FontFamilySubProp` which switches between alias autocomplete mode (when typing `{`) and font picker mode
+- Falls back gracefully to plain text input when running outside Figma (standalone mode, empty font list)
+- Files changed:
+  - `packages/figma-plugin/src/shared/types.ts` ~L369 — added `GetAvailableFontsMessage`
+  - `packages/figma-plugin/src/plugin/fontLoading.ts` ~L36 — exported `getAvailableFontFamilies()`
+  - `packages/figma-plugin/src/plugin/controller.ts` ~L122 — added `get-available-fonts` handler
+  - `packages/figma-plugin/src/ui/hooks/useAvailableFonts.ts` — new hook
+  - `packages/figma-plugin/src/ui/components/FontFamilyPicker.tsx` — new searchable combobox component
+  - `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L388,888 — `FontFamilySubProp` + updated `FontFamilyEditor`
+  - `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L366,369,1072,1066 — added `availableFonts` prop
+  - `packages/figma-plugin/src/ui/App.tsx` ~L41,312,2209,2507 — hook call + prop passing
+- **Learnings for future iterations:**
+  - `figma.listAvailableFontsAsync()` returns `Font[]` with `fontName: { family, style }` — deduplicate by family for the picker, keep styles for weight resolution
+  - Font picker dropdown in 96px inline edit area is too cramped — keep inline edit as plain text, use full picker only in the editor panel
+  - Typography fontFamily sub-field needs dual mode: alias (`{token}`) and literal font picker — use a state flag to switch between AliasAutocomplete and FontFamilyPicker
+---

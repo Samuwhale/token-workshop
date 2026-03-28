@@ -363,9 +363,11 @@ interface TokenEditorProps {
   onRefresh?: () => void;
   /** Called after a successful create when the user wants to immediately create another token. Receives the saved path so the parent can derive a sibling prefix. */
   onSaveAndCreateAnother?: (savedPath: string, tokenType: string) => void;
+  /** Available font families from Figma for the font picker. */
+  availableFonts?: string[];
 }
 
-export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh }: TokenEditorProps) {
+export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, allTokensFlat = {}, pathToSet = {}, generators = [], allSets = [], onRefreshGenerators, isCreateMode = false, initialType, initialValue, onDirtyChange, onSaved, onSaveAndCreateAnother, dimensions = [], perSetFlat, onRefresh, availableFonts = [] }: TokenEditorProps) {
   const [loading, setLoading] = useState(!isCreateMode);
   // Editable path, only used in create mode
   const [editPath, setEditPath] = useState(tokenPath);
@@ -1063,13 +1065,13 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             )}
             {tokenType === 'color' && <ColorEditor value={value} onChange={setValue} autoFocus={!isCreateMode} allTokensFlat={allTokensFlat} />}
             {tokenType === 'dimension' && <DimensionEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} autoFocus={!isCreateMode} />}
-            {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} fontFamilyRef={fontFamilyRef} fontSizeRef={fontSizeRef} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
+            {tokenType === 'typography' && <TypographyEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} fontFamilyRef={fontFamilyRef} fontSizeRef={fontSizeRef} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} availableFonts={availableFonts} />}
             {tokenType === 'shadow' && <ShadowEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
             {tokenType === 'border' && <BorderEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} baseValue={extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined} />}
             {tokenType === 'gradient' && <GradientEditor value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />}
             {tokenType === 'number' && <NumberEditor key={tokenPath} value={value} onChange={setValue} allTokensFlat={allTokensFlat} pathToSet={pathToSet} autoFocus={!isCreateMode} />}
             {tokenType === 'duration' && <DurationEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
-            {tokenType === 'fontFamily' && <FontFamilyEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}
+            {tokenType === 'fontFamily' && <FontFamilyEditor value={value} onChange={setValue} autoFocus={!isCreateMode} availableFonts={availableFonts} />}
             {tokenType === 'fontWeight' && <FontWeightEditor value={value} onChange={setValue} />}
             {tokenType === 'strokeStyle' && <StrokeStyleEditor value={value} onChange={setValue} />}
             {tokenType === 'string' && <StringEditor value={value} onChange={setValue} autoFocus={!isCreateMode} />}

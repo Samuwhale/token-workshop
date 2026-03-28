@@ -4,6 +4,7 @@ import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
 import { FormulaInput } from './FormulaInput';
 import { ColorPicker } from './ColorPicker';
+import { FontFamilyPicker } from './FontFamilyPicker';
 import { formatHexAs, parseColorInput, swatchBgColor, isWideGamutColor, type ColorFormat } from '../shared/colorUtils';
 import { GamutIndicator } from './GamutIndicator';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
@@ -385,6 +386,82 @@ function SubPropInput({
   );
 }
 
+/**
+ * Font family sub-property input for typography editor.
+ * Uses FontFamilyPicker for literal values, falls back to alias input when typing `{`.
+ */
+function FontFamilySubProp({
+  value,
+  onChange,
+  allTokensFlat,
+  pathToSet,
+  availableFonts,
+  inputRef,
+}: {
+  value: any;
+  onChange: (v: any) => void;
+  allTokensFlat: Record<string, TokenMapEntry>;
+  pathToSet: Record<string, string>;
+  availableFonts: string[];
+  inputRef?: Ref<HTMLInputElement>;
+}) {
+  const isAlias = typeof value === 'string' && value.startsWith('{');
+  const [showAC, setShowAC] = useState(false);
+
+  if (isAlias || showAC) {
+    // Show alias autocomplete input
+    return (
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="text"
+          value={String(value ?? '')}
+          onChange={e => {
+            const raw = e.target.value;
+            setShowAC(raw.includes('{') && !raw.endsWith('}'));
+            onChange(raw);
+          }}
+          onFocus={() => {
+            const v = String(value ?? '');
+            if (v.includes('{') && !v.endsWith('}')) setShowAC(true);
+          }}
+          onBlur={() => setTimeout(() => setShowAC(false), 150)}
+          placeholder="Inter"
+          className={`${inputClass}${isAlias ? ' !border-[var(--color-figma-accent)]' : ''}`}
+        />
+        {showAC && (
+          <AliasAutocomplete
+            query={String(value ?? '').includes('{') ? String(value ?? '').slice(String(value ?? '').lastIndexOf('{') + 1).replace(/\}.*$/, '') : ''}
+            allTokensFlat={allTokensFlat}
+            pathToSet={pathToSet}
+            filterType="fontFamily"
+            onSelect={path => {
+              onChange(`{${path}}`);
+              setShowAC(false);
+            }}
+            onClose={() => setShowAC(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Literal mode — use font picker with a way to switch to alias
+  return (
+    <FontFamilyPicker
+      value={typeof value === 'string' ? value : ''}
+      onChange={v => {
+        if (v.startsWith('{')) {
+          setShowAC(true);
+        }
+        onChange(v);
+      }}
+      availableFonts={availableFonts}
+      placeholder="Inter"
+    />
+  );
+}
+
 function resolveTypographyValue(raw: unknown, allTokensFlat: Record<string, TokenMapEntry>): unknown {
   if (typeof raw === 'string' && raw.startsWith('{') && raw.endsWith('}')) {
     const refPath = raw.slice(1, -1);
@@ -394,7 +471,7 @@ function resolveTypographyValue(raw: unknown, allTokensFlat: Record<string, Toke
   return raw;
 }
 
-export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef, baseValue }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement>; baseValue?: any }) {
+export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef, baseValue, availableFonts }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement>; baseValue?: any; availableFonts?: string[] }) {
   const rawVal = typeof value === 'object' ? value : {};
   // When extending, merge base + overrides for display, but only emit overrides on change
   const base = typeof baseValue === 'object' && baseValue !== null ? baseValue : undefined;
@@ -475,13 +552,12 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
           {base && isInherited('fontFamily') && <InheritedBadge propKey="fontFamily" onOverride={() => update('fontFamily', val.fontFamily)} />}
           {base && !isInherited('fontFamily') && <RevertBadge propKey="fontFamily" onRevert={() => revertToInherited('fontFamily')} />}
         </div>
-        <SubPropInput
+        <FontFamilySubProp
           value={Array.isArray(val.fontFamily) ? val.fontFamily[0] : (val.fontFamily || '')}
           onChange={v => update('fontFamily', v)}
           allTokensFlat={allTokensFlat}
           pathToSet={pathToSet}
-          inputType="string"
-          placeholder="Inter"
+          availableFonts={availableFonts || []}
           inputRef={fontFamilyRef}
         />
       </div>
@@ -969,15 +1045,13 @@ export function BooleanEditor({ value, onChange }: { value: any; onChange: (v: a
   );
 }
 
-export function FontFamilyEditor({ value, onChange, autoFocus }: { value: any; onChange: (v: any) => void; autoFocus?: boolean }) {
+export function FontFamilyEditor({ value, onChange, autoFocus, availableFonts }: { value: any; onChange: (v: any) => void; autoFocus?: boolean; availableFonts?: string[] }) {
   return (
-    <input
-      type="text"
+    <FontFamilyPicker
       value={typeof value === 'string' ? value : ''}
-      onChange={e => onChange(e.target.value)}
-      placeholder="Inter, system-ui, sans-serif"
+      onChange={onChange}
+      availableFonts={availableFonts || []}
       autoFocus={autoFocus}
-      className={inputClass}
     />
   );
 }
