@@ -44,6 +44,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchWarnings, setFetchWarnings] = useState<string | null>(null);
 
   // Create dimension
   const [newDimName, setNewDimName] = useState('');
@@ -142,6 +143,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
       // Compute token values per set
       const tokenValues: Record<string, Record<string, any>> = {};
+      const failedSets: string[] = [];
       await Promise.all(sets.map(async (s) => {
         try {
           const r = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(s)}`);
@@ -152,10 +154,19 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               map[path] = token.$value;
             }
             tokenValues[s] = map;
+          } else {
+            failedSets.push(s);
           }
-        } catch { /* ignore */ }
+        } catch {
+          failedSets.push(s);
+        }
       }));
       setSetTokenValues(tokenValues);
+      if (failedSets.length > 0) {
+        setFetchWarnings(`Could not load ${failedSets.length === 1 ? `set "${failedSets[0]}"` : `${failedSets.length} sets (${failedSets.join(', ')})`} — coverage data may be incomplete`);
+      } else {
+        setFetchWarnings(null);
+      }
 
       const isResolved = (value: any, activeValues: Record<string, any>, visited = new Set<string>()): boolean => {
         if (typeof value !== 'string') return true;
@@ -823,6 +834,14 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         <div role="alert" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] text-[10px] flex items-center justify-between">
           <span>{error}</span>
           <button onClick={() => setError(null)} className="ml-2 text-[var(--color-figma-error)] hover:opacity-70 flex-shrink-0">
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      )}
+      {fetchWarnings && (
+        <div role="status" className="mx-3 mt-2 px-2 py-1.5 rounded bg-[var(--color-figma-warning)]/10 text-[var(--color-figma-warning)] text-[10px] flex items-center justify-between">
+          <span>{fetchWarnings}</span>
+          <button onClick={() => setFetchWarnings(null)} className="ml-2 text-[var(--color-figma-warning)] hover:opacity-70 flex-shrink-0">
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>

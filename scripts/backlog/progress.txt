@@ -565,3 +565,14 @@
   - `navigator.clipboard.writeText()` can throw when clipboard permissions are denied (e.g., iframe sandbox, no user gesture) — always await and catch
   - Figma plugin UI notify pattern: `parent.postMessage({ pluginMessage: { type: 'notify', message: '...' } }, '*')` for user-visible feedback
 ---
+
+## 2026-03-28 - ThemeManager set-fetch loop silently swallows errors
+- Added `fetchWarnings` state to track partial set-fetch failures during coverage computation
+- The `Promise.all` loop now collects failed set names (both HTTP errors and network failures) into a `failedSets` array
+- When any sets fail, a dismissible warning banner (using `--color-figma-warning` styling) appears below the error banner with the names of failed sets and a note that coverage may be incomplete
+- Warning is cleared on next successful full fetch
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L46 (state), ~L145-167 (fetch loop), ~L833-842 (warning banner)
+- **Learnings for future iterations:**
+  - The existing pattern of `try { ... } catch { /* ignore */ }` inside `Promise.all` map callbacks is a common source of silent data loss — always collect failures and surface them
+  - Warning banners (non-blocking, dismissible) are better than errors for partial failures where the UI can still function with reduced data
+---

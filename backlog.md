@@ -137,9 +137,9 @@
 - [x] `BatchEditor.tsx` renamePreview creates `new RegExp(findText)` inside `.filter()` on every element (~line 236) instead of reusing the already-memoized `parsedRegex` — wasteful for large token sets
 - [x] `useStyleSync.ts` pullRows `Promise.all` never checks `res.ok` on individual fetch responses (~line 152) — a 4xx/5xx from a single token PATCH silently succeeds, leaving the UI out of sync with the server
 - [~] `ThemeManager.tsx` set-fetch loop silently swallows all errors (~line 153) — if a set fails to load, coverage calculations are silently incomplete with no user feedback
-- [~] `ThemeCompare.tsx` and `ExportPanel.tsx` clipboard writes are fire-and-forget — `navigator.clipboard.writeText()` is not awaited and has no `.catch()`, so the "Copied!" feedback shows even if clipboard access is denied
+- [x] `ThemeCompare.tsx` and `ExportPanel.tsx` clipboard writes are fire-and-forget — `navigator.clipboard.writeText()` is not awaited and has no `.catch()`, so the "Copied!" feedback shows even if clipboard access is denied
 - [~] `fontLoading.ts` font cache is never invalidated — `cachedFonts` is set once on first call and never cleared, so fonts installed during a plugin session are invisible to weight resolution
-- [ ] `useFindReplace.ts` bulk-rename fetch has no abort signal or timeout (~line 86) — a slow server response hangs the UI indefinitely with no way to cancel
+- [~] `useFindReplace.ts` bulk-rename fetch has no abort signal or timeout (~line 86) — a slow server response hangs the UI indefinitely with no way to cancel
 - [ ] `useSetDuplicate.ts` silently returns on HTTP errors (~lines 32, 42) — if fetching the source set or creating the duplicate fails with 4xx/5xx, the user gets no error feedback and the operation appears to do nothing
 - [ ] `TokenEditor.tsx` repeats identical `as any` cast for `baseValue` four times (~lines 882-893) — `extendsPath ? (allTokensFlat[extendsPath]?.$value as any) : undefined` should be extracted to a typed variable to remove the casts and the duplication
 - [ ] `PublishPanel.tsx` retry loop catches all errors as timeout retries (~line 198-200) — non-timeout errors (e.g. malformed message, plugin crash) are silently retried instead of surfaced, masking real failures

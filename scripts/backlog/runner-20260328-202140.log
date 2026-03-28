@@ -243,3 +243,16 @@ Already up to date.
 
 --- Merging: ThemeCompare.tsx and ExportPanel.tsx clipboard writes are fire-and-forget ---
 Already up to date.
+[main dd2f876] chore(backlog): done – ThemeCompare.tsx and ExportPanel.tsx clipboard writes are fire-and-forget
+ 7 files changed, 73 insertions(+), 22 deletions(-)
+
+## 2026-03-28 - ThemeCompare.tsx and ExportPanel.tsx clipboard writes are fire-and-forget
+- Made all `navigator.clipboard.writeText()` calls properly awaited with try/catch
+- ThemeCompare `handleCopy`: added `.catch()` — previously used `.then()` only, so clipboard denial silently failed without error feedback
+- ExportPanel `handleCopyFile`, `handleCopyAll`, `handleCopyAllPlatformResults`: converted from sync fire-and-forget to async/await with try/catch — "Copied!" feedback and notify messages now only fire on success
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  50 items remaining
+===============================================================
+  Claimed: `useFindReplace.ts` bulk-rename fetch has no abort signal or timeout (~line 86) — a slow server response hangs the UI indefinitely with no way to cancel
+  Worktree: /tmp/backlog-9651-Ho8Mrh
