@@ -46,13 +46,10 @@ import { useSetMergeSplit } from './hooks/useSetMergeSplit';
 import { useSetMetadata } from './hooks/useSetMetadata';
 import type { SyncCompleteMessage, TokenMapEntry } from '../shared/types';
 import { resolveAllAliases } from '../shared/resolveAlias';
-import { stableStringify, adaptShortcut, getErrorMessage } from './shared/utils';
+import { stableStringify, adaptShortcut, getErrorMessage, SET_NAME_RE } from './shared/utils';
 import { apiFetch } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType } from './components/tokenListUtils';
-
-/** Valid set name: alphanumeric, hyphens, underscores, with `/` as folder separator. */
-const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 
 class ErrorBoundary extends Component<{ children: ReactNode; panelName?: string; onReset?: () => void }, { error: Error | null }> {
   state = { error: null };

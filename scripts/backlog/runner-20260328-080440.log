@@ -412,3 +412,16 @@ Already up to date.
 
 --- Merging: describeError helper duplicated in 3 hook files ---
 Already up to date.
+[main f61bcd8] chore(backlog): done – describeError helper duplicated in 3 hook files
+ 10 files changed, 41 insertions(+), 25 deletions(-)
+
+## 2026-03-28 - describeError helper duplicated in 3 hook files
+- Moved identical `describeError(err, operation)` function from `useGitSync.ts`, `useStyleSync.ts`, `useVariableSync.ts`, and `PublishPanel.tsx` into `shared/utils.ts` as a named export alongside existing `getErrorMessage`
+- Updated all 4 files to import from `shared/utils` instead of defining locally
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` ~L22, `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L2, `packages/figma-plugin/src/ui/hooks/useStyleSync.ts` ~L3, `packages/figma-plugin/src/ui/hooks/useVariableSync.ts` ~L3, `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L3
+
+===============================================================
+  Iteration 21 / 90  (claude)  —  34 items remaining
+===============================================================
+  Claimed: `resolveStyleForWeight` calls `listAvailableFontsAsync` on every invocation — during a sync processing many typography tokens, this makes redundant API calls; the font list should be cached per plugin session
+  Worktree: /tmp/backlog-62956-f9vHcn

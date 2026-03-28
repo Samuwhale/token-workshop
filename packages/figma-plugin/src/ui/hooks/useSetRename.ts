@@ -1,8 +1,6 @@
 import { useState, useRef, useLayoutEffect } from 'react';
 import { apiFetch } from '../shared/apiFetch';
-
-/** Valid set name: alphanumeric, hyphens, underscores, with `/` as folder separator. */
-const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+import { SET_NAME_RE } from '../shared/utils';
 
 interface UseSetRenameParams {
   serverUrl: string;

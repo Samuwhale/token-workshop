@@ -400,3 +400,10 @@ Already up to date.
 ===============================================================
   Claimed: `SET_NAME_RE` regex duplicated — same validation regex defined in both `useSetRename.ts` and `App.tsx`; if the rule changes, both must be updated
   Worktree: /tmp/backlog-63685-W9s7k9
+
+  ✓ done: SET_NAME_RE regex duplicated
+    Extracted SET_NAME_RE to shared/utils.ts; both useSetRename.ts and App.tsx now import from single source
+    13 turns · 49s · $0.4
+
+--- Merging: SET_NAME_RE regex duplicated ---
+Already up to date.

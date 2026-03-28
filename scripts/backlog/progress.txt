@@ -550,3 +550,10 @@
   - Build was already broken by a pre-existing missing export (`getNextUnboundProperty` in `selectionInspectorUtils.ts`) — not introduced by this change
   - `PublishPanel.tsx` also had a copy of `describeError` (4 copies total, not 3 as the backlog item stated)
 ---
+
+## 2026-03-28 - SET_NAME_RE regex duplicated
+- Extracted `SET_NAME_RE` from both `useSetRename.ts` and `App.tsx` into `shared/utils.ts` as a single export; both files now import it
+- Files changed: `packages/figma-plugin/src/ui/shared/utils.ts` ~L2, `packages/figma-plugin/src/ui/hooks/useSetRename.ts` ~L3, `packages/figma-plugin/src/ui/App.tsx` ~L49
+- **Learnings for future iterations:**
+  - `shared/utils.ts` is the canonical home for small shared constants — it's already imported widely
+---

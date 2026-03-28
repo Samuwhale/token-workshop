@@ -1,3 +1,6 @@
+/** Validates set names: letters, numbers, - and _ with / for folder hierarchy. */
+export const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
+
 /** Detect Mac platform for keyboard shortcut labels. */
 export const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
 
