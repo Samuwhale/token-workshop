@@ -369,3 +369,11 @@
   - `onMouseDown` with `preventDefault()` is needed on chip buttons to prevent the search input from losing focus (triggering blur) before the click registers
   - The cycling placeholder resets its index when `searchQuery` changes, and the interval is cleaned up when text is entered
 ---
+
+## 2026-03-29 - Theme "Compare" view side-by-side comparison mode
+- Already implemented: `ThemeCompare.tsx` has two independent A/B option selectors, per-option token resolution via `resolveForOption`, diff computation (only shows differing tokens), side-by-side display with color swatches, absent/present indicators, edit/create actions, type filtering, search, and CSV/TSV export
+- Files inspected: `packages/figma-plugin/src/ui/components/ThemeCompare.tsx` ~L1-418, `packages/figma-plugin/src/ui/App.tsx` ~L2042-2055
+- No changes needed — item is stale
+- **Learnings for future iterations:**
+  - ThemeCompare was incrementally improved across multiple prior sessions (a11y, clipboard, font sizing) — backlog items that describe the original problem may not reflect current state
+---
