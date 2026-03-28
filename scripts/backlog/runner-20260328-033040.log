@@ -255,3 +255,17 @@ Already up to date.
 
 --- Merging: PluginMessage loosely typed as { type: string; [key: string]: any } ---
 Already up to date.
+[main e6f8545] chore(backlog): done – PluginMessage loosely typed as { type: string; [key: string]: any }
+ 8 files changed, 163 insertions(+), 9 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - PluginMessage loosely typed as { type: string; [key: string]: any } — shared types not used in controller switch
+- Added 18 missing message type interfaces to `shared/types.ts` for every UI→Controller message (e.g., `ApplyVariablesMessage`, `NotifyMessage`, `ResizeMessage`, etc.). Created a `PluginMessage` discriminated union type of all 24 message interfaces. Replaced the loose local `interface PluginMessage { type: string; [key: string]: any }` in controller.ts with the imported union — TypeScript now narrows `msg` in each switch case so property access is type-checked. Added `postPluginMessage(msg: PluginMessage)` helper in `shared/utils.ts` for type-safe message sending from the UI side.
+- Files changed: `packages/figma-plugin/src/shared/types.ts` ~L185, `packages/figma-plugin/src/plugin/controller.ts` ~L3,~L111, `packages/figma-plugin/src/shared/utils.ts` ~L1
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 13 / 90  (claude)  —  74 items remaining
+===============================================================
+  Claimed: Multiple `eslint-disable react-hooks/exhaustive-deps` comments suppress legitimate warnings — `ImportPanel.tsx`, `TokenList.tsx`, `App.tsx`, `PublishPanel.tsx`, `AnalyticsPanel.tsx` all have stale closure risks from omitted deps
+  Worktree: /tmp/backlog-84992-XwZAyJ

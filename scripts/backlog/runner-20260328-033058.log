@@ -193,3 +193,10 @@ Already up to date.
 ===============================================================
   Claimed: `weightToFontStyle` mapping in controller uses hardcoded English style names — fonts using "Book", "Roman", "Demi" etc. cause `loadFontAsync` to throw, silently skipping typography application
   Worktree: /tmp/backlog-85816-9GmE5J
+
+  ✓ done: `weightToFontStyle` mapping in controller uses hardcoded English style names — fonts using "Book", "Roman", "Demi" etc. cause `loadFontAsync` to throw, silently skipping typography application
+    Replaced hardcoded weightToFontStyle with resolveStyleForWeight that queries figma.listAvailableFontsAsync() for the font family's actual styles, maps each to a weight via fontStyleToWeight, and picks the closest match. Also expanded fontStyleToWeight to recognize Book/Roman/Demi/Normal.
+    16 turns · 90s · $0.46
+
+--- Merging: `weightToFontStyle` mapping in controller uses hardcoded English style names — fonts using "Book", "Roman", "Demi" etc. cause `loadFontAsync` to throw, silently skipping typography application ---
+Already up to date.

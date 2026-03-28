@@ -339,3 +339,11 @@
   - `shared/utils.ts` only had one export before; safe to add imports from `shared/types.ts` there since it's a local shared module (not a re-export from `@tokenmanager/core`).
   - UI call sites use `parent.postMessage({ pluginMessage: {...} }, '*')` — a typed wrapper (`postPluginMessage`) can be adopted incrementally without breaking existing code.
 ---
+
+## 2026-03-28 - `weightToFontStyle` mapping in controller uses hardcoded English style names — fonts using "Book", "Roman", "Demi" etc. cause `loadFontAsync` to throw, silently skipping typography application
+- Replaced `weightToFontStyle` (hardcoded weight→style mapping) with `resolveStyleForWeight`, which queries `figma.listAvailableFontsAsync()` for the actual font family's available styles, maps each to a numeric weight via `fontStyleToWeight`, and picks the closest match. Falls back to the original hardcoded mapping if the API call fails or the font isn't installed. Also expanded `fontStyleToWeight` to recognize "Book", "Roman", "Normal", "Demi" as alternate style names.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts` ~L1392 (fontStyleToWeight expansion), ~L1405 (new resolveStyleForWeight), ~L335 and ~L839 (call sites)
+- **Learnings for future iterations:**
+  - `figma.listAvailableFontsAsync()` returns all installed fonts with `{ fontName: { family, style } }` — filtering by family and using `fontStyleToWeight` on each style gives a robust weight-to-actual-style mapping.
+  - The existing `fontStyleToWeight` function was already a good inverse mapping base; it just needed a few more alternate names (book, roman, demi, normal).
+---
