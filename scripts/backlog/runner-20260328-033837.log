@@ -156,3 +156,10 @@ Already up to date.
 ===============================================================
   Claimed: `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading
   Worktree: /tmp/backlog-10278-puUIdb
+
+  ✓ done: `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading
+    Split 1698-line controller.ts into 9 focused modules (constants, colorUtils, variableUtils, fontLoading, variableSync, styleSync, selectionHandling, heatmapScanning) with controller reduced to 138-line message dispatcher. Build passes.
+    33 turns · 464s · $2.08
+
+--- Merging: `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading ---
+Already up to date.

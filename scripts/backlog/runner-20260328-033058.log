@@ -274,3 +274,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 51)
+[main 8636c75] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 34 insertions(+), 203 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - `SelectionInspector.tsx` is 1279 lines — extract property rows, binding UI, and deep-inspect mode into sub-components
+- Extracted 4 new files from the 1289-line monolith, reducing `SelectionInspector.tsx` to 547 lines:
+  - `selectionInspectorUtils.ts` (184 lines) — pure utility functions shared across components (binding resolution, token type mapping, value formatting, undo helpers)
+  - `PropertyRow.tsx` (478 lines) — single property row with color swatch, value display, action buttons, inline bind-existing-token dropdown, and inline create-token form
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  65 items remaining
+===============================================================
+  Claimed: `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module
+  Worktree: /tmp/backlog-85816-umNLRD

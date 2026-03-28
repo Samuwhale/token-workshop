@@ -120,7 +120,7 @@
 - [~] `TokenList.tsx` is 4695 lines — largest file in the codebase; split into sub-components (row renderers, drag-drop logic, inline editing, context menu, filter/sort controls)
 - [~] `TokenEditor.tsx` is 2485 lines — extract form sections (value editors per type, metadata editor, alias picker) into separate components
 - [~] `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading
-- [ ] `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module
+- [~] `token-store.ts` is 1209 lines — extract path helpers, alias ref updaters, and tree walkers into a separate utility module
 - [ ] `token-store.ts` uses `any` types pervasively for token group traversal — `Record<string, unknown>` with type narrowing would be safer
 
 - [~] Deep Inspect mode has no keyboard shortcut — toggling deep inspection requires clicking a small button; a keyboard shortcut would streamline the inspect workflow

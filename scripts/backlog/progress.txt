@@ -267,3 +267,13 @@
   - The `RemapBindingsPanel` is self-contained because it manages its own `window.addEventListener('message')` for `remap-complete` — lifting the listener to the parent was unnecessary coupling.
   - PropertyRow manages its own local `bindQuery`/`bindSelectedIndex` state but receives `creatingFromProp`/`bindingFromProp` as controlled props from the parent, since only one property can be active at a time across the whole inspector.
 ---
+
+## 2026-03-28 - `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading
+- Split monolithic `controller.ts` (1698 lines) into 9 focused modules: `constants.ts` (3 lines), `colorUtils.ts` (147), `variableUtils.ts` (67), `fontLoading.ts` (54), `variableSync.ts` (289), `styleSync.ts` (219), `selectionHandling.ts` (582), `heatmapScanning.ts` (199), and the reduced `controller.ts` (138) which is now just the message dispatcher + eyedropper + selection listener.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts`, plus 8 new files in the same directory
+- **Learnings for future iterations:**
+  - `getSelection` needed `deepInspectEnabled` state from the controller — solved by making it a parameter rather than shared mutable state across modules.
+  - `remapBindings` also needs `deepInspectEnabled` for its final `getSelection` call — pass it through as a parameter.
+  - Internal calls to `getSelection` from `applyToSelection`/`removeBinding`/`clearAllBindings` use `false` for deep inspect since the controller will call `getSelection` again with the correct flag on the next selection change event anyway.
+  - Dependency graph is a clean DAG: controller → {variableSync, styleSync, selectionHandling, heatmapScanning} → {colorUtils, variableUtils, fontLoading, constants}. No circular deps.
+---
