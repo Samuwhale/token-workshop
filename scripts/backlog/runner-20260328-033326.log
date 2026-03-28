@@ -518,3 +518,16 @@ Already up to date.
 
 --- Merging: TokenEditor mode/theme override inputs have no alias autocomplete ---
 Already up to date.
+[main 51fbd54] chore(backlog): done – TokenEditor mode/theme override inputs have no alias autocomplete
+ 7 files changed, 86 insertions(+), 10 deletions(-)
+
+## 2026-03-28 - TokenEditor mode/theme override inputs have no alias autocomplete
+- Added AliasAutocomplete dropdown to per-mode value inputs in MetadataEditor
+- Typing `{` in a mode override field now triggers the same fuzzy-search autocomplete used by AliasPicker
+- Selecting an alias inserts `{path}` into the mode value; Escape or blur closes dropdown
+
+===============================================================
+  Iteration 26 / 90  (claude)  —  16 items remaining
+===============================================================
+  Claimed: TokenEditor dependents section doesn't refresh after saving changes — if you edit a color that 10 tokens alias, the "Used by" section still shows stale before/after previews until you close and reopen the editor
+  Worktree: /tmp/backlog-92630-E6t6d4

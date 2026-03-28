@@ -325,3 +325,11 @@
   - MetadataEditor didn't have access to allTokensFlat/pathToSet — needed to thread them through from TokenEditor
   - The `autocompleteModeKey` state tracks which mode option has the dropdown open (only one at a time), using the functional updater in onBlur to avoid stale closures
 ---
+
+## 2026-03-28 - TokenEditor has no Cmd+S / Ctrl+S keyboard shortcut for save
+- Added Cmd+S / Ctrl+S handler to the existing keydown listener in TokenEditor, calling handleSave() and preventing default browser save dialog
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L406-410
+- **Learnings for future iterations:**
+  - TokenEditor already has a keydown useEffect with Escape, Cmd+L, and Cmd+Enter — new shortcuts go in that same handler
+  - `e.preventDefault()` is critical for Cmd+S to suppress the browser's "Save Page" dialog
+---

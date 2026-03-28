@@ -428,3 +428,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenEditor has no Cmd+S / Ctrl+S keyboard shortcut for save — users must click the Save button or tab to it; the most universal save shortcut in any editor is missing
   Worktree: /tmp/backlog-10278-cYpdPN
+
+  ✓ done: TokenEditor has no Cmd+S / Ctrl+S keyboard shortcut for save
+    Added Cmd+S / Ctrl+S handler to existing keydown listener in TokenEditor.tsx, calling handleSave() with preventDefault to suppress browser save dialog
+    8 turns · 74s · $0.3
+
+--- Merging: TokenEditor has no Cmd+S / Ctrl+S keyboard shortcut for save ---
+Already up to date.

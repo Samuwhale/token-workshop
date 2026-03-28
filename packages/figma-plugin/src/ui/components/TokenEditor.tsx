@@ -404,6 +404,10 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           handleSave();
         }
       }
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
