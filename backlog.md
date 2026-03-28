@@ -126,12 +126,12 @@
 - [~] Deep Inspect mode has no keyboard shortcut — toggling deep inspection requires clicking a small button; a keyboard shortcut would streamline the inspect workflow
 
 - [x] AliasAutocomplete and RemapAutocompleteInput only support substring matching — no fuzzy search, so typing "clr.prim" won't match "color.primary"; power users with hundreds of tokens need smarter matching
-- [~] AliasAutocomplete shows token path but not the resolved value — when picking an alias, users can't see what color/dimension the alias points to without navigating away
+- [x] AliasAutocomplete shows token path but not the resolved value — when picking an alias, users can't see what color/dimension the alias points to without navigating away
 - [x] SSE connection (useServerEvents) never reconnects after server restart — if the local server is restarted, generator error events stop arriving until the user manually refreshes the plugin
 - [~] TokenGeneratorDialog has no unsaved-changes warning — closing or navigating away from a half-configured generator silently discards all input with no confirmation prompt
 - [~] No error boundary wrapping panels — a runtime error in any single panel (e.g. bad token data in GraphPanel) crashes the entire plugin instead of isolating the failure
 - [~] PropertyPicker dropdown has no search or filter — binding tokens to layer properties requires scrolling a long unfiltered list; layers with many properties (e.g. auto-layout frames) are painful
-- [ ] Undo stack is hardcoded to 20 entries with no way to increase — power users making rapid edits (batch rename, generator tweaks) exhaust the stack quickly and lose early history
+- [~] Undo stack is hardcoded to 20 entries with no way to increase — power users making rapid edits (batch rename, generator tweaks) exhaust the stack quickly and lose early history
 - [ ] No bulk delete endpoint — deleting multiple tokens requires one API call per token; cleaning up an obsolete group of 50+ tokens is extremely slow
 - [ ] Lint rules return violations but never suggest fixes — rules like "no raw hex color" could suggest the nearest matching token alias, but currently only flag the problem
 - [ ] Split panel resize handle (usePreviewSplit) is not keyboard accessible — the drag divider between token list and preview has no ARIA role, no focus indicator, and no arrow-key resize support

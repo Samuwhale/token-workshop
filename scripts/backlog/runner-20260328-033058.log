@@ -309,3 +309,10 @@ Already up to date.
 ===============================================================
   Claimed: TokenGeneratorDialog has no unsaved-changes warning — closing or navigating away from a half-configured generator silently discards all input with no confirmation prompt
   Worktree: /tmp/backlog-85816-9hdjc5
+
+  ✓ done: TokenGeneratorDialog has no unsaved-changes warning
+    Added isDirtyRef tracking in useGeneratorDialog hook and window.confirm prompt on close/cancel when form has been modified
+    23 turns · 182s · $0.96
+
+--- Merging: TokenGeneratorDialog has no unsaved-changes warning ---
+Already up to date.

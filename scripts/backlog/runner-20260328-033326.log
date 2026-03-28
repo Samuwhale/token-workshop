@@ -287,3 +287,16 @@ Already up to date.
 
 --- Merging: AliasAutocomplete shows token path but not the resolved value ---
 Already up to date.
+[main d3e4e2a] chore(backlog): done – AliasAutocomplete shows token path but not the resolved value
+ 7 files changed, 82 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - AliasAutocomplete shows token path but not the resolved value
+- Added `formatValuePreview()` helper and resolved-value column to both `AliasAutocomplete` and `RemapAutocompleteInput` dropdown rows
+- Colors show hex string, dimensions/numbers show their value, composite tokens show up to 3 primitive fields joined by " / "
+- Value text is truncated with `max-w-[120px]` (alias) / `max-w-[100px]` (remap) and has a `title` tooltip for the full value
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  57 items remaining
+===============================================================
+  Claimed: Undo stack is hardcoded to 20 entries with no way to increase — power users making rapid edits (batch rename, generator tweaks) exhaust the stack quickly and lose early history
+  Worktree: /tmp/backlog-92630-eKeOie

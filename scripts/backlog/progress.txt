@@ -356,3 +356,13 @@
   - `allTokensFlat` passed to AliasAutocomplete is already alias-resolved (via `resolveAllAliases` in App.tsx), so `$value` contains concrete values, not references
   - `formatValuePreview` is duplicated in both files — acceptable since per patterns, no re-exports through shared utils to avoid TDZ issues in singlefile bundle
 ---
+
+## 2026-03-28 - TokenGeneratorDialog has no unsaved-changes warning
+- Added dirty-tracking via `isDirtyRef` in `useGeneratorDialog` hook — every user-facing change handler sets the ref to true
+- Wrapped `onClose` in `TokenGeneratorDialog` with `handleClose` that shows `window.confirm('You have unsaved changes. Discard and close?')` when dirty
+- Both the X button and Cancel button use the guarded close handler
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L163 (isDirtyRef + markDirty), ~L250-280 (handlers), ~L285-288 (dirty wrappers), ~L354 (return); `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L198-201 (handleClose), ~L242 (X button), ~L467 (Cancel button)
+- **Learnings for future iterations:**
+  - Using a ref instead of state for dirty tracking avoids unnecessary re-renders — the flag is only read on close, not during rendering
+  - Wrapping raw state setters (setTargetSet etc.) with dirty-marking callbacks keeps the API surface clean while centralizing dirty tracking in the hook
+---

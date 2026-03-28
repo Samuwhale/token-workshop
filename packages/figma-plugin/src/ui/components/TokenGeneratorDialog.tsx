@@ -183,6 +183,7 @@ export function TokenGeneratorDialog({
     clearAllOverrides,
     handleSave,
     handleSemanticMappingClose,
+    isDirtyRef,
   } = useGeneratorDialog({
     serverUrl,
     sourceTokenPath,
@@ -194,6 +195,11 @@ export function TokenGeneratorDialog({
     template,
     onSaved,
   });
+
+  const handleClose = () => {
+    if (isDirtyRef.current && !window.confirm('You have unsaved changes. Discard and close?')) return;
+    onClose();
+  };
 
   if (showSemanticMapping) {
     return (
@@ -234,7 +240,7 @@ export function TokenGeneratorDialog({
               )}
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+          <button onClick={handleClose} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" /></svg>
           </button>
         </div>
@@ -459,7 +465,7 @@ export function TokenGeneratorDialog({
             ) : null;
           })()}
           <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
+          <button onClick={handleClose} className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
           <button onClick={handleSave} disabled={saving || !targetGroup.trim() || !name.trim() || (!isMultiBrand && typeNeedsSource && !hasSource)}
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-50">
             {saving

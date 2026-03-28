@@ -50,6 +50,7 @@ interface UseGeneratorDialogReturn {
   recommendedType: GeneratorType | undefined;
   currentConfig: GeneratorConfig;
   lockedCount: number;
+  isDirtyRef: React.RefObject<boolean>;
   // State
   selectedType: GeneratorType;
   name: string;
@@ -161,6 +162,8 @@ export function useGeneratorDialog({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const nameWasAutoRef = useRef(!existingGenerator && !template);
+  const isDirtyRef = useRef(false);
+  const markDirty = useCallback(() => { isDirtyRef.current = true; }, []);
 
   // Derived values
   const isMultiBrand = Boolean(inputTable);
@@ -245,24 +248,29 @@ export function useGeneratorDialog({
   }, [previewTokens, existingSetTokens, isMultiBrand]);
 
   const handleTypeChange = (type: GeneratorType) => {
+    markDirty();
     setSelectedType(type);
     if (nameWasAutoRef.current) setName(autoName(sourceTokenPath, type));
   };
 
   const handleNameChange = (value: string) => {
+    markDirty();
     nameWasAutoRef.current = false;
     setName(value);
   };
 
   const handleConfigChange = (type: GeneratorType, cfg: GeneratorConfig) => {
+    markDirty();
     setConfigs(prev => ({ ...prev, [type]: cfg }));
   };
 
   const handleToggleMultiBrand = () => {
+    markDirty();
     setInputTable(inputTable ? undefined : { inputKey: 'brandColor', rows: [] });
   };
 
   const handleOverrideChange = (stepName: string, value: string, locked: boolean) => {
+    markDirty();
     setPendingOverrides(prev => ({ ...prev, [stepName]: { value, locked } }));
   };
 
@@ -274,7 +282,12 @@ export function useGeneratorDialog({
     });
   };
 
-  const clearAllOverrides = () => setPendingOverrides({});
+  const clearAllOverrides = () => { markDirty(); setPendingOverrides({}); };
+
+  const setTargetSetDirty = useCallback((v: string) => { markDirty(); setTargetSet(v); }, [markDirty]);
+  const setTargetGroupDirty = useCallback((v: string) => { markDirty(); setTargetGroup(v); }, [markDirty]);
+  const setTargetSetTemplateDirty = useCallback((v: string) => { markDirty(); setTargetSetTemplate(v); }, [markDirty]);
+  const setInputTableDirty = useCallback((t: InputTable | undefined) => { markDirty(); setInputTable(t); }, [markDirty]);
 
   const handleSave = async () => {
     if (!targetGroup.trim()) { setSaveError('Target group is required.'); return; }
@@ -355,6 +368,7 @@ export function useGeneratorDialog({
     recommendedType,
     currentConfig,
     lockedCount,
+    isDirtyRef,
     // State
     selectedType,
     name,
@@ -375,12 +389,12 @@ export function useGeneratorDialog({
     // Handlers
     handleTypeChange,
     handleNameChange,
-    setTargetSet,
-    setTargetGroup,
-    setTargetSetTemplate,
+    setTargetSet: setTargetSetDirty,
+    setTargetGroup: setTargetGroupDirty,
+    setTargetSetTemplate: setTargetSetTemplateDirty,
     handleConfigChange,
     handleToggleMultiBrand,
-    setInputTable,
+    setInputTable: setInputTableDirty,
     handleOverrideChange,
     handleOverrideClear,
     clearAllOverrides,
