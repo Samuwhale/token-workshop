@@ -56,7 +56,7 @@ export function RemapBindingsPanel({ tokenMap, initialMissingTokens, onClose }: 
   return (
     <div className="border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-3 py-2 shrink-0">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] font-semibold text-[var(--color-figma-text)] uppercase tracking-wide">Remap Bindings</span>
+        <span className="text-[10px] font-semibold text-[var(--color-figma-text)] uppercase tracking-wide">Remap Bindings</span>
         <div className="flex items-center gap-1">
           {/* Scope toggle */}
           <button
@@ -68,7 +68,7 @@ export function RemapBindingsPanel({ tokenMap, initialMissingTokens, onClose }: 
           </button>
         </div>
       </div>
-      <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5 leading-relaxed">
+      <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5 leading-relaxed">
         Find-and-replace token paths — enter the old path on the left and the replacement on the right, then click Remap.
       </p>
 
@@ -110,18 +110,18 @@ export function RemapBindingsPanel({ tokenMap, initialMissingTokens, onClose }: 
       <div className="flex items-center justify-between">
         <button
           onClick={() => setRemapRows(rows => [...rows, { from: '', to: '' }])}
-          className="text-[9px] text-[var(--color-figma-accent)] hover:underline"
+          className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
         >
           + Add row
         </button>
         <div className="flex items-center gap-1.5">
           {remapError && (
-            <span className="text-[9px] text-[var(--color-figma-error)]" title={remapError}>
+            <span className="text-[10px] text-[var(--color-figma-error)]" title={remapError}>
               Error: {remapError.length > 40 ? remapError.slice(0, 40) + '…' : remapError}
             </span>
           )}
           {!remapError && remapResult && (
-            <span className={`text-[9px] ${remapResult.updatedBindings > 0 ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
+            <span className={`text-[10px] ${remapResult.updatedBindings > 0 ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
               {remapResult.updatedBindings > 0
                 ? `${remapResult.updatedBindings} binding${remapResult.updatedBindings !== 1 ? 's' : ''} remapped`
                 : 'No matches found'}
@@ -130,7 +130,7 @@ export function RemapBindingsPanel({ tokenMap, initialMissingTokens, onClose }: 
           <button
             onClick={handleRemap}
             disabled={remapRunning || remapRows.every(r => !r.from.trim() || !r.to.trim())}
-            className="text-[9px] px-2 py-0.5 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
+            className="text-[10px] px-2 py-0.5 rounded bg-[var(--color-figma-accent)] text-white hover:bg-[var(--color-figma-accent-hover)] transition-colors disabled:opacity-50"
           >
             {remapRunning ? 'Remapping…' : 'Remap'}
           </button>

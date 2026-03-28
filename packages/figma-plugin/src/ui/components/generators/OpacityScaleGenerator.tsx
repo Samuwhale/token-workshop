@@ -63,7 +63,7 @@ export function OpacityPreview({ tokens, overrides, onOverrideChange, onOverride
             <div className="flex-1 h-2 rounded-sm overflow-hidden bg-[var(--color-figma-bg)]">
               <div className="h-full rounded-sm bg-[var(--color-figma-text)]" style={{ width: `${pct}%`, opacity: val }} />
             </div>
-            <span className="w-10 text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 text-right">{Math.round(pct)}%</span>
+            <span className="w-10 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right">{Math.round(pct)}%</span>
           </OverrideRow>
         );
       })}

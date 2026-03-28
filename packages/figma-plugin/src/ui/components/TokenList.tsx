@@ -2243,7 +2243,7 @@ export function TokenList({
                     onClick={() => setViewMode(mode)}
                     title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : mode === 'grid' ? 'Grid view — color swatches' : mode === 'canvas' ? 'Canvas — spatial map' : 'JSON editor'}
                     aria-pressed={viewMode === mode}
-                    className={`px-1.5 py-1 rounded text-[9px] transition-colors capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    className={`px-1.5 py-1 rounded text-[10px] transition-colors capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                   >
                     {mode === 'json' ? '</>' : mode}
                   </button>
@@ -2287,7 +2287,7 @@ export function TokenList({
                     onClick={toggleMultiMode}
                     title={multiModeEnabled ? 'Hide mode columns' : 'Show values per theme mode side-by-side'}
                     aria-pressed={multiModeEnabled}
-                    className={`px-1.5 py-1 rounded text-[9px] transition-colors flex items-center gap-0.5 ${multiModeEnabled ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
+                    className={`px-1.5 py-1 rounded text-[10px] transition-colors flex items-center gap-0.5 ${multiModeEnabled ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <rect x="3" y="3" width="7" height="18" rx="1" />
@@ -2299,7 +2299,7 @@ export function TokenList({
                     <select
                       value={multiModeDimId ?? ''}
                       onChange={e => setMultiModeDimId(e.target.value)}
-                      className="text-[9px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] outline-none"
+                      className="text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 text-[var(--color-figma-text)] outline-none"
                     >
                       {dimensions.map(d => (
                         <option key={d.id} value={d.id}>{d.name}</option>
@@ -2316,7 +2316,7 @@ export function TokenList({
               {syncSnapshot && syncChangedCount > 0 && (
                 <span
                   title="Tokens edited locally since the last sync"
-                  className="flex items-center gap-1 text-[9px] text-[var(--color-figma-warning)] mr-0.5"
+                  className="flex items-center gap-1 text-[10px] text-[var(--color-figma-warning)] mr-0.5"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] shrink-0" />
                   {syncChangedCount}
@@ -2329,7 +2329,7 @@ export function TokenList({
                   onClick={onToggleIssuesOnly}
                   title={`${lintViolations.length} lint issue${lintViolations.length !== 1 ? 's' : ''} — click to filter`}
                   aria-label={`${lintViolations.length} lint issue${lintViolations.length !== 1 ? 's' : ''}`}
-                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${showIssuesOnly ? 'bg-[var(--color-figma-error)] text-white' : 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 hover:bg-[var(--color-figma-error)]/20'}`}
+                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${showIssuesOnly ? 'bg-[var(--color-figma-error)] text-white' : 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 hover:bg-[var(--color-figma-error)]/20'}`}
                 >
                   <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
                     <path d="M5 1L0.5 9h9L5 1zM5 3.5v2.5M5 7.5v.5"/>
@@ -2343,7 +2343,7 @@ export function TokenList({
                 value={sortOrder}
                 onChange={e => setSortOrder(e.target.value as SortOrder)}
                 aria-label="Sort order"
-                className={`text-[9px] bg-transparent border-none outline-none cursor-pointer shrink-0 ${sortOrder !== 'default' ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                className={`text-[10px] bg-transparent border-none outline-none cursor-pointer shrink-0 ${sortOrder !== 'default' ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
               >
                 <option value="default">Sort</option>
                 <option value="alpha-asc">A → Z</option>
@@ -2359,7 +2359,7 @@ export function TokenList({
                   title={showRecentlyTouched ? 'Show all tokens' : `Show ${recentlyTouched.count} recently touched token${recentlyTouched.count !== 1 ? 's' : ''}`}
                   aria-label={showRecentlyTouched ? 'Show all tokens' : 'Show recently touched tokens'}
                   aria-pressed={showRecentlyTouched}
-                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${showRecentlyTouched ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${showRecentlyTouched ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
                 >
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
                     <circle cx="5" cy="5" r="4" />
@@ -2376,7 +2376,7 @@ export function TokenList({
                   title={showPinnedOnly ? 'Show all tokens' : `Show ${pinnedTokens.count} pinned token${pinnedTokens.count !== 1 ? 's' : ''}`}
                   aria-label={showPinnedOnly ? 'Show all tokens' : 'Show pinned tokens'}
                   aria-pressed={showPinnedOnly}
-                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${showPinnedOnly ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${showPinnedOnly ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" aria-hidden="true">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -2526,7 +2526,7 @@ export function TokenList({
                     <div ref={qualifierHelpRef} className="absolute right-0 top-full mt-1 w-56 z-50 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] shadow-lg overflow-hidden">
                       <div className="px-2 py-1.5 border-b border-[var(--color-figma-border)]">
                         <span className="text-[10px] font-semibold text-[var(--color-figma-text)]">Search Qualifiers</span>
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] ml-1">click to insert</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] ml-1">click to insert</span>
                       </div>
                       <div className="max-h-48 overflow-y-auto">
                         {QUERY_QUALIFIERS.map(hint => (
@@ -2546,12 +2546,12 @@ export function TokenList({
                               <span className="text-[var(--color-figma-text-secondary)] truncate">{hint.desc}</span>
                             </div>
                             {hint.example && (
-                              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] font-mono ml-0.5">e.g. {hint.example}</span>
+                              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] font-mono ml-0.5">e.g. {hint.example}</span>
                             )}
                           </button>
                         ))}
                       </div>
-                      <div className="px-2 py-1 border-t border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-tertiary)]">
+                      <div className="px-2 py-1 border-t border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-tertiary)]">
                         Combine qualifiers: <span className="font-mono">type:color has:alias</span>
                       </div>
                     </div>
@@ -2584,7 +2584,7 @@ export function TokenList({
                   <button
                     onClick={() => setRefFilter('all')}
                     title="Clear reference filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                   >
                     {refFilter === 'aliases' ? 'Refs' : 'Direct'} ✕
                   </button>
@@ -2593,7 +2593,7 @@ export function TokenList({
                   <button
                     onClick={() => setShowDuplicates(false)}
                     title="Clear duplicate filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                   >
                     Dups ✕
                   </button>
@@ -2602,7 +2602,7 @@ export function TokenList({
                   <button
                     onClick={onToggleIssuesOnly}
                     title="Clear issues filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap transition-colors bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20"
+                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/20"
                   >
                     Issues ✕
                   </button>
@@ -2611,7 +2611,7 @@ export function TokenList({
                   <button
                     onClick={() => setShowRecentlyTouched(false)}
                     title="Clear recently touched filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                   >
                     Recent ✕
                   </button>
@@ -2620,7 +2620,7 @@ export function TokenList({
                   <button
                     onClick={() => setShowPinnedOnly(false)}
                     title="Clear pinned filter"
-                    className="shrink-0 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                    className="shrink-0 px-1.5 py-0.5 rounded text-[10px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
                   >
                     Pinned ✕
                   </button>
@@ -2658,11 +2658,11 @@ export function TokenList({
         {/* Multi-mode column headers */}
         {multiModeData && viewMode === 'tree' && (
           <div className="sticky top-0 z-20 flex items-center border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-            <div className="flex-1 min-w-0 px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+            <div className="flex-1 min-w-0 px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
               Token
             </div>
             {multiModeData.results.map(r => (
-              <div key={r.optionName} className="w-[80px] shrink-0 px-1 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)] text-center truncate border-l border-[var(--color-figma-border)]" title={r.optionName}>
+              <div key={r.optionName} className="w-[80px] shrink-0 px-1 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] text-center truncate border-l border-[var(--color-figma-border)]" title={r.optionName}>
                 {r.optionName}
               </div>
             ))}
@@ -2675,7 +2675,7 @@ export function TokenList({
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" className="text-[var(--color-figma-accent)]" aria-hidden="true">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
               </svg>
-              <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+              <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">
                 Pinned ({pinnedDisplayedNodes.length})
               </span>
             </div>
@@ -2729,7 +2729,7 @@ export function TokenList({
                   const setResults = crossSetResults.filter(r => r.setName === sn);
                   return (
                     <div key={sn}>
-                      <div className="px-2 py-1 text-[9px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] sticky top-0 z-10">
+                      <div className="px-2 py-1 text-[10px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] sticky top-0 z-10">
                         {sn} <span className="font-normal opacity-60">({setResults.length})</span>
                       </div>
                       {setResults.map(r => (
@@ -2805,7 +2805,7 @@ export function TokenList({
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                   {tokens.length === 0 ? 'Paste DTCG JSON to import tokens' : jsonDirty ? 'Unsaved changes' : 'Up to date'}
                 </span>
                 <div className="flex gap-1">
@@ -3127,7 +3127,7 @@ export function TokenList({
         <div ref={createFormRef} className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
           <div className="flex flex-col gap-2">
             {siblingPrefix !== null && (
-              <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 Creating sibling in <span className="font-medium text-[var(--color-figma-text)]">{siblingPrefix || 'root'}</span>
               </div>
             )}
@@ -3143,7 +3143,7 @@ export function TokenList({
             {createError && <p className="text-[10px] text-[var(--color-figma-error)]">{createError}</p>}
             {nameSuggestions.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] self-center mr-0.5">Suggest:</span>
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] self-center mr-0.5">Suggest:</span>
                 {nameSuggestions.map(s => (
                   <button
                     key={s.value}

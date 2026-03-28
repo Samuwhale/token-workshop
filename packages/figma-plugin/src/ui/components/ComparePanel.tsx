@@ -150,12 +150,12 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
             Compare {tokens.length} tokens
           </span>
           {allSameType && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
               {tokens[0].type}
             </span>
           )}
           {!anyDiff && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-600">
               All identical
             </span>
           )}
@@ -184,7 +184,7 @@ export function ComparePanel({ selectedPaths, allTokensFlat, onClose }: CompareP
                 >
                   <div className="truncate">{t.name}</div>
                   {t.path !== t.name && (
-                    <div className="truncate text-[9px] text-[var(--color-figma-text-tertiary)] font-normal">{t.path}</div>
+                    <div className="truncate text-[10px] text-[var(--color-figma-text-tertiary)] font-normal">{t.path}</div>
                   )}
                 </th>
               ))}

@@ -210,7 +210,7 @@ function ExtensionsEditor({
       {showExtensions && (
         <div className="px-3 py-2 flex flex-col gap-2 border-t border-[var(--color-figma-border)]">
           <div className="flex items-center justify-between">
-            <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
               Custom extension data. The <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">tokenmanager</code> and <code className="font-mono px-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">scopes</code> sections are managed above.
             </p>
             <button
@@ -218,7 +218,7 @@ function ExtensionsEditor({
               onClick={rawMode ? switchToStructured : switchToRaw}
               disabled={rawMode && !canSwitchToStructured}
               title={rawMode ? 'Switch to structured editor' : 'Switch to raw JSON'}
-              className="shrink-0 ml-2 px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+              className="shrink-0 ml-2 px-1.5 py-0.5 rounded text-[10px] font-medium text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] hover:border-[var(--color-figma-accent)] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {rawMode ? (
                 <span className="flex items-center gap-1">
@@ -264,13 +264,13 @@ function ExtensionsEditor({
                 className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] font-mono outline-none resize-y min-h-[72px] placeholder:text-[var(--color-figma-text-secondary)]/40 ${extensionsJsonError ? 'border-[var(--color-figma-error)] focus:border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)] focus:border-[var(--color-figma-accent)]'}`}
               />
               {extensionsJsonError && (
-                <p className="text-[9px] text-[var(--color-figma-error)]">{extensionsJsonError}</p>
+                <p className="text-[10px] text-[var(--color-figma-error)]">{extensionsJsonError}</p>
               )}
             </>
           ) : (
             <>
               {entries.length === 0 && (
-                <p className="text-[9px] text-[var(--color-figma-text-secondary)] italic">No custom extensions. Click + to add one.</p>
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] italic">No custom extensions. Click + to add one.</p>
               )}
               {entries.map((entry, idx) => {
                 const isObjectValue = entry.value.trim().startsWith('{') || entry.value.trim().startsWith('[');
@@ -323,7 +323,7 @@ function ExtensionsEditor({
                 Add extension
               </button>
               {extensionsJsonError && (
-                <p className="text-[9px] text-[var(--color-figma-error)]">{extensionsJsonError}</p>
+                <p className="text-[10px] text-[var(--color-figma-error)]">{extensionsJsonError}</p>
               )}
             </>
           )}
@@ -401,7 +401,7 @@ export function MetadataEditor({
         </button>
         {showScopes && (
           <div className="px-3 py-2 flex flex-col gap-1.5">
-            <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1">
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
               Controls where this variable appears in Figma's variable picker. Empty = All scopes.
             </p>
             {FIGMA_SCOPES[tokenType].map(scope => (
@@ -442,12 +442,12 @@ export function MetadataEditor({
         </button>
         {showModeValues && (
           <div className="px-3 py-2 flex flex-col gap-3">
-            <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
               Override the default value per mode. Leave empty to inherit the default value.
             </p>
             {dimensions.map(dim => (
               <div key={dim.id}>
-                <div className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide mb-1.5">{dim.name}</div>
+                <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide mb-1.5">{dim.name}</div>
                 {dim.options.map(option => {
                   const modeVal = modeValues[option.name] ?? '';
                   const modeValStr = typeof modeVal === 'string' ? modeVal : '';

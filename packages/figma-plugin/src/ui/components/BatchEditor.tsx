@@ -748,7 +748,7 @@ export function BatchEditor({
               onClick={() => setUseRegex(v => !v)}
               title={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
               aria-label={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
-              className={`absolute right-0.5 top-0.5 h-5 w-6 rounded text-[9px] font-mono flex items-center justify-center transition-colors ${
+              className={`absolute right-0.5 top-0.5 h-5 w-6 rounded text-[10px] font-mono flex items-center justify-center transition-colors ${
                 useRegex
                   ? 'bg-[var(--color-figma-accent)] text-white'
                   : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover,rgba(0,0,0,0.06))]'
@@ -829,7 +829,7 @@ export function BatchEditor({
                       {targetSet}: {path}
                     </span>
                     {conflict && (
-                      <span className="text-[var(--color-figma-warning,#f59e0b)] shrink-0 text-[9px]">conflict</span>
+                      <span className="text-[var(--color-figma-warning,#f59e0b)] shrink-0 text-[10px]">conflict</span>
                     )}
                   </div>
                 </div>

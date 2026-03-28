@@ -272,7 +272,7 @@ export function SemanticMappingDialog({
               <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Mappings ({mappings.length})</label>
               <button
                 onClick={handleAddRow}
-                className="text-[9px] text-[var(--color-figma-accent)] hover:underline flex items-center gap-0.5"
+                className="text-[10px] text-[var(--color-figma-accent)] hover:underline flex items-center gap-0.5"
               >
                 + Add row
               </button>

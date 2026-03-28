@@ -284,7 +284,7 @@ function SwatchCell({ path, value, darkMode }: { path: string; value: string; da
         )}
       </div>
       <span
-        className={`text-[9px] text-center leading-tight truncate w-full cursor-pointer ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
+        className={`text-[10px] text-center leading-tight truncate w-full cursor-pointer ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
         title={`Click to copy value: ${value}`}
         onClick={() => handleCopy(value, 'value')}
       >
@@ -325,7 +325,7 @@ function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens }: {
         const leafName = path.split('.').pop() ?? path;
         return (
           <div key={path} className="group flex items-baseline gap-3 overflow-hidden">
-            <span className={`text-[9px] w-16 shrink-0 text-right ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{resolvedSize}</span>
+            <span className={`text-[10px] w-16 shrink-0 text-right ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{resolvedSize}</span>
             <span
               className="overflow-hidden text-ellipsis whitespace-nowrap flex-1"
               style={{ fontSize: `var(${cssVarName}, 16px)` }}
@@ -564,7 +564,7 @@ function CopyButton({ text, label, darkMode }: { text: string; label: string; da
     <button
       onClick={handleCopy}
       title={`Copy ${label}`}
-      className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-mono transition-colors ${
+      className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-mono transition-colors ${
         copied
           ? 'text-green-500'
           : darkMode
@@ -597,7 +597,7 @@ function CopyButton({ text, label, darkMode }: { text: string; label: string; da
 function PreviewSection({ label, darkMode, children }: { label: string; darkMode: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <div className={`text-[9px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{label}</div>
+      <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{label}</div>
       <div className="flex flex-wrap items-center gap-2">{children}</div>
     </div>
   );

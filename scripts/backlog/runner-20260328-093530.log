@@ -58,3 +58,23 @@ Already up to date.
 
 --- Merging: No `aria-live` regions for dynamic status messages ---
 Already up to date.
+[main 7f7f119] chore(backlog): done – No `aria-live` regions for dynamic status messages
+ 15 files changed, 70 insertions(+), 29 deletions(-)
+
+## 2026-03-28 - No `aria-live` regions for dynamic status messages
+- Added `role="alert"` to all dynamically-rendered error messages (delete errors, validation errors, sync errors) and `role="status"` / `aria-live="polite"` to success/status feedback (copy feedback, apply result, import success, sync progress). Toasts (SuccessToast, UndoToast) already had `role="status" aria-live="polite"`.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` — copy feedback (`aria-live="polite"` wrapper), delete error banner (`role="alert"`), apply result (`role="status" aria-live="polite"`)
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  17 items remaining
+===============================================================
+  Claimed: Minimum text size of 9px used for secondary content across both pages — borderline legible even on high-DPI; audit all `text-[9px]` usage and bump to 10px where space allows
+  Worktree: /tmp/backlog-34977-eOny3N
+
+  ✓ done: Minimum text size of 9px used for secondary content across both pages
+    Replaced all 494 occurrences of text-[9px] with text-[10px] across 51 .tsx files. Build passes.
+    13 turns · 49s · $0.31
+
+--- Merging: Minimum text size of 9px used for secondary content across both pages ---
+Already up to date.

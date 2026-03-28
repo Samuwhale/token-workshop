@@ -110,7 +110,7 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
           type="button"
           onClick={cycleFormat}
           title={`Format: ${format.toUpperCase()} (click to cycle)`}
-          className="shrink-0 px-1.5 py-1 rounded text-[9px] font-medium uppercase text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] transition-colors"
+          className="shrink-0 px-1.5 py-1 rounded text-[10px] font-medium uppercase text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border border-[var(--color-figma-border)] transition-colors"
         >
           {format}
         </button>
@@ -1059,7 +1059,7 @@ export function CompositionEditor({ value, onChange }: { value: any; onChange: (
           <button
             type="button"
             onClick={addProp}
-            className="px-2 py-1 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/30 shrink-0"
+            className="px-2 py-1 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/30 shrink-0"
           >+ Add</button>
         </div>
       )}

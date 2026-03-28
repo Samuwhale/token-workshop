@@ -651,13 +651,13 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               </div>
               <div className="flex-1 text-left">
                 <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from Figma Variables</div>
-                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Read variables from this file and map to token sets</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Read variables from this file and map to token sets</div>
               </div>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
                 <path d="M2 1l4 3-4 3V1z" />
               </svg>
             </button>
-            <div className="flex items-start gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)]">
+            <div className="flex items-start gap-1.5 px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)]">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-[1px]" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" />
                 <line x1="12" y1="8" x2="12" y2="12" />
@@ -679,7 +679,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               </div>
               <div className="flex-1 text-left">
                 <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from Figma Styles</div>
-                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Read paint, text, and effect styles from this file</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Read paint, text, and effect styles from this file</div>
               </div>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
                 <path d="M2 1l4 3-4 3V1z" />
@@ -699,7 +699,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               </div>
               <div className="flex-1 text-left">
                 <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Import from JSON file</div>
-                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Load a DTCG-format .json token file — or drag &amp; drop</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Load a DTCG-format .json token file — or drag &amp; drop</div>
               </div>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-secondary)]">
                 <path d="M2 1l4 3-4 3V1z" />
@@ -795,7 +795,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
             <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
               Map to Token Sets
             </div>
-            <div className="text-[9px] text-[var(--color-figma-text-secondary)] -mt-2">
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] -mt-2">
               Each enabled mode will be imported as a separate token set.
             </div>
 
@@ -803,10 +803,10 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               <div key={col.name} className="rounded border border-[var(--color-figma-border)] overflow-hidden">
                 {/* Collection header */}
                 <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center gap-2">
-                  <span className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wide flex-1 truncate">
+                  <span className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wide flex-1 truncate">
                     {col.name}
                   </span>
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                     {col.modes.reduce((a, m) => a + m.tokens.length, 0)} tokens
                   </span>
                 </div>
@@ -828,7 +828,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                         <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                           <div className="flex items-center gap-1.5">
                             <span className={`text-[10px] font-medium ${enabled ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)] line-through'}`}>{mode.modeName}</span>
-                            <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                            <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                               {mode.tokens.length} token{mode.tokens.length !== 1 ? 's' : ''}
                             </span>
                             {enabled && (sets.includes(setName) ? (
@@ -837,14 +837,14 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                               <span className="text-[8px] px-1 py-0.5 rounded bg-[var(--color-figma-success,#22c55e)]/10 text-[var(--color-figma-success,#16a34a)] font-medium">new</span>
                             ) : null)}
                           </div>
-                          <div className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)]">
+                          <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">
                             <span className="shrink-0">→</span>
                             <input
                               type="text"
                               value={setName}
                               disabled={!enabled}
                               onChange={e => setModeSetNames(prev => ({ ...prev, [key]: e.target.value }))}
-                              className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[9px] outline-none focus:border-[var(--color-figma-accent)] disabled:opacity-50 font-mono"
+                              className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] disabled:opacity-50 font-mono"
                               placeholder="set-name"
                               aria-label="Set name for mode"
                             />
@@ -899,7 +899,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 <div className="flex flex-wrap gap-1">
                   <button
                     onClick={() => setTypeFilter(null)}
-                    className={`px-2 py-0.5 rounded text-[9px] font-medium border transition-colors ${
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
                       typeFilter === null
                         ? 'bg-[var(--color-figma-accent)] text-white border-[var(--color-figma-accent)]'
                         : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'
@@ -913,7 +913,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                       <button
                         key={type}
                         onClick={() => setTypeFilter(prev => prev === type ? null : type)}
-                        className={`px-2 py-0.5 rounded text-[9px] font-medium border transition-colors ${
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
                           typeFilter === type
                             ? 'bg-[var(--color-figma-accent)] text-white border-[var(--color-figma-accent)]'
                             : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'
@@ -929,7 +929,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
 
             {/* Path conflict warning banner */}
             {tokens.some(t => t._warning?.startsWith('Path conflict')) && (
-              <div className="px-3 py-2 rounded bg-[var(--color-figma-warning,#f59e0b)]/10 border border-[var(--color-figma-warning,#e8a100)]/30 text-[9px] text-[var(--color-figma-warning,#e8a100)]">
+              <div className="px-3 py-2 rounded bg-[var(--color-figma-warning,#f59e0b)]/10 border border-[var(--color-figma-warning,#e8a100)]/30 text-[10px] text-[var(--color-figma-warning,#e8a100)]">
                 ⚠ Some tokens share the same path after normalization. Conflicting tokens are highlighted below — only the last one with each path will be saved.
               </div>
             )}
@@ -983,12 +983,12 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                     <div className="flex-1 min-w-0">
                       <div className="text-[10px] text-[var(--color-figma-text)] truncate">{token.path}</div>
                       {isAlias && (
-                        <div className="text-[9px] text-[var(--color-figma-text-secondary)] truncate">
+                        <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate">
                           → <span className="font-mono">{aliasTarget}</span>
                         </div>
                       )}
                       {token._warning && (
-                        <div className="text-[9px] text-[var(--color-figma-warning,#e8a100)] truncate" title={token._warning}>
+                        <div className="text-[10px] text-[var(--color-figma-warning,#e8a100)] truncate" title={token._warning}>
                           ⚠ {token._warning}
                         </div>
                       )}
@@ -1076,7 +1076,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
           ) : (
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <label className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">To</label>
+                <label className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">To</label>
                 <select
                   value={sets.includes(targetSet) ? targetSet : targetSet}
                   onChange={e => {
@@ -1098,19 +1098,19 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 </select>
               </div>
               {setsError ? (
-                <p className="text-[9px] text-[var(--color-figma-text-danger,#e53935)] pl-[26px]">
+                <p className="text-[10px] text-[var(--color-figma-text-danger,#e53935)] pl-[26px]">
                   Could not load sets.{' '}
                   <button type="button" onClick={fetchSets} className="underline hover:opacity-80">Retry</button>
                 </p>
               ) : (
-                <p className="text-[9px] text-[var(--color-figma-text-tertiary)] pl-[26px]">Pick an existing set or choose <button type="button" onClick={() => setNewSetInputVisible(true)} className="underline hover:text-[var(--color-figma-text-secondary)]">+ New set…</button> to create one</p>
+                <p className="text-[10px] text-[var(--color-figma-text-tertiary)] pl-[26px]">Pick an existing set or choose <button type="button" onClick={() => setNewSetInputVisible(true)} className="underline hover:text-[var(--color-figma-text-secondary)]">+ New set…</button> to create one</p>
               )}
             </div>
           )}
 
           {/* Import preview summary */}
           {tokens.length > 0 && (existingPathsFetching || previewNewCount !== null) && (
-            <div className="flex items-center gap-2 text-[9px] py-0.5">
+            <div className="flex items-center gap-2 text-[10px] py-0.5">
               {existingPathsFetching ? (
                 <span className="text-[var(--color-figma-text-secondary)]">Checking existing tokens…</span>
               ) : previewNewCount !== null && previewOverwriteCount !== null && (
@@ -1157,7 +1157,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
               })()}
               <div className="max-h-[72px] overflow-y-auto rounded border border-[var(--color-figma-warning,#f59e0b)]/30 bg-[var(--color-figma-warning,#f59e0b)]/5 divide-y divide-[var(--color-figma-border)]">
                 {conflictPaths.map(path => (
-                  <div key={path} className="px-2 py-1 text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                  <div key={path} className="px-2 py-1 text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
                     {path}
                   </div>
                 ))}

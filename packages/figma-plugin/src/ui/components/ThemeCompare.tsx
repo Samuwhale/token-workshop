@@ -272,21 +272,21 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
               <button
                 onClick={handleCopy}
                 title="Copy diff as tab-separated text"
-                className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 <span aria-live="polite">{copyFeedback ? 'Copied!' : 'Copy'}</span>
               </button>
               <button
                 onClick={handleExportCsv}
                 title="Export diff as CSV"
-                className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 CSV
               </button>
               <span className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5" />
               <button
                 onClick={() => setTypeFilter('all')}
-                className={`px-1.5 py-0.5 rounded text-[9px] transition-colors ${
+                className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
                   typeFilter === 'all'
                     ? 'bg-[var(--color-figma-accent)] text-white'
                     : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -298,7 +298,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
                 <button
                   key={t}
                   onClick={() => setTypeFilter(t)}
-                  className={`px-1.5 py-0.5 rounded text-[9px] capitalize transition-colors ${
+                  className={`px-1.5 py-0.5 rounded text-[10px] capitalize transition-colors ${
                     typeFilter === t
                       ? 'bg-[var(--color-figma-accent)] text-white'
                       : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -332,7 +332,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
                 >
                   <div className="flex items-baseline gap-1 mb-1.5">
                     {parent && (
-                      <span className="text-[9px] text-[var(--color-figma-text-tertiary)] truncate">{parent}.</span>
+                      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">{parent}.</span>
                     )}
                     <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate" title={formatDisplayPath(diff.path, diff.name)}>{leaf}</span>
                     <span className="ml-auto text-[8px] uppercase tracking-wide text-[var(--color-figma-text-tertiary)] shrink-0 px-1 py-0.5 rounded bg-[var(--color-figma-bg-secondary)]">
@@ -344,7 +344,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
                     <div className="flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded bg-[var(--color-figma-bg-secondary)]">
                       <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">A</span>
                       {hexA && <ColorSwatch hex={hexA} />}
-                      <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={fmtA}>
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={fmtA}>
                         {absentInA ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : fmtA}
                       </span>
                     </div>
@@ -356,7 +356,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
                     <div className="flex-1 flex items-center gap-1.5 min-w-0 px-1.5 py-1 rounded bg-[var(--color-figma-bg-secondary)]">
                       <span className="text-[8px] font-medium text-[var(--color-figma-text-tertiary)] shrink-0 w-3">B</span>
                       {hexB && <ColorSwatch hex={hexB} />}
-                      <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate" title={fmtB}>
+                      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={fmtB}>
                         {absentInB ? <em className="not-italic text-[var(--color-figma-text-tertiary)]">absent</em> : fmtB}
                       </span>
                     </div>
@@ -368,7 +368,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
                       {absentInA && onCreateToken && targetA && (
                         <button
                           onClick={() => onCreateToken(diff.path, targetA, diff.type, diff.valueB !== undefined ? (typeof diff.valueB === 'string' ? diff.valueB : JSON.stringify(diff.valueB)) : undefined)}
-                          className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                          className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
                           title={`Create token in ${targetA} (copy B's value)`}
                         >
                           + Create in A
@@ -377,7 +377,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
                       {!absentInA && onEditToken && diff.setA && (
                         <button
                           onClick={() => onEditToken(diff.setA!, diff.path)}
-                          className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                           title={`Edit token in ${diff.setA}`}
                         >
                           Edit A
@@ -387,7 +387,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
                       {absentInB && onCreateToken && targetB && (
                         <button
                           onClick={() => onCreateToken(diff.path, targetB, diff.type, diff.valueA !== undefined ? (typeof diff.valueA === 'string' ? diff.valueA : JSON.stringify(diff.valueA)) : undefined)}
-                          className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
+                          className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors"
                           title={`Create token in ${targetB} (copy A's value)`}
                         >
                           + Create in B
@@ -396,7 +396,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
                       {!absentInB && onEditToken && diff.setB && (
                         <button
                           onClick={() => onEditToken(diff.setB!, diff.path)}
-                          className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                          className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                           title={`Edit token in ${diff.setB}`}
                         >
                           Edit B

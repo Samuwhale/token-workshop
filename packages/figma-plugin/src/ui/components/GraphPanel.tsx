@@ -203,7 +203,7 @@ function PipelineStages({ stages }: { stages: string[] }) {
     <div className="flex items-center gap-1 flex-wrap">
       {stages.map((stage, i) => (
         <div key={i} className="flex items-center gap-1">
-          <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] font-medium whitespace-nowrap">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] font-medium whitespace-nowrap">
             {stage}
           </span>
           {i < stages.length - 1 && (
@@ -312,7 +312,7 @@ function TemplateCard({
             <span className="text-[11px] font-medium text-[var(--color-figma-text)] group-hover:text-[var(--color-figma-accent)] transition-colors">
               {template.label}
             </span>
-            <span className="text-[9px] px-1 py-px rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] tabular-nums border border-[var(--color-figma-border)]">
+            <span className="text-[10px] px-1 py-px rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] tabular-nums border border-[var(--color-figma-border)]">
               {stepCount}+{semanticCount}
             </span>
           </div>
@@ -523,21 +523,21 @@ function ApplyForm({
         </button>
         <div className="flex-1 min-w-0">
           <div className="text-[11px] font-medium text-[var(--color-figma-text)] truncate">{template.label}</div>
-          <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Configure & apply to <span className="font-mono">{activeSet}</span></div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Configure & apply to <span className="font-mono">{activeSet}</span></div>
         </div>
       </div>
 
       <div className="flex-1 p-3 flex flex-col gap-3">
         {/* Pipeline preview */}
         <div className="p-2.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-          <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-1.5">Pipeline</div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-1.5">Pipeline</div>
           <PipelineStages stages={template.stages} />
           <div className="flex items-center gap-3 mt-2">
-            <span className="text-[9px] text-[var(--color-figma-text-tertiary)] tabular-nums">{stepCount} generated tokens</span>
+            <span className="text-[10px] text-[var(--color-figma-text-tertiary)] tabular-nums">{stepCount} generated tokens</span>
             {semanticCount > 0 && (
               <>
                 <span className="text-[var(--color-figma-text-tertiary)]">·</span>
-                <span className="text-[9px] text-[var(--color-figma-text-tertiary)] tabular-nums">{semanticCount} semantic aliases</span>
+                <span className="text-[10px] text-[var(--color-figma-text-tertiary)] tabular-nums">{semanticCount} semantic aliases</span>
               </>
             )}
           </div>
@@ -559,7 +559,7 @@ function ApplyForm({
               className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)] font-mono"
               autoFocus
             />
-            <p className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-1">
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-1">
               Path of the token to derive from. Must exist in <span className="font-mono">{activeSet}</span>.
             </p>
           </div>
@@ -579,7 +579,7 @@ function ApplyForm({
             aria-label="Token prefix"
             className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)] font-mono"
           />
-          <p className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-1">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-1">
             Generated tokens will be at <span className="font-mono text-[var(--color-figma-text)]">{prefix || '…'}.*</span>
           </p>
         </div>
@@ -587,17 +587,17 @@ function ApplyForm({
         {/* Semantic layers preview */}
         {template.semanticLayers.length > 0 && (
           <div>
-            <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-1.5">Also creates</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide mb-1.5">Also creates</div>
             <div className="flex flex-col gap-1">
               {template.semanticLayers.map((layer, li) => (
                 <div key={li} className="flex flex-wrap gap-1">
                   {layer.mappings.slice(0, 4).map((m, mi) => (
-                    <span key={mi} className="text-[9px] px-1 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-mono border border-[var(--color-figma-border)]">
+                    <span key={mi} className="text-[10px] px-1 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-mono border border-[var(--color-figma-border)]">
                       {layer.prefix}.{m.semantic}
                     </span>
                   ))}
                   {layer.mappings.length > 4 && (
-                    <span className="text-[9px] px-1 py-px rounded text-[var(--color-figma-text-tertiary)]">
+                    <span className="text-[10px] px-1 py-px rounded text-[var(--color-figma-text-tertiary)]">
                       +{layer.mappings.length - 4} more
                     </span>
                   )}
@@ -611,7 +611,7 @@ function ApplyForm({
         {(previewTokens.length > 0 || previewLoading || previewError) && (
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
                 Preview
                 {previewTokens.length > 0 && <span className="ml-1 normal-case text-[var(--color-figma-text)]">({previewTokens.length} tokens)</span>}
               </span>
@@ -648,7 +648,7 @@ function ApplyForm({
                         : String(t.value);
                       return (
                         <div key={t.stepName} className="flex items-baseline gap-2">
-                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-8 text-right font-mono shrink-0">{t.stepName}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right font-mono shrink-0">{t.stepName}</span>
                           <span className="text-[var(--color-figma-text)] font-medium truncate" style={{ fontSize: val }}>{val}</span>
                         </div>
                       );
@@ -672,7 +672,7 @@ function ApplyForm({
                       const pct = maxVal > 0 && typeof val === 'number' && !isNaN(val) ? (val / maxVal) * 100 : 0;
                       return (
                         <div key={t.stepName} className="flex items-center gap-2">
-                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-8 text-right font-mono shrink-0">{t.stepName}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right font-mono shrink-0">{t.stepName}</span>
                           <div className="flex-1 h-2 rounded-sm bg-[var(--color-figma-border)] overflow-hidden">
                             <div className="h-full rounded-sm bg-[var(--color-figma-accent)]" style={{ width: `${pct}%` }} />
                           </div>
@@ -685,7 +685,7 @@ function ApplyForm({
                 {template.generatorType !== 'colorRamp' && template.generatorType !== 'typeScale' && template.generatorType !== 'spacingScale' && (
                   <div className="flex flex-col gap-0.5">
                     {previewTokens.map(t => (
-                      <div key={t.stepName} className="flex items-center justify-between text-[9px]">
+                      <div key={t.stepName} className="flex items-center justify-between text-[10px]">
                         <span className="font-mono text-[var(--color-figma-text-secondary)]">{t.stepName}</span>
                         <span className="font-mono text-[var(--color-figma-text)]">{String(t.value)}</span>
                       </div>
@@ -716,12 +716,12 @@ function ApplyForm({
             </div>
             <div className="flex flex-col gap-0.5 mb-2 max-h-24 overflow-y-auto">
               {semanticConflicts.map(path => (
-                <span key={path} className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] px-1 py-px rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
+                <span key={path} className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] px-1 py-px rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
                   {path}
                 </span>
               ))}
             </div>
-            <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-2">
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-2">
               The generator was created. To update existing aliases, edit them individually.
             </p>
             <button
@@ -734,7 +734,7 @@ function ApplyForm({
         )}
 
         {semanticConflicts.length === 0 && !applying && (template.requiresSource && !sourceToken.trim() || !prefix.trim()) && (
-          <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
             {template.requiresSource && !sourceToken.trim() && !prefix.trim()
               ? 'Source token and token prefix are required.'
               : template.requiresSource && !sourceToken.trim()
@@ -769,7 +769,7 @@ function GeneratorPipelineCard({ generator }: { generator: TokenGenerator }) {
   return (
     <div className={`p-3 rounded border bg-[var(--color-figma-bg)] ${hasError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}>
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium border border-[var(--color-figma-accent)]/20">
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] font-medium border border-[var(--color-figma-accent)]/20">
           {typeLabel}
         </span>
         <span className="text-[11px] font-medium text-[var(--color-figma-text)] truncate flex-1">{generator.name}</span>
@@ -798,7 +798,7 @@ function GeneratorPipelineCard({ generator }: { generator: TokenGenerator }) {
           </>
         ) : (
           <>
-            <span className="text-[9px] px-1 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">standalone</span>
+            <span className="text-[10px] px-1 py-px rounded bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)] border border-[var(--color-figma-border)]">standalone</span>
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-tertiary)] shrink-0">
               <path d="M2 1l4 3-4 3V1z" />
             </svg>
@@ -982,7 +982,7 @@ export function GraphPanel({
         <div className="px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0 flex items-center justify-between">
           <div>
             <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Graph</div>
-            <div className="text-[9px] text-[var(--color-figma-text-secondary)]">
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
               {q
                 ? <>{filteredGenerators.length} of {setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''}</>
                 : <>{setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''} in <span className="font-mono">{activeSet}</span></>
@@ -1005,7 +1005,7 @@ export function GraphPanel({
             <button
               onClick={() => setBrowsingTemplates(true)}
               disabled={!connected}
-              className="text-[9px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="text-[10px] px-2 py-1 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               title="Add another template"
             >
               + Template
@@ -1095,12 +1095,12 @@ export function GraphPanel({
             {[
               { label: 'Color scales', icon: <><div className="w-1.5 h-3 rounded-sm" style={{ background: 'hsl(220,70%,80%)' }} /><div className="w-1.5 h-3 rounded-sm" style={{ background: 'hsl(220,70%,55%)' }} /><div className="w-1.5 h-3 rounded-sm" style={{ background: 'hsl(220,70%,30%)' }} /></> },
               { label: 'Spacing scales', icon: <><div className="h-1.5 rounded-sm bg-[var(--color-figma-accent)]" style={{ width: '4px', opacity: 0.5 }} /><div className="h-1.5 rounded-sm bg-[var(--color-figma-accent)]" style={{ width: '8px', opacity: 0.7 }} /><div className="h-1.5 rounded-sm bg-[var(--color-figma-accent)]" style={{ width: '14px' }} /></> },
-              { label: 'Type scales', icon: <div className="flex items-baseline gap-0.5"><span className="text-[7px] font-medium text-[var(--color-figma-text-secondary)]">A</span><span className="text-[9px] font-medium text-[var(--color-figma-text)]">A</span><span className="text-[11px] font-medium text-[var(--color-figma-accent)]">A</span></div> },
+              { label: 'Type scales', icon: <div className="flex items-baseline gap-0.5"><span className="text-[7px] font-medium text-[var(--color-figma-text-secondary)]">A</span><span className="text-[10px] font-medium text-[var(--color-figma-text)]">A</span><span className="text-[11px] font-medium text-[var(--color-figma-accent)]">A</span></div> },
               { label: 'Semantic aliases', icon: <><span className="text-[8px] font-mono text-[var(--color-figma-accent)]">500</span><svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="text-[var(--color-figma-text-tertiary)]"><path d="M2 1l4 3-4 3V1z" /></svg><span className="text-[8px] font-mono text-[var(--color-figma-text-secondary)]">btn</span></> },
             ].map(({ label, icon }) => (
               <div key={label} className="flex items-center gap-1.5 px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
                 <div className="flex items-center gap-0.5 w-8 justify-center shrink-0">{icon}</div>
-                <span className="text-[9px] text-[var(--color-figma-text-secondary)]">{label}</span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{label}</span>
               </div>
             ))}
           </div>
@@ -1114,7 +1114,7 @@ export function GraphPanel({
           </button>
 
           {!connected && (
-            <p className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-2">
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-2">
               Connect to the server first
             </p>
           )}

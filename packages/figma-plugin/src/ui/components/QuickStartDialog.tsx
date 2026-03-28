@@ -287,8 +287,8 @@ export function QuickStartDialog({
         <div className="flex-1 overflow-y-auto">
           {/* Source-required templates */}
           <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-            <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Derived from a source token</div>
-            <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">Pick a base token, then generate a scale from it</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Derived from a source token</div>
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Pick a base token, then generate a scale from it</div>
           </div>
           {QUICK_START_TEMPLATES.filter(t => t.requiresSource).map(template => {
             const count = getTokenCount(template);
@@ -307,18 +307,18 @@ export function QuickStartDialog({
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{template.label}</span>
                       {count > 0 && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium tabular-nums">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium tabular-nums">
                           {count} tokens
                         </span>
                       )}
                     </div>
                     <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{template.description}</div>
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[9px] font-mono px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+                      <span className="text-[10px] font-mono px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
                         {template.defaultPrefix}.*
                       </span>
                       {stepNames.length > 0 && (
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] truncate">
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
                           {formatStepPreview(stepNames)}
                         </span>
                       )}
@@ -334,8 +334,8 @@ export function QuickStartDialog({
 
           {/* Standalone templates */}
           <div className="px-3 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
-            <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Standalone</div>
-            <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-0.5">Ready to use — no source token needed</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">Standalone</div>
+            <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mt-0.5">Ready to use — no source token needed</div>
           </div>
           {QUICK_START_TEMPLATES.filter(t => !t.requiresSource).map(template => {
             const count = getTokenCount(template);
@@ -354,18 +354,18 @@ export function QuickStartDialog({
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-medium text-[var(--color-figma-text)]">{template.label}</span>
                       {count > 0 && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium tabular-nums">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] font-medium tabular-nums">
                           {count} tokens
                         </span>
                       )}
                     </div>
                     <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{template.description}</div>
                     <div className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[9px] font-mono px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
+                      <span className="text-[10px] font-mono px-1 py-px rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)]">
                         {template.defaultPrefix}.*
                       </span>
                       {stepNames.length > 0 && (
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] truncate">
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] truncate">
                           {formatStepPreview(stepNames)}
                         </span>
                       )}

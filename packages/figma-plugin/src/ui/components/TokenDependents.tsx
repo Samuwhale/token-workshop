@@ -115,7 +115,7 @@ export function TokenDependents({ dependents, dependentsLoading, setName, tokenP
             </div>
           ) : dependents.length > 0 ? (
             <>
-              <div className="px-3 py-1 text-[9px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)]">
+              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)]">
                 Tokens ({dependents.length})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">
@@ -177,7 +177,7 @@ export function TokenDependents({ dependents, dependentsLoading, setName, tokenP
             </div>
           ) : layersScanned && layers.length > 0 ? (
             <>
-              <div className="px-3 py-1 text-[9px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
+              <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-[var(--color-figma-text-secondary)] opacity-60 bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]">
                 Layers ({layersTotal}{layersTotal > layers.length ? `, showing ${layers.length}` : ''})
               </div>
               <div className="flex flex-col divide-y divide-[var(--color-figma-border)]">

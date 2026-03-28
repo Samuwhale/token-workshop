@@ -208,7 +208,7 @@ function StepperBar({ currentStep, completedSteps }: { currentStep: WizardStep; 
               <div className={`w-4 h-px shrink-0 ${isCompleted || isActive ? 'bg-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-border)]'}`} />
             )}
             <div className={`flex items-center gap-1.5 min-w-0 ${isActive ? '' : 'opacity-60'}`}>
-              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${
+              <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                 isCompleted
                   ? 'bg-[var(--color-figma-accent)] text-white'
                   : isActive

@@ -50,7 +50,7 @@ export function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedToke
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          <span className="text-[9px] text-amber-700 font-medium">
+          <span className="text-[10px] text-amber-700 font-medium">
             {failCount} step{failCount !== 1 ? 's' : ''} fail{failCount === 1 ? 's' : ''} {strictestLabel}
           </span>
         </div>
@@ -59,7 +59,7 @@ export function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedToke
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 shrink-0" aria-hidden="true">
             <path d="M20 6L9 17l-5-5"/>
           </svg>
-          <span className="text-[9px] text-green-700 font-medium">All steps pass {strictestLabel}</span>
+          <span className="text-[10px] text-green-700 font-medium">All steps pass {strictestLabel}</span>
         </div>
       )}
       {tokens.map(t => {
@@ -75,8 +75,8 @@ export function ContrastCheckPreview({ tokens, config }: { tokens: GeneratedToke
             ) : (
               <span className="w-4 h-4 shrink-0" />
             )}
-            <span className="w-10 text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{t.stepName}</span>
-            <span className="flex-1 text-[9px] font-mono text-[var(--color-figma-text)]">
+            <span className="w-10 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right font-mono">{t.stepName}</span>
+            <span className="flex-1 text-[10px] font-mono text-[var(--color-figma-text)]">
               {ratio !== null ? ratio.toFixed(2) + ':1' : '—'}
             </span>
             {enforcedLevels.includes('AA') && (
@@ -181,11 +181,11 @@ export function ContrastCheckConfigEditor({ config, onChange }: { config: Contra
         </div>
         <div className="flex gap-2 mt-1.5">
           <button onClick={() => onChange({ ...config, backgroundHex: '#ffffff' })}
-            className={`px-2 py-0.5 rounded text-[9px] border ${config.backgroundHex === '#ffffff' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+            className={`px-2 py-0.5 rounded text-[10px] border ${config.backgroundHex === '#ffffff' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
             White
           </button>
           <button onClick={() => onChange({ ...config, backgroundHex: '#000000' })}
-            className={`px-2 py-0.5 rounded text-[9px] border ${config.backgroundHex === '#000000' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
+            className={`px-2 py-0.5 rounded text-[10px] border ${config.backgroundHex === '#000000' ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)]'}`}>
             Black
           </button>
         </div>
@@ -236,7 +236,7 @@ export function ContrastCheckConfigEditor({ config, onChange }: { config: Contra
               </div>
             );
           })}
-          <button onClick={addStep} className="text-[9px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">
+          <button onClick={addStep} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left mt-0.5">
             + Add color
           </button>
         </div>

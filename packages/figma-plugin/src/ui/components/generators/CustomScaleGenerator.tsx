@@ -47,7 +47,7 @@ export function CustomScaleConfigEditor({ config, onChange }: { config: CustomSc
       <div>
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
           Formula
-          <span className="ml-1 text-[9px] opacity-70">variables: base, index, multiplier, prev</span>
+          <span className="ml-1 text-[10px] opacity-70">variables: base, index, multiplier, prev</span>
         </label>
         <input value={config.formula} onChange={e => onChange({ ...config, formula: e.target.value })}
           placeholder="base * multiplier"
@@ -55,7 +55,7 @@ export function CustomScaleConfigEditor({ config, onChange }: { config: CustomSc
         <div className="flex gap-1 mt-1 flex-wrap">
           {['base * multiplier', 'base + index * 8', 'base * (1.25 ** index)', 'prev + 8'].map(ex => (
             <button key={ex} onClick={() => onChange({ ...config, formula: ex })}
-              className="px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[9px] font-mono text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
+              className="px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[10px] font-mono text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]"
             >{ex}</button>
           ))}
         </div>
@@ -94,10 +94,10 @@ export function CustomScaleConfigEditor({ config, onChange }: { config: CustomSc
       <div>
         <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">
           Steps
-          <span className="ml-1 text-[9px] opacity-70">index 0 = base token value</span>
+          <span className="ml-1 text-[10px] opacity-70">index 0 = base token value</span>
         </label>
         <div className="flex flex-col gap-1">
-          <button onClick={addStepAbove} className="text-[9px] text-[var(--color-figma-accent)] hover:underline text-left">+ Add step above</button>
+          <button onClick={addStepAbove} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">+ Add step above</button>
           {sortedSteps.map((step, sortedIdx) => {
             const origIdx = config.steps.indexOf(step);
             return (
@@ -105,11 +105,11 @@ export function CustomScaleConfigEditor({ config, onChange }: { config: CustomSc
                 <input value={step.name} onChange={e => updateStep(origIdx, { name: e.target.value })}
                   aria-label={`Step ${step.name} name`}
                   placeholder="name" className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
-                <span className="text-[9px] text-[var(--color-figma-text-secondary)]">idx</span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">idx</span>
                 <input type="number" value={step.index} onChange={e => updateStep(origIdx, { index: Number(e.target.value) })}
                   aria-label={`Step ${step.name} index`}
                   className="w-12 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
-                <span className="text-[9px] text-[var(--color-figma-text-secondary)]">×</span>
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">×</span>
                 <input type="number" step="0.1" value={step.multiplier ?? 1} onChange={e => updateStep(origIdx, { multiplier: Number(e.target.value) })}
                   aria-label={`Step ${step.name} multiplier`}
                   className="w-12 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
@@ -117,7 +117,7 @@ export function CustomScaleConfigEditor({ config, onChange }: { config: CustomSc
               </div>
             );
           })}
-          <button onClick={addStepBelow} className="text-[9px] text-[var(--color-figma-accent)] hover:underline text-left">+ Add step below</button>
+          <button onClick={addStepBelow} className="text-[10px] text-[var(--color-figma-accent)] hover:underline text-left">+ Add step below</button>
         </div>
       </div>
     </div>

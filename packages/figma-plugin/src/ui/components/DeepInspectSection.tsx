@@ -12,14 +12,14 @@ export function DeepInspectSection({ deepChildNodes, tokenMap, onNavigateToToken
   if (deepChildNodes.length === 0) {
     return (
       <div className="mt-1 pt-1 border-t border-[var(--color-figma-border)]/50 px-3 py-2 text-center">
-        <p className="text-[9px] text-[var(--color-figma-text-secondary)]">No token bindings found in nested layers.</p>
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)]">No token bindings found in nested layers.</p>
       </div>
     );
   }
 
   return (
     <div className="mt-1 pt-1 border-t border-[var(--color-figma-border)]/50">
-      <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide flex items-center gap-1">
+      <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide flex items-center gap-1">
         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
           <path d="M9 22V12h6v10" />
@@ -40,7 +40,7 @@ export function DeepInspectSection({ deepChildNodes, tokenMap, onNavigateToToken
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
                 <rect x="3" y="3" width="18" height="18" rx="2" />
               </svg>
-              <span className="text-[9px] font-medium text-[var(--color-figma-text)] truncate flex-1" title={child.name}>
+              <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate flex-1" title={child.name}>
                 {child.name}
               </span>
               <span className="text-[8px] text-[var(--color-figma-text-secondary)] shrink-0 uppercase tracking-wide">

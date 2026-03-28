@@ -682,7 +682,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
         }}
       >
         <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate" title={setName}>{setName}</span>
-        <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[9px] font-medium">
+        <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[10px] font-medium">
           {(['disabled', 'source', 'enabled'] as const).map(s => (
             <button
               key={s}
@@ -717,16 +717,16 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               className="inline-block w-3 h-3 rounded border border-[var(--color-figma-border)]"
               style={{ backgroundColor: value }}
             />
-            <span className="font-mono text-[9px]">{value}</span>
+            <span className="font-mono text-[10px]">{value}</span>
           </span>
         );
       }
       // Alias reference
       if (/^\{[^}]+\}$/.test(value)) {
-        return <span className="font-mono text-[9px] text-[var(--color-figma-warning)]">{value}</span>;
+        return <span className="font-mono text-[10px] text-[var(--color-figma-warning)]">{value}</span>;
       }
     }
-    return <span className="font-mono text-[9px]">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>;
+    return <span className="font-mono text-[10px]">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>;
   };
 
   if (!connected) {
@@ -773,7 +773,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
             </p>
 
             <div className="mt-4 w-full max-w-[240px] flex flex-col gap-1.5">
-              <p className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Quick start</p>
+              <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Quick start</p>
               {([
                 ['Color Mode', 'Light / Dark'],
                 ['Brand', 'Default / Premium'],
@@ -785,7 +785,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                   className="flex items-center justify-between px-2.5 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-left hover:border-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors group"
                 >
                   <span className="text-[11px] font-medium text-[var(--color-figma-text)] group-hover:text-[var(--color-figma-accent)]">{name}</span>
-                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{example}</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{example}</span>
                 </button>
               ))}
             </div>
@@ -801,7 +801,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           <div className="flex flex-col">
             {/* Stack header */}
             <div className="px-3 py-2 flex items-center justify-between border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
-              <div className="flex items-center gap-1.5 text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium">
+              <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M12 2L2 7l10 5 10-5-10-5z" />
                   <path d="M2 17l10 5 10-5" />
@@ -812,7 +812,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setShowPreview(p => !p)}
-                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
                     showPreview
                       ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]'
                       : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -830,7 +830,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
             {/* Priority hint */}
             {dimensions.length > 1 && (
-              <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)]/50 border-b border-[var(--color-figma-border)] flex items-center gap-1">
+              <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)]/50 border-b border-[var(--color-figma-border)] flex items-center gap-1">
                 <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
                 Higher priority
                 <span className="flex-1 border-b border-dotted border-[var(--color-figma-border)] mx-1" />
@@ -868,7 +868,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     {/* Layer header */}
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] group">
                       {/* Layer number badge */}
-                      <span className="flex items-center justify-center w-4 h-4 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[9px] font-bold flex-shrink-0" title={`Layer ${layerNum} — ${dimIdx === 0 ? 'highest' : dimIdx === dimensions.length - 1 ? 'lowest' : ''} priority`}>
+                      <span className="flex items-center justify-center w-4 h-4 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] text-[10px] font-bold flex-shrink-0" title={`Layer ${layerNum} — ${dimIdx === 0 ? 'highest' : dimIdx === dimensions.length - 1 ? 'lowest' : ''} priority`}>
                         {layerNum}
                       </span>
 
@@ -886,7 +886,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             <button onClick={executeRenameDim} disabled={!renameValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
                             <button onClick={cancelRenameDim} className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
                           </div>
-                          {renameError && <p role="alert" className="text-[9px] text-[var(--color-figma-error)]">{renameError}</p>}
+                          {renameError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{renameError}</p>}
                         </div>
                       ) : (
                         <>
@@ -970,7 +970,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             <button onClick={() => { setShowAddOption(prev => ({ ...prev, [dim.id]: false })); setNewOptionNames(prev => ({ ...prev, [dim.id]: '' })); }} className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
                           )}
                         </div>
-                        {addOptionErrors[dim.id] && <p role="alert" className="text-[9px] text-[var(--color-figma-error)] mt-1">{addOptionErrors[dim.id]}</p>}
+                        {addOptionErrors[dim.id] && <p role="alert" className="text-[10px] text-[var(--color-figma-error)] mt-1">{addOptionErrors[dim.id]}</p>}
                       </div>
                     )}
 
@@ -990,10 +990,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                   className={`flex-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)] ${renameOptionError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
                                   autoFocus
                                 />
-                                <button onClick={executeRenameOption} disabled={!renameOptionValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[9px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
-                                <button onClick={cancelRenameOption} className="px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
+                                <button onClick={executeRenameOption} disabled={!renameOptionValue.trim()} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)] text-white text-[10px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40">Save</button>
+                                <button onClick={cancelRenameOption} className="px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]">Cancel</button>
                               </div>
-                              {renameOptionError && <p role="alert" className="text-[9px] text-[var(--color-figma-error)]">{renameOptionError}</p>}
+                              {renameOptionError && <p role="alert" className="text-[10px] text-[var(--color-figma-error)]">{renameOptionError}</p>}
                             </div>
                           ) : (
                             <>
@@ -1001,7 +1001,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 {hasUncovered && (
                                   <button
                                     onClick={() => setExpandedCoverage(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
-                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/40 hover:bg-[var(--color-figma-warning)]/25 transition-colors"
+                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-warning)]/15 text-[var(--color-figma-warning)] border border-[var(--color-figma-warning)]/40 hover:bg-[var(--color-figma-warning)]/25 transition-colors"
                                     title={`${coverage[dim.id][selectedOpt].uncovered.length} tokens have no value in active sets`}
                                   >
                                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -1011,7 +1011,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                 {staleSetNames.length > 0 && (
                                   <button
                                     onClick={() => setExpandedStale(prev => { const next = new Set(prev); next.has(covKey) ? next.delete(covKey) : next.add(covKey); return next; })}
-                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[9px] font-medium bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] border border-[var(--color-figma-error)]/40 hover:bg-[var(--color-figma-error)]/25 transition-colors"
+                                    className="flex items-center gap-1 px-1 py-0.5 rounded text-[10px] font-medium bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] border border-[var(--color-figma-error)]/40 hover:bg-[var(--color-figma-error)]/25 transition-colors"
                                     title={`${staleSetNames.length} set${staleSetNames.length !== 1 ? 's' : ''} referenced here no longer exist`}
                                   >
                                     <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
@@ -1058,7 +1058,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             {/* Override section */}
                             {overrideSets.length > 0 && (
                               <div>
-                                <div className="px-3 py-0.5 flex items-center gap-1 text-[9px] font-medium text-[var(--color-figma-success)] bg-[var(--color-figma-success)]/5">
+                                <div className="px-3 py-0.5 flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-success)] bg-[var(--color-figma-success)]/5">
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
                                   Override ({overrideSets.length})
                                   <span className="text-[var(--color-figma-text-tertiary)] font-normal ml-1">highest priority</span>
@@ -1070,7 +1070,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             {/* Foundation section */}
                             {foundationSets.length > 0 && (
                               <div>
-                                <div className="px-3 py-0.5 flex items-center gap-1 text-[9px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5">
+                                <div className="px-3 py-0.5 flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/5">
                                   <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="3" opacity="0.3" /></svg>
                                   Foundation ({foundationSets.length})
                                   <span className="text-[var(--color-figma-text-tertiary)] font-normal ml-1">base defaults</span>
@@ -1088,7 +1088,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                     next.has(dim.id) ? next.delete(dim.id) : next.add(dim.id);
                                     return next;
                                   })}
-                                  className="w-full px-3 py-0.5 flex items-center gap-1 text-[9px] font-medium text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-left"
+                                  className="w-full px-3 py-0.5 flex items-center gap-1 text-[10px] font-medium text-[var(--color-figma-text-tertiary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors text-left"
                                 >
                                   <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform ${isDisabledCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
                                   Not included ({disabledSets.length})
@@ -1099,7 +1099,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
                             {/* All sets are in one group — show empty hint */}
                             {overrideSets.length === 0 && foundationSets.length === 0 && disabledSets.length > 0 && !isDisabledCollapsed && (
-                              <div className="px-3 py-2 text-[9px] text-[var(--color-figma-text-tertiary)] italic">
+                              <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)] italic">
                                 No sets assigned yet. Expand &ldquo;Not included&rdquo; and assign sets as Foundation or Override.
                               </div>
                             )}
@@ -1112,21 +1112,21 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             <div className="text-[10px] font-medium text-[var(--color-figma-warning)] mb-1">
                               Missing values ({coverage[dim.id][selectedOpt].uncovered.length})
                             </div>
-                            <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can't be resolved within the active sets.</p>
+                            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">These tokens have references that can't be resolved within the active sets.</p>
                             <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Missing tokens for ${selectedOpt}`}>
                               {coverage[dim.id][selectedOpt].uncovered.map(item => (
                                 onNavigateToToken && item.set ? (
                                   <button
                                     key={item.path}
                                     onClick={() => onNavigateToToken(item.set, item.path)}
-                                    className="text-left text-[9px] text-[var(--color-figma-warning)] font-mono truncate hover:underline cursor-pointer"
+                                    className="text-left text-[10px] text-[var(--color-figma-warning)] font-mono truncate hover:underline cursor-pointer"
                                     title={`Navigate to ${item.path} in set "${item.set}"`}
                                     role="listitem"
                                   >
                                     {item.path}
                                   </button>
                                 ) : (
-                                  <div key={item.path} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate" role="listitem">{item.path}</div>
+                                  <div key={item.path} className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate" role="listitem">{item.path}</div>
                                 )
                               ))}
                             </div>
@@ -1137,10 +1137,10 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                             <div className="text-[10px] font-medium text-[var(--color-figma-error)] mb-1">
                               Deleted sets ({staleSetNames.length})
                             </div>
-                            <p className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5">These sets are referenced but no longer exist.</p>
+                            <p className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5">These sets are referenced but no longer exist.</p>
                             <div className="flex flex-col gap-0.5 max-h-32 overflow-y-auto focus:outline-none focus:ring-1 focus:ring-[var(--color-figma-accent)] rounded" role="list" tabIndex={0} aria-label={`Deleted sets for ${selectedOpt}`}>
                               {staleSetNames.map(s => (
-                                <div key={s} className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate" role="listitem" title={s}>{s}</div>
+                                <div key={s} className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate" role="listitem" title={s}>{s}</div>
                               ))}
                             </div>
                           </div>
@@ -1163,7 +1163,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     </svg>
                     Token Resolution Preview
                   </div>
-                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                     {dimensions.map(d => {
                       const optName = selectedOptions[d.id];
                       return optName ? `${d.name}: ${optName}` : null;
@@ -1194,7 +1194,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                         : 'No tokens resolved with current selections'}
                     </div>
                   ) : (
-                    <table className="w-full text-[9px]">
+                    <table className="w-full text-[10px]">
                       <thead>
                         <tr className="text-left text-[var(--color-figma-text-tertiary)] bg-[var(--color-figma-bg-secondary)]">
                           <th className="px-3 py-0.5 font-medium">Token</th>
@@ -1219,7 +1219,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                     </table>
                   )}
                   {previewTokens.length >= 50 && (
-                    <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] text-center border-t border-[var(--color-figma-border)]">
+                    <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] text-center border-t border-[var(--color-figma-border)]">
                       Showing first 50 tokens. Use search to filter.
                     </div>
                   )}
@@ -1284,7 +1284,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
           style={{ top: bulkMenu.y, left: bulkMenu.x }}
           onClick={e => e.stopPropagation()}
         >
-          <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider" aria-hidden="true">
+          <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-tertiary)] font-medium uppercase tracking-wider" aria-hidden="true">
             Set &ldquo;{bulkMenu.setName}&rdquo; in all options
           </div>
           {(['disabled', 'source', 'enabled'] as const).map(s => (

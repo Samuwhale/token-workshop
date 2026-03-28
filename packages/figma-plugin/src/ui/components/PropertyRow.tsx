@@ -232,7 +232,7 @@ export function PropertyRow({
                 <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
                 <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
               </svg>
-              <span className="text-[9px] text-[var(--color-figma-accent)] font-mono truncate" title={binding as string}>
+              <span className="text-[10px] text-[var(--color-figma-accent)] font-mono truncate" title={binding as string}>
                 {binding as string}
               </span>
             </div>
@@ -241,7 +241,7 @@ export function PropertyRow({
 
         {/* Actions — post-bind flash or faint buttons */}
         {lastBoundProp === prop ? (
-          <div className="flex items-center gap-1 shrink-0 text-[9px] text-[var(--color-figma-success,#18a058)]">
+          <div className="flex items-center gap-1 shrink-0 text-[10px] text-[var(--color-figma-success,#18a058)]">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M20 6L9 17l-5-5" />
             </svg>
@@ -323,7 +323,7 @@ export function PropertyRow({
               <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71" />
               <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" />
             </svg>
-            <span className="text-[9px] text-[var(--color-figma-accent)] font-medium flex-1">
+            <span className="text-[10px] text-[var(--color-figma-accent)] font-medium flex-1">
               {isBound ? `Remap ${PROPERTY_LABELS[prop]}` : `Bind ${PROPERTY_LABELS[prop]}`}
             </span>
             <button
@@ -342,7 +342,7 @@ export function PropertyRow({
               {swatchColor && (
                 <div className="w-3 h-3 rounded-sm border border-[var(--color-figma-border)] shrink-0" style={{ backgroundColor: swatchColor }} />
               )}
-              <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={binding as string}>{binding as string}</span>
+              <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate flex-1" title={binding as string}>{binding as string}</span>
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
@@ -367,7 +367,7 @@ export function PropertyRow({
               className="w-full px-2 py-1 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text)] outline-none focus:border-[var(--color-figma-accent)]"
             />
             {bindCandidates.length === 0 ? (
-              <div className="text-[9px] text-[var(--color-figma-text-secondary)] py-1 text-center">
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)] py-1 text-center">
                 {bindQuery ? 'No matching tokens' : `No ${compatibleTypesForBind.join(' or ')} tokens in set`}
               </div>
             ) : (
@@ -415,7 +415,7 @@ export function PropertyRow({
                             <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-text-secondary)]/40" />
                           </div>
                         )}
-                        <span className={`text-[9px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>
+                        <span className={`text-[10px] font-mono truncate flex-1 ${isSelected ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text)] group-hover/item:text-[var(--color-figma-accent)]'}`}>
                           {path}
                         </span>
                         {isCurrent && (
@@ -434,7 +434,7 @@ export function PropertyRow({
                   );
                 })}
                 {bindHasMore && (
-                  <div className="text-[9px] text-[var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]">
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] text-center py-1 border-t border-[var(--color-figma-border)]">
                     {bindTotalCount - 12} more — type to refine
                   </div>
                 )}
@@ -451,7 +451,7 @@ export function PropertyRow({
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--color-figma-text-secondary)] shrink-0" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
             </svg>
-            <span className="text-[9px] text-[var(--color-figma-text)] font-medium flex-1">
+            <span className="text-[10px] text-[var(--color-figma-text)] font-medium flex-1">
               Create token from {PROPERTY_LABELS[prop]}
             </span>
             <button
@@ -467,7 +467,7 @@ export function PropertyRow({
           </div>
           <div className="px-2 py-1.5 flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">Value:</span>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">Value:</span>
               {(prop === 'fill' || prop === 'stroke') &&
                typeof getCurrentValue(rootNodes, prop) === 'string' &&
                getCurrentValue(rootNodes, prop).startsWith('#') && (
@@ -476,12 +476,12 @@ export function PropertyRow({
                   style={{ backgroundColor: getCurrentValue(rootNodes, prop) }}
                 />
               )}
-              <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate">
+              <span className="text-[10px] text-[var(--color-figma-text)] font-mono truncate">
                 {formatTokenValuePreview(prop, getCurrentValue(rootNodes, prop))}
               </span>
             </div>
             <div className="flex flex-col gap-0.5">
-              <label className="text-[9px] text-[var(--color-figma-text-secondary)]">Token path (set: {activeSet})</label>
+              <label className="text-[10px] text-[var(--color-figma-text-secondary)]">Token path (set: {activeSet})</label>
               <input
                 ref={nameInputRef}
                 value={newTokenName}
@@ -493,7 +493,7 @@ export function PropertyRow({
                 placeholder="group.token-name"
                 className={`w-full px-2 py-1 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] ${createError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
               />
-              {createError && <div className="text-[9px] text-[var(--color-figma-error)]">{createError}</div>}
+              {createError && <div className="text-[10px] text-[var(--color-figma-error)]">{createError}</div>}
             </div>
             <div className="flex gap-1.5 justify-end">
               <button

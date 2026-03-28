@@ -213,7 +213,7 @@ export function ExtractTokensPanel({
         <>
           {/* Select all */}
           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--color-figma-border)] shrink-0">
-            <label className="flex items-center gap-1.5 text-[9px] text-[var(--color-figma-text-secondary)] cursor-pointer">
+            <label className="flex items-center gap-1.5 text-[10px] text-[var(--color-figma-text-secondary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={selectedCount === tokens.length}
@@ -223,7 +223,7 @@ export function ExtractTokensPanel({
               {selectedCount}/{tokens.length} selected
             </label>
             {conflictCount > 0 && (
-              <span className="text-[9px] text-[var(--color-figma-warning,#f5a623)]">
+              <span className="text-[10px] text-[var(--color-figma-warning,#f5a623)]">
                 {conflictCount} will overwrite
               </span>
             )}
@@ -266,7 +266,7 @@ export function ExtractTokensPanel({
                       )}
                     </div>
                     {/* Value + type badge + layer info */}
-                    <div className="flex items-center gap-1.5 text-[9px]">
+                    <div className="flex items-center gap-1.5 text-[10px]">
                       <span className={`${badgeClass} token-type-badge`}>{token.tokenType}</span>
                       {/* Color swatch */}
                       {token.tokenType === 'color' && typeof token.value === 'string' && (
@@ -291,7 +291,7 @@ export function ExtractTokensPanel({
 
           {/* Error */}
           {error && (
-            <div className="px-3 py-1.5 text-[9px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5 border-t border-[var(--color-figma-border)] shrink-0">
+            <div className="px-3 py-1.5 text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5 border-t border-[var(--color-figma-border)] shrink-0">
               {error}
             </div>
           )}
@@ -307,7 +307,7 @@ export function ExtractTokensPanel({
             </button>
             <div className="flex-1" />
             {progress && (
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 {progress.current}/{progress.total}
               </span>
             )}

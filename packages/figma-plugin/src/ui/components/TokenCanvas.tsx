@@ -47,7 +47,7 @@ const GRAY_STRIP_X = CANVAS_W - PADDING - 18;
 
 const SEC = 'mb-5';
 const SEC_HDR =
-  'text-[9px] uppercase tracking-wider font-semibold text-[var(--color-figma-text-secondary)] mb-2 select-none flex items-center gap-1.5';
+  'text-[10px] uppercase tracking-wider font-semibold text-[var(--color-figma-text-secondary)] mb-2 select-none flex items-center gap-1.5';
 
 // ---------------------------------------------------------------------------
 // Component
@@ -266,7 +266,7 @@ export function TokenCanvas({ tokens, allTokensFlat, onEdit }: TokenCanvasProps)
             {/* Tooltip */}
             {hoveredDot && (
               <div
-                className="absolute pointer-events-none bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1.5 py-1 text-[9px] text-[var(--color-figma-text)] shadow-md max-w-[150px]"
+                className="absolute pointer-events-none bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] rounded px-1.5 py-1 text-[10px] text-[var(--color-figma-text)] shadow-md max-w-[150px]"
                 style={{
                   left: Math.min(hoveredDot.cx + 10, CANVAS_W - 155),
                   top: Math.max(hoveredDot.cy - 30, 4),
@@ -308,10 +308,10 @@ export function TokenCanvas({ tokens, allTokensFlat, onEdit }: TokenCanvasProps)
                     className="h-1.5 rounded-full bg-[var(--color-figma-accent)] shrink-0 opacity-60 group-hover:opacity-90 transition-opacity"
                     style={{ width: barW }}
                   />
-                  <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate flex-1 group-hover:text-[var(--color-figma-text)] transition-colors">
+                  <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate flex-1 group-hover:text-[var(--color-figma-text)] transition-colors">
                     {d.path}
                   </span>
-                  <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] shrink-0">
+                  <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] shrink-0">
                     {d.label}
                   </span>
                 </div>
@@ -354,7 +354,7 @@ export function TokenCanvas({ tokens, allTokensFlat, onEdit }: TokenCanvasProps)
                   >
                     Aa — The quick brown fox
                   </div>
-                  <div className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate">
+                  <div className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate">
                     {tok.path}
                   </div>
                   <div className="text-[8px] text-[var(--color-figma-text-secondary)] opacity-50 truncate mt-0.5">
@@ -447,10 +447,10 @@ export function TokenCanvas({ tokens, allTokensFlat, onEdit }: TokenCanvasProps)
                 className="flex items-center gap-2 px-1 py-0.5 rounded cursor-pointer hover:bg-[var(--color-figma-bg-hover)] group"
                 onClick={() => onEdit(tok.path)}
               >
-                <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate flex-1 group-hover:text-[var(--color-figma-text)]">
+                <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate flex-1 group-hover:text-[var(--color-figma-text)]">
                   {tok.path}
                 </span>
-                <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate max-w-[120px]">
+                <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate max-w-[120px]">
                   &ldquo;{String(tok.$value ?? '')}&rdquo;
                 </span>
               </div>

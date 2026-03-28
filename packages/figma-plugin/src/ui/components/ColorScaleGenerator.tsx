@@ -241,7 +241,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
           {/* L* sparkline — collapsed by default (advanced detail) */}
           {scale.length > 1 && (
             <details className="group">
-              <summary className="text-[9px] text-[var(--color-figma-text-secondary)] cursor-pointer select-none list-none flex items-center gap-1 hover:text-[var(--color-figma-text)]">
+              <summary className="text-[10px] text-[var(--color-figma-text-secondary)] cursor-pointer select-none list-none flex items-center gap-1 hover:text-[var(--color-figma-text)]">
                 <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className="transition-transform group-open:rotate-90 shrink-0">
                   <path d="M2 1l4 3-4 3V1z" />
                 </svg>
@@ -291,7 +291,7 @@ export function ColorScaleGenerator({ serverUrl, activeSet, existingPaths, onClo
                 className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
               />
               {prefix && scale.length > 0 && (
-                <p className="mt-0.5 text-[9px] text-[var(--color-figma-text-secondary)] font-mono">
+                <p className="mt-0.5 text-[10px] text-[var(--color-figma-text-secondary)] font-mono">
                   {prefix}.{firstStep} → {prefix}.{lastStep}
                 </p>
               )}

@@ -342,7 +342,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
                     {nodes.length > 0 && (
                       <button
                         onClick={e => { e.stopPropagation(); onSelectNodes(nodes.map(n => n.id)); if (onBatchBind) { setQuickBind({ nodeIds: nodes.map(n => n.id), statusLabel: cfg.label }); setBindToken(''); setBindProperty('fill'); } }}
-                        className="text-[9px] text-[var(--color-figma-accent)] hover:underline ml-1 shrink-0"
+                        className="text-[10px] text-[var(--color-figma-accent)] hover:underline ml-1 shrink-0"
                       >
                         Select all
                       </button>
@@ -361,7 +361,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
                 <span className="text-[10px] text-[var(--color-figma-text-secondary)]">{filteredNodes.length} layers</span>
                 <button
                   onClick={() => selectAll(filter, STATUS_COLORS[filter as keyof typeof STATUS_COLORS]?.label)}
-                  className="ml-auto text-[9px] text-[var(--color-figma-accent)] hover:underline"
+                  className="ml-auto text-[10px] text-[var(--color-figma-accent)] hover:underline"
                 >
                   Select all
                 </button>
@@ -443,9 +443,9 @@ function NodeRow({ node, onSelect }: { node: HeatmapNode; onSelect: () => void }
     >
       <StatusIcon status={node.status} size={8} />
       <span className="flex-1 text-[10px] text-[var(--color-figma-text)] truncate">{node.name}</span>
-      <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{typeLabel}</span>
+      <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{typeLabel}</span>
       {node.totalCheckable > 0 && (
-        <span className={`text-[9px] shrink-0 ${cfg.text}`}>{node.boundCount}/{node.totalCheckable}</span>
+        <span className={`text-[10px] shrink-0 ${cfg.text}`}>{node.boundCount}/{node.totalCheckable}</span>
       )}
       <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-0 group-hover:opacity-60 text-[var(--color-figma-text-secondary)]" aria-hidden="true">
         <path d="M1.5 5h7M5.5 2l3 3-3 3"/>

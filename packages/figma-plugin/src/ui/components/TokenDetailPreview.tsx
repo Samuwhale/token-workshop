@@ -96,7 +96,7 @@ export function TokenDetailPreview({
             <ValuePreview type={type} value={resolvedValue} />
             <span className="text-[12px] font-semibold text-[var(--color-figma-text)] truncate">{name}</span>
           </div>
-          <div className="text-[9px] text-[var(--color-figma-text-tertiary)] font-mono truncate mb-1.5" title={tokenPath}>
+          <div className="text-[10px] text-[var(--color-figma-text-tertiary)] font-mono truncate mb-1.5" title={tokenPath}>
             {displayPath}
           </div>
           <div className="flex items-center gap-1.5">
@@ -107,7 +107,7 @@ export function TokenDetailPreview({
 
         {/* Value section */}
         <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-          <div className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Value</div>
+          <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Value</div>
           <div className="text-[10px] font-mono text-[var(--color-figma-text)] break-all whitespace-pre-wrap bg-[var(--color-figma-bg-secondary)] rounded px-2 py-1.5 max-h-24 overflow-y-auto">
             {valueStr}
           </div>
@@ -116,7 +116,7 @@ export function TokenDetailPreview({
         {/* Alias chain */}
         {aliasChain && aliasChain.length > 0 && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-            <div className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Reference chain</div>
+            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Reference chain</div>
             <div className="flex flex-col gap-0.5">
               {aliasChain.map((step, i) => (
                 <div key={step.path} className="flex items-center gap-1">
@@ -133,7 +133,7 @@ export function TokenDetailPreview({
             </div>
             {resolvedValueStr && (
               <div className="mt-1.5">
-                <div className="text-[9px] text-[var(--color-figma-text-tertiary)] mb-0.5">Resolved</div>
+                <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Resolved</div>
                 <div className="flex items-center gap-1.5">
                   <ValuePreview type={type} value={resolvedValue} />
                   <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{resolvedValueStr}</span>
@@ -146,7 +146,7 @@ export function TokenDetailPreview({
         {/* Large visual preview for color tokens */}
         {type === 'color' && typeof resolvedValue === 'string' && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-            <div className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Preview</div>
+            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Preview</div>
             <div
               className="w-full h-16 rounded border border-[var(--color-figma-border)]"
               style={{ backgroundColor: resolvedValue }}
@@ -157,7 +157,7 @@ export function TokenDetailPreview({
         {/* Typography preview */}
         {type === 'typography' && typeof resolvedValue === 'object' && resolvedValue !== null && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-            <div className="text-[9px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Preview</div>
+            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Preview</div>
             <div
               className="p-2 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] overflow-hidden"
               style={{

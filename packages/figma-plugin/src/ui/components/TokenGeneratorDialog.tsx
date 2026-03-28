@@ -99,8 +99,8 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
       </div>
       <div className="flex flex-col gap-1">
         <div className="flex gap-1.5 px-0.5">
-          <span className="w-24 text-[9px] text-[var(--color-figma-text-secondary)]">Brand</span>
-          <span className="flex-1 text-[9px] text-[var(--color-figma-text-secondary)]">{table.inputKey || 'value'}</span>
+          <span className="w-24 text-[10px] text-[var(--color-figma-text-secondary)]">Brand</span>
+          <span className="flex-1 text-[10px] text-[var(--color-figma-text-secondary)]">{table.inputKey || 'value'}</span>
           <span className="w-5" />
         </div>
         {table.rows.map((row, i) => (
@@ -284,7 +284,7 @@ export function TokenGeneratorDialog({
               })}
             </div>
             {typeNeedsSource && !hasSource && (
-              <p className="text-[9px] text-[var(--color-figma-error)] mt-1">
+              <p className="text-[10px] text-[var(--color-figma-error)] mt-1">
                 This type requires a source token. Open from a token's editor, or switch to a standalone type.
               </p>
             )}
@@ -312,7 +312,7 @@ export function TokenGeneratorDialog({
               </label>
               <div className="flex items-center gap-2">
                 {lockedCount > 0 && (
-                  <button onClick={clearAllOverrides} className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] flex items-center gap-1">
+                  <button onClick={clearAllOverrides} className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] flex items-center gap-1">
                     <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10 3L6 7M6 3l4 4"/><path d="M2 7h4v3H2z"/></svg>
                     Clear {lockedCount} override{lockedCount !== 1 ? 's' : ''}
                   </button>
@@ -376,7 +376,7 @@ export function TokenGeneratorDialog({
               <div className="flex flex-col gap-1.5">
                 {overwrittenEntries.map(entry => (
                   <div key={entry.path} className="flex flex-col gap-0.5">
-                    <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={entry.path}>
+                    <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] truncate" title={entry.path}>
                       {entry.path}
                     </span>
                     <ValueDiff type={entry.type} before={entry.oldValue} after={entry.newValue} />
@@ -392,13 +392,13 @@ export function TokenGeneratorDialog({
               <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Multi-brand inputs</span>
               <button
                 onClick={handleToggleMultiBrand}
-                className="text-[9px] text-[var(--color-figma-accent)] hover:underline"
+                className="text-[10px] text-[var(--color-figma-accent)] hover:underline"
               >
                 {inputTable ? 'Disable' : 'Enable'}
               </button>
             </div>
             {!inputTable && (
-              <p className="text-[9px] text-[var(--color-figma-text-secondary)]">
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 Run this generator for multiple brands, each writing to its own token set.
               </p>
             )}
@@ -418,7 +418,7 @@ export function TokenGeneratorDialog({
                   placeholder="brands/{brand}"
                   className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono"
                 />
-                <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
+                <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
                   {'{brand}'} is replaced with each row's brand slug — e.g. <span className="font-mono">brands/berry</span>
                 </p>
               </div>
@@ -436,7 +436,7 @@ export function TokenGeneratorDialog({
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Target group path</label>
               <input type="text" value={targetGroup} onChange={e => setTargetGroup(e.target.value)} placeholder="e.g. spacing"
                 className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] font-mono ${!targetGroup.trim() ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`} />
-              <p className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">
+              <p className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">
                 Tokens: <span className="font-mono">{targetGroup || '…'}.{'{'+'step}'}</span>
               </p>
             </div>
@@ -461,7 +461,7 @@ export function TokenGeneratorDialog({
             if (!name.trim()) missing.push('generator name');
             if (!isMultiBrand && typeNeedsSource && !hasSource) missing.push('source token');
             return missing.length > 0 ? (
-              <p className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+              <p className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                 {missing.length === 1
                   ? `${missing[0].charAt(0).toUpperCase() + missing[0].slice(1)} is required.`
                   : `Required: ${missing.join(', ')}.`}

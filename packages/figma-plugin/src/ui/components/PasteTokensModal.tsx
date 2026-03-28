@@ -550,7 +550,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
               autoFocus
             />
             {format !== 'empty' && format !== 'error' && (
-              <span className="absolute bottom-2 right-2 text-[9px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)]/30 rounded px-1.5 py-0.5 pointer-events-none">
+              <span className="absolute bottom-2 right-2 text-[10px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)]/30 rounded px-1.5 py-0.5 pointer-events-none">
                 {FORMAT_LABELS[format]}
               </span>
             )}
@@ -571,10 +571,10 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
               />
             </div>
             {prefix.trim() && prefixError && (
-              <div className="text-[9px] text-[var(--color-figma-error)] pl-1">{prefixError}</div>
+              <div className="text-[10px] text-[var(--color-figma-error)] pl-1">{prefixError}</div>
             )}
             {prefix.trim() && !prefixError && prefixedTokens.length > 0 && (
-              <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-mono truncate pl-1">
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono truncate pl-1">
                 → <span className="text-[var(--color-figma-text)]">{prefixedTokens[0].path}</span>
                 {prefixedTokens.length > 1 && <span> …</span>}
               </div>
@@ -618,7 +618,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
                     onChange={e => handleOverwriteAll(e.target.checked)}
                     className="accent-[var(--color-figma-accent)]"
                   />
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">overwrite all</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">overwrite all</span>
                 </label>
               )}
             </div>
@@ -630,19 +630,19 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className={`text-[10px] font-mono truncate ${row.validationError ? 'text-[var(--color-figma-error)]' : 'text-[var(--color-figma-text)]'}`}>{row.path}</span>
-                    <span className={`text-[9px] rounded px-1 shrink-0 ${TYPE_COLORS[row.$type] ?? TYPE_COLORS['string']}`}>{row.$type}</span>
+                    <span className={`text-[10px] rounded px-1 shrink-0 ${TYPE_COLORS[row.$type] ?? TYPE_COLORS['string']}`}>{row.$type}</span>
                     {row.validationError && (
-                      <span className="text-[9px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1 shrink-0">invalid</span>
+                      <span className="text-[10px] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 border border-[var(--color-figma-error)]/20 rounded px-1 shrink-0">invalid</span>
                     )}
                     {!row.validationError && row.conflict && !row.overwrite && (
-                      <span className="text-[9px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 shrink-0">skip</span>
+                      <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-1 shrink-0">skip</span>
                     )}
                     {!row.validationError && row.conflict && row.overwrite && (
-                      <span className="text-[9px] text-blue-600 bg-blue-50 border border-blue-200 rounded px-1 shrink-0">overwrite</span>
+                      <span className="text-[10px] text-blue-600 bg-blue-50 border border-blue-200 rounded px-1 shrink-0">overwrite</span>
                     )}
                   </div>
                   {row.validationError ? (
-                    <div className="text-[9px] text-[var(--color-figma-error)]">{row.validationError}</div>
+                    <div className="text-[10px] text-[var(--color-figma-error)]">{row.validationError}</div>
                   ) : (
                     <div className="flex items-center gap-1">
                       {row.$type === 'color' && <ColorSwatch value={row.$value} />}
@@ -665,7 +665,7 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
                       }}
                       className="accent-[var(--color-figma-accent)]"
                     />
-                    <span className="text-[9px] text-[var(--color-figma-text-secondary)]">overwrite</span>
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">overwrite</span>
                   </label>
                 )}
               </div>

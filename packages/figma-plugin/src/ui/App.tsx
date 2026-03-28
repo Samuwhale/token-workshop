@@ -1048,7 +1048,7 @@ export function App() {
             <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/>
           </svg>
           {lintViolations.length > 0 && !showIssuesOnly && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white text-[9px] font-bold leading-[14px] text-center">
+            <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-red-500 text-white text-[10px] font-bold leading-[14px] text-center">
               {lintViolations.length > 99 ? '99+' : lintViolations.length}
             </span>
           )}
@@ -1180,7 +1180,7 @@ export function App() {
                 onClick={() => { setShowPasteModal(true); setMenuOpen(false); }}
                 className="w-full text-left px-3 py-2 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                Paste tokens <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-1">{adaptShortcut('⌘⇧V')}</span>
+                Paste tokens <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-1">{adaptShortcut('⌘⇧V')}</span>
               </button>
               <button
                 role="menuitem"
@@ -1283,7 +1283,7 @@ export function App() {
                       />
                     </div>
                     {renameError && (
-                      <span className="text-[9px] text-red-500 mt-0.5 px-1">{renameError}</span>
+                      <span className="text-[10px] text-red-500 mt-0.5 px-1">{renameError}</span>
                     )}
                   </div>
                 ) : (
@@ -1300,7 +1300,7 @@ export function App() {
                     >
                       {set}
                       {setTokenCounts[set] !== undefined && (
-                        <span className={`ml-1.5 text-[9px] px-1.5 py-0.5 rounded-full leading-none tabular-nums ${isActive ? 'bg-white/20 text-white/90' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
+                        <span className={`ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full leading-none tabular-nums ${isActive ? 'bg-white/20 text-white/90' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
                           {isActive && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
                         </span>
                       )}
@@ -1436,7 +1436,7 @@ export function App() {
                 />
               </div>
               {newSetError && (
-                <span className="text-[9px] text-red-500 mt-0.5 px-1">{newSetError}</span>
+                <span className="text-[10px] text-red-500 mt-0.5 px-1">{newSetError}</span>
               )}
             </div>
           ) : (
@@ -1474,7 +1474,7 @@ export function App() {
         )}
         </div>
         {sets.length > 1 && dragSetName && (
-          <div className="px-2 py-0.5 text-[9px] text-[var(--color-figma-text-tertiary)] select-none bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+          <div className="px-2 py-0.5 text-[10px] text-[var(--color-figma-text-tertiary)] select-none bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
             ← lower precedence · drag to reorder · higher precedence →
           </div>
         )}
@@ -1533,7 +1533,7 @@ export function App() {
                             aria-label="Rename token set"
                             className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
                           />
-                          {renameError && <span className="block text-[9px] text-red-500 px-1">{renameError}</span>}
+                          {renameError && <span className="block text-[10px] text-red-500 px-1">{renameError}</span>}
                         </div>
                       ) : (
                         <button
@@ -1549,7 +1549,7 @@ export function App() {
                         >
                           <span className="truncate flex-1">{set}</span>
                           {setTokenCounts[set] !== undefined && (
-                            <span className={`text-[9px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
+                            <span className={`text-[10px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
                               {activeSet === set && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
                             </span>
                           )}
@@ -1565,7 +1565,7 @@ export function App() {
                   <div key={folder.path}>
                     <button
                       onClick={() => toggleFolder(folder.path)}
-                      className="w-full flex items-center gap-1 px-2 py-0.5 text-[9px] font-semibold text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] uppercase tracking-wider transition-colors"
+                      className="w-full flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text-secondary)] uppercase tracking-wider transition-colors"
                     >
                       <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}><path d="M2 1l4 3-4 3V1z" /></svg>
                       <span className="truncate">{folder.name}</span>
@@ -1585,7 +1585,7 @@ export function App() {
                                 aria-label="Rename token set"
                                 className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
                               />
-                              {renameError && <span className="block text-[9px] text-red-500 px-1">{renameError}</span>}
+                              {renameError && <span className="block text-[10px] text-red-500 px-1">{renameError}</span>}
                             </div>
                           ) : (
                             <button
@@ -1601,7 +1601,7 @@ export function App() {
                             >
                               <span className="truncate flex-1">{leaf}</span>
                               {setTokenCounts[set] !== undefined && (
-                                <span className={`text-[9px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
+                                <span className={`text-[10px] shrink-0 ml-1 px-1.5 py-0.5 rounded-full leading-none tabular-nums ${activeSet === set ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-tertiary)]'}`}>
                                   {activeSet === set && filteredSetCount !== null ? `${filteredSetCount}\u2009/\u2009${setTokenCounts[set]}` : setTokenCounts[set]}
                                 </span>
                               )}
@@ -1651,7 +1651,7 @@ export function App() {
                     aria-label="New set name"
                     className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
                   />
-                  {newSetError && <span className="text-[9px] text-red-500">{newSetError}</span>}
+                  {newSetError && <span className="text-[10px] text-red-500">{newSetError}</span>}
                 </div>
               ) : (
                 <button
@@ -1678,7 +1678,7 @@ export function App() {
                   <circle cx="3.5" cy="5" r="2.5"/>
                   <circle cx="6.5" cy="5" r="2.5"/>
                 </svg>
-                <span className="text-[9px] text-[var(--color-figma-text-secondary)] truncate flex-1">
+                <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate flex-1">
                   {dimensions.map(d => activeThemes[d.id]).filter(Boolean).join(' · ') || 'None'}
                 </span>
                 <svg width="8" height="8" viewBox="0 0 8 8" fill="none" className="shrink-0 text-[var(--color-figma-text-tertiary)]">
@@ -1687,7 +1687,7 @@ export function App() {
               </button>
             ) : (
             <div ref={dimDropdownRef} className="flex shrink-0 flex-wrap items-center gap-1.5 px-2 py-1 bg-[var(--color-figma-bg)] border-b border-[var(--color-figma-border)]">
-              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0 flex items-center gap-1">
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0 flex items-center gap-1">
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
                   <circle cx="3.5" cy="5" r="2.5"/>
                   <circle cx="6.5" cy="5" r="2.5"/>
@@ -1717,7 +1717,7 @@ export function App() {
                           className="flex items-center gap-1"
                           onMouseLeave={() => { const next = { ...previewThemes }; delete next[dim.id]; setPreviewThemes(next); }}
                         >
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{dim.name}:</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">{dim.name}:</span>
                           <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)]">
                             <button
                               onClick={() => { const next = { ...activeThemes }; delete next[dim.id]; setActiveThemes(next); }}
@@ -1757,7 +1757,7 @@ export function App() {
                     }
                     return (
                       <div key={dim.id} className="relative flex items-center gap-1">
-                        <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{dim.name}:</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">{dim.name}:</span>
                         <button
                           onClick={() => setOpenDimDropdown(isOpen ? null : dim.id)}
                           className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] transition-colors ${
@@ -1808,7 +1808,7 @@ export function App() {
                   })}
                   <button
                     onClick={() => navigateTo('define', 'themes')}
-                    className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors px-1"
+                    className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)] transition-colors px-1"
                     title="Manage theme dimensions"
                     aria-label="Manage theme dimensions"
                   >
@@ -1834,7 +1834,7 @@ export function App() {
               {isNarrow && dimBarExpanded && (
                 <button
                   onClick={() => setDimBarExpanded(false)}
-                  className="ml-auto text-[9px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors px-1"
+                  className="ml-auto text-[10px] text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-text)] transition-colors px-1"
                   title="Collapse"
                   aria-label="Collapse theme bar"
                 >
@@ -1853,7 +1853,7 @@ export function App() {
               .map(d => `${d.name}: ${previewThemes[d.id]}`);
             if (previewEntries.length === 0) return null;
             return (
-              <div className="flex shrink-0 items-center gap-1.5 px-2 py-0.5 bg-amber-50 border-b border-amber-200 text-[9px] text-amber-700 pointer-events-none select-none">
+              <div className="flex shrink-0 items-center gap-1.5 px-2 py-0.5 bg-amber-50 border-b border-amber-200 text-[10px] text-amber-700 pointer-events-none select-none">
                 <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
                   <circle cx="4" cy="4" r="3"/>
                   <path d="M4 2.5v2M4 5.5v.5"/>

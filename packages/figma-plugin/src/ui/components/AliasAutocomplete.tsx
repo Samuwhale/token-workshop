@@ -126,7 +126,7 @@ export function AliasAutocomplete({
 
           {/* Resolved value */}
           {formatValuePreview(entry.$value) && (
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] truncate max-w-[120px] shrink-0" title={formatValuePreview(entry.$value)}>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] truncate max-w-[120px] shrink-0" title={formatValuePreview(entry.$value)}>
               {formatValuePreview(entry.$value)}
             </span>
           )}

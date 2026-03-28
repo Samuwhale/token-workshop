@@ -1,0 +1,7 @@
+## 2026-03-28 - Minimum text size of 9px used for secondary content across both pages
+- Replaced all 494 occurrences of `text-[9px]` with `text-[10px]` across 51 `.tsx` files
+- Files changed: all `.tsx` files under `packages/figma-plugin/src/ui/` (App.tsx, TokenList.tsx, TokenTreeNode.tsx, PublishPanel.tsx, ThemeManager.tsx, GraphPanel.tsx, and 45 more)
+- **Learnings for future iterations:**
+  - `text-[9px]` was used uniformly for all secondary/tertiary content — a single bulk sed replacement was safe with no special cases needing different sizes
+  - 494 occurrences across 51 files confirms this was a pervasive pattern, not isolated usage
+---

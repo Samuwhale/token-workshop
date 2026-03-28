@@ -100,11 +100,11 @@ function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) 
       </div>
 
       {searching && results.length === 0 && (
-        <p className="text-[9px] text-[var(--color-figma-text-secondary)] px-1 py-2">Searching…</p>
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)] px-1 py-2">Searching…</p>
       )}
 
       {!searching && query && results.length === 0 && (
-        <p className="text-[9px] text-[var(--color-figma-text-secondary)] px-1 py-2">No layers found matching "{query}"</p>
+        <p className="text-[10px] text-[var(--color-figma-text-secondary)] px-1 py-2">No layers found matching "{query}"</p>
       )}
 
       {results.length > 0 && (
@@ -115,7 +115,7 @@ function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) 
               onClick={() => onSelect(layer.id)}
               className="w-full flex items-center gap-1.5 px-2 py-1 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors group border-b border-[var(--color-figma-border)]/30 last:border-b-0"
             >
-              <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-3 text-center shrink-0" title={layer.type}>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-3 text-center shrink-0" title={layer.type}>
                 {NODE_TYPE_ICONS[layer.type] || '·'}
               </span>
               <span className="text-[10px] text-[var(--color-figma-text)] truncate flex-1">{layer.name}</span>
@@ -491,7 +491,7 @@ export function SelectionInspector({
           {headerLabel}
         </span>
         {(totalBindings > 0 || mixedBindings > 0) && (
-          <span className="text-[9px] shrink-0 flex items-center gap-1">
+          <span className="text-[10px] shrink-0 flex items-center gap-1">
             {totalBindings > 0 && (
               <span className="bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] px-1.5 py-0.5 rounded-full font-medium">
                 {selectedNodes.length > 1
@@ -526,7 +526,7 @@ export function SelectionInspector({
             parent.postMessage({ pluginMessage: { type: 'set-deep-inspect', enabled: next } }, '*');
           }}
           title={deepInspect ? `Deep inspect on — showing nested children (${adaptShortcut('⌘⇧D')})` : `Enable deep inspect to show nested children (${adaptShortcut('⌘⇧D')})`}
-          className={`text-[9px] px-1.5 py-0.5 rounded transition-colors mr-1 ${
+          className={`text-[10px] px-1.5 py-0.5 rounded transition-colors mr-1 ${
             deepInspect
               ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
               : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -535,15 +535,15 @@ export function SelectionInspector({
           Deep
         </button>
         <span aria-live="polite">{syncing && syncProgress ? (
-          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
             Syncing... {syncProgress.processed}/{syncProgress.total} layers
           </span>
         ) : syncError ? (
-          <span role="alert" className="text-[9px] text-[var(--color-figma-error)]" title={syncError}>
+          <span role="alert" className="text-[10px] text-[var(--color-figma-error)]" title={syncError}>
             Sync failed — {syncError}
           </span>
         ) : syncResult ? (
-          <span className={`text-[9px] ${syncResult.errors > 0 ? 'text-[var(--color-figma-error)]' : syncResult.missingTokens.length > 0 ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-success)]'}`}
+          <span className={`text-[10px] ${syncResult.errors > 0 ? 'text-[var(--color-figma-error)]' : syncResult.missingTokens.length > 0 ? 'text-[var(--color-figma-warning,#f5a623)]' : 'text-[var(--color-figma-success)]'}`}
             title={syncResult.errors > 0 ? `${syncResult.errors} binding(s) could not be applied — the token type may not be compatible with the layer property` : undefined}
           >
             {syncResult.errors > 0
@@ -556,13 +556,13 @@ export function SelectionInspector({
         ) : (
           <>
             {freshSyncResult && freshSyncResult.missingTokens.length === 0 && (
-              <span className="text-[9px] text-[var(--color-figma-success)] select-none" title="Bindings are up to date">✓</span>
+              <span className="text-[10px] text-[var(--color-figma-success)] select-none" title="Bindings are up to date">✓</span>
             )}
             {totalBindings > 0 && connected && (
               <button
                 onClick={(e) => { e.stopPropagation(); onSync('selection'); }}
                 disabled={syncing}
-                className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors disabled:opacity-50"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors disabled:opacity-50"
               >
                 Sync Selection
               </button>
@@ -571,7 +571,7 @@ export function SelectionInspector({
               <button
                 onClick={(e) => { e.stopPropagation(); onSync('page'); }}
                 disabled={syncing}
-                className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors disabled:opacity-50"
+                className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg)] transition-colors disabled:opacity-50"
               >
                 Sync Page
               </button>
@@ -583,7 +583,7 @@ export function SelectionInspector({
           <button
             onClick={() => { setShowExtractPanel(prev => !prev); setShowRemapPanel(false); }}
             title="Extract tokens from selected layers (fills, fonts, dimensions, shadows, borders)"
-            className={`ml-auto text-[9px] px-1.5 py-0.5 rounded transition-colors ${
+            className={`ml-auto text-[10px] px-1.5 py-0.5 rounded transition-colors ${
               showExtractPanel
                 ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
                 : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -596,7 +596,7 @@ export function SelectionInspector({
         <button
           onClick={() => { setShowRemapPanel(prev => !prev); setShowExtractPanel(false); }}
           title="Bulk-remap token binding paths (useful after renaming tokens)"
-          className={`${!connected || !activeSet ? 'ml-auto ' : ''}text-[9px] px-1.5 py-0.5 rounded transition-colors ${
+          className={`${!connected || !activeSet ? 'ml-auto ' : ''}text-[10px] px-1.5 py-0.5 rounded transition-colors ${
             showRemapPanel
               ? 'bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)] font-medium'
               : 'bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'
@@ -608,7 +608,7 @@ export function SelectionInspector({
           <button
             onClick={handleClearAllBindings}
             title={`Remove all ${totalBindings} binding${totalBindings !== 1 ? 's' : ''} from selection`}
-            className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+            className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
           >
             Clear all
           </button>
@@ -644,13 +644,13 @@ export function SelectionInspector({
               <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
             </svg>
             <p className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">No tokens applied</p>
-            <p className="text-[9px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-relaxed">
               Apply tokens from the Tokens tab to see bindings here.
             </p>
             {onGoToTokens && (
               <button
                 onClick={onGoToTokens}
-                className="mt-1 text-[9px] text-[var(--color-figma-accent)] hover:underline"
+                className="mt-1 text-[10px] text-[var(--color-figma-accent)] hover:underline"
               >
                 Go to Tokens →
               </button>
@@ -671,7 +671,7 @@ export function SelectionInspector({
 
             return (
               <div key={group.label} className={groupIdx > 0 ? 'mt-1 pt-1 border-t border-[var(--color-figma-border)]/50' : ''}>
-                <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide">
+                <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] font-semibold uppercase tracking-wide">
                   {group.label}
                 </div>
                 {visibleProps.map(prop => (
@@ -725,7 +725,7 @@ export function SelectionInspector({
           <span className="text-[10px] text-[var(--color-figma-text)] font-medium flex-1">All properties bound</span>
           <button
             onClick={() => parent.postMessage({ pluginMessage: { type: 'select-next-sibling' } }, '*')}
-            className="text-[9px] px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors font-medium"
+            className="text-[10px] px-2 py-1 rounded bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20 transition-colors font-medium"
           >
             Next layer →
           </button>
@@ -738,11 +738,11 @@ export function SelectionInspector({
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--color-figma-success,#18a058)]" aria-hidden="true">
             <path d="M20 6L9 17l-5-5" />
           </svg>
-          <span className="text-[9px] text-[var(--color-figma-text)] font-mono truncate flex-1" title={createdTokenPath}>{createdTokenPath}</span>
+          <span className="text-[10px] text-[var(--color-figma-text)] font-mono truncate flex-1" title={createdTokenPath}>{createdTokenPath}</span>
           {onNavigateToToken && (
             <button
               onClick={() => { onNavigateToToken(createdTokenPath); setCreatedTokenPath(null); }}
-              className="text-[9px] text-[var(--color-figma-accent)] hover:underline shrink-0"
+              className="text-[10px] text-[var(--color-figma-accent)] hover:underline shrink-0"
             >
               Go to token →
             </button>

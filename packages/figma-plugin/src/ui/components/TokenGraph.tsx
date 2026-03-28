@@ -342,7 +342,7 @@ export function TokenGraph({
                       </div>
                     </>
                   ) : (
-                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] leading-tight">
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight">
                       No source token
                     </div>
                   )}
@@ -397,7 +397,7 @@ export function TokenGraph({
                   <div className="text-[11px] font-semibold text-[var(--color-figma-text)] truncate leading-tight">
                     {gen.name}
                   </div>
-                  <div className="text-[9px] text-[var(--color-figma-text-secondary)] leading-tight">
+                  <div className="text-[10px] text-[var(--color-figma-text-secondary)] leading-tight">
                     {stepCount} step{stepCount !== 1 ? 's' : ''}
                     {contrastFailCount > 0 && (
                       <span className="ml-1 text-amber-600">· {contrastFailCount} fail AA</span>

@@ -104,7 +104,7 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
         <div className="overflow-y-auto flex-1 py-1">
           {SECTIONS.map(section => (
             <div key={section.header}>
-              <div className="px-3 pt-2 pb-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+              <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
                 {section.header}
               </div>
               {section.shortcuts.map(({ keys, label }) => (
@@ -114,11 +114,11 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
                     {keys.map((key, i) => (
                       <>
                         {i > 0 && (
-                          <span key={`sep-${i}`} className="text-[9px] text-[var(--color-figma-text-secondary)]">/</span>
+                          <span key={`sep-${i}`} className="text-[10px] text-[var(--color-figma-text-secondary)]">/</span>
                         )}
                         <kbd
                           key={key}
-                          className="text-[9px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] rounded px-1 py-0.5 font-sans"
+                          className="text-[10px] border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)] rounded px-1 py-0.5 font-sans"
                         >
                           {adaptShortcut(key)}
                         </kbd>
@@ -132,7 +132,7 @@ export function KeyboardShortcutsModal({ onClose }: KeyboardShortcutsModalProps)
         </div>
 
         {/* Footer */}
-        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] text-[9px] text-[var(--color-figma-text-secondary)]">
+        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] text-[10px] text-[var(--color-figma-text-secondary)]">
           Press <kbd className="border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] rounded px-1 py-0.5 font-sans">Esc</kbd> to close
         </div>
       </div>

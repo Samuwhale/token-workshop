@@ -50,7 +50,7 @@ function MultiModeCell({
       title={`${optionName}: ${displayVal}${targetSet ? `\nSet: ${targetSet}` : ''}`}
     >
       {!value ? (
-        <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">—</span>
+        <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">—</span>
       ) : isColor ? (
         <span
           className={`w-5 h-5 rounded-sm border border-[var(--color-figma-border)] shrink-0 ${canEdit ? 'cursor-pointer hover:ring-1 hover:ring-[var(--color-figma-accent)]' : ''}`}
@@ -81,11 +81,11 @@ function MultiModeCell({
           onClick={e => e.stopPropagation()}
           aria-label="Edit token value"
           autoFocus
-          className="text-[9px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-0.5 outline-none"
+          className="text-[10px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-0.5 outline-none"
         />
       ) : (
         <span
-          className={`text-[9px] truncate max-w-full ${canEdit ? 'cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}
+          className={`text-[10px] truncate max-w-full ${canEdit ? 'cursor-text hover:underline hover:decoration-dotted text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}
           onClick={canEdit ? (e) => {
             e.stopPropagation();
             setEditValue(getEditableString(value.$type, value.$value));
@@ -477,13 +477,13 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             <span className="text-[11px] font-medium text-[var(--color-figma-text)] flex-1">{highlightMatch(node.name, searchHighlight?.nameTerms ?? [])}</span>
           )}
           {!renamingGroup && node.children && (
-            <span className={`text-[9px] ml-1 shrink-0 ${leafCount === 0 ? 'text-[var(--color-figma-text-secondary)] opacity-50 italic' : 'text-[var(--color-figma-text-secondary)]'}`}>
+            <span className={`text-[10px] ml-1 shrink-0 ${leafCount === 0 ? 'text-[var(--color-figma-text-secondary)] opacity-50 italic' : 'text-[var(--color-figma-text-secondary)]'}`}>
               {leafCount === 0 ? 'empty' : `(${leafCount})`}
             </span>
           )}
           {!renamingGroup && node.$type && (
             <span
-              className="text-[9px] shrink-0 text-[var(--color-figma-text-secondary)] italic ml-0.5 opacity-60"
+              className="text-[10px] shrink-0 text-[var(--color-figma-text-secondary)] italic ml-0.5 opacity-60"
               title={`$type: ${node.$type} (inherited by all children)`}
             >
               {node.$type}
@@ -568,7 +568,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 }}
                 className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                <span>New subgroup…</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">N</span>
+                <span>New subgroup…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">N</span>
               </button>
             )}
             <button
@@ -582,7 +582,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               }}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              <span>Rename group</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">R</span>
+              <span>Rename group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">R</span>
             </button>
             <button
               role="menuitem"
@@ -596,7 +596,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               }}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              <span>Edit type &amp; description…</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">E</span>
+              <span>Edit type &amp; description…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">E</span>
             </button>
             <button
               role="menuitem"
@@ -608,7 +608,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               }}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              <span>Move group to set…</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">M</span>
+              <span>Move group to set…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
             </button>
             <button
               role="menuitem"
@@ -620,7 +620,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               }}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
             >
-              <span>Duplicate group</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">D</span>
+              <span>Duplicate group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
             </button>
             {onSetGroupScopes && (
               <button
@@ -633,7 +633,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 }}
                 className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                <span>Set scopes for group…</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">S</span>
+                <span>Set scopes for group…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">S</span>
               </button>
             )}
             {onSyncGroup && (
@@ -648,7 +648,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 }}
                 className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
               >
-                <span>Create variables from group</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">V</span>
+                <span>Create variables from group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">V</span>
               </button>
             )}
             {onSyncGroupStyles && (
@@ -663,7 +663,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 }}
                 className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
-                <span>Create styles from group</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">Y</span>
+                <span>Create styles from group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">Y</span>
               </button>
             )}
             {onGenerateScaleFromGroup && (
@@ -687,7 +687,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 }}
                 className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors border-t border-[var(--color-figma-border)]"
               >
-                <span>Generate scale from this group…</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">G</span>
+                <span>Generate scale from this group…</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">G</span>
               </button>
             )}
             <button
@@ -700,7 +700,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               }}
               className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 transition-colors border-t border-[var(--color-figma-border)]"
             >
-              <span>Delete group</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">X</span>
+              <span>Delete group</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">X</span>
             </button>
           </div>
         )}
@@ -711,7 +711,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             style={{ marginLeft: `${depth * 16 + 8}px` }}
             onClick={e => e.stopPropagation()}
           >
-            <div className="text-[9px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Group metadata</div>
+            <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] uppercase tracking-wide">Group metadata</div>
             <div className="flex items-center gap-1.5">
               <label className="text-[10px] text-[var(--color-figma-text-secondary)] w-16 shrink-0">$type</label>
               <select
@@ -1108,7 +1108,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           )}
         </div>
         {node.$description && (
-          <div className="text-[9px] text-[var(--color-figma-text-secondary)] truncate" title={node.$description}>{node.$description}</div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] truncate" title={node.$description}>{node.$description}</div>
         )}
       </div>
 
@@ -1426,7 +1426,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               onCreateSibling?.(nodeParentPath(node.path, node.name), node.$type || 'color');
             }}
           >
-            <span>Create sibling</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">N</span>
+            <span>Create sibling</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">N</span>
           </button>
           <button
             data-accel="d"
@@ -1437,7 +1437,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               onDuplicateToken?.(node.path);
             }}
           >
-            <span>Duplicate token</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">D</span>
+            <span>Duplicate token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">D</span>
           </button>
           <button
             data-accel="r"
@@ -1460,7 +1460,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               setRenamingToken(true);
             }}
           >
-            <span>Rename token</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">R</span>
+            <span>Rename token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">R</span>
           </button>
           {!isAlias(node.$value) && (
             <button
@@ -1472,7 +1472,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 onExtractToAlias?.(node.path, node.$type, node.$value);
               }}
             >
-              <span>Link to token</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">L</span>
+              <span>Link to token</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">L</span>
             </button>
           )}
           <button
@@ -1484,7 +1484,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               onRequestMoveToken?.(node.path);
             }}
           >
-            <span>Move to set...</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">M</span>
+            <span>Move to set...</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">M</span>
           </button>
           {onTogglePin && (
             <button
@@ -1494,7 +1494,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               onClick={() => { setContextMenuPos(null); onTogglePin(node.path); }}
             >
               <span>{isPinned ? 'Unpin token' : 'Pin token'}</span>
-              <span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">P</span>
+              <span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">P</span>
             </button>
           )}
           {onDetachFromGenerator && derivedTokenPaths?.has(node.path) && (
@@ -1519,7 +1519,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               setContextMenuPos(null);
             }}
           >
-            <span>Copy path <span className="text-[var(--color-figma-text-tertiary)]">({node.path})</span></span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">C</span>
+            <span>Copy path <span className="text-[var(--color-figma-text-tertiary)]">({node.path})</span></span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">C</span>
           </button>
           <button
             className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
@@ -1561,7 +1561,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               setContextMenuPos(null);
             }}
           >
-            <span>Copy value</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">V</span>
+            <span>Copy value</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">V</span>
           </button>
           <button
             data-accel="j"
@@ -1574,7 +1574,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               setContextMenuPos(null);
             }}
           >
-            <span>Copy as JSON</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">J</span>
+            <span>Copy as JSON</span><span className="ml-4 text-[10px] text-[var(--color-figma-text-tertiary)]">J</span>
           </button>
         </div>
       )}
@@ -1582,7 +1582,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       {/* Alias resolution chain tooltip — visible on row hover */}
       {hovered && aliasChainLabel && (
         <div className="absolute left-4 right-4 bottom-full z-20" style={{ marginBottom: '-2px' }}>
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded shadow-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[9px] font-mono text-[var(--color-figma-text-secondary)] whitespace-nowrap max-w-full overflow-hidden">
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded shadow-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] font-mono text-[var(--color-figma-text-secondary)] whitespace-nowrap max-w-full overflow-hidden">
             {[node.path, ...aliasChain].map((seg, i, arr) => (
               <Fragment key={i}>
                 {i === 0 ? (
@@ -1609,15 +1609,15 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         className="flex items-center flex-wrap gap-1 px-2 py-1 bg-[var(--color-figma-bg-hover)] border-t border-[var(--color-figma-border)]"
         style={{ paddingLeft: `${depth * 16 + 20}px` }}
       >
-        <span className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium shrink-0">Chain:</span>
-        <span className="text-[9px] text-[var(--color-figma-accent)] font-mono shrink-0">{node.path}</span>
+        <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium shrink-0">Chain:</span>
+        <span className="text-[10px] text-[var(--color-figma-accent)] font-mono shrink-0">{node.path}</span>
         {aliasChain.map((hop, i) => (
           <Fragment key={hop}>
             <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-secondary)] shrink-0">
               <path d="M1 4h6M4 1l3 3-3 3"/>
             </svg>
             <button
-              className="text-[9px] font-mono text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] shrink-0 transition-colors"
+              className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] shrink-0 transition-colors"
               onClick={() => onNavigateToAlias?.(hop)}
               title={`Navigate to ${hop}`}
             >
@@ -1628,7 +1628,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-secondary)] shrink-0">
                   <path d="M1 4h6M4 1l3 3-3 3"/>
                 </svg>
-                <span className="text-[9px] text-[var(--color-figma-text)] font-mono shrink-0">
+                <span className="text-[10px] text-[var(--color-figma-text)] font-mono shrink-0">
                   {formatValue(node.$type, displayValue)}
                 </span>
               </>

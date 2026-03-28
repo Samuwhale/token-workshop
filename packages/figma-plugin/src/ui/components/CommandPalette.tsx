@@ -241,11 +241,11 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
             className="flex-1 bg-transparent outline-none text-[12px] text-[var(--color-figma-text)] placeholder-[var(--color-figma-text-secondary)]"
           />
           {isTokenMode && (
-            <span className="text-[9px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0">
+            <span className="text-[10px] font-medium text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10 rounded px-1.5 py-0.5 shrink-0">
               TOKENS
             </span>
           )}
-          <kbd className="text-[9px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
+          <kbd className="text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded px-1 py-0.5 shrink-0">
             ESC
           </kbd>
         </div>
@@ -269,12 +269,12 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                     onMouseEnter={() => setActiveIdx(idx)}
                     onClick={() => executeToken(token)}
                   >
-                    <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 font-medium ${idx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                    <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ${idx === activeIdx ? 'bg-white/20 text-white' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                       {token.type}
                     </span>
                     <span className="text-[11px] font-mono truncate">{token.path}</span>
                     {token.set && (
-                      <span className={`text-[9px] px-1 py-0.5 rounded shrink-0 font-medium ml-auto ${idx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                      <span className={`text-[10px] px-1 py-0.5 rounded shrink-0 font-medium ml-auto ${idx === activeIdx ? 'bg-white/20 text-white/70' : 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                         {token.set}
                       </span>
                     )}
@@ -283,7 +283,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                     <button
                       tabIndex={-1}
                       title={`Copy raw value: ${token.value}`}
-                      className={`px-2 py-1.5 text-[9px] shrink-0 transition-colors ${idx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${idx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onCopyTokenValue(token.value!); onClose(); }}
                     >
                       Val
@@ -293,7 +293,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                     <button
                       tabIndex={-1}
                       title={`Copy CSS var: ${tokenCssVar(token.path)}`}
-                      className={`px-2 py-1.5 text-[9px] shrink-0 transition-colors ${idx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
+                      className={`px-2 py-1.5 text-[10px] shrink-0 transition-colors ${idx === activeIdx ? 'text-white/70 hover:text-white' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)]'}`}
                       onClick={(e) => { e.stopPropagation(); onCopyTokenCssVar(token.path); onClose(); }}
                     >
                       CSS
@@ -314,7 +314,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
             <>
               {sections.map(section => (
                 <div key={section.header}>
-                  <div className="px-3 pt-2 pb-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
+                  <div className="px-3 pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-figma-text-secondary)]">
                     {section.header}
                   </div>
                   {section.items.map(cmd => {
@@ -331,7 +331,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                       >
                         <span className="text-[11px] font-medium flex-1">{cmd.label}</span>
                         {cmd.shortcut && (
-                          <kbd className={`text-[9px] border rounded px-1 py-0.5 shrink-0 ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                          <kbd className={`text-[10px] border rounded px-1 py-0.5 shrink-0 ${flatIdx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                             {cmd.shortcut}
                           </kbd>
                         )}
@@ -371,7 +371,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
                     )}
                   </div>
                   {cmd.shortcut && (
-                    <kbd className={`text-[9px] border rounded px-1 py-0.5 shrink-0 ${idx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
+                    <kbd className={`text-[10px] border rounded px-1 py-0.5 shrink-0 ${idx === activeIdx ? 'border-white/30 bg-white/10 text-white/80' : 'border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>
                       {cmd.shortcut}
                     </kbd>
                   )}
@@ -382,7 +382,7 @@ export function CommandPalette({ commands, tokens = [], onGoToToken, onCopyToken
         </div>
 
         {/* Footer hints */}
-        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex gap-3 text-[9px] text-[var(--color-figma-text-secondary)]">
+        <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] flex gap-3 text-[10px] text-[var(--color-figma-text-secondary)]">
           {isTokenMode ? (
             <>
               <span>↑↓ navigate</span>

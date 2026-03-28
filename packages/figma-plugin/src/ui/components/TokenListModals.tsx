@@ -480,7 +480,7 @@ export function TokenListModals(props: TokenListModalsProps) {
                               ? <>{newPath.slice(0, newIdx)}<span className="bg-green-100/80 rounded-sm">{frReplace}</span>{newPath.slice(newIdx + frReplace.length)}</>
                               : newPath}
                           </div>
-                          {conflict && <div className="text-[9px] text-red-600 mt-0.5">⚠ conflicts with existing token — will be skipped</div>}
+                          {conflict && <div className="text-[10px] text-red-600 mt-0.5">⚠ conflicts with existing token — will be skipped</div>}
                         </div>
                       );
                     })}
@@ -546,7 +546,7 @@ export function TokenListModals(props: TokenListModalsProps) {
                         → <span className="font-mono text-[var(--color-figma-accent)]">{`{${row.proposedAlias}}`}</span>
                         {row.$type === 'color' && row.deltaE !== undefined && (
                           <span
-                            className="ml-1 text-[9px] opacity-60"
+                            className="ml-1 text-[10px] opacity-60"
                             title={`ΔE=${row.deltaE.toFixed(2)} — color difference score (lower is better)`}
                           >
                             {row.deltaE < 1 ? 'Exact' : row.deltaE < 5 ? 'Close' : 'Approximate'}

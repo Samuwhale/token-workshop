@@ -594,19 +594,19 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             </div>
           )}
           {isCreateMode && duplicatePath ? (
-            <div className="text-[9px] text-[var(--color-figma-danger,#f24822)]">A token with this path already exists in {pathToSet[editPath.trim()] || setName}</div>
+            <div className="text-[10px] text-[var(--color-figma-danger,#f24822)]">A token with this path already exists in {pathToSet[editPath.trim()] || setName}</div>
           ) : (
-            <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{isCreateMode ? 'new token' : `in ${setName}`}</div>
+            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{isCreateMode ? 'new token' : `in ${setName}`}</div>
           )}
           {isCreateMode && !editPath.includes('.') && (NAMESPACE_SUGGESTIONS[tokenType]?.prefixes.length ?? 0) > 0 && (
             <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-              <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">Try:</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">Try:</span>
               {NAMESPACE_SUGGESTIONS[tokenType].prefixes.map(prefix => (
                 <button
                   key={prefix}
                   type="button"
                   onClick={() => { setEditPath(prefix); setError(null); }}
-                  className="px-1 py-px rounded text-[9px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-pressed)] transition-colors cursor-pointer"
+                  className="px-1 py-px rounded text-[10px] bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-pressed)] transition-colors cursor-pointer"
                 >
                   {prefix}
                 </button>
@@ -652,7 +652,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           value={tokenType}
           onChange={e => handleTypeChange(e.target.value)}
           title="Change token type"
-          className={`px-1.5 py-0.5 rounded text-[9px] font-medium uppercase cursor-pointer border-0 outline-none appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ''] ?? 'token-type-string'}`}
+          className={`px-1.5 py-0.5 rounded text-[10px] font-medium uppercase cursor-pointer border-0 outline-none appearance-none ${TOKEN_TYPE_BADGE_CLASS[tokenType ?? ''] ?? 'token-type-string'}`}
           style={{ backgroundImage: 'none' }}
         >
           {Object.keys(TOKEN_TYPE_BADGE_CLASS).map(t => (
@@ -718,7 +718,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             <div className="flex items-center justify-between">
               <label className="block text-[10px] text-[var(--color-figma-text-secondary)]">Value</label>
               {!canSave && tokenType === 'typography' && saveBlockReason && (
-                <button type="button" onClick={focusBlockedField} className="text-[9px] text-[var(--color-figma-error)] hover:underline cursor-pointer bg-transparent border-none p-0">{saveBlockReason}</button>
+                <button type="button" onClick={focusBlockedField} className="text-[10px] text-[var(--color-figma-error)] hover:underline cursor-pointer bg-transparent border-none p-0">{saveBlockReason}</button>
               )}
             </div>
             {initialRef.current && !isCreateMode && (
@@ -773,7 +773,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               <button
                 key={lc}
                 onClick={() => setLifecycle(lc)}
-                className={`px-2 py-0.5 rounded text-[9px] font-medium transition-colors ${
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
                   lifecycle === lc
                     ? lc === 'draft'
                       ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 ring-1 ring-amber-500/40'
@@ -831,7 +831,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                 : 'Derived groups'}
             </span>
             {existingGeneratorsForToken.length === 0 ? (
-              <span className="text-[9px] text-[var(--color-figma-accent)]">+ Create</span>
+              <span className="text-[10px] text-[var(--color-figma-accent)]">+ Create</span>
             ) : (
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M7 2L3 5l4 3"/>
@@ -855,7 +855,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); setEditingGeneratorInDialog(gen); setShowGeneratorDialog(true); }}
-                    className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
+                    className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] transition-colors shrink-0"
                   >
                     Edit
                   </button>
@@ -966,7 +966,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             title={`Create this token and immediately start creating another (${adaptShortcut('⌘⇧↵')})`}
             className="px-3 py-2 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] text-[11px] font-medium hover:bg-[var(--color-figma-accent)]/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Creating…' : (<>Create & New <span className="ml-1 opacity-50 text-[9px]">{adaptShortcut('⌘⇧↵')}</span></>)}
+            {saving ? 'Creating…' : (<>Create & New <span className="ml-1 opacity-50 text-[10px]">{adaptShortcut('⌘⇧↵')}</span></>)}
           </button>
         )}
         <div className="flex-1" onClick={() => { if (!canSave && saveBlockReason && tokenType === 'typography') focusBlockedField(); }}>
@@ -980,7 +980,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
               ? (isCreateMode ? 'Creating…' : 'Saving…')
               : (saveBlockReason
                 ? saveBlockReason
-                : (!isCreateMode && !isDirty ? 'No changes' : (<>{isCreateMode ? 'Create' : 'Save changes'} <span className="ml-1 opacity-60 text-[9px]">{adaptShortcut('⌘↵')}</span></>)))}
+                : (!isCreateMode && !isDirty ? 'No changes' : (<>{isCreateMode ? 'Create' : 'Save changes'} <span className="ml-1 opacity-60 text-[10px]">{adaptShortcut('⌘↵')}</span></>)))}
           </button>
         </div>
       </div>

@@ -300,10 +300,10 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             }`} />
             <span className="text-[10px] font-medium text-[var(--color-figma-text)]">Publish Readiness</span>
             {readinessFails > 0 && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] font-medium">{readinessFails} issue{readinessFails !== 1 ? 's' : ''}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/10 text-[var(--color-figma-error)] font-medium">{readinessFails} issue{readinessFails !== 1 ? 's' : ''}</span>
             )}
             {readinessFails === 0 && readinessPasses > 0 && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Ready</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Ready</span>
             )}
           </div>
           <button
@@ -337,17 +337,17 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 <div className="flex-1 min-w-0">
                   <div className="text-[10px] text-[var(--color-figma-text)]">{check.label}</div>
                   {check.count !== undefined && check.status === 'fail' && (
-                    <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{check.count} affected</div>
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{check.count} affected</div>
                   )}
                   {check.detail && check.status === 'fail' && (
-                    <div className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">{check.detail}</div>
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5 leading-relaxed">{check.detail}</div>
                   )}
                 </div>
                 {check.fixLabel && check.onFix && (
                   <button
                     onClick={check.onFix}
                     disabled={orphansDeleting}
-                    className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0 disabled:opacity-40"
+                    className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 shrink-0 disabled:opacity-40"
                   >
                     {orphansDeleting && check.id === 'orphans' ? 'Deleting\u2026' : check.fixLabel}
                   </button>
@@ -358,7 +358,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         )}
 
         {!readinessLoading && readinessChecks.length === 0 && !readinessError && (
-          <div className="mt-1 text-[9px] text-[var(--color-figma-text-secondary)]">
+          <div className="mt-1 text-[10px] text-[var(--color-figma-text-secondary)]">
             Click <strong className="font-medium text-[var(--color-figma-text)]">Run checks</strong> to validate before publishing.
           </div>
         )}
@@ -374,9 +374,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           onToggle={() => toggleSection('figma-variables')}
           badge={
             varSync.varChecked && varSync.varRows.length === 0
-              ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
+              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
               : varSync.varRows.length > 0
-                ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{varSync.varRows.length} differ</span>
+                ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{varSync.varRows.length} differ</span>
                 : null
           }
         >
@@ -407,12 +407,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             return (
               <>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] mr-0.5">Select all:</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] mr-0.5">Select all:</span>
                   {(['push', 'pull', 'skip'] as const).map(action => (
                     <button
                       key={action}
                       onClick={() => varSync.setVarDirs(Object.fromEntries(varSync.varRows.map(r => [r.path, action])))}
-                      className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
+                      className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
                     >
                       {action === 'push' ? '\u2191 Push all' : action === 'pull' ? '\u2193 Pull all' : 'Skip all'}
                     </button>
@@ -422,7 +422,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 <div className="divide-y divide-[var(--color-figma-border)] max-h-52 overflow-y-auto">
                   {localOnly.length > 0 && (
                     <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">Local only \u2014 not yet in Figma ({localOnly.length})</span>
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Local only \u2014 not yet in Figma ({localOnly.length})</span>
                     </div>
                   )}
                   {localOnly.map(row => (
@@ -430,7 +430,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   ))}
                   {figmaOnly.length > 0 && (
                     <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">Figma only \u2014 not in local files ({figmaOnly.length})</span>
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Figma only \u2014 not in local files ({figmaOnly.length})</span>
                     </div>
                   )}
                   {figmaOnly.map(row => (
@@ -438,7 +438,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   ))}
                   {conflicts.length > 0 && (
                     <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">Values differ \u2014 choose which to keep ({conflicts.length})</span>
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Values differ \u2014 choose which to keep ({conflicts.length})</span>
                     </div>
                   )}
                   {conflicts.map(row => (
@@ -447,7 +447,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 </div>
 
                 <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                     {varSync.varSyncCount === 0
                       ? 'Nothing to apply \u2014 all skipped'
                       : [
@@ -491,9 +491,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           onToggle={() => toggleSection('figma-styles')}
           badge={
             styleSync.styleChecked && styleSync.styleRows.length === 0
-              ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
+              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
               : styleSync.styleRows.length > 0
-                ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{styleSync.styleRows.length} differ</span>
+                ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{styleSync.styleRows.length} differ</span>
                 : null
           }
         >
@@ -524,12 +524,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
             return (
               <>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg)]">
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)] mr-0.5">Select all:</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)] mr-0.5">Select all:</span>
                   {(['push', 'pull', 'skip'] as const).map(action => (
                     <button
                       key={action}
                       onClick={() => styleSync.setStyleDirs(Object.fromEntries(styleSync.styleRows.map(r => [r.path, action])))}
-                      className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
+                      className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] capitalize"
                     >
                       {action === 'push' ? '\u2191 Push all' : action === 'pull' ? '\u2193 Pull all' : 'Skip all'}
                     </button>
@@ -539,7 +539,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 <div className="divide-y divide-[var(--color-figma-border)] max-h-52 overflow-y-auto">
                   {localOnly.length > 0 && (
                     <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">Local only \u2014 not yet in Figma ({localOnly.length})</span>
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Local only \u2014 not yet in Figma ({localOnly.length})</span>
                     </div>
                   )}
                   {localOnly.map(row => (
@@ -547,7 +547,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   ))}
                   {figmaOnly.length > 0 && (
                     <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">Figma only \u2014 not in local files ({figmaOnly.length})</span>
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Figma only \u2014 not in local files ({figmaOnly.length})</span>
                     </div>
                   )}
                   {figmaOnly.map(row => (
@@ -555,7 +555,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   ))}
                   {conflicts.length > 0 && (
                     <div className="px-3 py-1 bg-[var(--color-figma-bg-secondary)]">
-                      <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">Values differ \u2014 choose which to keep ({conflicts.length})</span>
+                      <span className="text-[10px] font-medium text-[var(--color-figma-text-secondary)]">Values differ \u2014 choose which to keep ({conflicts.length})</span>
                     </div>
                   )}
                   {conflicts.map(row => (
@@ -564,7 +564,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 </div>
 
                 <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                     {styleSync.styleSyncCount === 0
                       ? 'Nothing to apply \u2014 all skipped'
                       : [
@@ -608,12 +608,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           onToggle={() => toggleSection('git')}
           badge={
             git.gitLoading ? null :
-            !git.gitStatus?.isRepo ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] font-medium border border-[var(--color-figma-border)]">No repo</span> :
+            !git.gitStatus?.isRepo ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] font-medium border border-[var(--color-figma-border)]">No repo</span> :
             git.mergeConflicts.length > 0
-              ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] font-medium">{git.mergeConflicts.length} conflict{git.mergeConflicts.length !== 1 ? 's' : ''}</span> :
+              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-error)]/15 text-[var(--color-figma-error)] font-medium">{git.mergeConflicts.length} conflict{git.mergeConflicts.length !== 1 ? 's' : ''}</span> :
             git.allChanges.length > 0
-              ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{git.allChanges.length} uncommitted</span>
-              : <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Clean</span>
+              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-warning)]/15 text-yellow-600 font-medium">{git.allChanges.length} uncommitted</span>
+              : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">Clean</span>
           }
         >
           {git.gitError && (
@@ -667,7 +667,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     <span className="text-[11px] font-medium truncate max-w-[140px]" title={git.gitStatus.branch || 'main'}>{git.gitStatus.branch || 'main'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[9px] font-medium ${git.allChanges.length > 0 ? 'text-yellow-600' : 'text-[var(--color-figma-success)]'}`}>
+                    <span className={`text-[10px] font-medium ${git.allChanges.length > 0 ? 'text-yellow-600' : 'text-[var(--color-figma-success)]'}`}>
                       {git.allChanges.length > 0 ? `${git.allChanges.length} change${git.allChanges.length !== 1 ? 's' : ''}` : 'Clean'}
                     </span>
                     <button
@@ -716,7 +716,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     <button
                       onClick={git.abortMerge}
                       disabled={git.actionLoading === 'abort'}
-                      className="text-[9px] px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
+                      className="text-[10px] px-2 py-0.5 rounded border border-[var(--color-figma-error)]/40 text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 disabled:opacity-40 transition-colors"
                     >
                       {git.actionLoading === 'abort' ? 'Aborting\u2026' : 'Abort merge'}
                     </button>
@@ -728,9 +728,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     {git.mergeConflicts.map((conflict) => (
                       <div key={conflict.file} className="flex flex-col">
                         <div className="px-3 py-1.5 bg-[var(--color-figma-bg-secondary)] flex items-center gap-1.5">
-                          <span className="text-[9px] font-mono font-bold text-[var(--color-figma-warning)]">!</span>
+                          <span className="text-[10px] font-mono font-bold text-[var(--color-figma-warning)]">!</span>
                           <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={conflict.file}>{conflict.file}</span>
-                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] ml-auto shrink-0">{conflict.regions.length} conflict{conflict.regions.length !== 1 ? 's' : ''}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] ml-auto shrink-0">{conflict.regions.length} conflict{conflict.regions.length !== 1 ? 's' : ''}</span>
                         </div>
                         {conflict.regions.map((region) => {
                           const choice = git.conflictChoices[conflict.file]?.[region.index] ?? 'theirs';
@@ -750,12 +750,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                                   }`}
                                 >
                                   <div className="flex items-center justify-between mb-0.5">
-                                    <span className={`text-[9px] font-semibold ${choice === 'ours' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-secondary)]'}`}>Ours (local)</span>
+                                    <span className={`text-[10px] font-semibold ${choice === 'ours' ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-secondary)]'}`}>Ours (local)</span>
                                     {choice === 'ours' && (
                                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-success)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                     )}
                                   </div>
-                                  <pre className="text-[9px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all max-h-16 overflow-y-auto leading-tight">{region.ours || '(empty)'}</pre>
+                                  <pre className="text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all max-h-16 overflow-y-auto leading-tight">{region.ours || '(empty)'}</pre>
                                 </button>
                                 {/* Theirs */}
                                 <button
@@ -770,12 +770,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                                   }`}
                                 >
                                   <div className="flex items-center justify-between mb-0.5">
-                                    <span className={`text-[9px] font-semibold ${choice === 'theirs' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`}>Theirs (remote)</span>
+                                    <span className={`text-[10px] font-semibold ${choice === 'theirs' ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)]'}`}>Theirs (remote)</span>
                                     {choice === 'theirs' && (
                                       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="var(--color-figma-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5" /></svg>
                                     )}
                                   </div>
-                                  <pre className="text-[9px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all max-h-16 overflow-y-auto leading-tight">{region.theirs || '(empty)'}</pre>
+                                  <pre className="text-[10px] font-mono text-[var(--color-figma-text)] whitespace-pre-wrap break-all max-h-16 overflow-y-auto leading-tight">{region.theirs || '(empty)'}</pre>
                                 </button>
                               </div>
                             </div>
@@ -785,7 +785,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     ))}
                   </div>
                   <div className="px-3 py-2 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                    <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                    <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                       {git.mergeConflicts.reduce((sum, c) => sum + c.regions.length, 0)} region{git.mergeConflicts.reduce((sum, c) => sum + c.regions.length, 0) !== 1 ? 's' : ''} to resolve
                     </span>
                     <button
@@ -819,7 +819,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       />
                       Uncommitted changes
                     </label>
-                    <span className="text-[9px] opacity-60">{git.selectedFiles.size}/{git.allChanges.length} selected</span>
+                    <span className="text-[10px] opacity-60">{git.selectedFiles.size}/{git.allChanges.length} selected</span>
                   </div>
                   <div className="max-h-28 overflow-y-auto divide-y divide-[var(--color-figma-border)]">
                     {git.allChanges.map((change, i) => (
@@ -836,7 +836,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                           }}
                           className="w-3 h-3 flex-shrink-0"
                         />
-                        <span className={`text-[9px] font-mono font-bold w-3 flex-shrink-0 ${
+                        <span className={`text-[10px] font-mono font-bold w-3 flex-shrink-0 ${
                           change.status === 'M' ? 'text-[var(--color-figma-warning)]' :
                           change.status === 'A' ? 'text-[var(--color-figma-success)]' :
                           change.status === 'D' ? 'text-[var(--color-figma-error)]' :
@@ -911,7 +911,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Remote differences</span>
                       {git.diffView && git.diffView.localOnly.length + git.diffView.remoteOnly.length + git.diffView.conflicts.length === 0 && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-success)]/15 text-[var(--color-figma-success)] font-medium">In sync</span>
                       )}
                     </div>
                     <button
@@ -972,7 +972,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                               )}
                             </div>
                             {diffFilter && (
-                              <div className="text-[9px] text-[var(--color-figma-text-secondary)] mt-1">
+                              <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-1">
                                 {filteredFiles.length} of {allFiles.length} file{allFiles.length !== 1 ? 's' : ''}
                               </div>
                             )}
@@ -985,12 +985,12 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                             const catColor = cat === 'local' ? 'text-[var(--color-figma-success)]' : cat === 'remote' ? 'text-[var(--color-figma-accent)]' : 'text-yellow-600';
                             return (
                               <div key={file} className="flex items-center gap-2 px-3 py-1.5">
-                                <span className={`text-[9px] font-medium shrink-0 w-20 ${catColor}`}>{catLabel}</span>
+                                <span className={`text-[10px] font-medium shrink-0 w-20 ${catColor}`}>{catLabel}</span>
                                 <span className="text-[10px] text-[var(--color-figma-text)] flex-1 truncate font-mono" title={file}>{file}</span>
                                 <select
                                   value={choice}
                                   onChange={e => git.setDiffChoices(prev => ({ ...prev, [file]: e.target.value as 'push' | 'pull' | 'skip' }))}
-                                  className="text-[9px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5"
+                                  className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5"
                                 >
                                   <option value="push">{'\u2191'} Push</option>
                                   <option value="pull">{'\u2193'} Pull</option>
@@ -1001,7 +1001,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                           })}
                         </div>
                         <div className="px-3 py-2 border-t border-[var(--color-figma-border)] flex items-center justify-between bg-[var(--color-figma-bg-secondary)]">
-                          <span className="text-[9px] text-[var(--color-figma-text-secondary)]">
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
                             {pendingCount > 0 ? `${pendingCount} file${pendingCount !== 1 ? 's' : ''} will be updated` : 'All skipped'}
                           </span>
                           <button
@@ -1060,7 +1060,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
           onToggle={() => toggleSection('file-export')}
           badge={
             exportResults.length > 0
-              ? <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium">{exportResults.length} file{exportResults.length !== 1 ? 's' : ''}</span>
+              ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)] font-medium">{exportResults.length} file{exportResults.length !== 1 ? 's' : ''}</span>
               : null
           }
         >
@@ -1093,7 +1093,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       setSelectedPlatforms(new Set(PLATFORMS.map(p => p.id)));
                     }
                   }}
-                  className="text-[9px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                  className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
                 >
                   {selectedPlatforms.size === PLATFORMS.length ? 'Deselect all' : `Select all (${PLATFORMS.length})`}
                 </button>
@@ -1129,7 +1129,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{platform.label}</div>
-                        <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{platform.description}</div>
+                        <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{platform.description}</div>
                         {isSelected && (
                           <div className="mt-1 text-[8px] font-mono text-[var(--color-figma-text-tertiary)] truncate">
                             {platform.example}
@@ -1158,7 +1158,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                   <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
                     Generated Files
                   </div>
-                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                     {exportResults.length} file{exportResults.length !== 1 ? 's' : ''}
                   </div>
                 </div>
@@ -1189,7 +1189,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                             {file.content}
                           </pre>
                           <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                               {file.content.split('\n').length} lines
                             </span>
                             <div className="flex items-center gap-2">
@@ -1283,9 +1283,9 @@ function ValueCell({ label, value, type }: { label: string; value: string | unde
   const showSwatch = (type === 'color' || isHexColor(v)) && isHexColor(v);
   return (
     <div className="flex items-center gap-1 min-w-0 flex-1">
-      <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{label}</span>
+      <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">{label}</span>
       {showSwatch && <DiffSwatch hex={v} />}
-      <span className="text-[9px] font-mono text-[var(--color-figma-text)] truncate" title={v}>{truncateValue(v)}</span>
+      <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={v}>{truncateValue(v)}</span>
     </div>
   );
 }
@@ -1302,7 +1302,7 @@ function VarDiffRowItem({ row, dir, onChange }: {
         <select
           value={dir}
           onChange={e => onChange(e.target.value as 'push' | 'pull' | 'skip')}
-          className="text-[9px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5 shrink-0"
+          className="text-[10px] border border-[var(--color-figma-border)] rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] outline-none px-1 py-0.5 shrink-0"
         >
           <option value="push">{'\u2191'} Push to Figma</option>
           <option value="pull">{'\u2193'} Pull to local</option>
@@ -1321,13 +1321,13 @@ function VarDiffRowItem({ row, dir, onChange }: {
       {row.cat === 'local-only' && row.localValue !== undefined && (
         <div className="flex items-center gap-1 pl-0.5">
           {(row.localType === 'color' || isHexColor(row.localValue)) && isHexColor(row.localValue) && <DiffSwatch hex={row.localValue} />}
-          <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.localValue)}</span>
+          <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.localValue)}</span>
         </div>
       )}
       {row.cat === 'figma-only' && row.figmaValue !== undefined && (
         <div className="flex items-center gap-1 pl-0.5">
           {(row.figmaType === 'color' || isHexColor(row.figmaValue)) && isHexColor(row.figmaValue) && <DiffSwatch hex={row.figmaValue} />}
-          <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.figmaValue)}</span>
+          <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">{truncateValue(row.figmaValue)}</span>
         </div>
       )}
     </div>

@@ -82,7 +82,7 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               <span className="flex-1 text-[11px] font-medium text-[var(--color-figma-accent)]">Guided setup</span>
-              <span className="text-[9px] text-[var(--color-figma-text-tertiary)] font-normal">3 steps</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)] font-normal">3 steps</span>
             </div>
             <p className="text-[10px] text-[var(--color-figma-text-secondary)] leading-snug pl-[20px]">
               Generate primitives, map semantics, set up themes
@@ -92,7 +92,7 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
 
         {/* Secondary actions */}
         <div className="flex flex-col gap-1.5 pt-1">
-          <p className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left">Or start with</p>
+          <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left">Or start with</p>
 
           {onGoToGraph && (
             <button
@@ -172,7 +172,7 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
         {(onGenerateSemanticTokens || onGenerateDarkTheme) && (
           <>
             <div className="w-full border-t border-[var(--color-figma-border)] my-1" />
-            <p className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium self-start">From primitives</p>
+            <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium self-start">From primitives</p>
             {onGenerateSemanticTokens && (
               <button
                 onClick={onGenerateSemanticTokens}
@@ -206,7 +206,7 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
       {/* Workflow walkthrough */}
       <div className="w-full max-w-[260px] pt-1">
         <div className="w-full border-t border-[var(--color-figma-border)] mb-3" />
-        <p className="text-[9px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left mb-2">How it works</p>
+        <p className="text-[10px] text-[var(--color-figma-text-tertiary)] uppercase tracking-wide font-medium text-left mb-2">How it works</p>
         <div className="flex items-start gap-0 w-full">
           <div className="flex-1 flex flex-col items-center gap-1 min-w-0">
             <div className="w-6 h-6 rounded-full bg-[var(--color-figma-bg-secondary)] flex items-center justify-center text-[var(--color-figma-text-secondary)]">
@@ -215,7 +215,7 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
                 <path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3" />
               </svg>
             </div>
-            <p className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Tokens</p>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Tokens</p>
             <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Define values</p>
           </div>
           <svg width="10" height="10" viewBox="0 0 8 8" fill="var(--color-figma-text-tertiary)" className="mt-2 shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
@@ -226,7 +226,7 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
                 <path d="M3 9h18M9 21V9" />
               </svg>
             </div>
-            <p className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Themes</p>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Themes</p>
             <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Map modes</p>
           </div>
           <svg width="10" height="10" viewBox="0 0 8 8" fill="var(--color-figma-text-tertiary)" className="mt-2 shrink-0"><path d="M2 1l4 3-4 3V1z" /></svg>
@@ -238,7 +238,7 @@ export function EmptyState({ connected, onCreateToken, onPasteJSON, onImportFigm
                 <line x1="12" y1="2" x2="12" y2="15" />
               </svg>
             </div>
-            <p className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Publish</p>
+            <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium leading-tight text-center">Publish</p>
             <p className="text-[8px] text-[var(--color-figma-text-tertiary)] leading-tight text-center">Export & sync</p>
           </div>
         </div>

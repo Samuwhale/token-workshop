@@ -114,7 +114,7 @@ function ColorSwatch({ color }: { color: string }) {
 
 function ChangeSummaryBadges({ added, modified, removed }: { added: number; modified: number; removed: number }) {
   return (
-    <span className="flex items-center gap-1.5 ml-auto text-[9px] font-mono">
+    <span className="flex items-center gap-1.5 ml-auto text-[10px] font-mono">
       {added > 0 && <span style={{ color: 'var(--color-figma-success)' }}>+{added}</span>}
       {modified > 0 && <span style={{ color: 'var(--color-figma-warning)' }}>~{modified}</span>}
       {removed > 0 && <span style={{ color: 'var(--color-figma-error)' }}>-{removed}</span>}
@@ -273,9 +273,9 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
           <div className="shrink-0 px-3 py-2 border-b border-[var(--color-figma-border)]">
             <p className="text-[11px] font-medium text-[var(--color-figma-text)] leading-snug">{commit.message}</p>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
-              <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
-              <span className="text-[9px] font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+              <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
+              <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)]">{commit.hash.slice(0, 7)}</span>
             </div>
           </div>
         )}
@@ -314,7 +314,7 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
                         <div key={`${change.path}-${i}`} className="px-3 py-2 space-y-1">
                           <div className="flex items-center gap-2">
                             <span
-                              className="text-[9px] font-medium uppercase tracking-wide shrink-0 px-1 py-0.5 rounded"
+                              className="text-[10px] font-medium uppercase tracking-wide shrink-0 px-1 py-0.5 rounded"
                               style={{
                                 color: statusColor(change.status),
                                 backgroundColor: `color-mix(in srgb, ${statusColor(change.status)} 12%, transparent)`,
@@ -325,7 +325,7 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
                             <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate" title={change.path}>
                               {change.path}
                             </span>
-                            <span className="text-[9px] text-[var(--color-figma-text-tertiary)] shrink-0">{change.type}</span>
+                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)] shrink-0">{change.type}</span>
                           </div>
 
                           {/* Value preview */}
@@ -337,7 +337,7 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
                               {change.type === 'color' && typeof change.after === 'string' && (
                                 <ColorSwatch color={change.after} />
                               )}
-                              <span className="text-[9px] font-mono text-[var(--color-figma-text-secondary)]">
+                              <span className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">
                                 {formatTokenValue(change.type, change.after)}
                               </span>
                             </div>
@@ -347,7 +347,7 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
                               {change.type === 'color' && typeof change.before === 'string' && (
                                 <ColorSwatch color={change.before} />
                               )}
-                              <span className="text-[9px] font-mono text-[var(--color-figma-text-tertiary)] line-through">
+                              <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] line-through">
                                 {formatTokenValue(change.type, change.before)}
                               </span>
                             </div>
@@ -398,9 +398,9 @@ export function VersionHistoryPanel({ serverUrl, connected }: VersionHistoryPane
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-medium text-[var(--color-figma-text)] leading-snug truncate">{commit.message}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
-                  <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
-                  <span className="text-[9px] font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{commit.author}</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">{formatRelativeTime(new Date(commit.date))}</span>
+                  <span className="text-[10px] font-mono text-[var(--color-figma-text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity">{commit.hash.slice(0, 7)}</span>
                 </div>
               </div>
 

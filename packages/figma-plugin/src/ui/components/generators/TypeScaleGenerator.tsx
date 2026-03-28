@@ -101,7 +101,7 @@ export function TypeScalePreview({ tokens, overrides, onOverrideChange, onOverri
         return (
           <OverrideRow key={t.stepName} token={t} override={overrides[t.stepName]} onOverrideChange={onOverrideChange} onOverrideClear={onOverrideClear}>
             <span className="text-[var(--color-figma-text)] leading-none font-medium" style={{ fontSize: `${displayPx}px` }}>Ag</span>
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 ml-auto">{valStr}</span>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 ml-auto">{valStr}</span>
           </OverrideRow>
         );
       })}

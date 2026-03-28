@@ -75,7 +75,7 @@ export function SpacingPreview({ tokens, overrides, onOverrideChange, onOverride
             <div className="flex-1 h-2 rounded-sm bg-[var(--color-figma-bg)] overflow-hidden">
               <div className="h-full rounded-sm bg-[var(--color-figma-accent)]" style={{ width: `${pct}%`, opacity: 0.7 }} />
             </div>
-            <span className="w-14 text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 text-right">{formatValue(t.value)}</span>
+            <span className="w-14 text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 text-right">{formatValue(t.value)}</span>
           </OverrideRow>
         );
       })}

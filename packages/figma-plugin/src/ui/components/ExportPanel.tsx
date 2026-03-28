@@ -509,7 +509,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                       setSelected(new Set(PLATFORMS.map(p => p.id)));
                     }
                   }}
-                  className="text-[9px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                  className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
                 >
                   {selected.size === PLATFORMS.length ? 'Deselect all' : `Select all (${PLATFORMS.length})`}
                 </button>
@@ -545,7 +545,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                       />
                       <div className="flex-1 min-w-0">
                         <div className="text-[11px] font-medium text-[var(--color-figma-text)]">{platform.label}</div>
-                        <div className="text-[9px] text-[var(--color-figma-text-secondary)]">{platform.description}</div>
+                        <div className="text-[10px] text-[var(--color-figma-text-secondary)]">{platform.description}</div>
                         {isSelected && (
                           <div className="mt-1 text-[8px] font-mono text-[var(--color-figma-text-tertiary)] truncate">
                             {platform.example}
@@ -567,7 +567,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   {cssSelector !== ':root' && (
                     <button
                       onClick={() => setCssSelector(':root')}
-                      className="text-[9px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                      className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
                     >
                       Reset to :root
                     </button>
@@ -582,7 +582,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                     spellCheck={false}
                     className="w-full px-2.5 py-1.5 rounded-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] font-mono text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)] transition-colors placeholder:text-[var(--color-figma-text-tertiary)]"
                   />
-                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
+                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)] leading-relaxed">
                     Wrap CSS variables with a custom selector — e.g. <span className="font-mono">.light</span>, <span className="font-mono">[data-theme="dark"]</span>, or <span className="font-mono">:root .brand</span>
                   </div>
                 </div>
@@ -597,7 +597,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   </div>
                   <button
                     onClick={() => setSelectedSets(null)}
-                    className="text-[9px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
+                    className="text-[10px] text-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent-hover)] transition-colors"
                   >
                     {selectedSets === null ? `All (${availableSets.length})` : `${(selectedSets).size} of ${availableSets.length} — reset`}
                   </button>
@@ -645,7 +645,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium uppercase tracking-wide">
                     Generated Files
                   </div>
-                  <div className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                  <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                     {results.length} file{results.length !== 1 ? 's' : ''}
                   </div>
                 </div>
@@ -676,7 +676,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                             {file.content}
                           </pre>
                           <div className="px-3 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center justify-between">
-                            <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                            <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                               {file.content.split('\n').length} lines
                             </span>
                             <div className="flex items-center gap-2">
@@ -771,7 +771,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                   </div>
                   <button
                     onClick={handleExportFigmaVariables}
-                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                   >
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M23 4v6h-6M1 20v-6h6" />
@@ -804,7 +804,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                          <span className="text-[9px] text-[var(--color-figma-text-tertiary)]">
+                          <span className="text-[10px] text-[var(--color-figma-text-tertiary)]">
                             {collection.variables.length} var{collection.variables.length !== 1 ? 's' : ''}
                           </span>
                           {collection.modes.length > 1 && (
@@ -820,7 +820,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                           {/* Mode headers */}
                           {collection.modes.length > 1 && (
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-bg-secondary)]">
-                              <div className="text-[9px] text-[var(--color-figma-text-secondary)] font-medium">Modes:</div>
+                              <div className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium">Modes:</div>
                               {collection.modes.map(m => (
                                 <span key={m} className="px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] text-[8px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)]">
                                   {m}
@@ -873,7 +873,7 @@ export function ExportPanel({ serverUrl, connected }: ExportPanelProps) {
                                 {expandedVar === varKey && (
                                   <div className="px-3 py-2 bg-[var(--color-figma-bg)] border-t border-[var(--color-figma-border)]">
                                     {variable.description && (
-                                      <div className="text-[9px] text-[var(--color-figma-text-secondary)] mb-1.5 italic">
+                                      <div className="text-[10px] text-[var(--color-figma-text-secondary)] mb-1.5 italic">
                                         {variable.description}
                                       </div>
                                     )}

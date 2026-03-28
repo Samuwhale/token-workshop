@@ -81,10 +81,10 @@ export function ContrastChecker({ tokenPath, value, allTokensFlat, pathToSet, co
                   )}
                   <div>
                     <div className="text-[18px] font-semibold text-[var(--color-figma-text)]">{ratio.toFixed(2)}:1</div>
-                    <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Contrast ratio</div>
+                    <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Contrast ratio</div>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-1 text-[9px] text-center">
+                <div className="grid grid-cols-3 gap-1 text-[10px] text-center">
                   {[
                     { label: 'Normal AA', min: 4.5 },
                     { label: 'Large AA', min: 3 },

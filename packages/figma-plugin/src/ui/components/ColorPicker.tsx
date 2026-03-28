@@ -194,7 +194,7 @@ function ChannelInput({
   const display = decimals > 0 ? value.toFixed(decimals) : Math.round(value).toString();
   return (
     <div className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
-      <label className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase">{label}</label>
+      <label className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase">{label}</label>
       <input
         type="text"
         value={display}
@@ -451,7 +451,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
               <ChannelInput label="B" value={p3.b} min={0} max={1} step={0.01} decimals={3} onChange={v => updateFromP3(p3.r, p3.g, v)} />
             </div>
             {!inGamut && (
-              <div className="text-[9px] text-[var(--color-figma-warning)] flex items-center gap-1">
+              <div className="text-[10px] text-[var(--color-figma-warning)] flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-warning)] inline-block" />
                 Outside sRGB gamut (clamped)
               </div>
@@ -569,7 +569,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
       </div>
 
       {/* Color space tabs */}
-      <div className="flex gap-0.5 text-[9px]">
+      <div className="flex gap-0.5 text-[10px]">
         {(['hex', 'hsl', 'lch', 'p3'] as ColorSpace[]).map(s => (
           <button
             key={s}
@@ -608,14 +608,14 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
 
       {/* Color harmonies */}
       <div className="border-t border-[var(--color-figma-border)] pt-2 flex flex-col gap-1">
-        <div className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase">Harmonies</div>
+        <div className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase">Harmonies</div>
         {[
           { label: 'Comp', swatches: [hex6, harmonyComplement], baseIndex: 0 },
           { label: 'Triad', swatches: [hex6, harmonyTriadic1, harmonyTriadic2], baseIndex: 0 },
           { label: 'Analog', swatches: [harmonyAnalogous1, hex6, harmonyAnalogous2], baseIndex: 1 },
         ].map(({ label, swatches, baseIndex }) => (
           <div key={label} className="flex items-center gap-2">
-            <span className="text-[9px] text-[var(--color-figma-text-secondary)] w-10 shrink-0">{label}</span>
+            <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-10 shrink-0">{label}</span>
             <div className="flex gap-1">
               {swatches.map((swatchHex, i) => (
                 <button
@@ -640,7 +640,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
       {/* Alpha numeric + eyedropper row */}
       <div className="flex gap-1.5 items-end">
         <div className="flex flex-col items-center gap-0.5 w-14">
-          <label className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase">Alpha</label>
+          <label className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase">Alpha</label>
           <input
             type="text"
             value={alphaInput}
@@ -713,7 +713,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
       {/* Recent colors */}
       {recentColors.length > 0 && (
         <div className="border-t border-[var(--color-figma-border)] pt-2 flex flex-col gap-1">
-          <div className="text-[9px] text-[var(--color-figma-text-secondary)] uppercase">Recent</div>
+          <div className="text-[10px] text-[var(--color-figma-text-secondary)] uppercase">Recent</div>
           <div className="flex gap-1 flex-wrap">
             {recentColors.map((c, i) => (
               <button
@@ -739,7 +739,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
           <button
             type="button"
             onClick={() => setShowTokens(!showTokens)}
-            className="flex items-center gap-1 text-[9px] text-[var(--color-figma-text-secondary)] uppercase hover:text-[var(--color-figma-text)] transition-colors"
+            className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)] uppercase hover:text-[var(--color-figma-text)] transition-colors"
           >
             <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={showTokens ? 'rotate-90' : ''}>
               <path d="M2 1l4 3-4 3V1z" />
@@ -772,7 +772,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
                   />
                 ))}
                 {filteredTokens.length === 0 && (
-                  <span className="text-[9px] text-[var(--color-figma-text-secondary)]">No matches</span>
+                  <span className="text-[10px] text-[var(--color-figma-text-secondary)]">No matches</span>
                 )}
               </div>
             </div>

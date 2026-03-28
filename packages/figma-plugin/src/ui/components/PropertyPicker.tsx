@@ -112,7 +112,7 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
       style={anchorRect ? { top: anchorRect.top, left: anchorRect.left } : undefined}
       onKeyDown={handleKeyDown}
     >
-      <div className="px-2 py-1 text-[9px] text-[var(--color-figma-text-secondary)] uppercase font-medium">
+      <div className="px-2 py-1 text-[10px] text-[var(--color-figma-text-secondary)] uppercase font-medium">
         Apply to property
       </div>
       {showSearch && (

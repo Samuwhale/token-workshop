@@ -452,7 +452,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                     setTimeout(() => setValidationCopied(false), 1500);
                   });
                 }}
-                className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 title="Copy report as Markdown"
               >
                 {validationCopied ? 'Copied!' : 'Copy MD'}
@@ -482,7 +482,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                   setValidationExported('json');
                   setTimeout(() => setValidationExported(null), 1500);
                 }}
-                className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 title="Save report as JSON"
               >
                 {validationExported === 'json' ? 'Saved!' : 'JSON'}
@@ -504,7 +504,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                   setValidationExported('csv');
                   setTimeout(() => setValidationExported(null), 1500);
                 }}
-                className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                 title="Save report as CSV"
               >
                 {validationExported === 'csv' ? 'Saved!' : 'CSV'}
@@ -514,7 +514,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                 <button
                   key={f}
                   onClick={() => setSeverityFilter(f)}
-                  className={`text-[9px] px-1.5 py-0.5 rounded border transition-colors ${
+                  className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
                     severityFilter === f
                       ? f === 'error'
                         ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10'
@@ -561,7 +561,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                         className="flex-1 flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--color-figma-bg-hover)] transition-colors min-w-0"
                       >
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" className={`transition-transform shrink-0 ${isCollapsed ? '' : 'rotate-90'}`} aria-hidden="true"><path d="M2 1l4 3-4 3V1z" /></svg>
-                        <span className={`text-[9px] px-1 py-0.5 rounded border shrink-0 font-medium ${
+                        <span className={`text-[10px] px-1 py-0.5 rounded border shrink-0 font-medium ${
                           group.severity === 'error'
                             ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/5'
                             : group.severity === 'warning'
@@ -571,7 +571,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                           {group.severity === 'error' ? 'Error' : group.severity === 'warning' ? 'Warn' : 'Info'}
                         </span>
                         <span className="text-[10px] font-medium text-[var(--color-figma-text)] flex-1 text-left">{group.label}</span>
-                        <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{group.issues.length}</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{group.issues.length}</span>
                       </button>
                       <button
                         onClick={() => setSuppressedKeys(prev => {
@@ -579,7 +579,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                           group.issues.forEach(issue => next.add(suppressKey(issue)));
                           return next;
                         })}
-                        className="opacity-0 group-hover/ruleheader:opacity-100 pointer-events-none group-hover/ruleheader:pointer-events-auto transition-opacity text-[9px] px-2 py-1.5 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] shrink-0 border-l border-[var(--color-figma-border)]"
+                        className="opacity-0 group-hover/ruleheader:opacity-100 pointer-events-none group-hover/ruleheader:pointer-events-auto transition-opacity text-[10px] px-2 py-1.5 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] shrink-0 border-l border-[var(--color-figma-border)]"
                         title={`Suppress all ${group.issues.length} ${group.label} findings`}
                       >
                         Suppress all
@@ -587,7 +587,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                     </div>
                     {/* Tip line */}
                     {!isCollapsed && group.tip && (
-                      <div className="px-3 py-1 text-[9px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]/30 border-b border-[var(--color-figma-border)] flex items-center gap-1">
+                      <div className="px-3 py-1 text-[10px] text-[var(--color-figma-text-secondary)] bg-[var(--color-figma-bg-secondary)]/30 border-b border-[var(--color-figma-border)] flex items-center gap-1">
                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 opacity-50"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                         {group.tip}
                       </div>
@@ -598,9 +598,9 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline gap-1.5 flex-wrap">
                             <span className="text-[10px] text-[var(--color-figma-text)] font-medium font-mono truncate">{issue.path}</span>
-                            <span className="text-[9px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">{issue.setName}</span>
+                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] opacity-60 shrink-0">{issue.setName}</span>
                           </div>
-                          <div className="text-[9px] text-[var(--color-figma-text-secondary)] mt-0.5">{issue.message}</div>
+                          <div className="text-[10px] text-[var(--color-figma-text-secondary)] mt-0.5">{issue.message}</div>
                         </div>
                         <button
                           onClick={() => setSuppressedKeys(prev => {
@@ -608,7 +608,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                             next.add(suppressKey(issue));
                             return next;
                           })}
-                          className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                          className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
                           title="Suppress this finding"
                         >
                           Suppress
@@ -619,7 +619,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                               setResultsStale(true);
                               onNavigateToToken(issue.path, issue.setName);
                             }}
-                            className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
                             title="Go to token"
                           >
                             Go →
@@ -637,7 +637,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             <div className="border-t border-[var(--color-figma-border)]">
               <button
                 onClick={() => setShowSuppressed(s => !s)}
-                className="w-full flex items-center justify-between px-3 py-1.5 text-[9px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
               >
                 <span>{suppressedIssues.length} suppressed finding{suppressedIssues.length !== 1 ? 's' : ''}</span>
                 <span className="flex items-center gap-1">
@@ -652,8 +652,8 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-1.5 flex-wrap">
                           <span className="text-[10px] text-[var(--color-figma-text)] font-medium font-mono truncate line-through">{issue.path}</span>
-                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{issue.setName}</span>
-                          <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{RULE_LABELS[issue.rule]?.label ?? issue.rule}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{issue.setName}</span>
+                          <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{RULE_LABELS[issue.rule]?.label ?? issue.rule}</span>
                         </div>
                       </div>
                       <button
@@ -662,7 +662,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                           next.delete(suppressKey(issue));
                           return next;
                         })}
-                        className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
+                        className="opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
                         title="Unsuppress this finding"
                       >
                         Restore
@@ -672,7 +672,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                   <div className="px-3 py-1.5 flex justify-end">
                     <button
                       onClick={() => setSuppressedKeys(new Set())}
-                      className="text-[9px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
+                      className="text-[10px] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] transition-colors"
                     >
                       Clear all suppressions
                     </button>
@@ -859,7 +859,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0" style={{ background: hex }} />
                       <span className="text-[10px] font-mono text-[var(--color-figma-text)]">{hex}</span>
-                      <span className="text-[9px] text-[var(--color-figma-text-secondary)]">— {tokens.length} tokens</span>
+                      <span className="text-[10px] text-[var(--color-figma-text-secondary)]">— {tokens.length} tokens</span>
                     </div>
                     <div className="flex flex-col gap-0.5">
                       {tokens.map(t => (
@@ -874,7 +874,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                               className="w-3 h-3"
                             />
                             <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{t.path}</span>
-                            <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0">{t.set}</span>
+                            <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0">{t.set}</span>
                             {canonical === t.path && (
                               <span className="text-[8px] text-[var(--color-figma-accent)] shrink-0 font-medium">canonical</span>
                             )}
@@ -882,7 +882,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                           {onNavigateToToken && (
                             <button
                               onClick={() => onNavigateToToken(t.path, t.set)}
-                              className="text-[9px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
+                              className="text-[10px] px-1.5 py-0.5 rounded border border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors shrink-0"
                               title="Go to token"
                             >
                               Go →
@@ -899,7 +899,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                         <ul className="flex flex-col gap-0.5 pl-2">
                           {others.map(o => (
                             <li key={o.path} className="text-[10px] font-mono text-[var(--color-figma-text-secondary)]">
-                              {o.path} <span className="text-[9px] text-[var(--color-figma-text-secondary)]">({o.set})</span> → <span className="text-[var(--color-figma-text)]">{`{${canonicalToken.path}}`}</span>
+                              {o.path} <span className="text-[10px] text-[var(--color-figma-text-secondary)]">({o.set})</span> → <span className="text-[var(--color-figma-text)]">{`{${canonicalToken.path}}`}</span>
                             </li>
                           ))}
                         </ul>
@@ -980,7 +980,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                       ))}
                     </svg>
                     {pts.some(p => p.isAnom) && (
-                      <div className="text-[9px] text-[var(--color-figma-warning)] mt-1 flex items-center gap-1">
+                      <div className="text-[10px] text-[var(--color-figma-warning)] mt-1 flex items-center gap-1">
                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
                         Uneven lightness steps detected
                       </div>
@@ -1010,15 +1010,15 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
             <div className="grid grid-cols-4 divide-x divide-[var(--color-figma-border)] border-b border-[var(--color-figma-border)]">
               <div className="px-2 py-3 text-center">
                 <div className="text-[16px] font-bold text-[var(--color-figma-text)]">{coverageResult.totalComponents}</div>
-                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Total</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Total</div>
               </div>
               <div className="px-2 py-3 text-center">
                 <div className="text-[16px] font-bold text-[var(--color-figma-success)]">{coverageResult.tokenizedComponents}</div>
-                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Tokenized</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Tokenized</div>
               </div>
               <div className="px-2 py-3 text-center">
                 <div className="text-[16px] font-bold text-[var(--color-figma-warning)]">{coverageResult.untokenized.length}</div>
-                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Untokenized</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Untokenized</div>
               </div>
               <div className="px-2 py-3 text-center">
                 <div className="text-[16px] font-bold text-[var(--color-figma-text)]">
@@ -1026,7 +1026,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                     ? Math.round((coverageResult.tokenizedComponents / coverageResult.totalComponents) * 100)
                     : 0}%
                 </div>
-                <div className="text-[9px] text-[var(--color-figma-text-secondary)]">Coverage</div>
+                <div className="text-[10px] text-[var(--color-figma-text-secondary)]">Coverage</div>
               </div>
             </div>
             {coverageResult.untokenized.length > 0 && (
@@ -1047,7 +1047,7 @@ export function AnalyticsPanel({ serverUrl, connected, validateKey, onNavigateTo
                         className="w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                       >
                         <span className="text-[10px] text-[var(--color-figma-text)] truncate flex-1">{comp.name}</span>
-                        <span className="text-[9px] text-[var(--color-figma-text-secondary)] shrink-0 ml-2">{comp.hardcodedCount} hardcoded</span>
+                        <span className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 ml-2">{comp.hardcodedCount} hardcoded</span>
                       </button>
                     ))}
                   </div>
