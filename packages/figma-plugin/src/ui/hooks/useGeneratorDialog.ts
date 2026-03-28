@@ -193,10 +193,13 @@ export function useGeneratorDialog({
     savedTokens,
     savedTargetGroup,
     showConfirmation,
+    overwritePendingPaths,
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
     handleSemanticMappingClose,
+    handleOverwriteConfirm,
+    handleOverwriteCancel,
   } = useGeneratorSave({
     serverUrl,
     isEditing,
@@ -293,6 +296,7 @@ export function useGeneratorDialog({
     savedTokens,
     savedTargetGroup,
     showConfirmation,
+    overwritePendingPaths,
     // Handlers
     handleTypeChange,
     handleNameChange,
@@ -309,5 +313,7 @@ export function useGeneratorDialog({
     handleConfirmSave,
     handleCancelConfirmation,
     handleSemanticMappingClose,
+    handleOverwriteConfirm,
+    handleOverwriteCancel,
   };
 }

@@ -440,3 +440,15 @@
   - Multi-brand generators use `inputTable.rows[].inputs[inputTable.inputKey]` to get per-brand source values; the first usable row is a good representative sample
   - Overwrite detection is correctly skipped for multi-brand since each brand writes to a different target set (via template substitution)
 ---
+
+## 2026-03-29 - Generator overwrite confirmation uses blocking window.confirm()
+- Replaced `window.confirm()` in `useGeneratorSave.ts` with state-driven in-app modal using existing `ConfirmModal` component
+- Refactored `handleConfirmSave` into two parts: overwrite check + `commitSave` inner function, so the overwrite confirmation modal can resume the save without re-checking
+- Added `overwritePendingPaths` state, `handleOverwriteConfirm`, and `handleOverwriteCancel` to the hook return
+- Rendered `ConfirmModal` with danger styling, scrollable monospace path list, and accept/cancel buttons in `TokenGeneratorDialog.tsx`
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorSave.ts` ~L33-44,71-92,94-175, `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L186-216,265-312, `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L1-2,180-197,243-263
+- **Learnings for future iterations:**
+  - The `useGeneratorSave` hook already had a two-step flow (validate → confirm preview → save). The overwrite check was embedded in step 2, so refactoring into `commitSave` + check wrapper kept the flow clean
+  - `ConfirmModal` supports `children` prop for custom content — ideal for scrollable lists without needing a new component
+  - The `wide` prop on `ConfirmModal` gives 360px width, good for path lists
+---

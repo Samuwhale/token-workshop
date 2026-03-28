@@ -37,10 +37,13 @@ export interface UseGeneratorSaveReturn {
   savedTokens: GeneratedTokenResult[];
   savedTargetGroup: string;
   showConfirmation: boolean;
+  overwritePendingPaths: string[];
   handleSave: () => Promise<void>;
   handleConfirmSave: () => Promise<void>;
   handleCancelConfirmation: () => void;
   handleSemanticMappingClose: () => void;
+  handleOverwriteConfirm: () => void;
+  handleOverwriteCancel: () => void;
 }
 
 export function useGeneratorSave({
@@ -69,6 +72,7 @@ export function useGeneratorSave({
   const [savedTokens, setSavedTokens] = useState<GeneratedTokenResult[]>([]);
   const [savedTargetGroup, setSavedTargetGroup] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [overwritePendingPaths, setOverwritePendingPaths] = useState<string[]>([]);
 
   /** Step 1: Validate inputs, then show the confirmation preview. */
   const handleSave = useCallback(async () => {
@@ -86,8 +90,8 @@ export function useGeneratorSave({
     setShowConfirmation(true);
   }, [targetGroup, name, isMultiBrand, typeNeedsSource, hasSource, inputTable, targetSetTemplate]);
 
-  /** Step 2: Actually commit the generator (called from confirmation view). */
-  const handleConfirmSave = useCallback(async () => {
+  /** Inner save logic — commits the generator to the server. */
+  const commitSave = useCallback(async () => {
     setSaving(true);
     setSaveError('');
     try {
@@ -101,27 +105,6 @@ export function useGeneratorSave({
         overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
         ...(isMultiBrand && inputTable ? { inputTable, targetSetTemplate: targetSetTemplate.trim() } : {}),
       };
-      // When updating an existing generator, check for manually-edited tokens
-      if (isEditing && existingGenerator) {
-        try {
-          const { modified } = await apiFetch<{ modified: { path: string }[] }>(
-            `${serverUrl}/api/generators/${existingGenerator.id}/check-overwrites`,
-            { method: 'POST' },
-          );
-          if (modified.length > 0) {
-            const paths = modified.map(m => m.path).join('\n  \u2022 ');
-            const confirmed = window.confirm(
-              `${modified.length} token(s) have been manually edited since the last run and will be overwritten:\n\n  \u2022 ${paths}\n\nProceed?`,
-            );
-            if (!confirmed) {
-              setSaving(false);
-              return;
-            }
-          }
-        } catch {
-          // Best-effort — if the check fails, proceed without warning
-        }
-      }
       const saveUrl = isEditing && existingGenerator
         ? `${serverUrl}/api/generators/${existingGenerator.id}`
         : `${serverUrl}/api/generators`;
@@ -133,9 +116,6 @@ export function useGeneratorSave({
       setShowConfirmation(false);
       if (!isEditing) {
         let tokensForMapping = previewTokens;
-        // In multi-brand mode, previewTokens is always [] because fetchPreview
-        // skips the API call. Fetch the generated tokens from the saved generator
-        // so the semantic mapping dialog can still be offered.
         if (tokensForMapping.length === 0 && isMultiBrand) {
           try {
             const tokensData = await apiFetch<{ tokens: GeneratedTokenResult[] }>(`${serverUrl}/api/generators/${savedGen.id}/tokens`);
@@ -166,6 +146,40 @@ export function useGeneratorSave({
     }
   }, [serverUrl, isEditing, existingGenerator, selectedType, name, sourceTokenPath, targetSet, targetGroup, config, pendingOverrides, isMultiBrand, inputTable, targetSetTemplate, previewTokens, onSaved, onInterceptSemanticMapping]);
 
+  /** Step 2: Check for overwrites, then commit (called from confirmation view). */
+  const handleConfirmSave = useCallback(async () => {
+    // When updating an existing generator, check for manually-edited tokens
+    if (isEditing && existingGenerator) {
+      setSaving(true);
+      try {
+        const { modified } = await apiFetch<{ modified: { path: string }[] }>(
+          `${serverUrl}/api/generators/${existingGenerator.id}/check-overwrites`,
+          { method: 'POST' },
+        );
+        if (modified.length > 0) {
+          setOverwritePendingPaths(modified.map(m => m.path));
+          setSaving(false);
+          return;
+        }
+      } catch {
+        // Best-effort — if the check fails, proceed without warning
+      }
+      setSaving(false);
+    }
+    await commitSave();
+  }, [isEditing, existingGenerator, serverUrl, commitSave]);
+
+  /** User confirmed overwriting manually-edited tokens. */
+  const handleOverwriteConfirm = useCallback(() => {
+    setOverwritePendingPaths([]);
+    commitSave();
+  }, [commitSave]);
+
+  /** User cancelled the overwrite warning. */
+  const handleOverwriteCancel = useCallback(() => {
+    setOverwritePendingPaths([]);
+  }, []);
+
   const handleCancelConfirmation = useCallback(() => {
     setShowConfirmation(false);
   }, []);
@@ -182,9 +196,12 @@ export function useGeneratorSave({
     savedTokens,
     savedTargetGroup,
     showConfirmation,
+    overwritePendingPaths,
     handleSave,
     handleConfirmSave,
     handleCancelConfirmation,
     handleSemanticMappingClose,
+    handleOverwriteConfirm,
+    handleOverwriteCancel,
   };
 }

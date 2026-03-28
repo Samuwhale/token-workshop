@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { ConfirmModal } from './ConfirmModal';
 import { SemanticMappingDialog } from './SemanticMappingDialog';
 import { ValueDiff } from './ValueDiff';
 import { swatchBgColor } from '../shared/colorUtils';
@@ -178,6 +179,7 @@ export function TokenGeneratorDialog({
     savedTokens,
     savedTargetGroup,
     showConfirmation,
+    overwritePendingPaths,
     handleTypeChange,
     handleNameChange,
     setTargetSet,
@@ -193,6 +195,8 @@ export function TokenGeneratorDialog({
     handleConfirmSave,
     handleCancelConfirmation,
     handleSemanticMappingClose,
+    handleOverwriteConfirm,
+    handleOverwriteCancel,
     isDirtyRef,
   } = useGeneratorDialog({
     serverUrl,
@@ -238,6 +242,27 @@ export function TokenGeneratorDialog({
     const hasPreview = previewTokens.length > 0;
 
     return (
+      <>
+      {overwritePendingPaths.length > 0 && (
+        <ConfirmModal
+          title={`${overwritePendingPaths.length} manually edited token${overwritePendingPaths.length !== 1 ? 's' : ''} will be overwritten`}
+          description="The following tokens have been manually edited since the last generator run and will be replaced:"
+          confirmLabel="Overwrite"
+          cancelLabel="Cancel"
+          danger
+          wide
+          onConfirm={handleOverwriteConfirm}
+          onCancel={handleOverwriteCancel}
+        >
+          <div className="mt-2 max-h-[160px] overflow-y-auto rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] p-2">
+            {overwritePendingPaths.map(p => (
+              <div key={p} className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] py-0.5 truncate" title={p}>
+                {p}
+              </div>
+            ))}
+          </div>
+        </ConfirmModal>
+      )}
       <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
         <div className="bg-[var(--color-figma-bg)] rounded-t border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm flex flex-col max-h-[90vh]">
           {/* Header */}
@@ -368,6 +393,7 @@ export function TokenGeneratorDialog({
           </div>
         </div>
       </div>
+      </>
     );
   }
 
