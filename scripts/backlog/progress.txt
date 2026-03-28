@@ -400,3 +400,9 @@
   - When adding handlers to `useCallback` that are defined later in the component body, either move them before the callback or inline the logic to avoid TDZ. `handleZoomOut` was initially referenced in `handleListKeyDown` (defined earlier) — fixed by inlining the zoom-out logic.
   - The `displayedTokens` pipeline is the right place to apply zoom scoping — it feeds all views (tree, table, canvas) and all downstream computations (flatItems, displayedLeafNodes, pinned tokens).
 ---
+
+## 2026-03-28 - product-pass
+- Areas explored: TokenEditor, BatchEditor, ValueEditors, ThemeManager, ImportPanel, ExportPanel, PublishPanel, TokenList, CommandPalette, SelectionInspector, VersionHistoryPanel, QuickStartWizard, server routes (tokens, sets, export, themes), useUndo hook, useDragDrop hook
+- Found 12 items — written to backlog-inbox.md
+- Notable: VersionHistoryPanel is purely informational with no revert/restore despite the server having a full operation-log rollback API; PublishPanel sync actions (Push/Pull) have no confirmation dialog despite being destructive
+---

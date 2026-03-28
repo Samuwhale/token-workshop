@@ -57,3 +57,17 @@ Already up to date.
 
 --- Merging: Token list: "focus group" / zoom-in mode ---
 Already up to date.
+[main 4d0d93b] chore(backlog): done – Token list: "focus group" / zoom-in mode
+ 8 files changed, 168 insertions(+), 12 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Token list: "focus group" / zoom-in mode
+- Implemented zoom-in mode for the token tree: double-clicking or right-click → "Focus on group" zooms into a group, showing only its children. A breadcrumb bar with ← back arrow, "Root", and ancestor segments provides navigation. Escape key exits zoom mode. Zoom auto-resets when the set changes or the zoomed group is deleted.
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L391 — added `findGroupByPath` and `buildZoomBreadcrumb` utilities
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  39 items remaining
+===============================================================
+  Claimed: **Token list: density toggle (compact vs comfortable)** — currently all rows are 28px. Power users managing thousands of tokens want maximum density; new users or those reviewing tokens want more breathing room with larger swatches. Add a density preference (compact/default/comfortable) that scales row height and preview sizes. Persist per user.
+  Worktree: /tmp/backlog-92332-xxq3rZ
