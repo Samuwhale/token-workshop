@@ -49,3 +49,10 @@ Already up to date.
 ===============================================================
   Claimed: Contextual help for advanced features: first-time hints or inline descriptions for Resolvers, Token Flow, Heatmap, Generators — no onboarding wizard, just "what is this?" affordances on each panel
   Worktree: /tmp/backlog-9231-5l1EEj
+
+  ✓ done: Contextual help for advanced features
+    Added (?) help icons to Resolvers, Token Flow, Generators, and Heatmap panels via reusable PanelHelpHint component. Each icon toggles an inline description banner; dismissed state persists in localStorage.
+    45 turns · 292s · $1.65
+
+--- Merging: Contextual help for advanced features ---
+Already up to date.

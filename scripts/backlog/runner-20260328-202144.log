@@ -70,3 +70,16 @@ Already up to date.
 
 --- Merging: Set management discoverability: add visible affordance on set tabs ---
 Already up to date.
+[main b7af117] chore(backlog): done – Set management discoverability: add visible affordance on set tabs
+ 6 files changed, 101 insertions(+), 42 deletions(-)
+
+## 2026-03-28 - Set management discoverability: visible menu affordance on set tabs
+- Added visible three-dot kebab menu buttons to sidebar mode set items (both root-level and foldered). Previously sidebar mode relied solely on right-click with no visual hint. The kebab appears on hover (opacity-0 → opacity-60) and is always visible on the active set (opacity-60). Tab bar mode already had a kebab button but was opacity-40 on inactive tabs — kept as-is since it's already discoverable. Updated tab bar tooltip from "Right-click for options" to show the set name instead.
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L1559 (sidebar root-level kebab), ~L1623 (sidebar foldered kebab), ~L1329 (tab bar tooltip)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  69 items remaining
+===============================================================
+  Claimed: "Did you mean this token?" nudge: when a designer pastes/eyedrops a raw value that's within a small delta of an existing token, suggest the token inline — make the systemized path easier than the unsystemized path
+  Worktree: /tmp/backlog-10054-ntz9GD

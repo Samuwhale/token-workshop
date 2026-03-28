@@ -561,3 +561,12 @@
   - Use `group/sidebarset` scoped group to avoid hover conflicts with parent sidebar scroll container
   - The `hover:!opacity-100` with `!` important modifier is needed to override group-hover opacity on direct button hover
 ---
+
+## 2026-03-28 - Contextual help for advanced features
+- Created reusable `PanelHelpHint` component with `usePanelHelp` hook, `PanelHelpIcon`, and `PanelHelpBanner` exports. Adds a small (?) icon in each panel header that toggles an inline description banner. Dismissed state persists per-panel in localStorage.
+- Added contextual help to four panels: Resolvers ("how sets merge based on dimensions"), Token Flow ("visualize alias reference chains"), Generators ("turn source tokens into groups"), Heatmap ("scan layers for token bindings").
+- Files changed: `packages/figma-plugin/src/ui/components/PanelHelpHint.tsx` (new), `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L9,48,124,147, `packages/figma-plugin/src/ui/components/TokenFlowPanel.tsx` ~L6,271,446,452, `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L6,916,987,1054, `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L3,79,175,262
+- **Learnings for future iterations:**
+  - Panels have very different header structures (some have stats bars, some have title+buttons, some have icons). A split icon/banner API (`usePanelHelp` + `PanelHelpIcon` + `PanelHelpBanner`) is more flexible than a monolithic component for fitting into varied layouts.
+  - localStorage key prefix `tm-panel-hint-dismissed-` keeps hint state separate from other plugin storage.
+---

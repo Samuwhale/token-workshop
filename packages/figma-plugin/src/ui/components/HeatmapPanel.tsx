@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { ALL_BINDABLE_PROPERTIES, PROPERTY_LABELS, type BindableProperty, type TokenMapEntry } from '../../shared/types';
+import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 
 interface HeatmapNode {
   id: string;
@@ -75,6 +76,7 @@ interface QuickBindState {
 }
 
 export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSelectNodes, availableTokens, onBatchBind }: HeatmapPanelProps) {
+  const help = usePanelHelp('heatmap');
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['red']));
   const [quickBind, setQuickBind] = useState<QuickBindState | null>(null);
@@ -170,6 +172,7 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
                 ? `${result.green}/${result.total} layers fully bound (${Math.round((result.green / result.total) * 100)}%)`
                 : `${result.total} layers scanned`}
             </span>
+            <PanelHelpIcon panelKey="heatmap" title="Heatmap" expanded={help.expanded} onToggle={help.toggle} />
             <div className="ml-auto flex items-center gap-2">
               <button
                 onClick={exportCSV}
@@ -255,6 +258,13 @@ export function HeatmapPanel({ result, loading, error, onRescan, onCancel, onSel
             })}
           </div>
         </div>
+      )}
+      {help.expanded && result && !loading && (
+        <PanelHelpBanner
+          title="Heatmap"
+          description="Scan the current Figma page to see which layers use design tokens and which don't. Green = fully bound, yellow = partially bound, red = no token bindings. Use Quick Bind to attach tokens to unbound layers."
+          onDismiss={help.dismiss}
+        />
       )}
 
       {/* Loading state */}

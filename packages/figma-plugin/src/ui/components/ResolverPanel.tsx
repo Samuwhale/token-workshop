@@ -8,6 +8,7 @@
 import { useState, useCallback } from 'react';
 import type { ResolverMeta, ResolverModifierMeta } from '../hooks/useResolvers';
 import { ConfirmModal } from './ConfirmModal';
+import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 
 interface ResolverPanelProps {
   serverUrl: string;
@@ -44,6 +45,7 @@ export function ResolverPanel({
   convertFromThemes,
   deleteResolver,
 }: ResolverPanelProps) {
+  const help = usePanelHelp('resolvers');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [migrating, setMigrating] = useState(false);
   const [migrateError, setMigrateError] = useState<string | null>(null);
@@ -121,6 +123,7 @@ export function ResolverPanel({
               DTCG Resolvers
             </span>
             <span className="ml-1.5 text-[10px] text-[var(--color-figma-text-tertiary)]">v2025.10</span>
+            <PanelHelpIcon panelKey="resolvers" title="Resolvers" expanded={help.expanded} onToggle={help.toggle} />
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -143,6 +146,13 @@ export function ResolverPanel({
           <div className="mt-1 text-[10px] text-red-500">{migrateError}</div>
         )}
       </div>
+      {help.expanded && (
+        <PanelHelpBanner
+          title="Resolvers"
+          description="Define how token sets merge based on dimensions like theme, density, or platform. Each resolver picks base sets and applies modifier overrides in order, producing a single flat token output."
+          onDismiss={help.dismiss}
+        />
+      )}
 
       {/* Create form */}
       {creating && (

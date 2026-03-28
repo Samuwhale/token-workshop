@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { TokenGenerator, ColorRampConfig, SpacingScaleConfig, TypeScaleConfig, GeneratorType, GeneratorConfig, GeneratedTokenResult } from '../hooks/useGenerators';
 import { isDimensionLike } from './generators/generatorShared';
 import { NodeGraphCanvas } from './nodeGraph/NodeGraphCanvas';
+import { usePanelHelp, PanelHelpIcon, PanelHelpBanner } from './PanelHelpHint';
 
 // ---------------------------------------------------------------------------
 // Graph template definitions
@@ -911,6 +912,7 @@ export function GraphPanel({
   pendingGroupTokenType,
   onClearPendingGroup,
 }: GraphPanelProps) {
+  const help = usePanelHelp('generators');
   const setGenerators = generators.filter(g => g.targetSet === activeSet);
 
   const initialTemplate = pendingGroupPath
@@ -982,14 +984,17 @@ export function GraphPanel({
     return (
       <div className="flex flex-col h-full overflow-hidden">
         <div className="px-3 py-2.5 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] shrink-0 flex items-center justify-between">
-          <div>
-            <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Graph</div>
-            <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
+          <div className="flex items-center gap-1.5">
+            <div>
+              <div className="text-[11px] font-medium text-[var(--color-figma-text)]">Graph</div>
+              <div className="text-[10px] text-[var(--color-figma-text-secondary)]">
               {q
                 ? <>{filteredGenerators.length} of {setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''}</>
                 : <>{setGenerators.length} generator{setGenerators.length !== 1 ? 's' : ''} in <span className="font-mono">{activeSet}</span></>
               }
+              </div>
             </div>
+            <PanelHelpIcon panelKey="generators" title="Generators" expanded={help.expanded} onToggle={help.toggle} />
           </div>
           <div className="flex items-center gap-1.5">
             {/* View mode toggle */}
@@ -1046,6 +1051,13 @@ export function GraphPanel({
             </button>
           </div>
         </div>
+        {help.expanded && (
+          <PanelHelpBanner
+            title="Generators"
+            description="Turn a single source token into a whole token group automatically — color ramps, spacing scales, type scales, and more. Pick a template to get started, then customize the parameters."
+            onDismiss={help.dismiss}
+          />
+        )}
 
         {justApplied && (
           <div className="mx-3 mt-2 px-2.5 py-2 rounded bg-[var(--color-figma-success,#22c55e)]/10 border border-[var(--color-figma-success,#22c55e)]/20 text-[10px] text-[var(--color-figma-success,#16a34a)] flex items-center gap-1.5 shrink-0">
