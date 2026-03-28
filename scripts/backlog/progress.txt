@@ -293,3 +293,11 @@
   - `lsGetJson` with a fallback array + Array.isArray check is a clean replacement for manual JSON.parse-in-try-catch patterns.
   - `lsGet(key, fallback)` overload returns string directly, no null check needed — good for simple string defaults like `:root`.
 ---
+
+## 2026-03-28 - Duplicated tree-walking patterns in `token-store.ts` — extract a generic walker
+- Extracted two reusable module-level helpers: `walkAliasValues(group, updateString)` handles walking a token tree and applying a string transform to all `$value` fields (including composite/object values); `walkLeafTokens(obj, visitor, prefix)` walks all leaf DTCG tokens calling a visitor. Rewrote `updateAliasRefs`, `updateBulkAliasRefs`, and `collectGroupLeafTokens` to use these helpers, eliminating ~60 lines of duplicated walk/updateCompositeValue logic.
+- Files changed: `packages/server/src/services/token-store.ts` ~L16 (new helpers), ~L770 (updateAliasRefs), ~L785 (updateBulkAliasRefs), ~L756 (collectGroupLeafTokens)
+- **Learnings for future iterations:**
+  - The server package has no working tsc setup (missing @types/node, chokidar types, wrong lib target) — validate server-only refactors by checking that only pre-existing errors appear in tsc output and that the figma-plugin build still passes.
+  - The two alias-update methods differ only in their `updateString` callback — the walk+composite logic was 100% identical and trivially extractable.
+---

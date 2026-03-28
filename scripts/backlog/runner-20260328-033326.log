@@ -157,3 +157,17 @@ Already up to date.
 
 --- Merging: ExportPanel uses raw localStorage instead of centralized lsGet/lsSet helpers ---
 Already up to date.
+[main 6eb8f1a] chore(backlog): done – ExportPanel uses raw localStorage instead of centralized lsGet/lsSet helpers
+ 7 files changed, 39 insertions(+), 16 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - ExportPanel uses raw localStorage instead of centralized lsGet/lsSet helpers
+- Replaced all 4 raw `localStorage.getItem`/`setItem` calls in ExportPanel.tsx with centralized `lsGet`, `lsSet`, `lsGetJson`, `lsSetJson` helpers from `shared/storage.ts`. Added `EXPORT_PLATFORMS` and `EXPORT_CSS_SELECTOR` keys to `STORAGE_KEYS`. Removed manual try/catch blocks that are now handled by the helpers.
+- Files changed: `packages/figma-plugin/src/ui/components/ExportPanel.tsx` ~L1, ~L106–146, `packages/figma-plugin/src/ui/shared/storage.ts` ~L25
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  80 items remaining
+===============================================================
+  Claimed: `useUndo` keyboard listener churns on every undo/redo — `executeUndo`/`executeRedo` recreated on every `past`/`future` change, causing the keyboard handler effect to tear down and re-register; use refs instead
+  Worktree: /tmp/backlog-92630-6kKoUl

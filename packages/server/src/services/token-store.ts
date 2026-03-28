@@ -15,6 +15,64 @@ import {
 const MAX_REGEX_LENGTH = 200;
 
 /**
+ * Walk every $value in a token tree and apply `updateString` to string values
+ * (including string leaves inside composite/object $values).
+ * Returns the number of $value fields that were modified.
+ */
+function walkAliasValues(
+  group: any,
+  updateString: (s: string) => string | null,
+): number {
+  let count = 0;
+  const updateComposite = (obj: any) => {
+    for (const k of Object.keys(obj)) {
+      const v = obj[k];
+      if (typeof v === 'string') {
+        const replaced = updateString(v);
+        if (replaced !== null) { obj[k] = replaced; count++; }
+      } else if (typeof v === 'object' && v !== null) {
+        updateComposite(v);
+      }
+    }
+  };
+  const walk = (obj: any) => {
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (key === '$value' && typeof val === 'string') {
+        const replaced = updateString(val);
+        if (replaced !== null) { obj[key] = replaced; count++; }
+      } else if (key === '$value' && typeof val === 'object' && val !== null) {
+        updateComposite(val);
+      } else if (typeof val === 'object' && val !== null) {
+        walk(val);
+      }
+    }
+  };
+  walk(group);
+  return count;
+}
+
+/**
+ * Walk all leaf tokens under a token group object, calling `visitor` for each.
+ * Skips `$`-prefixed keys (DTCG metadata).
+ */
+function walkLeafTokens(
+  obj: any,
+  visitor: (relativePath: string, token: Token) => void,
+  prefix = '',
+): void {
+  for (const [key, val] of Object.entries(obj as object)) {
+    if (key.startsWith('$')) continue;
+    const relPath = prefix ? `${prefix}.${key}` : key;
+    if (isDTCGToken(val)) {
+      visitor(relPath, val as Token);
+    } else if (typeof val === 'object' && val !== null) {
+      walkLeafTokens(val, visitor, relPath);
+    }
+  }
+}
+
+/**
  * Validate a dot-separated token path.
  * Rejects empty paths, empty segments (double dots), segments starting with
  * the reserved DTCG `$` prefix, and segments containing `/` or `\`.
@@ -722,29 +780,17 @@ export class TokenStore {
     }
     if (!current || typeof current !== 'object' || isDTCGToken(current)) return [];
     const result: Array<{ relativePath: string; token: Token }> = [];
-    const walk = (obj: any, prefix: string) => {
-      for (const [key, val] of Object.entries(obj as object)) {
-        if (key.startsWith('$')) continue;
-        const relPath = prefix ? `${prefix}.${key}` : key;
-        if (isDTCGToken(val)) {
-          result.push({ relativePath: relPath, token: val as Token });
-        } else if (typeof val === 'object' && val !== null) {
-          walk(val, relPath);
-        }
-      }
-    };
-    walk(current, '');
+    walkLeafTokens(current, (relativePath, token) => {
+      result.push({ relativePath, token });
+    });
     return result;
   }
 
   /** Update alias $value references from oldGroupPath to newGroupPath across a token tree */
   private updateAliasRefs(group: any, oldGroupPath: string, newGroupPath: string): number {
-    let count = 0;
-    // Regex matches {oldGroupPath} (exact) or {oldGroupPath.something} (prefix) anywhere in a string,
-    // including embedded refs in formula strings like "{spacing.base} * 2".
     const escapedOld = oldGroupPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const refRegex = new RegExp(`\\{(${escapedOld})(\\.[^}]*)?\\}`, 'g');
-    const updateString = (s: string): string | null => {
+    return walkAliasValues(group, (s) => {
       if (!s.includes(`{${oldGroupPath}`)) return null;
       let matched = false;
       const result = s.replace(refRegex, (_match, _path, rest) => {
@@ -752,41 +798,13 @@ export class TokenStore {
         return rest ? `{${newGroupPath}${rest}}` : `{${newGroupPath}}`;
       });
       return matched ? result : null;
-    };
-    const updateCompositeValue = (obj: any) => {
-      for (const k of Object.keys(obj)) {
-        const v = obj[k];
-        if (typeof v === 'string') {
-          const replaced = updateString(v);
-          if (replaced !== null) { obj[k] = replaced; count++; }
-        } else if (typeof v === 'object' && v !== null) {
-          updateCompositeValue(v);
-        }
-      }
-    };
-    const walk = (obj: any) => {
-      for (const key of Object.keys(obj)) {
-        const val = obj[key];
-        if (key === '$value' && typeof val === 'string') {
-          const replaced = updateString(val);
-          if (replaced !== null) { obj[key] = replaced; count++; }
-        } else if (key === '$value' && typeof val === 'object' && val !== null) {
-          updateCompositeValue(val);
-        } else if (typeof val === 'object' && val !== null) {
-          walk(val);
-        }
-      }
-    };
-    walk(group);
-    return count;
+    });
   }
 
   /** Update alias $value references using a full path map (oldPath -> newPath) */
   private updateBulkAliasRefs(group: any, pathMap: Map<string, string>): number {
-    let count = 0;
-    // Matches any {ref} token anywhere in the string, including embedded refs in formulas.
     const refRegex = /\{([^}]+)\}/g;
-    const updateString = (s: string): string | null => {
+    return walkAliasValues(group, (s) => {
       if (!s.includes('{')) return null;
       let matched = false;
       const result = s.replace(refRegex, (_match, refPath) => {
@@ -794,33 +812,7 @@ export class TokenStore {
         return _match;
       });
       return matched ? result : null;
-    };
-    const updateCompositeValue = (obj: any) => {
-      for (const k of Object.keys(obj)) {
-        const v = obj[k];
-        if (typeof v === 'string') {
-          const replaced = updateString(v);
-          if (replaced !== null) { obj[k] = replaced; count++; }
-        } else if (typeof v === 'object' && v !== null) {
-          updateCompositeValue(v);
-        }
-      }
-    };
-    const walk = (obj: any) => {
-      for (const key of Object.keys(obj)) {
-        const val = obj[key];
-        if (key === '$value' && typeof val === 'string') {
-          const replaced = updateString(val);
-          if (replaced !== null) { obj[key] = replaced; count++; }
-        } else if (key === '$value' && typeof val === 'object' && val !== null) {
-          updateCompositeValue(val);
-        } else if (typeof val === 'object' && val !== null) {
-          walk(val);
-        }
-      }
-    };
-    walk(group);
-    return count;
+    });
   }
 
   private pathExistsAt(tokens: TokenGroup, path: string): boolean {

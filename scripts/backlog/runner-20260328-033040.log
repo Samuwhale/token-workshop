@@ -228,3 +228,10 @@ Already up to date.
 ===============================================================
   Claimed: Duplicated tree-walking patterns in `token-store.ts` — `updateAliasRefs`, `updateBulkAliasRefs`, `collectGroupLeafTokens` all implement nearly identical recursive walkers; extract a generic walker
   Worktree: /tmp/backlog-84992-V2gwPt
+
+  ✓ done: Duplicated tree-walking patterns in `token-store.ts` — extract a generic walker
+    Extracted `walkAliasValues` and `walkLeafTokens` helpers, rewrote `updateAliasRefs`, `updateBulkAliasRefs`, and `collectGroupLeafTokens` to use them, eliminating ~60 lines of duplicated walk logic.
+    21 turns · 128s · $0.62
+
+--- Merging: Duplicated tree-walking patterns in `token-store.ts` — extract a generic walker ---
+Already up to date.
