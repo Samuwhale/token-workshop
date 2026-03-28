@@ -239,7 +239,7 @@ export interface ApplyVariablesMessage {
 
 export interface ApplyStylesMessage {
   type: 'apply-styles';
-  tokens: any[];
+  tokens: import('../plugin/styleSync.js').StyleToken[];
 }
 
 export interface ReadVariablesMessage {

@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Generator auto-run from tokenStore.onChange has no concurrency guard ---
 Already up to date.
+[main 6144721] chore(backlog): done – Generator auto-run from tokenStore.onChange has no concurrency guard
+ 5 files changed, 59 insertions(+), 24 deletions(-)
+
+## 2026-03-28 - Generator auto-run from tokenStore.onChange has no concurrency guard
+- Replaced `runningGenerators` Set (which silently skipped concurrent runs) with a per-generator promise-chain mutex (`generatorLocks` Map) that serializes concurrent executions
+- Added `withGeneratorLock()` method implementing the promise-chain pattern: each call chains behind the previous for that generator ID, auto-cleans when idle
+- Wrapped both auto-run path (`runForSourceToken`) and manual run path (`run()`) with the lock so they don't race each other
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  20 items remaining
+===============================================================
+  Claimed: App.tsx `useEffect` dependency `tokens.length > 0` (line 608) is a boolean expression, not a reactive value — the scan-token-usage message is only sent when the boolean flips from `false` to `true` (0→N tokens), but never re-fires when tokens are added/removed after the initial load (e.g. 5→10 tokens); should use `tokens.length` directly so usage counts refresh when the token set changes (`packages/figma-plugin/src/ui/App.tsx` ~L604-608)
+  Worktree: /tmp/backlog-22646-d2mk6s

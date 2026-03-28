@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: `styleSync.ts` re-fetches ALL Figma styles from scratch for every single token — `applyPaintStyle`, `applyGradientPaintStyle`, `applyTextStyle`, and `applyEffectStyle` each call `figma.getLocalPaintStylesAsync()` / `figma.getLocalTextStylesAsync()` / `figma.getLocalEffectStylesAsync()` per token; for 100 tokens this means 100 async round-trips to the Figma API instead of caching the style lists once upfront; additionally, the entire file uses `any` for all token parameters (lines 4, 33, 47, 73, 107, 119) defeating type checking on this critical mutation path (`packages/figma-plugin/src/plugin/styleSync.ts`)
   Worktree: /tmp/backlog-23617-pQy5RZ
+
+  ✓ done: styleSync.ts re-fetches ALL Figma styles from scratch for every single token
+    Cached style lists once upfront in applyStyles (3 API calls total instead of N per token), replaced all 6 `any` types with proper discriminated union types using @tokenmanager/core DTCG types, extracted tokenPathToStyleName helper, made non-async applicators synchronous.
+    21 turns · 205s · $0.94
+
+--- Merging: styleSync.ts re-fetches ALL Figma styles from scratch for every single token ---
+Already up to date.

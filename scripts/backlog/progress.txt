@@ -327,3 +327,16 @@
   - When replacing a skip-guard with a queue, also wrap manual trigger paths (not just the auto-run) to prevent manual-vs-auto races
   - The `isAnyRunning()` method was trivially adapted from Set size check to Map size check
 ---
+
+## 2026-03-28 - styleSync.ts re-fetches ALL Figma styles from scratch for every single token
+- Cached style lists upfront: `applyStyles` now fetches paint/text/effect styles once via `figma.getLocalPaintStylesAsync()` etc., stores them in a `StyleCache` object, and passes the cache to each per-type applicator. Newly created styles are pushed into the cache arrays so subsequent tokens can find them without re-fetching.
+- Replaced all 6 `any` type annotations with proper discriminated union types (`StyleToken = ColorStyleToken | GradientStyleToken | TypographyStyleToken | ShadowStyleToken`) using core DTCG types from `@tokenmanager/core`.
+- Typed the `readFigmaStyles` output tokens with `ReadStyleToken` union (`ReadColorToken | ReadTypographyToken | ReadShadowToken`).
+- Updated `ApplyStylesMessage` in shared types to reference `StyleToken[]` instead of `any[]`.
+- Extracted repeated `token.path.replace(/\./g, '/')` into `tokenPathToStyleName` helper.
+- Made non-async applicators (`applyPaintStyle`, `applyGradientPaintStyle`, `applyEffectStyle`) synchronous — only `applyTextStyle` needs `await` for font loading.
+- Files changed: `packages/figma-plugin/src/plugin/styleSync.ts` (full rewrite), `packages/figma-plugin/src/shared/types.ts` ~L240-243
+- **Learnings for future iterations:**
+  - Figma style APIs (`getLocalPaintStylesAsync` etc.) are async round-trips; caching the result and mutating the local array (push newly created styles) avoids O(n) API calls for n tokens.
+  - `import('...').Type` syntax in interface fields avoids circular import issues when shared types need to reference plugin-only types.
+---

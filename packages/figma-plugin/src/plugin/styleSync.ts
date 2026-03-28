@@ -1,19 +1,72 @@
+import type { ColorValue, GradientValue, TypographyValue, ShadowValue, DimensionValue } from '@tokenmanager/core';
 import { parseColor, rgbToHex, parseDimValue, shadowTokenToEffects } from './colorUtils.js';
 import { fontStyleToWeight, resolveStyleForWeight } from './fontLoading.js';
 
-export async function applyStyles(tokens: any[]) {
+// ---------------------------------------------------------------------------
+// Token shapes flowing into applyStyles — these carry a `path` field added by
+// the caller (not part of the DTCG spec itself).
+// ---------------------------------------------------------------------------
+
+interface BaseStyleToken {
+  path: string;
+}
+
+interface ColorStyleToken extends BaseStyleToken {
+  $type: 'color';
+  $value: ColorValue;
+}
+
+interface GradientStyleToken extends BaseStyleToken {
+  $type: 'gradient';
+  $value: GradientValue;
+}
+
+interface TypographyStyleToken extends BaseStyleToken {
+  $type: 'typography';
+  $value: TypographyValue;
+}
+
+interface ShadowStyleToken extends BaseStyleToken {
+  $type: 'shadow';
+  $value: ShadowValue | ShadowValue[];
+}
+
+export type StyleToken = ColorStyleToken | GradientStyleToken | TypographyStyleToken | ShadowStyleToken;
+
+// ---------------------------------------------------------------------------
+// Cached style lists — fetched once per applyStyles() call.
+// ---------------------------------------------------------------------------
+
+interface StyleCache {
+  paintStyles: PaintStyle[];
+  textStyles: TextStyle[];
+  effectStyles: EffectStyle[];
+}
+
+// ---------------------------------------------------------------------------
+// Public entry point
+// ---------------------------------------------------------------------------
+
+export async function applyStyles(tokens: StyleToken[]) {
+  // Fetch all local styles once upfront instead of per-token.
+  const cache: StyleCache = {
+    paintStyles: await figma.getLocalPaintStylesAsync(),
+    textStyles: await figma.getLocalTextStylesAsync(),
+    effectStyles: await figma.getLocalEffectStylesAsync(),
+  };
+
   let successCount = 0;
   const failures: { path: string; error: string }[] = [];
   for (const token of tokens) {
     try {
       if (token.$type === 'color') {
-        await applyPaintStyle(token);
+        applyPaintStyle(token, cache);
       } else if (token.$type === 'gradient') {
-        await applyGradientPaintStyle(token);
+        applyGradientPaintStyle(token, cache);
       } else if (token.$type === 'typography') {
-        await applyTextStyle(token);
+        await applyTextStyle(token, cache);
       } else if (token.$type === 'shadow') {
-        await applyEffectStyle(token);
+        applyEffectStyle(token, cache);
       }
       successCount++;
     } catch (error) {
@@ -30,31 +83,45 @@ export async function applyStyles(tokens: any[]) {
   });
 }
 
-async function applyPaintStyle(token: any) {
-  const styles = await figma.getLocalPaintStylesAsync();
-  let style = styles.find(s => s.name === token.path.replace(/\./g, '/'));
+// ---------------------------------------------------------------------------
+// Style name helper — tokens use dot-separated paths, Figma uses slashes
+// ---------------------------------------------------------------------------
+
+function tokenPathToStyleName(path: string): string {
+  return path.replace(/\./g, '/');
+}
+
+// ---------------------------------------------------------------------------
+// Per-type style applicators
+// ---------------------------------------------------------------------------
+
+function applyPaintStyle(token: ColorStyleToken, cache: StyleCache): void {
+  const name = tokenPathToStyleName(token.path);
+  let style = cache.paintStyles.find(s => s.name === name);
   if (!style) {
     style = figma.createPaintStyle();
-    style.name = token.path.replace(/\./g, '/');
+    style.name = name;
+    cache.paintStyles.push(style);
   }
-  const color = parseColor(token.$value);
+  const color = parseColor(token.$value as string);
   if (color) {
     style.paints = [{ type: 'SOLID', color: color.rgb, opacity: color.a }];
   }
   style.setPluginData('tokenPath', token.path);
 }
 
-async function applyGradientPaintStyle(token: any) {
-  const styles = await figma.getLocalPaintStylesAsync();
-  let style = styles.find(s => s.name === token.path.replace(/\./g, '/'));
+function applyGradientPaintStyle(token: GradientStyleToken, cache: StyleCache): void {
+  const name = tokenPathToStyleName(token.path);
+  let style = cache.paintStyles.find(s => s.name === name);
   if (!style) {
     style = figma.createPaintStyle();
-    style.name = token.path.replace(/\./g, '/');
+    style.name = name;
+    cache.paintStyles.push(style);
   }
-  const stops: Array<{ color: string; position: number }> = Array.isArray(token.$value) ? token.$value : [];
+  const stops = Array.isArray(token.$value) ? token.$value : [];
   const gradientStops: ColorStop[] = stops
     .map(stop => {
-      const color = parseColor(stop.color);
+      const color = parseColor(stop.color as string);
       if (!color) return null;
       return { position: stop.position, color: { ...color.rgb, a: color.a } } as ColorStop;
     })
@@ -70,24 +137,27 @@ async function applyGradientPaintStyle(token: any) {
   style.setPluginData('tokenPath', token.path);
 }
 
-async function applyTextStyle(token: any) {
-  const styles = await figma.getLocalTextStylesAsync();
-  let style = styles.find(s => s.name === token.path.replace(/\./g, '/'));
+async function applyTextStyle(token: TypographyStyleToken, cache: StyleCache): Promise<void> {
+  const name = tokenPathToStyleName(token.path);
+  let style = cache.textStyles.find(s => s.name === name);
   if (!style) {
     style = figma.createTextStyle();
-    style.name = token.path.replace(/\./g, '/');
+    style.name = name;
+    cache.textStyles.push(style);
   }
   const val = token.$value;
   if (val.fontFamily) {
     const family = Array.isArray(val.fontFamily) ? val.fontFamily[0] : val.fontFamily;
-    const fontStyle = val.fontWeight ? await resolveStyleForWeight(family, val.fontWeight) : (val.fontStyle || 'Regular');
+    const fontStyle = val.fontWeight ? await resolveStyleForWeight(family, val.fontWeight) : 'Regular';
     await figma.loadFontAsync({ family, style: fontStyle });
     style.fontName = { family, style: fontStyle };
   } else if (val.fontSize || val.lineHeight || val.letterSpacing) {
     // Must load the existing font before modifying any text style properties
     await figma.loadFontAsync(style.fontName);
   }
-  if (val.fontSize) style.fontSize = typeof val.fontSize === 'object' ? val.fontSize.value : val.fontSize;
+  if (val.fontSize) {
+    style.fontSize = typeof val.fontSize === 'object' ? (val.fontSize as DimensionValue).value : val.fontSize;
+  }
   if (val.lineHeight) {
     if (typeof val.lineHeight === 'number') {
       // DTCG spec: unitless lineHeight is a multiplier (1.5 = 150%)
@@ -99,24 +169,67 @@ async function applyTextStyle(token: any) {
     }
   }
   if (val.letterSpacing) {
-    style.letterSpacing = { unit: 'PIXELS', value: typeof val.letterSpacing === 'object' ? val.letterSpacing.value : val.letterSpacing };
+    style.letterSpacing = {
+      unit: 'PIXELS',
+      value: typeof val.letterSpacing === 'object' ? (val.letterSpacing as DimensionValue).value : val.letterSpacing,
+    };
   }
   style.setPluginData('tokenPath', token.path);
 }
 
-async function applyEffectStyle(token: any) {
-  const styles = await figma.getLocalEffectStylesAsync();
-  let style = styles.find(s => s.name === token.path.replace(/\./g, '/'));
+function applyEffectStyle(token: ShadowStyleToken, cache: StyleCache): void {
+  const name = tokenPathToStyleName(token.path);
+  let style = cache.effectStyles.find(s => s.name === name);
   if (!style) {
     style = figma.createEffectStyle();
-    style.name = token.path.replace(/\./g, '/');
+    style.name = name;
+    cache.effectStyles.push(style);
   }
   style.effects = shadowTokenToEffects(token.$value);
   style.setPluginData('tokenPath', token.path);
 }
 
+// ---------------------------------------------------------------------------
+// Read styles from Figma (reverse direction)
+// ---------------------------------------------------------------------------
+
+interface ReadColorToken {
+  path: string;
+  $type: 'color';
+  $value: string;
+  _warning?: string;
+}
+
+interface ReadTypographyToken {
+  path: string;
+  $type: 'typography';
+  $value: {
+    fontFamily: string;
+    fontSize: { value: number; unit: 'px' };
+    fontWeight: number;
+    lineHeight: { value: number; unit: 'px' } | number | 'auto';
+    letterSpacing: { value: number; unit: 'px' };
+    fontStyle: 'italic' | 'normal';
+  };
+}
+
+interface ReadShadowToken {
+  path: string;
+  $type: 'shadow';
+  $value: Array<{
+    color: string;
+    offsetX: { value: number; unit: 'px' };
+    offsetY: { value: number; unit: 'px' };
+    blur: { value: number; unit: 'px' };
+    spread: { value: number; unit: 'px' };
+    type: 'innerShadow' | 'dropShadow';
+  }>;
+}
+
+type ReadStyleToken = ReadColorToken | ReadTypographyToken | ReadShadowToken;
+
 export async function readFigmaStyles(correlationId?: string) {
-  const tokens: any[] = [];
+  const tokens: ReadStyleToken[] = [];
 
   const paintStyles = await figma.getLocalPaintStylesAsync();
   for (const style of paintStyles) {
@@ -166,7 +279,7 @@ export async function readFigmaStyles(correlationId?: string) {
       warnings.push(`${imgCount} image fill(s) skipped`);
     }
 
-    const token: any = {
+    const token: ReadColorToken = {
       path: style.name.replace(/\//g, '.'),
       $type: 'color',
       $value: hex,
@@ -208,11 +321,11 @@ export async function readFigmaStyles(correlationId?: string) {
           const shadow = s as DropShadowEffect;
           return {
             color: rgbToHex(shadow.color, shadow.color.a),
-            offsetX: { value: shadow.offset.x, unit: 'px' },
-            offsetY: { value: shadow.offset.y, unit: 'px' },
-            blur: { value: shadow.radius, unit: 'px' },
-            spread: { value: shadow.spread || 0, unit: 'px' },
-            type: s.type === 'INNER_SHADOW' ? 'innerShadow' : 'dropShadow',
+            offsetX: { value: shadow.offset.x, unit: 'px' as const },
+            offsetY: { value: shadow.offset.y, unit: 'px' as const },
+            blur: { value: shadow.radius, unit: 'px' as const },
+            spread: { value: shadow.spread || 0, unit: 'px' as const },
+            type: s.type === 'INNER_SHADOW' ? 'innerShadow' as const : 'dropShadow' as const,
           };
         }),
       });
