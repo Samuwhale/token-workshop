@@ -29,3 +29,11 @@
   - The validate.sh server tests fail in worktrees due to `@tokenmanager/core` not resolving through broken pnpm workspace symlinks — this is a pre-existing infrastructure issue, not caused by UI changes
   - The existing per-group deduplication pattern (PATCH with `$value: "{canonical.path}"`) is the correct way to convert a token to an alias
 ---
+
+## 2026-03-28 - Git sync diff silently returns empty on error
+- Replaced `.catch(() => '')` with `.catch((err) => { throw new Error(...) })` on both local and remote diff commands in `computeUnifiedDiff()`. Errors (unreachable remote, invalid ref, missing tracking branch) now propagate to the route handler which returns HTTP 500 with the error detail instead of returning empty diff arrays implying "no changes".
+- Files changed: `packages/server/src/services/git-sync.ts` ~L392-395
+- **Learnings for future iterations:**
+  - The route handler at `sync.ts:528` already had a try/catch returning 500 — the only missing piece was letting the error propagate from `computeUnifiedDiff()`
+  - Pre-existing server test failure (`Cannot find package '@tokenmanager/core'`) is unrelated to this change — confirmed by stashing the change and verifying same failure
+---

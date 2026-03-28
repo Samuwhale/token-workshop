@@ -325,3 +325,16 @@ Already up to date.
 
 --- Merging: Promise.all() batch server writes with no partial-failure handling ---
 Already up to date.
+[main cae2558] chore(backlog): done – Promise.all() batch server writes with no partial-failure handling
+ 6 files changed, 71 insertions(+), 16 deletions(-)
+
+## 2026-03-28 - Promise.all() batch server writes with no partial-failure handling
+- Added per-item try/catch to `useVariableSync.applyVarDiff` (modeled after the already-correct `useStyleSync` pattern): each PATCH is wrapped individually, failures are collected, and a summary error message shows which paths failed and how many succeeded.
+- Changed `useSetMergeSplit.handleConfirmMerge` to collect all write results instead of throwing on first non-ok response: failures are counted and a partial-success toast is shown when some writes fail.
+- Changed undo split in `useSetMergeSplit` to use `Promise.allSettled` so all delete attempts complete even if some fail, with a console warning for failures.
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  33 items remaining
+===============================================================
+  Claimed: `UNIT_CONVERSIONS` percentage conversions are identity functions in `ValueEditors.tsx` — converting between `%` and `px`/`rem`/`em` uses `v => v` (lines 238-243), meaning 50% → 50px; these need proper context-aware conversion or should be disabled/warned since percentage conversion requires a reference value
+  Worktree: /tmp/backlog-9231-VPfCf7
