@@ -5,6 +5,7 @@ import { TokenEditor } from './components/TokenEditor';
 import { TokenDetailPreview } from './components/TokenDetailPreview';
 import { ThemeManager } from './components/ThemeManager';
 import { ThemeCompare } from './components/ThemeCompare';
+import { ResolverPanel } from './components/ResolverPanel';
 import { PublishPanel } from './components/PublishPanel';
 import { ImportPanel } from './components/ImportPanel';
 import { AnalyticsPanel } from './components/AnalyticsPanel';
@@ -38,6 +39,7 @@ import { useWindowExpand } from './hooks/useWindowExpand';
 import { useHeatmap } from './hooks/useHeatmap';
 import { useTokenNavigation } from './hooks/useTokenNavigation';
 import { useThemeSwitcher } from './hooks/useThemeSwitcher';
+import { useResolvers } from './hooks/useResolvers';
 import { useFigmaSync } from './hooks/useFigmaSync';
 import { useSetRename } from './hooks/useSetRename';
 import { useSetDelete } from './hooks/useSetDelete';
@@ -156,7 +158,7 @@ function useSyncBindings(serverUrl: string, connected: boolean, onNetworkError?:
 
 type Tab = 'tokens' | 'inspect' | 'graph' | 'publish';
 type TopTab = 'define' | 'apply' | 'ship';
-type DefineSubTab = 'tokens' | 'themes' | 'generators' | 'flow';
+type DefineSubTab = 'tokens' | 'themes' | 'resolvers' | 'generators' | 'flow';
 type ApplySubTab = 'inspect' | 'heatmap';
 type ShipSubTab = 'publish' | 'export' | 'validation' | 'history';
 type SubTab = DefineSubTab | ApplySubTab | ShipSubTab;
@@ -200,6 +202,7 @@ const TOP_TABS: { id: TopTab; label: string; subTabs: { id: SubTab; label: strin
   { id: 'define', label: 'Define', subTabs: [
     { id: 'tokens', label: 'Tokens' },
     { id: 'themes', label: 'Themes' },
+    { id: 'resolvers', label: 'Resolvers' },
     { id: 'generators', label: 'Generators' },
     { id: 'flow', label: 'Token Flow' },
   ]},
@@ -434,7 +437,18 @@ export function App() {
   const isNarrow = windowWidth <= 360;
 
   // Theme switcher state (multi-dimensional)
-  const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themedAllTokensFlat, themesError, retryThemes } = useThemeSwitcher(serverUrl, connected, tokens, allTokensFlat, pathToSet);
+  const { dimensions, setDimensions, activeThemes, setActiveThemes, previewThemes, setPreviewThemes, openDimDropdown, setOpenDimDropdown, dimBarExpanded, setDimBarExpanded, dimDropdownRef, themedAllTokensFlat: themeOnlyTokensFlat, themesError, retryThemes } = useThemeSwitcher(serverUrl, connected, tokens, allTokensFlat, pathToSet);
+
+  // DTCG Resolver (v2025.10) — contextual token resolution
+  const resolverState = useResolvers(serverUrl, connected);
+
+  // When a resolver is active and has resolved tokens, use those; otherwise fall back to themed tokens
+  const themedAllTokensFlat = useMemo(() => {
+    if (resolverState.activeResolver && resolverState.resolvedTokens && Object.keys(resolverState.resolvedTokens).length > 0) {
+      return resolverState.resolvedTokens;
+    }
+    return themeOnlyTokensFlat;
+  }, [resolverState.activeResolver, resolverState.resolvedTokens, themeOnlyTokensFlat]);
 
   // Must be declared before cascadeDiff useMemo which references them
   const [dragSetName, setDragSetName] = useState<string | null>(null);
@@ -2314,6 +2328,29 @@ export function App() {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Resolvers sub-tab (Define > Resolvers) */}
+          {overflowPanel === null && activeTopTab === 'define' && activeSubTab === 'resolvers' && (
+            <ErrorBoundary panelName="Resolvers" onReset={() => navigateTo('define', 'tokens')}>
+              <ResolverPanel
+                serverUrl={serverUrl}
+                connected={connected}
+                sets={sets}
+                resolvers={resolverState.resolvers}
+                activeResolver={resolverState.activeResolver}
+                setActiveResolver={resolverState.setActiveResolver}
+                resolverInput={resolverState.resolverInput}
+                setResolverInput={resolverState.setResolverInput}
+                activeModifiers={resolverState.activeModifiers}
+                resolvedTokens={resolverState.resolvedTokens}
+                resolverError={resolverState.resolverError}
+                loading={resolverState.loading}
+                fetchResolvers={resolverState.fetchResolvers}
+                convertFromThemes={resolverState.convertFromThemes}
+                deleteResolver={resolverState.deleteResolver}
+              />
+            </ErrorBoundary>
           )}
 
           {/* Export sub-tab (Ship > Export) */}

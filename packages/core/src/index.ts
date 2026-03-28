@@ -48,6 +48,13 @@ export type {
   ThemesFile,
   ResolvedToken,
   TokenLifecycle,
+  ResolverRef,
+  ResolverSource,
+  ResolverSet,
+  ResolverModifier,
+  ResolutionOrderEntry,
+  ResolverFile,
+  ResolverInput,
 } from './types.js';
 
 // DTCG file-format types & utilities
@@ -91,6 +98,16 @@ export {
 
 // Resolver
 export { TokenResolver } from './resolver.js';
+
+// DTCG Resolver (v2025.10)
+export {
+  validateResolverFile,
+  validateResolverInput,
+  getDefaultResolverInput,
+  resolveTokens as resolveResolverTokens,
+  resolveTokensFull as resolveResolverTokensFull,
+} from './dtcg-resolver.js';
+export type { ExternalFileLoader } from './dtcg-resolver.js';
 
 // Validator
 export { TokenValidator } from './validator.js';

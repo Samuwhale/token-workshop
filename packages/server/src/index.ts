@@ -22,6 +22,8 @@ import { GeneratorService } from './services/generator-service.js';
 import { OperationLog } from './services/operation-log.js';
 import { generatorRoutes } from './routes/generators.js';
 import { operationRoutes } from './routes/operations.js';
+import { resolverRoutes } from './routes/resolvers.js';
+import { ResolverStore } from './services/resolver-store.js';
 
 export interface ServerConfig {
   tokenDir: string;
@@ -49,11 +51,15 @@ export async function startServer(config: ServerConfig) {
 
   const operationLog = new OperationLog();
 
+  const resolverStore = new ResolverStore(config.tokenDir);
+  await resolverStore.initialize();
+
   // Decorate fastify with services
   fastify.decorate('tokenStore', tokenStore);
   fastify.decorate('gitSync', gitSync);
   fastify.decorate('generatorService', generatorService);
   fastify.decorate('operationLog', operationLog);
+  fastify.decorate('resolverStore', resolverStore);
 
   // Auto-run generators when a source token is updated
   tokenStore.onChange((event) => {
@@ -68,9 +74,10 @@ export async function startServer(config: ServerConfig) {
     }
   });
 
-  // Ensure the file watcher is closed on server shutdown
+  // Ensure the file watchers are closed on server shutdown
   fastify.addHook('onClose', async () => {
     await tokenStore.shutdown();
+    await resolverStore.shutdown();
   });
 
   // Register routes
@@ -84,6 +91,7 @@ export async function startServer(config: ServerConfig) {
   await fastify.register(lintRoutes, { prefix: '/api', tokenDir: config.tokenDir });
   await fastify.register(generatorRoutes, { prefix: '/api' });
   await fastify.register(operationRoutes, { prefix: '/api' });
+  await fastify.register(resolverRoutes, { prefix: '/api' });
   await fastify.register(docsRoutes);
 
   try {
@@ -105,5 +113,6 @@ declare module 'fastify' {
     gitSync: GitSync;
     generatorService: GeneratorService;
     operationLog: OperationLog;
+    resolverStore: ResolverStore;
   }
 }

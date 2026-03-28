@@ -473,3 +473,32 @@
   - `onSelect` event on input elements fires on cursor movement and is useful for tracking cursor position, but `onKeyUp` is also needed for arrow key navigation.
   - Keyboard event handlers for autocomplete inside formula input need `{ capture: true }` to intercept before the outer form handlers (e.g., Enter for save).
 ---
+
+## 2026-03-28 - No DTCG v2025.10 resolver support
+- Implemented full DTCG v2025.10 resolver support across all three packages:
+  - **Core types** (`packages/core/src/types.ts`): Added `ResolverFile`, `ResolverSet`, `ResolverModifier`, `ResolverInput`, `ResolverRef`, `ResolverSource`, `ResolutionOrderEntry` types
+  - **Core engine** (`packages/core/src/dtcg-resolver.ts`): New file implementing resolver validation, default input generation, token resolution (merges sources in resolutionOrder, picks modifier contexts, feeds through TokenResolver for alias resolution)
+  - **Server service** (`packages/server/src/services/resolver-store.ts`): `ResolverStore` class managing `*.resolver.json` files with chokidar file watching, CRUD, and resolve-with-tokenstore integration
+  - **Server routes** (`packages/server/src/routes/resolvers.ts`): Full REST API — GET/POST/PUT/DELETE for resolver CRUD, POST `:name/resolve` for token resolution, GET `:name/modifiers` for UI metadata, POST `from-themes` for migration from `$themes.json`
+  - **Migration utility** (`packages/server/src/services/themes-to-resolver.ts`): Converts existing ThemeDimension[] to a ResolverFile (dimensions→modifiers, source sets→foundation set, enabled sets→modifier contexts)
+  - **Server registration** (`packages/server/src/index.ts`): ResolverStore init, decoration, route registration, shutdown hook
+  - **UI hook** (`packages/figma-plugin/src/ui/hooks/useResolvers.ts`): Manages resolver list, active resolver selection, modifier input, token resolution, migration, and deletion
+  - **UI component** (`packages/figma-plugin/src/ui/components/ResolverPanel.tsx`): Full resolver management panel with create/delete, themes migration, modifier context buttons, resolution status
+  - **App integration** (`packages/figma-plugin/src/ui/App.tsx`): Added "Resolvers" sub-tab under Define, wired useResolvers hook, resolver tokens override theme tokens when active
+- Files changed:
+  - `packages/core/src/types.ts` — resolver type definitions
+  - `packages/core/src/dtcg-resolver.ts` — new resolver engine
+  - `packages/core/src/index.ts` — re-exports
+  - `packages/server/src/services/resolver-store.ts` — new service
+  - `packages/server/src/services/themes-to-resolver.ts` — new migration utility
+  - `packages/server/src/routes/resolvers.ts` — new route file
+  - `packages/server/src/index.ts` — service registration
+  - `packages/figma-plugin/src/ui/hooks/useResolvers.ts` — new hook
+  - `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` — new component
+  - `packages/figma-plugin/src/ui/App.tsx` — tab integration
+- **Learnings for future iterations:**
+  - Fastify fixed routes (e.g., `/resolvers/from-themes`) must be registered BEFORE parameterized routes (`/resolvers/:name`) to avoid being swallowed by the param matcher
+  - The ConfirmModal component uses `danger` and `description` props, not `destructive` and `message`
+  - Server `tsc` build has pre-existing failures (missing @types/node, core dist not built) — only the plugin build (`npm run build`) is the reliable validation target
+  - `themedAllTokensFlat` can be cleanly overridden by renaming the hook return to `themeOnlyTokensFlat` and wrapping with a useMemo that prefers resolver output
+---

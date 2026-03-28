@@ -337,3 +337,24 @@ Already up to date.
 
 --- Merging: No expression/formula builder with autocomplete ---
 Already up to date.
+[main fd59cb9] chore(backlog): done – No expression/formula builder with autocomplete
+ 7 files changed, 468 insertions(+), 18 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/FormulaInput.tsx
+
+## 2026-03-28 - No expression/formula builder with autocomplete
+- Created `FormulaInput.tsx` component providing: (1) token reference autocomplete triggered when cursor is inside `{...}` braces with fuzzy matching, type badges, value previews, and set names; (2) clickable operator hint bar (`+`, `-`, `*`, `/`, `**`, `(`, `)`) shown when cursor is outside braces; (3) syntax highlighting overlay that colors valid refs in accent and invalid refs with red wavy underline; (4) live evaluation preview (already existed in the editors, now enhanced with richer error messages for unknown tokens).
+- Replaced plain `<input>` in both `DimensionEditor` and `NumberEditor` with `FormulaInput`.
+- Added `pathToSet` prop to both editors and wired it from `TokenEditor.tsx`.
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  5 items remaining
+===============================================================
+  Claimed: No DTCG v2025.10 resolver support — theme variations require separate token sets per brand/mode combination, causing file proliferation; implement DTCG resolver config so a single resolver file contextually applies overrides, reducing the set management overhead and aligning with the new spec
+  Worktree: /tmp/backlog-34977-aGtsO5
+
+  ✓ done: No DTCG v2025.10 resolver support
+    Implemented full DTCG v2025.10 resolver support: core types + engine, server service/routes with themes migration, UI hook + ResolverPanel component with modifier context buttons and resolution preview, integrated as Define > Resolvers sub-tab with resolver tokens overriding theme tokens when active. Build passes.
+    87 turns · 916s · $6.09
+
+--- Merging: No DTCG v2025.10 resolver support ---
+Already up to date.

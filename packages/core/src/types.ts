@@ -199,3 +199,48 @@ export interface ResolvedToken {
   /** Name of the token set this token belongs to. */
   setName: string;
 }
+
+// ---------------------------------------------------------------------------
+// DTCG Resolver (v2025.10)
+// ---------------------------------------------------------------------------
+
+/** A JSON Pointer or file-path reference. */
+export interface ResolverRef {
+  $ref: string;
+}
+
+/** A source: either a file/pointer reference or inline tokens. */
+export type ResolverSource = ResolverRef | Record<string, unknown>;
+
+/** A named set of token sources in the resolver. */
+export interface ResolverSet {
+  description?: string;
+  sources: ResolverSource[];
+  $extensions?: Record<string, unknown>;
+}
+
+/** A modifier: named dimension with multiple contexts, each mapping to token sources. */
+export interface ResolverModifier {
+  description?: string;
+  contexts: Record<string, ResolverSource[]>;
+  default?: string;
+  $extensions?: Record<string, unknown>;
+}
+
+/** An entry in the resolutionOrder array — always a $ref to a set or modifier. */
+export type ResolutionOrderEntry = ResolverRef;
+
+/** The root structure of a *.resolver.json file (DTCG v2025.10). */
+export interface ResolverFile {
+  $schema?: string;
+  name?: string;
+  version: '2025.10';
+  description?: string;
+  sets?: Record<string, ResolverSet>;
+  modifiers?: Record<string, ResolverModifier>;
+  resolutionOrder: ResolutionOrderEntry[];
+  $extensions?: Record<string, unknown>;
+}
+
+/** Input to the resolver: modifier name -> selected context name. */
+export type ResolverInput = Record<string, string>;
