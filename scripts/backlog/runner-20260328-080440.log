@@ -452,3 +452,16 @@ Already up to date.
 
 --- Merging: Missing imports in `token-store.ts` ---
 Already up to date.
+[main fa1ff9d] chore(backlog): done – Missing imports in `token-store.ts`
+ 5 files changed, 39 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - Missing imports in `token-store.ts`
+- Fixed `TokenNode` (not defined anywhere) → replaced with `TokenGroup` (already imported from `@tokenmanager/core`)
+- Fixed `isSafeRegex` — was re-exported via `export { isSafeRegex } from '...'` which doesn't create a local binding; changed to separate import + re-export
+- `parseReference` and `makeReferenceGlobalRegex` were already correctly imported (backlog item partially stale on those)
+
+===============================================================
+  Iteration 23 / 90  (claude)  —  29 items remaining
+===============================================================
+  Claimed: CORS origin includes string `'null'` — allows requests from sandboxed iframes, data: URLs, and redirects; if intentional for the Figma plugin iframe, add a comment; otherwise remove
+  Worktree: /tmp/backlog-62956-4yYBES

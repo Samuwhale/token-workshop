@@ -53,6 +53,11 @@ export function useTokens(
   const [setCollectionNames, setSetCollectionNames] = useState<Record<string, string>>({});
   const [setModeNames, setSetModeNames] = useState<Record<string, string>>({});
   const fetchGenRef = useRef(0);
+  const activeSetRef = useRef(activeSet);
+  activeSetRef.current = activeSet;
+  // Tracks activeSet changes initiated internally by refreshTokens (initial set selection)
+  // so the activeSet-change effect can skip the redundant re-fetch.
+  const internalSetChangeRef = useRef(false);
 
   const refreshTokens = useCallback(async () => {
     if (!connected) return;
@@ -73,8 +78,11 @@ export function useTokens(
       setSetModeNames(setsData.modeNames || {});
 
       if (allSets.length > 0) {
-        const current = activeSet || allSets[0];
-        if (!activeSet) setActiveSet(current);
+        const current = activeSetRef.current || allSets[0];
+        if (!activeSetRef.current) {
+          internalSetChangeRef.current = true;
+          setActiveSet(current);
+        }
 
         const tokensRes = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(current)}`, { signal });
         if (!tokensRes.ok) return;
@@ -91,11 +99,28 @@ export function useTokens(
       if (isNetworkErr) onNetworkError?.();
       console.error('Failed to fetch tokens:', err);
     }
-  }, [serverUrl, connected, activeSet, onNetworkError, getDisconnectSignal]);
+  }, [serverUrl, connected, onNetworkError, getDisconnectSignal]);
 
   useEffect(() => {
     refreshTokens();
   }, [refreshTokens]);
+
+  // Re-fetch when activeSet changes externally (user switches tab).
+  // Skip: initial mount (handled by refreshTokens effect above) and
+  // changes caused by refreshTokens itself (initial set selection).
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    if (internalSetChangeRef.current) {
+      internalSetChangeRef.current = false;
+      return;
+    }
+    refreshTokens();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSet]);
 
   return { sets, setSets, activeSet, setActiveSet, tokens, setTokenCounts, setDescriptions, setCollectionNames, setModeNames, refreshTokens };
 }

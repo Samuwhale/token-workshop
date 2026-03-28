@@ -421,3 +421,10 @@ Already up to date.
 ===============================================================
   Claimed: `refreshTokens` double-fires on initial load — `refreshTokens` depends on `activeSet`, and calls `setActiveSet(current)` which changes `activeSet`, which re-triggers the effect; generation counter prevents stale display but the fetch fires twice
   Worktree: /tmp/backlog-63685-Lm9f5e
+
+  ✓ done: refreshTokens double-fires on initial load
+    Removed activeSet from refreshTokens deps by using a ref; added guarded activeSet-change effect to handle external tab switches without re-triggering on internal initial set selection.
+    22 turns · 162s · $0.92
+
+--- Merging: refreshTokens double-fires on initial load ---
+Already up to date.

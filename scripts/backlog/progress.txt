@@ -341,3 +341,13 @@
   - `export { X } from 'Y'` in TypeScript/ESM does NOT make `X` available locally — only re-exports it. To use locally, need a separate `import` statement.
   - `TokenNode` was never a real type — it was likely a typo/rename artifact. `TokenGroup` from core serves the same purpose.
 ---
+
+## 2026-03-28 - refreshTokens double-fires on initial load
+- Removed `activeSet` from `refreshTokens` useCallback deps by reading it via `activeSetRef` instead
+- Added separate `useEffect` for external `activeSet` changes (user switches tab) with guards to skip: (1) initial mount, (2) internal set changes from `refreshTokens` itself (initial set selection)
+- Uses `internalSetChangeRef` flag set before `setActiveSet` inside `refreshTokens`, and `mountedRef` to skip first render
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L55-122
+- **Learnings for future iterations:**
+  - When a `useCallback` reads state it also writes, use a ref to break the dependency cycle — avoids identity changes that retrigger effects
+  - Splitting "re-fetch on connection change" and "re-fetch on active set change" into two effects with appropriate guards cleanly prevents double-fire
+---
