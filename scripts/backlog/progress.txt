@@ -381,3 +381,10 @@
 - **Learnings for future iterations:**
   - Check progress.txt for prior fixes before starting work — duplicate items can appear in the backlog
 ---
+
+## 2026-03-28 - Duplicate `ScanTokenUsageMessage` interface in shared/types.ts
+- Already resolved: `ScanTokenUsageMessage` (type: 'scan-token-usage', L286-288) and `ScanSingleTokenUsageMessage` (type: 'scan-single-token-usage', L321-324) are distinct interfaces with different discriminator values. The previous fix (commit 3ed388a) renamed the second interface and its type string, eliminating the collision.
+- Files changed: none (already done)
+- **Learnings for future iterations:**
+  - Related backlog items (duplicate case in controller.ts vs duplicate interface in types.ts) may be resolved by the same fix — check both when fixing either
+---
