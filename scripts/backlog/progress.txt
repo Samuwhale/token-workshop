@@ -348,3 +348,15 @@
   - The `walkNodes` generator accepts optional `filter` set — omit to walk all nodes (used by `scanTokenUsage`)
   - Selection scope and page scope now use the same generator; selection just passes `figma.currentPage.selection` as roots
 ---
+
+## 2026-03-28 - git-sync.ts applyDiffChoices silently swallows checkout and commit failures
+- Changed `applyDiffChoices` return type from `Promise<void>` to `Promise<ApplyDiffResult>` with fields: `pullFailedFiles`, `pullCommitFailed`, `pushCommitFailed`, `pushFailed`, plus error message strings
+- Per-file checkout failures are now tracked in `pullFailedFiles` array; only successfully checked-out files are staged/committed
+- Push to remote is now wrapped in try/catch (was completely unprotected)
+- Route `/api/sync/apply-diff` now returns the full result object with `applied: false` when any failures occurred
+- UI hook `useGitSync.applyDiff` reads the result and builds user-visible warning messages for each failure type via `setGitError`
+- Files changed: `packages/server/src/services/git-sync.ts` ~L5-19,428-478, `packages/server/src/routes/sync.ts` ~L538-548, `packages/figma-plugin/src/ui/hooks/useGitSync.ts` ~L211-249
+- **Learnings for future iterations:**
+  - `apiFetch` already parses JSON and throws on non-2xx — don't add redundant `res.ok` checks or `.json()` calls when using it
+  - For partial-failure patterns, return a structured result object rather than throwing — lets the caller distinguish total vs partial failure
+---

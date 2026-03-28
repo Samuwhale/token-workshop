@@ -212,11 +212,37 @@ export function useGitSync({ serverUrl, connected }: UseGitSyncOptions) {
     setApplyingDiff(true);
     setGitError(null);
     try {
-      await apiFetch(`${serverUrl}/api/sync/apply-diff`, {
+      const data = await apiFetch<{
+        applied: boolean;
+        pullFailedFiles?: string[];
+        pullCommitFailed?: boolean;
+        pullCommitError?: string;
+        pushCommitFailed?: boolean;
+        pushCommitError?: string;
+        pushFailed?: boolean;
+        pushError?: string;
+      }>(`${serverUrl}/api/sync/apply-diff`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ choices: diffChoices }),
       });
+      // Report partial failures to the user
+      const warnings: string[] = [];
+      if (data?.pullFailedFiles?.length) {
+        warnings.push(`Failed to pull: ${data.pullFailedFiles.join(', ')}`);
+      }
+      if (data?.pullCommitFailed) {
+        warnings.push(`Pull commit failed: ${data.pullCommitError || 'unknown error'}`);
+      }
+      if (data?.pushCommitFailed) {
+        warnings.push(`Push commit failed: ${data.pushCommitError || 'unknown error'}`);
+      }
+      if (data?.pushFailed) {
+        warnings.push(`Push to remote failed: ${data.pushError || 'unknown error'}`);
+      }
+      if (warnings.length > 0) {
+        setGitError(`Partial failure: ${warnings.join('; ')}`);
+      }
       setDiffView(null);
       fetchStatus();
     } catch (err) {

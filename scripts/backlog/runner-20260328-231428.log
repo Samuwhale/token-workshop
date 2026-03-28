@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: git-sync.ts applyDiffChoices silently swallows checkout and commit failures — L420-421 catches per-file `git checkout origin/branch -- file` failures with `console.warn` and continues, meaning the user sees success even though some files weren't pulled; L425-428 catches commit failures the same way, so a failed pull-commit is invisible; push path (L435-438) has the same pattern; these should propagate partial-failure info to the caller so the UI can report which files failed
   Worktree: /tmp/backlog-86933-UFYgaf
+
+  ✓ done: git-sync.ts applyDiffChoices silently swallows checkout and commit failures
+    Changed applyDiffChoices to return ApplyDiffResult with per-file checkout failures, commit/push error details; route forwards result; UI hook surfaces partial failures via setGitError
+    20 turns · 140s · $0.71
+
+--- Merging: git-sync.ts applyDiffChoices silently swallows checkout and commit failures ---
+Already up to date.

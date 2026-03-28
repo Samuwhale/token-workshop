@@ -538,8 +538,12 @@ export const syncRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const { choices } = request.body ?? {};
         if (!choices) return reply.status(400).send({ error: 'choices is required' });
-        await fastify.gitSync.applyDiffChoices(choices);
-        return { applied: true };
+        const result = await fastify.gitSync.applyDiffChoices(choices);
+        const hasFailures = result.pullFailedFiles.length > 0
+          || result.pullCommitFailed
+          || result.pushCommitFailed
+          || result.pushFailed;
+        return { applied: !hasFailures, ...result };
       } catch (err) {
         return reply.status(500).send({ error: 'Failed to apply diff', detail: String(err) });
       }

@@ -2,6 +2,21 @@ import simpleGit, { SimpleGit } from 'simple-git';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
+/** Result of applyDiffChoices with partial-failure details. */
+export interface ApplyDiffResult {
+  /** Files that failed to checkout from remote during pull. */
+  pullFailedFiles: string[];
+  /** Whether the pull commit failed. */
+  pullCommitFailed: boolean;
+  pullCommitError?: string;
+  /** Whether the push commit failed. */
+  pushCommitFailed: boolean;
+  pushCommitError?: string;
+  /** Whether git push to remote failed. */
+  pushFailed: boolean;
+  pushError?: string;
+}
+
 /** A single conflict region within a file. */
 export interface ConflictRegion {
   /** Zero-based index of the conflict within the file */
@@ -410,21 +425,39 @@ export class GitSync {
   }
 
   /** Apply direction choices: push, pull, or skip per file */
-  async applyDiffChoices(choices: Record<string, 'push' | 'pull' | 'skip'>): Promise<void> {
+  async applyDiffChoices(choices: Record<string, 'push' | 'pull' | 'skip'>): Promise<ApplyDiffResult> {
     const toPull = Object.entries(choices).filter(([, d]) => d === 'pull').map(([f]) => f);
     const toPush = Object.entries(choices).filter(([, d]) => d === 'push').map(([f]) => f);
     this.validatePaths([...toPull, ...toPush]);
+
+    const result: ApplyDiffResult = {
+      pullFailedFiles: [],
+      pullCommitFailed: false,
+      pushCommitFailed: false,
+      pushFailed: false,
+    };
+
     if (toPull.length > 0) {
       // Checkout individual files from remote
       const branch = await this.getCurrentBranch();
       for (const file of toPull) {
-        await this.git.raw(['checkout', `origin/${branch}`, '--', file]).catch((err) => { console.warn(`[GitSync] Failed to checkout file "${file}":`, err); });
+        try {
+          await this.git.raw(['checkout', `origin/${branch}`, '--', file]);
+        } catch (err) {
+          console.warn(`[GitSync] Failed to checkout file "${file}":`, err);
+          result.pullFailedFiles.push(file);
+        }
       }
-      await this.git.add(toPull);
-      try {
-        await this.git.commit(`chore: pull ${toPull.length} file(s) from remote`);
-      } catch (err) {
-        console.warn('[GitSync] Pull commit failed (may have no changes):', err);
+      const pulledFiles = toPull.filter(f => !result.pullFailedFiles.includes(f));
+      if (pulledFiles.length > 0) {
+        await this.git.add(pulledFiles);
+        try {
+          await this.git.commit(`chore: pull ${pulledFiles.length} file(s) from remote`);
+        } catch (err) {
+          console.warn('[GitSync] Pull commit failed (may have no changes):', err);
+          result.pullCommitFailed = true;
+          result.pullCommitError = String(err);
+        }
       }
     }
     // 'push' direction: stage only the selected files, commit, then push
@@ -436,10 +469,20 @@ export class GitSync {
         pushCommitSucceeded = true;
       } catch (err) {
         console.warn('[GitSync] Push commit failed (may have no changes):', err);
+        result.pushCommitFailed = true;
+        result.pushCommitError = String(err);
       }
       if (pushCommitSucceeded) {
-        await this.git.push();
+        try {
+          await this.git.push();
+        } catch (err) {
+          console.warn('[GitSync] Push to remote failed:', err);
+          result.pushFailed = true;
+          result.pushError = String(err);
+        }
       }
     }
+
+    return result;
   }
 }

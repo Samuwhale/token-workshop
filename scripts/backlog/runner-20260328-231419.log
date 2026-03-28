@@ -16,3 +16,18 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Plugin sandbox duplicate batched node traversal in heatmapScanning.ts and consistencyScanner.ts ---
 Already up to date.
+[main 88f15d1] chore(backlog): done – Plugin sandbox duplicate batched node traversal in heatmapScanning.ts and consistencyScanner.ts
+ 8 files changed, 110 insertions(+), 74 deletions(-)
+ create mode 100644 packages/figma-plugin/src/plugin/walkNodes.ts
+
+## 2026-03-28 - Plugin sandbox duplicate batched node traversal in heatmapScanning.ts and consistencyScanner.ts
+- Extracted shared `walkNodes` async generator and `VISUAL_TYPES` constant into new `packages/figma-plugin/src/plugin/walkNodes.ts`
+- Refactored `scanCanvasHeatmap()` (heatmapScanning.ts ~L88-104 → 3-line for-await loop)
+- Refactored `scanTokenUsage()` (heatmapScanning.ts ~L227-271 → for-await loop, no filter)
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Backlog fully drained!
