@@ -164,4 +164,6 @@ export interface TokenTreeNodeProps {
   searchHighlight?: { nameTerms: string[]; valueTerms: string[] };
   showFullPath?: boolean;
   tokenUsageCounts?: Record<string, number>;
+  isPinned?: boolean;
+  onTogglePin?: (path: string) => void;
 }

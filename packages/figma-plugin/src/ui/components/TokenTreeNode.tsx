@@ -29,6 +29,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onDragOverToken, onDragLeaveToken, onDropOnToken, dragOverReorder,
     chainExpanded: chainExpandedProp = false,
     onToggleChain, searchQuery, showFullPath, tokenUsageCounts,
+    isPinned, onTogglePin,
   } = props;
 
   const isExpanded = expandedPaths.has(node.path);
@@ -1136,6 +1137,22 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       {/* Hover actions — absolutely positioned to avoid layout shift */}
       {!selectMode && (
         <div className="absolute right-1 top-0 bottom-0 flex items-center gap-0.5 pointer-events-none group-hover:pointer-events-auto">
+          {/* Pin/star toggle */}
+          {onTogglePin && (
+            <button
+              onClick={e => { e.stopPropagation(); onTogglePin(node.path); }}
+              title={isPinned ? 'Unpin token' : 'Pin token'}
+              className={`p-1 rounded hover:bg-[var(--color-figma-bg-hover)] transition-opacity ${
+                isPinned
+                  ? 'text-[var(--color-figma-accent)] opacity-100 pointer-events-auto'
+                  : 'text-[var(--color-figma-text-secondary)] opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto'
+              }`}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill={isPinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </button>
+          )}
           {/* Edit button — always faintly visible as a hint that rows are editable */}
           <button
             onClick={() => onEdit(node.path, node.name)}
@@ -1298,6 +1315,17 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           >
             <span>Move to set...</span><span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">M</span>
           </button>
+          {onTogglePin && (
+            <button
+              data-accel="p"
+              className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => { setContextMenuPos(null); onTogglePin(node.path); }}
+            >
+              <span>{isPinned ? 'Unpin token' : 'Pin token'}</span>
+              <span className="ml-4 text-[9px] text-[var(--color-figma-text-tertiary)]">P</span>
+            </button>
+          )}
           <div className="my-1 border-t border-[var(--color-figma-border)]" />
           <button
             data-accel="c"

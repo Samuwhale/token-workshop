@@ -576,3 +576,22 @@
   - The `readCurrentValues` function in selectionHandling.ts only reads basic props (fills, strokes, dimensions); typography/shadow/border extraction needed to be written from scratch for the extraction feature
   - Pre-existing build failure (`buildTreeByType` missing export) blocked the build — had to fix it as part of this item
 ---
+
+## 2026-03-28 - No token pinning or favorites
+- Implemented token pinning/favorites feature: users can star/pin tokens, with a "Pinned" section at the top of the token list
+- Created `usePinnedTokens` hook with localStorage persistence per set, supporting toggle/remove/rename/clear
+- Added star/pin toggle button on token row hover actions (filled star when pinned, always visible; outline star on hover when not)
+- Added "Pin/Unpin token" context menu item (keyboard shortcut P)
+- Added dedicated "Pinned" section above virtual scroll list showing pinned tokens with full paths
+- Added "Pinned only" filter toggle button in toolbar (star icon with count badge)
+- Added "Pinned" filter chip in active filters row
+- Pinned section respects active search/type filters — only matching pinned tokens shown
+- Pinned state syncs with token renames (both single rename and drag-move)
+- Also fixed pre-existing build error: added missing `buildTreeByType` export to `tokenListUtils.ts`
+- Files changed: `packages/figma-plugin/src/ui/hooks/usePinnedTokens.ts` (new), `packages/figma-plugin/src/ui/shared/storage.ts` ~L39, `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L167-168, `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L32,L1138-1160,L1301-1313, `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L29,L87-88,L510,L630-634,L641-645,L797,L944,L997,L2112-2129,L2365-2374,L2398-2443,L2837-2838, `packages/figma-plugin/src/ui/components/tokenListUtils.ts` ~L463-487
+- **Learnings for future iterations:**
+  - The `useRecentlyTouched` hook is in-memory only (no localStorage); `usePinnedTokens` persists to localStorage per-set since pins should survive plugin reloads
+  - The pinned section is rendered outside the virtual scroll (non-virtualized) since pinned counts are expected to be small (<50)
+  - `filterByDuplicatePaths` from tokenListUtils is reused for the "pinned only" filter, same pattern as recently-touched and issues-only filters
+  - `buildTreeByType` was missing from tokenListUtils but referenced in App.tsx — pre-existing build breakage unrelated to this feature
+---

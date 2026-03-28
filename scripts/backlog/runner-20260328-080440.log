@@ -142,3 +142,10 @@ Already up to date.
 ===============================================================
   Claimed: No token pinning or favorites — frequently-used tokens (e.g. brand primary, base spacing) require searching or navigating every time; add a star/pin action on tokens with a "Pinned" section at the top of the token list or a quick-access palette (Cmd+P style) that prioritizes pinned tokens
   Worktree: /tmp/backlog-62956-hvCkGU
+
+  ✓ done: No token pinning or favorites
+    Added token pinning with star toggle on rows, context menu item, dedicated Pinned section above token list, pinned-only filter button, and localStorage persistence per set
+    88 turns · 543s · $3.98
+
+--- Merging: No token pinning or favorites ---
+Already up to date.

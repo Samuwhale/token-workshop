@@ -26,6 +26,7 @@ import { TokenTreeNode } from './TokenTreeNode';
 import { TokenListModals } from './TokenListModals';
 import { TokenTableView } from './TokenTableView';
 import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
+import { usePinnedTokens } from '../hooks/usePinnedTokens';
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
@@ -84,6 +85,8 @@ export function TokenList({
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [showRecentlyTouched, setShowRecentlyTouched] = useState(false);
   const recentlyTouched = useRecentlyTouched();
+  const pinnedTokens = usePinnedTokens(setName);
+  const [showPinnedOnly, setShowPinnedOnly] = useState(false);
 
   // Track editor saves: highlightedToken is set to saved path after TokenEditor save
   const prevHighlightRef = useRef<string | null>(null);
@@ -505,7 +508,7 @@ export function TokenList({
     return QUERY_QUALIFIERS.filter(q => q.qualifier.toLowerCase().startsWith(lw));
   }, [searchQuery]);
 
-  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched;
+  const filtersActive = searchQuery !== '' || typeFilter !== '' || refFilter !== 'all' || showDuplicates || showIssuesOnly || showRecentlyTouched || showPinnedOnly;
 
   // Compute paths with lint violations for issues-only filter
   const lintPaths = useMemo(() => {
@@ -624,11 +627,21 @@ export function TokenList({
       if (recentlyTouched.paths.size > 0) result = filterByDuplicatePaths(result, recentlyTouched.paths);
       else result = [];
     }
+    if (showPinnedOnly) {
+      if (pinnedTokens.paths.size > 0) result = filterByDuplicatePaths(result, pinnedTokens.paths);
+      else result = [];
+    }
     return result;
-  }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths]);
+  }, [sortedTokens, searchQuery, typeFilter, refFilter, filtersActive, showDuplicates, duplicateValuePaths, showIssuesOnly, lintPaths, inspectMode, selectedNodes.length, boundTokenPaths, showRecentlyTouched, recentlyTouched.paths, showPinnedOnly, pinnedTokens.paths]);
 
   // Memoized flat leaf list for displayedTokens — avoids repeated O(n) walks per render
   const displayedLeafNodes = useMemo(() => flattenLeafNodes(displayedTokens), [displayedTokens]);
+
+  // Pinned tokens from the displayed (filtered) set — shown in a dedicated section above the list
+  const pinnedDisplayedNodes = useMemo(() => {
+    if (pinnedTokens.count === 0 || showPinnedOnly) return [];
+    return displayedLeafNodes.filter(n => pinnedTokens.isPinned(n.path));
+  }, [displayedLeafNodes, pinnedTokens, showPinnedOnly]);
 
   // Compute highlight terms from the parsed search query for substring highlighting
   const searchHighlight = useMemo(() => {
@@ -797,6 +810,7 @@ export function TokenList({
     setRefFilter('all');
     setShowDuplicates(false);
     setShowRecentlyTouched(false);
+    setShowPinnedOnly(false);
     if (showIssuesOnly && onToggleIssuesOnly) onToggleIssuesOnly();
   }, [setSearchQuery, setTypeFilter, setRefFilter, setShowDuplicates, showIssuesOnly, onToggleIssuesOnly]);
 
@@ -937,7 +951,8 @@ export function TokenList({
     }
     onRefresh();
     recentlyTouched.renamePath(oldPath, newPath);
-  }, [connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched]);
+    pinnedTokens.renamePin(oldPath, newPath);
+  }, [connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched, pinnedTokens]);
 
   const handleDropOnGroup = useCallback(async (targetGroupPath: string) => {
     if (!dragSource || !connected) return;
@@ -987,9 +1002,12 @@ export function TokenList({
         },
       });
     }
-    for (const { oldPath, newPath } of moves) recentlyTouched.renamePath(oldPath, newPath);
+    for (const { oldPath, newPath } of moves) {
+      recentlyTouched.renamePath(oldPath, newPath);
+      pinnedTokens.renamePin(oldPath, newPath);
+    }
     onRefresh();
-  }, [dragSource, connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched]);
+  }, [dragSource, connected, serverUrl, setName, onRefresh, onPushUndo, recentlyTouched, pinnedTokens]);
 
   const handleRenameToken = useCallback(async (oldPath: string, newPath: string) => {
     if (!connected) return;
@@ -2100,6 +2118,22 @@ export function TokenList({
                 </button>
               )}
 
+              {/* Pinned filter */}
+              {pinnedTokens.count > 0 && (
+                <button
+                  onClick={() => setShowPinnedOnly(v => !v)}
+                  title={showPinnedOnly ? 'Show all tokens' : `Show ${pinnedTokens.count} pinned token${pinnedTokens.count !== 1 ? 's' : ''}`}
+                  aria-label={showPinnedOnly ? 'Show all tokens' : 'Show pinned tokens'}
+                  aria-pressed={showPinnedOnly}
+                  className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${showPinnedOnly ? 'bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" aria-hidden="true">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                  {pinnedTokens.count}
+                </button>
+              )}
+
               {/* Selection filter */}
               <button
                 onClick={() => setInspectMode(v => !v)}
@@ -2331,6 +2365,15 @@ export function TokenList({
                     Recent ✕
                   </button>
                 )}
+                {showPinnedOnly && (
+                  <button
+                    onClick={() => setShowPinnedOnly(false)}
+                    title="Clear pinned filter"
+                    className="shrink-0 px-1.5 py-0.5 rounded text-[9px] whitespace-nowrap transition-colors bg-[var(--color-figma-accent)]/10 text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/20"
+                  >
+                    Pinned ✕
+                  </button>
+                )}
                 {filtersActive && (
                   <button
                     onClick={clearFilters}
@@ -2361,6 +2404,50 @@ export function TokenList({
         className="flex-1 overflow-y-auto"
         onScroll={e => { const top = e.currentTarget.scrollTop; virtualScrollTopRef.current = top; setVirtualScrollTop(top); }}
       >
+        {/* Pinned tokens section */}
+        {pinnedDisplayedNodes.length > 0 && viewMode === 'tree' && (
+          <div className="border-b border-[var(--color-figma-border)]">
+            <div className="flex items-center gap-1 px-2 py-1 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" className="text-[var(--color-figma-accent)]" aria-hidden="true">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+              <span className="text-[9px] font-medium text-[var(--color-figma-text-secondary)]">
+                Pinned ({pinnedDisplayedNodes.length})
+              </span>
+            </div>
+            {pinnedDisplayedNodes.map(node => (
+              <TokenTreeNode
+                key={`pinned-${node.path}`}
+                node={node}
+                depth={0}
+                onEdit={onEdit}
+                onPreview={onPreview}
+                onDelete={requestDeleteToken}
+                onDeleteGroup={requestDeleteGroup}
+                setName={setName}
+                selectionCapabilities={selectionCapabilities}
+                allTokensFlat={allTokensFlat}
+                selectMode={selectMode}
+                isSelected={selectedPaths.has(node.path)}
+                onToggleSelect={toggleSelect}
+                expandedPaths={expandedPaths}
+                onToggleExpand={handleToggleExpand}
+                duplicateCounts={duplicateCounts}
+                highlightedToken={highlightedToken ?? null}
+                onNavigateToAlias={onNavigateToAlias}
+                skipChildren
+                showFullPath
+                isPinned={true}
+                onTogglePin={pinnedTokens.togglePin}
+                syncSnapshot={syncSnapshot}
+                cascadeDiff={cascadeDiff}
+                onInlineSave={handleInlineSave}
+                tokenUsageCounts={tokenUsageCounts}
+                searchHighlight={searchHighlight}
+              />
+            ))}
+          </div>
+        )}
         {crossSetResults !== null ? (
           /* Cross-set search results */
           crossSetResults.length === 0 ? (
@@ -2752,8 +2839,10 @@ export function TokenList({
                 chainExpanded={expandedChains.has(node.path)}
                 onToggleChain={handleToggleChain}
                 searchHighlight={searchHighlight}
-                showFullPath={showRecentlyTouched}
+                showFullPath={showRecentlyTouched || showPinnedOnly}
                 tokenUsageCounts={tokenUsageCounts}
+                isPinned={pinnedTokens.isPinned(node.path)}
+                onTogglePin={pinnedTokens.togglePin}
               />
               );
             })}

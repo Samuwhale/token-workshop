@@ -201,3 +201,17 @@ Already up to date.
 
 --- Merging: No "create token from Figma selection" flow — add "Extract tokens from selection" ---
 Already up to date.
+[main b01526c] chore(backlog): done – No "create token from Figma selection" flow — add "Extract tokens from selection"
+ 11 files changed, 672 insertions(+), 22 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/ExtractTokensPanel.tsx
+
+## 2026-03-28 - No "create token from Figma selection" flow — add "Extract tokens from selection"
+- Added full "Extract tokens from selection" feature: plugin sandbox reads fills, strokes, dimensions, typography, shadows, borders, opacity from selected layers and sends structured extraction data to the UI
+- New `ExtractTokensPanel` component renders a batch creation form with checkboxes, editable names (pre-populated from layer names), type badges, value previews, conflict detection (overwrite warnings), and progress tracking
+- "Extract" button added to SelectionInspector toolbar, visible when connected with an active set
+
+===============================================================
+  Iteration 11 / 90  (claude)  —  75 items remaining
+===============================================================
+  Claimed: No contextual token suggestions during property binding — when binding a token to a Figma property, the picker shows all tokens; rank and surface tokens most likely to match: same type as the property, tokens with similar resolved values, tokens frequently bound to the same property type, and tokens used on sibling layers in the same component
+  Worktree: /tmp/backlog-63411-Ug9tvO
