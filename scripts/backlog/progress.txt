@@ -522,3 +522,11 @@
   - The `pointer-events-none` on the container + `pointer-events-auto` on individual toasts prevents the stack container from blocking clicks on content below non-toast areas
   - Max 5 visible toasts (sliced from end of array) prevents runaway stacking from rapid operations
 ---
+
+## 2026-03-28 - Hover tooltips on truncated token paths
+- Added `title` attributes to all truncated text elements that were missing them: token name/path display (always shows full `formatDisplayPath`), extends badge inner span, generator name inner span, alias reference inner span, read-only value display, and search results path.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1086,1143,1174,1188,1306; `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L2862
+- **Learnings for future iterations:**
+  - Several truncated spans already had title attributes on their parent element (button/span wrapper) but the inner truncated span itself also needs a `title` for reliable browser tooltip behavior
+  - Elements that already had titles: `$description` div, breadcrumb segments, color swatch grid buttons, alias value spans (resolved values variant), inline-editable values
+---

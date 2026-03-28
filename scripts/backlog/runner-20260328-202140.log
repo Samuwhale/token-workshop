@@ -38,3 +38,18 @@ Already up to date.
 
 --- Merging: Toast stacking system: queue multiple toasts vertically instead of overlapping in the same bottom-left position ---
 Already up to date.
+[main 751d888] chore(backlog): done – Toast stacking system: queue multiple toasts vertically instead of overlapping in the same bottom-left position
+ 9 files changed, 236 insertions(+), 30 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/ToastStack.tsx
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useToastStack.ts
+
+## 2026-03-28 - Toast stacking system: queue multiple toasts vertically instead of overlapping
+- Replaced single-toast-at-a-time system with a proper stacking queue. Previously, success/error/undo toasts were mutually exclusive via conditional priority (`!toastVisible`, `!successToast`). Now multiple toasts render simultaneously in a vertical stack with `gap-1.5`, each with independent auto-dismiss timers and slide-up animation.
+- Created `useToastStack` hook that manages a `ToastItem[]` array with `pushSuccess`/`pushError`/`dismiss` — replaces the old `useState<string | null>` for success and error toasts.
+- Created `ToastStack` component that renders up to 5 visible toasts stacked from bottom, with the undo toast (still managed by `useUndo`) rendered at the base of the stack. Each toast gets an `animate-toast-in` CSS animation (150ms slide-up + fade-in).
+
+===============================================================
+  Iteration 3 / 90  (claude)  —  68 items remaining
+===============================================================
+  Claimed: Consistent empty states across sub-panels: Themes, Resolvers, Generators, Heatmap, History all need guidance-oriented empty states (what is this, why use it, how to start) matching the quality of the main EmptyState
+  Worktree: /tmp/backlog-9651-zrdsO2

@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: Hover tooltips on truncated token paths: show full path on hover for deep hierarchies that get line-clamped
   Worktree: /tmp/backlog-9231-UdvP1m
+
+  ✓ done: Hover tooltips on truncated token paths
+    Added title attributes to 6 truncated text elements across TokenTreeNode.tsx and TokenList.tsx: token name/path, extends badge, generator name, alias reference, read-only value, and search results path.
+    18 turns · 135s · $0.57
+
+--- Merging: Hover tooltips on truncated token paths ---
+Already up to date.

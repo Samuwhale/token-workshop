@@ -2859,7 +2859,7 @@ export function TokenList({
                           {r.entry.$type === 'color' && typeof r.entry.$value === 'string' && r.entry.$value.startsWith('#') && (
                             <span className="shrink-0 w-3 h-3 rounded-sm border border-[var(--color-figma-border)]" style={{ background: r.entry.$value }} />
                           )}
-                          <span className="flex-1 min-w-0 font-mono text-[10px] text-[var(--color-figma-text)] truncate">{highlightMatch(r.path, searchHighlight?.nameTerms ?? [])}</span>
+                          <span className="flex-1 min-w-0 font-mono text-[10px] text-[var(--color-figma-text)] truncate" title={r.path}>{highlightMatch(r.path, searchHighlight?.nameTerms ?? [])}</span>
                           <span className={`shrink-0 text-[8px] px-1 py-0.5 rounded ${TOKEN_TYPE_BADGE_CLASS[r.entry.$type] ?? 'bg-[var(--color-figma-bg-secondary)] text-[var(--color-figma-text-secondary)]'}`}>{r.entry.$type}</span>
                         </button>
                       ))}

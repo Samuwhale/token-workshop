@@ -1083,7 +1083,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               className="text-[11px] text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none w-32 shrink-0"
             />
           ) : (
-            <span className="text-[11px] text-[var(--color-figma-text)] truncate">{highlightMatch(showFullPath ? formatDisplayPath(node.path, node.name) : node.name, searchHighlight?.nameTerms ?? [])}</span>
+            <span className="text-[11px] text-[var(--color-figma-text)] truncate" title={formatDisplayPath(node.path, node.name)}>{highlightMatch(showFullPath ? formatDisplayPath(node.path, node.name) : node.name, searchHighlight?.nameTerms ?? [])}</span>
           )}
           {!renamingToken && node.$type && (
             <button
@@ -1140,7 +1140,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                   <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                   <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                 </svg>
-                <span className="truncate">{ext}</span>
+                <span className="truncate" title={ext}>{ext}</span>
               </span>
             );
             return null;
@@ -1171,7 +1171,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 <svg className="shrink-0" width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                   <path d="M2 2l6 6M8 2l-3 3-3 3"/>
                 </svg>
-                {gen && <span className="truncate">{gen.name}</span>}
+                {gen && <span className="truncate" title={gen.name}>{gen.name}</span>}
               </span>
             );
           })()}
@@ -1185,7 +1185,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
                 <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
               </svg>
-              <span className="max-w-[80px] truncate">{(node.$value as string).slice(1, -1)}</span>
+              <span className="max-w-[80px] truncate" title={(node.$value as string).slice(1, -1)}>{(node.$value as string).slice(1, -1)}</span>
             </button>
           )}
         </div>
@@ -1303,7 +1303,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           {highlightMatch(formatValue(node.$type, displayValue), searchHighlight?.valueTerms ?? [])}
         </span>
       ) : (
-        <span className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate">
+        <span className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate" title={formatValue(node.$type, displayValue)}>
           {highlightMatch(formatValue(node.$type, displayValue), searchHighlight?.valueTerms ?? [])}
         </span>
       ))}
