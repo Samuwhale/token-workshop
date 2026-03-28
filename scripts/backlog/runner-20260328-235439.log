@@ -21,3 +21,9 @@ Starting Backlog Runner — Tool: claude — Model: opus — runs until stopped
 
 --- Merging: Snapshot save/restore bypasses tokenLock ---
 Already up to date.
+[main 9d42e42] chore(backlog): done – Snapshot save/restore bypasses tokenLock
+ 9 files changed, 240 insertions(+), 58 deletions(-)
+
+--- Cleanup: archiving completed items (≥24) ---
+  → Archived 24 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 60)
