@@ -125,6 +125,31 @@ function ExtendsTokenPicker({ tokenType, allTokensFlat, pathToSet, currentPath, 
   );
 }
 
+/** Parse a raw clipboard/initial string value into the shape the editor expects for the given type. */
+function parseInitialValueForType(type: string, raw: string): any {
+  const v = raw.trim();
+  if (type === 'color') return v;
+  if (type === 'dimension') {
+    const m = v.match(/^(-?\d*\.?\d+)\s*(px|rem|em|%|vw|vh|pt|dp|sp|cm|mm|fr|ch|ex)?$/);
+    if (m) return { value: parseFloat(m[1]), unit: m[2] || 'px' };
+    return v;
+  }
+  if (type === 'duration') {
+    const m = v.match(/^(-?\d*\.?\d+)\s*(ms|s)?$/);
+    if (m) return { value: parseFloat(m[1]), unit: m[2] || 'ms' };
+    const n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+  }
+  if (type === 'number' || type === 'fontWeight') {
+    const n = parseFloat(v);
+    return isNaN(n) ? v : n;
+  }
+  if (type === 'boolean') {
+    return v.toLowerCase() === 'true';
+  }
+  return v;
+}
+
 /** Suggested namespace prefixes per token type to help new users build consistent hierarchies. */
 const NAMESPACE_SUGGESTIONS: Record<string, { prefixes: string[]; example: string }> = {
   color: { prefixes: ['color.'], example: 'color.brand.primary' },
@@ -393,6 +418,10 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
   const [value, setValue] = useState<any>(() => {
     if (!isCreateMode) return '';
     const t = initialType || 'color';
+    // Pre-fill from initialValue when provided (and not an alias — aliases are handled via reference state)
+    if (initialValue && !(initialValue.startsWith('{') && initialValue.endsWith('}'))) {
+      return parseInitialValueForType(t, initialValue);
+    }
     if (t === 'color') return '#000000';
     if (t === 'dimension') return { value: 0, unit: 'px' };
     if (t === 'number' || t === 'duration') return 0;

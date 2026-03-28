@@ -30,12 +30,21 @@ export function inferType(value: string): { $type: string; $value: unknown } {
   if (/^#([0-9a-fA-F]{3,8})$/.test(trimmed)) {
     return { $type: 'color', $value: trimmed };
   }
-  if (/^(rgb|hsl)a?\(/.test(trimmed)) {
+  if (/^(rgb|hsl|hwb|lab|lch|oklch|oklab|color)a?\s*\(/i.test(trimmed)) {
     return { $type: 'color', $value: trimmed };
+  }
+  // Duration: 200ms, 0.3s
+  const durMatch = trimmed.match(/^(-?\d+(\.\d+)?)(ms|s)$/);
+  if (durMatch) {
+    return { $type: 'duration', $value: { value: parseFloat(durMatch[1]), unit: durMatch[3] } };
   }
   const dimMatch = trimmed.match(/^(-?\d+(\.\d+)?)(px|em|rem|%|vh|vw|pt)$/);
   if (dimMatch) {
     return { $type: 'dimension', $value: { value: parseFloat(dimMatch[1]), unit: dimMatch[3] } };
+  }
+  // Boolean
+  if (/^(true|false)$/i.test(trimmed)) {
+    return { $type: 'boolean', $value: trimmed.toLowerCase() === 'true' };
   }
   if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
     return { $type: 'number', $value: parseFloat(trimmed) };

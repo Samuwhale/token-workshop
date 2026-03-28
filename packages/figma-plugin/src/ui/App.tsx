@@ -64,6 +64,7 @@ import { adaptShortcut } from './shared/utils';
 import { apiFetch, isNetworkError } from './shared/apiFetch';
 import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSetJson, lsClearByPrefix } from './shared/storage';
 import { buildTreeByType } from './components/tokenListUtils';
+import { inferTypeFromValue } from './components/tokenListHelpers';
 
 /** Format a timestamp as a human-readable relative time string. */
 function timeAgo(iso: string): string {
@@ -612,6 +613,27 @@ export function App() {
         category: 'Tokens',
         shortcut: adaptShortcut('⌘⇧V'),
         handler: () => setShowPasteModal(true),
+      },
+      {
+        id: 'new-from-clipboard',
+        label: 'New token from clipboard',
+        description: 'Create a single token pre-filled with your clipboard value',
+        category: 'Tokens',
+        handler: async () => {
+          try {
+            const text = await navigator.clipboard.readText();
+            const trimmed = text?.trim();
+            if (!trimmed) {
+              setErrorToast('Clipboard is empty');
+              return;
+            }
+            const inferredType = inferTypeFromValue(trimmed) || 'string';
+            goToTokens();
+            setEditingToken({ path: '', set: activeSet, isCreate: true, initialType: inferredType, initialValue: trimmed });
+          } catch {
+            setErrorToast('Could not read clipboard — browser may have denied access');
+          }
+        },
       },
       {
         id: 'find-replace-names',

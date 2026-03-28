@@ -69,7 +69,7 @@ export function inferTypeFromValue(value: string): string | null {
   const v = value.trim();
   if (!v) return null;
   if (/^#([0-9a-fA-F]{3,8})$/.test(v)) return 'color';
-  if (/^(rgb|hsl)a?\s*\(/.test(v)) return 'color';
+  if (/^(rgb|hsl|hwb|lab|lch|oklch|oklab|color)a?\s*\(/i.test(v)) return 'color';
   if (/^(-?\d+(\.\d+)?)(px|em|rem|%|vh|vw|pt|dp|sp|cm|mm|fr|ch|ex)$/.test(v)) return 'dimension';
   if (/^(-?\d+(\.\d+)?)(ms|s)$/.test(v)) return 'duration';
   if (/^(true|false)$/i.test(v)) return 'boolean';

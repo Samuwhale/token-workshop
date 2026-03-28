@@ -216,3 +216,16 @@
 - Found 12 items — written to backlog-inbox.md
 - Notable: TokenGraph.tsx is 512 lines of dead code still rendered in a viewMode branch; VersionHistoryPanel and SnapshotPanel have nearly identical helper functions and serve the same "revert to past state" goal; TokenList has 6 view modes (tree/table/canvas/grid/json/graph) which is excessive — canvas, grid, and graph overlap with other panels
 ---
+
+## 2026-03-29 - No "create token from clipboard" quick action
+- Added "New token from clipboard" command palette entry that reads clipboard, infers token type (color, dimension, duration, boolean, number, string), and opens TokenEditor in create mode pre-filled with the clipboard value
+- Enhanced `inferType` (tokenParsers.ts) and `inferTypeFromValue` (tokenListHelpers.tsx) to recognize wide-gamut color formats (oklch, oklab, hwb, lab, lch, color()), duration values, and booleans
+- Added `parseInitialValueForType` helper in TokenEditor.tsx to parse raw clipboard strings into editor-compatible value shapes (dimension objects, duration objects, numbers, booleans)
+- Modified TokenEditor value initialization to use `initialValue` prop for non-alias values (previously only used for alias references)
+- Fixed pre-existing build error in ResolverPanel.tsx:215 (`)}` → `</div>`)
+- Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L66 (import), ~L611-627 (command entry); `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L128-151 (parseInitialValueForType), ~L410-416 (value init); `packages/figma-plugin/src/ui/shared/tokenParsers.ts` ~L25-44 (inferType); `packages/figma-plugin/src/ui/components/tokenListHelpers.tsx` ~L72 (inferTypeFromValue); `packages/figma-plugin/src/ui/components/ResolverPanel.tsx` ~L215 (build fix)
+- **Learnings for future iterations:**
+  - TokenEditor's `initialValue` prop was only wired for alias references (`{...}`); non-alias values defaulted to type-specific defaults — needed explicit parsing
+  - `inferTypeFromValue` in tokenListHelpers and `inferType` in tokenParsers serve similar but distinct roles (one returns just type string, other returns type+parsed value) — keep them in sync
+  - ResolverPanel.tsx had a pre-existing `)}` vs `</div>` build error at L215 that blocked the build gate
+---
