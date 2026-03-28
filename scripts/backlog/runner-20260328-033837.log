@@ -313,3 +313,17 @@ Already up to date.
 
 --- Merging: AnalyticsPanel "deduplicate" action is destructive with no confirmation ---
 Already up to date.
+[main 4f2a0c6] chore(backlog): done – AnalyticsPanel "deduplicate" action is destructive with no confirmation
+ 5 files changed, 30 insertions(+), 3 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - AnalyticsPanel "deduplicate" action is destructive with no confirmation
+- Already implemented: the deduplicate button (L925) sets `confirmDedup` state which shows a preview dialog (L894-921) listing all tokens that will be converted to aliases. The user must click "Confirm" (L909) to proceed or "Cancel" (L915) to abort. The destructive `handleDeduplicate` is only called after confirmation.
+- Files changed: none — already done
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  38 items remaining
+===============================================================
+  Claimed: ThemeManager options cannot be reordered within a dimension — options are displayed in creation order with no drag-to-reorder or move up/down; users must delete and recreate to change order
+  Worktree: /tmp/backlog-10278-B5z0Vj

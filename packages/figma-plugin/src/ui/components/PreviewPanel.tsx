@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 
 interface PreviewPanelProps {
@@ -236,14 +236,35 @@ function ColorsTemplate({ groups, darkMode, onGoToTokens }: { groups: Record<str
 
 function SwatchCell({ path, value, darkMode }: { path: string; value: string; darkMode: boolean }) {
   const leafName = path.split('.').pop() ?? path;
+  const cssVar = toCssVar(path);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const handleCopy = useCallback((text: string, label: string) => {
+    copyText(text).then(() => {
+      setCopied(label);
+      setTimeout(() => setCopied(null), 1200);
+    });
+  }, []);
+
   return (
-    <div className="flex flex-col items-center gap-1 w-10">
+    <div className="flex flex-col items-center gap-1 w-10 group relative">
       <div
-        className="w-10 h-10 rounded-md border border-black/10 shadow-sm"
-        style={{ backgroundColor: `var(${toCssVar(path)}, ${value})` }}
-        title={`${path}: ${value}`}
-      />
-      <span className={`text-[9px] text-center leading-tight truncate w-full text-center ${darkMode ? 'text-neutral-400' : 'text-neutral-500'}`} title={path}>
+        className="w-10 h-10 rounded-md border border-black/10 shadow-sm cursor-pointer relative"
+        style={{ backgroundColor: `var(${cssVar}, ${value})` }}
+        title={`Click to copy CSS variable\n${cssVar}: ${value}`}
+        onClick={() => handleCopy(`var(${cssVar})`, 'var')}
+      >
+        {copied && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/60 text-white text-[8px] font-medium">
+            {copied}
+          </div>
+        )}
+      </div>
+      <span
+        className={`text-[9px] text-center leading-tight truncate w-full cursor-pointer ${darkMode ? 'text-neutral-400 hover:text-neutral-200' : 'text-neutral-500 hover:text-neutral-700'}`}
+        title={`Click to copy value: ${value}`}
+        onClick={() => handleCopy(value, 'value')}
+      >
         {leafName}
       </span>
     </div>
@@ -280,13 +301,17 @@ function TypeScaleTemplate({ typeTokens, cssVars, darkMode, onGoToTokens }: {
         const resolvedSize = cssVars[cssVarName] ?? '16px';
         const leafName = path.split('.').pop() ?? path;
         return (
-          <div key={path} className="flex items-baseline gap-3 overflow-hidden">
+          <div key={path} className="group flex items-baseline gap-3 overflow-hidden">
             <span className={`text-[9px] w-16 shrink-0 text-right ${darkMode ? 'text-neutral-500' : 'text-neutral-400'}`}>{resolvedSize}</span>
             <span
               className="overflow-hidden text-ellipsis whitespace-nowrap flex-1"
               style={{ fontSize: `var(${cssVarName}, 16px)` }}
             >
               {leafName} — The quick brown fox
+            </span>
+            <span className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <CopyButton text={`var(${cssVarName})`} label={cssVarName} darkMode={darkMode} />
+              <CopyButton text={resolvedSize} label={resolvedSize} darkMode={darkMode} />
             </span>
           </div>
         );
@@ -482,6 +507,65 @@ function CardTemplate({ darkMode }: { darkMode: boolean }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Copy to clipboard ──────────────────────────────────────────────────────
+
+function copyText(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  // Fallback for environments where clipboard API is unavailable
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  return Promise.resolve();
+}
+
+function CopyButton({ text, label, darkMode }: { text: string; label: string; darkMode: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = useCallback(() => {
+    copyText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    });
+  }, [text]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={`Copy ${label}`}
+      className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-mono transition-colors ${
+        copied
+          ? 'text-green-500'
+          : darkMode
+            ? 'text-neutral-500 hover:text-neutral-300 hover:bg-neutral-800'
+            : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100'
+      }`}
+    >
+      {copied ? (
+        <>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+          Copied
+        </>
+      ) : (
+        <>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+          </svg>
+          {label}
+        </>
+      )}
+    </button>
   );
 }
 

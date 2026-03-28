@@ -395,3 +395,10 @@ Already up to date.
 ===============================================================
   Claimed: PreviewPanel has no copy-to-clipboard for token values or CSS variables — users see a rendered preview of their tokens but can't copy the CSS variable name or resolved value without switching panels
   Worktree: /tmp/backlog-84992-NhCfXn
+
+  ✓ done: PreviewPanel has no copy-to-clipboard for token values or CSS variables
+    Added click-to-copy on color swatches (CSS var on swatch, resolved value on label) with overlay feedback, and hover-revealed copy buttons on type scale rows for both CSS var name and resolved size value. Includes clipboard API with execCommand fallback.
+    19 turns · 127s · $0.62
+
+--- Merging: PreviewPanel has no copy-to-clipboard for token values or CSS variables ---
+Already up to date.

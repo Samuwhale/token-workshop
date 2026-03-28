@@ -371,3 +371,11 @@
 - **Learnings for future iterations:**
   - Always check the actual code before assuming a backlog item is unresolved — the `confirmDedup` state and confirmation UI were already in place.
 ---
+
+## 2026-03-28 - PreviewPanel has no copy-to-clipboard for token values or CSS variables
+- Added copy-to-clipboard functionality throughout PreviewPanel: color swatches copy CSS variable on swatch click and resolved value on label click (with overlay feedback), type scale rows show copy buttons on hover for both CSS var name and resolved value. Includes `copyText` helper with `navigator.clipboard` + `execCommand` fallback, and a reusable `CopyButton` component with "Copied" confirmation state.
+- Files changed: `packages/figma-plugin/src/ui/components/PreviewPanel.tsx` ~L1 (import useCallback), ~L237 (SwatchCell with copy), ~L276 (TypeScaleTemplate copy buttons), ~L489 (copyText helper + CopyButton component)
+- **Learnings for future iterations:**
+  - Figma plugin UI runs in an iframe; `navigator.clipboard.writeText` works but a `document.execCommand('copy')` fallback is prudent
+  - Minified builds inline string literals differently — use `grep` on the built HTML to verify functional code (e.g. `writeText`, `execCommand`) rather than UI-visible strings
+---
