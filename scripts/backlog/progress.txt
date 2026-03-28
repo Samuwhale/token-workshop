@@ -28,3 +28,10 @@
 - **Learnings for future iterations:**
   - Backlog items can become stale when prior sessions decompose hooks as part of other work — always check current state before planning
 ---
+
+## 2026-03-29 - $extensions.tokenmanager typed as Record<string, unknown> forcing scattered `as any` casts
+- Already implemented in commit 395df49. `TokenManagerExtensions` interface defined in `packages/core/src/types.ts` ~L190-203 with all sub-fields (formula, colorModifier, lifecycle, source, extends, modes). `TokenExtensions` interface wraps it. `DTCGToken.$extensions` uses `TokenExtensions`. `getTokenManagerExt()` helper exists. No `as any` casts remain on tokenmanager extension access — all usage sites use safe optional chaining.
+- Files changed: none
+- **Learnings for future iterations:**
+  - The git log shows this was completed in a prior session — always check recent commits for the exact item title before investigating code
+---
