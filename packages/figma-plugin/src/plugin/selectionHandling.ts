@@ -84,8 +84,13 @@ export async function applyTokenValue(node: SceneNode, property: string, value: 
 
     case 'opacity':
       if ('opacity' in node) {
-        const num = typeof value === 'number' ? value : parseFloat(value);
-        if (!isNaN(num)) (node as Record<string, unknown>)['opacity'] = Math.max(0, Math.min(1, num));
+        let num = typeof value === 'number' ? value : parseFloat(value);
+        // DTCG number tokens for opacity should be 0–1, but values > 1 indicate
+        // a percentage (0–100) — normalize to 0–1 to avoid silent clamping.
+        if (!isNaN(num)) {
+          if (num > 1) num = num / 100;
+          (node as Record<string, unknown>)['opacity'] = Math.max(0, Math.min(1, num));
+        }
       }
       break;
 

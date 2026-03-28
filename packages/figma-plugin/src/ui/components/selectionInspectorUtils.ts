@@ -41,7 +41,10 @@ export function formatCurrentValue(prop: BindableProperty, value: any): string {
   if (value === undefined || value === null) return '';
   if (typeof value === 'boolean') return value ? 'true' : 'false';
   if (typeof value === 'number') {
-    if (prop === 'opacity') return `${Math.round(value * 100)}%`;
+    if (prop === 'opacity') {
+      const norm = value > 1 ? value / 100 : value;
+      return `${Math.round(norm * 100)}%`;
+    }
     return `${Math.round(value * 100) / 100}`;
   }
   if (typeof value === 'string') return value;

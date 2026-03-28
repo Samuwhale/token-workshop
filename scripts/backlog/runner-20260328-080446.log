@@ -271,3 +271,26 @@ Already up to date.
 
 --- Merging: `applyTextStyle` modifies text style properties without loading font ---
 Already up to date.
+[main ace26a1] chore(backlog): done – `applyTextStyle` modifies text style properties without loading font
+ 6 files changed, 73 insertions(+), 3 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+--- Inbox drained ---
+
+## 2026-03-28 - `applyTextStyle` modifies text style properties without loading font
+- Added an `else` branch in `applyTextStyle` that loads the style's existing font (`style.fontName`) before setting `fontSize`, `lineHeight`, or `letterSpacing` when `fontFamily` is not provided. Previously these properties were set without any font loaded, which throws in the Figma API.
+- Files changed: `packages/figma-plugin/src/plugin/styleSync.ts` ~L77
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  53 items remaining
+===============================================================
+  Claimed: Opacity percentage values silently clamped to 1.0 — DTCG allows opacity as 0–100 percentage; a token with value `50` (meaning 50%) is clamped to 1.0 (fully opaque) because there's no unit-awareness for opacity
+  Worktree: /tmp/backlog-63685-323vrO
+
+  ✓ done: Opacity percentage values silently clamped to 1.0
+    Added percentage-range detection: opacity values > 1 are normalized to 0–1 (divided by 100) before applying to Figma nodes and in display formatting. A token with value 50 now correctly applies as 50% opacity instead of being clamped to 1.0.
+    23 turns · 174s · $0.74
+
+--- Merging: Opacity percentage values silently clamped to 1.0 ---
+Already up to date.

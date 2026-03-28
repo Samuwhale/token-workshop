@@ -562,3 +562,12 @@
 - **Learnings for future iterations:**
   - Figma's plugin API requires the font to be loaded before modifying ANY text-related style property, not just `fontName`. Always ensure `figma.loadFontAsync` is called before touching `fontSize`, `lineHeight`, `letterSpacing`, etc.
 ---
+
+## 2026-03-28 - Opacity percentage values silently clamped to 1.0
+- Added percentage-range detection for opacity token values: values > 1 are now treated as 0–100 percentages and normalized to 0–1 before applying to Figma nodes. Previously, a token with value `50` (meaning 50%) was clamped to 1.0 (fully opaque).
+- Also fixed `formatCurrentValue` display for opacity — percentage-range values now display correctly (e.g., `50` → "50%" instead of "5000%").
+- Files changed: `packages/figma-plugin/src/plugin/selectionHandling.ts` ~L85, `packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts` ~L44
+- **Learnings for future iterations:**
+  - DTCG `number` type tokens used for opacity should be 0–1, but user-authored tokens may use 0–100 percentage convention. Always normalize at the application boundary by checking if value > 1 and dividing by 100.
+  - The `ValuePreview.tsx` component already auto-detects 0–1 vs 0–100 range for number tokens (line 140), so no change needed there.
+---

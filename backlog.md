@@ -83,8 +83,8 @@
 ### Bugs
 
 - [x] `parseDimValue` returns 0 for string dimensions — DTCG dimension tokens like `"16px"` or `"1.5rem"` hit neither the `number` nor `object` branch, so all string dimensions silently become 0 when applied to layers
-- [~] `applyTextStyle` modifies text style properties without loading font — when `fontFamily` is falsy the font-loading block is skipped, but `fontSize`/`lineHeight`/`letterSpacing` are still set on the style, which throws if the font isn't loaded
-- [ ] Opacity percentage values silently clamped to 1.0 — DTCG allows opacity as 0–100 percentage; a token with value `50` (meaning 50%) is clamped to 1.0 (fully opaque) because there's no unit-awareness for opacity
+- [x] `applyTextStyle` modifies text style properties without loading font — when `fontFamily` is falsy the font-loading block is skipped, but `fontSize`/`lineHeight`/`letterSpacing` are still set on the style, which throws if the font isn't loaded
+- [~] Opacity percentage values silently clamped to 1.0 — DTCG allows opacity as 0–100 percentage; a token with value `50` (meaning 50%) is clamped to 1.0 (fully opaque) because there's no unit-awareness for opacity
 - [ ] `lineHeight` handled inconsistently — numeric values are treated as multipliers and converted to percent (`val * 100`), but `{unit: '%', value: 150}` is silently ignored; also, unitless-as-percent interpretation may be wrong for systems where unitless means pixels
 - [ ] Missing error handling in controller for `apply-styles` and `read-styles` — these message handlers await without try/catch; errors are unhandled and the UI receives no feedback (contrast with `read-variables` which has proper error handling)
 
