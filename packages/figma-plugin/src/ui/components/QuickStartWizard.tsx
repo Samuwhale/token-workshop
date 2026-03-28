@@ -196,18 +196,28 @@ function ThemeStep({ serverUrl, activeSet, onDone, onSkip }: {
 // Stepper Bar
 // ---------------------------------------------------------------------------
 
-function StepperBar({ currentStep, completedSteps }: { currentStep: WizardStep; completedSteps: Set<WizardStep> }) {
+function StepperBar({ currentStep, completedSteps, onStepClick }: {
+  currentStep: WizardStep;
+  completedSteps: Set<WizardStep>;
+  onStepClick?: (step: WizardStep) => void;
+}) {
   return (
     <div className="flex items-center gap-1 px-4 py-3">
       {STEPS.map(({ step, label }, i) => {
         const isActive = step === currentStep;
         const isCompleted = completedSteps.has(step);
+        const clickable = !!onStepClick && !isActive;
         return (
           <div key={step} className="flex items-center gap-1 flex-1 min-w-0">
             {i > 0 && (
               <div className={`w-4 h-px shrink-0 ${isCompleted || isActive ? 'bg-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-border)]'}`} />
             )}
-            <div className={`flex items-center gap-1.5 min-w-0 ${isActive ? '' : 'opacity-60'}`}>
+            <button
+              type="button"
+              disabled={!clickable}
+              onClick={() => clickable && onStepClick!(step)}
+              className={`flex items-center gap-1.5 min-w-0 bg-transparent border-0 p-0 ${clickable ? 'cursor-pointer hover:opacity-100' : ''} ${isActive ? '' : 'opacity-60'}`}
+            >
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                 isCompleted
                   ? 'bg-[var(--color-figma-accent)] text-white'
@@ -222,7 +232,7 @@ function StepperBar({ currentStep, completedSteps }: { currentStep: WizardStep; 
               <span className={`text-[10px] truncate ${isActive ? 'font-medium text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]'}`}>
                 {label}
               </span>
-            </div>
+            </button>
           </div>
         );
       })}
@@ -256,6 +266,20 @@ export function QuickStartWizard({
   }, []);
 
   const advanceTo = useCallback((step: WizardStep) => {
+    setCurrentStep(step);
+  }, []);
+
+  // Jump to any step directly (from StepperBar click)
+  const handleStepClick = useCallback((step: WizardStep) => {
+    // Mark all earlier steps as completed when jumping forward
+    setCompletedSteps(prev => {
+      const next = new Set(prev);
+      for (let s = 1 as WizardStep; s < step; s = (s + 1) as WizardStep) {
+        next.add(s);
+      }
+      return next;
+    });
+    setShowGeneratorFlow(false);
     setCurrentStep(step);
   }, []);
 
@@ -326,14 +350,20 @@ export function QuickStartWizard({
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
         <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col" style={{ maxHeight: '85vh' }}>
           {/* Stepper header */}
-          <StepperBar currentStep={2} completedSteps={completedSteps} />
+          <StepperBar currentStep={2} completedSteps={completedSteps} onStepClick={handleStepClick} />
           <div className="border-t border-[var(--color-figma-border)]" />
 
-          {/* Step description */}
-          <div className="px-4 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)]">
+          {/* Step description with skip */}
+          <div className="px-4 py-2 bg-[var(--color-figma-bg-secondary)] border-b border-[var(--color-figma-border)] flex items-center justify-between gap-2">
             <p className="text-[10px] text-[var(--color-figma-text-secondary)]">
               Create semantic reference tokens that point to your generated <span className="font-mono text-[var(--color-figma-accent)]">{semanticData.targetGroup}.*</span> primitives.
             </p>
+            <button
+              onClick={handleStep2Skip}
+              className="shrink-0 px-2 py-1 rounded text-[10px] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]"
+            >
+              Skip
+            </button>
           </div>
         </div>
 
@@ -370,7 +400,7 @@ export function QuickStartWizard({
         </div>
 
         {/* Stepper */}
-        <StepperBar currentStep={currentStep} completedSteps={completedSteps} />
+        <StepperBar currentStep={currentStep} completedSteps={completedSteps} onStepClick={handleStepClick} />
         <div className="border-t border-[var(--color-figma-border)]" />
 
         {/* Step content */}

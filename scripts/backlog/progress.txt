@@ -457,3 +457,15 @@
   - `FileReader.readAsDataURL` is the simplest approach for asset storage in a Figma plugin context since there's no server-side file storage endpoint
   - For data URIs, approximate decoded size as `(base64.length * 3) / 4 / 1024` KB
 ---
+
+## 2026-03-28 - QuickStart wizard skip & step navigation
+- Made StepperBar steps clickable — users can jump to any step directly by clicking its indicator
+- Clicking a future step auto-marks all earlier steps as completed (skip-forward behavior)
+- Added explicit "Skip" button to step 2 semantic mapping overlay (was hidden behind dialog's close)
+- Step 1 and step 3 already had Skip buttons — no change needed there
+- `handleStepClick` also dismisses the generator flow overlay when jumping away from step 1
+- Files changed: `packages/figma-plugin/src/ui/components/QuickStartWizard.tsx` ~L199-240 (StepperBar), ~L268-278 (handleStepClick), ~L337-365 (step 2 overlay)
+- **Learnings for future iterations:**
+  - The StepperBar was a pure display component with `div` wrappers — converting to `button` elements improves accessibility and enables click handling
+  - Step 2 has two render paths: with `semanticData` (full SemanticMappingDialog overlay) and without (inline fallback). The overlay path lacked a visible skip since the skip was only on the SemanticMappingDialog's close handler
+---

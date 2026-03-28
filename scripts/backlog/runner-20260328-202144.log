@@ -125,3 +125,10 @@ Already up to date.
 ===============================================================
   Claimed: QuickStart wizard has no skip option for individual steps — experienced users who already have primitives must still click through the "Generate Primitives" step to reach theme setup; add a "Skip" button on each step and a step indicator that allows jumping to any step directly
   Worktree: /tmp/backlog-10054-3PfekR
+
+  ✓ done: QuickStart wizard has no skip option for individual steps
+    Made StepperBar steps clickable for direct navigation (jumping forward auto-skips earlier steps), added explicit Skip button to step 2 semantic mapping overlay
+    12 turns · 195s · $0.65
+
+--- Merging: QuickStart wizard has no skip option for individual steps ---
+Already up to date.

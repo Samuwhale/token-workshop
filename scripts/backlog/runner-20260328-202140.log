@@ -160,3 +160,19 @@ Already up to date.
 
 --- Merging: Asset token editor has no file upload or preview ---
 Already up to date.
+[main ac3f476] chore(backlog): done – Asset token editor has no file upload or preview
+ 7 files changed, 135 insertions(+), 18 deletions(-)
+
+--- Inbox has new items — triaging into backlog.md ---
+--- Inbox drained ---
+
+## 2026-03-28 - Asset token editor has no file upload or preview
+- Enhanced AssetEditor with drag-and-drop upload area, file picker, image preview with error state, and data URI support
+- Drop zone accepts image files and converts to data URI via FileReader
+- Preview shows loaded images with error fallback (X icon + message), data URI size badge
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  54 items remaining
+===============================================================
+  Claimed: Token binding in SelectionInspector has no undo — binding a token to a Figma property is immediate and irreversible (no undo toast appears), while "Clear all bindings" does support undo; add undo support for individual bind operations so users can experiment with token assignments safely
+  Worktree: /tmp/backlog-9651-BTQ8vl
