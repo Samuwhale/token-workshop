@@ -450,3 +450,9 @@ Already up to date.
 - Added visible `⌘L` kbd badge inline on the "Alias mode" toggle button in AliasPicker, so users see the shortcut without hovering for a tooltip.
 - Added a "Token Editor" section to the KeyboardShortcutsModal listing ⌘L (toggle alias mode), ⌘↵ (save), ⌘⇧↵ (save and create another), and Esc (back/discard).
 - Files changed: `packages/figma-plugin/src/ui/components/AliasPicker.tsx` ~L61, `packages/figma-plugin/src/ui/components/KeyboardShortcutsModal.tsx` ~L53
+
+===============================================================
+  Iteration 22 / 90  (claude)  —  28 items remaining
+===============================================================
+  Claimed: Plugin `applyVariables` silently swallows rollback errors — if the rollback itself throws, the catch block discards the error and returns `rolledBack: false` with no logging, leaving Figma in a partially applied state with no debugging information (`controller.ts` ~L229)
+  Worktree: /tmp/backlog-84992-RBJHEC

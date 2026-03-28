@@ -479,3 +479,16 @@ Already up to date.
 
 --- Merging: Theme dimension/option routes accept whitespace-only names ---
 Already up to date.
+[main 5477047] chore(backlog): done – Theme dimension/option routes accept whitespace-only names
+ 6 files changed, 21 insertions(+), 6 deletions(-)
+
+## 2026-03-28 - Theme dimension/option routes accept whitespace-only names
+- Added `!name.trim()` check to all four name-validation guards in theme routes (POST dimension, PUT dimension, POST option, PUT option rename). Whitespace-only names like `"   "` now return 400 instead of being trimmed to empty string and saved.
+- Files changed: `packages/server/src/routes/themes.ts` ~L87, ~L108, ~L147, ~L184
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 24 / 90  (claude)  —  27 items remaining
+===============================================================
+  Claimed: Opacity scale generator does not validate value range — step values above 100 produce opacity values >1.0 (e.g. 150 → 1.5) which are outside the valid CSS/Figma [0,1] range (`generator-engine.ts`)
+  Worktree: /tmp/backlog-85816-bNE3xf

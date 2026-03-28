@@ -449,3 +449,10 @@ Already up to date.
 ===============================================================
   Claimed: ColorPicker canvas ref uses non-null assertion without guard — `ref.current!.getBoundingClientRect()` in `getPos()` will crash if the canvas element unmounts during a pointer drag event (`ColorPicker.tsx` ~L115)
   Worktree: /tmp/backlog-92630-xv7HYY
+
+  ✓ done: ColorPicker canvas ref uses non-null assertion without guard
+    Added null guard in getPos() — returns {x:0,y:0} when ref.current is null instead of crashing via non-null assertion.
+    8 turns · 35s · $0.38
+
+--- Merging: ColorPicker canvas ref uses non-null assertion without guard ---
+Already up to date.

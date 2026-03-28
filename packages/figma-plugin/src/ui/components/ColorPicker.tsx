@@ -112,7 +112,9 @@ function usePointerDrag(
   const dragging = useRef(false);
 
   const getPos = useCallback((e: PointerEvent) => {
-    const rect = ref.current!.getBoundingClientRect();
+    const el = ref.current;
+    if (!el) return { x: 0, y: 0 };
+    const rect = el.getBoundingClientRect();
     const x = clamp((e.clientX - rect.left) / rect.width, 0, 1);
     const y = clamp((e.clientY - rect.top) / rect.height, 0, 1);
     return { x, y };

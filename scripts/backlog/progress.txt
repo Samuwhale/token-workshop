@@ -458,3 +458,10 @@
 - **Learnings for future iterations:**
   - When a route does `!name` then later `name.trim()`, the `!name` check only rejects empty string and nullish values — whitespace-only strings are truthy. Always validate after trimming or add `!name.trim()` to the guard.
 ---
+
+## 2026-03-28 - ColorPicker canvas ref uses non-null assertion without guard
+- Added null guard to `getPos()` in `usePointerDrag` hook — `ref.current!.getBoundingClientRect()` replaced with an early return of `{ x: 0, y: 0 }` when `ref.current` is null, preventing crash if canvas unmounts during a pointer drag.
+- Files changed: `packages/figma-plugin/src/ui/components/ColorPicker.tsx` ~L114
+- **Learnings for future iterations:**
+  - Non-null assertions on refs in event handlers are unsafe — refs can become null between renders or during unmount while pointer events are still in-flight.
+---
