@@ -1,10 +1,20 @@
 import { isWideGamutColor, swatchBgColor, getSrgbFallback } from '../shared/colorUtils';
 
-export function ValuePreview({ type, value }: { type?: string; value?: any }) {
+interface ValuePreviewProps {
+  type?: string;
+  value?: any;
+  /** Swatch size in px (default 24) */
+  size?: number;
+}
+
+export function ValuePreview({ type, value, size = 24 }: ValuePreviewProps) {
+  const sizeStyle = { width: size, height: size };
+  const halfHeight = { width: size, height: Math.round(size * 2 / 3) };
+
   // Unresolved alias — show warning icon
   if (typeof value === 'string' && value.startsWith('{')) {
     return (
-      <div className="w-6 h-6 shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)]" title={`Unresolved reference: ${value}`}>
+      <div className="shrink-0 flex items-center justify-center text-[var(--color-figma-text-tertiary)]" style={sizeStyle} title={`Unresolved reference: ${value}`}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
           <line x1="12" y1="9" x2="12" y2="13" />
@@ -20,8 +30,8 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
     return (
       <div className="relative shrink-0 flex items-center gap-1">
         <div
-          className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0"
-          style={{ backgroundColor: swatchBgColor(value) }}
+          className="rounded border border-[var(--color-figma-border)] shrink-0"
+          style={{ ...sizeStyle, backgroundColor: swatchBgColor(value) }}
           title={value + (wg ? `\nsRGB fallback: ${fallback}` : '')}
         />
         {wg && (
@@ -41,9 +51,9 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
       : value.fontSize ? `${value.fontSize}px` : '12px';
     return (
       <div
-        className="w-6 h-4 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)]"
+        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)]"
         title={`${fontFamily} ${sizeVal} / ${fontWeight}`}
-        style={{ fontFamily, fontWeight, fontSize: '9px', lineHeight: 1 }}
+        style={{ ...halfHeight, fontFamily, fontWeight, fontSize: '9px', lineHeight: 1 }}
       >
         Aa
       </div>
@@ -65,8 +75,8 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
     if (shadowParts.length > 0) {
       return (
         <div
-          className="w-6 h-6 rounded shrink-0 bg-[var(--color-figma-bg)]"
-          style={{ boxShadow: shadowParts.join(', ') }}
+          className="rounded shrink-0 bg-[var(--color-figma-bg)]"
+          style={{ ...sizeStyle, boxShadow: shadowParts.join(', ') }}
         />
       );
     }
@@ -75,9 +85,9 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
   if (type === 'fontFamily' && typeof value === 'string' && value) {
     return (
       <div
-        className="w-8 h-4 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
+        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
         title={value}
-        style={{ fontFamily: value, fontSize: '9px', lineHeight: 1 }}
+        style={{ width: Math.round(size * 4 / 3), ...halfHeight, fontFamily: value, fontSize: '9px', lineHeight: 1 }}
       >
         Aa
       </div>
@@ -87,9 +97,9 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
   if (type === 'fontWeight' && typeof value === 'number') {
     return (
       <div
-        className="w-8 h-4 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
+        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)] text-[var(--color-figma-text)]"
         title={String(value)}
-        style={{ fontWeight: value, fontSize: '9px', lineHeight: 1 }}
+        style={{ width: Math.round(size * 4 / 3), ...halfHeight, fontWeight: value, fontSize: '9px', lineHeight: 1 }}
       >
         Aa
       </div>
@@ -101,7 +111,6 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
     if (typeof value === 'string' && value.includes('gradient')) {
       gradientCss = value;
     } else if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object' && 'color' in value[0]) {
-      // DTCG gradient: GradientStop[] = [{color, position}, ...]
       const stops = (value as Array<{ color: string; position?: number }>)
         .map(s => `${s.color}${s.position != null ? ` ${Math.round(s.position * 100)}%` : ''}`)
         .join(', ');
@@ -110,8 +119,8 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
     if (gradientCss) {
       return (
         <div
-          className="w-6 h-4 rounded border border-[var(--color-figma-border)] shrink-0"
-          style={{ background: gradientCss }}
+          className="rounded border border-[var(--color-figma-border)] shrink-0"
+          style={{ ...halfHeight, background: gradientCss }}
         />
       );
     }
@@ -128,13 +137,13 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
     } else if (typeof value === 'number') {
       numericVal = value;
     }
-    // Scale: map 0–64 to 0–100% width (clamp at 100%)
     const maxRef = unit === 'rem' || unit === 'em' ? 4 : unit === 's' ? 2 : 64;
     const pct = Math.min(Math.max(numericVal / maxRef, 0.08), 1);
     const label = typeof value === 'object' && value !== null ? `${value.value}${value.unit}` : String(value);
     return (
       <div
-        className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-end overflow-hidden bg-[var(--color-figma-bg)]"
+        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-end overflow-hidden bg-[var(--color-figma-bg)]"
+        style={sizeStyle}
         title={label}
       >
         <div
@@ -147,13 +156,13 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
 
   if (type === 'number') {
     const numericVal = typeof value === 'number' ? value : parseFloat(String(value)) || 0;
-    // For numbers, commonly 0–1 (opacity) or 0–100; auto-detect range
     const isSmall = Math.abs(numericVal) <= 1;
     const maxRef = isSmall ? 1 : 100;
     const pct = Math.min(Math.max(Math.abs(numericVal) / maxRef, 0.08), 1);
     return (
       <div
-        className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-end overflow-hidden bg-[var(--color-figma-bg)]"
+        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-end overflow-hidden bg-[var(--color-figma-bg)]"
+        style={sizeStyle}
         title={String(numericVal)}
       >
         <div
@@ -174,7 +183,8 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
     const label = `${widthStr} ${styleStr} ${colorStr}`;
     return (
       <div
-        className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)]"
+        className="rounded border border-[var(--color-figma-border)] shrink-0 flex items-center justify-center overflow-hidden bg-[var(--color-figma-bg)]"
+        style={sizeStyle}
         title={label}
       >
         <div
@@ -186,11 +196,11 @@ export function ValuePreview({ type, value }: { type?: string; value?: any }) {
 
   if (type === 'asset' && typeof value === 'string' && value.length > 0) {
     return (
-      <div className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 overflow-hidden bg-[var(--color-figma-bg-secondary)]">
+      <div className="rounded border border-[var(--color-figma-border)] shrink-0 overflow-hidden bg-[var(--color-figma-bg-secondary)]" style={sizeStyle}>
         <img src={value} alt="" className="w-full h-full object-cover" aria-hidden="true" />
       </div>
     );
   }
 
-  return <div className="w-6 h-6 shrink-0" />;
+  return <div className="shrink-0" style={sizeStyle} />;
 }

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useLayoutEffect, Fragment } from 'react';
-import { TokenTreeNodeProps } from './tokenListTypes';
+import { TokenTreeNodeProps, DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE } from './tokenListTypes';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS, PROPERTY_LABELS } from '../../shared/types';
 import type { BindableProperty } from '../../shared/types';
@@ -112,7 +112,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
 
   const ctx = useTokenTree();
   const {
-    setName, selectionCapabilities, allTokensFlat, selectMode,
+    density, setName, selectionCapabilities, allTokensFlat, selectMode,
     expandedPaths, onToggleExpand, duplicateCounts, highlightedToken,
     inspectMode, syncSnapshot, cascadeDiff, generatorsBySource,
     derivedTokenPaths, tokenUsageCounts, searchHighlight, selectedNodes,
@@ -131,6 +131,9 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onMultiModeInlineSave,
     showResolvedValues,
   } = ctx;
+
+  const pyClass = DENSITY_PY_CLASS[density];
+  const swatchSize = DENSITY_SWATCH_SIZE[density];
 
   const isExpanded = expandedPaths.has(node.path);
   const isHighlighted = highlightedToken === node.path;
@@ -432,7 +435,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           aria-expanded={isExpanded}
           aria-label={`Toggle group ${node.name}`}
           data-group-path={node.path}
-          className={`relative flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
+          className={`relative flex items-center gap-1 px-2 ${pyClass} cursor-pointer hover:bg-[var(--color-figma-bg-hover)] transition-colors group/group bg-[var(--color-figma-bg)] ${dragOverGroup === node.path ? (dragOverGroupIsInvalid ? 'ring-1 ring-inset ring-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10' : 'ring-1 ring-inset ring-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10') : ''}`}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
           onClick={() => !renamingGroup && onToggleExpand(node.path)}
           onDoubleClick={() => !renamingGroup && onZoomIntoGroup?.(node.path)}
@@ -906,7 +909,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   return (
     <div ref={nodeRef}>
     <div
-      className={`relative flex items-center gap-2 px-2 py-1 hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${(node.$extensions?.tokenmanager as any)?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
+      className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${(node.$extensions?.tokenmanager as any)?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       tabIndex={selectMode ? -1 : 0}
       data-token-path={node.path}
@@ -972,8 +975,8 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             <button
               onClick={e => { e.stopPropagation(); setPendingColor(typeof node.$value === 'string' ? node.$value : '#000000'); setColorPickerOpen(true); }}
               title={`${displayValue} — click to edit`}
-              className="w-6 h-6 rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
-              style={{ backgroundColor: displayValue }}
+              className="rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
+              style={{ backgroundColor: displayValue, width: swatchSize, height: swatchSize }}
             />
             {colorPickerOpen && (
               <ColorPicker
@@ -994,7 +997,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           aria-label={copiedWhat === 'value' ? 'Value copied' : 'Copy value to clipboard'}
           className={`shrink-0 rounded cursor-copy focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)] transition-shadow ${copiedWhat === 'value' ? 'ring-1 ring-[var(--color-figma-success)]' : 'hover:ring-1 hover:ring-[var(--color-figma-accent)]/50'}`}
         >
-          <ValuePreview type={node.$type} value={displayValue} />
+          <ValuePreview type={node.$type} value={displayValue} size={swatchSize} />
         </button>
       )}
 

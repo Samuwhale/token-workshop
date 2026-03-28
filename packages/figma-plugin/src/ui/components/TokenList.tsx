@@ -9,7 +9,7 @@ import { TokenCanvas } from './TokenCanvas';
 import { TokenGraph } from './TokenGraph';
 import { colorDeltaE } from '../shared/colorUtils';
 import { stableStringify, getErrorMessage } from '../shared/utils';
-import { STORAGE_KEY, lsGet, lsSet } from '../shared/storage';
+import { STORAGE_KEY, STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 import type { SortOrder } from './tokenListUtils';
 import {
   formatDisplayPath, nodeParentPath, flattenVisible,
@@ -21,8 +21,8 @@ import {
 } from './tokenListUtils';
 import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
-import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue } from './tokenListTypes';
-import { VIRTUAL_ITEM_HEIGHT, VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN } from './tokenListTypes';
+import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density } from './tokenListTypes';
+import { VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
 import { resolveAllAliases } from '../../shared/resolveAlias';
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
@@ -359,7 +359,15 @@ export function TokenList({
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
   const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid' | 'json' | 'graph'>('tree');
-  const [showResolvedValues, setShowResolvedValues] = useState(false);
+  const [density, setDensityState] = useState<Density>(() => {
+    const stored = lsGet(STORAGE_KEYS.DENSITY);
+    return (stored === 'compact' || stored === 'comfortable') ? stored : 'default';
+  });
+  const setDensity = useCallback((d: Density) => {
+    setDensityState(d);
+    lsSet(STORAGE_KEYS.DENSITY, d);
+  }, []);
+  const rowHeight = DENSITY_ROW_HEIGHT[density];
   const [showScopesCol, setShowScopesCol] = useState(false);
 
   // Multi-mode column view — show resolved values per theme option side-by-side
@@ -621,18 +629,18 @@ export function TokenList({
   }, []);
 
   // Cumulative row offsets for variable-height virtual scroll.
-  // Each item is VIRTUAL_ITEM_HEIGHT px, plus VIRTUAL_CHAIN_EXPAND_HEIGHT when its chain panel is open.
+  // Each item is rowHeight px (density-dependent), plus VIRTUAL_CHAIN_EXPAND_HEIGHT when its chain panel is open.
   const itemOffsets = useMemo(() => {
     const offsets = new Array<number>(flatItems.length + 1);
     offsets[0] = 0;
     for (let i = 0; i < flatItems.length; i++) {
       const h = expandedChains.has(flatItems[i].node.path)
-        ? VIRTUAL_ITEM_HEIGHT + VIRTUAL_CHAIN_EXPAND_HEIGHT
-        : VIRTUAL_ITEM_HEIGHT;
+        ? rowHeight + VIRTUAL_CHAIN_EXPAND_HEIGHT
+        : rowHeight;
       offsets[i + 1] = offsets[i] + h;
     }
     return offsets;
-  }, [flatItems, expandedChains]);
+  }, [flatItems, expandedChains, rowHeight]);
   // Sync refs so filter callbacks can read latest values without stale closure issues
   flatItemsRef.current = flatItems;
   itemOffsetsRef.current = itemOffsets;
@@ -916,7 +924,7 @@ export function TokenList({
     const idx = flatItems.findIndex(item => item.node.path === highlightedToken);
     if (idx < 0) return;
     const containerH = virtualListRef.current.clientHeight;
-    const targetScrollTop = Math.max(0, itemOffsets[idx] - containerH / 2 + VIRTUAL_ITEM_HEIGHT / 2);
+    const targetScrollTop = Math.max(0, itemOffsets[idx] - containerH / 2 + rowHeight / 2);
     virtualListRef.current.scrollTop = targetScrollTop;
     setVirtualScrollTop(targetScrollTop);
   }, [highlightedToken, flatItems, itemOffsets, viewMode]);
@@ -1888,6 +1896,7 @@ export function TokenList({
 
   // --- Token tree context: shared state & callbacks for all TokenTreeNode instances ---
   const treeCtx: TokenTreeContextType = useMemo(() => ({
+    density,
     setName,
     selectionCapabilities,
     allTokensFlat,
@@ -1948,7 +1957,7 @@ export function TokenList({
     onMultiModeInlineSave: multiModeData ? handleMultiModeInlineSave : undefined,
     showResolvedValues,
   }), [
-    setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
+    density, setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
     generatorsBySource, derivedTokenPaths, tokenUsageCounts, searchHighlight,
     selectedNodes, dragOverGroup, dragOverGroupIsInvalid, dragSource,
@@ -2116,6 +2125,46 @@ export function TokenList({
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                       <path d="M2 6.5l3-3 3 3"/>
                       <path d="M2 3.5l3-3 3 3"/>
+                    </svg>
+                  </button>
+                </>
+              )}
+
+              {/* Density toggle */}
+              {(viewMode === 'tree' || viewMode === 'table') && (
+                <>
+                  <div className="w-px h-3 bg-[var(--color-figma-border)] mx-0.5 shrink-0" />
+                  <button
+                    onClick={() => {
+                      const cycle: Density[] = ['compact', 'default', 'comfortable'];
+                      setDensity(cycle[(cycle.indexOf(density) + 1) % 3]);
+                    }}
+                    title={`Row density: ${density} — click to cycle`}
+                    aria-label={`Row density: ${density}`}
+                    className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
+                      {density === 'compact' ? (
+                        <>
+                          <line x1="1" y1="1.5" x2="9" y2="1.5" />
+                          <line x1="1" y1="3.5" x2="9" y2="3.5" />
+                          <line x1="1" y1="5.5" x2="9" y2="5.5" />
+                          <line x1="1" y1="7.5" x2="9" y2="7.5" />
+                        </>
+                      ) : density === 'comfortable' ? (
+                        <>
+                          <line x1="1" y1="2" x2="9" y2="2" />
+                          <line x1="1" y1="5" x2="9" y2="5" />
+                          <line x1="1" y1="8" x2="9" y2="8" />
+                        </>
+                      ) : (
+                        <>
+                          <line x1="1" y1="1" x2="9" y2="1" />
+                          <line x1="1" y1="3.7" x2="9" y2="3.7" />
+                          <line x1="1" y1="6.3" x2="9" y2="6.3" />
+                          <line x1="1" y1="9" x2="9" y2="9" />
+                        </>
+                      )}
                     </svg>
                   </button>
                 </>
@@ -2879,6 +2928,7 @@ export function TokenList({
             selectMode={selectMode}
             selectedPaths={selectedPaths}
             onToggleSelect={handleTokenSelect}
+            density={density}
           />
         ) : displayedTokens.length === 0 && filtersActive ? (
           <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">

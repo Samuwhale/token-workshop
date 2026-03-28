@@ -5,7 +5,8 @@ import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { formatValue, formatDisplayPath, sortLeafNodes } from './tokenListUtils';
 import { getEditableString, parseInlineValue } from './tokenListHelpers';
-import { INLINE_SIMPLE_TYPES } from './tokenListTypes';
+import { INLINE_SIMPLE_TYPES, DENSITY_PY_CLASS } from './tokenListTypes';
+import type { Density } from './tokenListTypes';
 import { swatchBgColor } from '../shared/colorUtils';
 import type { TableSort, TableSortField } from './tokenListTypes';
 
@@ -21,6 +22,7 @@ interface TokenTableViewProps {
   selectMode: boolean;
   selectedPaths: Set<string>;
   onToggleSelect: (path: string, modifiers?: { shift: boolean; ctrl: boolean }) => void;
+  density?: Density;
 }
 
 const COLUMNS: { field: TableSortField; label: string; width: string }[] = [
@@ -52,7 +54,9 @@ export function TokenTableView({
   selectMode,
   selectedPaths,
   onToggleSelect,
+  density = 'default',
 }: TokenTableViewProps) {
+  const cellPy = density === 'compact' ? 'py-0.5' : density === 'comfortable' ? 'py-2' : 'py-1.5';
   const [sort, setSort] = useState<TableSort | null>(null);
   const [editingCell, setEditingCell] = useState<{ path: string; field: 'value' | 'description' } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -155,12 +159,12 @@ export function TokenTableView({
         <thead className="sticky top-0 bg-[var(--color-figma-bg-secondary)] z-10">
           <tr className="border-b border-[var(--color-figma-border)]">
             {selectMode && (
-              <th className="w-6 px-1 py-1.5" />
+              <th className={`w-6 px-1 ${cellPy}`} />
             )}
             {COLUMNS.map(col => (
               <th
                 key={col.field}
-                className="px-2 py-1.5 text-left font-medium text-[var(--color-figma-text-secondary)]"
+                className={`px-2 ${cellPy} text-left font-medium text-[var(--color-figma-text-secondary)]`}
                 style={{ width: col.width }}
               >
                 <button
@@ -206,7 +210,7 @@ export function TokenTableView({
                 }}
               >
                 {selectMode && (
-                  <td className="px-1 py-1.5 text-center">
+                  <td className={`px-1 ${cellPy} text-center`}>
                     <input
                       type="checkbox"
                       checked={isSelected}
@@ -219,7 +223,7 @@ export function TokenTableView({
                 )}
                 {/* Name */}
                 <td
-                  className="px-2 py-1.5 font-mono text-[var(--color-figma-text)] truncate max-w-0"
+                  className={`px-2 ${cellPy} font-mono text-[var(--color-figma-text)] truncate max-w-0`}
                   title={formatDisplayPath(node.path, node.name)}
                 >
                   <span className="text-[var(--color-figma-text-secondary)]">
@@ -228,14 +232,14 @@ export function TokenTableView({
                   <span className="font-semibold">{node.name}</span>
                 </td>
                 {/* Type */}
-                <td className="px-2 py-1.5">
+                <td className={`px-2 ${cellPy}`}>
                   <span className={`px-1 py-0.5 rounded text-[8px] font-medium ${TOKEN_TYPE_BADGE_CLASS[node.$type ?? ''] ?? 'token-type-string'}`}>
                     {node.$type}
                   </span>
                 </td>
                 {/* Value */}
                 <td
-                  className="px-2 py-1.5 truncate max-w-0 font-mono text-[var(--color-figma-text-secondary)]"
+                  className={`px-2 ${cellPy} truncate max-w-0 font-mono text-[var(--color-figma-text-secondary)]`}
                   title={rawVal}
                   onDoubleClick={(e) => {
                     if (canEditValue) { e.stopPropagation(); startEdit(node.path, 'value', node); }
@@ -271,7 +275,7 @@ export function TokenTableView({
                 </td>
                 {/* Resolved Value */}
                 <td
-                  className={`px-2 py-1.5 truncate max-w-0 font-mono ${
+                  className={`px-2 ${cellPy} truncate max-w-0 font-mono ${
                     aliasRef ? 'text-[var(--color-figma-text)]' : 'text-[var(--color-figma-text-secondary)]/50'
                   }`}
                   title={resolvedStr}
@@ -292,7 +296,7 @@ export function TokenTableView({
                 </td>
                 {/* Description */}
                 <td
-                  className="px-2 py-1.5 truncate max-w-0 text-[var(--color-figma-text-secondary)]"
+                  className={`px-2 ${cellPy} truncate max-w-0 text-[var(--color-figma-text-secondary)]`}
                   title={(node.$description ?? '') as string}
                   onDoubleClick={(e) => {
                     if (connected) { e.stopPropagation(); startEdit(node.path, 'description', node); }

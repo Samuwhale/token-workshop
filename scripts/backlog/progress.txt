@@ -524,3 +524,22 @@
   - When both Delete and Backspace should trigger the same action, normalize in the handler rather than adding multiple `data-accel` attributes (only one attribute per element)
   - The `⌫` character is the Unicode backspace symbol — good for representing the delete/backspace shortcut in compact UI hints
 ---
+
+## 2026-03-28 - Token list: density toggle (compact vs comfortable)
+- Added density preference (compact/default/comfortable) that scales row heights and preview sizes across tree and table views
+- Compact: 22px rows, 16px swatches. Default: 28px rows, 24px swatches. Comfortable: 36px rows, 32px swatches
+- Density persisted per user via localStorage key `tm_density`
+- Cycle button in toolbar (visible in tree/table view modes) with SVG icons showing line spacing
+- Virtual scroll recalculated based on active density
+- Files changed:
+  - `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L19-46 — Density type, DENSITY_ROW_HEIGHT, DENSITY_SWATCH_SIZE, DENSITY_PY_CLASS constants; added density to TokenTreeContextType
+  - `packages/figma-plugin/src/ui/shared/storage.ts` ~L35 — DENSITY storage key
+  - `packages/figma-plugin/src/ui/components/ValuePreview.tsx` — Added `size` prop, replaced hardcoded w-6/h-6 with inline styles
+  - `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L2,115,136,435,901,967,989 — Density from context, dynamic py class and swatch size
+  - `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L25,12,363-370,635,919,1885,1945,2107-2140,2886 — Density state, rowHeight, virtual scroll, toolbar toggle, context value
+  - `packages/figma-plugin/src/ui/components/TokenTableView.tsx` ~L8-9,24,57-59 — density prop, dynamic cell padding
+- **Learnings for future iterations:**
+  - ValuePreview used hardcoded Tailwind w-6/h-6 classes for all swatch types — switching to inline `style={{ width, height }}` via a `size` prop is cleaner and avoids needing multiple Tailwind class variants
+  - Virtual scroll must include density-derived row height in its useMemo deps array, otherwise rows will be misaligned after density change
+  - Table view cells use py-1.5 (not py-1 like tree rows) — needed separate cellPy mapping for table density
+---

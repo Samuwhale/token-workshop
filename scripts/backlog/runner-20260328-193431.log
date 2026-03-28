@@ -49,3 +49,10 @@ Already up to date.
 
 --- Merging: Token list: visible keyboard shortcut hints in context menus ---
 Already up to date.
+[main 7a768e2] chore(backlog): done – Token list: visible keyboard shortcut hints in context menus
+ 7 files changed, 53 insertions(+), 6 deletions(-)
+
+## 2026-03-28 - Token list: visible keyboard shortcut hints in context menus
+- Fixed token context menu to show correct keyboard shortcut hints and added missing Delete action
+- Bug fixed: "Alias to this token" had `data-accel="r"` (should be "a") while "Rename token" showed "R" hint but lacked `data-accel` — pressing R opened alias creation instead of rename
+- Fixed: moved `data-accel="r"` to "Rename token", gave "Alias to this token" `data-accel="a"` with "A" hint

@@ -32,6 +32,7 @@ export const STORAGE_KEYS = {
   HIDE_DEPRECATED:       'tm_hide_deprecated',
   RECENT_COLORS:         'tm_recent_colors',
   COLOR_FORMAT:          'tm_color_format',
+  DENSITY:               'tm_density',
 } as const;
 
 /** Per-set dynamic key builders */
