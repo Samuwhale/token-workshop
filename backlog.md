@@ -138,10 +138,10 @@
 - [x] TokenList hover action buttons (edit, copy, apply) cause subtle layout shift — buttons fade in on hover but take up space, pushing the value column slightly; distracting when scanning a long list
 - [x] BatchEditor move-to-set operation has no preview — unlike rename and scale which show before/after for 3 items, move shows no preview of destination paths or conflict detection before executing
 - [x] BatchEditor has no progress indicator for large operations — processing 500+ tokens shows no progress bar or count; the UI appears frozen until the operation completes
-- [~] BatchEditor type conversion doesn't validate value compatibility — changing tokens from `dimension` to `color` type proceeds without checking if values like `16px` are valid colors; produces invalid tokens silently
+- [x] BatchEditor type conversion doesn't validate value compatibility — changing tokens from `dimension` to `color` type proceeds without checking if values like `16px` are valid colors; produces invalid tokens silently
 - [~] PasteTokensModal doesn't validate token path segments — pasted paths with spaces, special characters, or reserved `$` prefixes pass through parsing without error and fail silently on the server
 - [~] PasteTokensModal creates tokens one-at-a-time via individual POST requests — importing 200 tokens makes 200 sequential HTTP calls; no batch endpoint usage despite `/api/tokens/:set/batch` existing
-- [ ] PasteTokensModal has no progress bar during import — pasting 100+ tokens shows no indication of how many have been processed; the UI appears stuck until all requests complete
+- [~] PasteTokensModal has no progress bar during import — pasting 100+ tokens shows no indication of how many have been processed; the UI appears stuck until all requests complete
 - [ ] No quickstart wizard that chains token generation → semantic mapping → theme setup — EmptyState offers these as separate actions; a guided flow ("Step 1: generate primitives, Step 2: create semantics, Step 3: set up themes") would reduce the learning curve for new users
 - [ ] Circular alias references are not prevented at token creation time — the server accepts `{a}` pointing to `{b}` pointing to `{a}`; only detected later by the resolver or lint rules, by which point the user may have built more tokens on top of the broken chain
 - [ ] No server-side token search endpoint — the client must fetch all tokens across all sets and filter in-memory; with 1000+ tokens across 10+ sets, initial load is slow and search can't leverage indexes

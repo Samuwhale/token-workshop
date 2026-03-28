@@ -585,3 +585,10 @@ Already up to date.
 ===============================================================
   Claimed: PasteTokensModal creates tokens one-at-a-time via individual POST requests — importing 200 tokens makes 200 sequential HTTP calls; no batch endpoint usage despite `/api/tokens/:set/batch` existing
   Worktree: /tmp/backlog-84992-euuYJh
+
+  ✓ done: PasteTokensModal creates tokens one-at-a-time via individual POST requests
+    Replaced sequential POST/PATCH loops with a single POST /api/tokens/:set/batch call using strategy 'overwrite', reducing N HTTP calls to 1.
+    8 turns · 63s · $0.31
+
+--- Merging: PasteTokensModal creates tokens one-at-a-time via individual POST requests ---
+Already up to date.

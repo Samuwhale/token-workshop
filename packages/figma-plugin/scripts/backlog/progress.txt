@@ -98,3 +98,12 @@
   - When adding sibling elements inside an `&&` JSX conditional, wrap them in a `<>...</>` fragment — bare `&&` can only return one expression
   - Target set token fetching uses the nested DTCG format from `/api/tokens/:set` and walks recursively to find `$value` nodes
 ---
+
+## 2026-03-28 - PasteTokensModal creates tokens one-at-a-time via individual POST requests
+- Replaced sequential POST/PATCH loops with a single `POST /api/tokens/:set/batch` call using `strategy: 'overwrite'`
+- Both new tokens (`toCreate`) and conflict-overwrite tokens (`toUpdate`) are combined into one batch array
+- Files changed: `packages/figma-plugin/src/ui/components/PasteTokensModal.tsx` ~L207-232
+- **Learnings for future iterations:**
+  - The batch endpoint uses `strategy: 'overwrite'` which handles both creates and updates in one call — no need to separate them
+  - Skipped tokens (conflicts without overwrite) are already filtered out before `handleConfirm`, so sending everything with `overwrite` strategy is safe
+---

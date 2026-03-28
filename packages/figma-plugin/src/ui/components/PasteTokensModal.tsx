@@ -209,29 +209,19 @@ export function PasteTokensModal({ serverUrl, activeSet, existingPaths, onClose,
     setBusy(true);
     setSubmitError('');
     try {
-      for (const row of toCreate) {
-        const pathEncoded = row.path.split('.').map(encodeURIComponent).join('/');
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ $value: row.$value, $type: row.$type }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(data.error || `Failed to create token "${row.path}"`);
-        }
-      }
-      for (const row of toUpdate) {
-        const pathEncoded = row.path.split('.').map(encodeURIComponent).join('/');
-        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${pathEncoded}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ $value: row.$value, $type: row.$type }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(data.error || `Failed to update token "${row.path}"`);
-        }
+      const allTokens = [...toCreate, ...toUpdate].map(row => ({
+        path: row.path,
+        $value: row.$value,
+        $type: row.$type,
+      }));
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokens: allTokens, strategy: 'overwrite' }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(data.error || 'Failed to import tokens');
       }
       onConfirm();
     } catch (err) {

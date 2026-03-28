@@ -601,3 +601,16 @@ Already up to date.
 
 --- Merging: BatchEditor type conversion doesn't validate value compatibility ---
 Already up to date.
+[main 516954e] chore(backlog): done – BatchEditor type conversion doesn't validate value compatibility
+ 6 files changed, 96 insertions(+), 11 deletions(-)
+
+## 2026-03-28 - BatchEditor type conversion doesn't validate value compatibility
+- Added value-vs-type compatibility validation to BatchEditor's type change flow using `TokenValidator` from `@tokenmanager/core`
+- `typeChangeInfo` useMemo now validates each token's current `$value` against the target type, collecting incompatible tokens with error messages
+- Inline preview shows count of incompatible values; confirmation banner turns red and lists specific incompatible tokens (up to 3 with "and N more…")
+
+===============================================================
+  Iteration 30 / 90  (claude)  —  4 items remaining
+===============================================================
+  Claimed: PasteTokensModal has no progress bar during import — pasting 100+ tokens shows no indication of how many have been processed; the UI appears stuck until all requests complete
+  Worktree: /tmp/backlog-85816-w47cqu
