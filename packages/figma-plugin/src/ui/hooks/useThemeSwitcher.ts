@@ -44,16 +44,19 @@ export function useThemeSwitcher(
   const dimDropdownRef = useRef<HTMLDivElement>(null);
   const [dimBarExpanded, setDimBarExpanded] = useState(false);
 
-  // Fetch dimensions
-  const fetchThemes = useCallback(() => {
+  // Fetch dimensions — abort stale requests when tokens/connection changes
+  const abortRef = useRef<AbortController | null>(null);
+
+  const fetchThemesInner = useCallback((signal: AbortSignal) => {
     if (!connected) return;
     setThemesError(null);
-    fetch(`${serverUrl}/api/themes`, { signal: AbortSignal.timeout(5000) })
+    fetch(`${serverUrl}/api/themes`, { signal })
       .then(r => {
         if (!r.ok) throw new Error(`Server returned ${r.status}`);
         return r.json();
       })
       .then(data => {
+        if (signal.aborted) return;
         const all: ThemeDimension[] = data.dimensions || [];
         setDimensions(all);
         // Remove active entries whose dimension or option no longer exists
@@ -71,13 +74,25 @@ export function useThemeSwitcher(
         });
       })
       .catch(err => {
+        if (signal.aborted) return;
         setThemesError(getErrorMessage(err, 'Failed to load themes'));
       });
   }, [connected, serverUrl]);
 
   useEffect(() => {
-    fetchThemes();
-  }, [fetchThemes, tokens]);
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    fetchThemesInner(controller.signal);
+    return () => controller.abort();
+  }, [fetchThemesInner, tokens]);
+
+  const fetchThemes = useCallback(() => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    fetchThemesInner(controller.signal);
+  }, [fetchThemesInner]);
 
   // Close dimension dropdown on outside click
   useEffect(() => {

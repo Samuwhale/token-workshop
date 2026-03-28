@@ -26,7 +26,7 @@
 - [x] `parseColor` in controller.ts only handles hex strings — if a color token uses `rgb()`, `hsl()`, or a named CSS color (which core's validator accepts), `parseColor` returns `null` and the color is silently not applied
 - [x] `deleteTokenAtPath` won't prune groups that only have `$`-prefixed metadata keys (`$type`, `$description`) — orphaned metadata remains after the last child token is deleted
 - [x] `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block — if `saveSet` throws, batch depth is never decremented and all subsequent rebuilds are suppressed
-- [~] `replaceSetTokens` double-rebuild — explicitly calls `rebuildFlatTokens()` inside the batch, then `endBatch()` triggers another rebuild
+- [x] `replaceSetTokens` double-rebuild — explicitly calls `rebuildFlatTokens()` inside the batch, then `endBatch()` triggers another rebuild
 
 ### QoL
 
@@ -40,7 +40,7 @@
 
 - [~] Theme dimensions store cache is never invalidated on external file changes — `renameSet` writes to `$themes.json` directly, bypassing the `DimensionsStore` cache; subsequent reads return stale data
 - [~] Race condition in `fetchThemes` (`useThemeSwitcher`) — fire-and-forget fetch with no abort/generation guard; rapid `tokens` changes cause overlapping fetches where the last to resolve wins regardless of order
-- [ ] Side effects inside `setActiveThemesState` updater — `lsSetJson()` and `parent.postMessage()` inside the setState updater will fire multiple times in React concurrent mode
+- [~] Side effects inside `setActiveThemesState` updater — `lsSetJson()` and `parent.postMessage()` inside the setState updater will fire multiple times in React concurrent mode
 
 ### QoL
 

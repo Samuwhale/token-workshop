@@ -304,3 +304,10 @@
 - **Learnings for future iterations:**
   - `rebuildFlatTokens()` inside a batch is always a no-op (sets `_pendingRebuild` flag and returns). Only `endBatch()` triggers the actual rebuild. Wrapping a single operation in begin/endBatch is unnecessary overhead and misleading.
 ---
+
+## 2026-03-28 - Race condition in fetchThemes (useThemeSwitcher)
+- Added AbortController-based cancellation to fetchThemes: each effect re-run and manual retry aborts the previous in-flight request. Stale responses are ignored via signal.aborted check after .json() parse. Effect cleanup aborts on unmount.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useThemeSwitcher.ts` ~L48–L82
+- **Learnings for future iterations:**
+  - For fire-and-forget fetches in useEffect, store AbortController in a ref so both the effect cleanup and manual retry can abort. Check `signal.aborted` after async `.then()` to discard stale responses even if the fetch itself wasn't aborted mid-flight.
+---

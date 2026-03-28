@@ -99,3 +99,10 @@ Already up to date.
 ===============================================================
   Claimed: Race condition in `fetchThemes` (`useThemeSwitcher`) — fire-and-forget fetch with no abort/generation guard; rapid `tokens` changes cause overlapping fetches where the last to resolve wins regardless of order
   Worktree: /tmp/backlog-84992-ouOHPS
+
+  ✓ done: Race condition in fetchThemes (useThemeSwitcher)
+    Added AbortController ref to cancel stale in-flight fetches; effect cleanup and manual retry both abort previous request; post-resolve signal.aborted guard prevents stale state updates
+    8 turns · 51s · $0.27
+
+--- Merging: Race condition in fetchThemes (useThemeSwitcher) ---
+Already up to date.

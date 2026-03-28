@@ -58,3 +58,17 @@ Already up to date.
 
 --- Merging: replaceSetTokens double-rebuild ---
 Already up to date.
+[main a25e80f] chore(backlog): done – replaceSetTokens double-rebuild
+ 6 files changed, 32 insertions(+), 10 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - replaceSetTokens double-rebuild
+- Removed unnecessary `beginBatch`/`endBatch` wrapping in `replaceSetTokens`. The method only does one `saveSet` + one `rebuildFlatTokens`, so batching is pointless. The explicit `rebuildFlatTokens()` inside the batch was a no-op (deferred by batch depth > 0), then `endBatch()` triggered the real rebuild. Replaced with a direct `saveSet` + `rebuildFlatTokens` call.
+- Files changed: `packages/server/src/services/token-store.ts` ~L352
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 4 / 90  (claude)  —  102 items remaining
+===============================================================
+  Claimed: Side effects inside `setActiveThemesState` updater — `lsSetJson()` and `parent.postMessage()` inside the setState updater will fire multiple times in React concurrent mode
+  Worktree: /tmp/backlog-85816-liTahi
