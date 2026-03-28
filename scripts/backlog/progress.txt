@@ -297,3 +297,10 @@
   - Most `beginBatch`/`endBatch` pairs in token-store.ts already use `try/finally` — `batchUpsertTokens` was the sole exception
   - Server TypeScript has many pre-existing TS errors (missing Node type declarations) — don't be alarmed, verify your changes aren't adding new ones
 ---
+
+## 2026-03-28 - replaceSetTokens double-rebuild
+- Removed unnecessary `beginBatch`/`endBatch` wrapping in `replaceSetTokens`. The method only does one `saveSet` + one `rebuildFlatTokens`, so batching is pointless. The explicit `rebuildFlatTokens()` inside the batch was a no-op (deferred by batch depth > 0), then `endBatch()` triggered the real rebuild. Replaced with a direct `saveSet` + `rebuildFlatTokens` call.
+- Files changed: `packages/server/src/services/token-store.ts` ~L352
+- **Learnings for future iterations:**
+  - `rebuildFlatTokens()` inside a batch is always a no-op (sets `_pendingRebuild` flag and returns). Only `endBatch()` triggers the actual rebuild. Wrapping a single operation in begin/endBatch is unnecessary overhead and misleading.
+---

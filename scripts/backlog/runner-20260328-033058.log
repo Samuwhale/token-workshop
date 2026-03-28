@@ -51,3 +51,10 @@ Already up to date.
 ===============================================================
   Claimed: `replaceSetTokens` double-rebuild — explicitly calls `rebuildFlatTokens()` inside the batch, then `endBatch()` triggers another rebuild
   Worktree: /tmp/backlog-85816-0Pa9nc
+
+  ✓ done: replaceSetTokens double-rebuild
+    Removed redundant beginBatch/endBatch wrapping — replaced with direct saveSet + rebuildFlatTokens since there's only one operation
+    14 turns · 66s · $0.31
+
+--- Merging: replaceSetTokens double-rebuild ---
+Already up to date.

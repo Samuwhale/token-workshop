@@ -86,3 +86,16 @@ Already up to date.
 
 --- Merging: `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block ---
 Already up to date.
+[main 9a1419d] chore(backlog): done – `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block
+ 3 files changed, 34 insertions(+), 16 deletions(-)
+
+## 2026-03-28 - `batchUpsertTokens` calls `endBatch()` before `emit()` and `endBatch()` is not in a `finally` block
+- Wrapped the loop + `saveSet` call in a `try/finally` block so `endBatch()` always runs even if `saveSet` throws. Moved `emit()` after the `finally` block (consistent with other methods like `replaceSetTokens`, `deleteTokensByGeneratorId`).
+- Files changed: `packages/server/src/services/token-store.ts` ~L541
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  103 items remaining
+===============================================================
+  Claimed: Race condition in `fetchThemes` (`useThemeSwitcher`) — fire-and-forget fetch with no abort/generation guard; rapid `tokens` changes cause overlapping fetches where the last to resolve wins regardless of order
+  Worktree: /tmp/backlog-84992-ouOHPS

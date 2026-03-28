@@ -353,13 +353,8 @@ export class TokenStore {
     const set = this.sets.get(name);
     if (!set) throw new Error(`Set "${name}" not found`);
     set.tokens = tokens;
-    this.beginBatch();
-    try {
-      await this.saveSet(name);
-      this.rebuildFlatTokens();
-    } finally {
-      this.endBatch();
-    }
+    await this.saveSet(name);
+    this.rebuildFlatTokens();
     this.emit({ type: 'token-updated', setName: name });
   }
 
