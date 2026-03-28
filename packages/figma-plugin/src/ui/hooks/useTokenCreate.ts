@@ -3,6 +3,7 @@ import type { SelectionNodeInfo, ApiErrorBody } from '../../shared/types';
 import type { UndoSlot } from './useUndo';
 import { parseInlineValue, generateNameSuggestions } from '../components/tokenListHelpers';
 import { getDefaultValue, nodeParentPath } from '../components/tokenListUtils';
+import { fuzzyScore } from '../shared/fuzzyMatch';
 
 export interface UseTokenCreateParams {
   defaultCreateOpen?: boolean;
@@ -58,12 +59,23 @@ export function useTokenCreate({
     return g ? `${g}.${n}` : n;
   }, [newTokenGroup, newTokenName]);
 
-  // Filtered group suggestions for the combobox
+  const [groupActiveIdx, setGroupActiveIdx] = useState(-1);
+
+  // Filtered group suggestions with fuzzy scoring
   const filteredGroups = useMemo(() => {
-    const q = newTokenGroup.trim().toLowerCase();
+    const q = newTokenGroup.trim();
     if (!q) return allGroupPaths;
-    return allGroupPaths.filter(p => p.toLowerCase().includes(q));
+    const scored = allGroupPaths
+      .map(p => ({ path: p, score: fuzzyScore(q, p) }))
+      .filter(x => x.score >= 0);
+    scored.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
+    return scored.map(x => x.path);
   }, [newTokenGroup, allGroupPaths]);
+
+  // Reset keyboard index when suggestions change
+  useEffect(() => {
+    setGroupActiveIdx(-1);
+  }, [filteredGroups]);
 
   // Scroll to and pulse the create form when it appears
   useEffect(() => {
@@ -201,6 +213,8 @@ export function useTokenCreate({
     allGroupPaths,
     groupDropdownOpen,
     setGroupDropdownOpen,
+    groupActiveIdx,
+    setGroupActiveIdx,
     resetCreateForm,
     handleOpenCreateSibling,
     handleCreate,

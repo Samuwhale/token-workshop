@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: **Token create form: path autocomplete with existing groups** — as the user types the path, autocomplete suggestions should appear for existing group prefixes (just like today's qualifier autocomplete in search). If you type `color` it should show `colors`, `color-scheme`, etc. from the current set. Currently there are name suggestions but no group-prefix autocomplete in the path field itself.
   Worktree: /tmp/backlog-92332-RfZ3ee
+
+  ✓ done: Token create form: path autocomplete with existing groups
+    Replaced substring filtering with fuzzyScore ranking, added keyboard navigation (Arrow/Tab/Enter), folder icons, and match highlighting to the group dropdown in the inline create form.
+    29 turns · 258s · $1.17
+
+--- Merging: Token create form: path autocomplete with existing groups ---
+Already up to date.

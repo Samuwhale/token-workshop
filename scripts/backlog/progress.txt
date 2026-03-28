@@ -584,3 +584,15 @@
   - Skipping alias tokens in the match ensures the suggestion points to the primitive source, not another alias
   - The `preAliasValueRef` pattern is already established for storing the value before switching to alias mode
 ---
+
+## 2026-03-28 - Token create form: path autocomplete with existing groups
+- Replaced simple substring filtering (`.includes()`) with fuzzy scoring (`fuzzyScore`) for the Group field autocomplete in the inline create form. Results are now ranked by relevance score.
+- Added keyboard navigation (ArrowUp/ArrowDown) in the group dropdown with active item highlighting and scroll-into-view.
+- Tab/Enter on an active dropdown item selects it instead of submitting the form.
+- Added folder icons and fuzzy match highlighting (via `highlightMatch`) to dropdown items for better discoverability.
+- Mouse hover also updates the active index for consistent visual feedback.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokenCreate.ts` ~L6 (import), ~L63-75 (fuzzy filter + activeIdx state), ~L211 (return)
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L660 (destructure), ~L664-668 (scroll effect), ~L806-816 (keyboard nav), ~L823-854 (dropdown rendering)
+- **Learnings for future iterations:**
+  - The group dropdown's `onKeyDown` must distinguish between selecting a dropdown item (arrow+Enter) and submitting the create form (plain Enter). Using `groupActiveIdx >= 0` as the guard works well — `-1` means no item is selected so Enter falls through to form submission.
+---

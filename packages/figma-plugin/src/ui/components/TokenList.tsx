@@ -657,8 +657,16 @@ export function TokenList({
     newTokenDescription, setNewTokenDescription, typeAutoInferred, setTypeAutoInferred,
     createError, setCreateError,
     createFormRef, nameSuggestions, filteredGroups, groupDropdownOpen, setGroupDropdownOpen,
+    groupActiveIdx, setGroupActiveIdx,
     resetCreateForm, handleOpenCreateSibling, handleCreate, handleCreateAndNew,
   } = tokenCreate;
+
+  // Scroll active group autocomplete item into view
+  useEffect(() => {
+    if (groupActiveIdx < 0 || !createFormRef.current) return;
+    const el = createFormRef.current.querySelector(`[data-group-idx="${groupActiveIdx}"]`) as HTMLElement | null;
+    el?.scrollIntoView({ block: 'nearest' });
+  }, [groupActiveIdx]);
 
   const findReplace = useFindReplace({
     connected,
@@ -2802,7 +2810,17 @@ export function TokenList({
                   onBlur={() => { setTimeout(() => setGroupDropdownOpen(false), 150); }}
                   className="w-full px-2 py-1.5 pr-6 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
                   onKeyDown={e => {
-                    if (e.key === 'Escape') { setGroupDropdownOpen(false); (e.target as HTMLInputElement).blur(); }
+                    if (e.key === 'Escape') { setGroupDropdownOpen(false); (e.target as HTMLInputElement).blur(); return; }
+                    if (groupDropdownOpen && filteredGroups.length > 0) {
+                      if (e.key === 'ArrowDown') { e.preventDefault(); setGroupActiveIdx(i => Math.min(i + 1, filteredGroups.length - 1)); return; }
+                      if (e.key === 'ArrowUp') { e.preventDefault(); setGroupActiveIdx(i => Math.max(i - 1, -1)); return; }
+                      if ((e.key === 'Tab' || e.key === 'Enter') && groupActiveIdx >= 0 && filteredGroups[groupActiveIdx]) {
+                        e.preventDefault();
+                        setNewTokenGroup(filteredGroups[groupActiveIdx]);
+                        setGroupDropdownOpen(false);
+                        return;
+                      }
+                    }
                     if (e.key === 'Enter') { e.shiftKey ? handleCreateAndNew() : handleCreate(); }
                   }}
                 />
@@ -2818,17 +2836,27 @@ export function TokenList({
                   >
                     (root)
                   </button>
-                  {filteredGroups.map(gp => (
-                    <button
-                      key={gp}
-                      type="button"
-                      onMouseDown={e => e.preventDefault()}
-                      onClick={() => { setNewTokenGroup(gp); setGroupDropdownOpen(false); }}
-                      className={`w-full text-left px-2 py-1 text-[11px] hover:bg-[var(--color-figma-bg-hover)] transition-colors ${gp === newTokenGroup.trim() ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'}`}
-                    >
-                      {gp}
-                    </button>
-                  ))}
+                  {filteredGroups.map((gp, idx) => {
+                    const isActive = idx === groupActiveIdx;
+                    const isExact = gp === newTokenGroup.trim();
+                    const terms = newTokenGroup.trim() ? newTokenGroup.trim().split(/[\s.]+/).filter(Boolean) : [];
+                    return (
+                      <button
+                        key={gp}
+                        type="button"
+                        data-group-idx={idx}
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => { setNewTokenGroup(gp); setGroupDropdownOpen(false); }}
+                        onMouseEnter={() => setGroupActiveIdx(idx)}
+                        className={`w-full flex items-center gap-1.5 text-left px-2 py-1 text-[11px] transition-colors ${isActive ? 'bg-[var(--color-figma-bg-hover)]' : ''} ${isExact ? 'text-[var(--color-figma-accent)] font-medium' : 'text-[var(--color-figma-text)]'}`}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-text-secondary)]">
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                        </svg>
+                        <span className="flex-1 truncate">{terms.length > 0 ? highlightMatch(gp, terms) : gp}</span>
+                      </button>
+                    );
+                  })}
                   {newTokenGroup.trim() && !allGroupPaths.includes(newTokenGroup.trim()) && (
                     <button
                       type="button"
