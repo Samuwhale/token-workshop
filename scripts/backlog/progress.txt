@@ -360,3 +360,14 @@
   - `apiFetch` already parses JSON and throws on non-2xx — don't add redundant `res.ok` checks or `.json()` calls when using it
   - For partial-failure patterns, return a structured result object rather than throwing — lets the caller distinguish total vs partial failure
 ---
+
+## 2026-03-28 - Duplicate Figma plugin message-promise pattern across useStyleSync, useVariableSync, and useFigmaSync
+- Created `useFigmaMessage<TResponse>(config)` hook in `packages/figma-plugin/src/ui/hooks/useFigmaMessage.ts` that encapsulates correlationId tracking, pendingRef map, timeout+Promise wrapper, and message event listener
+- Refactored `useStyleSync.ts` to use two `useFigmaMessage` instances (style-read and style-apply), removing ~35 lines of boilerplate (pendingRef maps, useEffect listener, inline Promise wrappers)
+- Refactored `useVariableSync.ts` to use one `useFigmaMessage` instance (variables-read), removing ~20 lines (pendingRef, useEffect listener, Promise wrapper). Dropped `varPendingRef` from return (was unused externally)
+- Refactored `useFigmaSync.ts` to use one `useFigmaMessage` instance (styles-applied), removing ~25 lines (pendingRef, useEffect listener, inline Promise wrapper)
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaMessage.ts` (new), `useStyleSync.ts`, `useVariableSync.ts`, `useFigmaSync.ts`
+- **Learnings for future iterations:**
+  - The `extractResponse` callback in useFigmaMessage must be a stable reference (module-level const) to avoid effect re-registration on every render
+  - The hook returns `send(sendType, payload)` rather than baking in the send type, allowing one hook instance to be used for multiple send types that share the same response type (though none of the current callers need this)
+---

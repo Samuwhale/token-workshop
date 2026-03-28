@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: git-sync.ts applyDiffChoices silently swallows checkout and commit failures ---
 Already up to date.
+[main 7a02024] chore(backlog): done – git-sync.ts applyDiffChoices silently swallows checkout and commit failures
+ 8 files changed, 120 insertions(+), 13 deletions(-)
+
+## 2026-03-28 - git-sync.ts applyDiffChoices silently swallows checkout and commit failures
+- Changed `applyDiffChoices` return type from `Promise<void>` to `Promise<ApplyDiffResult>` with fields: `pullFailedFiles`, `pullCommitFailed`, `pushCommitFailed`, `pushFailed`, plus error message strings
+- Per-file checkout failures are now tracked in `pullFailedFiles` array; only successfully checked-out files are staged/committed
+- Push to remote is now wrapped in try/catch (was completely unprotected)
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  0 items remaining
+===============================================================
+
+  Backlog empty — running discovery pass to replenish…
+  Discovery pass produced no new items. Backlog fully drained!

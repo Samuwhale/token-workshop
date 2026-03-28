@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
+import { useFigmaMessage } from './useFigmaMessage';
 
 export interface VarDiffRow {
   path: string;
@@ -20,6 +21,8 @@ interface UseVariableSyncOptions {
   modeMap: Record<string, string>;
 }
 
+const extractTokens = (msg: any): any[] => msg.tokens ?? [];
+
 export function useVariableSync({ serverUrl, connected, activeSet, collectionMap, modeMap }: UseVariableSyncOptions) {
   const [varRows, setVarRows] = useState<VarDiffRow[]>([]);
   const [varDirs, setVarDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
@@ -27,22 +30,17 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
   const [varSyncing, setVarSyncing] = useState(false);
   const [varError, setVarError] = useState<string | null>(null);
   const [varChecked, setVarChecked] = useState(false);
-  const varPendingRef = useRef<Map<string, (tokens: any[]) => void>>(new Map());
 
-  const readFigmaVariables = useCallback((): Promise<any[]> => {
-    return new Promise((resolve, reject) => {
-      const cid = `publish-${Date.now()}-${Math.random()}`;
-      const timeout = setTimeout(() => {
-        varPendingRef.current.delete(cid);
-        reject(new Error('Figma read timed out \u2014 is the plugin running?'));
-      }, 10000);
-      varPendingRef.current.set(cid, (tokens) => {
-        clearTimeout(timeout);
-        resolve(tokens);
-      });
-      parent.postMessage({ pluginMessage: { type: 'read-variables', correlationId: cid } }, '*');
-    });
-  }, []);
+  const sendReadVariables = useFigmaMessage<any[]>({
+    responseType: 'variables-read',
+    timeout: 10000,
+    extractResponse: extractTokens,
+  });
+
+  const readFigmaVariables = useCallback(
+    () => sendReadVariables('read-variables'),
+    [sendReadVariables],
+  );
 
   const computeVarDiff = useCallback(async () => {
     if (!activeSet) return;
@@ -95,22 +93,6 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
   useEffect(() => {
     if (connected && activeSet) computeVarDiff();
   }, [connected, activeSet, computeVarDiff]);
-
-  // Message handler for variable reads
-  useEffect(() => {
-    const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'variables-read' && msg.correlationId) {
-        const resolve = varPendingRef.current.get(msg.correlationId);
-        if (resolve) {
-          varPendingRef.current.delete(msg.correlationId);
-          resolve(msg.tokens ?? []);
-        }
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
 
   const applyVarDiff = useCallback(async () => {
     const dirsSnapshot = varDirs;
@@ -186,6 +168,5 @@ export function useVariableSync({ serverUrl, connected, activeSet, collectionMap
     varPushCount,
     varPullCount,
     readFigmaVariables,
-    varPendingRef,
   };
 }

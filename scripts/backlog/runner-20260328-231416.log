@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Duplicate Figma plugin message-promise pattern across useStyleSync, useVariableSync, and useFigmaSync — each hook independently implements correlationId tracking, pendingRef maps, timeout+Promise wrappers, and message event listeners for roundtrip plugin communication; should extract a shared `useFigmaMessage(type, responseType, timeout)` hook that returns a `send(payload): Promise<response>` function, eliminating ~100 lines of boilerplate and ensuring consistent timeout/error handling
   Worktree: /tmp/backlog-85364-ndTIsb
+
+  ✓ done: Duplicate Figma plugin message-promise pattern across useStyleSync, useVariableSync, and useFigmaSync
+    Extracted shared useFigmaMessage hook that encapsulates correlationId tracking, pendingRef map, timeout+Promise, and message listener. Refactored all 3 hooks to use it, eliminating ~80 lines of duplicated boilerplate. All 4 validation gates pass.
+    16 turns · 173s · $0.82
+
+--- Merging: Duplicate Figma plugin message-promise pattern across useStyleSync, useVariableSync, and useFigmaSync ---
+Already up to date.

@@ -1,7 +1,8 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { flattenTokenGroup } from '@tokenmanager/core';
 import { describeError } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
+import { useFigmaMessage } from './useFigmaMessage';
 
 const STYLE_TYPES = new Set(['color', 'typography', 'shadow']);
 
@@ -37,6 +38,14 @@ interface UseStyleSyncOptions {
   activeSet: string;
 }
 
+const extractStyleReadTokens = (msg: any): any[] => msg.tokens ?? [];
+
+const extractStyleApplyResult = (msg: any): { count: number; total: number; failures: { path: string; error: string }[] } => ({
+  count: msg.count ?? 0,
+  total: msg.total ?? msg.count ?? 0,
+  failures: msg.failures ?? [],
+});
+
 export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
   const [styleRows, setStyleRows] = useState<StyleDiffRow[]>([]);
   const [styleDirs, setStyleDirs] = useState<Record<string, 'push' | 'pull' | 'skip'>>({});
@@ -44,49 +53,20 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
   const [styleSyncing, setStyleSyncing] = useState(false);
   const [styleError, setStyleError] = useState<string | null>(null);
   const [styleChecked, setStyleChecked] = useState(false);
-  const styleReadPendingRef = useRef<Map<string, { resolve: (tokens: any[]) => void; reject: (err: Error) => void }>>(new Map());
-  const styleApplyPendingRef = useRef<Map<string, { resolve: (result: { count: number; total: number; failures: { path: string; error: string }[] }) => void; reject: (err: Error) => void }>>(new Map());
 
-  // Message handler for style reads
-  useEffect(() => {
-    const handler = (ev: MessageEvent) => {
-      const msg = ev.data?.pluginMessage;
-      if (msg?.type === 'styles-read' && msg.correlationId) {
-        const entry = styleReadPendingRef.current.get(msg.correlationId);
-        if (entry) {
-          styleReadPendingRef.current.delete(msg.correlationId);
-          entry.resolve(msg.tokens ?? []);
-        }
-      }
-      if (msg?.type === 'styles-read-error' && msg.correlationId) {
-        const entry = styleReadPendingRef.current.get(msg.correlationId);
-        if (entry) {
-          styleReadPendingRef.current.delete(msg.correlationId);
-          entry.reject(new Error(msg.error ?? 'Unknown error'));
-        }
-      }
-      if (msg?.type === 'styles-apply-error' && msg.correlationId) {
-        const entry = styleApplyPendingRef.current.get(msg.correlationId);
-        if (entry) {
-          styleApplyPendingRef.current.delete(msg.correlationId);
-          entry.reject(new Error(msg.error ?? 'Unknown error'));
-        }
-      }
-      if (msg?.type === 'styles-applied' && msg.correlationId) {
-        const entry = styleApplyPendingRef.current.get(msg.correlationId);
-        if (entry) {
-          styleApplyPendingRef.current.delete(msg.correlationId);
-          entry.resolve({
-            count: msg.count ?? 0,
-            total: msg.total ?? msg.count ?? 0,
-            failures: msg.failures ?? [],
-          });
-        }
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, []);
+  const sendStyleRead = useFigmaMessage<any[]>({
+    responseType: 'styles-read',
+    errorType: 'styles-read-error',
+    timeout: 10000,
+    extractResponse: extractStyleReadTokens,
+  });
+
+  const sendStyleApply = useFigmaMessage<{ count: number; total: number; failures: { path: string; error: string }[] }>({
+    responseType: 'styles-applied',
+    errorType: 'styles-apply-error',
+    timeout: 15000,
+    extractResponse: extractStyleApplyResult,
+  });
 
   const computeStyleDiff = useCallback(async () => {
     if (!activeSet) return;
@@ -94,18 +74,7 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     setStyleError(null);
     setStyleChecked(false);
     try {
-      const figmaTokens: any[] = await new Promise((resolve, reject) => {
-        const cid = `style-read-${Date.now()}-${Math.random()}`;
-        const timeout = setTimeout(() => {
-          styleReadPendingRef.current.delete(cid);
-          reject(new Error('Figma read timed out \u2014 is the plugin running?'));
-        }, 10000);
-        styleReadPendingRef.current.set(cid, {
-          resolve: (tokens) => { clearTimeout(timeout); resolve(tokens); },
-          reject: (err) => { clearTimeout(timeout); reject(err); },
-        });
-        parent.postMessage({ pluginMessage: { type: 'read-styles', correlationId: cid } }, '*');
-      });
+      const figmaTokens = await sendStyleRead('read-styles');
 
       const data = await apiFetch<{ tokens?: Record<string, any> }>(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}`);
       const localTokens = flattenTokenGroup(data.tokens || {});
@@ -148,7 +117,7 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     } finally {
       setStyleLoading(false);
     }
-  }, [serverUrl, activeSet]);
+  }, [serverUrl, activeSet, sendStyleRead]);
 
   const applyStyleDiff = useCallback(async () => {
     const dirsSnapshot = styleDirs;
@@ -167,18 +136,7 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
           $type: r.localType ?? 'string',
           $value: r.localRaw,
         }));
-        pushResult = await new Promise((resolve, reject) => {
-          const cid = `style-apply-${Date.now()}-${Math.random()}`;
-          const timeout = setTimeout(() => {
-            styleApplyPendingRef.current.delete(cid);
-            reject(new Error('Style apply timed out — is the plugin running?'));
-          }, 15000);
-          styleApplyPendingRef.current.set(cid, {
-            resolve: (result) => { clearTimeout(timeout); resolve(result); },
-            reject: (err) => { clearTimeout(timeout); reject(err); },
-          });
-          parent.postMessage({ pluginMessage: { type: 'apply-styles', tokens, correlationId: cid } }, '*');
-        });
+        pushResult = await sendStyleApply('apply-styles', { tokens });
       }
 
       const pullFailures: { path: string; error: string }[] = [];
@@ -224,7 +182,7 @@ export function useStyleSync({ serverUrl, activeSet }: UseStyleSyncOptions) {
     } finally {
       setStyleSyncing(false);
     }
-  }, [serverUrl, activeSet, styleRows, styleDirs]);
+  }, [serverUrl, activeSet, styleRows, styleDirs, sendStyleApply]);
 
   const styleSyncCount = Object.values(styleDirs).filter(d => d !== 'skip').length;
   const stylePushCount = Object.values(styleDirs).filter(d => d === 'push').length;
