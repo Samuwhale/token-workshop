@@ -84,6 +84,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
   const [conflictPaths, setConflictPaths] = useState<string[] | null>(null);
   const [conflictExistingValues, setConflictExistingValues] = useState<Map<string, { $type: string; $value: unknown }> | null>(null);
   const [conflictDecisions, setConflictDecisions] = useState<Map<string, 'accept' | 'reject'>>(new Map());
+  const [conflictSearch, setConflictSearch] = useState('');
+  const [conflictStatusFilter, setConflictStatusFilter] = useState<'all' | 'accept' | 'reject'>('all');
+  const [conflictTypeFilter, setConflictTypeFilter] = useState<string>('all');
   const [checkingConflicts, setCheckingConflicts] = useState(false);
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
   const [newSetInputVisible, setNewSetInputVisible] = useState(false);
@@ -107,6 +110,9 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
     setConflictPaths(null);
     setConflictExistingValues(null);
     setConflictDecisions(new Map());
+    setConflictSearch('');
+    setConflictStatusFilter('all');
+    setConflictTypeFilter('all');
   }, []);
 
   // Pre-fetch existing tokens for the target set to show new vs. overwrite preview + conflict values
@@ -1355,6 +1361,20 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                 const acceptCount = [...conflictDecisions.values()].filter(v => v === 'accept').length;
                 const rejectCount = conflictPaths.length - acceptCount;
                 const totalToImport = newCount + acceptCount;
+                const hasActiveFilter = conflictSearch !== '' || conflictStatusFilter !== 'all' || conflictTypeFilter !== 'all';
+                const searchLower = conflictSearch.toLowerCase();
+                const getFilteredPaths = () => conflictPaths.filter(path => {
+                  if (searchLower && !path.toLowerCase().includes(searchLower)) return false;
+                  if (conflictStatusFilter !== 'all') {
+                    const d = conflictDecisions.get(path) ?? 'accept';
+                    if (d !== conflictStatusFilter) return false;
+                  }
+                  if (conflictTypeFilter !== 'all') {
+                    const t = tokens.find(tk => tk.path === path);
+                    if (t?.$type !== conflictTypeFilter) return false;
+                  }
+                  return true;
+                });
                 return (
                   <>
                     {/* Summary + bulk actions */}
@@ -1367,29 +1387,85 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                         <button
                           onClick={() => {
                             const next = new Map(conflictDecisions);
-                            for (const p of conflictPaths) next.set(p, 'accept');
+                            const targets = hasActiveFilter ? getFilteredPaths() : conflictPaths;
+                            for (const p of targets) next.set(p, 'accept');
                             setConflictDecisions(next);
                           }}
                           className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-success,#16a34a)] hover:bg-[var(--color-figma-success,#16a34a)]/10 transition-colors"
                         >
-                          Accept all
+                          Accept{hasActiveFilter ? ' visible' : ' all'}
                         </button>
                         <button
                           onClick={() => {
                             const next = new Map(conflictDecisions);
-                            for (const p of conflictPaths) next.set(p, 'reject');
+                            const targets = hasActiveFilter ? getFilteredPaths() : conflictPaths;
+                            for (const p of targets) next.set(p, 'reject');
                             setConflictDecisions(next);
                           }}
                           className="px-1.5 py-0.5 rounded text-[9px] font-medium text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-border)]/30 transition-colors"
                         >
-                          Reject all
+                          Reject{hasActiveFilter ? ' visible' : ' all'}
                         </button>
                       </div>
                     </div>
 
+                    {/* Search + filters */}
+                    <div className="flex flex-col gap-1">
+                      <div className="relative">
+                        <svg className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[var(--color-figma-text-tertiary)]" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                        <input
+                          type="text"
+                          value={conflictSearch}
+                          onChange={e => setConflictSearch(e.target.value)}
+                          placeholder="Search conflicts…"
+                          className="w-full pl-6 pr-1.5 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <select
+                          value={conflictStatusFilter}
+                          onChange={e => setConflictStatusFilter(e.target.value as 'all' | 'accept' | 'reject')}
+                          className="px-1 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                        >
+                          <option value="all">All status</option>
+                          <option value="accept">Accepted</option>
+                          <option value="reject">Rejected</option>
+                        </select>
+                        {(() => {
+                          const types = new Set<string>();
+                          for (const p of conflictPaths) {
+                            const t = tokens.find(tk => tk.path === p);
+                            if (t?.$type) types.add(t.$type);
+                          }
+                          if (types.size <= 1) return null;
+                          const sorted = [...types].sort();
+                          return (
+                            <select
+                              value={conflictTypeFilter}
+                              onChange={e => setConflictTypeFilter(e.target.value)}
+                              className="px-1 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] text-[var(--color-figma-text)] focus:outline-none focus:border-[var(--color-figma-accent)]"
+                            >
+                              <option value="all">All types</option>
+                              {sorted.map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
                     {/* Per-token conflict list */}
-                    <div className="max-h-[240px] overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
-                      {conflictPaths.map(path => {
+                    {(() => {
+                      const filtered = getFilteredPaths();
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="px-2 py-3 text-center text-[10px] text-[var(--color-figma-text-tertiary)] rounded border border-[var(--color-figma-border)]">
+                            No conflicts match{conflictSearch ? ` "${conflictSearch}"` : ''}{conflictStatusFilter !== 'all' ? ` (${conflictStatusFilter})` : ''}{conflictTypeFilter !== 'all' ? ` [${conflictTypeFilter}]` : ''}
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="max-h-[200px] overflow-y-auto rounded border border-[var(--color-figma-border)] divide-y divide-[var(--color-figma-border)]">
+                          {filtered.map(path => {
                         const decision = conflictDecisions.get(path) ?? 'accept';
                         const isAccepted = decision === 'accept';
                         const incoming = tokens.find(t => t.path === path);
@@ -1442,8 +1518,10 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                             </div>
                           </div>
                         );
-                      })}
-                    </div>
+                          })}
+                        </div>
+                      );
+                    })()}
 
                     {/* Import action */}
                     <div className="flex items-center gap-1 text-[10px] text-[var(--color-figma-text-secondary)]">

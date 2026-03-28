@@ -95,3 +95,10 @@ Already up to date.
 ===============================================================
   Claimed: ImportPanel conflict resolution has no search or filter — when importing 50+ tokens with conflicts, users must scroll through every conflict row; add a search field and type/status filter (new/overwrite/skip) to the conflict list so users can quickly find and resolve specific conflicts
   Worktree: /tmp/backlog-9231-63y7aW
+
+  ✓ done: ImportPanel conflict resolution has no search or filter
+    Added search field, status filter (all/accepted/rejected), and type filter to the conflict list. Bulk actions scope to visible items when filters are active.
+    27 turns · 227s · $1.06
+
+--- Merging: ImportPanel conflict resolution has no search or filter ---
+Already up to date.

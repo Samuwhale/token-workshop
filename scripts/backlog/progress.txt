@@ -403,3 +403,16 @@
   - For inline tree editing nudges, showing a row below the token is better than a floating tooltip — it's stable, doesn't require portal rendering, and works with virtual scroll
   - The hook must be enabled/disabled conditionally (not just return early) to avoid hook call count changes — using the `enabled` parameter pattern
 ---
+
+## 2026-03-28 - ImportPanel conflict resolution search and filter
+- Added search field with magnifying glass icon to filter conflict tokens by path
+- Added status filter dropdown (All / Accepted / Rejected) to show only conflicts with a specific resolution
+- Added type filter dropdown (only appears when conflicts span multiple token types) to filter by $type
+- Filtered view shows "No conflicts match" empty state when filters exclude all results
+- "Accept all" / "Reject all" buttons become "Accept visible" / "Reject visible" when filters are active, applying only to the filtered subset
+- Filter computation is shared via `getFilteredPaths()` helper between bulk actions and list rendering
+- Files changed: `packages/figma-plugin/src/ui/components/ImportPanel.tsx` ~L84-88 (state), ~L108-114 (clearConflictState), ~L1365-1510 (conflict UI)
+- **Learnings for future iterations:**
+  - The conflict list uses an IIFE pattern inside JSX; extending it with computed `getFilteredPaths` in the outer IIFE scope allows both bulk actions and list rendering to share filter logic without a separate component
+  - Bulk action buttons should scope to visible items when filters are active — changing label to "Accept visible" / "Reject visible" communicates this clearly
+---

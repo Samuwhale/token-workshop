@@ -90,3 +90,18 @@ Already up to date.
 
 --- Merging: "Did you mean this token?" nudge ---
 Already up to date.
+[main 09db85d] chore(backlog): done – "Did you mean this token?" nudge
+ 9 files changed, 348 insertions(+), 37 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/TokenNudge.tsx
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useNearbyTokenMatch.ts
+
+## 2026-03-28 - "Did you mean this token?" nudge
+- Implemented a "Did you mean this token?" nudge that suggests existing tokens when a raw value is entered that closely matches an existing token's resolved value. Works in two surfaces: the TokenEditor drawer (replaces the old exact-match-only alias suggestion) and inline editing in the token tree (shows a nudge row after saving a raw value).
+- Created `useNearbyTokenMatch` hook that finds tokens within perceptual distance thresholds: ΔE < 5 for colors (using CIELAB), ≤2px or ≤10% for dimensions (same unit), ≤5% for numbers. Debounced at 150ms. Returns top 3 matches sorted by distance with "Exact" (<1 ΔE / 0 diff) or "Close" labels.
+- Created `TokenNudge` component with single-match and multi-match layouts: accent-colored dashed border, color swatches for color tokens, ΔE distance display, accept/dismiss buttons.
+
+===============================================================
+  Iteration 5 / 90  (claude)  —  58 items remaining
+===============================================================
+  Claimed: ExportPanel has no SCSS, LESS, or TypeScript export formats — only CSS, Dart, iOS Swift, Android, and JSON are supported; add SCSS variables (`$token-name`), LESS variables (`@token-name`), and TypeScript const exports (`export const tokenName = ...`) to cover common frontend toolchain needs
+  Worktree: /tmp/backlog-10054-1aRbU4
