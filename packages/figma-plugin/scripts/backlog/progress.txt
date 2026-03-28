@@ -87,3 +87,14 @@
 - **Learnings for future iterations:**
   - Silent fallbacks in validation/lint services hide configuration errors from users — always surface them as violations or diagnostics
 ---
+
+## 2026-03-28 - BatchEditor move-to-set operation has no preview
+- Added move preview showing destination paths (set: path format) for up to 3 tokens with "+N more" overflow
+- Added conflict detection: fetches target set tokens on selection, highlights conflicting paths in warning color with "conflict" badge
+- Shows summary warning when conflicts exist: "N tokens already exist in 'targetSet' and will be overwritten"
+- Preview uses same visual pattern as rename preview (stacked before/after with arrow)
+- Files changed: `packages/figma-plugin/src/ui/components/BatchEditor.tsx` ~L119-160 (state + memos), ~L700-752 (preview JSX)
+- **Learnings for future iterations:**
+  - When adding sibling elements inside an `&&` JSX conditional, wrap them in a `<>...</>` fragment — bare `&&` can only return one expression
+  - Target set token fetching uses the nested DTCG format from `/api/tokens/:set` and walks recursively to find `$value` nodes
+---

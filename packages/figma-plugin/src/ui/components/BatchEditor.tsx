@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
 import type { UndoSlot } from '../hooks/useUndo';
 
@@ -117,6 +117,47 @@ export function BatchEditor({
   const scaleAliasCount = skippedAliasTokens.length;
 
   const otherSets = useMemo(() => sets.filter(s => s !== setName), [sets, setName]);
+
+  // Fetch target set's token paths for conflict detection
+  const [targetSetPaths, setTargetSetPaths] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    if (!targetSet || !serverUrl) { setTargetSetPaths(null); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(targetSet)}`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        // Flatten nested DTCG group to get all token paths
+        const paths = new Set<string>();
+        const walk = (obj: Record<string, unknown>, prefix: string) => {
+          for (const [key, val] of Object.entries(obj)) {
+            if (key.startsWith('$')) continue;
+            const p = prefix ? `${prefix}.${key}` : key;
+            if (val && typeof val === 'object' && '$value' in (val as Record<string, unknown>)) {
+              paths.add(p);
+            } else if (val && typeof val === 'object') {
+              walk(val as Record<string, unknown>, p);
+            }
+          }
+        };
+        if (data.tokens) walk(data.tokens, '');
+        if (!cancelled) setTargetSetPaths(paths);
+      } catch { if (!cancelled) setTargetSetPaths(null); }
+    })();
+    return () => { cancelled = true; };
+  }, [targetSet, serverUrl]);
+
+  // Compute move preview: destination paths + conflict detection
+  const movePreview = useMemo(() => {
+    if (!targetSet || selectedEntries.length === 0) return null;
+    const items = selectedEntries.map(({ path }) => ({
+      path,
+      conflict: targetSetPaths?.has(path) ?? false,
+    }));
+    const conflicts = items.filter(i => i.conflict).length;
+    return { items, conflicts };
+  }, [targetSet, selectedEntries, targetSetPaths]);
 
   // For type-change confirmation: gather distinct current types of affected tokens
   const typeChangeInfo = useMemo(() => {
@@ -658,7 +699,7 @@ export function BatchEditor({
         )}
 
         {/* Move to set — only when multiple sets exist */}
-        {otherSets.length > 0 && (
+        {otherSets.length > 0 && (<>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Move to set</span>
             <select
@@ -680,7 +721,35 @@ export function BatchEditor({
               {moving ? '…' : 'Move'}
             </button>
           </div>
-        )}
+          {movePreview && movePreview.items.length > 0 && (
+            <div className="ml-[88px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] px-1.5 py-1 space-y-0.5">
+              {movePreview.items.slice(0, PREVIEW_MAX).map(({ path, conflict }) => (
+                <div key={path} className="text-[10px] leading-snug space-y-0">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[var(--color-figma-text-secondary)] truncate" title={path}>{path}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[var(--color-figma-text-tertiary)] shrink-0">→</span>
+                    <span className={`font-medium truncate ${conflict ? 'text-[var(--color-figma-warning,#f59e0b)]' : 'text-[var(--color-figma-text)]'}`} title={`${targetSet}: ${path}${conflict ? ' (already exists)' : ''}`}>
+                      {targetSet}: {path}
+                    </span>
+                    {conflict && (
+                      <span className="text-[var(--color-figma-warning,#f59e0b)] shrink-0 text-[9px]">conflict</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {movePreview.items.length > PREVIEW_MAX && (
+                <div className="text-[10px] text-[var(--color-figma-text-tertiary)]">and {movePreview.items.length - PREVIEW_MAX} more…</div>
+              )}
+              {movePreview.conflicts > 0 && (
+                <div className="text-[10px] text-[var(--color-figma-warning,#f59e0b)] font-medium leading-snug pt-0.5">
+                  {movePreview.conflicts} token{movePreview.conflicts === 1 ? '' : 's'} already exist{movePreview.conflicts === 1 ? 's' : ''} in &quot;{targetSet}&quot; and will be overwritten
+                </div>
+              )}
+            </div>
+          )}
+        </>)}
       </div>
     </div>
   );

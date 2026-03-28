@@ -530,3 +530,23 @@ Already up to date.
 
 --- Merging: TokenList double-click to edit is undiscoverable ---
 Already up to date.
+[main 110364d] chore(backlog): done – TokenList double-click to edit is undiscoverable
+ 7 files changed, 35 insertions(+), 11 deletions(-)
+
+## 2026-03-28 - TokenList double-click to edit is undiscoverable
+- Made the pencil/edit icon always faintly visible (opacity-40) on every token row as a visual hint, fully visible on hover
+- Added `title="Double-click to edit"` tooltip on the token name/info area
+- Updated edit button tooltip to "Edit (or double-click row)"
+
+===============================================================
+  Iteration 26 / 90  (claude)  —  9 items remaining
+===============================================================
+  Claimed: BatchEditor move-to-set operation has no preview — unlike rename and scale which show before/after for 3 items, move shows no preview of destination paths or conflict detection before executing
+  Worktree: /tmp/backlog-84992-wmbp4E
+
+  ✓ done: BatchEditor move-to-set operation has no preview
+    Added move preview with destination paths (up to 3 + overflow), async conflict detection against target set tokens, and warning banner for existing paths that will be overwritten
+    25 turns · 169s · $0.96
+
+--- Merging: BatchEditor move-to-set operation has no preview ---
+Already up to date.
