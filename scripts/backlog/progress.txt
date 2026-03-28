@@ -275,3 +275,16 @@
   - Both regular inline save and multi-mode inline save follow the same undo pattern (capture old value, PATCH, pushUndo with restore/redo)
   - Edge case: when oldEntry is undefined (new override in a set), undo doesn't delete the token — this is a pre-existing gap shared by both code paths
 ---
+
+## 2026-03-29 - Consolidate TokenList view modes from six to three
+- Removed `canvas`, `grid`, and `graph` view modes from TokenList, keeping only `tree`, `table`, and `json`
+- Deleted `TokenCanvas.tsx` component (only used by the canvas view mode)
+- Removed ~110 lines of inline grid-view rendering from TokenList.tsx
+- Narrowed `viewMode` state type to `'tree' | 'table' | 'json'`
+- Simplified toolbar segmented control from 5 buttons to 3
+- Note: `graph` was never a TokenList view mode — it's a separate GraphPanel tab, so no change needed there
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L7 (import removed), ~L418 (type narrowed), ~L2257-2268 (toolbar), ~L3089-3193 (canvas+grid blocks removed); `packages/figma-plugin/src/ui/components/TokenCanvas.tsx` (deleted)
+- **Learnings for future iterations:**
+  - The grid view was fully inline in TokenList.tsx (~100 lines of IIFE), not a separate component — check before assuming a view has its own file
+  - The `graph` view mode mentioned in the backlog item didn't exist in TokenList; graph visualization lives in GraphPanel as a top-level tab
+---

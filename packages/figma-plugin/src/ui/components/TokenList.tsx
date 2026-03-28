@@ -5,7 +5,6 @@ import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
 import { ComparePanel } from './ComparePanel';
-import { TokenCanvas } from './TokenCanvas';
 import { colorDeltaE } from '@tokenmanager/core';
 import { stableStringify, getErrorMessage } from '../shared/utils';
 import { apiFetch, ApiError } from '../shared/apiFetch';
@@ -416,7 +415,7 @@ export function TokenList({
 
   // Inspect mode — show only tokens bound to selected layers
   const [inspectMode, setInspectMode] = useState(false);
-  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'canvas' | 'grid' | 'json'>('tree');
+  const [viewMode, setViewMode] = useState<'tree' | 'table' | 'json'>('tree');
   const [density, setDensityState] = useState<Density>(() => {
     const stored = lsGet(STORAGE_KEYS.DENSITY);
     return (stored === 'compact' || stored === 'comfortable') ? stored : 'default';
@@ -2257,11 +2256,11 @@ export function TokenList({
             <div className="flex items-center gap-0.5 px-2 py-1">
               {/* View mode segmented control */}
               <div className="flex items-center bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] p-0.5">
-                {(['tree', 'table', 'grid', 'canvas', 'json'] as const).map(mode => (
+                {(['tree', 'table', 'json'] as const).map(mode => (
                   <button
                     key={mode}
                     onClick={() => setViewMode(mode)}
-                    title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : mode === 'grid' ? 'Grid view — color swatches' : mode === 'canvas' ? 'Canvas — spatial map' : 'JSON editor'}
+                    title={mode === 'tree' ? 'Tree view' : mode === 'table' ? 'Table view' : 'JSON editor'}
                     aria-pressed={viewMode === mode}
                     className={`px-1.5 py-1 rounded text-[10px] transition-colors capitalize ${viewMode === mode ? 'bg-[var(--color-figma-accent)] text-white font-medium' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)]'}`}
                   >
@@ -3088,111 +3087,6 @@ export function TokenList({
               </button>
             </div>
           </div>
-        ) : viewMode === 'canvas' ? (
-          /* Canvas view */
-          <TokenCanvas
-            tokens={displayedTokens}
-            allTokensFlat={allTokensFlat}
-            onEdit={onEdit}
-          />
-        ) : viewMode === 'grid' ? (
-          /* Grid view — color swatch palette */
-          (() => {
-            const leaves = displayedLeafNodes;
-            const colorLeaves = leaves.filter(l => l.$type === 'color');
-            if (colorLeaves.length === 0) {
-              const filterIsBlockingColors = typeFilter !== '' && typeFilter !== 'color';
-              const allColorCount = flattenLeafNodes(sortedTokens).filter(l => l.$type === 'color').length;
-              const filtersHidingColors = !filterIsBlockingColors && allColorCount > 0 && filtersActive;
-              return (
-                <div className="flex flex-col items-center justify-center py-12 text-[var(--color-figma-text-secondary)]">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <rect x="2" y="2" width="20" height="20" rx="3" />
-                    <circle cx="12" cy="12" r="4" />
-                    <path d="M2 12h4M18 12h4M12 2v4M12 18v4" />
-                  </svg>
-                  {filterIsBlockingColors ? (
-                    <>
-                      <p className="mt-2 text-[11px] font-medium">No color tokens match current filter</p>
-                      <p className="text-[10px] mt-0.5">Grid view only shows color swatches — clear the type filter to see them</p>
-                      <button
-                        onClick={() => setTypeFilter('')}
-                        className="mt-3 px-2.5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                      >
-                        Clear type filter
-                      </button>
-                    </>
-                  ) : filtersHidingColors ? (
-                    <>
-                      <p className="mt-2 text-[11px] font-medium">Filters hide all {allColorCount} color token{allColorCount !== 1 ? 's' : ''}</p>
-                      <p className="text-[10px] mt-0.5">This set has color tokens, but none match the current search or filters</p>
-                      <button
-                        onClick={() => setViewMode('tree')}
-                        className="mt-3 px-2.5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                      >
-                        Switch to Tree view
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <p className="mt-2 text-[11px] font-medium">No color tokens in this set</p>
-                      <p className="text-[10px] mt-0.5">Grid view shows color tokens as swatches — this set has no color tokens</p>
-                      <button
-                        onClick={() => setViewMode('tree')}
-                        className="mt-3 px-2.5 py-1 text-[10px] rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
-                      >
-                        Switch to Tree view
-                      </button>
-                    </>
-                  )}
-                </div>
-              );
-            }
-            // Group color leaves by their parent path
-            const groups = new Map<string, typeof colorLeaves>();
-            for (const leaf of colorLeaves) {
-              const parent = nodeParentPath(leaf.path, leaf.name);
-              const key = parent || '(root)';
-              if (!groups.has(key)) groups.set(key, []);
-              groups.get(key)!.push(leaf);
-            }
-            return (
-              <div className="p-2 space-y-3">
-                {[...groups.entries()].map(([groupPath, groupLeaves]) => (
-                  <div key={groupPath}>
-                    <div className="text-[10px] font-medium text-[var(--color-figma-text-secondary)] mb-1 px-0.5 truncate" title={groupPath}>
-                      {groupPath === '(root)' ? 'Ungrouped' : groupPath}
-                    </div>
-                    <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(40px, 1fr))' }}>
-                      {groupLeaves.map(leaf => {
-                        const resolved = typeof leaf.$value === 'string' && leaf.$value.startsWith('{')
-                          ? allTokensFlat[leaf.$value.slice(1, -1)]?.$value
-                          : leaf.$value;
-                        const colorStr = typeof resolved === 'string' ? resolved : '#ccc';
-                        return (
-                          <button
-                            key={leaf.path}
-                            onClick={() => onPreview ? onPreview(leaf.path, leaf.name) : onEdit(leaf.path, leaf.name)}
-                            onDoubleClick={() => onEdit(leaf.path, leaf.name)}
-                            title={`${formatDisplayPath(leaf.path, leaf.name)}\n${colorStr}\nClick to preview · Double-click to edit`}
-                            className="group flex flex-col items-center gap-0.5 rounded transition-colors hover:bg-[var(--color-figma-bg-hover)] p-0.5"
-                          >
-                            <div
-                              className="w-full aspect-square rounded border border-[var(--color-figma-border)] group-hover:ring-1 group-hover:ring-[var(--color-figma-accent)]/50 transition-shadow"
-                              style={{ backgroundColor: colorStr }}
-                            />
-                            <span className="text-[8px] text-[var(--color-figma-text-secondary)] truncate w-full text-center leading-tight">
-                              {leaf.name}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()
         ) : viewMode === 'table' ? (
           <TokenTableView
             leafNodes={displayedLeafNodes}
