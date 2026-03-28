@@ -667,3 +667,15 @@
   - `figma.commitUndo()` SPLITS operations into separate undo steps — it does NOT group them. There is no explicit "group as undo" API; the default behavior is already one undo step per handler
   - The backlog item referenced `figma.group()` but that's for visual node grouping, not undo batching
 ---
+
+## 2026-03-28 - Token list: group-level "coverage" indicator for themes
+- Added a "X/Y themed" badge on group rows showing how many leaf tokens have overrides in themed sets
+- Pre-computed coverage map via `useMemo` in TokenList.tsx walking the token tree once (O(N)), passed through `TokenTreeContext`
+- Badge renders after the leaf count `(N)` span; full coverage shows in green (`--color-figma-success`), partial in tertiary text
+- Only appears when theme dimensions exist and at least one themed set has tokens
+- Files changed: `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L216 (added `themeCoverage` to `TokenTreeContextType`), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L469 (coverage memo), ~L2028 (context value), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L514 (badge rendering)
+- **Learnings for future iterations:**
+  - `perSetFlat` and `dimensions` are already destructured from `data` prop in TokenList — no extra plumbing needed
+  - The IIFE pattern `{condition && (() => { ... })()}` works for inline multi-line logic in JSX without extracting a sub-component
+  - CSS vars `--color-figma-success` and `--color-figma-text-tertiary` are already defined in styles.css
+---

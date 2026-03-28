@@ -16,3 +16,16 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Plugin sandbox operations don't use figma.group() for undo batching ---
 Already up to date.
+[main aa90296] chore(backlog): done – Plugin sandbox operations don't use figma.group() for undo batching
+ 6 files changed, 45 insertions(+), 7 deletions(-)
+
+## 2026-03-28 - Plugin sandbox operations don't use figma.group() for undo batching
+- Removed `setTimeout(resolve, 0)` yield between batches in `syncBindings()` — this was breaking Figma's automatic undo grouping, causing each 50-node batch to become a separate undo step
+- Added explanatory comment documenting why `setTimeout` must not be used between mutation batches
+- Other batch operations (`applyVariables`, `applyStyles`, `applyToSelection`, `batchBindHeatmapNodes`) already operate within a single undo group since they don't use `setTimeout` — only Figma async API awaits which preserve undo context
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  68 items remaining
+===============================================================
+  Claimed: Reduce token-apply friction: select layer → shortcut → contextual picker that infers property + shows short relevant list → pick → done in 2 interactions, not 5
+  Worktree: /tmp/backlog-51036-WtvbSW

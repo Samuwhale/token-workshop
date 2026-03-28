@@ -512,6 +512,19 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               {leafCount === 0 ? 'empty' : `(${leafCount})`}
             </span>
           )}
+          {!renamingGroup && ctx.themeCoverage && (() => {
+            const cov = ctx.themeCoverage!.get(node.path);
+            if (!cov || cov.total === 0) return null;
+            const isFull = cov.themed === cov.total;
+            return (
+              <span
+                className={`text-[10px] ml-1 shrink-0 ${isFull ? 'text-[var(--color-figma-success)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
+                title={`${cov.themed} of ${cov.total} tokens have themed overrides`}
+              >
+                {cov.themed}/{cov.total} themed
+              </span>
+            );
+          })()}
           {!renamingGroup && node.$type && (
             <span
               className="text-[10px] shrink-0 text-[var(--color-figma-text-secondary)] italic ml-0.5 opacity-60"

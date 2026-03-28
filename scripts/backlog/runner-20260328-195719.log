@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: **Token list: group-level "coverage" indicator for themes** — when a token set is part of a multi-dimensional theme, show a small indicator on group rows telling how many of the group's tokens have overrides across all theme dimensions. E.g., "12/15 themed" next to the `colors.brand` group header. This lets you quickly spot where theme coverage is incomplete without going to the ThemeManager panel.
   Worktree: /tmp/backlog-51603-sVAKTo
+
+  ✓ done: Token list: group-level "coverage" indicator for themes
+    Added "X/Y themed" badge on group rows showing themed override coverage. Pre-computed via useMemo in TokenList, passed through TokenTreeContext, rendered after leaf count in TokenTreeNode. Green when full coverage, tertiary text when partial. Only visible when theme dimensions exist.
+    26 turns · 296s · $1.6
+
+--- Merging: Token list: group-level "coverage" indicator for themes ---
+Already up to date.

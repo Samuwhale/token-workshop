@@ -466,6 +466,48 @@ export function TokenList({
     });
   }, [multiModeData, perSetFlat]);
 
+  // Pre-compute per-group theme coverage for the coverage badge
+  const themeCoverage = useMemo(() => {
+    if (!dimensions || dimensions.length === 0 || !perSetFlat) return undefined;
+    // Collect all themed set names (sets referenced by any dimension option)
+    const themedSetNames = new Set<string>();
+    for (const d of dimensions) {
+      for (const opt of d.options) {
+        for (const [sn, status] of Object.entries(opt.sets)) {
+          if (status === 'enabled' || status === 'source') themedSetNames.add(sn);
+        }
+      }
+    }
+    if (themedSetNames.size === 0) return undefined;
+    // Build set of token paths that exist in any themed set
+    const themedTokenPaths = new Set<string>();
+    for (const sn of themedSetNames) {
+      if (perSetFlat[sn]) {
+        for (const path of Object.keys(perSetFlat[sn])) themedTokenPaths.add(path);
+      }
+    }
+    if (themedTokenPaths.size === 0) return undefined;
+    // Walk token tree, computing per-group coverage
+    const map = new Map<string, { themed: number; total: number }>();
+    function walk(nodes: TokenNode[]): { themed: number; total: number } {
+      let themed = 0, total = 0;
+      for (const node of nodes) {
+        if (node.isGroup && node.children) {
+          const sub = walk(node.children);
+          themed += sub.themed;
+          total += sub.total;
+          map.set(node.path, sub);
+        } else if (!node.isGroup) {
+          total++;
+          if (themedTokenPaths.has(node.path)) themed++;
+        }
+      }
+      return { themed, total };
+    }
+    walk(tokens);
+    return map;
+  }, [dimensions, perSetFlat, tokens]);
+
   // JSON editor state
   const [jsonText, setJsonText] = useState('');
   const [jsonDirty, setJsonDirty] = useState(false);
@@ -1989,6 +2031,7 @@ export function TokenList({
     onDropOnToken: handleDropReorder,
     onMultiModeInlineSave: multiModeData ? handleMultiModeInlineSave : undefined,
     showResolvedValues,
+    themeCoverage,
   }), [
     density, setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
@@ -2004,7 +2047,7 @@ export function TokenList({
     handleDetachFromGenerator, handleToggleChain, handleZoomIntoGroup, pinnedTokens.togglePin,
     handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
-    multiModeData, handleMultiModeInlineSave, showResolvedValues,
+    multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
   ]);
 
   return (

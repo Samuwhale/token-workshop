@@ -213,6 +213,8 @@ export interface TokenTreeContextType {
   onMultiModeInlineSave?: (path: string, type: string, newValue: any, targetSet: string) => void;
   /** When true, tree view shows fully resolved values instead of alias references */
   showResolvedValues?: boolean;
+  /** Pre-computed theme coverage per group: groupPath → { themed, total } */
+  themeCoverage?: Map<string, { themed: number; total: number }>;
 }
 
 // ---------------------------------------------------------------------------
