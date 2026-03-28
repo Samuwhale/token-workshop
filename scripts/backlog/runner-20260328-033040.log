@@ -362,3 +362,16 @@ Already up to date.
 
 --- Merging: useServerEvents onGeneratorError dependency can cause SSE reconnection churn ---
 Already up to date.
+[main fbb7e20] chore(backlog): done – useServerEvents onGeneratorError dependency can cause SSE reconnection churn
+ 5 files changed, 31 insertions(+), 3 deletions(-)
+
+## 2026-03-28 - useServerEvents onGeneratorError dependency can cause SSE reconnection churn
+- Already fixed: `callbackRef` pattern is in place (L21-22) and `onGeneratorError` is NOT in the useEffect dep array (L86 has only `[serverUrl, connected]`)
+- Files changed: none
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 18 / 90  (claude)  —  46 items remaining
+===============================================================
+  Claimed: Generator config steps accept arbitrary names without validating they form valid token path segments — `generator-types.ts` step name fields are plain strings with no check for spaces, slashes, or special characters that would produce invalid DTCG token paths
+  Worktree: /tmp/backlog-84992-VTcUW5

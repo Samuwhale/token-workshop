@@ -371,3 +371,10 @@ Already up to date.
 ===============================================================
   Claimed: Generator create route bypasses type checking with `as unknown as GeneratorConfig` — `generators.ts` ~L102 casts `config ?? {}` through `unknown`, allowing arbitrarily shaped config objects to reach the generator engine without validation
   Worktree: /tmp/backlog-85816-0CgTJE
+
+  ✓ done: Generator create route bypasses type checking with `as unknown as GeneratorConfig`
+    Added validateGeneratorConfig() that validates config shape per generator type (all 11 variants) at the route boundary, replacing unsafe `as unknown as GeneratorConfig` casts in create and preview routes with proper 400 errors for malformed configs.
+    16 turns · 123s · $0.64
+
+--- Merging: Generator create route bypasses type checking with `as unknown as GeneratorConfig` ---
+Already up to date.

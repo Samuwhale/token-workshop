@@ -16,6 +16,108 @@ const VALID_GENERATOR_TYPES: readonly string[] = [
   'contrastCheck',
 ] as const;
 
+// ---------------------------------------------------------------------------
+// Config validation per generator type
+// ---------------------------------------------------------------------------
+
+function isObj(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function isArrayOf(arr: unknown, check: (item: unknown) => boolean): arr is unknown[] {
+  return Array.isArray(arr) && arr.every(check);
+}
+
+/**
+ * Validates that the provided config object has the required shape for the
+ * given generator type. Returns null on success, or an error string on failure.
+ */
+function validateGeneratorConfig(
+  type: string,
+  config: Record<string, unknown> | undefined,
+): { validated: GeneratorConfig; error?: undefined } | { validated?: undefined; error: string } {
+  const c = config ?? {};
+
+  switch (type) {
+    case 'colorRamp': {
+      if (!Array.isArray(c.steps) || !c.steps.every((s: unknown) => typeof s === 'number'))
+        return { error: 'colorRamp config requires "steps" as number[]' };
+      if (typeof c.lightEnd !== 'number') return { error: 'colorRamp config requires "lightEnd" as number' };
+      if (typeof c.darkEnd !== 'number') return { error: 'colorRamp config requires "darkEnd" as number' };
+      if (typeof c.chromaBoost !== 'number') return { error: 'colorRamp config requires "chromaBoost" as number' };
+      if (typeof c.includeSource !== 'boolean') return { error: 'colorRamp config requires "includeSource" as boolean' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    case 'typeScale': {
+      if (!isArrayOf(c.steps, (s) => isObj(s) && typeof s.name === 'string' && typeof s.exponent === 'number'))
+        return { error: 'typeScale config requires "steps" as Array<{name: string, exponent: number}>' };
+      if (typeof c.ratio !== 'number') return { error: 'typeScale config requires "ratio" as number' };
+      if (c.unit !== 'px' && c.unit !== 'rem') return { error: 'typeScale config requires "unit" as "px" | "rem"' };
+      if (typeof c.baseStep !== 'string') return { error: 'typeScale config requires "baseStep" as string' };
+      if (typeof c.roundTo !== 'number') return { error: 'typeScale config requires "roundTo" as number' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    case 'spacingScale': {
+      if (!isArrayOf(c.steps, (s) => isObj(s) && typeof s.name === 'string' && typeof s.multiplier === 'number'))
+        return { error: 'spacingScale config requires "steps" as Array<{name: string, multiplier: number}>' };
+      if (c.unit !== 'px' && c.unit !== 'rem') return { error: 'spacingScale config requires "unit" as "px" | "rem"' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    case 'opacityScale': {
+      if (!isArrayOf(c.steps, (s) => isObj(s) && typeof s.name === 'string' && typeof s.value === 'number'))
+        return { error: 'opacityScale config requires "steps" as Array<{name: string, value: number}>' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    case 'borderRadiusScale': {
+      if (!isArrayOf(c.steps, (s) => isObj(s) && typeof s.name === 'string' && typeof s.multiplier === 'number'))
+        return { error: 'borderRadiusScale config requires "steps" as Array<{name: string, multiplier: number}>' };
+      if (c.unit !== 'px' && c.unit !== 'rem') return { error: 'borderRadiusScale config requires "unit" as "px" | "rem"' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    case 'zIndexScale': {
+      if (!isArrayOf(c.steps, (s) => isObj(s) && typeof s.name === 'string' && typeof s.value === 'number'))
+        return { error: 'zIndexScale config requires "steps" as Array<{name: string, value: number}>' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    case 'customScale': {
+      if (typeof c.outputType !== 'string') return { error: 'customScale config requires "outputType" as string' };
+      if (!isArrayOf(c.steps, (s) => isObj(s) && typeof s.name === 'string' && typeof s.index === 'number'))
+        return { error: 'customScale config requires "steps" as Array<{name: string, index: number}>' };
+      if (typeof c.formula !== 'string') return { error: 'customScale config requires "formula" as string' };
+      if (typeof c.roundTo !== 'number') return { error: 'customScale config requires "roundTo" as number' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    case 'accessibleColorPair': {
+      if (c.contrastLevel !== 'AA' && c.contrastLevel !== 'AAA')
+        return { error: 'accessibleColorPair config requires "contrastLevel" as "AA" | "AAA"' };
+      if (typeof c.backgroundStep !== 'string') return { error: 'accessibleColorPair config requires "backgroundStep" as string' };
+      if (typeof c.foregroundStep !== 'string') return { error: 'accessibleColorPair config requires "foregroundStep" as string' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    case 'darkModeInversion': {
+      if (typeof c.stepName !== 'string') return { error: 'darkModeInversion config requires "stepName" as string' };
+      if (typeof c.chromaBoost !== 'number') return { error: 'darkModeInversion config requires "chromaBoost" as number' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    case 'responsiveScale': {
+      if (!isArrayOf(c.steps, (s) => isObj(s) && typeof s.name === 'string' && typeof s.multiplier === 'number'))
+        return { error: 'responsiveScale config requires "steps" as Array<{name: string, multiplier: number}>' };
+      if (c.unit !== 'px' && c.unit !== 'rem') return { error: 'responsiveScale config requires "unit" as "px" | "rem"' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    case 'contrastCheck': {
+      if (typeof c.backgroundHex !== 'string') return { error: 'contrastCheck config requires "backgroundHex" as string' };
+      if (!isArrayOf(c.steps, (s) => isObj(s) && typeof s.name === 'string' && typeof s.hex === 'string'))
+        return { error: 'contrastCheck config requires "steps" as Array<{name: string, hex: string}>' };
+      if (!isArrayOf(c.levels, (l) => l === 'AA' || l === 'AAA'))
+        return { error: 'contrastCheck config requires "levels" as Array<"AA" | "AAA">' };
+      return { validated: c as unknown as GeneratorConfig };
+    }
+    default:
+      return { error: `No config validator for type "${type}"` };
+  }
+}
+
 interface CreateBody {
   type: string;
   sourceToken?: string;
@@ -92,6 +194,10 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         error: `Unknown generator type "${type}". Valid types: ${VALID_GENERATOR_TYPES.join(', ')}`,
       });
     }
+    const configResult = validateGeneratorConfig(type, config);
+    if (configResult.error) {
+      return reply.status(400).send({ error: configResult.error });
+    }
     try {
       const generator = await fastify.generatorService.create({
         type: type as GeneratorType,
@@ -99,7 +205,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         targetSet,
         targetGroup,
         name: (name || (sourceToken ? `${sourceToken} ${type}` : type)) as string,
-        config: (config ?? {}) as unknown as GeneratorConfig,
+        config: configResult.validated,
         overrides,
         inputTable: inputTable as InputTable | undefined,
         targetSetTemplate: targetSetTemplate ?? undefined,
@@ -125,6 +231,10 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
         error: `Unknown generator type "${body.type}". Valid types: ${VALID_GENERATOR_TYPES.join(', ')}`,
       });
     }
+    const configResult = validateGeneratorConfig(body.type, body.config);
+    if (configResult.error) {
+      return reply.status(400).send({ error: configResult.error });
+    }
     try {
       const results = await fastify.generatorService.preview(
         {
@@ -132,7 +242,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           sourceToken: body.sourceToken,
           targetGroup: body.targetGroup ?? '',
           targetSet: body.targetSet ?? '',
-          config: (body.config ?? {}) as unknown as GeneratorConfig,
+          config: configResult.validated,
           overrides: body.overrides,
         },
         fastify.tokenStore,
