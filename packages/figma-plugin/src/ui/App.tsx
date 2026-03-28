@@ -49,24 +49,36 @@ import { STORAGE_KEYS, STORAGE_PREFIXES, lsGet, lsSet, lsRemove, lsGetJson, lsSe
 /** Valid set name: alphanumeric, hyphens, underscores, with `/` as folder separator. */
 const SET_NAME_RE = /^[a-zA-Z0-9_-]+(?:\/[a-zA-Z0-9_-]+)*$/;
 
-class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+class ErrorBoundary extends Component<{ children: ReactNode; panelName?: string; onReset?: () => void }, { error: Error | null }> {
   state = { error: null };
   static getDerivedStateFromError(error: Error) { return { error }; }
-  componentDidCatch(error: Error, info: ErrorInfo) { console.error('[ErrorBoundary]', error, info); }
+  componentDidCatch(error: Error, info: ErrorInfo) { console.error(`[ErrorBoundary${this.props.panelName ? `:${this.props.panelName}` : ''}]`, error, info); }
   render() {
     if (this.state.error) {
       return (
         <div className="flex flex-col items-center justify-center h-full p-6 gap-3 text-center">
-          <p className="text-[11px] font-medium text-[var(--color-figma-error)]">Something went wrong</p>
+          <p className="text-[11px] font-medium text-[var(--color-figma-error)]">
+            {this.props.panelName ? `${this.props.panelName} crashed` : 'Something went wrong'}
+          </p>
           <p className="text-[10px] text-[var(--color-figma-text-secondary)] font-mono break-all max-w-xs">
             {(this.state.error as Error).message}
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
-          >
-            Reload
-          </button>
+          <div className="flex gap-2">
+            {this.props.onReset && (
+              <button
+                onClick={() => { this.setState({ error: null }); this.props.onReset?.(); }}
+                className="px-3 py-1.5 rounded border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-medium hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Dismiss
+              </button>
+            )}
+            <button
+              onClick={() => window.location.reload()}
+              className="px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)]"
+            >
+              Reload
+            </button>
+          </div>
         </div>
       );
     }
@@ -1618,6 +1630,7 @@ export function App() {
                 </button>
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Import</span>
               </div>
+              <ErrorBoundary panelName="Import" onReset={() => setOverflowPanel(null)}>
               <ImportPanel
                 serverUrl={serverUrl}
                 connected={connected}
@@ -1628,6 +1641,7 @@ export function App() {
                   setActiveSet(importedSet);
                 }}
               />
+              </ErrorBoundary>
             </>
           )}
           {overflowPanel === 'export' && (
@@ -1645,10 +1659,12 @@ export function App() {
                 </button>
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Export</span>
               </div>
+              <ErrorBoundary panelName="Export" onReset={() => setOverflowPanel(null)}>
               <ExportPanel
                 serverUrl={serverUrl}
                 connected={connected}
               />
+              </ErrorBoundary>
             </>
           )}
           {overflowPanel === 'settings' && (
@@ -1815,6 +1831,7 @@ export function App() {
                 </button>
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Canvas Heatmap</span>
               </div>
+              <ErrorBoundary panelName="Heatmap" onReset={() => setOverflowPanel(null)}>
               <HeatmapPanel
                 result={heatmapResult}
                 loading={heatmapLoading}
@@ -1829,6 +1846,7 @@ export function App() {
                   parent.postMessage({ pluginMessage: { type: 'batch-bind-heatmap-nodes', nodeIds, tokenPath, tokenType: entry.$type, targetProperty: property, resolvedValue: entry.$value } }, '*');
                 }}
               />
+              </ErrorBoundary>
             </>
           )}
 
@@ -1924,11 +1942,14 @@ export function App() {
                 onMouseDown={handleSplitDragStart}
               />
               <div className="flex-1 min-h-0 overflow-hidden">
+                <ErrorBoundary panelName="Preview" onReset={() => setActiveTab('tokens')}>
                 <PreviewPanel allTokensFlat={allTokensFlat} onGoToTokens={() => setActiveTab('tokens')} />
+                </ErrorBoundary>
               </div>
             </div>
           )}
           {overflowPanel === null && activeTab === 'graph' && (
+            <ErrorBoundary panelName="Graph" onReset={() => setActiveTab('tokens')}>
             <GraphPanel
               serverUrl={serverUrl}
               activeSet={activeSet}
@@ -1941,8 +1962,10 @@ export function App() {
               pendingGroupTokenType={pendingGraphFromGroup?.tokenType ?? null}
               onClearPendingGroup={() => setPendingGraphFromGroup(null)}
             />
+            </ErrorBoundary>
           )}
           {overflowPanel === null && activeTab === 'inspect' && (
+            <ErrorBoundary panelName="Inspector" onReset={() => setActiveTab('tokens')}>
             <SelectionInspector
               selectedNodes={selectedNodes}
               tokenMap={allTokensFlat}
@@ -1963,9 +1986,12 @@ export function App() {
               onGoToTokens={() => setActiveTab('tokens')}
               triggerCreateToken={triggerCreateToken}
             />
+            </ErrorBoundary>
           )}
           {overflowPanel === null && activeTab === 'publish' && (
+            <ErrorBoundary panelName="Publish" onReset={() => setActiveTab('tokens')}>
             <PublishPanel serverUrl={serverUrl} connected={connected} activeSet={activeSet} collectionMap={setCollectionNames} modeMap={setModeNames} />
+            </ErrorBoundary>
           )}
 
           {/* Overflow panels for analytics, themes */}
@@ -1984,6 +2010,7 @@ export function App() {
                 </button>
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Analytics</span>
               </div>
+              <ErrorBoundary panelName="Analytics" onReset={() => setOverflowPanel(null)}>
               <AnalyticsPanel
                 serverUrl={serverUrl}
                 connected={connected}
@@ -1997,6 +2024,7 @@ export function App() {
                 }}
                 onValidationComplete={setAnalyticsIssueCount}
               />
+              </ErrorBoundary>
             </>
           )}
           {overflowPanel === 'themes' && (
@@ -2014,7 +2042,9 @@ export function App() {
                 </button>
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Themes</span>
               </div>
+              <ErrorBoundary panelName="Themes" onReset={() => setOverflowPanel(null)}>
               <ThemeManager serverUrl={serverUrl} connected={connected} sets={sets} onDimensionsChange={setDimensions} onNavigateToToken={(set, path) => { setOverflowPanel(null); setActiveTab('tokens'); handleNavigateToSet(set, path); }} />
+              </ErrorBoundary>
             </>
           )}
           {overflowPanel === 'theme-compare' && (
@@ -2032,7 +2062,9 @@ export function App() {
                 </button>
                 <span className="text-[10px] font-medium text-[var(--color-figma-text)] ml-1">Compare Themes</span>
               </div>
+              <ErrorBoundary panelName="Compare Themes" onReset={() => setOverflowPanel(null)}>
               <ThemeCompare dimensions={dimensions} allTokensFlat={allTokensFlat} pathToSet={pathToSet} />
+              </ErrorBoundary>
             </>
           )}
           </div>

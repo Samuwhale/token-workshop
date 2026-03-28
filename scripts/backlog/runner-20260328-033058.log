@@ -316,3 +316,17 @@ Already up to date.
 
 --- Merging: TokenGeneratorDialog has no unsaved-changes warning ---
 Already up to date.
+[main 7af3b06] chore(backlog): done – TokenGeneratorDialog has no unsaved-changes warning
+ 7 files changed, 60 insertions(+), 10 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - TokenGeneratorDialog has no unsaved-changes warning
+- Added dirty-tracking via `isDirtyRef` in `useGeneratorDialog` hook — every user-facing change handler sets the ref to true
+- Wrapped `onClose` in `TokenGeneratorDialog` with `handleClose` that shows `window.confirm('You have unsaved changes. Discard and close?')` when dirty
+- Both the X button and Cancel button use the guarded close handler
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  56 items remaining
+===============================================================
+  Claimed: No bulk delete endpoint — deleting multiple tokens requires one API call per token; cleaning up an obsolete group of 50+ tokens is extremely slow
+  Worktree: /tmp/backlog-85816-piCrrh

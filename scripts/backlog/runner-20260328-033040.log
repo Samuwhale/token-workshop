@@ -315,3 +315,10 @@ Already up to date.
 ===============================================================
   Claimed: No error boundary wrapping panels — a runtime error in any single panel (e.g. bad token data in GraphPanel) crashes the entire plugin instead of isolating the failure
   Worktree: /tmp/backlog-84992-fS9kIB
+
+  ✓ done: No error boundary wrapping panels
+    Enhanced ErrorBoundary with panelName/onReset props and wrapped all 11 panel components individually so a crash in one panel shows a contextual error with Dismiss/Reload options instead of crashing the entire plugin.
+    30 turns · 181s · $0.9
+
+--- Merging: No error boundary wrapping panels ---
+Already up to date.
