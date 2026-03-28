@@ -33,6 +33,7 @@ export const STORAGE_KEYS = {
   RECENT_COLORS:         'tm_recent_colors',
   COLOR_FORMAT:          'tm_color_format',
   DENSITY:               'tm_density',
+  ADVANCED_MODE:         'tm_advanced_mode',
 } as const;
 
 /** Per-set dynamic key builders */

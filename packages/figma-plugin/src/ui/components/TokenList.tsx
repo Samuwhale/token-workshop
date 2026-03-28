@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo, useLayoutEffect } from 'react';
 import type { TokenNode } from '../hooks/useTokens';
+import { isAlias, resolveTokenValue, resolveAllAliases } from '../../shared/resolveAlias';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { NodeCapabilities, TokenMapEntry } from '../../shared/types';
 import { BatchEditor } from './BatchEditor';
@@ -76,6 +77,7 @@ export function TokenList({
   const recentlyTouched = useRecentlyTouched();
   const pinnedTokens = usePinnedTokens(setName);
   const [showPinnedOnly, setShowPinnedOnly] = useState(false);
+  const [showResolvedValues, setShowResolvedValues] = useState(false);
   const [zoomRootPath, setZoomRootPath] = useState<string | null>(null);
 
   // Track editor saves: highlightedToken is set to saved path after TokenEditor save

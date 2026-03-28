@@ -75,6 +75,7 @@ export function useSetRename({
     renameValue,
     setRenameValue,
     renameError,
+    setRenameError,
     renameInputRef,
     startRename,
     cancelRename,
