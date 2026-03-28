@@ -7,6 +7,8 @@
  * customScale without a base) have no source token.
  */
 
+import type { TokenType } from './types.js';
+
 export type GeneratorType =
   | 'colorRamp'
   | 'typeScale'
@@ -142,7 +144,7 @@ export interface CustomScaleStep {
 
 export interface CustomScaleConfig {
   /** DTCG $type for generated tokens, e.g. "dimension", "number", "color" */
-  outputType: string;
+  outputType: TokenType;
   /** Unit appended for dimension outputs */
   unit?: 'px' | 'rem' | 'em' | '%';
   steps: CustomScaleStep[];
@@ -354,8 +356,8 @@ export interface GeneratedTokenResult {
   stepName: string;
   /** Full token path: `${targetGroup}.${stepName}` */
   path: string;
-  /** DTCG token $type string */
-  type: string;
+  /** DTCG token $type */
+  type: TokenType;
   /** Token $value (ready to write into .tokens.json) */
   value: unknown;
   /** True if this step's value came from a pinned override rather than computation */

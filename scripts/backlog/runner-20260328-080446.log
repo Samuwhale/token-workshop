@@ -345,3 +345,16 @@ Already up to date.
 
 --- Merging: Inspect tab can't search or filter layers ---
 Already up to date.
+[main b9e447a] chore(backlog): done – Inspect tab can't search or filter layers
+ 11 files changed, 263 insertions(+), 584 deletions(-)
+
+## 2026-03-28 - Inspect tab can't search or filter layers
+- Added layer search functionality to the Inspect tab so users can find layers by name, type, or component without clicking around the Figma canvas
+- Search bar appears prominently in the empty state (no selection) and toggleable via search icon in the header when a layer is selected
+- Plugin-side: depth-first search of `figma.currentPage` children matching name/type/component name, returns up to 50 results with bound token count
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  44 items remaining
+===============================================================
+  Claimed: Unvalidated cast of color modifiers from `$extensions` — `modifiers as ColorModifierOp[]` casts without validation; malformed `$extensions.tokenmanager.colorModifier` data (missing `type` or `amount`) causes cryptic runtime errors
+  Worktree: /tmp/backlog-63685-JNU54K

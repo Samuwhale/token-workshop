@@ -1,3 +1,4 @@
+import type { TokenType } from '@tokenmanager/core';
 import type { CustomScaleConfig, CustomScaleStep } from '../../hooks/useGenerators';
 
 // ---------------------------------------------------------------------------
@@ -19,7 +20,7 @@ export const DEFAULT_CUSTOM_CONFIG: CustomScaleConfig = {
 // Constants
 // ---------------------------------------------------------------------------
 
-const DTCG_OUTPUT_TYPES = ['number', 'dimension', 'percentage', 'duration'];
+const DTCG_OUTPUT_TYPES: TokenType[] = ['number', 'dimension', 'percentage', 'duration'];
 
 // ---------------------------------------------------------------------------
 // Config editor
@@ -62,7 +63,7 @@ export function CustomScaleConfigEditor({ config, onChange }: { config: CustomSc
       <div className="flex gap-3">
         <div>
           <label className="block text-[10px] text-[var(--color-figma-text-secondary)] mb-1">Output type</label>
-          <select value={config.outputType} onChange={e => onChange({ ...config, outputType: e.target.value })}
+          <select value={config.outputType} onChange={e => onChange({ ...config, outputType: e.target.value as TokenType })}
             className="px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]">
             {DTCG_OUTPUT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>

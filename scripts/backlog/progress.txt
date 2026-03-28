@@ -412,3 +412,14 @@
   - For component instances, `inst.mainComponent?.name` provides the component definition name for matching
   - The existing `select-node` message and `selectNode` function in heatmapScanning.ts handle selection + viewport scroll, so search results can reuse that
 ---
+
+## 2026-03-28 - CustomScaleConfig.outputType typed string instead of TokenType
+- Changed `CustomScaleConfig.outputType` from `string` to `TokenType` in core (`generator-types.ts`) and to the equivalent string literal union in the plugin-local duplicate (`useGenerators.ts`)
+- Changed `GeneratedTokenResult.type` from `string` to `TokenType` in both locations
+- Added `import type { TokenType }` to `generator-types.ts` and `CustomScaleGenerator.tsx`
+- Cast `e.target.value as TokenType` in the select handler and typed `DTCG_OUTPUT_TYPES` as `TokenType[]`
+- Files changed: `packages/core/src/generator-types.ts` ~L10,L145,L358, `packages/figma-plugin/src/ui/hooks/useGenerators.ts` ~L78,L165, `packages/figma-plugin/src/ui/components/generators/CustomScaleGenerator.tsx` ~L1,L23,L66
+- **Learnings for future iterations:**
+  - The plugin has duplicate type definitions in `useGenerators.ts` mirroring `@tokenmanager/core` types — both must be updated for type changes
+  - The plugin-local types use inline string literal unions instead of importing `TokenType` from core (per the "no re-exports from core" pattern)
+---

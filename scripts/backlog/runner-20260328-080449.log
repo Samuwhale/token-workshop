@@ -342,3 +342,10 @@ Already up to date.
 ===============================================================
   Claimed: `CustomScaleConfig.outputType` is typed `string` instead of `TokenType` — any arbitrary string can be passed, producing tokens with an invalid `$type`; propagates to `GeneratedTokenResult.type`
   Worktree: /tmp/backlog-63973-AeTKjo
+
+  ✓ done: CustomScaleConfig.outputType typed string instead of TokenType
+    Changed outputType from string to TokenType in core and plugin-local types; also tightened GeneratedTokenResult.type. Build passes.
+    35 turns · 155s · $0.99
+
+--- Merging: CustomScaleConfig.outputType typed string instead of TokenType ---
+Already up to date.

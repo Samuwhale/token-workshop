@@ -65,7 +65,7 @@
 ### QoL
 
 - [~] No "apply and advance" flow in Inspect — after binding a token to a property, there's no shortcut to jump to the next unbound property or next layer; binding 20 properties across layers is 20 separate manual workflows
-- [~] Inspect tab can't search or filter layers — no way to find layers by name, type, or component; users must click around the Figma canvas to locate layers they want to bind tokens to
+- [x] Inspect tab can't search or filter layers — no way to find layers by name, type, or component; users must click around the Figma canvas to locate layers they want to bind tokens to
 
 ### UX
 
@@ -90,7 +90,7 @@
 - [x] Generator silently returns empty array on invalid hex — `runColorRampGenerator`, `runAccessibleColorPairGenerator`, and `runDarkModeInversionGenerator` return `[]` when `hexToLab()` fails; caller cannot distinguish "generation failed" from "produced zero tokens"
 - [x] Generator overwrite detection is broken — `useGeneratorDialog` calls `flattenTokenGroup()` which returns a `Map`, but the result is used with bracket notation (`existingSetTokens[path]`) which always returns `undefined` on a Map; `overwrittenEntries` is always empty
 - [~] `CustomScaleConfig.outputType` is typed `string` instead of `TokenType` — any arbitrary string can be passed, producing tokens with an invalid `$type`; propagates to `GeneratedTokenResult.type`
-- [ ] Unvalidated cast of color modifiers from `$extensions` — `modifiers as ColorModifierOp[]` casts without validation; malformed `$extensions.tokenmanager.colorModifier` data (missing `type` or `amount`) causes cryptic runtime errors
+- [~] Unvalidated cast of color modifiers from `$extensions` — `modifiers as ColorModifierOp[]` casts without validation; malformed `$extensions.tokenmanager.colorModifier` data (missing `type` or `amount`) causes cryptic runtime errors
 
 ### UX
 

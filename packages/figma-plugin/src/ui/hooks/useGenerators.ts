@@ -75,7 +75,7 @@ export interface CustomScaleStep {
 }
 
 export interface CustomScaleConfig {
-  outputType: string;
+  outputType: 'color' | 'dimension' | 'fontFamily' | 'fontWeight' | 'duration' | 'cubicBezier' | 'number' | 'strokeStyle' | 'border' | 'transition' | 'shadow' | 'gradient' | 'typography' | 'fontStyle' | 'letterSpacing' | 'lineHeight' | 'percentage' | 'string' | 'boolean' | 'link' | 'textDecoration' | 'textTransform' | 'custom' | 'composition' | 'asset';
   unit?: 'px' | 'rem' | 'em' | '%';
   steps: CustomScaleStep[];
   formula: string;
@@ -162,7 +162,7 @@ export interface TokenGenerator {
 export interface GeneratedTokenResult {
   stepName: string;
   path: string;
-  type: string;
+  type: 'color' | 'dimension' | 'fontFamily' | 'fontWeight' | 'duration' | 'cubicBezier' | 'number' | 'strokeStyle' | 'border' | 'transition' | 'shadow' | 'gradient' | 'typography' | 'fontStyle' | 'letterSpacing' | 'lineHeight' | 'percentage' | 'string' | 'boolean' | 'link' | 'textDecoration' | 'textTransform' | 'custom' | 'composition' | 'asset';
   value: unknown;
   isOverridden?: boolean;
   warning?: string;
