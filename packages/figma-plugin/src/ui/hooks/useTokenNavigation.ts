@@ -6,6 +6,7 @@ export function useTokenNavigation(
   activeSet: string,
   setActiveSet: (set: string) => void,
   tokens: TokenNode[],
+  onAliasNotFound?: (aliasPath: string) => void,
 ) {
   const [highlightedToken, setHighlightedToken] = useState<string | null>(null);
   const [pendingHighlight, setPendingHighlight] = useState<string | null>(null);
@@ -40,8 +41,10 @@ export function useTokenNavigation(
         setPendingHighlight(aliasPath);
         setActiveSet(targetSet);
       }
+    } else {
+      onAliasNotFound?.(aliasPath);
     }
-  }, [pathToSet, activeSet, setActiveSet]);
+  }, [pathToSet, activeSet, setActiveSet, onAliasNotFound]);
 
   // Use this when navigating to a token in a specific set (not derived from pathToSet)
   const setPendingHighlightForSet = useCallback((path: string, targetSet: string) => {

@@ -236,7 +236,10 @@ export function App() {
   const [pathToSet, setPathToSet] = useState<Record<string, string>>({});
   const [perSetFlat, setPerSetFlat] = useState<Record<string, Record<string, TokenMapEntry>>>({});
   const [filteredSetCount, setFilteredSetCount] = useState<number | null>(null);
-  const { highlightedToken, setHighlightedToken, pendingHighlight, setPendingHighlight, setPendingHighlightForSet, createFromEmpty, setCreateFromEmpty, handleNavigateToAlias } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens);
+  const handleAliasNotFound = useCallback((aliasPath: string) => {
+    setErrorToast(`Alias target not found: ${aliasPath}`);
+  }, []);
+  const { highlightedToken, setHighlightedToken, pendingHighlight, setPendingHighlight, setPendingHighlightForSet, createFromEmpty, setCreateFromEmpty, handleNavigateToAlias } = useTokenNavigation(pathToSet, activeSet, setActiveSet, tokens, handleAliasNotFound);
   const [serverUrlInput, setServerUrlInput] = useState(serverUrl);
   const [connectResult, setConnectResult] = useState<'ok' | 'fail' | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);

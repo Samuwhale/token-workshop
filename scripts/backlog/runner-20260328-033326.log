@@ -373,3 +373,17 @@ Already up to date.
 --- Cleanup: archiving completed items (≥21) ---
   → Archived 21 items from backlog.md
   → Trimmed progress.txt to last 30 sections (was 49)
+[main d480fef] chore(backlog): archive 21 completed items + trim progress
+ 5 files changed, 30 insertions(+), 170 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - computeUnifiedDiff error result is indistinguishable from "no conflicts"
+- Removed the outer try/catch in `computeUnifiedDiff` that swallowed errors from `git.fetch()` and `getCurrentBranch()`, returning `{ localOnly: [], remoteOnly: [], conflicts: [] }` which the route handler treated as a successful empty diff. Errors now propagate to the route handler's existing try/catch which returns a proper 500 with error details.
+- The inner `.catch(() => '')` on individual diff commands is preserved — those handle legitimate cases like missing remote tracking branch.
+- Files changed: `packages/server/src/services/git-sync.ts` ~L109
+
+===============================================================
+  Iteration 19 / 90  (claude)  —  44 items remaining
+===============================================================
+  Claimed: TokenEditor has no "save and create another" action — after saving a new token the user is dropped back to the list and must re-navigate to create the next one, breaking flow when adding a batch of related tokens
+  Worktree: /tmp/backlog-92630-VOKeUc

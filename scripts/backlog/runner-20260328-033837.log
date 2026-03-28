@@ -266,3 +266,10 @@ Already up to date.
 ===============================================================
   Claimed: handleNavigateToAlias silently does nothing when alias target is not in pathToSet — `useTokenNavigation.ts` ~L35 checks `if (pathToSet[aliasPath])` but provides no user feedback when the alias target token doesn't exist or lives in an unloaded set
   Worktree: /tmp/backlog-10278-uKSytl
+
+  ✓ done: handleNavigateToAlias silently does nothing when alias target is not in pathToSet
+    Added onAliasNotFound callback to useTokenNavigation; App.tsx shows error toast 'Alias target not found: {path}' when alias target is missing from pathToSet
+    14 turns · 121s · $0.35
+
+--- Merging: handleNavigateToAlias silently does nothing when alias target is not in pathToSet ---
+Already up to date.
