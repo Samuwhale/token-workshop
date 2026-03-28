@@ -358,3 +358,10 @@ Already up to date.
 ===============================================================
   Claimed: Unvalidated cast of color modifiers from `$extensions` — `modifiers as ColorModifierOp[]` casts without validation; malformed `$extensions.tokenmanager.colorModifier` data (missing `type` or `amount`) causes cryptic runtime errors
   Worktree: /tmp/backlog-63685-JNU54K
+
+  ✓ done: Unvalidated cast of color modifiers from $extensions
+    Added validateColorModifiers() that validates each modifier entry's type/amount/color/ratio fields, replacing the unsafe `as ColorModifierOp[]` cast in resolver and TokenEditor load path. Malformed entries are silently dropped. 26 tests pass.
+    32 turns · 158s · $0.79
+
+--- Merging: Unvalidated cast of color modifiers from $extensions ---
+Already up to date.

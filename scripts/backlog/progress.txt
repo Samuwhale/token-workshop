@@ -450,3 +450,15 @@
   - When passing narrowed property lists to `PropertyPicker`, pass `capabilities: null` since `getQuickBindTargets` already did capability filtering
   - The `CAPABILITY_FILTER` map is duplicated between `PropertyPicker.tsx` and `selectionInspectorUtils.ts` — could be shared in future
 ---
+
+## 2026-03-28 - Unvalidated cast of color modifiers from $extensions
+- Added `validateColorModifiers()` in `packages/core/src/color-modifier.ts` that validates each entry in the raw array, checking for correct `type`, numeric `amount`/`ratio`, and string `color` fields; silently drops malformed entries
+- Replaced unsafe `modifiers as ColorModifierOp[]` cast in resolver with validated version
+- Added validation on load in TokenEditor so malformed data from `$extensions` is cleaned on read
+- Added 11 unit tests for the validator (missing type, missing amount, NaN, non-objects, mixed valid/invalid arrays, etc.) plus a resolver integration test confirming malformed modifiers are silently skipped
+- Files changed: `packages/core/src/color-modifier.ts` ~L18-43, `packages/core/src/resolver.ts` ~L12,L274-278, `packages/core/src/index.ts` ~L70, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L9,L179, `packages/core/src/__tests__/color-modifier.test.ts` ~L108-157,L174-191
+- **Learnings for future iterations:**
+  - `isFinite()` is the right guard for numeric fields from JSON — it rejects both `NaN` and `Infinity` which `typeof === 'number'` alone would pass
+  - When validating discriminated unions from unknown data, check the discriminant (`type`) first, then validate the fields specific to that variant
+  - The `mix` modifier has both `amount` and `ratio` fields; `ratio` is the one actually used in interpolation
+---

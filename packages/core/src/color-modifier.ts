@@ -15,6 +15,33 @@ import type { ColorModifierOp } from './types.js';
  * @param modifiers - Ordered list of operations to apply
  * @returns Modified hex color string
  */
+/**
+ * Validate and filter an array of raw modifier objects, returning only well-formed ops.
+ * Silently drops entries that are missing required fields or have wrong types.
+ */
+export function validateColorModifiers(raw: unknown[]): ColorModifierOp[] {
+  const valid: ColorModifierOp[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'object' || item === null) continue;
+    const obj = item as Record<string, unknown>;
+    const type = obj.type;
+    if (type === 'lighten' || type === 'darken' || type === 'alpha') {
+      if (typeof obj.amount === 'number' && isFinite(obj.amount)) {
+        valid.push({ type, amount: obj.amount });
+      }
+    } else if (type === 'mix') {
+      if (
+        typeof obj.amount === 'number' && isFinite(obj.amount) &&
+        typeof obj.color === 'string' && obj.color.length > 0 &&
+        typeof obj.ratio === 'number' && isFinite(obj.ratio)
+      ) {
+        valid.push({ type: 'mix', color: obj.color, ratio: obj.ratio });
+      }
+    }
+  }
+  return valid;
+}
+
 export function applyColorModifiers(hex: string, modifiers: ColorModifierOp[]): string {
   let current = hex;
 

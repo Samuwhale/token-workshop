@@ -332,3 +332,16 @@ Already up to date.
 
 --- Merging: Inspect tab has no quick-bind flow ---
 Already up to date.
+[main 0d78a95] chore(backlog): done – Inspect tab has no quick-bind flow
+ 9 files changed, 145 insertions(+), 43 deletions(-)
+
+## 2026-03-28 - Quick-bind flow for Inspect tab
+- Added smart quick-bind to the existing "Apply to selection" button on token tree rows
+- When a token has scopes or only one compatible unbound property, clicking applies immediately without showing the property picker (1-click instead of 4+ steps)
+- `getQuickBindTargets()` utility filters properties by token type, scopes, layer capabilities, and existing bindings
+
+===============================================================
+  Iteration 17 / 90  (claude)  —  43 items remaining
+===============================================================
+  Claimed: UndoToast `{shiftKey}` not interpolated — in the redo tooltip, `{shiftKey}` is inside a template literal without `${}`, rendering as the literal string `{shiftKey}Z` instead of the actual key symbol
+  Worktree: /tmp/backlog-62956-447aYD

@@ -9,8 +9,7 @@
 import { isReference, isFormula, parseReference } from './dtcg-types.js';
 import { TOKEN_TYPES, makeReferenceGlobalRegex } from './constants.js';
 import { evalExpr } from './eval-expr.js';
-import { applyColorModifiers } from './color-modifier.js';
-import type { ColorModifierOp } from './types.js';
+import { applyColorModifiers, validateColorModifiers } from './color-modifier.js';
 import type {
   Token,
   TokenType,
@@ -271,9 +270,12 @@ export class TokenResolver {
 
       // Apply color modifiers if present
       const tokenmanagerExt = token.$extensions?.tokenmanager as Record<string, unknown> | undefined;
-      const modifiers = tokenmanagerExt?.colorModifier;
-      if (Array.isArray(modifiers) && $type === 'color' && typeof resolvedValue === 'string') {
-        resolvedValue = applyColorModifiers(resolvedValue, modifiers as ColorModifierOp[]);
+      const rawModifiers = tokenmanagerExt?.colorModifier;
+      if (Array.isArray(rawModifiers) && $type === 'color' && typeof resolvedValue === 'string') {
+        const modifiers = validateColorModifiers(rawModifiers);
+        if (modifiers.length > 0) {
+          resolvedValue = applyColorModifiers(resolvedValue, modifiers);
+        }
       }
 
       // Store formula metadata in $extensions so export can output calc() expressions

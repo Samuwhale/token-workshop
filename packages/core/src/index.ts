@@ -67,7 +67,7 @@ export { evalExpr, substituteVars } from './eval-expr.js';
 
 // Color math & modifiers
 export { hexToLab, labToHex, wcagLuminance } from './color-math.js';
-export { applyColorModifiers } from './color-modifier.js';
+export { applyColorModifiers, validateColorModifiers } from './color-modifier.js';
 
 // Resolver
 export { TokenResolver } from './resolver.js';

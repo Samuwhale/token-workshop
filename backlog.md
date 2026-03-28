@@ -69,7 +69,7 @@
 
 ### UX
 
-- [~] Inspect tab has no quick-bind flow — binding requires select layer → find property → click bind → search token → apply (4+ steps); add a fast path: select layer(s) in Figma → hover token in list → see preview on canvas → click to apply; also consider drag-from-list-to-property and click-token-to-auto-bind-matching-property
+- [x] Inspect tab has no quick-bind flow — binding requires select layer → find property → click bind → search token → apply (4+ steps); add a fast path: select layer(s) in Figma → hover token in list → see preview on canvas → click to apply; also consider drag-from-list-to-property and click-token-to-auto-bind-matching-property
 
 ---
 
@@ -103,7 +103,7 @@
 ### Bugs
 
 - [~] Stale `handleSave` closure in keyboard shortcut effect — the `useEffect` for Cmd+S references `handleSave` via closure but omits it from the dependency array; when the user presses Cmd+S, a stale version may submit outdated values for path, type, reference, scopes, modifiers, etc.
-- [ ] UndoToast `{shiftKey}` not interpolated — in the redo tooltip, `{shiftKey}` is inside a template literal without `${}`, rendering as the literal string `{shiftKey}Z` instead of the actual key symbol
+- [~] UndoToast `{shiftKey}` not interpolated — in the redo tooltip, `{shiftKey}` is inside a template literal without `${}`, rendering as the literal string `{shiftKey}Z` instead of the actual key symbol
 
 ### QoL
 

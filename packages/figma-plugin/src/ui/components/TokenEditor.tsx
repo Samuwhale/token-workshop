@@ -6,6 +6,7 @@ import { ConfirmModal } from './ConfirmModal';
 import type { ApiErrorBody, TokenMapEntry } from '../../shared/types';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import type { ColorModifierOp } from '@tokenmanager/core';
+import { validateColorModifiers } from '@tokenmanager/core';
 import { TokenGeneratorDialog } from './TokenGeneratorDialog';
 import { ValueDiff, OriginalValuePreview } from './ValueDiff';
 import type { TokenGenerator } from '../hooks/useGenerators';
@@ -176,7 +177,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
         const savedScopes = token?.$extensions?.['com.figma.scopes'] ?? token?.$scopes;
         setScopes(Array.isArray(savedScopes) ? savedScopes : []);
         const savedModifiers = token?.$extensions?.tokenmanager?.colorModifier;
-        const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? savedModifiers : [];
+        const loadedModifiers: ColorModifierOp[] = Array.isArray(savedModifiers) ? validateColorModifiers(savedModifiers) : [];
         setColorModifiers(loadedModifiers);
         const savedModes = token?.$extensions?.tokenmanager?.modes;
         const loadedModes: Record<string, any> = (savedModes && typeof savedModes === 'object' && !Array.isArray(savedModes)) ? savedModes as Record<string, any> : {};

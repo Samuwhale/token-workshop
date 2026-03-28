@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyColorModifiers } from '../color-modifier.js';
+import { applyColorModifiers, validateColorModifiers } from '../color-modifier.js';
 import { hexToLab } from '../color-math.js';
 import { TokenResolver } from '../resolver.js';
 
@@ -105,6 +105,59 @@ describe('applyColorModifiers', () => {
     });
   });
 
+  describe('validateColorModifiers', () => {
+    it('returns valid ops unchanged', () => {
+      const input = [
+        { type: 'lighten', amount: 20 },
+        { type: 'darken', amount: 10 },
+        { type: 'alpha', amount: 0.5 },
+        { type: 'mix', color: '#ff0000', ratio: 0.5, amount: 0 },
+      ];
+      expect(validateColorModifiers(input)).toHaveLength(4);
+    });
+
+    it('drops entries missing type', () => {
+      expect(validateColorModifiers([{ amount: 20 }])).toEqual([]);
+    });
+
+    it('drops entries with unknown type', () => {
+      expect(validateColorModifiers([{ type: 'saturate', amount: 20 }])).toEqual([]);
+    });
+
+    it('drops entries missing amount', () => {
+      expect(validateColorModifiers([{ type: 'lighten' }])).toEqual([]);
+    });
+
+    it('drops entries with non-number amount', () => {
+      expect(validateColorModifiers([{ type: 'lighten', amount: 'high' }])).toEqual([]);
+    });
+
+    it('drops mix entries missing color or ratio', () => {
+      expect(validateColorModifiers([{ type: 'mix', amount: 0 }])).toEqual([]);
+      expect(validateColorModifiers([{ type: 'mix', color: '#fff', amount: 0 }])).toEqual([]);
+    });
+
+    it('drops non-object entries', () => {
+      expect(validateColorModifiers([null, 42, 'lighten', undefined])).toEqual([]);
+    });
+
+    it('drops NaN and Infinity amounts', () => {
+      expect(validateColorModifiers([{ type: 'lighten', amount: NaN }])).toEqual([]);
+      expect(validateColorModifiers([{ type: 'lighten', amount: Infinity }])).toEqual([]);
+    });
+
+    it('keeps valid entries and drops invalid in mixed array', () => {
+      const result = validateColorModifiers([
+        { type: 'lighten', amount: 20 },
+        { type: 'bogus' },
+        { type: 'darken', amount: 10 },
+      ]);
+      expect(result).toHaveLength(2);
+      expect(result[0].type).toBe('lighten');
+      expect(result[1].type).toBe('darken');
+    });
+  });
+
   describe('resolver integration', () => {
     it('applies color modifiers through the resolver', () => {
       const tokens = {
@@ -124,6 +177,25 @@ describe('applyColorModifiers', () => {
       const result = resolver.resolve('color.lighter');
       const lab = hexToLab(result.$value)!;
       expect(lab[0]).toBeGreaterThan(25);
+    });
+    it('silently ignores malformed color modifiers', () => {
+      const tokens = {
+        'color.base': { $value: '#ff0000', $type: 'color' },
+        'color.bad': {
+          $value: '{color.base}',
+          $type: 'color',
+          $extensions: {
+            tokenmanager: {
+              colorModifier: [{ oops: true }, null, { type: 'lighten' }],
+            },
+          },
+        },
+      };
+
+      const resolver = new TokenResolver(tokens);
+      const result = resolver.resolve('color.bad');
+      // All modifiers are invalid so the original resolved value is returned unchanged
+      expect(result.$value.toLowerCase()).toBe('#ff0000');
     });
   });
 });
