@@ -425,3 +425,14 @@
   - TokenList has TWO empty state paths: one in App.tsx (EmptyState.tsx, shown when effectiveTokens.length === 0 on mount) and one inline in TokenList.tsx (shown when tokens prop becomes empty after mount, e.g. after deleting all tokens)
   - Available actions in TokenList scope: setShowScaffold (presets), onCreateNew/setShowCreateForm (create token), setNewGroupDialogParent (create group). Import is only accessible from App.tsx via openOverflowPanel.
 ---
+
+## 2026-03-28 - PublishPanel sync actions have no confirmation step
+- Added confirmation dialogs to all 5 destructive sync actions in PublishPanel: variable sync Apply, style sync Apply, git Pull, git Push, and git diff Apply
+- Used the existing `ConfirmModal` component with contextual summaries (push/pull counts for var/style sync, branch name for git push, file counts for diff apply)
+- Added `ConfirmAction` type and `confirmAction` state to gate execution behind user confirmation
+- Files changed: `packages/figma-plugin/src/ui/components/PublishPanel.tsx` ~L13 (import + type), ~L113 (state), ~L475 (var apply), ~L593 (style apply), ~L1024 (diff apply), ~L1047-1056 (git pull/push), ~L1285-1370 (modal rendering)
+- **Learnings for future iterations:**
+  - The existing `ConfirmModal` component accepts `children` for custom body content — use this instead of `description` when you need structured summaries
+  - `ConfirmModal.onConfirm` supports async — dismiss the modal by clearing state before awaiting the action to avoid stale UI
+  - Wrapping a return in `<>...</>` fragment is needed when adding sibling portals (modals) alongside the main component tree
+---

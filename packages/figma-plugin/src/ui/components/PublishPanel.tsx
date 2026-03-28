@@ -9,6 +9,9 @@ import type { VarDiffRow } from '../hooks/useVariableSync';
 import { useStyleSync } from '../hooks/useStyleSync';
 import { useGitSync } from '../hooks/useGitSync';
 import type { GitStatus } from '../hooks/useGitSync';
+import { ConfirmModal } from './ConfirmModal';
+
+type ConfirmAction = 'apply-vars' | 'apply-styles' | 'git-push' | 'git-pull' | 'apply-diff' | null;
 
 /* ── Interfaces ──────────────────────────────────────────────────────────── */
 
@@ -107,6 +110,9 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   const [exportResults, setExportResults] = useState<{ platform: string; path: string; content: string }[]>([]);
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [copiedFile, setCopiedFile] = useState<string | null>(null);
+
+  // ── Confirmation modal state ──
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
 
   // ── Orphan deletion message handler ──
   useEffect(() => {
@@ -299,6 +305,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
   /* ── Render ────────────────────────────────────────────────────────────── */
 
   return (
+    <>
     <div className="flex flex-col h-full">
       {/* ── Pre-publish readiness gate ──────────────────────────────────── */}
       <div className="px-3 py-2 border-b border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
@@ -469,7 +476,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     }
                   </span>
                   <button
-                    onClick={varSync.applyVarDiff}
+                    onClick={() => setConfirmAction('apply-vars')}
                     disabled={varSync.varSyncing || varSync.varSyncCount === 0}
                     className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                   >
@@ -586,7 +593,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     }
                   </span>
                   <button
-                    onClick={styleSync.applyStyleDiff}
+                    onClick={() => setConfirmAction('apply-styles')}
                     disabled={styleSync.styleSyncing || styleSync.styleSyncCount === 0}
                     className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                   >
@@ -1017,7 +1024,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                             {pendingCount > 0 ? `${pendingCount} file${pendingCount !== 1 ? 's' : ''} will be updated` : 'All skipped'}
                           </span>
                           <button
-                            onClick={git.applyDiff}
+                            onClick={() => setConfirmAction('apply-diff')}
                             disabled={git.applyingDiff || pendingCount === 0}
                             className="text-[10px] px-3 py-1 rounded bg-[var(--color-figma-accent)] text-white font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                           >
@@ -1040,14 +1047,14 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                 <div className="flex flex-col gap-1.5">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => git.doAction('pull')}
+                      onClick={() => setConfirmAction('git-pull')}
                       disabled={git.actionLoading !== null}
                       className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
                     >
                       {git.actionLoading === 'pull' ? 'Pulling\u2026' : '\u2193 Pull'}
                     </button>
                     <button
-                      onClick={() => git.doAction('push')}
+                      onClick={() => setConfirmAction('git-push')}
                       disabled={git.actionLoading !== null}
                       className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
                     >
@@ -1271,6 +1278,105 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
         </Section>
       </div>
     </div>
+
+    {/* ── Confirmation modals ── */}
+    {confirmAction === 'apply-vars' && (
+      <ConfirmModal
+        title="Apply variable sync?"
+        confirmLabel="Apply"
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          setConfirmAction(null);
+          await varSync.applyVarDiff();
+        }}
+      >
+        <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+          {[
+            varSync.varPushCount > 0 ? `↑ ${varSync.varPushCount} variable${varSync.varPushCount !== 1 ? 's' : ''} pushed to Figma` : null,
+            varSync.varPullCount > 0 ? `↓ ${varSync.varPullCount} variable${varSync.varPullCount !== 1 ? 's' : ''} pulled to local` : null,
+          ].filter(Boolean).join(', ')}
+          . This will overwrite existing values.
+        </p>
+      </ConfirmModal>
+    )}
+
+    {confirmAction === 'apply-styles' && (
+      <ConfirmModal
+        title="Apply style sync?"
+        confirmLabel="Apply"
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          setConfirmAction(null);
+          await styleSync.applyStyleDiff();
+        }}
+      >
+        <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+          {[
+            styleSync.stylePushCount > 0 ? `↑ ${styleSync.stylePushCount} style${styleSync.stylePushCount !== 1 ? 's' : ''} pushed to Figma` : null,
+            styleSync.stylePullCount > 0 ? `↓ ${styleSync.stylePullCount} style${styleSync.stylePullCount !== 1 ? 's' : ''} pulled to local` : null,
+          ].filter(Boolean).join(', ')}
+          . This will overwrite existing values.
+        </p>
+      </ConfirmModal>
+    )}
+
+    {confirmAction === 'git-pull' && (
+      <ConfirmModal
+        title="Pull from remote?"
+        confirmLabel="Pull"
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          setConfirmAction(null);
+          await git.doAction('pull');
+        }}
+      >
+        <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+          This will fetch and merge remote changes into your local token files. Uncommitted local changes may cause merge conflicts.
+        </p>
+      </ConfirmModal>
+    )}
+
+    {confirmAction === 'git-push' && (
+      <ConfirmModal
+        title="Push to remote?"
+        confirmLabel="Push"
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          setConfirmAction(null);
+          await git.doAction('push');
+        }}
+      >
+        <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+          This will push all committed changes to the remote repository
+          {git.gitStatus?.branch ? ` on branch "${git.gitStatus.branch}"` : ''}.
+        </p>
+      </ConfirmModal>
+    )}
+
+    {confirmAction === 'apply-diff' && (
+      <ConfirmModal
+        title="Apply file diff?"
+        confirmLabel="Apply"
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={async () => {
+          setConfirmAction(null);
+          await git.applyDiff();
+        }}
+      >
+        <p className="mt-1.5 text-[11px] text-[var(--color-figma-text-secondary)] leading-relaxed">
+          {(() => {
+            const pushCount = Object.values(git.diffChoices).filter(c => c === 'push').length;
+            const pullCount = Object.values(git.diffChoices).filter(c => c === 'pull').length;
+            return [
+              pushCount > 0 ? `↑ ${pushCount} file${pushCount !== 1 ? 's' : ''} pushed to remote` : null,
+              pullCount > 0 ? `↓ ${pullCount} file${pullCount !== 1 ? 's' : ''} pulled to local` : null,
+            ].filter(Boolean).join(', ');
+          })()}
+          . This will overwrite the target files.
+        </p>
+      </ConfirmModal>
+    )}
+    </>
   );
 }
 

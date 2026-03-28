@@ -2,7 +2,7 @@ import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 
-export default tseslint.config(
+export default [
   // Global ignores
   { ignores: ['**/dist/**', '**/node_modules/**', '**/*.mjs'] },
 
@@ -59,4 +59,4 @@ export default tseslint.config(
       },
     },
   },
-);
+];
