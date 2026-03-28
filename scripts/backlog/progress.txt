@@ -484,3 +484,14 @@
   - Icon-only buttons with 10px SVGs need at least `p-1.5` (6px padding) for ~22px targets; `p-0.5` only yields ~12px
   - Text buttons with `text-[9px]` need `py-1` instead of `py-0.5` to clear 24px height threshold
 ---
+
+## 2026-03-28 - No `<label>` or `aria-label` on form inputs
+- Added `aria-label` attributes to ~50 form inputs across 20+ components that relied solely on placeholder text
+- Key areas fixed: set rename/create inputs (App.tsx), search/filter inputs throughout, inline edit inputs (TokenTreeNode, TokenTableView, ValueEditors), batch editor controls, generator step inputs, color picker inputs, modal dialog inputs, publish panel inputs
+- Files changed: `App.tsx` ~L1270,1423,1525,1576,1637,2034; `TokenListModals.tsx` ~L200,350,529; `TokenTreeNode.tsx` ~L68,459,1026,1147,1181; `TokenTableView.tsx` ~L209,243,299; `PublishPanel.tsx` ~L861,892,957; `ValueEditors.tsx` ~L91,154,224,295; `ColorPicker.tsx` ~L596,750; `BatchEditor.tsx` ~L486,516,525,554,730,755; `ThemeCompare.tsx` ~L257; `ImportPanel.tsx` ~L842; `SelectionInspector.tsx` ~L80; `PropertyPicker.tsx` ~L120; `AliasPicker.tsx` ~L67; `RemapAutocompleteInput.tsx` ~L94; `ColorModifiersEditor.tsx` ~L63,75,92; `BorderRadiusGenerator.tsx`; `CustomScaleGenerator.tsx`; `TypeScaleGenerator.tsx`; `ZIndexGenerator.tsx`; `ContrastCheckGenerator.tsx`; `ColorScaleGenerator.tsx`; `GraphPanel.tsx`
+- **Learnings for future iterations:**
+  - Inputs wrapped in `<label>` elements (checkboxes, radios) don't need aria-label — the label association is implicit
+  - Dynamic aria-labels (e.g., `aria-label={\`Step ${step.name} value\`}`) are better than generic ones for repeated inputs in lists
+  - ColorRampGenerator already had all inputs properly labeled via wrapping `<label>` elements
+  - 192 aria-label instances in built output confirms thorough coverage
+---

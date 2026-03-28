@@ -103,12 +103,15 @@ export function CustomScaleConfigEditor({ config, onChange }: { config: CustomSc
             return (
               <div key={sortedIdx} className="flex items-center gap-1.5">
                 <input value={step.name} onChange={e => updateStep(origIdx, { name: e.target.value })}
+                  aria-label={`Step ${step.name} name`}
                   placeholder="name" className="w-14 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
                 <span className="text-[9px] text-[var(--color-figma-text-secondary)]">idx</span>
                 <input type="number" value={step.index} onChange={e => updateStep(origIdx, { index: Number(e.target.value) })}
+                  aria-label={`Step ${step.name} index`}
                   className="w-12 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
                 <span className="text-[9px] text-[var(--color-figma-text-secondary)]">×</span>
                 <input type="number" step="0.1" value={step.multiplier ?? 1} onChange={e => updateStep(origIdx, { multiplier: Number(e.target.value) })}
+                  aria-label={`Step ${step.name} multiplier`}
                   className="w-12 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
                 <button onClick={() => removeStep(origIdx)} title="Remove step" aria-label="Remove step" className="ml-auto text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">×</button>
               </div>

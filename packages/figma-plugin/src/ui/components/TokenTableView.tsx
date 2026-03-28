@@ -211,6 +211,7 @@ export function TokenTableView({
                       checked={isSelected}
                       onChange={() => onToggleSelect(node.path)}
                       onClick={e => e.stopPropagation()}
+                      aria-label="Select token"
                       className="accent-[var(--color-figma-accent)]"
                     />
                   </td>
@@ -248,6 +249,7 @@ export function TokenTableView({
                       onKeyDown={handleKeyDown}
                       onBlur={commitEdit}
                       onClick={e => e.stopPropagation()}
+                      aria-label="Token value"
                       className="w-full bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 py-0 text-[10px] font-mono text-[var(--color-figma-text)] outline-none"
                     />
                   ) : (
@@ -304,6 +306,7 @@ export function TokenTableView({
                       onKeyDown={handleKeyDown}
                       onBlur={commitEdit}
                       onClick={e => e.stopPropagation()}
+                      aria-label="Token description"
                       className="w-full bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 py-0 text-[10px] text-[var(--color-figma-text)] outline-none"
                     />
                   ) : (

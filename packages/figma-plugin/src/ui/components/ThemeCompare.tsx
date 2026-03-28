@@ -259,6 +259,7 @@ export function ThemeCompare({ dimensions, allTokensFlat, pathToSet, onEditToken
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Filter by token path…"
+              aria-label="Filter by token path"
               className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none"
             />
             <div className="flex items-center gap-2">

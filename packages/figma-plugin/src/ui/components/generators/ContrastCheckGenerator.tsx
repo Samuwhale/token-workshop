@@ -113,6 +113,7 @@ function ColorStepSwatch({ hex, onHexChange }: { hex: string; onHexChange: (hex:
         aria-label="Pick color"
       />
       <input ref={ref} type="color" className="sr-only" key={hex6} defaultValue={hex6}
+        aria-label="Pick step color"
         onBlur={e => onHexChange(e.target.value)} />
     </>
   );
@@ -166,12 +167,14 @@ export function ContrastCheckConfigEditor({ config, onChange }: { config: Contra
             className="sr-only"
             key={bgHex6}
             defaultValue={bgHex6}
+            aria-label="Pick background color"
             onBlur={e => onChange({ ...config, backgroundHex: e.target.value })}
           />
           <input
             type="text"
             value={config.backgroundHex}
             onChange={e => onChange({ ...config, backgroundHex: e.target.value })}
+            aria-label="Background color hex value"
             className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] font-mono outline-none focus:border-[var(--color-figma-accent)]"
             placeholder="#ffffff"
           />
@@ -217,9 +220,11 @@ export function ContrastCheckConfigEditor({ config, onChange }: { config: Contra
                 <ColorStepSwatch hex={step.hex} onHexChange={hex => updateStep(idx, { hex })} />
                 <input type="text" value={step.name} onChange={e => updateStep(idx, { name: e.target.value })}
                   placeholder="name"
+                  aria-label={`Color step ${idx + 1} name`}
                   className="w-16 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
                 <input type="text" value={step.hex} onChange={e => updateStep(idx, { hex: e.target.value })}
                   placeholder="#000000"
+                  aria-label={`Color step ${step.name} hex value`}
                   className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
                 {ratio !== null && (
                   <span className={`text-[8px] font-medium shrink-0 ${passAA ? 'text-green-600' : 'text-red-500'}`}>

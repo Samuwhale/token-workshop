@@ -123,6 +123,7 @@ export function PropertyPicker({ properties, capabilities, onSelect, onClose, an
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Filter properties\u2026"
+            aria-label="Filter properties"
             className="w-full px-1.5 py-1 text-[11px] bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] rounded text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] outline-none focus:border-[var(--color-figma-border-selected)]"
           />
         </div>

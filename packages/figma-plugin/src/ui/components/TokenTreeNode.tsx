@@ -79,6 +79,7 @@ function MultiModeCell({
             e.stopPropagation();
           }}
           onClick={e => e.stopPropagation()}
+          aria-label="Edit token value"
           autoFocus
           className="text-[9px] w-full text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-0.5 outline-none"
         />
@@ -469,6 +470,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 renameGroupEscapedRef.current = false;
               }}
               onClick={e => e.stopPropagation()}
+              aria-label="Rename group"
               className="flex-1 text-[11px] font-medium bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] rounded px-1 outline-none min-w-0"
             />
           ) : (
@@ -1036,6 +1038,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 renameTokenEscapedRef.current = false;
               }}
               onClick={e => e.stopPropagation()}
+              aria-label="Rename token"
               className="text-[11px] text-[var(--color-figma-text)] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none w-32 shrink-0"
             />
           ) : (
@@ -1164,6 +1167,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
                 if (e.key === 'Escape') { e.preventDefault(); inlineEditEscapedRef.current = true; setInlineEditActive(false); }
                 e.stopPropagation();
               }}
+              aria-label="Token value"
               autoFocus
               className="text-[11px] text-[var(--color-figma-text)] w-[52px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
@@ -1192,6 +1196,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
               e.stopPropagation();
             }}
             onClick={e => e.stopPropagation()}
+            aria-label="Token value"
             autoFocus
             className="text-[11px] text-[var(--color-figma-text)] shrink-0 w-[96px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] rounded px-1 outline-none"
           />

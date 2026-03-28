@@ -84,6 +84,7 @@ export function AliasPicker({
               if (e.key === '{') onShowAutocompleteChange(true);
             }}
             placeholder="{color.primary.500}"
+            aria-label="Token reference"
             className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] text-[11px] outline-none placeholder:text-[var(--color-figma-text-secondary)]/50"
           />
           {showAutocomplete && (

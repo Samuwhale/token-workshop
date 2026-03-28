@@ -128,8 +128,8 @@
 
 - [x] Token badge text contrast fails WCAG AA — several badge colors (`#95a5a6` shadow, `#00cec9` duration, `#00b894` asset, `#1abc9c` number) have < 4.5:1 contrast ratio against the `#2c2c2c` dark background; lighten these text colors to meet AA minimum
 - [x] Icon-only buttons in TokenTreeNode missing `aria-label` — move up/down, create sibling, and other icon buttons have `title` but no `aria-label`; screen readers announce these as unlabeled buttons
-- [~] Interactive targets below 24px in both token and theme pages — ThemeManager reorder arrows (~12x10px), TokenTreeNode action buttons (~18x18px), view mode toggles (~20px tall); increase minimum padding to `p-1.5` for 24px+ targets
-- [ ] No `<label>` or `aria-label` on form inputs — dimension name, option name, set filter, and search inputs rely solely on placeholder text which disappears on focus; add `aria-label` to all inputs
+- [x] Interactive targets below 24px in both token and theme pages — ThemeManager reorder arrows (~12x10px), TokenTreeNode action buttons (~18x18px), view mode toggles (~20px tall); increase minimum padding to `p-1.5` for 24px+ targets
+- [~] No `<label>` or `aria-label` on form inputs — dimension name, option name, set filter, and search inputs rely solely on placeholder text which disappears on focus; add `aria-label` to all inputs
 - [ ] No `aria-live` regions for dynamic status messages — copy feedback, apply result, delete error, and ThemeManager error banner appear dynamically but aren't announced by screen readers; wrap in `aria-live="polite"`
 - [x] Coverage gap scrollable list in ThemeManager has no keyboard navigation — the `max-h-32 overflow-y-auto` container traps keyboard focus; add `tabIndex={0}` or ensure inner buttons receive focus naturally
 - [ ] Minimum text size of 9px used for secondary content across both pages — borderline legible even on high-DPI; audit all `text-[9px]` usage and bump to 10px where space allows

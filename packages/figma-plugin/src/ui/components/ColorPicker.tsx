@@ -595,6 +595,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
           />
           <input
             type="text"
+            aria-label="Hex color"
             value={hexInput}
             onChange={e => onHexInputChange(e.target.value)}
             className={inputClass + ' text-left' + (hexInputError ? ' !border-red-500' : '')}
@@ -749,6 +750,7 @@ export function ColorPicker({ value, onChange, onClose, allTokensFlat }: ColorPi
             <div className="flex flex-col gap-1">
               <input
                 type="text"
+                aria-label="Search tokens"
                 value={tokenSearch}
                 onChange={e => setTokenSearch(e.target.value)}
                 placeholder="Search tokens…"

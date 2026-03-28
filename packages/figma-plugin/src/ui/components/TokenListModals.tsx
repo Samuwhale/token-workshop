@@ -207,6 +207,7 @@ export function TokenListModals(props: TokenListModalsProps) {
                 if (e.key === 'Escape') { onSetNewGroupDialogParent(null); onSetNewGroupName(''); onSetNewGroupError(''); }
               }}
               className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${newGroupError ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+              aria-label="New group name"
               autoFocus
             />
             {newGroupError && <p className="text-[10px] text-[var(--color-figma-error)]">{newGroupError}</p>}
@@ -353,6 +354,7 @@ export function TokenListModals(props: TokenListModalsProps) {
                       onChange={e => onSetExistingAliasSearch(e.target.value)}
                       placeholder="Search tokens…"
                       className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg-secondary)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
+                      aria-label="Search tokens"
                       autoFocus
                     />
                     <div className="flex flex-col gap-0.5 overflow-y-auto" style={{ maxHeight: '160px' }}>
@@ -531,6 +533,7 @@ export function TokenListModals(props: TokenListModalsProps) {
                     checked={row.accepted && row.proposedAlias !== null}
                     disabled={row.proposedAlias === null}
                     onChange={e => onSetPromoteRows(promoteRows && promoteRows.map((r, i) => i === idx ? { ...r, accepted: e.target.checked } : r))}
+                    aria-label={`Promote ${row.path} to alias`}
                     className="mt-0.5 accent-[var(--color-figma-accent)] shrink-0"
                   />
                   <div className="flex flex-col gap-0.5 min-w-0 flex-1">

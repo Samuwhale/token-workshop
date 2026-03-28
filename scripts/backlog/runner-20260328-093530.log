@@ -16,3 +16,24 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Interactive targets below 24px in both token and theme pages ---
 Already up to date.
+[main 78c7020] chore(backlog): done – Interactive targets below 24px in both token and theme pages
+ 12 files changed, 135 insertions(+), 20 deletions(-)
+ create mode 100644 scripts/backlog/runner-20260328-093530.log
+
+## 2026-03-28 - Interactive targets below 24px in both token and theme pages
+- Increased padding on all undersized interactive targets to meet 24px+ minimum:
+  - ThemeManager reorder/rename/duplicate/delete option buttons: `p-0.5` → `p-1.5` (5 buttons)
+  - TokenTreeNode group action buttons (move up/down, add token, group actions): `p-1` → `p-1.5` (4 buttons)
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  19 items remaining
+===============================================================
+  Claimed: No `<label>` or `aria-label` on form inputs — dimension name, option name, set filter, and search inputs rely solely on placeholder text which disappears on focus; add `aria-label` to all inputs
+  Worktree: /tmp/backlog-34977-3PwjOX
+
+  ✓ done: No `<label>` or `aria-label` on form inputs
+    Added aria-label to ~50 inputs across 20+ components (App.tsx, TokenTreeNode, TokenTableView, ValueEditors, BatchEditor, PublishPanel, generators, pickers, modals). Build passes with 192 aria-label instances in output.
+    16 turns · 380s · $3.62
+
+--- Merging: No `<label>` or `aria-label` on form inputs ---
+Already up to date.

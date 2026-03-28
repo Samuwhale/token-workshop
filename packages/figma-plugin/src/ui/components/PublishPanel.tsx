@@ -863,6 +863,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       value={git.commitMsg}
                       onChange={e => git.setCommitMsg(e.target.value)}
                       placeholder="Describe your changes\u2026"
+                      aria-label="Commit message"
                       className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
                       onKeyDown={e => {
                         if (e.key === 'Enter' && git.commitMsg.trim() && git.selectedFiles.size > 0) git.doAction('commit', { message: git.commitMsg, files: [...git.selectedFiles] }).then(() => git.setCommitMsg(''));
@@ -890,6 +891,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                     value={git.remoteUrl}
                     onChange={e => git.setRemoteUrl(e.target.value)}
                     placeholder="https://github.com/user/repo.git"
+                    aria-label="Remote URL"
                     className="flex-1 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]"
                   />
                   <button
@@ -954,6 +956,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                                 value={diffFilter}
                                 onChange={e => setDiffFilter(e.target.value)}
                                 placeholder="Filter files…"
+                                aria-label="Filter files"
                                 className="w-full pl-6 pr-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)] placeholder:text-[var(--color-figma-text-tertiary)]"
                               />
                               {diffFilter && (

@@ -90,6 +90,7 @@ export function ColorEditor({ value, onChange, autoFocus, allTokensFlat }: { val
       <div className="flex-1 flex gap-1 items-center min-w-0">
         <input
           type="text"
+          aria-label="Color hex value"
           value={displayValue}
           onChange={e => {
             setEditingText(e.target.value);
@@ -153,6 +154,7 @@ export function StepperInput({
     <div className={`relative flex items-center ${className}`}>
       <input
         type="number"
+        aria-label="Numeric value"
         value={value}
         onChange={e => onChange(parseFloat(e.target.value) || 0)}
         onKeyDown={handleKeyDown}
@@ -223,6 +225,7 @@ export function DimensionEditor({ value, onChange, allTokensFlat = {}, autoFocus
         {formulaMode ? (
           <input
             type="text"
+            aria-label="Dimension value"
             value={formulaStr}
             onChange={e => onChange({ ...val, value: e.target.value })}
             placeholder="{spacing.base} * 2"
@@ -918,6 +921,7 @@ function GradientStopRow({ stop, canRemove, allTokensFlat, pathToSet, onChange, 
             <input
               ref={aliasInputRef}
               type="text"
+              aria-label="Token value"
               value={stop.color || '{'}
               onChange={e => {
                 const v = e.target.value;

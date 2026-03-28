@@ -555,6 +555,7 @@ function ApplyForm({
               value={sourceToken}
               onChange={e => setSourceToken(e.target.value)}
               placeholder={template.generatorType === 'colorRamp' ? 'e.g. brand.500' : template.generatorType === 'typeScale' ? 'e.g. fontSize.base' : 'e.g. spacing.base'}
+              aria-label="Source token path"
               className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)] font-mono"
               autoFocus
             />
@@ -575,6 +576,7 @@ function ApplyForm({
             value={prefix}
             onChange={e => setPrefix(e.target.value)}
             placeholder="e.g. brand"
+            aria-label="Token prefix"
             className="w-full px-2 py-1.5 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)] font-mono"
           />
           <p className="text-[9px] text-[var(--color-figma-text-tertiary)] mt-1">
@@ -1022,6 +1024,7 @@ export function GraphPanel({
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search generators…"
+              aria-label="Search generators"
               className="w-full pl-6 pr-6 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
             />
             {searchQuery && (
@@ -1154,6 +1157,7 @@ export function GraphPanel({
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search templates…"
+            aria-label="Search templates"
             className="w-full pl-6 pr-6 py-1 rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] text-[11px] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-tertiary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
           />
           {searchQuery && (

@@ -83,6 +83,7 @@ function LayerSearchPanel({ onSelect }: { onSelect: (nodeId: string) => void }) 
           value={query}
           onChange={e => handleQueryChange(e.target.value)}
           placeholder="Search layers by name, type, or component…"
+          aria-label="Search layers"
           className="w-full pl-7 pr-2 py-1.5 text-[10px] rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[var(--color-figma-text)] placeholder:text-[var(--color-figma-text-secondary)] focus:outline-none focus:border-[var(--color-figma-accent)]"
         />
         {query && (

@@ -1279,6 +1279,7 @@ export function App() {
                         size={Math.max(set.length + 4, 10)}
                         className="px-2 py-1 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
                         placeholder={set}
+                        aria-label="Rename token set"
                       />
                     </div>
                     {renameError && (
@@ -1431,6 +1432,7 @@ export function App() {
                   onBlur={() => { if (!newSetName.trim()) { setCreatingSet(false); setNewSetName(''); setNewSetError(''); } }}
                   className="px-2 py-1 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none w-28"
                   placeholder="Set name"
+                  aria-label="New set name"
                 />
               </div>
               {newSetError && (
@@ -1528,6 +1530,7 @@ export function App() {
                             onChange={e => { setRenameValue(e.target.value.trimStart()); setRenameError(''); }}
                             onKeyDown={e => { if (e.key === 'Enter') handleRenameConfirm(); if (e.key === 'Escape') cancelRename(); }}
                             onBlur={cancelRename}
+                            aria-label="Rename token set"
                             className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
                           />
                           {renameError && <span className="block text-[9px] text-red-500 px-1">{renameError}</span>}
@@ -1579,6 +1582,7 @@ export function App() {
                                 onChange={e => { setRenameValue(e.target.value.trimStart()); setRenameError(''); }}
                                 onKeyDown={e => { if (e.key === 'Enter') handleRenameConfirm(); if (e.key === 'Escape') cancelRename(); }}
                                 onBlur={cancelRename}
+                                aria-label="Rename token set"
                                 className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
                               />
                               {renameError && <span className="block text-[9px] text-red-500 px-1">{renameError}</span>}
@@ -1644,6 +1648,7 @@ export function App() {
                     }}
                     onBlur={() => { if (!newSetName.trim()) { setCreatingSet(false); setNewSetName(''); setNewSetError(''); } }}
                     placeholder="name or folder/name"
+                    aria-label="New set name"
                     className="w-full px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-figma-bg)] border border-[var(--color-figma-accent)] text-[var(--color-figma-text)] outline-none"
                   />
                   {newSetError && <span className="text-[9px] text-red-500">{newSetError}</span>}
@@ -2037,6 +2042,7 @@ export function App() {
                         onChange={e => setClearConfirmText(e.target.value)}
                         placeholder="DELETE"
                         autoFocus
+                        aria-label="Type DELETE to confirm"
                         className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-error)] text-[var(--color-figma-text)] text-[11px] outline-none font-mono"
                       />
                       <div className="flex gap-2">

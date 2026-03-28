@@ -34,8 +34,10 @@ export function ZIndexConfigEditor({ config, onChange }: { config: ZIndexScaleCo
       {config.steps.map((step, i) => (
         <div key={i} className="flex items-center gap-1.5">
           <input value={step.name} onChange={e => updateStep(i, { name: e.target.value })}
+            aria-label={`Step ${i + 1} name`}
             placeholder="name" className="w-20 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] font-mono outline-none focus:border-[var(--color-figma-accent)]" />
           <input type="number" value={step.value} onChange={e => updateStep(i, { value: Number(e.target.value) })}
+            aria-label={`Step ${step.name} z-index value`}
             className="flex-1 px-1.5 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[10px] outline-none focus:border-[var(--color-figma-accent)]" />
           <button onClick={() => removeStep(i)} title="Remove step" aria-label="Remove step" className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[10px]">×</button>
         </div>

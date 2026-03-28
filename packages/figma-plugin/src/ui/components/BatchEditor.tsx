@@ -486,6 +486,7 @@ export function BatchEditor({
         <input
           ref={descriptionRef}
           type="text"
+          aria-label="Batch description"
           value={description}
           onChange={e => setDescription(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleApply(); }}
@@ -515,6 +516,7 @@ export function BatchEditor({
           <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Opacity %</span>
           <input
             type="range"
+            aria-label="Opacity"
             min="0"
             max="100"
             step="1"
@@ -524,6 +526,7 @@ export function BatchEditor({
           />
           <input
             type="number"
+            aria-label="Opacity value"
             min="0"
             max="100"
             value={opacityPct}
@@ -553,6 +556,7 @@ export function BatchEditor({
             <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-[72px] shrink-0">Multiply by</span>
             <input
               type="number"
+              aria-label="Scale factor"
               min="0.001"
               step="0.1"
               value={scaleFactor}
@@ -730,6 +734,7 @@ export function BatchEditor({
             <input
               ref={findTextRef}
               type="text"
+              aria-label="Find in path"
               value={findText}
               onChange={e => setFindText(e.target.value)}
               placeholder="find in path…"
@@ -754,6 +759,7 @@ export function BatchEditor({
           </div>
           <input
             type="text"
+            aria-label="Replace with"
             value={replaceText}
             onChange={e => setReplaceText(e.target.value)}
             placeholder="replace with…"

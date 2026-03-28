@@ -846,6 +846,7 @@ export function ImportPanel({ serverUrl, connected, onImported, onImportComplete
                               onChange={e => setModeSetNames(prev => ({ ...prev, [key]: e.target.value }))}
                               className="flex-1 min-w-0 px-1.5 py-0.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[9px] outline-none focus:border-[var(--color-figma-accent)] disabled:opacity-50 font-mono"
                               placeholder="set-name"
+                              aria-label="Set name for mode"
                             />
                           </div>
                         </div>

@@ -65,6 +65,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, colorModifiers, 
                     min={0} max={100} step={1}
                     value={mod.amount}
                     onChange={e => setColorModifiers(colorModifiers.map((m, idx) => idx === i ? { ...m, amount: Number(e.target.value) } : m))}
+                    aria-label={`${mod.type === 'lighten' ? 'Lighten' : 'Darken'} amount`}
                     className="flex-1"
                   />
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{mod.amount}</span>
@@ -77,6 +78,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, colorModifiers, 
                     min={0} max={1} step={0.01}
                     value={mod.amount}
                     onChange={e => setColorModifiers(colorModifiers.map((m, idx) => idx === i ? { ...m, amount: Number(e.target.value) } : m))}
+                    aria-label="Alpha amount"
                     className="flex-1"
                   />
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(mod.amount * 100)}%</span>
@@ -94,6 +96,7 @@ export function ColorModifiersEditor({ reference, colorFlatMap, colorModifiers, 
                     min={0} max={1} step={0.01}
                     value={mod.ratio}
                     onChange={e => setColorModifiers(colorModifiers.map((m, idx) => idx === i ? { ...m, ratio: Number(e.target.value) } : m))}
+                    aria-label="Mix ratio"
                     className="flex-1"
                   />
                   <span className="text-[10px] text-[var(--color-figma-text-secondary)] w-8 text-right shrink-0">{Math.round(mod.ratio * 100)}%</span>
