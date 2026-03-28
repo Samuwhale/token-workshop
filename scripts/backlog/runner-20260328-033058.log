@@ -264,3 +264,13 @@ Already up to date.
 
 --- Merging: `SelectionInspector.tsx` is 1279 lines — extract property rows, binding UI, and deep-inspect mode into sub-components ---
 Already up to date.
+[main 1078d90] chore(backlog): done – `SelectionInspector.tsx` is 1279 lines — extract property rows, binding UI, and deep-inspect mode into sub-components
+ 9 files changed, 1009 insertions(+), 815 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/DeepInspectSection.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/PropertyRow.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/RemapBindingsPanel.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/selectionInspectorUtils.ts
+
+--- Cleanup: archiving completed items (≥21) ---
+  → Archived 21 items from backlog.md
+  → Trimmed progress.txt to last 30 sections (was 51)

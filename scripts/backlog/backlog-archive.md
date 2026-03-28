@@ -404,3 +404,26 @@ Completed items removed from backlog.md to keep it lean.
 - [x] `ColorPicker` initializes HSL state from props but never syncs — `useState(hexToHsl(value))` only runs the initializer once; if the parent changes the `value` prop, the picker's internal hue/sat/lit state won't update
 - [x] CSS selector injection in export — `cssSelector` from request body is passed directly to Style Dictionary with no sanitization
 - [x] Duplicated `flattenTokenGroup` in `useGeneratorDialog.ts` — re-implements the same function already available from `@tokenmanager/core`
+
+## Archived 2026-03-28 (21 items)
+- [x] `TYPE_LABELS` in `TokenGeneratorDialog.tsx` missing same three generator types — accessing these keys returns `undefined`, showing broken labels
+- [x] Lint `path-pattern` rule vulnerable to ReDoS — user-supplied regex patterns are compiled directly into `new RegExp()` without calling `isSafeRegex()` first (the guard only exists in the `bulkRename` path)
+- [x] Duplicated `flattenForVarDiff`/`flattenForStyleDiff` in `PublishPanel.tsx` — duplicates logic from `flattenTokenGroup` in core and `flattenWithNames` in `useTokens`
+- [x] Duplicated tree-walking patterns in `token-store.ts` — `updateAliasRefs`, `updateBulkAliasRefs`, `collectGroupLeafTokens` all implement nearly identical recursive walkers; extract a generic walker
+- [x] `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches — all do the same thing (extract step names from config and build paths); collapse into a single generic function
+- [x] `countLeafNodes` is in `colorUtils.ts` despite being unrelated to colors — misplaced token tree utility function
+- [x] `ExportPanel` uses raw `localStorage` instead of centralized `lsGet`/`lsSet` helpers — bypasses the try/catch safety net and doesn't use `STORAGE_KEYS`
+- [x] `fetchAllTokensFlat` and `fetchAllTokensFlatWithSets` fetch sets sequentially — serial `for` loop makes one fetch per set; should use `Promise.all` for parallel fetches
+- [x] `lintTokens` and `validateAllTokens` rebuild flat tokens redundantly — iterate all sets calling `getFlatTokensForSet` even though `tokenStore.flatTokens` already has the merged data
+- [x] `useUndo` keyboard listener churns on every undo/redo — `executeUndo`/`executeRedo` recreated on every `past`/`future` change, causing the keyboard handler effect to tear down and re-register; use refs instead
+- [x] `PluginMessage` loosely typed as `{ type: string; [key: string]: any }` — the shared types file defines specific message types but they aren't used in the controller switch statement; easy to typo property names
+- [x] `$value` typed as `any` in `TokenNode` interface (`useTokens.ts`) — type safety lost throughout entire token data flow
+- [x] 21 `as any` casts across UI components — particularly concerning in `SemanticMappingDialog.tsx` where API response bodies are cast to access `.error` without a proper typed response shape
+- [x] `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names (`base`, `index`, `multiplier`, `prev`) — function signature accepts `Record<string, number>` implying arbitrary keys, but extra keys are silently ignored
+- [x] `weightToFontStyle` mapping in controller uses hardcoded English style names — fonts using "Book", "Roman", "Demi" etc. cause `loadFontAsync` to throw, silently skipping typography application
+- [x] Multiple `eslint-disable react-hooks/exhaustive-deps` comments suppress legitimate warnings — `ImportPanel.tsx`, `TokenList.tsx`, `App.tsx`, `PublishPanel.tsx`, `AnalyticsPanel.tsx` all have stale closure risks from omitted deps
+- [x] Most icon-only buttons lack `aria-label` — only 123 aria-label/role occurrences across 21 files for a UI with hundreds of interactive elements
+- [x] HeatmapPanel color-only status indicators — red/yellow/green indicators rely solely on color with no pattern/icon distinction for color vision deficiencies
+- [x] `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks
+- [x] `PublishPanel.tsx` is 1642 lines — extract diff computation, variable publishing, and style publishing into separate hooks/components
+- [x] `SelectionInspector.tsx` is 1279 lines — extract property rows, binding UI, and deep-inspect mode into sub-components
