@@ -554,6 +554,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
             setTimeout(() => setCopied(false), 1500);
           }}
           title="Copy token path"
+          aria-label="Copy token path"
           className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] shrink-0"
         >
           {copied ? (
@@ -1284,6 +1285,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
                             type="button"
                             onClick={() => setModeValues(prev => { const next = { ...prev }; delete next[option.name]; return next; })}
                             title={`Clear ${option.name} override`}
+                            aria-label={`Clear ${option.name} override`}
                             className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
                           >
                             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -1408,6 +1410,7 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           <button
             onClick={() => setShowDeleteConfirm(true)}
             title="Delete token"
+            aria-label="Delete token"
             className="p-1.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-error)]/10 hover:text-[var(--color-figma-error)]"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1581,6 +1584,7 @@ function StepperInput({
         <button
           type="button"
           tabIndex={-1}
+          aria-label="Increment"
           onMouseDown={e => { e.preventDefault(); step(1); }}
           className="flex-1 px-0.5 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] leading-none"
         >
@@ -1589,6 +1593,7 @@ function StepperInput({
         <button
           type="button"
           tabIndex={-1}
+          aria-label="Decrement"
           onMouseDown={e => { e.preventDefault(); step(-1); }}
           className="flex-1 px-0.5 flex items-center justify-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-text)] hover:bg-[var(--color-figma-bg-hover)] border-t border-[var(--color-figma-border)] leading-none"
         >
@@ -2102,6 +2107,7 @@ function BooleanEditor({ value, onChange }: { value: any; onChange: (v: any) => 
     <div className="flex items-center gap-2">
       <button
         onClick={() => onChange(!value)}
+        aria-label={value ? 'Set to false' : 'Set to true'}
         className={`relative w-8 h-4 rounded-full transition-colors ${value ? 'bg-[var(--color-figma-accent)]' : 'bg-[var(--color-figma-border)]'}`}
       >
         <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${value ? 'left-4' : 'left-0.5'}`} />
@@ -2387,6 +2393,7 @@ function GradientStopRow({ stop, canRemove, allTokensFlat, pathToSet, onChange, 
         type="button"
         onClick={toggleAliasMode}
         title={aliasMode ? 'Switch to raw color' : 'Switch to reference mode'}
+        aria-label={aliasMode ? 'Switch to raw color' : 'Switch to reference mode'}
         className={`p-1.5 rounded border transition-colors shrink-0 ${aliasMode ? 'border-[var(--color-figma-accent)] text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/10' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)]'}`}
       >
         <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
@@ -2455,6 +2462,7 @@ function CompositionEditor({ value, onChange }: { value: any; onChange: (v: any)
             type="button"
             onClick={() => remove(prop)}
             title={`Remove ${prop}`}
+            aria-label={`Remove ${prop}`}
             className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-error)]/10 shrink-0"
           >
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">

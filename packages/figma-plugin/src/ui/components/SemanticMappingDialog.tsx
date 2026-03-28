@@ -301,6 +301,7 @@ export function SemanticMappingDialog({
                   </select>
                   <button
                     onClick={() => handleRemoveRow(i)}
+                    aria-label="Remove mapping"
                     className="shrink-0 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)]"
                   >
                     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 3l6 6M9 3l-6 6" /></svg>

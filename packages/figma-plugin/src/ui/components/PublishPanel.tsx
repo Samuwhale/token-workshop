@@ -1121,6 +1121,7 @@ export function PublishPanel({ serverUrl, connected, activeSet, collectionMap = 
                       onClick={() => { setGitLoading(true); fetchStatus(); }}
                       disabled={gitLoading}
                       title="Refresh git status"
+                      aria-label="Refresh git status"
                       className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors disabled:opacity-40"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={gitLoading ? 'animate-spin' : ''}>

@@ -1972,6 +1972,7 @@ export function TokenList({
                   <button
                     onClick={handleExpandAll}
                     title="Expand all groups"
+                    aria-label="Expand all groups"
                     className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
                   >
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
@@ -1982,6 +1983,7 @@ export function TokenList({
                   <button
                     onClick={handleCollapseAll}
                     title="Collapse all groups"
+                    aria-label="Collapse all groups"
                     className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
                   >
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
@@ -2011,6 +2013,7 @@ export function TokenList({
                 <button
                   onClick={onToggleIssuesOnly}
                   title={`${lintViolations.length} lint issue${lintViolations.length !== 1 ? 's' : ''} — click to filter`}
+                  aria-label={`${lintViolations.length} lint issue${lintViolations.length !== 1 ? 's' : ''}`}
                   className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors ${showIssuesOnly ? 'bg-[var(--color-figma-error)] text-white' : 'text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 hover:bg-[var(--color-figma-error)]/20'}`}
                 >
                   <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor" aria-hidden="true">
@@ -2038,6 +2041,7 @@ export function TokenList({
               <button
                 onClick={() => setInspectMode(v => !v)}
                 title={inspectMode ? 'Show all tokens' : 'Show only tokens bound to selection'}
+                aria-label={inspectMode ? 'Show all tokens' : 'Show only tokens bound to selection'}
                 aria-pressed={inspectMode}
                 className={`p-1 rounded transition-colors ${inspectMode ? 'text-[var(--color-figma-accent)] bg-[var(--color-figma-accent)]/15' : 'text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)]'}`}
               >
@@ -2051,6 +2055,7 @@ export function TokenList({
               <button
                 onClick={() => setSelectMode(true)}
                 title="Multi-select tokens (M)"
+                aria-label="Multi-select tokens"
                 className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] transition-colors"
               >
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true">
@@ -2170,6 +2175,7 @@ export function TokenList({
                   <button
                     onClick={clearFilters}
                     title="Clear all filters"
+                    aria-label="Clear all filters"
                     className="flex items-center justify-center w-5 h-5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] shrink-0"
                   >
                     <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
@@ -2186,7 +2192,7 @@ export function TokenList({
       {deleteError && (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--color-figma-error)] text-white text-[11px]">
           <span className="flex-1">Delete failed: {deleteError}</span>
-          <button onClick={() => setDeleteError(null)} className="opacity-70 hover:opacity-100 font-bold text-[13px] leading-none">&times;</button>
+          <button onClick={() => setDeleteError(null)} aria-label="Dismiss error" className="opacity-70 hover:opacity-100 font-bold text-[13px] leading-none">&times;</button>
         </div>
       )}
       {/* Scrollable token content with virtual scroll */}
@@ -3721,6 +3727,7 @@ function TokenTreeNode({
                 <button
                   onClick={e => { e.stopPropagation(); onMoveUp(); }}
                   title="Move up"
+                  aria-label="Move up"
                   className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -3732,6 +3739,7 @@ function TokenTreeNode({
                 <button
                   onClick={e => { e.stopPropagation(); onMoveDown(); }}
                   title="Move down"
+                  aria-label="Move down"
                   className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -3745,6 +3753,7 @@ function TokenTreeNode({
                   onCreateSibling?.(node.path, inferGroupTokenType(node.children));
                 }}
                 title="Add token to group"
+                aria-label="Add token to group"
                 className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
@@ -3761,6 +3770,7 @@ function TokenTreeNode({
                   });
                 }}
                 title="Group actions"
+                aria-label="Group actions"
                 className="opacity-0 group-hover/group:opacity-100 p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)] transition-opacity shrink-0"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -4143,6 +4153,7 @@ function TokenTreeNode({
             <button
               onClick={e => { e.stopPropagation(); setPendingColor(typeof node.$value === 'string' ? node.$value : '#000000'); setColorPickerOpen(true); }}
               title="Click to edit color"
+              aria-label="Edit color"
               className="w-5 h-5 rounded border border-[var(--color-figma-border)] shrink-0 hover:ring-1 hover:ring-[var(--color-figma-accent)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--color-figma-accent)]"
               style={{ backgroundColor: displayValue }}
             />
@@ -4280,6 +4291,7 @@ function TokenTreeNode({
               type="button"
               onMouseDown={e => { e.preventDefault(); stepInlineValue(-1); }}
               tabIndex={-1}
+              aria-label="Decrement"
               className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-[11px] font-medium leading-none select-none shrink-0"
             >−</button>
             <input
@@ -4312,6 +4324,7 @@ function TokenTreeNode({
               type="button"
               onMouseDown={e => { e.preventDefault(); stepInlineValue(1); }}
               tabIndex={-1}
+              aria-label="Increment"
               className="w-4 h-5 flex items-center justify-center rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] hover:text-[var(--color-figma-text)] text-[11px] font-medium leading-none select-none shrink-0"
             >+</button>
           </div>
@@ -4374,6 +4387,7 @@ function TokenTreeNode({
                   else if (v.suggestedFix === 'add-description') onEdit(node.path, node.name);
                 }}
                 title={lintViolations.map(v => `${v.severity}: ${v.message}`).join('\n')}
+                aria-label="Lint warning"
                 className={`shrink-0 flex items-center justify-center ${worstSeverity === 'error' ? 'text-[var(--color-figma-error)]' : worstSeverity === 'warning' ? 'text-[var(--color-figma-warning)]' : 'text-[var(--color-figma-text-tertiary)]'}`}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -4405,6 +4419,7 @@ function TokenTreeNode({
             <button
               onClick={e => { e.stopPropagation(); onMoveUp(); }}
               title="Move up"
+              aria-label="Move up"
               className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -4416,6 +4431,7 @@ function TokenTreeNode({
             <button
               onClick={e => { e.stopPropagation(); onMoveDown(); }}
               title="Move down"
+              aria-label="Move down"
               className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -4426,6 +4442,7 @@ function TokenTreeNode({
           <button
             onClick={e => { e.stopPropagation(); handleApplyToSelection(e); }}
             title="Apply to selection"
+            aria-label="Apply to selection"
             className="p-1 rounded hover:bg-[var(--color-figma-accent)]/20 text-[var(--color-figma-accent)]"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -4435,6 +4452,7 @@ function TokenTreeNode({
           <button
             onClick={() => onEdit(node.path, node.name)}
             title="Edit"
+            aria-label="Edit"
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -4444,6 +4462,7 @@ function TokenTreeNode({
           <button
             onClick={e => { e.stopPropagation(); handleCopyPath(); }}
             title={copiedWhat === 'path' ? 'Copied!' : 'Copy token path'}
+            aria-label={copiedWhat === 'path' ? 'Path copied' : 'Copy token path'}
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >
             {copiedWhat === 'path' ? (
@@ -4459,6 +4478,7 @@ function TokenTreeNode({
           <button
             onClick={handleCopyValue}
             title={copiedWhat === 'value' ? 'Copied!' : 'Copy value'}
+            aria-label={copiedWhat === 'value' ? 'Value copied' : 'Copy value'}
             className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]"
           >
             {copiedWhat === 'value' ? (

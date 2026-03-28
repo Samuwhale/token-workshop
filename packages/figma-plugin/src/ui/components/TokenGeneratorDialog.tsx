@@ -117,6 +117,7 @@ function InputTableEditor({ table, onChange }: { table: InputTable; onChange: (t
             />
             <button
               onClick={() => removeRow(i)}
+              aria-label="Remove row"
               className="w-5 text-center text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] text-[12px] shrink-0 leading-none"
             >×</button>
           </div>

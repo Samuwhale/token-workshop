@@ -69,6 +69,7 @@ export function OverrideRow({ token, override, onOverrideChange, onOverrideClear
         <button
           onClick={isOverridden ? () => onOverrideClear(token.stepName) : handleStartEdit}
           title={isOverridden ? 'Click to clear override' : 'Click to pin a custom value'}
+          aria-label={isOverridden ? 'Clear override' : 'Pin custom value'}
           className={`shrink-0 p-0.5 rounded transition-colors ${
             isLocked
               ? 'text-[var(--color-figma-accent)] hover:text-[var(--color-figma-error)]'

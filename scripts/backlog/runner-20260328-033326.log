@@ -219,3 +219,16 @@ Already up to date.
 
 --- Merging: HeatmapPanel color-only status indicators ---
 Already up to date.
+[main 5993214] chore(backlog): done – HeatmapPanel color-only status indicators
+ 6 files changed, 84 insertions(+), 14 deletions(-)
+
+## 2026-03-28 - HeatmapPanel color-only status indicators — red/yellow/green indicators rely solely on color with no pattern/icon distinction for color vision deficiencies
+- Replaced all colored-dot indicators with distinct SVG shape icons: checkmark (green/fully bound), dash (yellow/partially bound), X mark (red/no bindings). Added `StatusIcon` component with `aria-label` for screen readers. Coverage bar segments for red and yellow now include SVG pattern fills (diagonal stripes for red, dots for yellow) in addition to color, so all three states are distinguishable without color vision.
+- Files changed: `packages/figma-plugin/src/ui/components/HeatmapPanel.tsx` ~L32–L65 (StatusIcon + STATUS_COLORS), ~L172–L207 (coverage bar patterns), ~L209 (legend), ~L298 (group header), ~L403 (NodeRow)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  69 items remaining
+===============================================================
+  Claimed: `TokenEditor.tsx` is 2485 lines — extract form sections (value editors per type, metadata editor, alias picker) into separate components
+  Worktree: /tmp/backlog-92630-4byPHu

@@ -732,6 +732,7 @@ export function SelectionInspector({
                     onClick={() => setRemapRows(rows => rows.filter((_, i) => i !== idx))}
                     className="shrink-0 p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error,#f56565)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                     title="Remove row"
+                    aria-label="Remove row"
                   >
                     <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                       <path d="M18 6L6 18M6 6l12 12" />
@@ -918,6 +919,7 @@ export function SelectionInspector({
                             <button
                               onClick={() => onNavigateToToken(binding as string)}
                               title="Go to token"
+                              aria-label="Go to token"
                               className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -929,6 +931,7 @@ export function SelectionInspector({
                             <button
                               onClick={() => handleRemoveBinding(prop)}
                               title="Remove binding"
+                              aria-label="Remove binding"
                               className="p-1 rounded hover:bg-[var(--color-figma-error)]/20 text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-error)] transition-colors"
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -940,6 +943,7 @@ export function SelectionInspector({
                             <button
                               onClick={() => openBindFromProp(prop)}
                               title="Remap to another token"
+                              aria-label="Remap to another token"
                               className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -952,6 +956,7 @@ export function SelectionInspector({
                             <button
                               onClick={() => openBindFromProp(prop)}
                               title="Bind existing token"
+                              aria-label="Bind existing token"
                               className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -964,6 +969,7 @@ export function SelectionInspector({
                             <button
                               onClick={() => openCreateFromProp(prop)}
                               title="Create token from this value"
+                              aria-label="Create token from this value"
                               className="p-1 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors"
                             >
                               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -990,6 +996,7 @@ export function SelectionInspector({
                               onClick={cancelBind}
                               className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                               title="Cancel"
+                              aria-label="Cancel"
                             >
                               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                                 <path d="M18 6L6 18M6 6l12 12" />
@@ -1100,6 +1107,7 @@ export function SelectionInspector({
                               onClick={cancelCreate}
                               className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
                               title="Cancel"
+                              aria-label="Cancel"
                             >
                               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                                 <path d="M18 6L6 18M6 6l12 12" />
@@ -1224,6 +1232,7 @@ export function SelectionInspector({
                             <button
                               onClick={() => onNavigateToToken(tokenPath)}
                               title="Go to token"
+                              aria-label="Go to token"
                               className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:bg-[var(--color-figma-accent)]/10 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
                             >
                               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1267,6 +1276,7 @@ export function SelectionInspector({
             onClick={() => setCreatedTokenPath(null)}
             className="p-0.5 rounded text-[var(--color-figma-text-secondary)] hover:bg-[var(--color-figma-bg-hover)] shrink-0"
             title="Dismiss"
+            aria-label="Dismiss"
           >
             <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
               <path d="M18 6L6 18M6 6l12 12" />

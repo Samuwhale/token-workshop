@@ -1423,6 +1423,7 @@ export function App() {
                       onClick={e => openSetMenu(set, e)}
                       onContextMenu={e => openSetMenu(set, e)}
                       title="Set options"
+                      aria-label="Set options"
                       className={`flex items-center justify-center px-1 py-1 rounded-r text-[10px] transition-colors ${
                         isActive
                           ? 'opacity-100 bg-[var(--color-figma-accent)] text-white/80 hover:text-white hover:bg-[var(--color-figma-accent-hover)]'
@@ -2516,7 +2517,7 @@ export function App() {
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-full max-w-sm">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
               <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Set Figma Scopes</span>
-              <button onClick={() => setGroupScopesPath(null)} title="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+              <button onClick={() => setGroupScopesPath(null)} title="Close" aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
@@ -2578,7 +2579,7 @@ export function App() {
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-80 flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
               <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Merge "{mergingSet}" into…</span>
-              <button onClick={() => setMergingSet(null)} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+              <button onClick={() => setMergingSet(null)} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>
@@ -2673,7 +2674,7 @@ export function App() {
           <div className="bg-[var(--color-figma-bg)] rounded border border-[var(--color-figma-border)] shadow-xl w-72 flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-figma-border)]">
               <span className="text-[12px] font-semibold text-[var(--color-figma-text)]">Split "{splittingSet}"</span>
-              <button onClick={() => setSplittingSet(null)} className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
+              <button onClick={() => setSplittingSet(null)} aria-label="Close" className="p-1 rounded hover:bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-secondary)]">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             </div>

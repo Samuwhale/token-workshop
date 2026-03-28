@@ -391,3 +391,12 @@
   - SVG `<pattern>` defs can be placed in a zero-size `<svg>` and referenced via `fill="url(#id)"` in child SVGs within the same DOM tree. The `<defs>` SVG must be in the same parent container.
   - For a11y status indicators, the triple of checkmark/dash/X is universally understood and doesn't require a legend to interpret.
 ---
+
+## 2026-03-28 - Most icon-only buttons lack `aria-label` — only 123 aria-label/role occurrences across 21 files for a UI with hundreds of interactive elements
+- Added 59 `aria-label` attributes to icon-only buttons across 12 files (69 → 128 total aria-labels, 21 → 27 files covered). Labels were inferred from onClick handlers, existing `title` attributes, SVG icon shapes, and surrounding context. Buttons with visible text content were left untouched.
+- Files changed: `App.tsx` ~L1427/2521/2583/2678, `TokenList.tsx` ~21 buttons, `TokenEditor.tsx` ~8 buttons, `SelectionInspector.tsx` ~10 buttons, `ThemeManager.tsx` ~7 buttons, `PublishPanel.tsx` ~1 button, `BatchEditor.tsx` ~1 button, `SemanticMappingDialog.tsx` ~1 button, `TokenGeneratorDialog.tsx` ~1 button, `TokenGraph.tsx` ~2 buttons, `ContrastCheckGenerator.tsx` ~2 buttons, `generatorShared.tsx` ~1 button
+- **Learnings for future iterations:**
+  - Many buttons already had `title` but no `aria-label` — matching the existing title is the fastest safe path.
+  - ImportPanel, ExportPanel, PreviewPanel, HeatmapPanel had zero icon-only buttons missing labels — all their buttons contain visible text.
+  - Dynamic labels (e.g., `aria-label={expanded ? 'Collapse' : 'Expand'}`) are needed for toggle buttons whose function changes with state.
+---

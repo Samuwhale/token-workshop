@@ -110,6 +110,7 @@ function ColorStepSwatch({ hex, onHexChange }: { hex: string; onHexChange: (hex:
         style={{ background: hex6 }}
         onClick={() => ref.current?.click()}
         title="Pick color"
+        aria-label="Pick color"
       />
       <input ref={ref} type="color" className="sr-only" key={hex6} defaultValue={hex6}
         onBlur={e => onHexChange(e.target.value)} />
@@ -157,6 +158,7 @@ export function ContrastCheckConfigEditor({ config, onChange }: { config: Contra
             style={{ background: bgHex6 }}
             onClick={() => bgColorInputRef.current?.click()}
             title="Pick background color"
+            aria-label="Pick background color"
           />
           <input
             ref={bgColorInputRef}

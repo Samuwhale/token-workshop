@@ -601,6 +601,7 @@ export function BatchEditor({
             <button
               onClick={() => setUseRegex(v => !v)}
               title={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
+              aria-label={useRegex ? 'Switch to literal match' : 'Switch to regex match'}
               className={`absolute right-0.5 top-0.5 h-5 w-6 rounded text-[9px] font-mono flex items-center justify-center transition-colors ${
                 useRegex
                   ? 'bg-[var(--color-figma-accent)] text-white'

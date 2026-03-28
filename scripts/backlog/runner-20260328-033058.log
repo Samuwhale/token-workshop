@@ -213,3 +213,10 @@ Already up to date.
 ===============================================================
   Claimed: Most icon-only buttons lack `aria-label` — only 123 aria-label/role occurrences across 21 files for a UI with hundreds of interactive elements
   Worktree: /tmp/backlog-85816-7rp5cv
+
+  ✓ done: Most icon-only buttons lack `aria-label` — only 123 aria-label/role occurrences across 21 files for a UI with hundreds of interactive elements
+    Added 59 aria-label attributes to icon-only buttons across 12 files (69→128 total), covering TokenList, App, TokenEditor, SelectionInspector, ThemeManager, and 7 other components. Build passes.
+    8 turns · 45s · $10.03
+
+--- Merging: Most icon-only buttons lack `aria-label` — only 123 aria-label/role occurrences across 21 files for a UI with hundreds of interactive elements ---
+Already up to date.

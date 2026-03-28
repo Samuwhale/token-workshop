@@ -136,13 +136,13 @@
 ### Accessibility
 
 - [~] Most icon-only buttons lack `aria-label` — only 123 aria-label/role occurrences across 21 files for a UI with hundreds of interactive elements
-- [~] HeatmapPanel color-only status indicators — red/yellow/green indicators rely solely on color with no pattern/icon distinction for color vision deficiencies
+- [x] HeatmapPanel color-only status indicators — red/yellow/green indicators rely solely on color with no pattern/icon distinction for color vision deficiencies
 
 ### Maintainability
 
 - [~] `TokenList.tsx` is 4695 lines — largest file in the codebase; split into sub-components (row renderers, drag-drop logic, inline editing, context menu, filter/sort controls)
 - [~] `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks
-- [ ] `TokenEditor.tsx` is 2485 lines — extract form sections (value editors per type, metadata editor, alias picker) into separate components
+- [~] `TokenEditor.tsx` is 2485 lines — extract form sections (value editors per type, metadata editor, alias picker) into separate components
 - [ ] `PublishPanel.tsx` is 1642 lines — extract diff computation, variable publishing, and style publishing into separate hooks/components
 - [ ] `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading
 - [ ] `SelectionInspector.tsx` is 1279 lines — extract property rows, binding UI, and deep-inspect mode into sub-components

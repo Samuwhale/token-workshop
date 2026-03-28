@@ -362,6 +362,7 @@ export function TokenGraph({
                   }}
                   className="rounded border border-[var(--color-figma-accent)]/40 bg-[var(--color-figma-accent)]/5 hover:bg-[var(--color-figma-accent)]/10 hover:border-[var(--color-figma-accent)]/65 px-2 py-1.5 flex flex-col justify-center gap-0.5 overflow-hidden transition-colors text-left group disabled:opacity-40 disabled:cursor-not-allowed"
                   title="Edit generator"
+                  aria-label={`Edit generator: ${gen.name}`}
                 >
                   <div className="flex items-center justify-between gap-1">
                     <div className="text-[7px] font-semibold text-[var(--color-figma-accent)] uppercase tracking-widest truncate">
@@ -451,6 +452,7 @@ export function TokenGraph({
                   }}
                   className="flex items-center justify-center rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error,#f87171)] hover:bg-[var(--color-figma-error,#f87171)]/10 opacity-35 hover:opacity-100 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
                   title="Delete generator"
+                  aria-label={`Delete generator: ${gen.name}`}
                 >
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                     <path d="M18 6L6 18M6 6l12 12"/>
