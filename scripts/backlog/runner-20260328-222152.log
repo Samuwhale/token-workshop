@@ -16,3 +16,17 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: useDragDrop.ts multi-token move partial failure leaves tokens moved without undo ---
 Already up to date.
+[main fdad7b6] chore(backlog): done – useDragDrop.ts multi-token move partial failure leaves tokens moved without undo
+ 6 files changed, 94 insertions(+), 28 deletions(-)
+  (code pass skipped — another runner is handling it)
+
+## 2026-03-28 - useDragDrop.ts multi-token move partial failure leaves tokens moved without undo
+- Separated move planning from execution: collect all intended moves first, then execute sequentially
+- Track `succeeded` moves separately from `planned` moves so undo always covers what actually happened
+- On first failure, stop moving (later renames may depend on earlier ones) and report partial progress (e.g., "2/5 moved")
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  4 items remaining
+===============================================================
+  Claimed: ~170 raw `fetch()` calls across 37 UI files bypass the shared `apiFetch` utility — each reimplements its own error handling (or omits it); hotspots are TokenList.tsx (40 calls), ThemeManager.tsx (21 calls), useSetMergeSplit.ts (12 calls), and useGitSync.ts (9 calls); migrating to `apiFetch` would consolidate error handling, enable global timeout/retry, and eliminate dozens of per-call `res.ok` checks
+  Worktree: /tmp/backlog-48637-Dq9KdS

@@ -90,3 +90,10 @@ Already up to date.
 ===============================================================
   Claimed: HTTP error responses silently treated as success in multiple mutation paths — `ThemeValuesSection.handleSave` in `TokenEditor.tsx` clears edit state and calls `onRefresh` even on 4xx/5xx; `handleApplyGroupScopes` in `useFigmaSync.ts` discards all response objects in `Promise.all` batch without `.ok` checks; `useSetDelete.ts` only catches `TypeError`, not `ApiError` on server-side rejections — all three need `res.ok` guards and visible error feedback (`TokenEditor.tsx` ~L214, `useFigmaSync.ts` ~L129, `useSetDelete.ts` ~L50)
   Worktree: /tmp/backlog-23617-trNEfn
+
+  ✓ done: HTTP error responses silently treated as success in multiple mutation paths
+    Fixed useFigmaSync.ts handleApplyGroupScopes to check res.ok on batch PATCH calls; the other two locations (TokenEditor.tsx, useSetDelete.ts) were already correctly guarded.
+    18 turns · 109s · $0.48
+
+--- Merging: HTTP error responses silently treated as success in multiple mutation paths ---
+Already up to date.

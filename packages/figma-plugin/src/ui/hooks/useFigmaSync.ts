@@ -126,13 +126,18 @@ export function useFigmaSync(
       setGroupScopesProgress({ done: 0, total });
       for (let i = 0; i < tokenPaths.length; i += BATCH_SIZE) {
         const batch = tokenPaths.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map(path =>
-          fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
+        const results = await Promise.all(batch.map(async path => {
+          const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(activeSet)}/${path.split('.').map(encodeURIComponent).join('/')}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ $extensions: { 'com.figma.scopes': groupScopesSelected } }),
-          })
-        ));
+          });
+          if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            throw new Error(`Failed to update "${path}": ${body || `HTTP ${res.status}`}`);
+          }
+          return res;
+        }));
         done += batch.length;
         setGroupScopesProgress({ done, total });
       }

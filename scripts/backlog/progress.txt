@@ -458,3 +458,13 @@
   - When batch mutations are sequential and order-dependent (rename A→B then C→D where D might reference B), stop on first failure rather than continuing — unlike independent writes where `Promise.allSettled` is appropriate
   - Always separate "what we plan to do" from "what we actually did" so undo/error reporting is accurate
 ---
+
+## 2026-03-28 - HTTP error responses silently treated as success in multiple mutation paths
+- Of the three locations cited, only `handleApplyGroupScopes` in `useFigmaSync.ts` was actually affected: the `Promise.all` batch of PATCH calls discarded response objects without `.ok` checks, so 4xx/5xx responses were silently treated as success. Added `res.ok` guard with descriptive error message per path.
+- `TokenEditor.tsx` `ThemeValuesSection.handleSave` already had a `res.ok` guard (line 221) — stale reference.
+- `useSetDelete.ts` uses `apiFetch` which already throws `ApiError` on non-ok — stale reference.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useFigmaSync.ts` ~L129
+- **Learnings for future iterations:**
+  - `apiFetch` already provides `.ok` guards via `ApiError` — check if the caller uses `apiFetch` vs raw `fetch` before adding manual checks
+  - Backlog items can reference code that was already fixed in a prior session; verify each location individually
+---
