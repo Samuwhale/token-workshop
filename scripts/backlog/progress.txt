@@ -614,3 +614,11 @@
   - Native HTML `title` attributes support `\n` for multi-line tooltips — no custom tooltip component needed for simple info display
   - The outer name/info div's title was previously an action hint ("Double-click to edit"); replacing it with the token info tooltip is a better use since action hints are less important than content identification
 ---
+
+## 2026-03-28 - Token row: resolved value always visible for aliases
+- Alias tokens now show their resolved value prominently instead of hiding it behind the alias path. The alias badge was changed from a full-path bordered pill to a compact link icon with truncated path (max 80px), styled as tertiary text. The resolved value text was upgraded from 10px to 11px to match non-alias token value styling. The ValuePreview swatch was already rendering the resolved value correctly — the main issue was the alias badge dominating the row and the resolved text being too small/secondary.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1082-1093 (alias badge compacted), ~L1189-1195 (resolved value text prominence)
+- **Learnings for future iterations:**
+  - ValuePreview already resolves alias values via `displayValue` — the visual swatch was never the problem, only the text layout balance between alias path and resolved value
+  - The alias badge border + full path text was the main culprit for making rows feel alias-dominated
+---

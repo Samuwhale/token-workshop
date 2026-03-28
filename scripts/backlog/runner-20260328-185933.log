@@ -29,3 +29,10 @@ Already up to date.
 ===============================================================
   Claimed: **Token row: resolved value always visible for aliases** — currently alias tokens show the alias path (`{colors.brand.500}`) and require clicking the chain expander to see the final resolved value. Show the resolved value preview (e.g., a color swatch or dimension text) directly in the row at all times, with the alias arrow as a secondary indicator. The click-to-expand chain can still exist for multi-hop chains, but the end result should not be hidden.
   Worktree: /tmp/backlog-92332-dlbYqc
+
+  ✓ done: Token row: resolved value always visible for aliases
+    Compacted alias badge from full-path bordered pill to small link icon + truncated path; upgraded resolved value text from 10px to 11px matching non-alias tokens. Swatch already showed resolved values correctly.
+    25 turns · 235s · $1.16
+
+--- Merging: Token row: resolved value always visible for aliases ---
+Already up to date.

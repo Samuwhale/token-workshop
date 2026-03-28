@@ -1087,13 +1087,14 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           {isAlias(node.$value) && (
             <button
               onClick={handleAliasClick}
-              className={`flex items-center gap-0.5 px-1 py-0.5 rounded border text-[8px] transition-colors ${isBrokenAlias ? 'border-[var(--color-figma-error)] text-[var(--color-figma-error)] bg-[var(--color-figma-error)]/10 cursor-default' : 'border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)]'}`}
-              title={isBrokenAlias ? `Broken reference — ${resolveResult?.error}` : `${(node.$value as string).slice(1, -1)} → ${formatValue(node.$type, displayValue)}\nClick to navigate`}
+              className={`flex items-center gap-0.5 px-0.5 py-0.5 rounded text-[8px] transition-colors ${isBrokenAlias ? 'text-[var(--color-figma-error)] cursor-default' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]'}`}
+              title={isBrokenAlias ? `Broken reference — ${resolveResult?.error}` : `${(node.$value as string).slice(1, -1)}\nClick to navigate`}
             >
-              <span>{(node.$value as string).slice(1, -1)}</span>
-              <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <path d="M1 3h4M3 1l2 2-2 2"/>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
               </svg>
+              <span className="max-w-[80px] truncate">{(node.$value as string).slice(1, -1)}</span>
             </button>
           )}
         </div>
@@ -1193,7 +1194,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
         )
       ) : isAlias(node.$value) && !isBrokenAlias ? (
         <span
-          className="text-[10px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
+          className="text-[11px] text-[var(--color-figma-text-secondary)] shrink-0 max-w-[96px] truncate"
           title={`${(node.$value as string).slice(1, -1)} → ${formatValue(node.$type, displayValue)}`}
         >
           {highlightMatch(formatValue(node.$type, displayValue), searchHighlight?.valueTerms ?? [])}
