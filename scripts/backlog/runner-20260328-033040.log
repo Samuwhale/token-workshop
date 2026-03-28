@@ -612,3 +612,17 @@ Already up to date.
 
 --- Merging: No quickstart wizard that chains token generation → semantic mapping → theme setup ---
 Already up to date.
+[main 060c447] chore(backlog): done – No quickstart wizard that chains token generation → semantic mapping → theme setup
+ 11 files changed, 563 insertions(+), 4 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/QuickStartWizard.tsx
+
+## 2026-03-28 - No quickstart wizard that chains token generation → semantic mapping → theme setup
+- Created `QuickStartWizard.tsx` — a 3-step guided flow: (1) Generate Primitives via template picker, (2) Map Semantics via SemanticMappingDialog, (3) Set Up Theme dimension with light/dark options
+- Added `onInterceptSemanticMapping` callback to `useGeneratorDialog` and `TokenGeneratorDialog` so the wizard can capture generated token data and manage its own semantic mapping step instead of the generator dialog's built-in chaining
+- Added `onGuidedSetup` prop to `EmptyState.tsx` with a prominent dashed-border button labeled "Guided setup" with "3 steps" badge
+
+===============================================================
+  Iteration 30 / 90  (claude)  —  0 items remaining
+===============================================================
+
+No remaining [ ] items in backlog.md. All done!

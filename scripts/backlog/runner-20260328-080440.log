@@ -1,0 +1,23 @@
+NOTE: 2 [~] item(s) found — skipping reset (1 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+
+--- Inbox has new items — triaging into backlog.md ---
+  → 10 duplicate item(s) skipped
+  → 9 normal item(s) appended to bottom
+--- Inbox drained ---
+  Remaining items: 109
+  Completed total: 470 (next code pass in 1 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  109 items remaining
+===============================================================
+  Claimed: "Last used token type" stored in sessionStorage resets when plugin window closes — move to localStorage or Figma clientStorage so it persists across sessions
+  Worktree: /tmp/backlog-62956-w4T1R8
+
+  ✓ done: "Last used token type" stored in sessionStorage resets when plugin window closes — move to localStorage or Figma clientStorage so it persists across sessions
+    Changed sessionStorage to localStorage for tm_last_token_type in TokenList.tsx (lines 40 and 44).
+    12 turns · 41s · $0.33
+
+--- Merging: "Last used token type" stored in sessionStorage resets when plugin window closes — move to localStorage or Figma clientStorage so it persists across sessions ---
+Already up to date.

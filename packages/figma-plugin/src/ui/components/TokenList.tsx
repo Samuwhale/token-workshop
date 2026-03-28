@@ -37,11 +37,11 @@ export function TokenList({
   const [showCreateForm, setShowCreateForm] = useState(defaultCreateOpen ?? false);
   const [newTokenPath, setNewTokenPath] = useState('');
   const [newTokenType, setNewTokenTypeState] = useState(() => {
-    try { return sessionStorage.getItem('tm_last_token_type') || 'color'; } catch { return 'color'; }
+    try { return localStorage.getItem('tm_last_token_type') || 'color'; } catch { return 'color'; }
   });
   const setNewTokenType = (t: string) => {
     setNewTokenTypeState(t);
-    try { sessionStorage.setItem('tm_last_token_type', t); } catch {}
+    try { localStorage.setItem('tm_last_token_type', t); } catch {}
   };
   const [newTokenValue, setNewTokenValue] = useState('');
   const [newTokenDescription, setNewTokenDescription] = useState('');

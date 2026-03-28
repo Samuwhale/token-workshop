@@ -1,0 +1,11 @@
+NOTE: 5 [~] item(s) found — skipping reset (10 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 106
+  Completed total: 470 (next code pass in 1 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  106 items remaining
+===============================================================
+  Claimed: No onboarding or first-run experience — empty state shows "No tokens yet" with no guidance; add a first-run flow: "Import from Figma Variables" as primary CTA, "Start from template" using generator presets (Material, Tailwind), "Paste existing tokens" for migrations, and a brief walkthrough of the token → theme → publish workflow
+  Worktree: /tmp/backlog-63973-XSgY8W

@@ -1,0 +1,11 @@
+NOTE: 3 [~] item(s) found — skipping reset (4 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 108
+  Completed total: 470 (next code pass in 1 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  108 items remaining
+===============================================================
+  Claimed: Toast auto-dismiss too fast for errors — 3s auto-dismiss doesn't give enough time to read sync/import failure details; increase to 5–8s for error toasts, or make them persist until manually dismissed
+  Worktree: /tmp/backlog-63411-mhA7Ai

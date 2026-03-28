@@ -107,3 +107,10 @@
   - The batch endpoint uses `strategy: 'overwrite'` which handles both creates and updates in one call — no need to separate them
   - Skipped tokens (conflicts without overwrite) are already filtered out before `handleConfirm`, so sending everything with `overwrite` strategy is safe
 ---
+
+## 2026-03-28 - "Last used token type" stored in sessionStorage resets when plugin window closes
+- Changed `sessionStorage` to `localStorage` for the `tm_last_token_type` key so the selected token type persists across plugin sessions.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L40, ~L44
+- **Learnings for future iterations:**
+  - Only `tm_last_token_type` needed migration to localStorage. Other sessionStorage keys (expand state, search, filters) are intentionally session-scoped.
+---

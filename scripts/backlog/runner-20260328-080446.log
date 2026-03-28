@@ -1,0 +1,11 @@
+NOTE: 4 [~] item(s) found — skipping reset (7 other runner(s) active)
+Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
+  Remaining items: 107
+  Completed total: 470 (next code pass in 1 items)
+  Stop signal:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+===============================================================
+  Iteration 1 / 90  (claude)  —  107 items remaining
+===============================================================
+  Claimed: Keyboard shortcut discoverability is poor — shortcuts only visible via a dedicated modal (`?`); add inline hint text on buttons and menu items (e.g. "Save ⌘↵") so users learn shortcuts in context
+  Worktree: /tmp/backlog-63685-takL14
