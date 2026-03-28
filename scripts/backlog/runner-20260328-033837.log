@@ -163,3 +163,24 @@ Already up to date.
 
 --- Merging: `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading ---
 Already up to date.
+[main 347514c] chore(backlog): done – `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading
+ 13 files changed, 1601 insertions(+), 1570 deletions(-)
+ create mode 100644 packages/figma-plugin/src/plugin/colorUtils.ts
+ create mode 100644 packages/figma-plugin/src/plugin/constants.ts
+ create mode 100644 packages/figma-plugin/src/plugin/fontLoading.ts
+ create mode 100644 packages/figma-plugin/src/plugin/heatmapScanning.ts
+ create mode 100644 packages/figma-plugin/src/plugin/selectionHandling.ts
+ create mode 100644 packages/figma-plugin/src/plugin/styleSync.ts
+ create mode 100644 packages/figma-plugin/src/plugin/variableSync.ts
+ create mode 100644 packages/figma-plugin/src/plugin/variableUtils.ts
+
+## 2026-03-28 - `controller.ts` (plugin main) is 1533 lines — split by concern: variable sync, style sync, selection handling, heatmap scanning, font loading
+- Split monolithic `controller.ts` (1698 lines) into 9 focused modules: `constants.ts` (3 lines), `colorUtils.ts` (147), `variableUtils.ts` (67), `fontLoading.ts` (54), `variableSync.ts` (289), `styleSync.ts` (219), `selectionHandling.ts` (582), `heatmapScanning.ts` (199), and the reduced `controller.ts` (138) which is now just the message dispatcher + eyedropper + selection listener.
+- Files changed: `packages/figma-plugin/src/plugin/controller.ts`, plus 8 new files in the same directory
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  64 items remaining
+===============================================================
+  Claimed: `token-store.ts` uses `any` types pervasively for token group traversal — `Record<string, unknown>` with type narrowing would be safer
+  Worktree: /tmp/backlog-10278-KegRD1

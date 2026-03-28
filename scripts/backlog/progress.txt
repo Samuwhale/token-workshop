@@ -277,3 +277,20 @@
   - Internal calls to `getSelection` from `applyToSelection`/`removeBinding`/`clearAllBindings` use `false` for deep inspect since the controller will call `getSelection` again with the correct flag on the next selection change event anyway.
   - Dependency graph is a clean DAG: controller → {variableSync, styleSync, selectionHandling, heatmapScanning} → {colorUtils, variableUtils, fontLoading, constants}. No circular deps.
 ---
+
+## 2026-03-28 - `TokenEditor.tsx` is 2485 lines — extract form sections (value editors per type, metadata editor, alias picker) into separate components
+- Extracted 6 component files from TokenEditor.tsx, reducing it from 2485 to 835 lines (~66% reduction):
+  - `ValueEditors.tsx` (1011 lines) — all 15+ type-specific sub-editors (ColorEditor, DimensionEditor, TypographyEditor, etc.) plus shared utilities (inputClass, labelClass, StepperInput, ColorSwatchButton)
+  - `AliasPicker.tsx` (218 lines) — alias mode toggle, reference input with autocomplete, cycle detection display, alias chain resolution, chain popover
+  - `ContrastChecker.tsx` (110 lines) — WCAG contrast ratio checker with background token search (all state made local)
+  - `ColorModifiersEditor.tsx` (128 lines) — lighten/darken/alpha/mix modifier list with preview
+  - `TokenDependents.tsx` (101 lines) — "Used by" reverse dependency list with before/after color previews
+  - `MetadataEditor.tsx` (249 lines) — description textarea, Figma variable scopes, mode value overrides, custom $extensions JSON editor
+- Build passes. All state that was only used within a section (showContrast, bgTokenPath, showDependents, showScopes, showModifiers, showChainPopover, etc.) became local state in the extracted components.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenEditor.tsx`, plus 6 new files in the same directory
+- **Learnings for future iterations:**
+  - When extracting sections from a large component, state variables that are only used within one JSX section (toggle booleans, local search queries) can become local state in the extracted component, simplifying the parent's state surface
+  - The MetadataEditor uses a React fragment (`<>...</>`) to return multiple sibling sections without a wrapper div, preserving the original layout structure
+  - `resolveAliasChain` was exported from AliasPicker since it's also needed by the parent component for alias chain display elsewhere
+  - `ColorSwatchButton` was exported from ValueEditors since ColorModifiersEditor also needs it
+---
