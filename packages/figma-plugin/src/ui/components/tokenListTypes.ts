@@ -78,6 +78,8 @@ export interface TokenListData {
   unthemedAllTokensFlat?: Record<string, TokenMapEntry>;
   /** Maps token paths to their source set name */
   pathToSet?: Record<string, string>;
+  /** Currently active theme selections (dimId → optionName) */
+  activeThemes?: Record<string, string>;
 }
 
 export interface TokenListActions {
@@ -215,6 +217,12 @@ export interface TokenTreeContextType {
   showResolvedValues?: boolean;
   /** Pre-computed theme coverage per group: groupPath → { themed, total } */
   themeCoverage?: Map<string, { themed: number; total: number }>;
+  /** Maps token paths to their source set name — for resolution chain debugger */
+  pathToSet?: Record<string, string>;
+  /** Theme dimensions — for resolution chain debugger */
+  dimensions?: ThemeDimension[];
+  /** Currently active theme selections (dimId → optionName) — for resolution chain debugger */
+  activeThemes?: Record<string, string>;
 }
 
 // ---------------------------------------------------------------------------

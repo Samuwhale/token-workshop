@@ -16,3 +16,18 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 
 --- Merging: Interactive scale curve editors: draggable bezier for color ramp lightness distribution, visual staircase for type scale with adjustable ratio ---
 Already up to date.
+[main 0a46454] chore(backlog): done – Interactive scale curve editors: draggable bezier for color ramp lightness distribution, visual staircase for type scale with adjustable ratio
+ 15 files changed, 594 insertions(+), 6 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/generators/BezierCurveEditor.tsx
+ create mode 100644 packages/figma-plugin/src/ui/components/generators/TypeScaleStaircaseEditor.tsx
+
+## 2026-03-28 - Interactive scale curve editors
+- Added draggable cubic bezier curve editor for color ramp lightness distribution and visual staircase editor for type scale ratio adjustment
+- **Color ramp bezier editor**: New `BezierCurveEditor.tsx` component with SVG-based interactive canvas (240x160px). Two draggable control points define a cubic bezier that maps step position to lightness interpolation factor. Features: pointer capture drag, L* labels on sample dots, preset curves (Linear, Ease-in, Ease-out, Perceptual), grid overlay. Added `lightnessCurve?: [number, number, number, number]` to `ColorRampConfig` in both core types and UI types. Generator engine evaluates bezier via Newton-Raphson with bisection fallback when `lightnessCurve` is present, otherwise falls back to legacy `Math.pow(t, 0.85)`.
+- **Type scale staircase editor**: New `TypeScaleStaircaseEditor.tsx` component with SVG canvas (240x140px). Horizontal bars at heights proportional to computed font sizes. Dragging non-base steps recalculates the global ratio via `newRatio = (desiredValue / sourceValue)^(1/relExp)`. Named ratio snap points (Minor 2nd through Golden) with visual indicator. Base step is fixed (highlighted with accent color). Threaded `sourceValue` from `TokenGeneratorDialog` through to `TypeScaleConfigEditor`.
+
+===============================================================
+  Iteration 2 / 90  (claude)  —  70 items remaining
+===============================================================
+  Claimed: Toast stacking system: queue multiple toasts vertically instead of overlapping in the same bottom-left position
+  Worktree: /tmp/backlog-9651-dNyPDk

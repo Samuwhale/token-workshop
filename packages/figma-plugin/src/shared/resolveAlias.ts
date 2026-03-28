@@ -1,4 +1,4 @@
-import type { TokenValue, TokenReference } from '@tokenmanager/core';
+import type { TokenValue, TokenReference, ThemeDimension } from '@tokenmanager/core';
 import type { TokenMapEntry } from './types';
 
 const ALIAS_REGEX = /^\{([^}]+)\}$/;
@@ -79,6 +79,115 @@ export function resolveTokenValue(
     chain,
     error: `Alias chain too deep (>${maxDepth}): ${chain.join(' → ')}`,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Resolution chain debugger — enriched per-hop metadata
+// ---------------------------------------------------------------------------
+
+export interface ResolutionStep {
+  path: string;
+  value: TokenValue | TokenReference | undefined;
+  $type: string;
+  setName?: string;
+  /** Theme dimension name if this set is governed by a theme (e.g. "color-scheme") */
+  themeDimension?: string;
+  /** Theme option name if this set is governed by a theme (e.g. "dark") */
+  themeOption?: string;
+  isThemed: boolean;
+  isError?: boolean;
+  errorMsg?: string;
+}
+
+/**
+ * Build a mapping from set name → { dimensionName, optionName } for quick lookup.
+ * Only includes sets that are 'enabled' (override) in the currently active theme options.
+ */
+export function buildSetThemeMap(
+  dimensions: ThemeDimension[],
+  activeThemes: Record<string, string>,
+): Map<string, { dimensionName: string; optionName: string }> {
+  const map = new Map<string, { dimensionName: string; optionName: string }>();
+  for (const dim of dimensions) {
+    const activeOptionName = activeThemes[dim.id];
+    if (!activeOptionName) continue;
+    const opt = dim.options.find(o => o.name === activeOptionName);
+    if (!opt) continue;
+    for (const [setName, status] of Object.entries(opt.sets)) {
+      if (status === 'enabled') {
+        map.set(setName, { dimensionName: dim.name, optionName: opt.name });
+      }
+    }
+  }
+  return map;
+}
+
+/**
+ * Build the full resolution chain for a token, including per-hop set and theme metadata.
+ * The first step is the token itself; the last step is the final resolved concrete value.
+ */
+export function buildResolutionChain(
+  startPath: string,
+  startValue: TokenValue | TokenReference,
+  startType: string,
+  tokenMap: Record<string, TokenMapEntry>,
+  pathToSet?: Record<string, string>,
+  setThemeMap?: Map<string, { dimensionName: string; optionName: string }>,
+  maxDepth = 10,
+): ResolutionStep[] {
+  const steps: ResolutionStep[] = [];
+
+  const addStep = (path: string, value: TokenValue | TokenReference | undefined, $type: string, error?: string) => {
+    const setName = pathToSet?.[path];
+    const themeInfo = setName && setThemeMap ? setThemeMap.get(setName) : undefined;
+    steps.push({
+      path,
+      value,
+      $type,
+      setName,
+      themeDimension: themeInfo?.dimensionName,
+      themeOption: themeInfo?.optionName,
+      isThemed: !!themeInfo,
+      isError: !!error,
+      errorMsg: error,
+    });
+  };
+
+  // First step: the starting token itself
+  addStep(startPath, startValue, startType);
+
+  if (!isAlias(startValue)) return steps;
+
+  const visited = new Set<string>([startPath]);
+  let current: TokenValue | TokenReference = startValue;
+  let currentType = startType;
+
+  for (let depth = 0; depth < maxDepth; depth++) {
+    const aliasPath = extractAliasPath(current);
+    if (!aliasPath) break;
+
+    if (visited.has(aliasPath)) {
+      addStep(aliasPath, undefined, currentType, `Circular alias`);
+      break;
+    }
+    visited.add(aliasPath);
+
+    const entry = tokenMap[aliasPath];
+    if (!entry) {
+      addStep(aliasPath, undefined, currentType, `Not found`);
+      break;
+    }
+
+    if (entry.$type && entry.$type !== 'unknown') {
+      currentType = entry.$type;
+    }
+    current = entry.$value;
+    addStep(aliasPath, entry.$value, currentType);
+
+    if (!isAlias(current)) break;
+  }
+
+  return steps;
 }
 
 /** Resolve alias strings in the direct properties of a plain object. */

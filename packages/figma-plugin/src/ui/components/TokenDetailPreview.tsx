@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import type { TokenMapEntry } from '../../shared/types';
+import type { ThemeDimension } from '@tokenmanager/core';
 import { TOKEN_TYPE_BADGE_CLASS } from '../../shared/types';
 import { ValuePreview } from './ValuePreview';
-import { resolveAliasChain } from './AliasPicker';
-import { resolveTokenValue, isAlias } from '../../shared/resolveAlias';
-import { formatDisplayPath } from './tokenListUtils';
+import { resolveTokenValue, isAlias, buildResolutionChain, buildSetThemeMap } from '../../shared/resolveAlias';
+import { formatDisplayPath, formatValue } from './tokenListUtils';
 
 interface TokenDetailPreviewProps {
   tokenPath: string;
@@ -12,6 +12,8 @@ interface TokenDetailPreviewProps {
   setName: string;
   allTokensFlat: Record<string, TokenMapEntry>;
   pathToSet?: Record<string, string>;
+  dimensions?: ThemeDimension[];
+  activeThemes?: Record<string, string>;
   onEdit: () => void;
   onClose: () => void;
   onNavigateToAlias?: (path: string) => void;
@@ -23,6 +25,8 @@ export function TokenDetailPreview({
   setName,
   allTokensFlat,
   pathToSet,
+  dimensions,
+  activeThemes,
   onEdit,
   onClose,
   onNavigateToAlias,
@@ -32,10 +36,14 @@ export function TokenDetailPreview({
   const type = entry?.$type ?? 'unknown';
   const rawValue = entry?.$value;
 
-  const aliasChain = useMemo(() => {
+  const setThemeMap = useMemo(
+    () => (dimensions?.length && activeThemes) ? buildSetThemeMap(dimensions, activeThemes) : undefined,
+    [dimensions, activeThemes],
+  );
+  const resolutionSteps = useMemo(() => {
     if (!rawValue || !isAlias(rawValue)) return null;
-    return resolveAliasChain(String(rawValue), allTokensFlat);
-  }, [rawValue, allTokensFlat]);
+    return buildResolutionChain(tokenPath, rawValue, type, allTokensFlat, pathToSet, setThemeMap);
+  }, [tokenPath, rawValue, type, allTokensFlat, pathToSet, setThemeMap]);
 
   const resolved = useMemo(() => {
     if (!rawValue) return null;
@@ -113,33 +121,63 @@ export function TokenDetailPreview({
           </div>
         </div>
 
-        {/* Alias chain */}
-        {aliasChain && aliasChain.length > 0 && (
+        {/* Resolution chain debugger */}
+        {resolutionSteps && resolutionSteps.length >= 2 && (
           <div className="px-3 py-2 border-t border-[var(--color-figma-border)]">
-            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1">Reference chain</div>
-            <div className="flex flex-col gap-0.5">
-              {aliasChain.map((step, i) => (
-                <div key={step.path} className="flex items-center gap-1">
-                  {i > 0 && <span className="text-[8px] text-[var(--color-figma-text-tertiary)]">→</span>}
-                  <button
-                    className="text-[10px] font-mono text-[var(--color-figma-accent)] hover:underline truncate text-left"
-                    onClick={() => onNavigateToAlias?.(step.path)}
-                    title={step.path}
-                  >
-                    {step.path}
-                  </button>
-                </div>
-              ))}
+            <div className="text-[10px] font-semibold text-[var(--color-figma-text-secondary)] uppercase tracking-wider mb-1.5">Resolution chain</div>
+            <div className="flex flex-col gap-1">
+              {resolutionSteps.map((step, i) => {
+                const isFirst = i === 0;
+                const isLast = i === resolutionSteps.length - 1;
+                const isConcrete = isLast && !step.isError && step.value != null && !isAlias(step.value);
+                return (
+                  <div key={step.path + i} className="flex items-start gap-1.5">
+                    {/* Step connector */}
+                    <div className="flex flex-col items-center pt-1 shrink-0 w-2.5">
+                      {isFirst ? (
+                        <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]" />
+                      ) : (
+                        <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><path d="M4 0v4M1 4l3 4 3-4"/></svg>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                      {/* Token path */}
+                      {isFirst ? (
+                        <span className="text-[10px] font-mono text-[var(--color-figma-accent)] truncate">{step.path}</span>
+                      ) : (
+                        <button
+                          className={`text-[10px] font-mono truncate text-left ${step.isError ? 'text-[var(--color-figma-error)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline'}`}
+                          onClick={() => !step.isError && onNavigateToAlias?.(step.path)}
+                          title={step.isError ? step.errorMsg : step.path}
+                        >
+                          {step.path}
+                        </button>
+                      )}
+                      {/* Metadata pills */}
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {step.setName && (
+                          <span className="text-[8px] px-1 py-px rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] font-medium">{step.setName}</span>
+                        )}
+                        {step.isThemed && step.themeDimension && step.themeOption && (
+                          <span className="text-[8px] px-1 py-px rounded bg-[var(--color-figma-accent-bg,rgba(24,119,232,0.1))] text-[var(--color-figma-accent)] font-medium">
+                            {step.themeDimension}:{step.themeOption}
+                          </span>
+                        )}
+                        {isConcrete && (
+                          <span className="flex items-center gap-1">
+                            <ValuePreview type={step.$type} value={step.value} />
+                            <span className="text-[10px] font-mono text-[var(--color-figma-text)] font-medium">{formatValue(step.$type, step.value)}</span>
+                          </span>
+                        )}
+                        {step.isError && (
+                          <span className="text-[8px] text-[var(--color-figma-error)] italic">{step.errorMsg}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            {resolvedValueStr && (
-              <div className="mt-1.5">
-                <div className="text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5">Resolved</div>
-                <div className="flex items-center gap-1.5">
-                  <ValuePreview type={type} value={resolvedValue} />
-                  <span className="text-[10px] font-mono text-[var(--color-figma-text)] truncate">{resolvedValueStr}</span>
-                </div>
-              </div>
-            )}
           </div>
         )}
 

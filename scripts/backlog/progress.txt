@@ -494,3 +494,19 @@
   - Type scale ratio can be reverse-solved from any non-base step: `ratio = (desiredVal / baseVal)^(1/exponent)` — but the base step (exponent 0) cannot change ratio
   - Named ratio snap points improve usability significantly for type scales
 ---
+
+## 2026-03-28 - Token resolution chain debugger
+- Implemented full resolution chain debugger showing per-hop alias/theme resolution metadata
+- Added `buildResolutionChain()` and `buildSetThemeMap()` to `resolveAlias.ts` — returns `ResolutionStep[]` with path, value, $type, setName, themeDimension, themeOption per hop
+- Enhanced inline chain expansion in `TokenTreeNode.tsx` — replaced flat chain strip with vertical step-by-step debugger showing: step connectors, clickable token paths, set name pills, theme dimension:option pills (e.g. "color-scheme:dark"), and final resolved value with swatch
+- Updated hover tooltip to use `resolutionSteps` instead of flat `aliasChain` — now shows theme option badges inline
+- Updated chain badge from "Nx" text to a link icon with hop count, accessible for any alias (1+ hops, not just 2+)
+- Enhanced `TokenDetailPreview.tsx` "Reference chain" section to show the same enriched resolution chain with set/theme metadata
+- Made virtual scroll chain height dynamic — computes per-token step count instead of fixed 24px
+- Wired `pathToSet`, `dimensions`, `activeThemes` through `TokenTreeContextType` and `TokenListData`
+- Files changed: `packages/figma-plugin/src/shared/resolveAlias.ts` ~L17-100 (new types + functions), `packages/figma-plugin/src/ui/components/TokenTreeNode.tsx` ~L1-7,133,239-263,1337-1358,1666-1723 (imports, context, chain computation, badge, tooltip, expansion), `packages/figma-plugin/src/ui/components/tokenListTypes.ts` ~L48,80,217-219 (context type + data type), `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L26,43,686-700,2051-2069 (imports, data prop, offsets, context value), `packages/figma-plugin/src/ui/components/TokenDetailPreview.tsx` ~L1-48,116-175 (enriched chain), `packages/figma-plugin/src/ui/App.tsx` ~L2144,2178,2480 (pass activeThemes + dimensions)
+- **Learnings for future iterations:**
+  - `buildSetThemeMap` pre-computes set→dimension/option mapping from dimensions + activeThemes — cheap O(dims × options × sets) and should be memoized once per render cycle, not per node
+  - Virtual scroll height for chain expansion should be dynamic: `stepCount * 18px` where stepCount = 1 + chain.length (self + hops)
+  - The existing `showChainBadge` required 2+ hops — the debugger is useful even for single-hop aliases to see set/theme context
+---

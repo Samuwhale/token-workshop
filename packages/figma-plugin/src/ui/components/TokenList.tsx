@@ -23,7 +23,7 @@ import type { TokenGenerator } from '../hooks/useGenerators';
 import type { LintViolation } from '../hooks/useLint';
 import type { TokenListProps, DeleteConfirm, PromoteRow, MultiModeValue, Density } from './tokenListTypes';
 import { VIRTUAL_CHAIN_EXPAND_HEIGHT, VIRTUAL_OVERSCAN, DENSITY_ROW_HEIGHT } from './tokenListTypes';
-import { resolveAllAliases } from '../../shared/resolveAlias';
+import { resolveAllAliases, isAlias, resolveTokenValue } from '../../shared/resolveAlias';
 import { validateJsonRefs, valuesEqual, parseInlineValue, inferTypeFromValue, highlightMatch, generateNameSuggestions } from './tokenListHelpers';
 import { ValuePreview } from './ValuePreview';
 import { TokenTreeNode } from './TokenTreeNode';
@@ -40,7 +40,7 @@ import { useDragDrop } from '../hooks/useDragDrop';
 
 export function TokenList({
   ctx: { setName, sets, serverUrl, connected, selectedNodes },
-  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {} },
+  data: { tokens, allTokensFlat, lintViolations = [], syncSnapshot, generators, derivedTokenPaths, cascadeDiff, tokenUsageCounts, perSetFlat, collectionMap = {}, modeMap = {}, dimensions = [], unthemedAllTokensFlat, pathToSet = {}, activeThemes = {} },
   actions: { onEdit, onPreview, onCreateNew, onRefresh, onPushUndo, onTokenCreated, onNavigateToAlias, onNavigateBack, navHistoryLength, onClearHighlight, onSyncGroup, onSyncGroupStyles, onSetGroupScopes, onGenerateScaleFromGroup, onRefreshGenerators, onToggleIssuesOnly, onFilteredCountChange, onNavigateToSet, onTokenTouched, onError },
   defaultCreateOpen,
   highlightedToken,
@@ -682,18 +682,27 @@ export function TokenList({
   }, []);
 
   // Cumulative row offsets for variable-height virtual scroll.
-  // Each item is rowHeight px (density-dependent), plus VIRTUAL_CHAIN_EXPAND_HEIGHT when its chain panel is open.
+  // Each item is rowHeight px (density-dependent), plus dynamic chain height when its chain panel is open.
+  // Chain height = 18px per resolution step (each step is a row in the debugger).
+  const CHAIN_STEP_HEIGHT = 18;
   const itemOffsets = useMemo(() => {
     const offsets = new Array<number>(flatItems.length + 1);
     offsets[0] = 0;
     for (let i = 0; i < flatItems.length; i++) {
-      const h = expandedChains.has(flatItems[i].node.path)
-        ? rowHeight + VIRTUAL_CHAIN_EXPAND_HEIGHT
-        : rowHeight;
+      let h = rowHeight;
+      const item = flatItems[i];
+      if (expandedChains.has(item.node.path) && isAlias(item.node.$value)) {
+        const result = resolveTokenValue(item.node.$value, item.node.$type || 'unknown', allTokensFlat);
+        // steps = 1 (self) + chain.length hops; if not an alias, result is null and we skip
+        const stepCount = 1 + (result?.chain?.length ?? 0);
+        h += Math.max(stepCount * CHAIN_STEP_HEIGHT, VIRTUAL_CHAIN_EXPAND_HEIGHT);
+      } else if (expandedChains.has(item.node.path)) {
+        h += VIRTUAL_CHAIN_EXPAND_HEIGHT;
+      }
       offsets[i + 1] = offsets[i] + h;
     }
     return offsets;
-  }, [flatItems, expandedChains, rowHeight]);
+  }, [flatItems, expandedChains, rowHeight, allTokensFlat]);
   // Sync refs so filter callbacks can read latest values without stale closure issues
   flatItemsRef.current = flatItems;
   itemOffsetsRef.current = itemOffsets;
@@ -2052,6 +2061,9 @@ export function TokenList({
     onMultiModeInlineSave: multiModeData ? handleMultiModeInlineSave : undefined,
     showResolvedValues,
     themeCoverage,
+    pathToSet,
+    dimensions,
+    activeThemes,
   }), [
     density, setName, selectionCapabilities, allTokensFlat, selectMode, expandedPaths,
     duplicateCounts, highlightedToken, inspectMode, syncSnapshot, cascadeDiff,
@@ -2068,6 +2080,7 @@ export function TokenList({
     handleDragStart, handleDragEnd, handleDragOverGroup, handleDropOnGroup,
     handleDragOverToken, handleDragLeaveToken, handleDropReorder,
     multiModeData, handleMultiModeInlineSave, showResolvedValues, themeCoverage,
+    pathToSet, dimensions, activeThemes,
   ]);
 
   return (

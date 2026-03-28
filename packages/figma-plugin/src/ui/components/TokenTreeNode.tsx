@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect, useRef, useLayoutEffect, Fragment } from 'react';
+import { useState, useCallback, useEffect, useRef, useLayoutEffect, useMemo, Fragment } from 'react';
 import { TokenTreeNodeProps, DENSITY_PY_CLASS, DENSITY_SWATCH_SIZE } from './tokenListTypes';
 import type { TokenMapEntry } from '../../shared/types';
 import { TOKEN_PROPERTY_MAP, TOKEN_TYPE_BADGE_CLASS, PROPERTY_LABELS } from '../../shared/types';
 import type { BindableProperty } from '../../shared/types';
-import { isAlias, resolveTokenValue } from '../../shared/resolveAlias';
+import { isAlias, resolveTokenValue, buildResolutionChain, buildSetThemeMap } from '../../shared/resolveAlias';
+import type { ResolutionStep } from '../../shared/resolveAlias';
 import { stableStringify } from '../shared/utils';
 import { countTokensInGroup, formatDisplayPath, nodeParentPath, formatValue, countLeaves } from './tokenListUtils';
 import { getEditableString, parseInlineValue, inferGroupTokenType, highlightMatch } from './tokenListHelpers';
@@ -130,6 +131,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
     onDragOverToken, onDragLeaveToken, onDropOnToken,
     onMultiModeInlineSave,
     showResolvedValues,
+    pathToSet, dimensions, activeThemes,
   } = ctx;
 
   const pyClass = DENSITY_PY_CLASS[density];
@@ -248,6 +250,19 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   const aliasChainLabel = isAlias(node.$value) && !isBrokenAlias
     ? [node.path, ...aliasChain, formatValue(node.$type, displayValue)].join(' → ')
     : null;
+
+  // Enriched resolution chain with per-hop set/theme metadata (for debugger view)
+  const setThemeMap = useMemo(
+    () => (dimensions?.length && activeThemes) ? buildSetThemeMap(dimensions, activeThemes) : undefined,
+    [dimensions, activeThemes],
+  );
+  const resolutionSteps: ResolutionStep[] | null = useMemo(() => {
+    if (!isAlias(node.$value) || node.isGroup) return null;
+    return buildResolutionChain(
+      node.path, node.$value, node.$type || 'unknown',
+      allTokensFlat, pathToSet, setThemeMap,
+    );
+  }, [node.path, node.$value, node.$type, node.isGroup, allTokensFlat, pathToSet, setThemeMap]);
 
   // Inline quick-edit eligibility
   const canInlineEdit = !node.isGroup && !isAlias(node.$value) && !!node.$type
@@ -1334,12 +1349,15 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
             {count && (
               <span className="w-2 h-2 rounded-full bg-[var(--color-figma-accent)] shrink-0" title={`${count} tokens share this value`} />
             )}
-            {showChainBadge && !showResolvedValues && (
+            {resolutionSteps && resolutionSteps.length >= 2 && !showResolvedValues && (
               <button
-                className={`text-[8px] shrink-0 px-0.5 rounded transition-colors ${chainExpanded ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]'}`}
-                title={chainExpanded ? 'Collapse reference chain' : `Show reference chain (${aliasChain.length} hops)`}
+                className={`text-[8px] shrink-0 px-0.5 rounded transition-colors flex items-center gap-0.5 ${chainExpanded ? 'text-[var(--color-figma-accent)]' : 'text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-accent)]'}`}
+                title={chainExpanded ? 'Collapse resolution chain' : `Show resolution chain (${resolutionSteps.length - 1} hop${resolutionSteps.length > 2 ? 's' : ''})`}
                 onClick={e => { e.stopPropagation(); onToggleChain?.(node.path); }}
-              >{aliasChain.length}×</button>
+              >
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                {resolutionSteps.length - 1}
+              </button>
             )}
             {cascadeChange && (
               <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" title={`Would change: ${formatValue(node.$type, cascadeChange.before)} → ${formatValue(node.$type, cascadeChange.after)}`} />
@@ -1664,61 +1682,102 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
       )}
 
       {/* Alias resolution chain tooltip — visible on row hover */}
-      {hovered && aliasChainLabel && (
+      {hovered && resolutionSteps && resolutionSteps.length >= 2 && !isBrokenAlias && (
         <div className="absolute left-4 right-4 bottom-full z-20" style={{ marginBottom: '-2px' }}>
           <div className="inline-flex items-center gap-1 px-2 py-1 rounded shadow-md border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] text-[10px] font-mono text-[var(--color-figma-text-secondary)] whitespace-nowrap max-w-full overflow-hidden">
-            {[node.path, ...aliasChain].map((seg, i, arr) => (
-              <Fragment key={i}>
-                {i === 0 ? (
-                  <span className="text-[var(--color-figma-accent)]">{seg}</span>
-                ) : (
-                  <button
-                    className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline cursor-pointer transition-colors"
-                    onClick={() => onNavigateToAlias?.(seg, node.path)}
-                    title={`Navigate to ${seg}`}
-                  >{seg}</button>
-                )}
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><path d="M1 4h6M4 1l3 3-3 3"/></svg>
-              </Fragment>
-            ))}
-            <span className="text-[var(--color-figma-text)] font-medium">{formatValue(node.$type, displayValue)}</span>
+            {resolutionSteps.map((step, i) => {
+              const isLast = i === resolutionSteps.length - 1;
+              const isConcrete = isLast && !step.isError && step.value != null && !isAlias(step.value);
+              return (
+                <Fragment key={i}>
+                  {i > 0 && (
+                    <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="shrink-0 text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><path d="M1 4h6M4 1l3 3-3 3"/></svg>
+                  )}
+                  {i === 0 ? (
+                    <span className="text-[var(--color-figma-accent)]">{step.path}</span>
+                  ) : isConcrete ? (
+                    <span className="text-[var(--color-figma-text)] font-medium">{formatValue(step.$type, step.value)}</span>
+                  ) : (
+                    <button
+                      className="text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline cursor-pointer transition-colors"
+                      onClick={() => onNavigateToAlias?.(step.path, node.path)}
+                      title={`Navigate to ${step.path}`}
+                    >{step.path}</button>
+                  )}
+                  {step.isThemed && (
+                    <span className="text-[8px] px-0.5 text-[var(--color-figma-accent)] font-sans not-italic">
+                      {step.themeOption}
+                    </span>
+                  )}
+                </Fragment>
+              );
+            })}
           </div>
         </div>
       )}
     </div>
 
-    {/* Inline alias chain expansion */}
-    {showChainBadge && chainExpanded && (
+    {/* Resolution chain debugger — shows full alias/theme resolution pipeline */}
+    {resolutionSteps && resolutionSteps.length >= 2 && chainExpanded && (
       <div
-        className="flex items-center flex-wrap gap-1 px-2 py-1 bg-[var(--color-figma-bg-hover)] border-t border-[var(--color-figma-border)]"
-        style={{ paddingLeft: `${depth * 16 + 20}px` }}
+        className="flex flex-col bg-[var(--color-figma-bg-secondary)] border-t border-[var(--color-figma-border)]"
+        style={{ paddingLeft: `${depth * 16 + 12}px` }}
       >
-        <span className="text-[10px] text-[var(--color-figma-text-secondary)] font-medium shrink-0">Chain:</span>
-        <span className="text-[10px] text-[var(--color-figma-accent)] font-mono shrink-0">{node.path}</span>
-        {aliasChain.map((hop, i) => (
-          <Fragment key={hop}>
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-secondary)] shrink-0">
-              <path d="M1 4h6M4 1l3 3-3 3"/>
-            </svg>
-            <button
-              className="text-[10px] font-mono text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] shrink-0 transition-colors"
-              onClick={() => onNavigateToAlias?.(hop, node.path)}
-              title={`Navigate to ${hop}`}
-            >
-              {hop}
-            </button>
-            {i === aliasChain.length - 1 && (
-              <>
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-secondary)] shrink-0">
-                  <path d="M1 4h6M4 1l3 3-3 3"/>
-                </svg>
-                <span className="text-[10px] text-[var(--color-figma-text)] font-mono shrink-0">
-                  {formatValue(node.$type, displayValue)}
+        {resolutionSteps.map((step, i) => {
+          const isFirst = i === 0;
+          const isLast = i === resolutionSteps.length - 1;
+          const isConcrete = isLast && !step.isError;
+          return (
+            <div key={step.path + i} className="flex items-center gap-1 py-0.5 px-2 min-h-[18px]">
+              {/* Step connector */}
+              <div className="flex items-center gap-0.5 shrink-0 w-3 justify-center">
+                {isFirst ? (
+                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-figma-accent)]" />
+                ) : (
+                  <svg width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-[var(--color-figma-text-tertiary)]" aria-hidden="true"><path d="M4 0v4M1 4l3 4 3-4"/></svg>
+                )}
+              </div>
+
+              {/* Token path — clickable to navigate */}
+              {!isFirst ? (
+                <button
+                  className={`text-[10px] font-mono shrink-0 transition-colors ${step.isError ? 'text-[var(--color-figma-error)]' : 'text-[var(--color-figma-text-secondary)] hover:text-[var(--color-figma-accent)] hover:underline'}`}
+                  onClick={() => !step.isError && onNavigateToAlias?.(step.path, node.path)}
+                  title={step.isError ? step.errorMsg : `Navigate to ${step.path}`}
+                >
+                  {step.path}
+                </button>
+              ) : (
+                <span className="text-[10px] font-mono text-[var(--color-figma-accent)] shrink-0">{step.path}</span>
+              )}
+
+              {/* Set name pill */}
+              {step.setName && (
+                <span className="text-[8px] px-1 py-px rounded bg-[var(--color-figma-bg-hover)] text-[var(--color-figma-text-tertiary)] shrink-0 font-medium">{step.setName}</span>
+              )}
+
+              {/* Theme dimension:option pill */}
+              {step.isThemed && step.themeDimension && step.themeOption && (
+                <span className="text-[8px] px-1 py-px rounded bg-[var(--color-figma-accent-bg,rgba(24,119,232,0.1))] text-[var(--color-figma-accent)] shrink-0 font-medium">
+                  {step.themeDimension}:{step.themeOption}
                 </span>
-              </>
-            )}
-          </Fragment>
-        ))}
+              )}
+
+              {/* Concrete resolved value on the last step */}
+              {isConcrete && step.value != null && !isAlias(step.value) && (
+                <span className="flex items-center gap-1 ml-auto shrink-0">
+                  <ValuePreview type={step.$type} value={step.value} size={12} />
+                  <span className="text-[10px] font-mono text-[var(--color-figma-text)] font-medium">{formatValue(step.$type, step.value)}</span>
+                </span>
+              )}
+
+              {/* Error indicator */}
+              {step.isError && (
+                <span className="text-[8px] text-[var(--color-figma-error)] italic">{step.errorMsg}</span>
+              )}
+            </div>
+          );
+        })}
       </div>
     )}
     </div>

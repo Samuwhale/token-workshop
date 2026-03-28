@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: opus — Max iterations: 90
 ===============================================================
   Claimed: Token resolution chain debugger: click a bound layer → see full resolution chain (e.g. `color.bg.card` → alias `color.neutral.100` → theme:dark → `#1E1E1E`) in one glance
   Worktree: /tmp/backlog-9231-C90ey2
+
+  ✓ done: Token resolution chain debugger
+    Implemented full resolution chain debugger: click chain badge on any alias token to see vertical step-by-step resolution with per-hop set name pills, theme dimension:option badges, clickable navigation, and final resolved value with swatch. Also enhanced hover tooltip and TokenDetailPreview with the same enriched chain data.
+    69 turns · 651s · $4
+
+--- Merging: Token resolution chain debugger ---
+Already up to date.
