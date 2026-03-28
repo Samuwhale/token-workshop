@@ -453,3 +453,12 @@
   - Figma's plugin sandbox only works with sRGB {r,g,b} floats, so wide-gamut colors must be gamut-mapped when syncing to Figma. The original CSS Color 4 value stays in the DTCG token; Figma gets the closest sRGB approximation.
   - The plugin sandbox cannot import from @tokenmanager/core (different bundle), so OKLab→sRGB math must be duplicated inline in plugin/colorUtils.ts.
 ---
+
+## 2026-03-28 - No live typography preview in the editor
+- Added a live preview block to `TypographyEditor` that renders sample text ("The quick brown fox…") with the current font-family, size, weight, line-height, and letter-spacing values. Preview updates in real-time as properties change. Sample text is user-editable via an input field below the preview.
+- Added `resolveTypographyValue` helper to resolve alias references (e.g., `{heading.size}`) to their actual values for preview rendering.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L344-510
+- **Learnings for future iterations:**
+  - Typography CSS properties map directly from DTCG token values — `fontSize` objects have `{value, unit}`, weight is numeric, lineHeight can be unitless or object-form.
+  - Token alias resolution for preview purposes only needs single-level dereference (resolve `{path}` → `allTokensFlat[path].$value`), not recursive resolution.
+---

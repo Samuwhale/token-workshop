@@ -294,3 +294,25 @@ Already up to date.
 
 --- Merging: No wide-gamut color support ---
 Already up to date.
+[main c095bb7] chore(backlog): done – No wide-gamut color support
+ 21 files changed, 1145 insertions(+), 75 deletions(-)
+ create mode 100644 packages/core/src/color-parse.ts
+ create mode 100644 packages/figma-plugin/src/ui/components/GamutIndicator.tsx
+
+## 2026-03-28 - No wide-gamut color support
+- Added full CSS Color Module 4 support: parsing, gamut detection, sRGB fallback, and OKLCh/OKLAB/Display P3 color spaces
+- Created `packages/core/src/color-parse.ts` — universal color parser/serializer with ParsedColor type, OKLAB/OKLCh math (Bjorn Ottosson matrices), gamut mapping via binary search on OKLCh chroma, conversions between all supported spaces
+- Exported new functions from `packages/core/src/index.ts`: parseAnyColor, exceedsSrgb, isWideGamut, srgbFallbackHex, toOklch, toSrgb, toDisplayP3, toHex, serializeColor, etc.
+
+===============================================================
+  Iteration 15 / 90  (claude)  —  7 items remaining
+===============================================================
+  Claimed: No live typography preview in the editor — TypographyEditor shows form fields for font-family, size, weight, line-height, etc. but no rendered text sample; add a preview block showing "The quick brown fox" (or user-configurable sample text) rendered with the current values, updating in real-time as properties change
+  Worktree: /tmp/backlog-34977-dFHjWU
+
+  ✓ done: No live typography preview in the editor
+    Added live preview block to TypographyEditor showing sample text rendered with current font-family, size, weight, line-height, and letter-spacing values, updating in real-time. Sample text is user-configurable via an input field.
+    18 turns · 142s · $0.72
+
+--- Merging: No live typography preview in the editor ---
+Already up to date.

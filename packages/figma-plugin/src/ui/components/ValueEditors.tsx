@@ -1,4 +1,4 @@
-import { useState, useRef, type Ref } from 'react';
+import { useState, useRef, useMemo, type Ref } from 'react';
 import { evalExpr, isFormula } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { AliasAutocomplete } from './AliasAutocomplete';
@@ -341,12 +341,71 @@ function SubPropInput({
   );
 }
 
+function resolveTypographyValue(raw: unknown, allTokensFlat: Record<string, TokenMapEntry>): unknown {
+  if (typeof raw === 'string' && raw.startsWith('{') && raw.endsWith('}')) {
+    const refPath = raw.slice(1, -1);
+    const entry = allTokensFlat[refPath];
+    if (entry) return entry.$value;
+  }
+  return raw;
+}
+
 export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fontFamilyRef, fontSizeRef }: { value: any; onChange: (v: any) => void; allTokensFlat: Record<string, TokenMapEntry>; pathToSet: Record<string, string>; fontFamilyRef?: Ref<HTMLInputElement>; fontSizeRef?: Ref<HTMLInputElement> }) {
   const val = typeof value === 'object' ? value : {};
   const update = (key: string, v: any) => onChange({ ...val, [key]: v });
   const isFontSizeAlias = typeof val.fontSize === 'string' && val.fontSize.startsWith('{');
   const fontSize = !isFontSizeAlias && typeof val.fontSize === 'object' ? val.fontSize : { value: val.fontSize ?? 16, unit: 'px' };
   const isFontWeightAlias = typeof val.fontWeight === 'string' && val.fontWeight.startsWith('{');
+
+  const [sampleText, setSampleText] = useState('The quick brown fox jumps over the lazy dog');
+
+  const previewStyle = useMemo(() => {
+    const resolvedFamily = resolveTypographyValue(val.fontFamily, allTokensFlat);
+    const family = Array.isArray(resolvedFamily) ? resolvedFamily[0] : (resolvedFamily || 'sans-serif');
+
+    const resolvedSize = resolveTypographyValue(val.fontSize, allTokensFlat);
+    let sizeStr = '16px';
+    if (typeof resolvedSize === 'object' && resolvedSize !== null && 'value' in resolvedSize) {
+      const s = resolvedSize as { value: number; unit?: string };
+      sizeStr = `${s.value}${s.unit || 'px'}`;
+    } else if (typeof resolvedSize === 'number') {
+      sizeStr = `${resolvedSize}px`;
+    } else if (typeof resolvedSize === 'string' && !resolvedSize.startsWith('{')) {
+      sizeStr = resolvedSize;
+    }
+
+    const resolvedWeight = resolveTypographyValue(val.fontWeight, allTokensFlat);
+    const weight = typeof resolvedWeight === 'number' ? resolvedWeight : (parseInt(String(resolvedWeight)) || 400);
+
+    const resolvedLH = resolveTypographyValue(val.lineHeight, allTokensFlat);
+    let lineHeight: string | number = 1.5;
+    if (typeof resolvedLH === 'object' && resolvedLH !== null && 'value' in resolvedLH) {
+      lineHeight = (resolvedLH as { value: number }).value;
+    } else if (typeof resolvedLH === 'number') {
+      lineHeight = resolvedLH;
+    } else if (typeof resolvedLH === 'string' && !resolvedLH.startsWith('{')) {
+      lineHeight = resolvedLH;
+    }
+
+    const resolvedLS = resolveTypographyValue(val.letterSpacing, allTokensFlat);
+    let letterSpacing = '0px';
+    if (typeof resolvedLS === 'object' && resolvedLS !== null && 'value' in resolvedLS) {
+      const ls = resolvedLS as { value: number; unit?: string };
+      letterSpacing = `${ls.value}${ls.unit || 'px'}`;
+    } else if (typeof resolvedLS === 'number') {
+      letterSpacing = `${resolvedLS}px`;
+    } else if (typeof resolvedLS === 'string' && !resolvedLS.startsWith('{')) {
+      letterSpacing = resolvedLS;
+    }
+
+    return {
+      fontFamily: String(family),
+      fontSize: sizeStr,
+      fontWeight: weight,
+      lineHeight,
+      letterSpacing,
+    } as React.CSSProperties;
+  }, [val.fontFamily, val.fontSize, val.fontWeight, val.lineHeight, val.letterSpacing, allTokensFlat]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -449,6 +508,28 @@ export function TypographyEditor({ value, onChange, allTokensFlat, pathToSet, fo
             placeholder="0"
           />
         </div>
+      </div>
+      {/* Live typography preview */}
+      <div className="mt-1">
+        <div className={labelClass}>Preview</div>
+        <div
+          className="rounded border border-[var(--color-figma-border)] bg-[var(--color-figma-bg)] p-3 overflow-hidden"
+          style={previewStyle}
+        >
+          <div
+            className="text-[var(--color-figma-text)] break-words"
+            style={previewStyle}
+          >
+            {sampleText}
+          </div>
+        </div>
+        <input
+          type="text"
+          value={sampleText}
+          onChange={e => setSampleText(e.target.value)}
+          className={inputClass + ' mt-1'}
+          placeholder="Sample text…"
+        />
       </div>
     </div>
   );
