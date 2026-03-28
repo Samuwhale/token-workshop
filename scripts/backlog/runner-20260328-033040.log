@@ -175,3 +175,9 @@ Already up to date.
 - Added generation counter (`flatFetchGenRef`) to discard stale responses from overlapping fetches. Each effect invocation increments the counter; `.then()` and `.catch()` callbacks bail out if the counter has advanced.
 - Files changed: `packages/figma-plugin/src/ui/App.tsx` ~L253 (ref declaration), ~L408 (generation guard in useEffect)
 - **Learnings for future iterations:**
+
+===============================================================
+  Iteration 9 / 90  (claude)  —  91 items remaining
+===============================================================
+  Claimed: `ColorPicker` initializes HSL state from props but never syncs — `useState(hexToHsl(value))` only runs the initializer once; if the parent changes the `value` prop, the picker's internal hue/sat/lit state won't update
+  Worktree: /tmp/backlog-84992-rkJnMb

@@ -332,6 +332,7 @@ export function useGeneratorDialog({
           return;
         }
       }
+      setSaving(false);
       onSaved({ targetGroup: targetGroup.trim() });
     } catch (err) {
       setSaveError(getErrorMessage(err));

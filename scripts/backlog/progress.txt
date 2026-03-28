@@ -384,3 +384,10 @@
 - **Learnings for future iterations:**
   - When adding new `GeneratorType` variants in core, all switch/map lookups in UI must be updated — search for `GeneratorType` across the plugin to find them all.
 ---
+
+## 2026-03-28 - `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path
+- Added `setSaving(false)` before `onSaved()` on the non-mapping success path (line ~335). The semantic-mapping path already reset it; only the fallthrough to `onSaved` was missing the reset.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L335
+- **Learnings for future iterations:**
+  - When a state flag (like `saving`) is set at the top of an async handler, audit every exit path — early returns, branching success paths, and catch blocks — to ensure it gets reset.
+---

@@ -96,3 +96,16 @@ Already up to date.
 
 --- Merging: `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale` ---
 Already up to date.
+[main 54d927e] chore(backlog): done – `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale`
+ 6 files changed, 27 insertions(+), 2 deletions(-)
+
+## 2026-03-28 - `getGeneratorTypeLabel` in `GraphPanel.tsx` missing cases for `accessibleColorPair`, `darkModeInversion`, `responsiveScale`
+- Added three missing switch cases (`accessibleColorPair` → "Accessible color pair", `darkModeInversion` → "Dark mode inversion", `responsiveScale` → "Responsive scale") and a `default` branch that falls back to the raw type string to prevent future `undefined` rendering.
+- Files changed: `packages/figma-plugin/src/ui/components/GraphPanel.tsx` ~L181
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 6 / 90  (claude)  —  90 items remaining
+===============================================================
+  Claimed: CSS selector injection in export — `cssSelector` from request body is passed directly to Style Dictionary with no sanitization
+  Worktree: /tmp/backlog-92630-9uixbE

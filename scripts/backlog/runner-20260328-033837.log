@@ -30,3 +30,10 @@ Already up to date.
 ===============================================================
   Claimed: `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path — if `onSaved` doesn't unmount the component, the save button stays disabled permanently
   Worktree: /tmp/backlog-10278-ydySHW
+
+  ✓ done: `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path
+    Added `setSaving(false)` before `onSaved()` on the non-mapping success path — the only exit path that was missing the reset.
+    7 turns · 33s · $0.23
+
+--- Merging: `handleSave` in `useGeneratorDialog` doesn't reset `saving` state on non-mapping success path ---
+Already up to date.
