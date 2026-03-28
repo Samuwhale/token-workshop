@@ -225,6 +225,7 @@ interface CreateBody {
 interface PreviewBody {
   type: string;
   sourceToken?: string;
+  sourceValue?: unknown;
   targetGroup?: string;
   targetSet?: string;
   config?: Record<string, unknown>;
@@ -350,6 +351,7 @@ export const generatorRoutes: FastifyPluginAsync = async (fastify) => {
           overrides: body.overrides,
         },
         fastify.tokenStore,
+        body.sourceValue,
       );
       return { count: results.length, tokens: results };
     } catch (err) {

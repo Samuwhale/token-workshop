@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { getErrorMessage } from '../shared/utils';
 import { apiFetch } from '../shared/apiFetch';
 import { flattenTokenGroup } from '@tokenmanager/core';
-import type { GeneratorType, GeneratorConfig, GeneratedTokenResult } from './useGenerators';
+import type { GeneratorType, GeneratorConfig, GeneratedTokenResult, InputTable } from './useGenerators';
 import type { OverwrittenEntry } from './useGeneratorDialog';
 
 interface UseGeneratorPreviewParams {
@@ -14,6 +14,7 @@ interface UseGeneratorPreviewParams {
   config: GeneratorConfig;
   pendingOverrides: Record<string, { value: unknown; locked: boolean }>;
   isMultiBrand: boolean;
+  inputTable?: InputTable;
 }
 
 export interface UseGeneratorPreviewReturn {
@@ -22,6 +23,8 @@ export interface UseGeneratorPreviewReturn {
   previewError: string;
   existingTokensError: string;
   overwrittenEntries: OverwrittenEntry[];
+  /** Brand name used for the preview sample, if multi-brand */
+  previewBrand: string | undefined;
 }
 
 export function useGeneratorPreview({
@@ -33,6 +36,7 @@ export function useGeneratorPreview({
   config,
   pendingOverrides,
   isMultiBrand,
+  inputTable,
 }: UseGeneratorPreviewParams): UseGeneratorPreviewReturn {
   const [previewTokens, setPreviewTokens] = useState<GeneratedTokenResult[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -44,9 +48,16 @@ export function useGeneratorPreview({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  // For multi-brand, find the first row with a usable input value
+  const firstBrandRow = useMemo(() => {
+    if (!isMultiBrand || !inputTable || inputTable.rows.length === 0) return undefined;
+    return inputTable.rows.find(r => r.brand.trim() && r.inputs[inputTable.inputKey] !== undefined);
+  }, [isMultiBrand, inputTable]);
+
   // Debounced preview fetch
   const fetchPreview = useCallback(() => {
-    if (isMultiBrand) {
+    // For multi-brand without any usable brand row, skip preview
+    if (isMultiBrand && !firstBrandRow) {
       setPreviewTokens([]);
       setPreviewError('');
       return;
@@ -59,14 +70,19 @@ export function useGeneratorPreview({
       setPreviewLoading(true);
       setPreviewError('');
       try {
-        const body = {
+        const body: Record<string, unknown> = {
           type: selectedType,
-          sourceToken: sourceTokenPath || undefined,
           targetGroup,
           targetSet,
           config,
           overrides: Object.keys(pendingOverrides).length > 0 ? pendingOverrides : undefined,
         };
+        if (isMultiBrand && firstBrandRow) {
+          // Use the first brand's input value as the source for a representative preview
+          body.sourceValue = firstBrandRow.inputs[inputTable!.inputKey];
+        } else {
+          body.sourceToken = sourceTokenPath || undefined;
+        }
         const data = await apiFetch<{ count: number; tokens: GeneratedTokenResult[] }>(
           `${serverUrl}/api/generators/preview`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal },
@@ -80,7 +96,7 @@ export function useGeneratorPreview({
         setPreviewLoading(false);
       }
     }, 300);
-  }, [serverUrl, selectedType, sourceTokenPath, targetGroup, targetSet, config, pendingOverrides, isMultiBrand]);
+  }, [serverUrl, selectedType, sourceTokenPath, targetGroup, targetSet, config, pendingOverrides, isMultiBrand, firstBrandRow, inputTable]);
 
   useEffect(() => {
     fetchPreview();
@@ -115,7 +131,7 @@ export function useGeneratorPreview({
     return () => controller.abort();
   }, [serverUrl, targetSet]);
 
-  // Compute overwritten entries
+  // Compute overwritten entries (skip for multi-brand since each brand writes to different sets)
   const overwrittenEntries = useMemo<OverwrittenEntry[]>(() => {
     if (isMultiBrand || previewTokens.length === 0) return [];
     return previewTokens
@@ -131,11 +147,14 @@ export function useGeneratorPreview({
       }));
   }, [previewTokens, existingSetTokens, isMultiBrand]);
 
+  const previewBrand = isMultiBrand && firstBrandRow ? firstBrandRow.brand : undefined;
+
   return {
     previewTokens,
     previewLoading,
     previewError,
     existingTokensError,
     overwrittenEntries,
+    previewBrand,
   };
 }

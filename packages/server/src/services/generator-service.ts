@@ -296,7 +296,11 @@ export class GeneratorService {
   async preview(
     data: Pick<TokenGenerator, 'type' | 'sourceToken' | 'targetGroup' | 'targetSet' | 'config' | 'overrides'>,
     tokenStore: TokenStore,
+    sourceValue?: unknown,
   ): Promise<GeneratedTokenResult[]> {
+    if (sourceValue !== undefined) {
+      return this.computeResultsWithValue(data, sourceValue);
+    }
     return this.computeResults(data, tokenStore);
   }
 

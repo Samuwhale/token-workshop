@@ -426,3 +426,17 @@
   - `renderConflictValue` already renders inline color swatches so adding `DiffSwatch` on top would double-render; reused `DiffSwatch` inside `renderConflictValue` instead
   - The SyncDiffSummary pattern (−/+ with red/green) is simple to adapt to structured values — just wrap `renderConflictValue` output in the diff row layout
 ---
+
+## 2026-03-29 - Generator dialog disables preview entirely for multi-brand configurations
+- Added `sourceValue` parameter to server preview API, allowing preview with a raw value instead of requiring a stored source token
+- Updated `useGeneratorPreview` to find the first brand row with an input value and use it as representative sample for preview
+- Preview now shows live token output for multi-brand generators, with label indicating which brand is being sampled
+- Updated confirmation view to always show multi-brand summary (not only when preview is empty)
+- Review button now shows "N brands × M tokens" for multi-brand with preview
+- Empty state updated to guide user: "Add a brand row with an input value to see a preview"
+- Files changed: `packages/server/src/routes/generators.ts` ~L226,343-353 (sourceValue in PreviewBody and route), `packages/server/src/services/generator-service.ts` ~L296-304 (preview method sourceValue override), `packages/figma-plugin/src/ui/hooks/useGeneratorPreview.ts` ~L5-17,48-84,120-142 (inputTable param, first-brand preview, previewBrand return), `packages/figma-plugin/src/ui/hooks/useGeneratorDialog.ts` ~L67,169-184,280 (previewBrand passthrough), `packages/figma-plugin/src/ui/components/TokenGeneratorDialog.tsx` ~L170,281-285,338,461-465,513,631-638 (UI updates)
+- **Learnings for future iterations:**
+  - The server preview endpoint uses `computeResults` (resolves from store) vs `computeResultsWithValue` (raw value) — adding `sourceValue` to the API cleanly bridges the two paths
+  - Multi-brand generators use `inputTable.rows[].inputs[inputTable.inputKey]` to get per-brand source values; the first usable row is a good representative sample
+  - Overwrite detection is correctly skipped for multi-brand since each brand writes to a different target set (via template substitution)
+---

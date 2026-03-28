@@ -169,6 +169,7 @@ export function TokenGeneratorDialog({
     previewTokens,
     previewLoading,
     previewError,
+    previewBrand,
     overwrittenEntries,
     existingTokensError,
     saving,
@@ -277,9 +278,9 @@ export function TokenGeneratorDialog({
                   {previewTokens.length} token{previewTokens.length !== 1 ? 's' : ''} will be created (all new)
                 </span>
               )}
-              {!hasPreview && isMultiBrand && inputTable && (
-                <span className="text-[10px] text-[var(--color-figma-text-secondary)]">
-                  Multi-brand: {inputTable.rows.length} brand{inputTable.rows.length !== 1 ? 's' : ''} will be generated
+              {isMultiBrand && inputTable && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--color-figma-accent)]/15 text-[var(--color-figma-accent)]">
+                  {inputTable.rows.filter(r => r.brand.trim()).length} brand{inputTable.rows.filter(r => r.brand.trim()).length !== 1 ? 's' : ''}
                 </span>
               )}
             </div>
@@ -334,7 +335,7 @@ export function TokenGeneratorDialog({
             )}
 
             {/* Multi-brand note */}
-            {!hasPreview && isMultiBrand && inputTable && (
+            {isMultiBrand && inputTable && (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-2 bg-[var(--color-figma-bg-secondary)]">
                 <p className="mb-1">Tokens will be generated for each brand:</p>
                 <ul className="list-disc list-inside">
@@ -460,6 +461,9 @@ export function TokenGeneratorDialog({
               <label className="text-[10px] text-[var(--color-figma-text-secondary)]">
                 Preview
                 {previewTokens.length > 0 && <span className="ml-1 text-[var(--color-figma-text)]">({previewTokens.length} tokens)</span>}
+                {previewBrand && previewTokens.length > 0 && (
+                  <span className="ml-1 italic">— sample from &ldquo;{previewBrand}&rdquo;</span>
+                )}
               </label>
               <div className="flex items-center gap-2">
                 {lockedCount > 0 && (
@@ -510,7 +514,7 @@ export function TokenGeneratorDialog({
 
             {selectedType !== 'contrastCheck' && !previewError && !previewLoading && previewTokens.length === 0 && (
               <div className="text-[10px] text-[var(--color-figma-text-secondary)] border border-[var(--color-figma-border)] rounded px-2 py-2 bg-[var(--color-figma-bg-secondary)]">
-                {isMultiBrand ? 'Preview unavailable in multi-brand mode.' : 'No preview available.'}
+                {isMultiBrand ? 'Add a brand row with an input value to see a preview.' : 'No preview available.'}
               </div>
             )}
           </div>
@@ -627,7 +631,7 @@ export function TokenGeneratorDialog({
             {isEditing
               ? 'Review & Update'
               : isMultiBrand && inputTable
-                ? `Review (${inputTable.rows.length} brand${inputTable.rows.length !== 1 ? 's' : ''})`
+                ? `Review (${inputTable.rows.filter(r => r.brand.trim()).length} brand${inputTable.rows.filter(r => r.brand.trim()).length !== 1 ? 's' : ''}${previewTokens.length > 0 ? ` × ${previewTokens.length} tokens` : ''})`
                 : previewTokens.length > 0
                   ? `Review (${previewTokens.length} tokens)`
                   : 'Review & Create'

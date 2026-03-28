@@ -63,6 +63,7 @@ interface UseGeneratorDialogReturn {
   previewTokens: GeneratedTokenResult[];
   previewLoading: boolean;
   previewError: string;
+  previewBrand: string | undefined;
   overwrittenEntries: OverwrittenEntry[];
   existingTokensError: string;
   saving: boolean;
@@ -172,6 +173,7 @@ export function useGeneratorDialog({
     previewError,
     existingTokensError,
     overwrittenEntries,
+    previewBrand,
   } = useGeneratorPreview({
     serverUrl,
     selectedType,
@@ -181,6 +183,7 @@ export function useGeneratorDialog({
     config: currentConfig,
     pendingOverrides,
     isMultiBrand,
+    inputTable,
   });
 
   const {
@@ -281,6 +284,7 @@ export function useGeneratorDialog({
     previewTokens,
     previewLoading,
     previewError,
+    previewBrand,
     overwrittenEntries,
     existingTokensError,
     saving,
