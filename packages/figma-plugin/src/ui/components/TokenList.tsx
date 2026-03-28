@@ -34,6 +34,7 @@ import { TokenTableView } from './TokenTableView';
 import { useRecentlyTouched } from '../hooks/useRecentlyTouched';
 import { usePinnedTokens } from '../hooks/usePinnedTokens';
 import { useTokenCreate } from '../hooks/useTokenCreate';
+import { useTableCreate } from '../hooks/useTableCreate';
 import { useFindReplace } from '../hooks/useFindReplace';
 import { useDragDrop } from '../hooks/useDragDrop';
 
@@ -738,6 +739,23 @@ export function TokenList({
     groupActiveIdx, setGroupActiveIdx,
     resetCreateForm, handleOpenCreateSibling, handleCreate, handleCreateAndNew,
   } = tokenCreate;
+
+  const tableCreate = useTableCreate({
+    connected,
+    serverUrl,
+    setName,
+    onRefresh,
+    onPushUndo,
+    onTokenCreated,
+    onRecordTouch: recentlyTouched.recordTouch,
+  });
+  const {
+    showTableCreate,
+    tableGroup, setTableGroup,
+    tableRows, rowErrors, createAllError, busy: tableCreateBusy,
+    addRow: addTableRow, removeRow: removeTableRow, updateRow: updateTableRow,
+    resetTableCreate, openTableCreate, handleCreateAll,
+  } = tableCreate;
 
   // Scroll active group autocomplete item into view
   useEffect(() => {
@@ -3594,15 +3612,170 @@ export function TokenList({
         </div>
       )}
 
+      {/* Table create mode */}
+      {showTableCreate && (
+        <div className="p-3 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)]">
+          <div className="flex flex-col gap-2">
+            {/* Active set indicator */}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)]">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0 text-[var(--color-figma-text-secondary)]">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
+              <span className="text-[10px] text-[var(--color-figma-text-secondary)]">Bulk create in:</span>
+              <span className="text-[10px] font-medium text-[var(--color-figma-text)] truncate">{setName}</span>
+            </div>
+            {/* Group picker */}
+            <div>
+              <label className="block text-[10px] text-[var(--color-figma-text-tertiary)] mb-0.5" htmlFor="table-create-group">Group</label>
+              <input
+                id="table-create-group"
+                type="text"
+                list="table-create-groups-list"
+                placeholder="Root (none)"
+                value={tableGroup}
+                onChange={e => setTableGroup(e.target.value)}
+                aria-label="Token group for bulk create"
+                className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+              />
+              <datalist id="table-create-groups-list">
+                {allGroupPaths.map(g => <option key={g} value={g} />)}
+              </datalist>
+            </div>
+            {/* Token rows */}
+            <div>
+              {/* Column headers */}
+              <div className="grid gap-1 mb-1 px-0.5" style={{ gridTemplateColumns: 'minmax(0,1fr) 76px minmax(0,1fr) 18px' }}>
+                <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">Name</span>
+                <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">Type</span>
+                <span className="text-[9px] font-medium text-[var(--color-figma-text-tertiary)] uppercase tracking-wide">Value</span>
+                <span />
+              </div>
+              {tableRows.map((row, idx) => (
+                <div key={row.id} className="mb-1">
+                  <div className="grid gap-1 items-center" style={{ gridTemplateColumns: 'minmax(0,1fr) 76px minmax(0,1fr) 18px' }}>
+                    <input
+                      type="text"
+                      placeholder="name"
+                      value={row.name}
+                      onChange={e => updateTableRow(row.id, 'name', e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleCreateAll();
+                      }}
+                      data-table-name-input="true"
+                      aria-label={`Token ${idx + 1} name`}
+                      // eslint-disable-next-line jsx-a11y/no-autofocus
+                      autoFocus={idx === 0}
+                      className={`w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)] ${rowErrors[row.id] ? 'border-[var(--color-figma-error)]' : 'border-[var(--color-figma-border)]'}`}
+                    />
+                    <select
+                      value={row.type}
+                      onChange={e => updateTableRow(row.id, 'type', e.target.value)}
+                      aria-label={`Token ${idx + 1} type`}
+                      className="w-full px-1 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                    >
+                      <option value="color">Color</option>
+                      <option value="dimension">Dimension</option>
+                      <option value="number">Number</option>
+                      <option value="string">String</option>
+                      <option value="boolean">Boolean</option>
+                      <option value="duration">Duration</option>
+                      <option value="fontFamily">Font Family</option>
+                      <option value="fontWeight">Font Weight</option>
+                      <option value="typography">Typography</option>
+                      <option value="shadow">Shadow</option>
+                      <option value="border">Border</option>
+                      <option value="gradient">Gradient</option>
+                      <option value="strokeStyle">Stroke Style</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="value"
+                      value={row.value}
+                      onChange={e => {
+                        const val = e.target.value;
+                        updateTableRow(row.id, 'value', val);
+                        const inferred = inferTypeFromValue(val);
+                        if (inferred) updateTableRow(row.id, 'type', inferred);
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Tab' && !e.shiftKey && idx === tableRows.length - 1) {
+                          e.preventDefault();
+                          addTableRow();
+                          requestAnimationFrame(() => {
+                            const inputs = document.querySelectorAll<HTMLInputElement>('[data-table-name-input]');
+                            inputs[inputs.length - 1]?.focus();
+                          });
+                        }
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleCreateAll();
+                      }}
+                      aria-label={`Token ${idx + 1} value`}
+                      className="w-full px-2 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text)] text-[11px] outline-none focus:border-[var(--color-figma-accent)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeTableRow(row.id)}
+                      tabIndex={-1}
+                      aria-label={`Remove row ${idx + 1}`}
+                      className="w-[18px] h-[18px] flex items-center justify-center rounded text-[var(--color-figma-text-tertiary)] hover:text-[var(--color-figma-error)] hover:bg-[var(--color-figma-bg-hover)] transition-colors"
+                    >
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden="true"><path d="M1 1l6 6M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/></svg>
+                    </button>
+                  </div>
+                  {rowErrors[row.id] && (
+                    <p className="mt-0.5 text-[10px] text-[var(--color-figma-error)] pl-0.5" role="alert">{rowErrors[row.id]}</p>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => addTableRow()}
+                className="mt-0.5 w-full px-2 py-1 rounded border border-dashed border-[var(--color-figma-border)] text-[var(--color-figma-text-tertiary)] text-[10px] hover:border-[var(--color-figma-accent)] hover:text-[var(--color-figma-accent)] transition-colors"
+              >
+                + Add Row
+              </button>
+            </div>
+            {createAllError && (
+              <p className="text-[10px] text-[var(--color-figma-error)]" role="alert">{createAllError}</p>
+            )}
+            <div className="flex gap-1.5">
+              <button
+                onClick={handleCreateAll}
+                disabled={tableCreateBusy || !connected || tableRows.every(r => !r.name.trim())}
+                title={tableRows.every(r => !r.name.trim()) ? 'Enter at least one token name' : 'Create all tokens (Ctrl+Enter)'}
+                className="flex-1 px-2 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
+              >
+                {tableCreateBusy
+                  ? 'Creating…'
+                  : `Create ${tableRows.filter(r => r.name.trim()).length > 0 ? tableRows.filter(r => r.name.trim()).length + ' ' : ''}Token${tableRows.filter(r => r.name.trim()).length !== 1 ? 's' : ''}`}
+              </button>
+              <button
+                onClick={resetTableCreate}
+                className="px-3 py-1.5 rounded bg-[var(--color-figma-bg)] text-[var(--color-figma-text-secondary)] text-[11px] hover:bg-[var(--color-figma-bg-hover)]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Bottom actions — streamlined primary actions only */}
-      {!showCreateForm && (
+      {!showCreateForm && !showTableCreate && (
         <div className="px-2 py-1.5 border-t border-[var(--color-figma-border)] bg-[var(--color-figma-bg-secondary)] flex items-center gap-1.5">
           <button
-            onClick={() => onCreateNew ? onCreateNew() : setShowCreateForm(true)}
+            onClick={() => { resetTableCreate(); onCreateNew ? onCreateNew() : setShowCreateForm(true); }}
             disabled={!connected}
             className="flex-1 px-3 py-1.5 rounded bg-[var(--color-figma-accent)] text-white text-[11px] font-medium hover:bg-[var(--color-figma-accent-hover)] disabled:opacity-40"
           >
             + New Token
+          </button>
+          <button
+            onClick={() => { resetCreateForm(); openTableCreate(); }}
+            disabled={!connected}
+            title="Create multiple tokens at once in a spreadsheet-like table (Tab between cells)"
+            className="px-2.5 py-1.5 rounded bg-[var(--color-figma-bg)] border border-[var(--color-figma-border)] text-[var(--color-figma-text-secondary)] text-[10px] hover:bg-[var(--color-figma-bg-hover)] disabled:opacity-40"
+          >
+            Bulk
           </button>
           <button
             onClick={() => { setNewGroupDialogParent(''); setNewGroupName(''); setNewGroupError(''); }}

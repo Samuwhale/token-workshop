@@ -9,3 +9,10 @@ Starting Backlog Runner — Tool: claude — Model: claude-sonnet-4-6 — Max it
 ===============================================================
   Claimed: **Token creation: multi-token "table create" mode** — a lightweight mode for creating several tokens in a group at once, like a spreadsheet: each row is a token with name / type / value columns, and pressing Tab moves to the next cell. This is faster than creating tokens one-by-one with "Create & New" for scenarios like setting up a spacing scale from scratch.
   Worktree: /tmp/backlog-52272-ATYP1v
+
+  ✓ done: Token creation: multi-token "table create" mode
+    Added "Bulk" button to bottom bar that opens a spreadsheet table (Name/Type/Value columns) with Tab-to-add-row navigation, type auto-inference, per-row validation, and a single undoable Create All action
+    21 turns · 321s · $0.91
+
+--- Merging: Token creation: multi-token "table create" mode ---
+Already up to date.

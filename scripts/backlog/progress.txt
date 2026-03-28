@@ -338,3 +338,20 @@
   - The IIFE pattern `{condition && (() => { ... })()}` works for inline multi-line logic in JSX without extracting a sub-component
   - CSS vars `--color-figma-success` and `--color-figma-text-tertiary` are already defined in styles.css
 ---
+
+## 2026-03-28 - Token creation: multi-token "table create" mode
+- Implemented a "Bulk" create mode accessible via a new "Bulk" button in the bottom action bar
+- Mode shows a spreadsheet-like table with Name | Type | Value columns; each row is one token
+- Tab from the last row's value input auto-adds a new row and focuses it (key UX feature)
+- Ctrl+Enter / Cmd+Enter from any cell triggers "Create All"
+- Type is auto-inferred from value (same logic as single create form)
+- Group picker uses native `<datalist>` autocomplete (all rows share one group)
+- Error display per row for validation failures; "Create N Tokens" button counts only filled rows
+- Undo slot wraps all created tokens as a single undoable action
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTableCreate.ts` (new, ~170 lines); `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L36,698,3572,3719
+- **Learnings for future iterations:**
+  - `<datalist>` is the simplest way to add group autocomplete in table mode without importing the full dropdown logic from useTokenCreate
+  - For Tab-to-add-row, use `requestAnimationFrame` after `addRow()` to wait for re-render before querying new DOM nodes with `[data-table-name-input]`
+  - Delete buttons in table rows should use `tabIndex={-1}` so they don't interrupt Tab-cell navigation
+  - Inheriting last row's type for newly added rows reduces friction when creating many tokens of the same type (e.g. all dimension tokens)
+---
