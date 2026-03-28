@@ -949,7 +949,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
   return (
     <div ref={nodeRef}>
     <div
-      className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${(node.$extensions?.tokenmanager as any)?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
+      className={`relative flex items-center gap-2 px-2 ${pyClass} hover:bg-[var(--color-figma-bg-hover)] transition-colors group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[var(--color-figma-accent)] ${isHighlighted ? 'bg-[var(--color-figma-accent)]/15 ring-1 ring-inset ring-[var(--color-figma-accent)]/40' : cascadeChange ? 'bg-amber-500/10 ring-1 ring-inset ring-amber-500/30' : ''} ${node.$extensions?.tokenmanager?.lifecycle === 'deprecated' ? 'opacity-50' : ''}`}
       style={{ paddingLeft: `${depth * 16 + 20}px` }}
       tabIndex={selectMode ? -1 : 0}
       data-token-path={node.path}
@@ -1108,7 +1108,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           )}
           {/* Lifecycle badge */}
           {(() => {
-            const lc = (node.$extensions?.tokenmanager as any)?.lifecycle;
+            const lc = node.$extensions?.tokenmanager?.lifecycle;
             if (lc === 'draft') return (
               <span className="px-1 py-0.5 rounded text-[8px] font-medium shrink-0 bg-amber-500/15 text-amber-700 dark:text-amber-400" title="Draft — not yet published">draft</span>
             );
@@ -1119,7 +1119,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           })()}
           {/* Provenance badge — imported/synced source */}
           {(() => {
-            const src = (node.$extensions?.tokenmanager as any)?.source;
+            const src = node.$extensions?.tokenmanager?.source;
             if (!src) return null;
             const labels: Record<string, { label: string; title: string; icon: JSX.Element }> = {
               'figma-variables': { label: 'Figma', title: 'Imported from Figma variables', icon: <svg className="shrink-0" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M12 9v3M9.5 14.5L12 12M14.5 14.5L12 12"/></svg> },
@@ -1142,7 +1142,7 @@ export function TokenTreeNode(props: TokenTreeNodeProps) {
           })()}
           {/* Extends (inheritance) indicator */}
           {(() => {
-            const ext = (node.$extensions?.tokenmanager as any)?.extends;
+            const ext = node.$extensions?.tokenmanager?.extends;
             if (typeof ext === 'string' && ext) return (
               <span
                 title={`Extends ${ext}`}

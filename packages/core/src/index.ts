@@ -20,6 +20,9 @@ export type { DimensionUnit, StrokeStyleKeyword } from './constants.js';
 
 // Types
 export type {
+  TokenManagerExtensions,
+  TokenManagerGeneratorExtension,
+  TokenExtensions,
   ColorModifierOp,
   ColorValue,
   DimensionValue,
@@ -57,6 +60,7 @@ export type {
   ResolverFile,
   ResolverInput,
 } from './types.js';
+export { getTokenManagerExt } from './types.js';
 
 // DTCG file-format types & utilities
 export type { DTCGToken, DTCGGroup, DTCGFile } from './dtcg-types.js';

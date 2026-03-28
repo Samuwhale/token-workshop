@@ -379,8 +379,7 @@ describe('TokenResolver', () => {
 
       const resolver = new TokenResolver(tokens);
       const result = resolver.resolve('derived');
-      const ext = result.$extensions as Record<string, unknown> | undefined;
-      expect((ext?.tokenmanager as any)?.formula).toBe('{base} * 3');
+      expect(result.$extensions?.tokenmanager?.formula).toBe('{base} * 3');
     });
 
     it('includes formula refs in the dependency graph', () => {

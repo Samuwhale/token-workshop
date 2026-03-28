@@ -29,3 +29,11 @@ Already up to date.
   Discovery pass added 11 items — continuing.
   Claimed: `$extensions.tokenmanager` is typed as `Record<string, unknown>` forcing scattered `as any` casts — the `DTCGToken.$extensions` field in `packages/core/src/dtcg-types.ts` and all token interfaces in `types.ts` type extensions as `Record<string, unknown>`, so every access to `$extensions.tokenmanager.lifecycle`, `.source`, `.extends`, `.colorModifier`, `.tokenSet` etc. requires `(node.$extensions?.tokenmanager as any)?.*` casts; define a `TokenManagerExtensions` interface in core with all documented sub-fields, update `$extensions` to `{ tokenmanager?: TokenManagerExtensions } & Record<string, unknown>`, and add a typed `getTokenManagerExt(token)` helper — this eliminates the `as any` casts in `TokenTreeNode.tsx`, `ImportPanel.tsx`, `App.tsx`, and the resolver
   Worktree: /tmp/backlog-93845-IGZine
+
+  → Stop requested — will exit after current item completes.
+  → Waiting for agent to finish current work…
+
+  · unknown
+    3 turns · 28s · $0.18
+
+  → Stop requested — will exit after current item completes.

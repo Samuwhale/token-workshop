@@ -211,8 +211,7 @@ export class TokenResolver {
    * Extract the `$extends` path from a token's `$extensions.tokenmanager.extends`.
    */
   static getExtendsPath(token: Token): string | null {
-    const tmExt = token.$extensions?.tokenmanager as Record<string, unknown> | undefined;
-    const ext = tmExt?.extends;
+    const ext = token.$extensions?.tokenmanager?.extends;
     return typeof ext === 'string' && ext.length > 0 ? ext : null;
   }
 
@@ -318,8 +317,7 @@ export class TokenResolver {
       }
 
       // Apply color modifiers if present
-      const tokenmanagerExt = token.$extensions?.tokenmanager as Record<string, unknown> | undefined;
-      const rawModifiers = tokenmanagerExt?.colorModifier;
+      const rawModifiers = token.$extensions?.tokenmanager?.colorModifier;
       if (Array.isArray(rawModifiers) && $type === 'color' && typeof resolvedValue === 'string') {
         const modifiers = validateColorModifiers(rawModifiers);
         if (modifiers.length > 0) {
@@ -333,7 +331,7 @@ export class TokenResolver {
         ? {
             ...token.$extensions,
             tokenmanager: {
-              ...(tokenmanagerExt ?? {}),
+              ...(token.$extensions?.tokenmanager ?? {}),
               formula: token.$value,
             },
           }

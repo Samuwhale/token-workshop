@@ -1,0 +1,21 @@
+NOTE: 7 [~] item(s) found — skipping reset (16 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    19130
+  Tool:   claude
+  Model:  opus
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-000155.log
+
+  Queue:    7 ready · 7 in-progress · 1 failed
+  Done:     762 total (next code pass in 8, product pass in 3)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  7 queued · 7 in-progress
+═══════════════════════════════════════════════════════════════
+  → Variable and style sync show no value-level diff before applying — `useVariableSync` and `useStyleSync` categorize tokens as local-only/figma-only/conflict but the confirmation modal only shows counts, not actual value differences; Git sync already has a token-level diff preview ("Preview changes" button); add the same side-by-side value comparison for variable and style sync so users can see exactly what will change before clicking Apply
+  Worktree: /tmp/backlog-19130-qrGQHM
+  Running agent… (started 00:01:55)

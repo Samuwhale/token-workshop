@@ -810,7 +810,7 @@ export class TokenStore {
     const results: Array<{ setName: string; path: string; generatorId: string }> = [];
     for (const [tokenPath, entries] of this.flatTokens) {
       for (const { token, setName } of entries) {
-        const ext = token.$extensions?.['com.tokenmanager.generator'] as Record<string, unknown> | undefined;
+        const ext = token.$extensions?.['com.tokenmanager.generator'];
         const gid = ext?.generatorId;
         if (typeof gid === 'string' && (matchAll || gid === generatorId)) {
           results.push({ setName, path: tokenPath, generatorId: gid });
@@ -1304,7 +1304,7 @@ export class TokenStore {
   private enrichFormulaExtension(token: Pick<Token, '$value' | '$extensions'>): Token {
     if (typeof token.$value === 'string' && isFormula(token.$value)) {
       const existing = token.$extensions;
-      const tm = (existing?.tokenmanager as Record<string, unknown> | undefined) ?? {};
+      const tm = existing?.tokenmanager ?? {};
       return {
         ...token,
         $extensions: {

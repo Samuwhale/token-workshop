@@ -119,7 +119,7 @@ export interface Token {
   $value: TokenValue | TokenReference;
   $type?: TokenType;
   $description?: string;
-  $extensions?: Record<string, unknown>;
+  $extensions?: TokenExtensions;
 }
 
 export interface TokenGroup {
@@ -183,6 +183,49 @@ export type ColorModifierOp =
   | { type: 'mix'; color: string; ratio: number }; // Lab interpolate at ratio
 
 // ---------------------------------------------------------------------------
+// TokenManager Extensions
+// ---------------------------------------------------------------------------
+
+/** Fields stored under `$extensions.tokenmanager` by the TokenManager engine. */
+export interface TokenManagerExtensions {
+  /** Formula expression string, e.g. "{spacing.base} * 2". Set by resolver/store for formula tokens. */
+  formula?: string;
+  /** Ordered color modifier operations applied during resolution. */
+  colorModifier?: ColorModifierOp[];
+  /** Token lifecycle state for multi-team workflows. */
+  lifecycle?: TokenLifecycle;
+  /** Provenance: how the token was imported. */
+  source?: 'figma-variables' | 'figma-styles' | 'json' | 'css' | 'tailwind' | (string & {});
+  /** Dot-path to a base token this token inherits from (composite inheritance). */
+  extends?: string;
+  /** Per-mode override values keyed by mode name. */
+  modes?: Record<string, unknown>;
+}
+
+/** Generator provenance stored under `$extensions['com.tokenmanager.generator']`. */
+export interface TokenManagerGeneratorExtension {
+  generatorId: string;
+  sourceToken: string;
+  brand?: string;
+}
+
+/** Typed `$extensions` object for tokens and groups. */
+export interface TokenExtensions {
+  tokenmanager?: TokenManagerExtensions;
+  'com.figma.scopes'?: string[];
+  'com.tokenmanager.generator'?: TokenManagerGeneratorExtension;
+  [key: string]: unknown;
+}
+
+/**
+ * Get the `tokenmanager` extension from a token, typed.
+ * Returns `undefined` if the extension is absent.
+ */
+export function getTokenManagerExt(token: { $extensions?: TokenExtensions | Record<string, unknown> }): TokenManagerExtensions | undefined {
+  return (token.$extensions as TokenExtensions | undefined)?.tokenmanager;
+}
+
+// ---------------------------------------------------------------------------
 // Resolved Token (post-alias resolution)
 // ---------------------------------------------------------------------------
 
@@ -193,7 +236,7 @@ export interface ResolvedToken {
   /** Fully resolved value — no references remain. */
   $value: TokenValue;
   $description?: string;
-  $extensions?: Record<string, unknown>;
+  $extensions?: TokenExtensions;
   /** Original value before resolution (may contain references). */
   rawValue: TokenValue | TokenReference;
   /** Name of the token set this token belongs to. */
@@ -216,7 +259,7 @@ export type ResolverSource = ResolverRef | Record<string, unknown>;
 export interface ResolverSet {
   description?: string;
   sources: ResolverSource[];
-  $extensions?: Record<string, unknown>;
+  $extensions?: TokenExtensions;
 }
 
 /** A modifier: named dimension with multiple contexts, each mapping to token sources. */
@@ -224,7 +267,7 @@ export interface ResolverModifier {
   description?: string;
   contexts: Record<string, ResolverSource[]>;
   default?: string;
-  $extensions?: Record<string, unknown>;
+  $extensions?: TokenExtensions;
 }
 
 /** An entry in the resolutionOrder array — always a $ref to a set or modifier. */
@@ -239,7 +282,7 @@ export interface ResolverFile {
   sets?: Record<string, ResolverSet>;
   modifiers?: Record<string, ResolverModifier>;
   resolutionOrder: ResolutionOrderEntry[];
-  $extensions?: Record<string, unknown>;
+  $extensions?: TokenExtensions;
 }
 
 /** Input to the resolver: modifier name -> selected context name. */

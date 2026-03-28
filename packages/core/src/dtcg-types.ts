@@ -8,6 +8,7 @@
  */
 
 import { REFERENCE_REGEX, makeReferenceGlobalRegex } from './constants.js';
+import type { TokenExtensions } from './types.js';
 
 // ---------------------------------------------------------------------------
 // File-format interfaces
@@ -17,18 +18,18 @@ export interface DTCGToken {
   $value: unknown;
   $type?: string;
   $description?: string;
-  $extensions?: Record<string, unknown>;
+  $extensions?: TokenExtensions;
 }
 
 export interface DTCGGroup {
   $type?: string;
   $description?: string;
-  $extensions?: Record<string, unknown>;
+  $extensions?: TokenExtensions;
   [key: string]:
     | DTCGToken
     | DTCGGroup
     | string
-    | Record<string, unknown>
+    | TokenExtensions
     | undefined;
 }
 

@@ -1,0 +1,28 @@
+NOTE: 4 [~] item(s) found — skipping reset (7 other runner(s) active)
+
+╔═══════════════════════════════════════════════════════════════╗
+║  Backlog Runner                                             ║
+╚═══════════════════════════════════════════════════════════════╝
+  PID:    17376
+  Tool:   claude
+  Model:  opus
+  Log:    /Users/samuel/Documents/projects/TokenManager/scripts/backlog/runner-20260329-000134.log
+
+  Queue:    10 ready · 4 in-progress · 1 failed
+  Done:     762 total (next code pass in 8, product pass in 3)
+  Stop:     Ctrl+C  (or: touch /Users/samuel/Documents/projects/TokenManager/backlog-stop)
+
+
+═══════════════════════════════════════════════════════════════
+  #1  ·  10 queued · 4 in-progress
+═══════════════════════════════════════════════════════════════
+  → `$extensions.tokenmanager` is typed as `Record<string, unknown>` forcing scattered `as any` casts — the `DTCGToken.$extensions` field in `packages/core/src/dtcg-types.ts` and all token interfaces in `types.ts` type extensions as `Record<string, unknown>`, so every access to `$extensions.tokenmanager.lifecycle`, `.source`, `.extends`, `.colorModifier`, `.tokenSet` etc. requires `(node.$extensions?.tokenmanager as any)?.*` casts; define a `TokenManagerExtensions` interface in core with all documented sub-fields, update `$extensions` to `{ tokenmanager?: TokenManagerExtensions } & Record<string, unknown>`, and add a typed `getTokenManagerExt(token)` helper — this eliminates the `as any` casts in `TokenTreeNode.tsx`, `ImportPanel.tsx`, `App.tsx`, and the resolver
+  Worktree: /tmp/backlog-17376-PZ7KYD
+  Running agent… (started 00:01:34)
+
+  ✓ done: $extensions.tokenmanager typed as Record<string, unknown> forcing scattered `as any` casts
+    Defined TokenManagerExtensions, TokenManagerGeneratorExtension, and TokenExtensions interfaces in core; updated $extensions on all token/group interfaces; added getTokenManagerExt helper; removed all as any casts across 9 files
+    64 turns · 366s · $2.15
+
+  Merging to main: $extensions.tokenmanager typed as Record<string, unknown> forcing scattered `as any` casts
+Already up to date.
