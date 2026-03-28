@@ -112,7 +112,7 @@
 ### Redundancy & Duplication
 
 - [x] Duplicated `flattenForVarDiff`/`flattenForStyleDiff` in `PublishPanel.tsx` — duplicates logic from `flattenTokenGroup` in core and `flattenWithNames` in `useTokens`
-- [~] Duplicated tree-walking patterns in `token-store.ts` — `updateAliasRefs`, `updateBulkAliasRefs`, `collectGroupLeafTokens` all implement nearly identical recursive walkers; extract a generic walker
+- [x] Duplicated tree-walking patterns in `token-store.ts` — `updateAliasRefs`, `updateBulkAliasRefs`, `collectGroupLeafTokens` all implement nearly identical recursive walkers; extract a generic walker
 - [x] `computeDerivedPaths` in `useGenerators.ts` has 11 nearly identical if-else branches — all do the same thing (extract step names from config and build paths); collapse into a single generic function
 - [x] `countLeafNodes` is in `colorUtils.ts` despite being unrelated to colors — misplaced token tree utility function
 - [x] `ExportPanel` uses raw `localStorage` instead of centralized `lsGet`/`lsSet` helpers — bypasses the try/catch safety net and doesn't use `STORAGE_KEYS`
@@ -126,7 +126,7 @@
 ### Correctness & Safety
 
 - [!] Cannot access 'Wr' before initialization — runtime error, likely a circular dependency or hoisting issue with a minified identifier; needs source-map / unminified stack trace to locate the declaration. Once fixed, audit the codebase for similar initialization-order issues (other circular deps, `let`/`const` accessed before declaration across module boundaries).
-- [ ] `PluginMessage` loosely typed as `{ type: string; [key: string]: any }` — the shared types file defines specific message types but they aren't used in the controller switch statement; easy to typo property names
+- [~] `PluginMessage` loosely typed as `{ type: string; [key: string]: any }` — the shared types file defines specific message types but they aren't used in the controller switch statement; easy to typo property names
 - [ ] `$value` typed as `any` in `TokenNode` interface (`useTokens.ts`) — type safety lost throughout entire token data flow
 - [ ] 21 `as any` casts across UI components — particularly concerning in `SemanticMappingDialog.tsx` where API response bodies are cast to access `.error` without a proper typed response shape
 - [ ] `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names (`base`, `index`, `multiplier`, `prev`) — function signature accepts `Record<string, number>` implying arbitrary keys, but extra keys are silently ignored

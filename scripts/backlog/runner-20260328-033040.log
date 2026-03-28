@@ -235,3 +235,16 @@ Already up to date.
 
 --- Merging: Duplicated tree-walking patterns in `token-store.ts` — extract a generic walker ---
 Already up to date.
+[main 746e8a1] chore(backlog): done – Duplicated tree-walking patterns in `token-store.ts` — extract a generic walker
+ 6 files changed, 97 insertions(+), 76 deletions(-)
+
+## 2026-03-28 - Duplicated tree-walking patterns in `token-store.ts` — extract a generic walker
+- Extracted two reusable module-level helpers: `walkAliasValues(group, updateString)` handles walking a token tree and applying a string transform to all `$value` fields (including composite/object values); `walkLeafTokens(obj, visitor, prefix)` walks all leaf DTCG tokens calling a visitor. Rewrote `updateAliasRefs`, `updateBulkAliasRefs`, and `collectGroupLeafTokens` to use these helpers, eliminating ~60 lines of duplicated walk/updateCompositeValue logic.
+- Files changed: `packages/server/src/services/token-store.ts` ~L16 (new helpers), ~L770 (updateAliasRefs), ~L785 (updateBulkAliasRefs), ~L756 (collectGroupLeafTokens)
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 12 / 90  (claude)  —  79 items remaining
+===============================================================
+  Claimed: `PluginMessage` loosely typed as `{ type: string; [key: string]: any }` — the shared types file defines specific message types but they aren't used in the controller switch statement; easy to typo property names
+  Worktree: /tmp/backlog-84992-DJGkQv

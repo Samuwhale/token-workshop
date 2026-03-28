@@ -91,3 +91,10 @@ Already up to date.
 ===============================================================
   Claimed: `fetchAllTokensFlat` and `fetchAllTokensFlatWithSets` fetch sets sequentially — serial `for` loop makes one fetch per set; should use `Promise.all` for parallel fetches
   Worktree: /tmp/backlog-10278-wotpNX
+
+  ✓ done: `fetchAllTokensFlat` and `fetchAllTokensFlatWithSets` fetch sets sequentially
+    Replaced serial for loops with Promise.all for parallel fetches; merge step remains sequential to preserve deterministic ordering semantics.
+    9 turns · 52s · $0.3
+
+--- Merging: `fetchAllTokensFlat` and `fetchAllTokensFlatWithSets` fetch sets sequentially ---
+Already up to date.

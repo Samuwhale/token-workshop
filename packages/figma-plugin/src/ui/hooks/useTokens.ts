@@ -104,13 +104,19 @@ export async function fetchAllTokensFlat(serverUrl: string): Promise<Record<stri
   const setsData = await setsRes.json();
   const setNames: string[] = setsData.sets || [];
 
-  const map: Record<string, TokenMapEntry> = {};
+  const results = await Promise.all(
+    setNames.map(async (setName) => {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data.tokens || {};
+    })
+  );
 
-  for (const setName of setNames) {
-    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) continue;
-    const data = await res.json();
-    for (const [path, entry] of flattenWithNames(data.tokens || {})) {
+  const map: Record<string, TokenMapEntry> = {};
+  for (const tokens of results) {
+    if (!tokens) continue;
+    for (const [path, entry] of flattenWithNames(tokens)) {
       map[path] = entry;
     }
   }
@@ -128,16 +134,23 @@ export async function fetchAllTokensFlatWithSets(serverUrl: string): Promise<{
   const setsData = await setsRes.json();
   const setNames: string[] = setsData.sets || [];
 
+  const results = await Promise.all(
+    setNames.map(async (setName) => {
+      const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return { setName, tokens: null };
+      const data = await res.json();
+      return { setName, tokens: data.tokens || {} };
+    })
+  );
+
   const flat: Record<string, TokenMapEntry> = {};
   const pathToSet: Record<string, string> = {};
   const perSetFlat: Record<string, Record<string, TokenMapEntry>> = {};
 
-  for (const setName of setNames) {
-    const res = await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}`, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) continue;
-    const data = await res.json();
+  for (const { setName, tokens } of results) {
+    if (!tokens) continue;
     const setMap: Record<string, TokenMapEntry> = {};
-    for (const [path, entry] of flattenWithNames(data.tokens || {})) {
+    for (const [path, entry] of flattenWithNames(tokens)) {
       setMap[path] = entry;
       flat[path] = entry;
       if (!(path in pathToSet)) pathToSet[path] = setName; // first set wins

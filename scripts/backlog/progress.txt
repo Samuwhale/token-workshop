@@ -301,3 +301,10 @@
   - The server package has no working tsc setup (missing @types/node, chokidar types, wrong lib target) — validate server-only refactors by checking that only pre-existing errors appear in tsc output and that the figma-plugin build still passes.
   - The two alias-update methods differ only in their `updateString` callback — the walk+composite logic was 100% identical and trivially extractable.
 ---
+
+## 2026-03-28 - `countLeafNodes` is in `colorUtils.ts` despite being unrelated to colors — misplaced token tree utility function
+- Moved `countLeafNodes` from `colorUtils.ts` to `utils.ts` (the general shared utilities file). Updated the import in `AnalyticsPanel.tsx` to pull from the new location.
+- Files changed: `packages/figma-plugin/src/ui/shared/colorUtils.ts` ~L245 (removed), `packages/figma-plugin/src/ui/shared/utils.ts` ~L31 (added), `packages/figma-plugin/src/ui/components/AnalyticsPanel.tsx` ~L2 (import updated)
+- **Learnings for future iterations:**
+  - `utils.ts` is the right home for general token-tree helpers that aren't color-specific. It already contains `stableStringify` which is also token-related.
+---
