@@ -176,3 +176,10 @@ Already up to date.
 ===============================================================
   Claimed: Token binding in SelectionInspector has no undo — binding a token to a Figma property is immediate and irreversible (no undo toast appears), while "Clear all bindings" does support undo; add undo support for individual bind operations so users can experiment with token assignments safely
   Worktree: /tmp/backlog-9651-BTQ8vl
+
+  ✓ done: Token binding in SelectionInspector has no undo
+    stale — already done: handleBindToken already pushes undo slot via onPushUndo with restore/remove logic, toast renders via ToastStack
+    45 turns · 305s · $1.64
+
+--- Merging: Token binding in SelectionInspector has no undo ---
+Already up to date.

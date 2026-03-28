@@ -501,3 +501,15 @@
   - Font picker dropdown in 96px inline edit area is too cramped — keep inline edit as plain text, use full picker only in the editor panel
   - Typography fontFamily sub-field needs dual mode: alias (`{token}`) and literal font picker — use a state flag to switch between AliasAutocomplete and FontFamilyPicker
 ---
+
+## 2026-03-28 - Token binding in SelectionInspector has no undo
+- Already implemented: `handleBindToken` (SelectionInspector.tsx ~L359-380) already pushes an undo slot via `onPushUndo` with restore logic that either re-applies the previous binding or removes the binding entirely
+- `handleRemoveBinding` (~L283) uses `buildRemoveBindingUndo` from `selectionInspectorUtils.ts`
+- `handleClearAllBindings` (~L300-317) also pushes undo
+- `onPushUndo={pushUndo}` is properly wired in App.tsx ~L2319
+- Toast renders via `ToastStack` → `UndoRow` component
+- Files inspected: `packages/figma-plugin/src/ui/components/SelectionInspector.tsx`, `packages/figma-plugin/src/ui/App.tsx`, `packages/figma-plugin/src/ui/hooks/useUndo.ts`, `packages/figma-plugin/src/ui/components/ToastStack.tsx`
+- **Learnings for future iterations:**
+  - The undo infrastructure (useUndo hook + ToastStack rendering) is fully wired in App.tsx and works for any component that receives `pushUndo` as a prop
+  - `handleTokenCreated` (create-and-bind flow) still lacks undo — potential future backlog item
+---

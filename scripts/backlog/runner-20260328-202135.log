@@ -122,3 +122,18 @@ Already up to date.
 
 --- Merging: FontFamily value editor searchable dropdown with font discovery ---
 Already up to date.
+[main f42ca21] chore(backlog): done – FontFamily value editor searchable dropdown with font discovery
+ 13 files changed, 423 insertions(+), 17 deletions(-)
+ create mode 100644 packages/figma-plugin/src/ui/components/FontFamilyPicker.tsx
+ create mode 100644 packages/figma-plugin/src/ui/hooks/useAvailableFonts.ts
+
+## 2026-03-28 - FontFamily value editor searchable dropdown with font discovery
+- Replaced the plain text input for fontFamily tokens with a searchable dropdown populated from Figma's available fonts via `figma.listAvailableFontsAsync()`
+- Added plugin→UI message flow: `get-available-fonts` request → `fonts-loaded` response with deduplicated sorted family names
+- Created `FontFamilyPicker` component: combobox with keyboard nav (arrow keys, enter, escape), ranked fuzzy search (exact → startsWith → contains), live "Aa" preview rendered in each candidate font, checkmark for current selection, custom font name fallback when no match
+
+===============================================================
+  Iteration 7 / 90  (claude)  —  51 items remaining
+===============================================================
+  Claimed: PublishPanel conflict resolution has no "Accept all" or bulk action — when syncing surfaces many conflicts, each row requires individual Push/Pull/Skip selection; add "Accept all as Push" / "Accept all as Pull" bulk actions similar to ImportPanel's "Accept all" / "Reject all" buttons
+  Worktree: /tmp/backlog-9231-UyabVu
