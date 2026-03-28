@@ -1080,7 +1080,7 @@ export function TokenList({
     await fetch(`${serverUrl}/api/tokens/${encodeURIComponent(setName)}/${newPath.split('.').map(encodeURIComponent).join('/')}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ $type: token.$type, $value: token.$value }),
+      body: JSON.stringify({ $type: token.$type, $value: token.$value, ...(token.$description ? { $description: token.$description } : {}) }),
     });
     onRefresh();
     recentlyTouched.recordTouch(newPath);

@@ -491,3 +491,11 @@
 - **Learnings for future iterations:**
   - ValuePreview spacer div at the bottom must match the swatch size to keep row alignment consistent for non-color tokens.
 ---
+
+## 2026-03-28 - No "Duplicate token" in context menu
+- The "Duplicate token" context menu action already existed (with `-copy` suffix and Cmd+D shortcut), but it was not copying `$description`. Fixed `handleDuplicateToken` to include `$description` in the POST body when present.
+- Files changed: `packages/figma-plugin/src/ui/components/TokenList.tsx` ~L1083
+- **Learnings for future iterations:**
+  - The duplicate token feature was already implemented in a prior session — always verify before building from scratch.
+  - The server POST endpoint at `/api/tokens/:set/*` already accepts `$description` in the body.
+---

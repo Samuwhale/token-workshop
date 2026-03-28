@@ -93,3 +93,10 @@ Already up to date.
 ===============================================================
   Claimed: No "Duplicate token" in context menu — creating a variant requires re-entering all values; add a Duplicate action that copies value/type/description with a `-copy` suffix
   Worktree: /tmp/backlog-63973-BzuDej
+
+  ✓ done: No "Duplicate token" in context menu
+    Feature already existed (context menu + Cmd+D shortcut + -copy suffix). Fixed handleDuplicateToken to also copy $description field which was missing from the POST body.
+    14 turns · 122s · $0.53
+
+--- Merging: No "Duplicate token" in context menu ---
+Already up to date.

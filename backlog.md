@@ -40,10 +40,10 @@
 - [x] No visual diff when editing token values — no "before → after" preview; show the current resolved value alongside the edit field, especially for complex types like typography and shadows
 - [x] No hover preview on alias tokens — hovering `{color.primary}` in the token list doesn't show the resolved value; users must enter edit mode to see what an alias resolves to
 - [x] No token count badge on set tabs — you have to open a set to discover how many tokens it contains; show a count in the tab label
-- [~] Color swatches too small in token list — at 11px text, color preview dots are hard to distinguish between similar shades; increase swatch size or show hex on hover
+- [x] Color swatches too small in token list — at 11px text, color preview dots are hard to distinguish between similar shades; increase swatch size or show hex on hover
 - [~] No "Duplicate token" in context menu — creating a variant requires re-entering all values; add a Duplicate action that copies value/type/description with a `-copy` suffix
 - [~] Search doesn't highlight matched substrings — filtering narrows the list but doesn't visually mark which part of the path or value matched, making it unclear why a result appeared
-- [ ] No breadcrumb trail for deep token trees — once expanded 4+ levels, users lose spatial context; show a sticky breadcrumb (e.g. `colors › brand › primary`) when scrolled deep into a group
+- [~] No breadcrumb trail for deep token trees — once expanded 4+ levels, users lose spatial context; show a sticky breadcrumb (e.g. `colors › brand › primary`) when scrolled deep into a group
 - [ ] No drag-to-reorder tokens within the same group — tokens can be dragged between groups but sort order within a group is not user-controllable
 - [ ] No bulk delete in multi-select mode — multi-select supports batch edit but not batch delete; removing a deprecated set of tokens requires deleting one at a time
 
