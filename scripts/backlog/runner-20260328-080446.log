@@ -181,3 +181,10 @@ Already up to date.
 ===============================================================
   Claimed: No loading/saving indicator when toggling set state (Off/Base/On) — optimistic update fires but if the network is slow there's zero feedback that the save is in progress; add a subtle spinner or opacity change during the API call
   Worktree: /tmp/backlog-63685-7ytGVu
+
+  ✓ done: No loading/saving indicator when toggling set state (Off/Base/On)
+    Added savingKeys state to track in-flight API calls; toggle button group shows opacity-50 + pointer-events-none during save for both single and bulk state changes
+    22 turns · 171s · $0.82
+
+--- Merging: No loading/saving indicator when toggling set state (Off/Base/On) ---
+Already up to date.

@@ -85,7 +85,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
 
   // Bulk set-status context menu
   const [bulkMenu, setBulkMenu] = useState<{ x: number; y: number; dimId: string; setName: string } | null>(null);
-  const bulkMenuRef = useRef<HTMLDivElement | null>(null);
+  // Track in-flight set-state saves for loading feedback
+  const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set());
 
   // Newly created dimension for auto-scroll
   const [newlyCreatedDim, setNewlyCreatedDim] = useState<string | null>(null);
@@ -454,6 +455,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     if (!opt) return;
     const updatedSets = { ...opt.sets, [setName]: targetState as 'enabled' | 'disabled' | 'source' };
     const previousDimensions = dimensions;
+    const saveKey = `${dimId}/${optionName}/${setName}`;
+    setSavingKeys(prev => { const n = new Set(prev); n.add(saveKey); return n; });
     setDimensions(prev => prev.map(d =>
       d.id === dimId
         ? { ...d, options: d.options.map(o => o.name === optionName ? { ...o, sets: updatedSets } : o) }
@@ -475,6 +478,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     } catch (err) {
       setDimensions(previousDimensions);
       setError(getErrorMessage(err, 'Failed to save'));
+    } finally {
+      setSavingKeys(prev => { const n = new Set(prev); n.delete(saveKey); return n; });
     }
   };
 
@@ -485,6 +490,9 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     const dim = dimensions.find(d => d.id === dimId);
     if (!dim) return;
     const previousDimensions = dimensions;
+    // Mark all options for this set as saving
+    const bulkKeys = dim.options.map(o => `${dimId}/${o.name}/${setName}`);
+    setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.add(k)); return n; });
     // Optimistic: update all options at once
     setDimensions(prev => prev.map(d =>
       d.id === dimId
@@ -512,6 +520,8 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
     } catch (err) {
       setDimensions(previousDimensions);
       setError(getErrorMessage(err, 'Failed to bulk-update'));
+    } finally {
+      setSavingKeys(prev => { const n = new Set(prev); bulkKeys.forEach(k => n.delete(k)); return n; });
     }
   };
 
@@ -893,6 +903,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                   <div className="px-3 py-2 text-[10px] text-[var(--color-figma-text-tertiary)] italic">No sets match &ldquo;{dimSetFilters[dim.id]}&rdquo;</div>
                                 ) : filteredOptSets.map(setName => {
                                   const state = opt.sets[setName] || 'disabled';
+                                  const isSaving = savingKeys.has(`${dim.id}/${opt.name}/${setName}`);
                                   const isDropTarget = dragOver?.dimId === dim.id && dragOver?.optionName === opt.name && dragOver?.setName === setName;
                                   const isDragging = dragInfo?.dimId === dim.id && dragInfo?.optionName === opt.name && dragInfo?.setName === setName;
                                   return (
@@ -925,7 +936,7 @@ export function ThemeManager({ serverUrl, connected, sets, onDimensionsChange, o
                                         </svg>
                                       </span>
                                       <span className="text-[11px] text-[var(--color-figma-text)] flex-1 truncate" title={setName}>{setName}</span>
-                                      <div className="flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[9px] font-medium">
+                                      <div className={`flex rounded overflow-hidden border border-[var(--color-figma-border)] text-[9px] font-medium transition-opacity ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
                                         {(['disabled', 'source', 'enabled'] as const).map(s => (
                                           <button
                                             key={s}

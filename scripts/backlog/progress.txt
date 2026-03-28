@@ -419,3 +419,13 @@
 - **Learnings for future iterations:**
   - Always trim user input once at the top of the handler and use the trimmed variable throughout — never mix raw and trimmed values
 ---
+
+## 2026-03-28 - No loading/saving indicator when toggling set state (Off/Base/On)
+- Added `savingKeys` state (`Set<string>`) to track in-flight set-state API calls
+- `handleSetState` and `handleBulkSetState` now add/remove keys around the fetch call (using `finally` for cleanup)
+- Toggle button group gets `opacity-50 pointer-events-none` while its save is in flight, providing subtle visual feedback
+- Files changed: `packages/figma-plugin/src/ui/components/ThemeManager.tsx` ~L89,459,482,495,524,889,922
+- **Learnings for future iterations:**
+  - Using a `Set<string>` keyed by `dimId/optName/setName` scales cleanly for both single and bulk state changes
+  - `finally` block ensures saving keys are cleaned up even on error, preventing stuck loading states
+---
