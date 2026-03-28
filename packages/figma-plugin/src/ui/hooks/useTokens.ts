@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { isDTCGToken } from '@tokenmanager/core';
-import type { DTCGGroup } from '@tokenmanager/core';
+import type { DTCGGroup, TokenValue, TokenReference } from '@tokenmanager/core';
 import type { TokenMapEntry } from '../../shared/types';
 import { STORAGE_KEYS, lsGet, lsSet } from '../shared/storage';
 
@@ -14,7 +14,7 @@ function flattenWithNames(group: DTCGGroup, prefix = '', parentType?: string): A
     const path = prefix ? `${prefix}.${key}` : key;
     if (isDTCGToken(value)) {
       const $type = value.$type ?? inheritedType ?? 'unknown';
-      out.push([path, { $value: value.$value, $type, $name: key }]);
+      out.push([path, { $value: value.$value as TokenValue | TokenReference, $type, $name: key }]);
     } else if (typeof value === 'object' && !Array.isArray(value)) {
       out.push(...flattenWithNames(value as DTCGGroup, path, inheritedType));
     }
@@ -26,7 +26,7 @@ export interface TokenNode {
   path: string;
   name: string;
   $type?: string;
-  $value?: any;
+  $value?: TokenValue | TokenReference;
   $description?: string;
   $extensions?: Record<string, unknown>;
   children?: TokenNode[];

@@ -276,3 +276,17 @@ Already up to date.
 
 --- Merging: Multiple eslint-disable react-hooks/exhaustive-deps comments suppress legitimate warnings ---
 Already up to date.
+[main 1a9c3f2] chore(backlog): done – Multiple eslint-disable react-hooks/exhaustive-deps comments suppress legitimate warnings
+ 10 files changed, 58 insertions(+), 23 deletions(-)
+  (maintenance pass skipped — another runner is handling it)
+
+## 2026-03-28 - Multiple `eslint-disable react-hooks/exhaustive-deps` comments suppress legitimate warnings
+- Removed all 7 `eslint-disable` suppressions across the 5 target files by properly declaring dependencies:
+  - **ImportPanel.tsx**: Wrapped `prefetchExistingPaths` in `useCallback([serverUrl])`, used `targetSetRef.current` in token-load effect to avoid adding `targetSet` as a trigger dep, added `tokens.length` to target-set effect.
+  - **TokenList.tsx**: Added missing `jsonDirty` and `allTokensFlat` deps to JSON-load effect; added all guard/fetch deps to token-sync effect.
+
+===============================================================
+  Iteration 14 / 90  (claude)  —  71 items remaining
+===============================================================
+  Claimed: `TokenList.tsx` is 4695 lines — largest file in the codebase; split into sub-components (row renderers, drag-drop logic, inline editing, context menu, filter/sort controls)
+  Worktree: /tmp/backlog-84992-fsLHxw

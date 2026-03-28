@@ -372,3 +372,14 @@
   - Unmemoized computed values (like `allChanges` from `gitStatus`) as effect deps cause the effect to run every render because array reference changes — always `useMemo` arrays/objects used in dep arrays.
   - The `lastValidatedKey` ref pattern is cleaner than omitting `loading` from deps: track "what key did I last act on" instead of "am I currently loading".
 ---
+
+## 2026-03-28 - `$value` typed as `any` in `TokenNode` interface (`useTokens.ts`) — type safety lost throughout entire token data flow
+- Replaced `any` with `TokenValue | TokenReference` on `TokenNode.$value` (useTokens.ts) and `TokenMapEntry.$value` (types.ts). Updated `resolveAlias.ts` functions (`isAlias`, `extractAliasPath`, `resolveTokenValue`, `ResolveResult`, `resolveObjectSubprops`, `resolveAllAliases`) to use the proper types instead of `any`. Added `import type { TokenValue, TokenReference }` from `@tokenmanager/core` in both files.
+- Files changed: `packages/figma-plugin/src/ui/hooks/useTokens.ts` ~L3,~L17,~L29, `packages/figma-plugin/src/shared/types.ts` ~L2,~L146, `packages/figma-plugin/src/shared/resolveAlias.ts` ~L1,~L6,~L10,~L16,~L24,~L85,~L113
+- **Learnings for future iterations:**
+  - `TokenValue` union from core already includes `string | number | boolean` plus all composite types, so it's broad enough to replace `any` without cascading type errors in the UI.
+  - `TokenReference` is a template literal type `` `{${string}}` `` — the `isAlias` type guard narrows to it correctly.
+  - `DTCGToken.$value` is `unknown` (raw file format), requiring an explicit `as TokenValue | TokenReference` cast at the flatten boundary.
+  - `isAlias`/`extractAliasPath` should accept `undefined` too since `TokenNode.$value` is optional.
+  - The Figma plugin controller (`controller.ts`) uses its own inline `{ $value: any; $type: string }` type for `tokenMap` — it's separate from `TokenMapEntry` and not affected by this change.
+---

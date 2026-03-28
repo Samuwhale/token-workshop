@@ -1,4 +1,5 @@
 // Shared types used by both controller (plugin sandbox) and UI
+import type { TokenValue, TokenReference } from '@tokenmanager/core';
 
 /** Shape returned by API endpoints on error (e.g. 4xx/5xx). */
 export interface ApiErrorBody {
@@ -147,7 +148,7 @@ export interface SelectionMessage {
 }
 
 export interface TokenMapEntry {
-  $value: any;
+  $value: TokenValue | TokenReference;
   $type: string;
   /** DTCG leaf key (segment name) — may contain dots, e.g. "1.5". */
   $name?: string;

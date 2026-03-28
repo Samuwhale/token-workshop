@@ -131,7 +131,7 @@
 - [x] 21 `as any` casts across UI components — particularly concerning in `SemanticMappingDialog.tsx` where API response bodies are cast to access `.error` without a proper typed response shape
 - [x] `substituteVars` in `eval-expr.ts` only replaces 4 hardcoded variable names (`base`, `index`, `multiplier`, `prev`) — function signature accepts `Record<string, number>` implying arbitrary keys, but extra keys are silently ignored
 - [x] `weightToFontStyle` mapping in controller uses hardcoded English style names — fonts using "Book", "Roman", "Demi" etc. cause `loadFontAsync` to throw, silently skipping typography application
-- [~] Multiple `eslint-disable react-hooks/exhaustive-deps` comments suppress legitimate warnings — `ImportPanel.tsx`, `TokenList.tsx`, `App.tsx`, `PublishPanel.tsx`, `AnalyticsPanel.tsx` all have stale closure risks from omitted deps
+- [x] Multiple `eslint-disable react-hooks/exhaustive-deps` comments suppress legitimate warnings — `ImportPanel.tsx`, `TokenList.tsx`, `App.tsx`, `PublishPanel.tsx`, `AnalyticsPanel.tsx` all have stale closure risks from omitted deps
 
 ### Accessibility
 
@@ -140,7 +140,7 @@
 
 ### Maintainability
 
-- [ ] `TokenList.tsx` is 4695 lines — largest file in the codebase; split into sub-components (row renderers, drag-drop logic, inline editing, context menu, filter/sort controls)
+- [~] `TokenList.tsx` is 4695 lines — largest file in the codebase; split into sub-components (row renderers, drag-drop logic, inline editing, context menu, filter/sort controls)
 - [ ] `App.tsx` is 2829 lines with 50+ useState calls — extract set management, merge/split, rename, delete, and duplicate logic into dedicated hooks
 - [ ] `TokenEditor.tsx` is 2485 lines — extract form sections (value editors per type, metadata editor, alias picker) into separate components
 - [ ] `PublishPanel.tsx` is 1642 lines — extract diff computation, variable publishing, and style publishing into separate hooks/components
