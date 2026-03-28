@@ -574,3 +574,11 @@
   - `TokenMapEntry` doesn't carry `$extensions` but `TokenNode` does — for detach, fetch the full token from the server API then PATCH back without the generator extension
   - The server's `computeResults` (preview) method is reusable for overwrite detection — compare preview output with existing token values
 ---
+
+## 2026-03-28 - Missing export validateStepName in generator-service.ts
+- Already implemented — `validateStepName` exists in `packages/core/src/generator-types.ts` ~L325, exported from `packages/core/src/index.ts` ~L105, and imported in `packages/server/src/services/generator-service.ts` ~L34
+- No changes needed; build passes successfully
+- **Learnings for future iterations:**
+  - The core dist directory is not committed; `npm run build` in `packages/core` must run first for server imports to resolve at runtime
+  - This backlog item was likely filed before the function was added and became stale
+---
