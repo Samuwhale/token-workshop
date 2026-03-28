@@ -531,3 +531,14 @@
   - LineHeight has dual-mode value: unitless number OR dimension object — needs a mode toggle
   - TOKEN_TYPE_BADGE_CLASS was also missing fontWeight and strokeStyle — these had editors but weren't in the type dropdown
 ---
+
+## 2026-03-28 - Color modifiers only available in alias mode
+- Removed the alias-only gate on ColorModifiersEditor so color modifiers (lighten, darken, mix, alpha) are available for both alias references and direct color values
+- Updated ColorModifiersEditor props to accept optional `directColor` (string hex) alongside optional `reference`/`colorFlatMap`, computing baseHex from whichever source is provided
+- Updated TokenEditor rendering condition: alias mode requires valid `{ref}` brackets, direct mode requires non-empty string value
+- Resolver already applied modifiers to any color token with `$extensions.tokenmanager.colorModifier` — no server-side changes needed
+- Files changed: `packages/figma-plugin/src/ui/components/ColorModifiersEditor.tsx` ~L6-21, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L1100-1108
+- **Learnings for future iterations:**
+  - The server-side resolver (`resolver.ts:320-328`) was already ungated — it applies modifiers to any color token regardless of alias vs direct value. The restriction was purely UI-side.
+  - ColorModifiersEditor's `resolveRefValue` call only makes sense for alias mode; for direct colors, the hex value is passed directly as `directColor` prop
+---

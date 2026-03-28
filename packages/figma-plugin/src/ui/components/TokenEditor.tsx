@@ -1120,11 +1120,12 @@ export function TokenEditor({ tokenPath, tokenName, setName, serverUrl, onBack, 
           </div>
         )}
 
-        {/* Color modifiers — only when aliasing a color */}
-        {tokenType === 'color' && aliasMode && reference.startsWith('{') && reference.endsWith('}') && (
+        {/* Color modifiers — available for alias and direct color values */}
+        {tokenType === 'color' && (aliasMode ? (reference.startsWith('{') && reference.endsWith('}')) : (typeof value === 'string' && value.length > 0)) && (
           <ColorModifiersEditor
-            reference={reference}
-            colorFlatMap={colorFlatMap}
+            reference={aliasMode ? reference : undefined}
+            colorFlatMap={aliasMode ? colorFlatMap : undefined}
+            directColor={!aliasMode && typeof value === 'string' ? value : undefined}
             colorModifiers={colorModifiers}
             onColorModifiersChange={setColorModifiers}
           />

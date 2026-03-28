@@ -304,3 +304,17 @@ Already up to date.
 
 --- Merging: 10 token types have no value editor ---
 Already up to date.
+[main af2a6ae] chore(backlog): done – 10 token types have no value editor
+ 10 files changed, 517 insertions(+), 6 deletions(-)
+ delete mode 120000 packages/server/node_modules
+
+## 2026-03-28 - 10 token types have no value editor
+- Added value editors for all 10 missing DTCG token types: cubicBezier (4-input + SVG curve preview + presets), transition (composite: duration/delay/timingFunction with embedded cubicBezier), fontStyle (select dropdown), lineHeight (unitless/dimension toggle), letterSpacing (number + unit select), percentage (number + % suffix), link (URL input + open-in-new-tab button), textDecoration (select dropdown), textTransform (select dropdown), custom (JSON textarea with parse feedback). Also added these types + fontWeight + strokeStyle to TOKEN_TYPE_BADGE_CLASS so they appear in the type dropdown, with matching CSS badge colors. Added DEFAULT_VALUE_FOR_TYPE entries for all 12 missing types and VALUE_FORMAT_HINTS for all 10 new types.
+- Files changed: `packages/figma-plugin/src/ui/components/ValueEditors.tsx` ~L1443-1810, `packages/figma-plugin/src/ui/components/TokenEditor.tsx` ~L14,625,1096-1106, `packages/figma-plugin/src/shared/types.ts` ~L49-60, `packages/figma-plugin/src/ui/styles.css` ~L41-66,109-121
+- **Learnings for future iterations:**
+
+===============================================================
+  Iteration 16 / 90  (claude)  —  35 items remaining
+===============================================================
+  Claimed: Multiple hooks use `Promise.all()` for batch server writes with no partial-failure handling — `useSetMergeSplit` (merge), `useStyleSync` (apply diff), and `useVariableSync` (apply diff) all reject on first failure, leaving tokens partially written with no rollback and no indication of which items succeeded
+  Worktree: /tmp/backlog-9231-x8HAj7

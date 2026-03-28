@@ -340,3 +340,10 @@ Already up to date.
 ===============================================================
   Claimed: Color modifiers (lighten, darken, mix, alpha) only available in alias mode — ColorModifiersEditor is gated on `aliasMode && reference.startsWith('{')`, so users can't apply parametric adjustments to direct color values; this forces an awkward workflow of first creating a base token, then aliasing it, just to use modifiers
   Worktree: /tmp/backlog-10054-hLLByq
+
+  ✓ done: Color modifiers only available in alias mode
+    Removed alias-only gate on ColorModifiersEditor; modifiers now available for direct color values too. Updated props to accept directColor alongside reference/colorFlatMap. Server resolver was already ungated.
+    27 turns · 173s · $0.88
+
+--- Merging: Color modifiers only available in alias mode ---
+Already up to date.

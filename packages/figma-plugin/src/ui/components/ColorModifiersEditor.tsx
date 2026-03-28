@@ -4,17 +4,22 @@ import type { ColorModifierOp } from '@tokenmanager/core';
 import { ColorSwatchButton } from './ValueEditors';
 
 interface ColorModifiersEditorProps {
-  reference: string;
-  colorFlatMap: Record<string, unknown>;
+  /** Alias reference like `{colors.base}` — used to resolve base color from colorFlatMap */
+  reference?: string;
+  colorFlatMap?: Record<string, unknown>;
+  /** Direct hex color value — used when not in alias mode */
+  directColor?: string;
   colorModifiers: ColorModifierOp[];
   onColorModifiersChange: (mods: ColorModifierOp[]) => void;
 }
 
-export function ColorModifiersEditor({ reference, colorFlatMap, colorModifiers, onColorModifiersChange: setColorModifiers }: ColorModifiersEditorProps) {
+export function ColorModifiersEditor({ reference, colorFlatMap, directColor, colorModifiers, onColorModifiersChange: setColorModifiers }: ColorModifiersEditorProps) {
   const [showModifiers, setShowModifiers] = useState(false);
 
-  const refPath = reference.slice(1, -1);
-  const baseHex = resolveRefValue(refPath, colorFlatMap);
+  const isAlias = reference && reference.startsWith('{') && reference.endsWith('}');
+  const refPath = isAlias ? reference.slice(1, -1) : '';
+  const resolvedHex = isAlias && colorFlatMap ? resolveRefValue(refPath, colorFlatMap) : undefined;
+  const baseHex = resolvedHex || directColor;
   const previewHex = baseHex && colorModifiers.length > 0 ? applyColorModifiers(baseHex, colorModifiers) : baseHex;
 
   return (
